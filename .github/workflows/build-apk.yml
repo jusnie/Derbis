@@ -43,13 +43,13 @@ jobs:
       - name: Stage Release APK
         run: |
           mkdir -p build-assets
-          find app/build/outputs/apk/release/ -type f -name "*.apk" -exec cp {} build-assets/Derbis-Release.apk \;
+          find app/build/outputs/apk/release/ -type f -name "*.apk" -exec cp {} build-assets/Derbis.apk \;
 
-      - name: Upload Derbis Release APK Artifact
+      - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-Release-APK
-          path: build-assets/*.apk
+          name: Derbis-APK
+          path: build-assets/Derbis.apk
 
       - name: Create / Update GitHub Release
         if: github.ref == 'refs/heads/main'
@@ -69,6 +69,6 @@ jobs:
             - ∞ **Endless Queue**: Continuous-radio queue capacity increased to 1,000 tracks with lazy scrolling.
             - 🧾 **Insights**: Derbis Wrapped and shareable Receiptify-style top-song cards are now fully Derbis-branded.
             - 🫧 **Liquid Glass**: Retained as a configurable player/interface design option.
-          files: build-assets/Derbis-Release.apk
+          files: build-assets/Derbis.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
