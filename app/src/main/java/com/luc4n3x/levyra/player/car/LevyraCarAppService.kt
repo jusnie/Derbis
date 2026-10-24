@@ -336,7 +336,7 @@ private class LevyraLibraryCarScreen(
                         browserProvider,
                         playbackReady,
                         item.mediaId,
-                        item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Levyra" }
+                        item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Derbis" }
                     )
                 )
             } else {
@@ -421,7 +421,7 @@ private class LevyraBrowseCarScreen(
                                         browserProvider,
                                         playbackReady,
                                         item.mediaId,
-                                        item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Levyra" }
+                                        item.mediaMetadata.title?.toString().orEmpty().ifBlank { "Derbis" }
                                     )
                                 )
                             } else {

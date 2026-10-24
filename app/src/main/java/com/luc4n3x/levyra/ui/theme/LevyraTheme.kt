@@ -44,7 +44,7 @@ object LevyraThemes {
     const val NEON_CYAN = "neon_cyan"
     const val PURPLE_GLASS = "purple_glass"
     const val MINIMAL_WHITE = "minimal_white"
-    const val LEVYRA_AURA = "levyra_aura"
+    const val LEVYRA_AURA = "derbis_aura"
     const val APPLE_MUSIC = LEVYRA_AURA
     const val COVER_FLOW = "cover_flow"
     const val MOOD_FLOW = "mood_flow"
@@ -82,7 +82,7 @@ object LevyraThemes {
 
     val levyraAura = cosmic.copy(
         id = LEVYRA_AURA,
-        label = "Levyra Aura",
+        label = "Derbis Aura",
         emoji = "✦",
         black = Color(0xFF121212),
         ink = Color(0xFF181818),

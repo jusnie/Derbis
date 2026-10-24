@@ -39,7 +39,7 @@ object LevyraShimmerDefaults {
 @Composable
 fun rememberLevyraShimmerProgress(active: Boolean = true): State<Float>? {
     if (!active || !LocalAnimationsEnabled.current) return null
-    val transition = rememberInfiniteTransition(label = "levyra-shimmer")
+    val transition = rememberInfiniteTransition(label = "derbis-shimmer")
     return transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -51,7 +51,7 @@ fun rememberLevyraShimmerProgress(active: Boolean = true): State<Float>? {
                 1f at SweepDurationMs + HoldDurationMs
             }
         ),
-        label = "levyra-shimmer-progress"
+        label = "derbis-shimmer-progress"
     )
 }
 

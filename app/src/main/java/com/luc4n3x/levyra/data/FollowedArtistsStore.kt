@@ -126,7 +126,7 @@ class FollowedArtistsStore(context: Context) {
     }
 
     private companion object {
-        const val PREFS_NAME = "levyra_followed_artists"
+        const val PREFS_NAME = "derbis_followed_artists"
         const val KEY_ARTISTS = "artists"
         const val KEY_KNOWN_PREFIX = "known_releases_"
         const val KEY_RADAR_OFFSET = "radar_offset"

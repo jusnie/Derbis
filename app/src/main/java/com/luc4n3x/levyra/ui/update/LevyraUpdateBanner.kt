@@ -416,7 +416,7 @@ private fun DeterminateTrack(fraction: Float) {
 
 @Composable
 private fun IndeterminateTrack() {
-    val transition = rememberInfiniteTransition(label = "levyra-update-track")
+    val transition = rememberInfiniteTransition(label = "derbis-update-track")
     val offset by transition.animateFloat(
         initialValue = -0.35f,
         targetValue = 1f,
@@ -424,7 +424,7 @@ private fun IndeterminateTrack() {
             animation = tween(durationMillis = 1_150, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "levyra-update-sweep"
+        label = "derbis-update-sweep"
     )
     Box(
         modifier = Modifier
@@ -478,8 +478,8 @@ internal fun levyraUpdateNoteLines(notes: String, version: String): List<String>
             val lower = line.lowercase()
             lower == "novità" ||
                 lower == "changelog" ||
-                lower.startsWith("levyra v$versionKey") ||
-                lower.startsWith("levyra $versionKey") ||
+                lower.startsWith("derbis v$versionKey") ||
+                lower.startsWith("derbis $versionKey") ||
                 lower.startsWith("versione $versionKey")
         }
         .distinct()

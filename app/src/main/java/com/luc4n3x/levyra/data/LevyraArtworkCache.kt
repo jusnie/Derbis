@@ -124,7 +124,7 @@ object LevyraArtworkCache {
                     }
                     .diskCache {
                         DiskCache.Builder()
-                            .directory(appContext.cacheDir.resolve("levyra_images").toOkioPath())
+                            .directory(appContext.cacheDir.resolve("derbis_images").toOkioPath())
                             .maxSizeBytes(384L * 1024 * 1024)
                             .build()
                     }
@@ -360,7 +360,7 @@ object LevyraArtworkCache {
     }
 
     private fun persistentDirectory(context: Context): File {
-        return File(context.applicationContext.filesDir, "levyra_artwork")
+        return File(context.applicationContext.filesDir, "derbis_artwork")
     }
 
     private fun persistentKey(track: Track, size: Int): String {

@@ -428,7 +428,7 @@ fun stringsFor(
         settingsOpenFolder = shared.open,
         settingsAbout = shared.app,
         settingsAboutBody = "Derbis Desktop · Windows",
-        trayShow = "Levyra · ${shared.open}",
+        trayShow = "Derbis · ${shared.open}",
         trayPlayPause = "${shared.play} / ${shared.pause}",
         trayNext = shared.next,
         trayQuit = shared.close,

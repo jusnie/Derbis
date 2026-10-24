@@ -574,7 +574,7 @@ class AndroidAutoLibrary(context: Context) {
             throw cancelled
         } catch (error: Exception) {
             Timber.w("Android Auto remote search failed: %s at %s; local=%d", error.javaClass.simpleName,
-                error.stackTrace.firstOrNull { it.className.startsWith("com.luc4n3x.levyra") }, local.size)
+                error.stackTrace.firstOrNull { it.className.startsWith("com.luc4n3x.derbis") }, local.size)
             if (local.isNotEmpty()) return@withContext local
             throw error
         }
@@ -808,29 +808,29 @@ class AndroidAutoLibrary(context: Context) {
     private data class TimedItems(val items: List<MediaItem>, val createdAt: Long)
 
     companion object {
-        const val ID_ROOT = "levyra:auto:root"
-        const val ID_HOME = "levyra:auto:home"
-        const val ID_QUEUE = "levyra:auto:queue"
-        const val ID_HOME_DRIVER = "levyra:auto:home:driver"
-        const val ID_HOME_TOP_IT = "levyra:auto:home:top-it"
-        const val ID_HOME_OFFLINE = "levyra:auto:home:offline"
-        const val ID_RECOMMENDED = "levyra:auto:recommended"
-        const val ID_ALBUMS = "levyra:auto:albums"
-        const val ID_ARTISTS = "levyra:auto:artists"
-        const val ID_FLOW = "levyra:auto:flow"
-        const val ID_AUTO_HOME_RECOMMENDED = "levyra:auto:home:recommended"
-        const val ID_AUTO_HOME_FLOW = "levyra:auto:home:flow"
-        const val ID_FAVORITES = "levyra:auto:favorites"
-        const val ID_DOWNLOADS = "levyra:auto:downloads"
-        const val ID_PLAYLISTS = "levyra:auto:playlists"
-        const val ID_RECENTS = "levyra:auto:recents"
-        const val ID_PLAYLIST_PREFIX = "levyra:auto:playlist:"
-        const val ID_ALBUM_PREFIX = "levyra:auto:album:"
-        const val ID_ARTIST_PREFIX = "levyra:auto:artist:"
-        const val ID_TRACK_PREFIX = "levyra:auto:track:"
-        const val EXTRA_TRACK_PAYLOAD = "levyra.auto.TRACK_PAYLOAD"
-        const val EXTRA_SOURCE = "levyra.auto.SOURCE"
-        const val EXTRA_SEARCH_FAILURE = "levyra.auto.SEARCH_FAILURE"
+        const val ID_ROOT = "derbis:auto:root"
+        const val ID_HOME = "derbis:auto:home"
+        const val ID_QUEUE = "derbis:auto:queue"
+        const val ID_HOME_DRIVER = "derbis:auto:home:driver"
+        const val ID_HOME_TOP_IT = "derbis:auto:home:top-it"
+        const val ID_HOME_OFFLINE = "derbis:auto:home:offline"
+        const val ID_RECOMMENDED = "derbis:auto:recommended"
+        const val ID_ALBUMS = "derbis:auto:albums"
+        const val ID_ARTISTS = "derbis:auto:artists"
+        const val ID_FLOW = "derbis:auto:flow"
+        const val ID_AUTO_HOME_RECOMMENDED = "derbis:auto:home:recommended"
+        const val ID_AUTO_HOME_FLOW = "derbis:auto:home:flow"
+        const val ID_FAVORITES = "derbis:auto:favorites"
+        const val ID_DOWNLOADS = "derbis:auto:downloads"
+        const val ID_PLAYLISTS = "derbis:auto:playlists"
+        const val ID_RECENTS = "derbis:auto:recents"
+        const val ID_PLAYLIST_PREFIX = "derbis:auto:playlist:"
+        const val ID_ALBUM_PREFIX = "derbis:auto:album:"
+        const val ID_ARTIST_PREFIX = "derbis:auto:artist:"
+        const val ID_TRACK_PREFIX = "derbis:auto:track:"
+        const val EXTRA_TRACK_PAYLOAD = "derbis.auto.TRACK_PAYLOAD"
+        const val EXTRA_SOURCE = "derbis.auto.SOURCE"
+        const val EXTRA_SEARCH_FAILURE = "derbis.auto.SEARCH_FAILURE"
         private const val MAX_FOLDER_TRACKS = 80
         private const val MAX_PLAYLISTS = 60
         private const val MAX_PAGE_ITEMS = 100
@@ -844,7 +844,7 @@ class AndroidAutoLibrary(context: Context) {
             "spiele ", "suche ", "ouvir ", "toque "
         )
         private val VOICE_APP_SUFFIXES = listOf(
-            " su levyra", " in levyra", " en levyra", " dans levyra", " mit levyra"
+            " su derbis", " in derbis", " en derbis", " dans derbis", " mit derbis"
         )
         private val SEARCH_STOP_WORDS = setOf(
             "di", "del", "della", "dei", "degli", "delle", "da", "by", "the",

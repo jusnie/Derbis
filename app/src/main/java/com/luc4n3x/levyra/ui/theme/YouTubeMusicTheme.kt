@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.materialkolor.hct.Hct
 
-internal const val YouTubeMusicPaletteId = "levyra_youtube_music_style"
+internal const val YouTubeMusicPaletteId = "derbis_youtube_music_style"
 val LevyraIsYouTubeMusic: Boolean get() = LevyraActivePalette.id == YouTubeMusicPaletteId
 
 internal object YouTubeMusicDesign {

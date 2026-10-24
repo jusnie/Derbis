@@ -97,7 +97,7 @@ class AppleMusicEditorialRepository private constructor(context: Context) {
             val curator = AppleExploreCatalog.findCurator(title, items)
                 ?: AppleExploreCatalog.findCurator(title, page(directory, "us", "en")?.page?.shelves.orEmpty().flatMap { it.items })
                 ?: continue
-            return page(AppleCatalogPath("curator/levyra/${curator.id}", "curator-${curator.id}"), storefront, language)?.page
+            return page(AppleCatalogPath("curator/derbis/${curator.id}", "curator-${curator.id}"), storefront, language)?.page
         }
         return null
     }
@@ -149,7 +149,7 @@ class AppleMusicEditorialRepository private constructor(context: Context) {
 
     private suspend fun fetchArtist(storefront: String, artistName: String, language: String): AppleArtistPage? {
         val header = artistHeader(storefront, artistName, language) ?: return null
-        val html = fetchHtml("https://music.apple.com/$storefront/artist/levyra/${header.id}?l=$language") ?: return null
+        val html = fetchHtml("https://music.apple.com/$storefront/artist/derbis/${header.id}?l=$language") ?: return null
         val page = AppleArtistPageParser.parse(html, System.currentTimeMillis()) ?: run {
             Timber.w("Apple artist markup changed for %s", header.id)
             return null
@@ -283,7 +283,7 @@ class AppleMusicEditorialRepository private constructor(context: Context) {
     }
 
     private fun fetchCollection(kind: AppleCatalogCollection, storefront: String, id: String, language: String): AppleCatalogPlaylist? {
-        val html = fetchHtml("https://music.apple.com/$storefront/${kind.segment}/levyra/$id?l=$language") ?: return null
+        val html = fetchHtml("https://music.apple.com/$storefront/${kind.segment}/derbis/$id?l=$language") ?: return null
         val now = System.currentTimeMillis()
         val page = AppleCatalogPageParser.parse(html, storefront, now) ?: run {
             Timber.w("Apple %s markup changed for %s", kind.segment, id)
@@ -312,7 +312,7 @@ class AppleMusicEditorialRepository private constructor(context: Context) {
             .url(url)
             .header("Accept", "text/html")
             .header("Accept-Language", Locale.getDefault().toLanguageTag())
-            .header("User-Agent", "Levyra/${BuildConfig.VERSION_NAME} Android")
+            .header("User-Agent", "Derbis/${BuildConfig.VERSION_NAME} Android")
             .build()
         return httpClient.newCall(request).execute().use { response ->
             if (!AppleCatalogIds.isCatalogUrl(response.request.url.toString())) return null

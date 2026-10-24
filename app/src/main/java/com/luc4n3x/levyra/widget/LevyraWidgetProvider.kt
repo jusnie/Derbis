@@ -21,8 +21,8 @@ class LevyraWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "com.luc4n3x.levyra.widget.TOGGLE"
-        const val ACTION_NEXT = "com.luc4n3x.levyra.widget.NEXT"
-        const val ACTION_PREVIOUS = "com.luc4n3x.levyra.widget.PREVIOUS"
+        const val ACTION_TOGGLE = "com.luc4n3x.derbis.widget.TOGGLE"
+        const val ACTION_NEXT = "com.luc4n3x.derbis.widget.NEXT"
+        const val ACTION_PREVIOUS = "com.luc4n3x.derbis.widget.PREVIOUS"
     }
 }

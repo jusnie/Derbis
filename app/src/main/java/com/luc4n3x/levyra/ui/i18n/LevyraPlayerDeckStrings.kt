@@ -52,7 +52,7 @@ internal data class PlayerDeckShortLabels(
     val pulse: String,
     val halo: String = "Liner Notes",
     val folio: String = "Folio",
-    val flow: String = "Levyra Flow"
+    val flow: String = "Derbis Flow"
 )
 
 private val playerDeckShortLabelsByCode: Map<String, PlayerDeckShortLabels> = mapOf(
@@ -90,34 +90,34 @@ internal fun playerDeckShortLabels(code: String): PlayerDeckShortLabels =
     playerDeckShortLabelsByCode[code] ?: playerDeckShortLabelsByCode.getValue("en")
 
 private val playerDeckBundles: Map<String, Map<String, String>> = mapOf(
-    "en" to playerDeck("Player Deck", "Choose your player style.", "Bloom", "Late Night", "Glowing artwork, quiet controls.", "Floating Canvas.", "Artwork only.", "Material 3 Expressive.", "Live audio pulse.", "Video, radio and landscape use Levyra."),
-    "it" to playerDeck("Player Deck", "Scegli lo stile del player.", "Bloom", "Late Night", "Copertina luminosa, comandi essenziali.", "Canvas sospeso.", "Solo copertina.", "Material 3 Expressive.", "Segnale audio live.", "Video, radio e orizzontale usano Levyra."),
-    "es" to playerDeck("Player Deck", "Elige el estilo del reproductor.", "Bloom", "Late Night", "Portada luminosa, controles sencillos.", "Canvas flotante.", "Solo portada.", "Material 3 Expressive.", "Pulso de audio en vivo.", "Vídeo, radio y horizontal usan Levyra."),
-    "fr" to playerDeck("Player Deck", "Choisissez le style du lecteur.", "Bloom", "Late Night", "Pochette lumineuse, commandes épurées.", "Canvas flottant.", "Pochette seule.", "Material 3 Expressive.", "Pulse audio en direct.", "Vidéo, radio et paysage utilisent Levyra."),
-    "de" to playerDeck("Player Deck", "Wähle deinen Player-Stil.", "Bloom", "Late Night", "Leuchtendes Cover, schlichte Steuerung.", "Schwebendes Canvas.", "Nur Cover.", "Material 3 Expressive.", "Live-Audiopuls.", "Video, Radio und Querformat nutzen Levyra."),
-    "pt" to playerDeck("Player Deck", "Escolhe o estilo do leitor.", "Bloom", "Late Night", "Capa luminosa, controlos simples.", "Canvas flutuante.", "Só capa.", "Material 3 Expressive.", "Pulso de áudio ao vivo.", "Vídeo, rádio e horizontal usam Levyra."),
-    "nl" to playerDeck("Player Deck", "Kies je playerstijl.", "Bloom", "Late Night", "Lichtgevende albumhoes, subtiele bediening.", "Zwevend Canvas.", "Alleen cover.", "Material 3 Expressive.", "Live audiopuls.", "Video, radio en liggend gebruiken Levyra."),
-    "pl" to playerDeck("Player Deck", "Wybierz styl odtwarzacza.", "Bloom", "Late Night", "Rozświetlona okładka, dyskretne sterowanie.", "Pływający Canvas.", "Tylko okładka.", "Material 3 Expressive.", "Puls audio na żywo.", "Wideo, radio i poziom używają Levyra."),
-    "ro" to playerDeck("Player Deck", "Alege stilul playerului.", "Bloom", "Late Night", "Copertă luminoasă, comenzi discrete.", "Canvas plutitor.", "Doar coperta.", "Material 3 Expressive.", "Puls audio live.", "Video, radio și peisaj folosesc Levyra."),
-    "el" to playerDeck("Player Deck", "Διάλεξε στυλ αναπαραγωγής.", "Bloom", "Late Night", "Φωτεινό εξώφυλλο, διακριτικά χειριστήρια.", "Αιωρούμενο Canvas.", "Μόνο εξώφυλλο.", "Material 3 Expressive.", "Ζωντανός παλμός ήχου.", "Βίντεο, ράδιο και οριζόντια προβολή χρησιμοποιούν Levyra."),
-    "sv" to playerDeck("Player Deck", "Välj spelarstil.", "Bloom", "Late Night", "Lysande omslag, diskreta kontroller.", "Svävande Canvas.", "Endast omslag.", "Material 3 Expressive.", "Live ljudpuls.", "Video, radio och liggande använder Levyra."),
-    "da" to playerDeck("Player Deck", "Vælg afspillerstil.", "Bloom", "Late Night", "Lysende cover, diskrete betjeningsknapper.", "Svævende Canvas.", "Kun cover.", "Material 3 Expressive.", "Live lydpuls.", "Video, radio og liggende bruger Levyra."),
-    "cs" to playerDeck("Player Deck", "Vyber styl přehrávače.", "Bloom", "Late Night", "Zářící obal, nenápadné ovládání.", "Plovoucí Canvas.", "Jen obal.", "Material 3 Expressive.", "Živý zvukový puls.", "Video, rádio a zobrazení na šířku používají Levyra."),
-    "uk" to playerDeck("Player Deck", "Виберіть стиль плеєра.", "Bloom", "Late Night", "Сяюча обкладинка, ненав’язливе керування.", "Плаваючий Canvas.", "Лише обкладинка.", "Material 3 Expressive.", "Живий аудіопульс.", "Відео, радіо й альбомний режим використовують Levyra."),
-    "ru" to playerDeck("Player Deck", "Выберите стиль плеера.", "Bloom", "Late Night", "Сияющая обложка, ненавязчивое управление.", "Плавающий Canvas.", "Только обложка.", "Material 3 Expressive.", "Живой аудиопульс.", "Видео, радио и альбомный режим используют Levyra."),
-    "tr" to playerDeck("Player Deck", "Oynatıcı stilini seç.", "Bloom", "Late Night", "Işıltılı kapak, sade kontroller.", "Yüzen Canvas.", "Yalnızca kapak.", "Material 3 Expressive.", "Canlı ses darbesi.", "Video, radyo ve yatay görünüm Levyra kullanır."),
-    "ar" to playerDeck("Player Deck", "اختر نمط المشغل.", "Bloom", "Late Night", "غلاف متوهج وعناصر تحكم بسيطة.", "Canvas عائم.", "الغلاف فقط.", "Material 3 Expressive.", "نبض صوتي مباشر.", "الفيديو والراديو والوضع الأفقي تستخدم Levyra."),
-    "zh" to playerDeck("Player Deck", "选择播放器样式。", "Bloom", "Late Night", "发光封面，简洁控件。", "悬浮 Canvas。", "仅封面。", "Material 3 Expressive.", "实时音频脉冲。", "视频、电台和横屏使用 Levyra。"),
-    "ja" to playerDeck("Player Deck", "プレイヤーのスタイルを選択。", "Bloom", "Late Night", "輝くジャケットと控えめな操作ボタン。", "フローティング Canvas。", "アートワークのみ。", "Material 3 Expressive.", "ライブ音声パルス。", "動画、ラジオ、横画面は Levyra を使用します。"),
-    "ko" to playerDeck("Player Deck", "플레이어 스타일을 선택하세요.", "Bloom", "Late Night", "빛나는 앨범 아트와 간결한 조작 버튼.", "플로팅 Canvas.", "아트워크만.", "Material 3 Expressive.", "라이브 오디오 펄스.", "동영상, 라디오, 가로 화면은 Levyra를 사용합니다."),
-    "hi" to playerDeck("Player Deck", "प्लेयर शैली चुनें।", "Bloom", "Late Night", "चमकता कवर, सरल नियंत्रण।", "फ्लोटिंग Canvas।", "केवल कवर।", "Material 3 Expressive.", "लाइव ऑडियो पल्स।", "वीडियो, रेडियो और लैंडस्केप Levyra का उपयोग करते हैं।"),
-    "id" to playerDeck("Player Deck", "Pilih gaya pemutar.", "Bloom", "Late Night", "Sampul bercahaya, kontrol sederhana.", "Canvas mengambang.", "Sampul saja.", "Material 3 Expressive.", "Denyut audio langsung.", "Video, radio, dan lanskap memakai Levyra."),
-    "vi" to playerDeck("Player Deck", "Chọn kiểu trình phát.", "Bloom", "Late Night", "Ảnh bìa rực sáng, điều khiển tối giản.", "Canvas nổi.", "Chỉ ảnh bìa.", "Material 3 Expressive.", "Nhịp âm thanh trực tiếp.", "Video, radio và màn hình ngang dùng Levyra."),
-    "th" to playerDeck("Player Deck", "เลือกสไตล์เครื่องเล่น", "Bloom", "Late Night", "ปกอัลบั้มเปล่งประกาย พร้อมปุ่มควบคุมเรียบง่าย", "Canvas แบบลอย", "เฉพาะปก", "Material 3 Expressive.", "พัลส์เสียงสด", "วิดีโอ วิทยุ และแนวนอนใช้ Levyra"),
-    "fil" to playerDeck("Player Deck", "Piliin ang estilo ng player.", "Bloom", "Late Night", "Kumikinang na cover, simpleng controls.", "Floating Canvas.", "Cover lang.", "Material 3 Expressive.", "Live audio pulse.", "Video, radio at landscape ay gumagamit ng Levyra."),
-    "he" to playerDeck("Player Deck", "בחר סגנון נגן.", "Bloom", "Late Night", "עטיפה זוהרת, פקדים עדינים.", "Canvas צף.", "עטיפה בלבד.", "Material 3 Expressive.", "פולס שמע חי.", "וידאו, רדיו ותצוגה לרוחב משתמשים ב-Levyra."),
-    "fi" to playerDeck("Player Deck", "Valitse soittimen tyyli.", "Bloom", "Late Night", "Hohtava kansikuva, hillityt säätimet.", "Kelluva Canvas.", "Vain kansi.", "Material 3 Expressive.", "Live-äänipulssi.", "Video, radio ja vaakatila käyttävät Levyraa."),
-    "et" to playerDeck("Player Deck", "Vali mängija stiil.", "Bloom", "Late Night", "Helendav kaanepilt, tagasihoidlikud juhtnupud.", "Hõljuv Canvas.", "Ainult kaas.", "Material 3 Expressive.", "Reaalaja helipulss.", "Video, raadio ja rõhtvaade kasutavad Levyrat.")
+    "en" to playerDeck("Player Deck", "Choose your player style.", "Bloom", "Late Night", "Glowing artwork, quiet controls.", "Floating Canvas.", "Artwork only.", "Material 3 Expressive.", "Live audio pulse.", "Video, radio and landscape use Derbis."),
+    "it" to playerDeck("Player Deck", "Scegli lo stile del player.", "Bloom", "Late Night", "Copertina luminosa, comandi essenziali.", "Canvas sospeso.", "Solo copertina.", "Material 3 Expressive.", "Segnale audio live.", "Video, radio e orizzontale usano Derbis."),
+    "es" to playerDeck("Player Deck", "Elige el estilo del reproductor.", "Bloom", "Late Night", "Portada luminosa, controles sencillos.", "Canvas flotante.", "Solo portada.", "Material 3 Expressive.", "Pulso de audio en vivo.", "Vídeo, radio y horizontal usan Derbis."),
+    "fr" to playerDeck("Player Deck", "Choisissez le style du lecteur.", "Bloom", "Late Night", "Pochette lumineuse, commandes épurées.", "Canvas flottant.", "Pochette seule.", "Material 3 Expressive.", "Pulse audio en direct.", "Vidéo, radio et paysage utilisent Derbis."),
+    "de" to playerDeck("Player Deck", "Wähle deinen Player-Stil.", "Bloom", "Late Night", "Leuchtendes Cover, schlichte Steuerung.", "Schwebendes Canvas.", "Nur Cover.", "Material 3 Expressive.", "Live-Audiopuls.", "Video, Radio und Querformat nutzen Derbis."),
+    "pt" to playerDeck("Player Deck", "Escolhe o estilo do leitor.", "Bloom", "Late Night", "Capa luminosa, controlos simples.", "Canvas flutuante.", "Só capa.", "Material 3 Expressive.", "Pulso de áudio ao vivo.", "Vídeo, rádio e horizontal usam Derbis."),
+    "nl" to playerDeck("Player Deck", "Kies je playerstijl.", "Bloom", "Late Night", "Lichtgevende albumhoes, subtiele bediening.", "Zwevend Canvas.", "Alleen cover.", "Material 3 Expressive.", "Live audiopuls.", "Video, radio en liggend gebruiken Derbis."),
+    "pl" to playerDeck("Player Deck", "Wybierz styl odtwarzacza.", "Bloom", "Late Night", "Rozświetlona okładka, dyskretne sterowanie.", "Pływający Canvas.", "Tylko okładka.", "Material 3 Expressive.", "Puls audio na żywo.", "Wideo, radio i poziom używają Derbis."),
+    "ro" to playerDeck("Player Deck", "Alege stilul playerului.", "Bloom", "Late Night", "Copertă luminoasă, comenzi discrete.", "Canvas plutitor.", "Doar coperta.", "Material 3 Expressive.", "Puls audio live.", "Video, radio și peisaj folosesc Derbis."),
+    "el" to playerDeck("Player Deck", "Διάλεξε στυλ αναπαραγωγής.", "Bloom", "Late Night", "Φωτεινό εξώφυλλο, διακριτικά χειριστήρια.", "Αιωρούμενο Canvas.", "Μόνο εξώφυλλο.", "Material 3 Expressive.", "Ζωντανός παλμός ήχου.", "Βίντεο, ράδιο και οριζόντια προβολή χρησιμοποιούν Derbis."),
+    "sv" to playerDeck("Player Deck", "Välj spelarstil.", "Bloom", "Late Night", "Lysande omslag, diskreta kontroller.", "Svävande Canvas.", "Endast omslag.", "Material 3 Expressive.", "Live ljudpuls.", "Video, radio och liggande använder Derbis."),
+    "da" to playerDeck("Player Deck", "Vælg afspillerstil.", "Bloom", "Late Night", "Lysende cover, diskrete betjeningsknapper.", "Svævende Canvas.", "Kun cover.", "Material 3 Expressive.", "Live lydpuls.", "Video, radio og liggende bruger Derbis."),
+    "cs" to playerDeck("Player Deck", "Vyber styl přehrávače.", "Bloom", "Late Night", "Zářící obal, nenápadné ovládání.", "Plovoucí Canvas.", "Jen obal.", "Material 3 Expressive.", "Živý zvukový puls.", "Video, rádio a zobrazení na šířku používají Derbis."),
+    "uk" to playerDeck("Player Deck", "Виберіть стиль плеєра.", "Bloom", "Late Night", "Сяюча обкладинка, ненав’язливе керування.", "Плаваючий Canvas.", "Лише обкладинка.", "Material 3 Expressive.", "Живий аудіопульс.", "Відео, радіо й альбомний режим використовують Derbis."),
+    "ru" to playerDeck("Player Deck", "Выберите стиль плеера.", "Bloom", "Late Night", "Сияющая обложка, ненавязчивое управление.", "Плавающий Canvas.", "Только обложка.", "Material 3 Expressive.", "Живой аудиопульс.", "Видео, радио и альбомный режим используют Derbis."),
+    "tr" to playerDeck("Player Deck", "Oynatıcı stilini seç.", "Bloom", "Late Night", "Işıltılı kapak, sade kontroller.", "Yüzen Canvas.", "Yalnızca kapak.", "Material 3 Expressive.", "Canlı ses darbesi.", "Video, radyo ve yatay görünüm Derbis kullanır."),
+    "ar" to playerDeck("Player Deck", "اختر نمط المشغل.", "Bloom", "Late Night", "غلاف متوهج وعناصر تحكم بسيطة.", "Canvas عائم.", "الغلاف فقط.", "Material 3 Expressive.", "نبض صوتي مباشر.", "الفيديو والراديو والوضع الأفقي تستخدم Derbis."),
+    "zh" to playerDeck("Player Deck", "选择播放器样式。", "Bloom", "Late Night", "发光封面，简洁控件。", "悬浮 Canvas。", "仅封面。", "Material 3 Expressive.", "实时音频脉冲。", "视频、电台和横屏使用 Derbis。"),
+    "ja" to playerDeck("Player Deck", "プレイヤーのスタイルを選択。", "Bloom", "Late Night", "輝くジャケットと控えめな操作ボタン。", "フローティング Canvas。", "アートワークのみ。", "Material 3 Expressive.", "ライブ音声パルス。", "動画、ラジオ、横画面は Derbis を使用します。"),
+    "ko" to playerDeck("Player Deck", "플레이어 스타일을 선택하세요.", "Bloom", "Late Night", "빛나는 앨범 아트와 간결한 조작 버튼.", "플로팅 Canvas.", "아트워크만.", "Material 3 Expressive.", "라이브 오디오 펄스.", "동영상, 라디오, 가로 화면은 Derbis를 사용합니다."),
+    "hi" to playerDeck("Player Deck", "प्लेयर शैली चुनें।", "Bloom", "Late Night", "चमकता कवर, सरल नियंत्रण।", "फ्लोटिंग Canvas।", "केवल कवर।", "Material 3 Expressive.", "लाइव ऑडियो पल्स।", "वीडियो, रेडियो और लैंडस्केप Derbis का उपयोग करते हैं।"),
+    "id" to playerDeck("Player Deck", "Pilih gaya pemutar.", "Bloom", "Late Night", "Sampul bercahaya, kontrol sederhana.", "Canvas mengambang.", "Sampul saja.", "Material 3 Expressive.", "Denyut audio langsung.", "Video, radio, dan lanskap memakai Derbis."),
+    "vi" to playerDeck("Player Deck", "Chọn kiểu trình phát.", "Bloom", "Late Night", "Ảnh bìa rực sáng, điều khiển tối giản.", "Canvas nổi.", "Chỉ ảnh bìa.", "Material 3 Expressive.", "Nhịp âm thanh trực tiếp.", "Video, radio và màn hình ngang dùng Derbis."),
+    "th" to playerDeck("Player Deck", "เลือกสไตล์เครื่องเล่น", "Bloom", "Late Night", "ปกอัลบั้มเปล่งประกาย พร้อมปุ่มควบคุมเรียบง่าย", "Canvas แบบลอย", "เฉพาะปก", "Material 3 Expressive.", "พัลส์เสียงสด", "วิดีโอ วิทยุ และแนวนอนใช้ Derbis"),
+    "fil" to playerDeck("Player Deck", "Piliin ang estilo ng player.", "Bloom", "Late Night", "Kumikinang na cover, simpleng controls.", "Floating Canvas.", "Cover lang.", "Material 3 Expressive.", "Live audio pulse.", "Video, radio at landscape ay gumagamit ng Derbis."),
+    "he" to playerDeck("Player Deck", "בחר סגנון נגן.", "Bloom", "Late Night", "עטיפה זוהרת, פקדים עדינים.", "Canvas צף.", "עטיפה בלבד.", "Material 3 Expressive.", "פולס שמע חי.", "וידאו, רדיו ותצוגה לרוחב משתמשים ב-Derbis."),
+    "fi" to playerDeck("Player Deck", "Valitse soittimen tyyli.", "Bloom", "Late Night", "Hohtava kansikuva, hillityt säätimet.", "Kelluva Canvas.", "Vain kansi.", "Material 3 Expressive.", "Live-äänipulssi.", "Video, radio ja vaakatila käyttävät Derbisa."),
+    "et" to playerDeck("Player Deck", "Vali mängija stiil.", "Bloom", "Late Night", "Helendav kaanepilt, tagasihoidlikud juhtnupud.", "Hõljuv Canvas.", "Ainult kaas.", "Material 3 Expressive.", "Reaalaja helipulss.", "Video, raadio ja rõhtvaade kasutavad Derbist.")
 )
 
 private val playerDeckHaloHints: Map<String, String> = mapOf(
@@ -320,7 +320,7 @@ internal fun playerDeckLocalizationEntries(code: String): Map<String, String> =
         "playerDeckHaloHint" to (playerDeckHaloHints[code] ?: playerDeckHaloHints.getValue("en")),
         "playerDeckFolio" to "Folio",
         "playerDeckFolioHint" to (playerDeckFolioHints[code] ?: playerDeckFolioHints.getValue("en")),
-        "playerDeckFlow" to "Levyra Flow",
+        "playerDeckFlow" to "Derbis Flow",
         "playerDeckCardHint" to (playerDeckSleeveHints[code] ?: playerDeckSleeveHints.getValue("en")),
         "playerDeckFlowHint" to (playerDeckFlowHints[code] ?: playerDeckFlowHints.getValue("en")),
         "playerDeckDefaultBadge" to (playerDeckDefaultBadges[code] ?: playerDeckDefaultBadges.getValue("en"))

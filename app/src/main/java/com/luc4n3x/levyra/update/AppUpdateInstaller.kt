@@ -34,7 +34,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 
 internal object AppUpdateContract {
-    const val INSTALL_URI = "levyra-internal://updates/install"
+    const val INSTALL_URI = "derbis-internal://updates/install"
 
     fun matches(action: String?, uri: String?): Boolean =
         action == Intent.ACTION_VIEW && uri == INSTALL_URI
@@ -186,7 +186,7 @@ internal class AppUpdateInstaller(
         }
 
         val initialUrl = validateLevyraUpdateUrl(update.assetDownloadUrl, initial = true)
-            ?: throw IOException("Invalid Levyra update URL")
+            ?: throw IOException("Invalid Derbis update URL")
         downloadToFile(initialUrl, update, partFile) { downloaded, total ->
             onProgress(versionName, downloaded, total)
         }
@@ -221,7 +221,7 @@ internal class AppUpdateInstaller(
             val request = Request.Builder()
                 .url(currentUrl)
                 .header("Accept", "application/vnd.android.package-archive, application/octet-stream;q=0.9")
-                .header("User-Agent", "LEVYRA/${BuildConfig.VERSION_NAME}")
+                .header("User-Agent", "DERBIS/${BuildConfig.VERSION_NAME}")
                 .header("Cache-Control", "no-cache")
                 .build()
             val call = downloadClient.newCall(request)

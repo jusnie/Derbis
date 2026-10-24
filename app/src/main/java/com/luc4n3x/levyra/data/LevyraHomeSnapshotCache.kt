@@ -14,7 +14,7 @@ import timber.log.Timber
 import java.io.File
 
 class LevyraHomeSnapshotCache(context: Context) {
-    private val root = File(context.applicationContext.filesDir, "levyra_home_snapshots").apply { mkdirs() }
+    private val root = File(context.applicationContext.filesDir, "derbis_home_snapshots").apply { mkdirs() }
 
     fun load(languageCode: String): LevyraHomeSnapshot? {
         val normalized = LevyraLanguageCatalog.normalize(languageCode)

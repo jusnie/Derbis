@@ -244,7 +244,7 @@ internal class YoutubeMusicChartsRepository(context: Context) {
     private companion object {
         const val DEFAULT_COUNTRY = "IT"
         const val CLIENT_VERSION = "1.20260423.01.00"
-        const val PLAYLIST_STORE_NAME = "levyra_youtube_music_charts"
+        const val PLAYLIST_STORE_NAME = "derbis_youtube_music_charts"
         const val PLAYLIST_ID_TTL_MS = 7L * 24L * 60L * 60L * 1000L
         const val MAX_PLAYLIST_PAGES = 8
         const val CHART_SOURCE = "YouTube Music Charts"

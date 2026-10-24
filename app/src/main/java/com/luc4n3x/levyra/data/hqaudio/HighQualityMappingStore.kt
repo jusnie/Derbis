@@ -30,7 +30,7 @@ internal class SharedPreferencesMappingStorage(context: Context) : HighQualityMa
     override fun keys(): Set<String> = preferences.all.keys.toSet()
 
     companion object {
-        const val PREFERENCES_NAME = "levyra_hq_audio_mappings"
+        const val PREFERENCES_NAME = "derbis_hq_audio_mappings"
     }
 }
 

@@ -7,15 +7,15 @@ import com.luc4n3x.levyra.feature.sharedmedia.SharedMediaIntentParser
 import com.luc4n3x.levyra.feature.sharedmedia.SharedMediaRequest
 
 object LevyraLaunchActions {
-    private const val EXTRA_SHARED_MEDIA_CONSUMED = "levyra.shared_media_consumed"
-    const val EXTRA_SHORTCUT = "levyra.shortcut"
-    const val EXTRA_ARTIST = "levyra.open_artist"
-    const val EXTRA_RELEASE_ID = "levyra.open_release_id"
-    const val EXTRA_RELEASE_TITLE = "levyra.open_release_title"
-    const val EXTRA_RELEASE_ARTIST = "levyra.open_release_artist"
-    const val EXTRA_RELEASE_ARTWORK = "levyra.open_release_artwork"
-    const val EXTRA_RELEASE_YEAR = "levyra.open_release_year"
-    const val EXTRA_RECOGNITION_PERMISSION_REQUEST = "levyra.recognition_permission_request"
+    private const val EXTRA_SHARED_MEDIA_CONSUMED = "derbis.shared_media_consumed"
+    const val EXTRA_SHORTCUT = "derbis.shortcut"
+    const val EXTRA_ARTIST = "derbis.open_artist"
+    const val EXTRA_RELEASE_ID = "derbis.open_release_id"
+    const val EXTRA_RELEASE_TITLE = "derbis.open_release_title"
+    const val EXTRA_RELEASE_ARTIST = "derbis.open_release_artist"
+    const val EXTRA_RELEASE_ARTWORK = "derbis.open_release_artwork"
+    const val EXTRA_RELEASE_YEAR = "derbis.open_release_year"
+    const val EXTRA_RECOGNITION_PERMISSION_REQUEST = "derbis.recognition_permission_request"
     const val SHORTCUT_FAVORITES = "favorites"
     const val SHORTCUT_FLOW = "flow"
     const val SHORTCUT_OFFLINE = "offline"
@@ -77,7 +77,7 @@ object LevyraLaunchActions {
             intent.removeExtra(EXTRA_ARTIST)
         }
         val jamLink = intent.takeIf { it.action == Intent.ACTION_VIEW }?.data
-            ?.takeIf { it.scheme.equals("levyra", ignoreCase = true) && it.host.equals("jam", ignoreCase = true) }
+            ?.takeIf { it.scheme.equals("derbis", ignoreCase = true) && it.host.equals("jam", ignoreCase = true) }
             ?.toString()
         if (jamLink != null && JamSessionCode.parse(jamLink) != null) {
             pendingJamCode.value = jamLink

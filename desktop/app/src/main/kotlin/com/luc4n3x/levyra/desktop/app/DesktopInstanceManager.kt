@@ -121,7 +121,7 @@ internal class DesktopInstanceManager private constructor(
         }
 
         private const val LOCK_FILE = "desktop-instance.lock"
-        private const val MESSAGE_PREFIX = "LEVYRA\t"
+        private const val MESSAGE_PREFIX = "DERBIS\t"
         private const val CONNECT_ATTEMPTS = 20
         private const val CONNECT_TIMEOUT_MS = 250
         private const val CONNECT_RETRY_MS = 100L

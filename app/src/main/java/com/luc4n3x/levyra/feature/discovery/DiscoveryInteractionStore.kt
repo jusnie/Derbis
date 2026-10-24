@@ -31,7 +31,7 @@ internal class DiscoveryInteractionStore(private val preferences: SharedPreferen
     }
 
     private companion object {
-        const val PREFERENCES = "levyra_discovery"
+        const val PREFERENCES = "derbis_discovery"
         const val KEY_INTERACTIONS = "interactions"
     }
 }

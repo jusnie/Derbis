@@ -407,7 +407,7 @@ class AlternativeTrackMatcher {
         )
         private val releaseSource = Regex("[(\\[]\\s*from\\s+[\"“”']?([^\"“”)\\]]+)", RegexOption.IGNORE_CASE)
         internal val untrustedAlbumNames = setOf(
-            "levyra",
+            "derbis",
             "youtube",
             "youtube music",
             "youtube music radio",

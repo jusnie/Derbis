@@ -138,7 +138,7 @@ class OnDemandCanvasResolver(
             .post(body)
             .header("User-Agent", USER_AGENT)
             .header("Accept", "application/json")
-            .header("X-Levyra-Key", clientKey)
+            .header("X-Derbis-Key", clientKey)
             .build()
     }
 
@@ -257,7 +257,7 @@ class OnDemandCanvasResolver(
     }
 
     companion object {
-        const val USER_AGENT = "Levyra/1.0 (Android; MotionArtwork)"
+        const val USER_AGENT = "Derbis/1.0 (Android; MotionArtwork)"
         private const val MAX_RESPONSE_BYTES = 64 * 1024
         private const val MAX_NEGATIVE_CACHE_ENTRIES = 128
         private const val NEGATIVE_CACHE_TTL_MS = 10L * 60L * 1000L

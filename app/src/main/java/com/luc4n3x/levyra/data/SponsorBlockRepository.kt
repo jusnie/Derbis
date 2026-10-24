@@ -174,7 +174,7 @@ private class UrlConnectionSponsorBlockHttpFetcher : SponsorBlockHttpFetcher {
             readTimeout = 11000
             setInstanceFollowRedirects(false)
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("User-Agent", "LEVYRA Music Player (Android)")
+            setRequestProperty("User-Agent", "DERBIS Music Player (Android)")
         }
         return try {
             val code = connection.responseCode

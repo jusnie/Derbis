@@ -35,8 +35,8 @@ sealed interface JamMessage {
 }
 
 object JamAuth {
-    private const val GUEST_AUTH_CONTEXT = "levyra-jam-guest-auth-v1"
-    private const val HOST_WELCOME_CONTEXT = "levyra-jam-host-welcome-v1"
+    private const val GUEST_AUTH_CONTEXT = "derbis-jam-guest-auth-v1"
+    private const val HOST_WELCOME_CONTEXT = "derbis-jam-host-welcome-v1"
 
     fun generateNonce(): String {
         val bytes = ByteArray(16)

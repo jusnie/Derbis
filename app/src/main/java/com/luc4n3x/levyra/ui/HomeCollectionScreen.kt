@@ -105,7 +105,7 @@ internal fun HomeCollectionScreen(
 ) {
     if (com.luc4n3x.levyra.ui.theme.LevyraIsAppleMusic) {
         AppleMusicCollectionScreen(
-            title = title, curator = "Levyra", caption = "", description = "",
+            title = title, curator = "Derbis", caption = "", description = "",
             artworkUrl = "", artworkTrack = tracks.firstOrNull(), tracks = tracks, currentId = currentId,
             loading = false, failed = false, bottomInset = bottomInset, onDismiss = onDismiss, onPlay = onPlay,
             onPlayAll = onPlayAll, onShuffle = onShuffle, onTrackActions = onTrackActions

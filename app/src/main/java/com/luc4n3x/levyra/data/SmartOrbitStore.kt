@@ -50,7 +50,7 @@ class SmartOrbitStore(context: Context) {
     }
 
     private companion object {
-        const val FILE_NAME = "levyra_smart_orbit.json"
+        const val FILE_NAME = "derbis_smart_orbit.json"
     }
 }
 

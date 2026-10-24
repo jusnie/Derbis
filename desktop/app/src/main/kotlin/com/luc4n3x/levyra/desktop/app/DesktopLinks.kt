@@ -10,7 +10,7 @@ import java.nio.file.Path
 import java.util.Locale
 
 internal object DesktopProtocolRegistrar {
-    private const val SCHEME = "levyra"
+    private const val SCHEME = "derbis"
     private const val REGISTRY_KEY = "HKCU\\Software\\Classes\\$SCHEME"
 
     fun register() {
@@ -19,7 +19,7 @@ internal object DesktopProtocolRegistrar {
         val current = queryDefault("$REGISTRY_KEY\\shell\\open\\command")
         if (current?.contains(executable, ignoreCase = true) == true) return
 
-        addDefault(REGISTRY_KEY, "URL:Levyra Protocol")
+        addDefault(REGISTRY_KEY, "URL:Derbis Protocol")
         addValue(REGISTRY_KEY, "URL Protocol", "")
         addDefault("$REGISTRY_KEY\\DefaultIcon", "\"$executable\",0")
         addDefault("$REGISTRY_KEY\\shell\\open\\command", "\"$executable\" \"%1\"")
@@ -36,7 +36,7 @@ internal object DesktopProtocolRegistrar {
         val runtime = generateSequence(Path.of(javaHome)) { it.parent }
             .firstOrNull { it.fileName?.toString().equals("runtime", ignoreCase = true) }
         val appDirectory = runtime?.parent ?: return null
-        val executable = appDirectory.resolve("Levyra.exe")
+        val executable = appDirectory.resolve("Derbis.exe")
         return executable.takeIf(Files::isRegularFile)?.toString()
     }
 
@@ -77,7 +77,7 @@ internal object DesktopProtocolRegistrar {
 
 internal object DesktopLinkRouter {
     fun launchPayload(args: Array<String>): String = args.firstOrNull { argument ->
-        argument.startsWith("levyra://", ignoreCase = true) ||
+        argument.startsWith("derbis://", ignoreCase = true) ||
             argument.startsWith("https://", ignoreCase = true) ||
             argument.startsWith("http://", ignoreCase = true)
     }.orEmpty()
@@ -102,7 +102,7 @@ internal object DesktopLinkRouter {
         val uri = runCatching { URI(clean) }.getOrNull() ?: return null
         val scheme = uri.scheme.orEmpty().lowercase(Locale.ROOT)
 
-        if (scheme == "levyra") {
+        if (scheme == "derbis") {
             val host = uri.host.orEmpty().lowercase(Locale.ROOT)
             val query = queryParameters(uri)
             return when (host) {

@@ -123,7 +123,7 @@ private fun LazyListScope.youTubeMusicHomeHeaders(
 ) {
     item(key = "ytm-home-bar", contentType = "ytm-bar") {
         YouTubeMusicTopBar(
-            title = "Levyra", searchLabel = copy.search, settingsLabel = copy.settings,
+            title = "Derbis", searchLabel = copy.search, settingsLabel = copy.settings,
             onSearch = actions.openSearch, onSettings = actions.home.openSettings
         )
     }
@@ -176,7 +176,7 @@ private fun LazyListScope.youTubeMusicHomeContentItems(
     }
     val orbit = data.personalTracks.takeIf { data.showPersonal }.orEmpty()
     if (orbit.isNotEmpty()) {
-        item(key = "levyra-orbit", contentType = "ytm-speed-grid") {
+        item(key = "derbis-orbit", contentType = "ytm-speed-grid") {
             YouTubeMusicSpeedGrid(
                 orbitTitle, data.listener, orbit, data.currentId,
                 onPlay = { track -> actions.home.playFrom(orbit, track) },
@@ -317,13 +317,13 @@ private fun youTubeMusicLevyraBlocks(
 ): List<YouTubeMusicHomeBlock> = listOfNotNull(
     chartBlock(data, copy, actions),
     dailyDiscoveryBlock(data, copy, actions),
-    cardsBlock("levyra-albums", strings.albumsForYou, data.albums.takeIf { data.showAlbums }.orEmpty().map { album ->
+    cardsBlock("derbis-albums", strings.albumsForYou, data.albums.takeIf { data.showAlbums }.orEmpty().map { album ->
         YouTubeMusicCardModel("album-${album.browseId.ifBlank { album.title + album.artist }}", album.title, album.artist, album.thumbnailUrl, onClick = { actions.openAlbum(album) })
     }),
-    cardsBlock("levyra-artists", strings.trendingArtists, data.artists.takeIf { data.showArtists }.orEmpty().map { artist ->
+    cardsBlock("derbis-artists", strings.trendingArtists, data.artists.takeIf { data.showArtists }.orEmpty().map { artist ->
         YouTubeMusicCardModel("artist-${artist.browseId.ifBlank { artist.name }}", artist.name, artist.subscribers, artist.thumbnailUrl, circular = true, onClick = { actions.openArtist(artist) })
     }),
-    songColumnsBlock("levyra-forgotten", strings.forgottenFavorites, data.forgottenFavorites, data.currentId, copy, actions)
+    songColumnsBlock("derbis-forgotten", strings.forgottenFavorites, data.forgottenFavorites, data.currentId, copy, actions)
 )
 
 private fun songColumnsBlock(
@@ -351,7 +351,7 @@ private fun songColumnsBlock(
 
 private fun chartBlock(data: AppleMusicHomeData, copy: YouTubeMusicSkinCopy, actions: AppleMusicHomeActions): YouTubeMusicHomeBlock? {
     if (data.charts.isEmpty() || data.chartsTitle.isBlank()) return null
-    return "levyra-top50" to @Composable {
+    return "derbis-top50" to @Composable {
         Column {
             YouTubeMusicSectionHeader(
                 data.chartsTitle,
@@ -385,7 +385,7 @@ private fun cardsBlock(key: String, title: String, cards: List<YouTubeMusicCardM
 private fun dailyDiscoveryBlock(data: AppleMusicHomeData, copy: YouTubeMusicSkinCopy, actions: AppleMusicHomeActions): YouTubeMusicHomeBlock? {
     val tracks = data.quickPicks?.tracks.orEmpty().filter { it.id != data.currentId }.take(DAILY_DISCOVERY_SIZE)
     if (tracks.isEmpty()) return null
-    return "levyra-daily-discovery" to @Composable {
+    return "derbis-daily-discovery" to @Composable {
         Column {
             YouTubeMusicSectionHeader(copy.dailyDiscovery, actionLabel = copy.playAll, onAction = { actions.playAll(tracks) })
             Spacer(Modifier.height(8.dp))

@@ -37,7 +37,7 @@ class AutomaticBackupWorker(context: Context, params: WorkerParameters) : Corout
 }
 
 object AutomaticBackupScheduler {
-    private const val WORK_NAME = "levyra_automatic_backup"
+    private const val WORK_NAME = "derbis_automatic_backup"
 
     fun schedule(context: Context, settings: LevyraBackupSettings) {
         val manager = WorkManager.getInstance(context.applicationContext)

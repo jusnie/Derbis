@@ -70,7 +70,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
 
-private const val PREFERENCES_NAME = "levyra_prefs"
+private const val PREFERENCES_NAME = "derbis_prefs"
 internal const val DEFAULT_SPONSORBLOCK_ENABLED = true
 internal const val JAM_DISPLAY_NAME_MAX_LENGTH = 32
 
@@ -242,6 +242,8 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_UI_CANVAS_SOURCE] = normalizedInterface.canvasSource.name
             mutable[KEY_UI_VISUAL_PERFORMANCE] = normalizedInterface.visualPerformance.name
             mutable[KEY_UI_LIQUID_GLASS] = normalizedInterface.liquidGlassEnabled
+            mutable[KEY_UI_LITE_MODE] = normalizedInterface.liteMode
+            mutable[KEY_UI_FORCE_HIGH_REFRESH_RATE] = normalizedInterface.forceHighRefreshRate
             mutable[KEY_UI_GLASS_BLUR] = normalizedInterface.glassBlur
             mutable[KEY_UI_GLASS_TRANSPARENCY] = normalizedInterface.glassTransparency
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
@@ -874,6 +876,8 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             canvasSource = LevyraCanvasSource.from(preferences[KEY_UI_CANVAS_SOURCE].orEmpty()),
             visualPerformance = LevyraVisualPerformance.from(preferences[KEY_UI_VISUAL_PERFORMANCE].orEmpty()),
             liquidGlassEnabled = preferences[KEY_UI_LIQUID_GLASS] ?: true,
+            liteMode = preferences[KEY_UI_LITE_MODE] ?: false,
+            forceHighRefreshRate = preferences[KEY_UI_FORCE_HIGH_REFRESH_RATE] ?: false,
             glassBlur = preferences[KEY_UI_GLASS_BLUR] ?: LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassTransparency = preferences[KEY_UI_GLASS_TRANSPARENCY] ?: LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL,
@@ -1383,6 +1387,8 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_UI_CANVAS_SOURCE = stringPreferencesKey("ui_canvas_source")
         val KEY_UI_VISUAL_PERFORMANCE = stringPreferencesKey("ui_visual_performance")
         val KEY_UI_LIQUID_GLASS = booleanPreferencesKey("ui_liquid_glass")
+        val KEY_UI_LITE_MODE = booleanPreferencesKey("ui_lite_mode")
+        val KEY_UI_FORCE_HIGH_REFRESH_RATE = booleanPreferencesKey("ui_force_high_refresh_rate")
         val KEY_UI_GLASS_BLUR = intPreferencesKey("ui_glass_blur")
         val KEY_UI_GLASS_TRANSPARENCY = intPreferencesKey("ui_glass_transparency")
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")

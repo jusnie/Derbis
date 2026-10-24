@@ -190,7 +190,7 @@ internal class PlaybackResilienceEngine(context: Context) {
     private val eventLock = Any()
     private val persistenceScheduled = AtomicBoolean(false)
     private val persistenceExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
-        Thread(runnable, "levyra-playback-trace").apply { isDaemon = true }
+        Thread(runnable, "derbis-playback-trace").apply { isDaemon = true }
     }
 
     init {
@@ -354,7 +354,7 @@ internal class PlaybackResilienceEngine(context: Context) {
         .put("detail", detail)
 
     private companion object {
-        const val PREFS_NAME = "levyra_playback_resilience"
+        const val PREFS_NAME = "derbis_playback_resilience"
         const val KEY_EVENTS = "events"
         const val MAX_EVENTS = 80
         const val MAX_PERSISTED_EVENTS = 64

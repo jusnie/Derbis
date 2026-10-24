@@ -105,7 +105,7 @@ fun MiniPlayerWindow(
     Window(
         onCloseRequest = onClose,
         state = windowState,
-        title = "Levyra · Mini ${strings.navNowPlaying}",
+        title = "Derbis · Mini ${strings.navNowPlaying}",
         icon = levyraIconPainter(),
         alwaysOnTop = true,
         undecorated = true,
@@ -312,7 +312,7 @@ private fun MiniPlayerDragHandle(window: AwtWindow) {
     }
 }
 
-private const val PREFERENCES_NODE = "Levyra/MiniPlayer"
+private const val PREFERENCES_NODE = "Derbis/MiniPlayer"
 private const val DEFAULT_WIDTH = 520
 private const val DEFAULT_HEIGHT = 112
 private const val MIN_WIDTH = 420

@@ -143,11 +143,11 @@ object LevyraMediaItemFactory {
     private fun metadata(track: Track, videoMode: Boolean): MediaMetadata {
         val art = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl }
         val extras = Bundle().apply {
-            putString("levyra.title", track.title)
-            putString("levyra.artist", track.artist)
-            putString("levyra.album", track.album)
-            putLong("levyra.durationMs", track.durationMs.coerceAtLeast(0L))
-            putString("levyra.source", track.source)
+            putString("derbis.title", track.title)
+            putString("derbis.artist", track.artist)
+            putString("derbis.album", track.album)
+            putLong("derbis.durationMs", track.durationMs.coerceAtLeast(0L))
+            putString("derbis.source", track.source)
             putBoolean(PlaybackService.EXTRA_VIDEO_MODE, videoMode)
             putBoolean(PlaybackService.EXTRA_LIVE_RADIO, track.isLiveRadio())
             putBoolean(PlaybackService.EXTRA_PERSONAL_COLLECTION, isPersonalCollectionStream(track))
@@ -168,7 +168,7 @@ object LevyraMediaItemFactory {
             .setDisplayTitle(track.title)
             .setArtist(track.artist)
             .setSubtitle(track.artist)
-            .setAlbumTitle(track.album.ifBlank { "Levyra" })
+            .setAlbumTitle(track.album.ifBlank { "Derbis" })
             .apply { mediaSessionArtworkUri(art)?.let(::setArtworkUri) }
             .setExtras(extras)
         if (track.isLiveRadio()) {

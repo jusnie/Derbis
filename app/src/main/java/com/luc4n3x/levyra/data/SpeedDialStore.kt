@@ -31,7 +31,7 @@ class SpeedDialStore(context: Context) {
     }
 
     private companion object {
-        const val PREFERENCES = "levyra_speed_dial"
+        const val PREFERENCES = "derbis_speed_dial"
         const val KEY_PINS = "pins_v1"
         val mutex = Mutex()
     }

@@ -119,7 +119,7 @@ internal fun AppleMusicHomeContent(
         AppleMusicHomeTopChrome(statusBarTop, homeRefreshing, homePullState)
         if (levyraChartOpen && data.charts.isNotEmpty()) {
             AppleMusicTrackListScreen(
-                title = data.chartsTitle, curator = "Levyra", caption = data.countryLabel, tracks = data.charts,
+                title = data.chartsTitle, curator = "Derbis", caption = data.countryLabel, tracks = data.charts,
                 currentId = data.currentId, bottomInset = homeBottomInset, actions = actions, ranked = true
             ) { levyraChartOpen = false }
         }
@@ -163,7 +163,7 @@ private class AppleMusicHomePlan(
 
 private typealias AppleHomeBlock = Pair<String, @Composable () -> Unit>
 
-private const val TOP50_KEY = "levyra-top50"
+private const val TOP50_KEY = "derbis-top50"
 
 private fun androidx.compose.foundation.lazy.LazyListScope.appleMusicHomeNotices(
     editorial: com.luc4n3x.levyra.viewmodel.AppleMusicEditorialUiState,
@@ -308,16 +308,16 @@ private fun appleMusicLevyraBlocks(
 ): List<AppleHomeBlock> = listOfNotNull(
     songsBlock(TOP50_KEY, data.chartsTitle, data.charts, data, actions, copy.explicit, openCharts, limit = 20),
     soundtrackBlock(data.soundtrack),
-    songsBlock("levyra-orbit", strings.personalOrbitTitle, data.personalTracks.takeIf { data.showPersonal }.orEmpty(), data, actions, copy.explicit),
-    data.quickPicks?.let { section -> songsBlock("levyra-quick-picks", section.title.ifBlank { strings.quickPicks }, section.tracks, data, actions, copy.explicit) },
-    cardsBlock("levyra-albums", strings.albumsForYou, data.albums.takeIf { data.showAlbums }.orEmpty().map { album ->
+    songsBlock("derbis-orbit", strings.personalOrbitTitle, data.personalTracks.takeIf { data.showPersonal }.orEmpty(), data, actions, copy.explicit),
+    data.quickPicks?.let { section -> songsBlock("derbis-quick-picks", section.title.ifBlank { strings.quickPicks }, section.tracks, data, actions, copy.explicit) },
+    cardsBlock("derbis-albums", strings.albumsForYou, data.albums.takeIf { data.showAlbums }.orEmpty().map { album ->
         AppleMusicCardModel("album-${album.title}-${album.artist}", album.title, album.artist, album.thumbnailUrl, album.explicit) { actions.openAlbum(album) }
     }, copy.explicit),
-    cardsBlock("levyra-collections", "Levyra", data.collections.map { collection -> collection.toCard(copy.songs, actions) }, copy.explicit),
-    cardsBlock("levyra-artists", strings.trendingArtists, data.artists.takeIf { data.showArtists }.orEmpty().map { artist ->
+    cardsBlock("derbis-collections", "Derbis", data.collections.map { collection -> collection.toCard(copy.songs, actions) }, copy.explicit),
+    cardsBlock("derbis-artists", strings.trendingArtists, data.artists.takeIf { data.showArtists }.orEmpty().map { artist ->
         AppleMusicCardModel("artist-${artist.browseId.ifBlank { artist.name }}", artist.name, "", artist.thumbnailUrl, circular = true) { actions.openArtist(artist) }
     }, copy.explicit),
-    songsBlock("levyra-forgotten", strings.forgottenFavorites, data.forgottenFavorites, data, actions, copy.explicit)
+    songsBlock("derbis-forgotten", strings.forgottenFavorites, data.forgottenFavorites, data, actions, copy.explicit)
 )
 
 private fun AppleMusicHomeCollection.toCard(songs: (Int) -> String, actions: AppleMusicHomeActions): AppleMusicCardModel {
@@ -358,7 +358,7 @@ private fun cardsBlock(key: String, title: String, cards: List<AppleMusicCardMod
 
 private fun soundtrackBlock(hero: StudioHero?): AppleHomeBlock? {
     hero ?: return null
-    return "levyra-soundtrack" to @Composable {
+    return "derbis-soundtrack" to @Composable {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             AppleMusicSectionHeader(hero.label)
             Box(Modifier.padding(horizontal = AppleMusicDesign.gutter)) {

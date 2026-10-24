@@ -27,7 +27,7 @@ internal fun DiscoveryHomeHost(
         content()
         return
     }
-    val discovery: DiscoveryViewModel = viewModel(key = "levyra-discovery", factory = factory)
+    val discovery: DiscoveryViewModel = viewModel(key = "derbis-discovery", factory = factory)
     val openChange by rememberUpdatedState(onOpenChange)
     val handle = remember(discovery) {
         DiscoveryHomeHandle(

@@ -44,7 +44,7 @@ fun LevyraPlayPauseGlyph(
             animated && animateMorph,
             tween(LevyraMotion.Durations.Short + 40, easing = LevyraMotion.Easings.Emphasized)
         ),
-        label = "levyra-play-pause-morph"
+        label = "derbis-play-pause-morph"
     )
     val settledMorph = rememberUpdatedState(target)
     val morph = if (animateMorph) animatedMorph else settledMorph

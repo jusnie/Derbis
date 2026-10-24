@@ -513,7 +513,7 @@ internal fun AudioSettingsPanel(
                         title = strings.crossfade,
                         valueLabel = "${audioSettings.crossfadeSeconds}s",
                         value = audioSettings.crossfadeSeconds.toFloat(),
-                        range = 0f..12f,
+                        range = 0f..30f,
                         onValue = { onCrossfade(it.roundToInt()) }
                     )
                 }

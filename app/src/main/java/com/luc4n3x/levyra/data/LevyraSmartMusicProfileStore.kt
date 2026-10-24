@@ -12,7 +12,7 @@ import java.util.Locale
 
 class LevyraSmartMusicProfileStore(context: Context) {
     private val lock = Any()
-    private val file = File(context.applicationContext.filesDir, "levyra_smart_music_profile.json")
+    private val file = File(context.applicationContext.filesDir, "derbis_smart_music_profile.json")
 
     fun load(): SmartMusicProfile = synchronized(lock) {
         readProfile()

@@ -227,7 +227,7 @@ internal fun artworkPreviewFileName(title: String, timestampMs: Long): String {
         builder.append(next)
         if (builder.length >= 48) break
     }
-    val safe = builder.toString().trim().ifBlank { "levyra" }
+    val safe = builder.toString().trim().ifBlank { "derbis" }
     return safe + "-" + timestampMs + ".jpg"
 }
 

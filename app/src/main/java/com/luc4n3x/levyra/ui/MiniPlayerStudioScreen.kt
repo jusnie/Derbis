@@ -122,7 +122,7 @@ private val MiniCustomSwatches = listOf(
 )
 
 internal fun miniPlayerStyleName(style: MiniPlayerStyle): String = when (style) {
-    MiniPlayerStyle.Original -> "Levyra Original"
+    MiniPlayerStyle.Original -> "Derbis Original"
     MiniPlayerStyle.SuperExpressive -> "Super Expressive"
     MiniPlayerStyle.Floating -> "Floating"
     MiniPlayerStyle.LiquidGlass -> "Liquid Glass"

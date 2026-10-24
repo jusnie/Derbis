@@ -342,7 +342,7 @@ internal class ChartOfficialArtworkResolver(context: Context) {
     }
 
     private companion object {
-        const val CACHE_NAME = "levyra_chart_official_artwork"
+        const val CACHE_NAME = "derbis_chart_official_artwork"
         const val DEFAULT_COUNTRY = "IT"
         const val PROVIDER_LANES = 2
         const val KEY_LOCK_COUNT = 64
@@ -353,6 +353,6 @@ internal class ChartOfficialArtworkResolver(context: Context) {
         const val ARTWORK_TTL_MS = 90L * 24L * 60L * 60L * 1000L
         const val MISS_TTL_MS = 12L * 60L * 60L * 1000L
         const val MIN_YOUTUBE_MATCH_SCORE = 150
-        const val EDITORIAL_ARTWORK_SOURCE = "Levyra Editorial"
+        const val EDITORIAL_ARTWORK_SOURCE = "Derbis Editorial"
     }
 }

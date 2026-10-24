@@ -145,7 +145,7 @@ internal object ListeningReceiptCard {
         val directory = File(context.cacheDir, SHARE_DIRECTORY)
         if (!directory.isDirectory && !directory.mkdirs()) return@withContext null
         prune(directory)
-        val file = File(directory, "levyra-receipt-${System.currentTimeMillis()}.png")
+        val file = File(directory, "derbis-receipt-${System.currentTimeMillis()}.png")
         val written = try {
             FileOutputStream(file).use { output -> exportPng(content, assets, style, palette, output) }
         } catch (cancelled: CancellationException) {
@@ -182,7 +182,7 @@ internal object ListeningReceiptCard {
         palette: ListeningReceiptPalette
     ): Boolean = ArtworkMediaStore.save(
         context = context,
-        fileName = "levyra-receipt-${System.currentTimeMillis()}.png",
+        fileName = "derbis-receipt-${System.currentTimeMillis()}.png",
         mimeType = "image/png"
     ) { output -> exportPng(content, assets, style, palette, output) }
 

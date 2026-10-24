@@ -201,7 +201,7 @@ internal class AlbumDescriptionRepository(context: Context?) {
             .url(url)
             .header("Accept", accept)
             .header("Accept-Language", "en-US,en;q=0.8")
-            .header("User-Agent", "Levyra/Android album-metadata")
+            .header("User-Agent", "Derbis/Android album-metadata")
             .build()
         val call = client.newCall(request)
         call.timeout().timeout(remainingMs, TimeUnit.MILLISECONDS)

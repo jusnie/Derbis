@@ -95,7 +95,7 @@ internal fun rememberLevyraPlayMorphShape(
     spin = spinWhilePlaying,
     spinDegrees = PlaySpinPeriodDegrees,
     spinMillis = PlaySpinPeriodMillis,
-    label = "levyra-play-morph"
+    label = "derbis-play-morph"
 )
 
 @Composable
@@ -107,7 +107,7 @@ internal fun rememberLevyraArtworkMorphShape(playing: Boolean, animated: Boolean
         spin = true,
         spinDegrees = 360f,
         spinMillis = ArtworkSpinPeriodMillis,
-        label = "levyra-artwork-morph"
+        label = "derbis-artwork-morph"
     )
 
 @Composable
@@ -156,7 +156,7 @@ internal fun rememberLevyraNowPlayingShape(playing: Boolean, animated: Boolean):
         spin = true,
         spinDegrees = PlaySpinPeriodDegrees,
         spinMillis = NowPlayingSpinPeriodMillis,
-        label = "levyra-now-playing-morph"
+        label = "derbis-now-playing-morph"
     )
 
 @Composable
@@ -164,7 +164,7 @@ internal fun rememberLevyraAvatarPressShape(pressed: Boolean, animated: Boolean)
     val progress by animateFloatAsState(
         targetValue = if (pressed && animated) 1f else 0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "levyra-avatar-press-morph"
+        label = "derbis-avatar-press-morph"
     )
     return remember(progress) { LevyraMorphShape(AvatarPressMorph, progress) }
 }
@@ -178,7 +178,7 @@ internal fun rememberLevyraFavoriteMorphShape(favorite: Boolean, animated: Boole
         } else {
             snap()
         },
-        label = "levyra-favorite-morph"
+        label = "derbis-favorite-morph"
     )
     return remember(progress) { LevyraMorphShape(FavoriteMorph, progress) }
 }

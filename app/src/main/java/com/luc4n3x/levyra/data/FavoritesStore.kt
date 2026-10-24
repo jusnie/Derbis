@@ -34,7 +34,7 @@ private data class FavoriteTimestampSnapshot(
 class FavoritesStore(context: Context) {
     private val appContext = context.applicationContext
     private val dao = LevyraDatabase.get(appContext).favoriteTracksDao()
-    private val legacyPrefs = appContext.getSharedPreferences("levyra_favorites", Context.MODE_PRIVATE)
+    private val legacyPrefs = appContext.getSharedPreferences("derbis_favorites", Context.MODE_PRIVATE)
     private var timestampSnapshot: FavoriteTimestampSnapshot? = null
 
     fun load(): List<Track> = runBlocking(Dispatchers.IO) {

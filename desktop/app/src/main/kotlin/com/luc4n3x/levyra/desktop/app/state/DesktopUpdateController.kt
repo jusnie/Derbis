@@ -173,7 +173,7 @@ internal class DesktopUpdateController(
             .url(DESKTOP_RELEASES_URL)
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
-            .header("User-Agent", "Levyra-Desktop/$currentVersion")
+            .header("User-Agent", "Derbis-Desktop/$currentVersion")
             .build()
         return metadataClient.newCall(request).awaitResponse().use { response ->
             if (!response.isSuccessful) {
@@ -218,7 +218,7 @@ internal class DesktopUpdateController(
                 )
             }
         }
-        val expectedName = "LEVYRA-Windows-$version-x64.msi"
+        val expectedName = "DERBIS-Windows-$version-x64.msi"
         val installer = assets.firstOrNull { it.name.equals(expectedName, ignoreCase = true) }
             ?: return null
         val checksum = assets.firstOrNull {
@@ -227,7 +227,7 @@ internal class DesktopUpdateController(
         return DesktopRelease(
             version = version,
             name = root["name"]?.jsonPrimitive?.contentOrNull.orEmpty().ifBlank {
-                "Levyra Desktop $version"
+                "Derbis Desktop $version"
             },
             notes = root["body"]?.jsonPrimitive?.contentOrNull.orEmpty().trim(),
             installer = installer,
@@ -246,7 +246,7 @@ internal class DesktopUpdateController(
         val request = Request.Builder()
             .url(release.installer.url)
             .header("Accept", "application/octet-stream")
-            .header("User-Agent", "Levyra-Desktop/$currentVersion")
+            .header("User-Agent", "Derbis-Desktop/$currentVersion")
             .build()
         downloadClient.newCall(request).awaitResponse().use { response ->
             if (!response.isSuccessful) {
@@ -303,7 +303,7 @@ internal class DesktopUpdateController(
             val request = Request.Builder()
                 .url(release.checksum.url)
                 .header("Accept", "text/plain")
-                .header("User-Agent", "Levyra-Desktop/$currentVersion")
+                .header("User-Agent", "Derbis-Desktop/$currentVersion")
                 .build()
             val expected = metadataClient.newCall(request).awaitResponse().use { response ->
                 if (!response.isSuccessful) {
@@ -364,7 +364,7 @@ internal class DesktopUpdateController(
             throw IllegalStateException("Aggiornamento automatico disponibile solo su Windows")
         }
         val updateDirectory = installer.parent
-        val script = updateDirectory.resolve("install-levyra-update.ps1")
+        val script = updateDirectory.resolve("install-derbis-update.ps1")
         val installerLog = updateDirectory.resolve("installer-${release.version}.log")
         val updaterLog = updateDirectory.resolve("updater-${release.version}.log")
         Files.writeString(script, updaterScript(), StandardCharsets.UTF_8)

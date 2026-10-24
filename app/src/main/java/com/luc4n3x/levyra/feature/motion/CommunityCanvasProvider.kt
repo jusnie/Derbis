@@ -306,14 +306,14 @@ class CommunityCanvasProvider internal constructor(
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
-            throw CommunityCanvasException("Levyra canvas mirror is unavailable", error)
-        } ?: throw CommunityCanvasException("Levyra canvas mirror timed out")
+            throw CommunityCanvasException("Derbis canvas mirror is unavailable", error)
+        } ?: throw CommunityCanvasException("Derbis canvas mirror timed out")
         val document = parseCommunityCanvasDocument(payload)
         if (
             document.version != MIRROR_CATALOG_VERSION ||
             document.entries.size < MIN_MIRROR_CATALOG_ENTRIES
         ) {
-            throw CommunityCanvasException("Levyra canvas mirror is not usable")
+            throw CommunityCanvasException("Derbis canvas mirror is not usable")
         }
         return document.entries
     }

@@ -108,7 +108,7 @@ object LevyraStartupCatalog {
     }
 
     private fun isStartupSeed(track: Track): Boolean {
-        return track.source.equals("Levyra Start", ignoreCase = true) || track.id.startsWith("chart-seed-")
+        return track.source.equals("Derbis Start", ignoreCase = true) || track.id.startsWith("chart-seed-")
     }
 
     private fun seedTrackKey(title: String, artist: String): String = "${seedTitleKey(title)}|${seedTitleKey(artist)}"
@@ -352,7 +352,7 @@ object LevyraStartupCatalog {
             videoUrl = if (videoId.isBlank()) "" else "https://www.youtube.com/watch?v=$videoId",
             thumbnailUrl = art,
             largeThumbnailUrl = largeArt,
-            source = "Levyra Start",
+            source = "Derbis Start",
             moodTags = tags,
             energy = energy.coerceIn(0, 100),
             vocal = vocal.coerceIn(0, 100),

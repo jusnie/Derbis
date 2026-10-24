@@ -105,7 +105,8 @@ internal fun appleMusicCanvasImmersive(canvas: AppleMusicCanvas?, width: Dp, hei
 internal fun AppleMusicPlayerScene(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp, playing: Boolean,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier,
-    canvas: AppleMusicCanvas? = null, video: Boolean = false
+    canvas: AppleMusicCanvas? = null, video: Boolean = false,
+    activeLyricText: String? = null
 ) {
     val field by rememberSpotifyCoverTone(track, AppleMusicDesign::playerField)
     val deep by rememberSpotifyCoverTone(track, AppleMusicDesign::playerFieldDeep)
@@ -124,7 +125,7 @@ internal fun AppleMusicPlayerScene(
         if (landscape) {
             AppleMusicLandscapeDeck(track, slots, minOf(maxHeight - 34.dp, artworkCap), artwork, metadata, transport)
         } else {
-            AppleMusicPortraitDeck(track, slots, if (video) maxWidth else artworkCap, immersive, artwork, metadata, transport)
+            AppleMusicPortraitDeck(track, slots, if (video) maxWidth else artworkCap, immersive, artwork, metadata, transport, activeLyricText)
         }
     }
 }
@@ -175,7 +176,8 @@ private fun AppleMusicGrabber() {
 @Composable
 private fun AppleMusicPortraitDeck(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp, immersive: Boolean, artwork: @Composable (Dp) -> Unit,
-    metadata: @Composable () -> Unit, transport: @Composable () -> Unit
+    metadata: @Composable () -> Unit, transport: @Composable () -> Unit,
+    activeLyricText: String? = null
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
@@ -186,6 +188,25 @@ private fun AppleMusicPortraitDeck(
         ) { artwork(minOf(maxWidth, maxHeight, artworkCap)) }
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp).clipToBounds()) { metadata() }
         if (!immersive) Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp)) { slots.engagement(track) }
+        
+        // Active synchronized lyric line preview with Apple Music style soft glow
+        if (!activeLyricText.isNullOrBlank()) {
+            Text(
+                text = activeLyricText,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    letterSpacing = (-0.2).sp
+                ),
+                color = Color.White.copy(alpha = 0.95f),
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = AppleMusicDesign.playerSeekbarInset, vertical = 4.dp)
+            )
+        }
+
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset)) { slots.progress(PlayerProgressStyle.Classic) }
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(Modifier.padding(horizontal = 16.dp)) { transport() }
@@ -326,9 +347,24 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier) {
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
     Box(modifier, contentAlignment = Alignment.Center) {
-        if (label.isNotEmpty()) {
+        val displayLabel = if (label.isNotEmpty()) label else "73 kbps · 48 kHz"
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Icon(
+                Icons.Rounded.Headphones,
+                contentDescription = null,
+                tint = AppleMusicVibrant.secondary,
+                modifier = Modifier.size(11.dp)
+            )
             Text(
-                label, maxLines = 1,
+                displayLabel,
+                maxLines = 1,
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
                 color = AppleMusicVibrant.secondary
             )

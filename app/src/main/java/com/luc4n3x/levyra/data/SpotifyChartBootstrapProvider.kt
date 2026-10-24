@@ -146,9 +146,9 @@ class SpotifyChartBootstrapProvider : ContentProvider() {
                 value.length == 4 && value.all(Char::isDigit)
             }.orEmpty()
             val provider = if (item.optJSONObject("youtubeMusic") != null) {
-                "Levyra Editorial + YouTube Music"
+                "Derbis Editorial + YouTube Music"
             } else {
-                "Levyra Editorial"
+                "Derbis Editorial"
             }
             val cached = JSONObject()
                 .put("thumbnailUrl", artwork)
@@ -238,8 +238,8 @@ class SpotifyChartBootstrapProvider : ContentProvider() {
         const val TAG = "SpotifyChartBootstrap"
         const val ASSET_PATH = "editorial/spotify-bootstrap.json"
         const val CACHE_RELATIVE_PATH = "editorial/charts-v2.json"
-        const val ARTWORK_CACHE_NAME = "levyra_chart_official_artwork"
-        const val BOOTSTRAP_STATE = "levyra_spotify_chart_bootstrap"
+        const val ARTWORK_CACHE_NAME = "derbis_chart_official_artwork"
+        const val BOOTSTRAP_STATE = "derbis_spotify_chart_bootstrap"
         const val KEY_BOOTSTRAP_VERSION = "version"
         const val KEY_PACKAGE_UPDATE_TIME = "package_update_time"
         const val BOOTSTRAP_VERSION = 2

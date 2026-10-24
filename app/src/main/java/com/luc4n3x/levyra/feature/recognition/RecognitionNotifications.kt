@@ -122,7 +122,7 @@ class RecognitionNotifications(private val context: Context) {
     }
 
     companion object {
-        const val CHANNEL_ID = "levyra_recognition"
+        const val CHANNEL_ID = "derbis_recognition"
         const val NOTIFICATION_ID = 5417
         private const val REQUEST_CANCEL = 5418
         private const val REQUEST_OPEN_RESULT = 5419

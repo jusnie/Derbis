@@ -265,8 +265,8 @@ class SmartOfflineWorker(
 }
 
 object SmartOfflineScheduler {
-    private const val PERIODIC_WORK_NAME = "levyra_smart_offline_periodic"
-    private const val REFRESH_WORK_NAME = "levyra_smart_offline_refresh"
+    private const val PERIODIC_WORK_NAME = "derbis_smart_offline_periodic"
+    private const val REFRESH_WORK_NAME = "derbis_smart_offline_refresh"
 
     fun schedule(context: Context, settings: LevyraSmartOfflineSettings) {
         val manager = WorkManager.getInstance(context.applicationContext)

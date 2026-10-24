@@ -110,7 +110,7 @@ internal object LevyraPersonalCollectionCatalog {
             "This is an HLS stream manifest, not a music playlist.", "This isn't a valid M3U or JSON playlist.",
             "No playable tracks found. Relative paths need a playlist link or a baseUrl.",
             "Couldn't save the collection.", "Something went wrong. Try again.",
-            "Allow local network access", "Levyra needs this permission to reach servers on your home network.", "Allow"
+            "Allow local network access", "Derbis needs this permission to reach servers on your home network.", "Allow"
         ),
         "it" to listOf(
             "Raccolte", "Raccolte personali", "Ancora nessuna raccolta",
@@ -136,7 +136,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Questo è un manifest di streaming HLS, non una playlist musicale.", "Non è una playlist M3U o JSON valida.",
             "Nessun brano riproducibile. I percorsi relativi richiedono un link alla playlist o un baseUrl.",
             "Impossibile salvare la raccolta.", "Qualcosa è andato storto. Riprova.",
-            "Consenti l'accesso alla rete locale", "Levyra ha bisogno di questo permesso per raggiungere i server della tua rete di casa.", "Consenti"
+            "Consenti l'accesso alla rete locale", "Derbis ha bisogno di questo permesso per raggiungere i server della tua rete di casa.", "Consenti"
         ),
         "es" to listOf(
             "Colecciones", "Colecciones personales", "Aún no hay colecciones",
@@ -144,7 +144,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Añadir colección", "Nueva colección", "Archivo de lista", "M3U, M3U8 o JSON guardado en este dispositivo",
             "Enlace de lista", "Importa desde tu servidor y mantenla actualizada", "URL de la lista",
             "Usuario (opcional)", "Contraseña (opcional)",
-            "Levyra solo se conecta a tu servidor. Los enlaces y contraseñas no salen de este dispositivo.",
+            "Derbis solo se conecta a tu servidor. Los enlaces y contraseñas no salen de este dispositivo.",
             "Permitir HTTP sin cifrar", "Úsalo solo con servidores de confianza, como uno de tu red doméstica.",
             "Continuar", "Leyendo la lista…", "Nombre de la colección", "Entradas omitidas: {n}", "Duplicados unidos: {n}",
             "Pistas por HTTP: {n}", "Actualizar automáticamente", "Busca cambios unas dos veces al día con conexión",
@@ -162,7 +162,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Es un manifiesto de streaming HLS, no una lista de música.", "No es una lista M3U o JSON válida.",
             "No hay pistas reproducibles. Las rutas relativas necesitan un enlace a la lista o un baseUrl.",
             "No se pudo guardar la colección.", "Algo salió mal. Inténtalo de nuevo.",
-            "Permitir acceso a la red local", "Levyra necesita este permiso para conectarse a servidores de tu red doméstica.", "Permitir"
+            "Permitir acceso a la red local", "Derbis necesita este permiso para conectarse a servidores de tu red doméstica.", "Permitir"
         ),
         "fr" to listOf(
             "Collections", "Collections personnelles", "Aucune collection",
@@ -170,7 +170,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ajouter une collection", "Nouvelle collection", "Fichier de liste", "M3U, M3U8 ou JSON enregistré sur cet appareil",
             "Lien de liste", "Importez depuis votre serveur et restez à jour", "URL de la liste",
             "Nom d'utilisateur (facultatif)", "Mot de passe (facultatif)",
-            "Levyra se connecte uniquement à votre serveur. Les liens et mots de passe restent sur cet appareil.",
+            "Derbis se connecte uniquement à votre serveur. Les liens et mots de passe restent sur cet appareil.",
             "Autoriser le HTTP non chiffré", "Uniquement pour des serveurs de confiance, par exemple sur votre réseau domestique.",
             "Continuer", "Lecture de la liste…", "Nom de la collection", "Entrées ignorées : {n}", "Doublons fusionnés : {n}",
             "Titres en HTTP : {n}", "Actualiser automatiquement", "Recherche des changements environ deux fois par jour en ligne",
@@ -188,7 +188,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Il s'agit d'un manifeste de streaming HLS, pas d'une liste musicale.", "Ce n'est pas une liste M3U ou JSON valide.",
             "Aucun titre lisible. Les chemins relatifs nécessitent un lien de liste ou un baseUrl.",
             "Impossible d'enregistrer la collection.", "Une erreur est survenue. Réessayez.",
-            "Autoriser l'accès au réseau local", "Levyra a besoin de cette autorisation pour joindre les serveurs de votre réseau domestique.", "Autoriser"
+            "Autoriser l'accès au réseau local", "Derbis a besoin de cette autorisation pour joindre les serveurs de votre réseau domestique.", "Autoriser"
         ),
         "de" to listOf(
             "Sammlungen", "Eigene Sammlungen", "Noch keine Sammlungen",
@@ -196,7 +196,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Sammlung hinzufügen", "Neue Sammlung", "Playlist-Datei", "M3U, M3U8 oder JSON auf diesem Gerät",
             "Playlist-Link", "Vom eigenen Server importieren und aktuell halten", "Playlist-URL",
             "Benutzername (optional)", "Passwort (optional)",
-            "Levyra verbindet sich nur mit deinem Server. Links und Passwörter bleiben auf diesem Gerät.",
+            "Derbis verbindet sich nur mit deinem Server. Links und Passwörter bleiben auf diesem Gerät.",
             "Unverschlüsseltes HTTP erlauben", "Nur für vertrauenswürdige Server, etwa im Heimnetz.",
             "Weiter", "Playlist wird gelesen…", "Name der Sammlung", "Übersprungene Einträge: {n}", "Zusammengeführte Duplikate: {n}",
             "Titel über HTTP: {n}", "Automatisch aktualisieren", "Sucht online etwa zweimal täglich nach Änderungen",
@@ -214,7 +214,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Das ist ein HLS-Streaming-Manifest, keine Musik-Playlist.", "Keine gültige M3U- oder JSON-Playlist.",
             "Keine abspielbaren Titel. Relative Pfade brauchen einen Playlist-Link oder eine baseUrl.",
             "Sammlung konnte nicht gespeichert werden.", "Etwas ist schiefgelaufen. Versuche es erneut.",
-            "Zugriff auf lokales Netzwerk erlauben", "Levyra braucht diese Berechtigung, um Server in deinem Heimnetz zu erreichen.", "Erlauben"
+            "Zugriff auf lokales Netzwerk erlauben", "Derbis braucht diese Berechtigung, um Server in deinem Heimnetz zu erreichen.", "Erlauben"
         ),
         "pt" to listOf(
             "Coleções", "Coleções pessoais", "Ainda não há coleções",
@@ -222,7 +222,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Adicionar coleção", "Nova coleção", "Ficheiro de lista", "M3U, M3U8 ou JSON guardado neste dispositivo",
             "Ligação da lista", "Importa do teu servidor e mantém-na atualizada", "URL da lista",
             "Utilizador (opcional)", "Palavra-passe (opcional)",
-            "O Levyra liga-se apenas ao teu servidor. Ligações e palavras-passe ficam neste dispositivo.",
+            "O Derbis liga-se apenas ao teu servidor. Ligações e palavras-passe ficam neste dispositivo.",
             "Permitir HTTP sem encriptação", "Usa apenas com servidores de confiança, como um na tua rede doméstica.",
             "Continuar", "A ler a lista…", "Nome da coleção", "Entradas ignoradas: {n}", "Duplicados unidos: {n}",
             "Faixas por HTTP: {n}", "Atualizar automaticamente", "Procura alterações cerca de duas vezes por dia quando online",
@@ -240,7 +240,7 @@ internal object LevyraPersonalCollectionCatalog {
             "É um manifesto de streaming HLS, não uma lista de música.", "Não é uma lista M3U ou JSON válida.",
             "Nenhuma faixa reproduzível. Caminhos relativos precisam de uma ligação da lista ou de um baseUrl.",
             "Não foi possível guardar a coleção.", "Algo correu mal. Tenta novamente.",
-            "Permitir acesso à rede local", "O Levyra precisa desta permissão para aceder a servidores da tua rede doméstica.", "Permitir"
+            "Permitir acesso à rede local", "O Derbis precisa desta permissão para aceder a servidores da tua rede doméstica.", "Permitir"
         ),
         "nl" to listOf(
             "Collecties", "Persoonlijke collecties", "Nog geen collecties",
@@ -248,7 +248,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Collectie toevoegen", "Nieuwe collectie", "Playlistbestand", "M3U, M3U8 of JSON op dit apparaat",
             "Playlistlink", "Importeer van je server en houd hem actueel", "Playlist-URL",
             "Gebruikersnaam (optioneel)", "Wachtwoord (optioneel)",
-            "Levyra maakt alleen verbinding met je server. Links en wachtwoorden blijven op dit apparaat.",
+            "Derbis maakt alleen verbinding met je server. Links en wachtwoorden blijven op dit apparaat.",
             "Onversleuteld HTTP toestaan", "Alleen voor servers die je vertrouwt, zoals een op je thuisnetwerk.",
             "Doorgaan", "Playlist lezen…", "Naam van collectie", "Overgeslagen items: {n}", "Samengevoegde dubbele: {n}",
             "Nummers via HTTP: {n}", "Automatisch vernieuwen", "Zoekt online ongeveer twee keer per dag naar wijzigingen",
@@ -266,7 +266,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Dit is een HLS-streamingmanifest, geen muziekplaylist.", "Geen geldige M3U- of JSON-playlist.",
             "Geen afspeelbare nummers. Relatieve paden hebben een playlistlink of baseUrl nodig.",
             "Collectie kon niet worden opgeslagen.", "Er ging iets mis. Probeer het opnieuw.",
-            "Toegang tot lokaal netwerk toestaan", "Levyra heeft deze toestemming nodig om servers op je thuisnetwerk te bereiken.", "Toestaan"
+            "Toegang tot lokaal netwerk toestaan", "Derbis heeft deze toestemming nodig om servers op je thuisnetwerk te bereiken.", "Toestaan"
         ),
         "pl" to listOf(
             "Kolekcje", "Kolekcje osobiste", "Brak kolekcji",
@@ -274,7 +274,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Dodaj kolekcję", "Nowa kolekcja", "Plik playlisty", "M3U, M3U8 lub JSON zapisany na tym urządzeniu",
             "Link do playlisty", "Importuj z własnego serwera i aktualizuj", "Adres URL playlisty",
             "Nazwa użytkownika (opcjonalnie)", "Hasło (opcjonalnie)",
-            "Levyra łączy się tylko z Twoim serwerem. Linki i hasła pozostają na tym urządzeniu.",
+            "Derbis łączy się tylko z Twoim serwerem. Linki i hasła pozostają na tym urządzeniu.",
             "Zezwól na nieszyfrowane HTTP", "Tylko dla zaufanych serwerów, np. w sieci domowej.",
             "Dalej", "Odczytywanie playlisty…", "Nazwa kolekcji", "Pominięte pozycje: {n}", "Scalone duplikaty: {n}",
             "Utwory przez HTTP: {n}", "Odświeżaj automatycznie", "Sprawdza zmiany około dwa razy dziennie, gdy jest połączenie",
@@ -292,7 +292,7 @@ internal object LevyraPersonalCollectionCatalog {
             "To manifest strumienia HLS, a nie playlista muzyczna.", "To nie jest prawidłowa playlista M3U ani JSON.",
             "Brak utworów do odtworzenia. Ścieżki względne wymagają linku do playlisty lub baseUrl.",
             "Nie udało się zapisać kolekcji.", "Coś poszło nie tak. Spróbuj ponownie.",
-            "Zezwól na dostęp do sieci lokalnej", "Levyra potrzebuje tego uprawnienia, aby łączyć się z serwerami w sieci domowej.", "Zezwól"
+            "Zezwól na dostęp do sieci lokalnej", "Derbis potrzebuje tego uprawnienia, aby łączyć się z serwerami w sieci domowej.", "Zezwól"
         ),
         "ro" to listOf(
             "Colecții", "Colecții personale", "Nicio colecție încă",
@@ -300,7 +300,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Adaugă colecție", "Colecție nouă", "Fișier playlist", "M3U, M3U8 sau JSON salvat pe acest dispozitiv",
             "Link playlist", "Importă de pe serverul tău și păstreaz-o actualizată", "URL playlist",
             "Nume utilizator (opțional)", "Parolă (opțional)",
-            "Levyra se conectează doar la serverul tău. Linkurile și parolele rămân pe acest dispozitiv.",
+            "Derbis se conectează doar la serverul tău. Linkurile și parolele rămân pe acest dispozitiv.",
             "Permite HTTP necriptat", "Doar pentru servere de încredere, de exemplu în rețeaua de acasă.",
             "Continuă", "Se citește playlistul…", "Numele colecției", "Intrări omise: {n}", "Duplicate unite: {n}",
             "Piese prin HTTP: {n}", "Actualizare automată", "Verifică modificările de circa două ori pe zi când ești online",
@@ -318,7 +318,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Acesta este un manifest de streaming HLS, nu un playlist muzical.", "Nu este un playlist M3U sau JSON valid.",
             "Nicio piesă redabilă. Căile relative au nevoie de un link de playlist sau de un baseUrl.",
             "Colecția nu a putut fi salvată.", "Ceva nu a mers. Încearcă din nou.",
-            "Permite accesul la rețeaua locală", "Levyra are nevoie de această permisiune pentru a accesa serverele din rețeaua de acasă.", "Permite"
+            "Permite accesul la rețeaua locală", "Derbis are nevoie de această permisiune pentru a accesa serverele din rețeaua de acasă.", "Permite"
         ),
         "el" to listOf(
             "Συλλογές", "Προσωπικές συλλογές", "Δεν υπάρχουν συλλογές ακόμη",
@@ -326,7 +326,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Προσθήκη συλλογής", "Νέα συλλογή", "Αρχείο λίστας", "M3U, M3U8 ή JSON σε αυτή τη συσκευή",
             "Σύνδεσμος λίστας", "Εισαγωγή από τον διακομιστή σας με συνεχή ενημέρωση", "URL λίστας",
             "Όνομα χρήστη (προαιρετικό)", "Κωδικός (προαιρετικό)",
-            "Το Levyra συνδέεται μόνο στον διακομιστή σας. Σύνδεσμοι και κωδικοί μένουν σε αυτή τη συσκευή.",
+            "Το Derbis συνδέεται μόνο στον διακομιστή σας. Σύνδεσμοι και κωδικοί μένουν σε αυτή τη συσκευή.",
             "Να επιτρέπεται μη κρυπτογραφημένο HTTP", "Μόνο για αξιόπιστους διακομιστές, π.χ. στο οικιακό δίκτυο.",
             "Συνέχεια", "Ανάγνωση λίστας…", "Όνομα συλλογής", "Παραλείφθηκαν: {n}", "Ενοποιημένα διπλότυπα: {n}",
             "Κομμάτια μέσω HTTP: {n}", "Αυτόματη ανανέωση", "Ελέγχει για αλλαγές περίπου δύο φορές την ημέρα όταν υπάρχει σύνδεση",
@@ -344,7 +344,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Πρόκειται για manifest ροής HLS, όχι για λίστα μουσικής.", "Δεν είναι έγκυρη λίστα M3U ή JSON.",
             "Δεν βρέθηκαν κομμάτια. Οι σχετικές διαδρομές χρειάζονται σύνδεσμο λίστας ή baseUrl.",
             "Δεν ήταν δυνατή η αποθήκευση της συλλογής.", "Κάτι πήγε στραβά. Δοκιμάστε ξανά.",
-            "Να επιτρέπεται η πρόσβαση στο τοπικό δίκτυο", "Το Levyra χρειάζεται αυτή την άδεια για να συνδέεται σε διακομιστές του οικιακού δικτύου.", "Να επιτρέπεται"
+            "Να επιτρέπεται η πρόσβαση στο τοπικό δίκτυο", "Το Derbis χρειάζεται αυτή την άδεια για να συνδέεται σε διακομιστές του οικιακού δικτύου.", "Να επιτρέπεται"
         ),
         "sv" to listOf(
             "Samlingar", "Egna samlingar", "Inga samlingar ännu",
@@ -352,7 +352,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Lägg till samling", "Ny samling", "Spellistefil", "M3U, M3U8 eller JSON på den här enheten",
             "Spellistelänk", "Importera från din server och håll den uppdaterad", "Spellistans URL",
             "Användarnamn (valfritt)", "Lösenord (valfritt)",
-            "Levyra ansluter bara till din server. Länkar och lösenord stannar på den här enheten.",
+            "Derbis ansluter bara till din server. Länkar och lösenord stannar på den här enheten.",
             "Tillåt okrypterad HTTP", "Endast för servrar du litar på, till exempel i hemnätverket.",
             "Fortsätt", "Läser spellistan…", "Samlingens namn", "Överhoppade poster: {n}", "Sammanslagna dubbletter: {n}",
             "Spår via HTTP: {n}", "Uppdatera automatiskt", "Söker efter ändringar ungefär två gånger om dagen när du är online",
@@ -370,7 +370,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Det här är ett HLS-strömningsmanifest, inte en musikspellista.", "Ingen giltig M3U- eller JSON-spellista.",
             "Inga spelbara spår. Relativa sökvägar kräver en spellistelänk eller en baseUrl.",
             "Samlingen kunde inte sparas.", "Något gick fel. Försök igen.",
-            "Tillåt åtkomst till lokalt nätverk", "Levyra behöver den här behörigheten för att nå servrar i ditt hemnätverk.", "Tillåt"
+            "Tillåt åtkomst till lokalt nätverk", "Derbis behöver den här behörigheten för att nå servrar i ditt hemnätverk.", "Tillåt"
         ),
         "da" to listOf(
             "Samlinger", "Personlige samlinger", "Ingen samlinger endnu",
@@ -378,7 +378,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Tilføj samling", "Ny samling", "Playlistefil", "M3U, M3U8 eller JSON på denne enhed",
             "Playlistelink", "Importér fra din server, og hold den opdateret", "Playlistens URL",
             "Brugernavn (valgfrit)", "Adgangskode (valgfri)",
-            "Levyra forbinder kun til din server. Links og adgangskoder bliver på denne enhed.",
+            "Derbis forbinder kun til din server. Links og adgangskoder bliver på denne enhed.",
             "Tillad ukrypteret HTTP", "Kun til servere, du stoler på, f.eks. på dit hjemmenetværk.",
             "Fortsæt", "Læser playliste…", "Samlingens navn", "Oversprungne poster: {n}", "Sammenlagte dubletter: {n}",
             "Numre via HTTP: {n}", "Opdater automatisk", "Søger efter ændringer cirka to gange om dagen, når du er online",
@@ -396,7 +396,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Dette er et HLS-streamingmanifest, ikke en musikplayliste.", "Ikke en gyldig M3U- eller JSON-playliste.",
             "Ingen afspillelige numre. Relative stier kræver et playlistelink eller en baseUrl.",
             "Samlingen kunne ikke gemmes.", "Noget gik galt. Prøv igen.",
-            "Tillad adgang til lokalnetværk", "Levyra skal bruge denne tilladelse for at nå servere på dit hjemmenetværk.", "Tillad"
+            "Tillad adgang til lokalnetværk", "Derbis skal bruge denne tilladelse for at nå servere på dit hjemmenetværk.", "Tillad"
         ),
         "cs" to listOf(
             "Sbírky", "Osobní sbírky", "Zatím žádné sbírky",
@@ -404,7 +404,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Přidat sbírku", "Nová sbírka", "Soubor playlistu", "M3U, M3U8 nebo JSON v tomto zařízení",
             "Odkaz na playlist", "Importujte ze svého serveru a udržujte aktuální", "URL playlistu",
             "Uživatelské jméno (volitelné)", "Heslo (volitelné)",
-            "Levyra se připojuje jen k vašemu serveru. Odkazy a hesla zůstávají v tomto zařízení.",
+            "Derbis se připojuje jen k vašemu serveru. Odkazy a hesla zůstávají v tomto zařízení.",
             "Povolit nešifrované HTTP", "Jen pro důvěryhodné servery, například v domácí síti.",
             "Pokračovat", "Načítání playlistu…", "Název sbírky", "Přeskočené položky: {n}", "Sloučené duplicity: {n}",
             "Skladby přes HTTP: {n}", "Aktualizovat automaticky", "Kontroluje změny zhruba dvakrát denně, když jste online",
@@ -422,7 +422,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Jde o manifest streamu HLS, ne o hudební playlist.", "Nejde o platný playlist M3U ani JSON.",
             "Žádné přehratelné skladby. Relativní cesty vyžadují odkaz na playlist nebo baseUrl.",
             "Sbírku se nepodařilo uložit.", "Něco se pokazilo. Zkuste to znovu.",
-            "Povolit přístup k místní síti", "Levyra potřebuje toto oprávnění k připojení k serverům v domácí síti.", "Povolit"
+            "Povolit přístup k místní síti", "Derbis potřebuje toto oprávnění k připojení k serverům v domácí síti.", "Povolit"
         ),
         "sk" to listOf(
             "Zbierky", "Osobné zbierky", "Zatiaľ žiadne zbierky",
@@ -430,7 +430,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Pridať zbierku", "Nová zbierka", "Súbor playlistu", "M3U, M3U8 alebo JSON v tomto zariadení",
             "Odkaz na playlist", "Importujte zo svojho servera a udržujte ho aktuálny", "URL playlistu",
             "Používateľské meno (voliteľné)", "Heslo (voliteľné)",
-            "Levyra sa pripája len k vášmu serveru. Odkazy a heslá zostávajú v tomto zariadení.",
+            "Derbis sa pripája len k vášmu serveru. Odkazy a heslá zostávajú v tomto zariadení.",
             "Povoliť nešifrované HTTP", "Len pre dôveryhodné servery, napríklad v domácej sieti.",
             "Pokračovať", "Načítava sa playlist…", "Názov zbierky", "Preskočené položky: {n}", "Zlúčené duplikáty: {n}",
             "Skladby cez HTTP: {n}", "Aktualizovať automaticky", "Kontroluje zmeny približne dvakrát denne, keď ste online",
@@ -448,7 +448,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ide o manifest streamu HLS, nie o hudobný playlist.", "Nie je to platný playlist M3U ani JSON.",
             "Žiadne prehrateľné skladby. Relatívne cesty vyžadujú odkaz na playlist alebo baseUrl.",
             "Zbierku sa nepodarilo uložiť.", "Niečo sa pokazilo. Skúste to znova.",
-            "Povoliť prístup k miestnej sieti", "Levyra potrebuje toto povolenie na pripojenie k serverom v domácej sieti.", "Povoliť"
+            "Povoliť prístup k miestnej sieti", "Derbis potrebuje toto povolenie na pripojenie k serverom v domácej sieti.", "Povoliť"
         ),
         "bn" to listOf(
             "কালেকশন", "ব্যক্তিগত কালেকশন", "এখনও কোনো কালেকশন নেই",
@@ -456,7 +456,7 @@ internal object LevyraPersonalCollectionCatalog {
             "কালেকশন যোগ করুন", "নতুন কালেকশন", "তালিকা ফাইল", "এই ডিভাইসে M3U, M3U8 বা JSON",
             "তালিকার লিংক", "নিজের সার্ভার থেকে ইমপোর্ট করুন এবং হালনাগাদ রাখুন", "তালিকার URL",
             "ইউজারনেম (ঐচ্ছিক)", "পাসওয়ার্ড (ঐচ্ছিক)",
-            "Levyra শুধু আপনার সার্ভারের সঙ্গে সংযুক্ত হয়। লিংক ও পাসওয়ার্ড এই ডিভাইসেই থাকে।",
+            "Derbis শুধু আপনার সার্ভারের সঙ্গে সংযুক্ত হয়। লিংক ও পাসওয়ার্ড এই ডিভাইসেই থাকে।",
             "এনক্রিপ্ট না করা HTTP অনুমতি দিন", "শুধু বিশ্বস্ত সার্ভারের জন্য, যেমন বাড়ির নেটওয়ার্কে।",
             "চালিয়ে যান", "তালিকা পড়া হচ্ছে…", "কালেকশনের নাম", "বাদ দেওয়া এন্ট্রি: {n}", "একীভূত ডুপ্লিকেট: {n}",
             "HTTP-তে গান: {n}", "স্বয়ংক্রিয় রিফ্রেশ", "অনলাইনে থাকলে দিনে প্রায় দুবার পরিবর্তন খোঁজে",
@@ -474,7 +474,7 @@ internal object LevyraPersonalCollectionCatalog {
             "এটি একটি HLS স্ট্রিমিং ম্যানিফেস্ট, গানের তালিকা নয়।", "এটি বৈধ M3U বা JSON তালিকা নয়।",
             "চালানোর মতো কোনো গান নেই। আপেক্ষিক পাথের জন্য তালিকার লিংক বা baseUrl প্রয়োজন।",
             "কালেকশন সংরক্ষিত হয়নি।", "কিছু একটা ভুল হয়েছে। আবার চেষ্টা করুন।",
-            "লোকাল নেটওয়ার্ক অ্যাক্সেস দিন", "বাড়ির নেটওয়ার্কের সার্ভারে পৌঁছাতে Levyra-র এই অনুমতি প্রয়োজন।", "অনুমতি দিন"
+            "লোকাল নেটওয়ার্ক অ্যাক্সেস দিন", "বাড়ির নেটওয়ার্কের সার্ভারে পৌঁছাতে Derbis-র এই অনুমতি প্রয়োজন।", "অনুমতি দিন"
         ),
         "kk" to listOf(
             "Жинақтар", "Жеке жинақтар", "Әзірге жинақтар жоқ",
@@ -482,7 +482,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Жинақ қосу", "Жаңа жинақ", "Тізім файлы", "Осы құрылғыдағы M3U, M3U8 немесе JSON",
             "Тізім сілтемесі", "Өз серверіңізден импорттап, жаңартып отырыңыз", "Тізім URL мекенжайы",
             "Пайдаланушы аты (міндетті емес)", "Құпиясөз (міндетті емес)",
-            "Levyra тек сіздің серверіңізге қосылады. Сілтемелер мен құпиясөздер осы құрылғыда қалады.",
+            "Derbis тек сіздің серверіңізге қосылады. Сілтемелер мен құпиясөздер осы құрылғыда қалады.",
             "Шифрланбаған HTTP-ге рұқсат беру", "Тек сенімді серверлер үшін, мысалы, үй желісінде.",
             "Жалғастыру", "Тізім оқылуда…", "Жинақ атауы", "Өткізілген жазбалар: {n}", "Біріктірілген қайталанғандар: {n}",
             "HTTP арқылы әндер: {n}", "Автоматты жаңарту", "Желіде болғанда өзгерістерді күніне шамамен екі рет тексереді",
@@ -500,7 +500,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Бұл музыка тізімі емес, HLS ағын манифесі.", "Жарамды M3U немесе JSON тізімі емес.",
             "Ойнатуға әндер жоқ. Салыстырмалы жолдар үшін тізім сілтемесі немесе baseUrl қажет.",
             "Жинақ сақталмады.", "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
-            "Жергілікті желіге рұқсат беру", "Үй желісіндегі серверлерге қосылу үшін Levyra-ға бұл рұқсат қажет.", "Рұқсат беру"
+            "Жергілікті желіге рұқсат беру", "Үй желісіндегі серверлерге қосылу үшін Derbis-ға бұл рұқсат қажет.", "Рұқсат беру"
         ),
         "sr" to listOf(
             "Збирке", "Личне збирке", "Још нема збирки",
@@ -508,7 +508,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Додај збирку", "Нова збирка", "Датотека листе", "M3U, M3U8 или JSON на овом уређају",
             "Линк листе", "Увези са свог сервера и одржавај је ажурном", "URL листе",
             "Корисничко име (опционо)", "Лозинка (опционо)",
-            "Levyra се повезује само са твојим сервером. Линкови и лозинке остају на овом уређају.",
+            "Derbis се повезује само са твојим сервером. Линкови и лозинке остају на овом уређају.",
             "Дозволи нешифровани HTTP", "Само за сервере којима верујеш, нпр. у кућној мрежи.",
             "Настави", "Читање листе…", "Назив збирке", "Прескочени уноси: {n}", "Спојени дупликати: {n}",
             "Песме преко HTTP-а: {n}", "Аутоматски освежи", "Проверава промене отприлике двапут дневно кад си на мрежи",
@@ -534,7 +534,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Shto koleksion", "Koleksion i ri", "Skedari i listës", "M3U, M3U8 ose JSON në këtë pajisje",
             "Lidhja e listës", "Importo nga serveri yt dhe mbaje të përditësuar", "URL e listës",
             "Emri i përdoruesit (opsional)", "Fjalëkalimi (opsional)",
-            "Levyra lidhet vetëm me serverin tënd. Lidhjet dhe fjalëkalimet mbeten në këtë pajisje.",
+            "Derbis lidhet vetëm me serverin tënd. Lidhjet dhe fjalëkalimet mbeten në këtë pajisje.",
             "Lejo HTTP të pakriptuar", "Vetëm për serverë që u beson, p.sh. në rrjetin e shtëpisë.",
             "Vazhdo", "Po lexohet lista…", "Emri i koleksionit", "Hyrje të kapërcyera: {n}", "Dublikata të bashkuara: {n}",
             "Këngë përmes HTTP: {n}", "Rifreskim automatik", "Kontrollon për ndryshime rreth dy herë në ditë kur je online",
@@ -552,7 +552,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ky është një manifest transmetimi HLS, jo një listë muzikore.", "Nuk është listë e vlefshme M3U ose JSON.",
             "Nuk ka këngë për të luajtur. Shtigjet relative kërkojnë lidhjen e listës ose baseUrl.",
             "Koleksioni nuk u ruajt.", "Diçka shkoi keq. Provo përsëri.",
-            "Lejo qasjen në rrjetin lokal", "Levyra ka nevojë për këtë leje për të arritur serverët në rrjetin e shtëpisë.", "Lejo"
+            "Lejo qasjen në rrjetin lokal", "Derbis ka nevojë për këtë leje për të arritur serverët në rrjetin e shtëpisë.", "Lejo"
         ),
         "hr" to listOf(
             "Zbirke", "Osobne zbirke", "Još nema zbirki",
@@ -560,7 +560,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Dodaj zbirku", "Nova zbirka", "Datoteka popisa", "M3U, M3U8 ili JSON na ovom uređaju",
             "Poveznica popisa", "Uvezite sa svog poslužitelja i održavajte ga ažurnim", "URL popisa",
             "Korisničko ime (neobavezno)", "Lozinka (neobavezno)",
-            "Levyra se povezuje samo s vašim poslužiteljem. Poveznice i lozinke ostaju na ovom uređaju.",
+            "Derbis se povezuje samo s vašim poslužiteljem. Poveznice i lozinke ostaju na ovom uređaju.",
             "Dopusti nešifrirani HTTP", "Samo za poslužitelje kojima vjerujete, npr. u kućnoj mreži.",
             "Nastavi", "Čitanje popisa…", "Naziv zbirke", "Preskočeni unosi: {n}", "Spojeni duplikati: {n}",
             "Pjesme preko HTTP-a: {n}", "Automatski osvježi", "Provjerava promjene otprilike dvaput dnevno kad ste na mreži",
@@ -578,7 +578,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ovo je HLS manifest za strujanje, a ne glazbeni popis.", "Nije valjan M3U ili JSON popis.",
             "Nema pjesama za reprodukciju. Relativne putanje trebaju poveznicu popisa ili baseUrl.",
             "Zbirka nije spremljena.", "Nešto nije u redu. Pokušajte ponovno.",
-            "Dopusti pristup lokalnoj mreži", "Levyra treba ovo dopuštenje za pristup poslužiteljima u kućnoj mreži.", "Dopusti"
+            "Dopusti pristup lokalnoj mreži", "Derbis treba ovo dopuštenje za pristup poslužiteljima u kućnoj mreži.", "Dopusti"
         ),
         "bg" to listOf(
             "Колекции", "Лични колекции", "Все още няма колекции",
@@ -586,7 +586,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Добавяне на колекция", "Нова колекция", "Файл с плейлист", "M3U, M3U8 или JSON на това устройство",
             "Връзка към плейлист", "Импортирайте от сървъра си и я поддържайте актуална", "URL на плейлиста",
             "Потребителско име (по избор)", "Парола (по избор)",
-            "Levyra се свързва само с вашия сървър. Връзките и паролите остават на това устройство.",
+            "Derbis се свързва само с вашия сървър. Връзките и паролите остават на това устройство.",
             "Разрешаване на некриптиран HTTP", "Само за доверени сървъри, напр. в домашната мрежа.",
             "Напред", "Четене на плейлиста…", "Име на колекцията", "Пропуснати записи: {n}", "Обединени дубликати: {n}",
             "Песни през HTTP: {n}", "Автоматично опресняване", "Проверява за промени около два пъти дневно, когато има връзка",
@@ -604,7 +604,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Това е HLS манифест за стрийминг, а не музикален плейлист.", "Това не е валиден плейлист M3U или JSON.",
             "Няма песни за пускане. Относителните пътища изискват връзка към плейлиста или baseUrl.",
             "Колекцията не можа да бъде запазена.", "Нещо се обърка. Опитайте отново.",
-            "Разрешаване на достъп до локалната мрежа", "Levyra се нуждае от това разрешение, за да достига сървъри в домашната мрежа.", "Разрешаване"
+            "Разрешаване на достъп до локалната мрежа", "Derbis се нуждае от това разрешение, за да достига сървъри в домашната мрежа.", "Разрешаване"
         ),
         "hu" to listOf(
             "Gyűjtemények", "Saját gyűjtemények", "Még nincs gyűjtemény",
@@ -612,7 +612,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Gyűjtemény hozzáadása", "Új gyűjtemény", "Lista fájl", "M3U, M3U8 vagy JSON ezen az eszközön",
             "Lista hivatkozás", "Importálás a saját szerverről, mindig frissen", "Lista URL-je",
             "Felhasználónév (nem kötelező)", "Jelszó (nem kötelező)",
-            "A Levyra csak a te szerveredhez csatlakozik. A hivatkozások és jelszavak ezen az eszközön maradnak.",
+            "A Derbis csak a te szerveredhez csatlakozik. A hivatkozások és jelszavak ezen az eszközön maradnak.",
             "Titkosítatlan HTTP engedélyezése", "Csak megbízható szerverekhez, például az otthoni hálózaton.",
             "Tovább", "Lista beolvasása…", "Gyűjtemény neve", "Kihagyott elemek: {n}", "Összevont duplikátumok: {n}",
             "HTTP-n elérhető számok: {n}", "Automatikus frissítés", "Online állapotban naponta kb. kétszer keres változásokat",
@@ -638,7 +638,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Lisää kokoelma", "Uusi kokoelma", "Soittolistatiedosto", "M3U, M3U8 tai JSON tällä laitteella",
             "Soittolistan linkki", "Tuo omalta palvelimelta ja pidä ajan tasalla", "Soittolistan URL",
             "Käyttäjänimi (valinnainen)", "Salasana (valinnainen)",
-            "Levyra muodostaa yhteyden vain palvelimeesi. Linkit ja salasanat pysyvät tällä laitteella.",
+            "Derbis muodostaa yhteyden vain palvelimeesi. Linkit ja salasanat pysyvät tällä laitteella.",
             "Salli salaamaton HTTP", "Vain luotetuille palvelimille, esimerkiksi kotiverkossa.",
             "Jatka", "Luetaan soittolistaa…", "Kokoelman nimi", "Ohitetut kohteet: {n}", "Yhdistetyt kaksoiskappaleet: {n}",
             "Kappaleet HTTP:n kautta: {n}", "Päivitä automaattisesti", "Tarkistaa muutokset noin kaksi kertaa päivässä verkossa",
@@ -656,7 +656,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Tämä on HLS-suoratoistomanifesti, ei musiikkisoittolista.", "Ei kelvollinen M3U- tai JSON-soittolista.",
             "Toistettavia kappaleita ei löytynyt. Suhteelliset polut vaativat soittolistan linkin tai baseUrl-arvon.",
             "Kokoelmaa ei voitu tallentaa.", "Jokin meni vikaan. Yritä uudelleen.",
-            "Salli lähiverkon käyttö", "Levyra tarvitsee tämän luvan tavoittaakseen kotiverkon palvelimet.", "Salli"
+            "Salli lähiverkon käyttö", "Derbis tarvitsee tämän luvan tavoittaakseen kotiverkon palvelimet.", "Salli"
         ),
         "et" to listOf(
             "Kogud", "Isiklikud kogud", "Kogusid veel pole",
@@ -664,7 +664,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Lisa kogu", "Uus kogu", "Esitusloendi fail", "M3U, M3U8 või JSON selles seadmes",
             "Esitusloendi link", "Impordi oma serverist ja hoia ajakohasena", "Esitusloendi URL",
             "Kasutajanimi (valikuline)", "Parool (valikuline)",
-            "Levyra ühendub ainult sinu serveriga. Lingid ja paroolid jäävad sellesse seadmesse.",
+            "Derbis ühendub ainult sinu serveriga. Lingid ja paroolid jäävad sellesse seadmesse.",
             "Luba krüpteerimata HTTP", "Ainult usaldusväärsete serverite jaoks, näiteks koduvõrgus.",
             "Jätka", "Esitusloendi lugemine…", "Kogu nimi", "Vahele jäetud kirjed: {n}", "Ühendatud duplikaadid: {n}",
             "Lood HTTP kaudu: {n}", "Värskenda automaatselt", "Kontrollib muudatusi umbes kaks korda päevas, kui oled võrgus",
@@ -682,7 +682,7 @@ internal object LevyraPersonalCollectionCatalog {
             "See on HLS-voogesituse manifest, mitte muusika esitusloend.", "See pole kehtiv M3U- ega JSON-esitusloend.",
             "Esitatavaid lugusid ei leitud. Suhtelised teed vajavad esitusloendi linki või baseUrl-i.",
             "Kogu salvestamine ebaõnnestus.", "Midagi läks valesti. Proovi uuesti.",
-            "Luba kohtvõrgu juurdepääs", "Levyra vajab seda luba, et jõuda koduvõrgu serveriteni.", "Luba"
+            "Luba kohtvõrgu juurdepääs", "Derbis vajab seda luba, et jõuda koduvõrgu serveriteni.", "Luba"
         ),
         "nb" to listOf(
             "Samlinger", "Personlige samlinger", "Ingen samlinger ennå",
@@ -690,7 +690,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Legg til samling", "Ny samling", "Spillelistefil", "M3U, M3U8 eller JSON på denne enheten",
             "Spillelistelenke", "Importer fra serveren din og hold den oppdatert", "Spillelistens URL",
             "Brukernavn (valgfritt)", "Passord (valgfritt)",
-            "Levyra kobler bare til serveren din. Lenker og passord blir på denne enheten.",
+            "Derbis kobler bare til serveren din. Lenker og passord blir på denne enheten.",
             "Tillat ukryptert HTTP", "Bare for servere du stoler på, for eksempel på hjemmenettverket.",
             "Fortsett", "Leser spillelisten…", "Navn på samling", "Hoppede over oppføringer: {n}", "Sammenslåtte duplikater: {n}",
             "Spor via HTTP: {n}", "Oppdater automatisk", "Ser etter endringer omtrent to ganger om dagen når du er tilkoblet",
@@ -708,7 +708,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Dette er et HLS-strømmemanifest, ikke en musikkspilleliste.", "Ikke en gyldig M3U- eller JSON-spilleliste.",
             "Ingen spillbare spor. Relative stier krever en spillelistelenke eller en baseUrl.",
             "Kunne ikke lagre samlingen.", "Noe gikk galt. Prøv igjen.",
-            "Tillat tilgang til lokalnettverket", "Levyra trenger denne tillatelsen for å nå servere på hjemmenettverket.", "Tillat"
+            "Tillat tilgang til lokalnettverket", "Derbis trenger denne tillatelsen for å nå servere på hjemmenettverket.", "Tillat"
         ),
         "ca" to listOf(
             "Col·leccions", "Col·leccions personals", "Encara no hi ha col·leccions",
@@ -716,7 +716,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Afegeix una col·lecció", "Col·lecció nova", "Fitxer de llista", "M3U, M3U8 o JSON desat en aquest dispositiu",
             "Enllaç de llista", "Importa des del teu servidor i mantén-la actualitzada", "URL de la llista",
             "Nom d'usuari (opcional)", "Contrasenya (opcional)",
-            "Levyra només es connecta al teu servidor. Els enllaços i contrasenyes es queden en aquest dispositiu.",
+            "Derbis només es connecta al teu servidor. Els enllaços i contrasenyes es queden en aquest dispositiu.",
             "Permet HTTP sense xifrar", "Només per a servidors de confiança, com un de la xarxa de casa.",
             "Continua", "S'està llegint la llista…", "Nom de la col·lecció", "Entrades omeses: {n}", "Duplicats units: {n}",
             "Pistes per HTTP: {n}", "Actualitza automàticament", "Cerca canvis unes dues vegades al dia amb connexió",
@@ -734,7 +734,7 @@ internal object LevyraPersonalCollectionCatalog {
             "És un manifest de streaming HLS, no una llista de música.", "No és una llista M3U o JSON vàlida.",
             "No hi ha pistes reproduïbles. Els camins relatius necessiten un enllaç de llista o un baseUrl.",
             "No s'ha pogut desar la col·lecció.", "Alguna cosa ha fallat. Torna-ho a provar.",
-            "Permet l'accés a la xarxa local", "Levyra necessita aquest permís per connectar-se a servidors de la xarxa de casa.", "Permet"
+            "Permet l'accés a la xarxa local", "Derbis necessita aquest permís per connectar-se a servidors de la xarxa de casa.", "Permet"
         ),
         "uk" to listOf(
             "Колекції", "Особисті колекції", "Ще немає колекцій",
@@ -742,7 +742,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Додати колекцію", "Нова колекція", "Файл списку", "M3U, M3U8 або JSON на цьому пристрої",
             "Посилання на список", "Імпортуйте зі свого сервера й тримайте актуальною", "URL списку",
             "Ім'я користувача (необов'язково)", "Пароль (необов'язково)",
-            "Levyra підключається лише до вашого сервера. Посилання й паролі залишаються на цьому пристрої.",
+            "Derbis підключається лише до вашого сервера. Посилання й паролі залишаються на цьому пристрої.",
             "Дозволити нешифрований HTTP", "Лише для довірених серверів, наприклад у домашній мережі.",
             "Продовжити", "Читання списку…", "Назва колекції", "Пропущені записи: {n}", "Об'єднані дублікати: {n}",
             "Треки через HTTP: {n}", "Оновлювати автоматично", "Перевіряє зміни приблизно двічі на день, коли є мережа",
@@ -760,7 +760,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Це маніфест потоку HLS, а не музичний список.", "Це не дійсний список M3U або JSON.",
             "Немає треків для відтворення. Відносні шляхи потребують посилання на список або baseUrl.",
             "Не вдалося зберегти колекцію.", "Щось пішло не так. Спробуйте ще раз.",
-            "Дозволити доступ до локальної мережі", "Levyra потрібен цей дозвіл, щоб підключатися до серверів у домашній мережі.", "Дозволити"
+            "Дозволити доступ до локальної мережі", "Derbis потрібен цей дозвіл, щоб підключатися до серверів у домашній мережі.", "Дозволити"
         ),
         "ru" to listOf(
             "Коллекции", "Личные коллекции", "Коллекций пока нет",
@@ -768,7 +768,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Добавить коллекцию", "Новая коллекция", "Файл плейлиста", "M3U, M3U8 или JSON на этом устройстве",
             "Ссылка на плейлист", "Импорт с вашего сервера с обновлением", "URL плейлиста",
             "Имя пользователя (необязательно)", "Пароль (необязательно)",
-            "Levyra подключается только к вашему серверу. Ссылки и пароли остаются на этом устройстве.",
+            "Derbis подключается только к вашему серверу. Ссылки и пароли остаются на этом устройстве.",
             "Разрешить незашифрованный HTTP", "Только для доверенных серверов, например в домашней сети.",
             "Продолжить", "Чтение плейлиста…", "Название коллекции", "Пропущено записей: {n}", "Объединено дубликатов: {n}",
             "Треков по HTTP: {n}", "Обновлять автоматически", "Проверяет изменения примерно дважды в день при подключении",
@@ -786,7 +786,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Это манифест потока HLS, а не музыкальный плейлист.", "Это не корректный плейлист M3U или JSON.",
             "Нет воспроизводимых треков. Для относительных путей нужна ссылка на плейлист или baseUrl.",
             "Не удалось сохранить коллекцию.", "Что-то пошло не так. Попробуйте ещё раз.",
-            "Разрешить доступ к локальной сети", "Levyra нужно это разрешение, чтобы подключаться к серверам в домашней сети.", "Разрешить"
+            "Разрешить доступ к локальной сети", "Derbis нужно это разрешение, чтобы подключаться к серверам в домашней сети.", "Разрешить"
         ),
         "tr" to listOf(
             "Koleksiyonlar", "Kişisel koleksiyonlar", "Henüz koleksiyon yok",
@@ -794,7 +794,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Koleksiyon ekle", "Yeni koleksiyon", "Çalma listesi dosyası", "Bu cihazdaki M3U, M3U8 veya JSON",
             "Çalma listesi bağlantısı", "Kendi sunucundan içe aktar ve güncel tut", "Çalma listesi URL'si",
             "Kullanıcı adı (isteğe bağlı)", "Parola (isteğe bağlı)",
-            "Levyra yalnızca senin sunucuna bağlanır. Bağlantılar ve parolalar bu cihazda kalır.",
+            "Derbis yalnızca senin sunucuna bağlanır. Bağlantılar ve parolalar bu cihazda kalır.",
             "Şifrelenmemiş HTTP'ye izin ver", "Yalnızca güvendiğin sunucular için, örneğin ev ağındaki.",
             "Devam", "Çalma listesi okunuyor…", "Koleksiyon adı", "Atlanan girişler: {n}", "Birleştirilen kopyalar: {n}",
             "HTTP ile parçalar: {n}", "Otomatik yenile", "Çevrimiçiyken günde yaklaşık iki kez değişiklikleri denetler",
@@ -812,7 +812,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Bu bir müzik listesi değil, HLS akış bildirimidir.", "Geçerli bir M3U veya JSON çalma listesi değil.",
             "Çalınabilir parça yok. Göreli yollar için çalma listesi bağlantısı veya baseUrl gerekir.",
             "Koleksiyon kaydedilemedi.", "Bir sorun oluştu. Tekrar dene.",
-            "Yerel ağ erişimine izin ver", "Levyra'nın ev ağındaki sunuculara ulaşması için bu izin gerekir.", "İzin ver"
+            "Yerel ağ erişimine izin ver", "Derbis'nın ev ağındaki sunuculara ulaşması için bu izin gerekir.", "İzin ver"
         ),
         "ar" to listOf(
             "المجموعات", "المجموعات الشخصية", "لا توجد مجموعات بعد",
@@ -820,7 +820,7 @@ internal object LevyraPersonalCollectionCatalog {
             "إضافة مجموعة", "مجموعة جديدة", "ملف قائمة تشغيل", "M3U أو M3U8 أو JSON محفوظ على هذا الجهاز",
             "رابط قائمة التشغيل", "استورد من خادمك وأبقِها محدّثة", "عنوان URL لقائمة التشغيل",
             "اسم المستخدم (اختياري)", "كلمة المرور (اختياري)",
-            "يتصل Levyra بخادمك فقط. تبقى الروابط وكلمات المرور على هذا الجهاز.",
+            "يتصل Derbis بخادمك فقط. تبقى الروابط وكلمات المرور على هذا الجهاز.",
             "السماح ببروتوكول HTTP غير المشفّر", "فقط للخوادم الموثوقة، مثل خادم على شبكتك المنزلية.",
             "متابعة", "جارٍ قراءة القائمة…", "اسم المجموعة", "العناصر المتخطاة: {n}", "التكرارات المدمجة: {n}",
             "مقاطع عبر HTTP: {n}", "التحديث تلقائيًا", "يتحقق من التغييرات مرتين تقريبًا يوميًا عند الاتصال",
@@ -838,7 +838,7 @@ internal object LevyraPersonalCollectionCatalog {
             "هذا ملف بث HLS وليس قائمة موسيقى.", "هذه ليست قائمة M3U أو JSON صالحة.",
             "لا توجد مقاطع قابلة للتشغيل. تحتاج المسارات النسبية إلى رابط القائمة أو baseUrl.",
             "تعذّر حفظ المجموعة.", "حدث خطأ ما. حاول مرة أخرى.",
-            "السماح بالوصول إلى الشبكة المحلية", "يحتاج Levyra إلى هذا الإذن للوصول إلى الخوادم على شبكتك المنزلية.", "سماح"
+            "السماح بالوصول إلى الشبكة المحلية", "يحتاج Derbis إلى هذا الإذن للوصول إلى الخوادم على شبكتك المنزلية.", "سماح"
         ),
         "fa" to listOf(
             "مجموعه‌ها", "مجموعه‌های شخصی", "هنوز مجموعه‌ای نیست",
@@ -846,7 +846,7 @@ internal object LevyraPersonalCollectionCatalog {
             "افزودن مجموعه", "مجموعهٔ جدید", "فایل فهرست پخش", "M3U، M3U8 یا JSON روی این دستگاه",
             "پیوند فهرست پخش", "از سرور خودتان وارد کنید و به‌روز نگه دارید", "نشانی URL فهرست پخش",
             "نام کاربری (اختیاری)", "گذرواژه (اختیاری)",
-            "Levyra فقط به سرور شما وصل می‌شود. پیوندها و گذرواژه‌ها روی این دستگاه می‌مانند.",
+            "Derbis فقط به سرور شما وصل می‌شود. پیوندها و گذرواژه‌ها روی این دستگاه می‌مانند.",
             "اجازهٔ HTTP رمزنگاری‌نشده", "فقط برای سرورهای مورد اعتماد، مثل سروری در شبکهٔ خانگی.",
             "ادامه", "در حال خواندن فهرست…", "نام مجموعه", "موارد ردشده: {n}", "تکراری‌های ادغام‌شده: {n}",
             "قطعه‌ها از طریق HTTP: {n}", "به‌روزرسانی خودکار", "وقتی آنلاین هستید حدوداً روزی دو بار تغییرات را بررسی می‌کند",
@@ -864,7 +864,7 @@ internal object LevyraPersonalCollectionCatalog {
             "این یک مانیفست جریان HLS است، نه فهرست موسیقی.", "این یک فهرست M3U یا JSON معتبر نیست.",
             "قطعهٔ قابل پخشی پیدا نشد. مسیرهای نسبی به پیوند فهرست یا baseUrl نیاز دارند.",
             "ذخیرهٔ مجموعه ممکن نشد.", "مشکلی پیش آمد. دوباره تلاش کنید.",
-            "اجازهٔ دسترسی به شبکهٔ محلی", "Levyra برای دسترسی به سرورهای شبکهٔ خانگی به این مجوز نیاز دارد.", "اجازه"
+            "اجازهٔ دسترسی به شبکهٔ محلی", "Derbis برای دسترسی به سرورهای شبکهٔ خانگی به این مجوز نیاز دارد.", "اجازه"
         ),
         "zh" to listOf(
             "收藏集", "个人收藏集", "还没有收藏集",
@@ -872,7 +872,7 @@ internal object LevyraPersonalCollectionCatalog {
             "添加收藏集", "新建收藏集", "播放列表文件", "此设备上的 M3U、M3U8 或 JSON",
             "播放列表链接", "从你的服务器导入并保持更新", "播放列表网址",
             "用户名（可选）", "密码（可选）",
-            "Levyra 只会连接你的服务器。链接和密码保留在此设备上。",
+            "Derbis 只会连接你的服务器。链接和密码保留在此设备上。",
             "允许未加密的 HTTP", "仅用于你信任的服务器，例如家庭网络中的服务器。",
             "继续", "正在读取播放列表…", "收藏集名称", "已跳过条目：{n}", "已合并重复项：{n}",
             "使用 HTTP 的曲目：{n}", "自动刷新", "联网时每天约检查两次更新",
@@ -890,7 +890,7 @@ internal object LevyraPersonalCollectionCatalog {
             "这是 HLS 串流清单，不是音乐播放列表。", "这不是有效的 M3U 或 JSON 播放列表。",
             "没有可播放的曲目。相对路径需要播放列表链接或 baseUrl。",
             "无法保存收藏集。", "出了点问题。请重试。",
-            "允许访问本地网络", "Levyra 需要此权限才能连接家庭网络中的服务器。", "允许"
+            "允许访问本地网络", "Derbis 需要此权限才能连接家庭网络中的服务器。", "允许"
         ),
         "zh-Hant" to listOf(
             "收藏集", "個人收藏集", "尚無收藏集",
@@ -898,7 +898,7 @@ internal object LevyraPersonalCollectionCatalog {
             "新增收藏集", "新收藏集", "播放清單檔案", "此裝置上的 M3U、M3U8 或 JSON",
             "播放清單連結", "從你的伺服器匯入並保持更新", "播放清單網址",
             "使用者名稱（選填）", "密碼（選填）",
-            "Levyra 只會連線到你的伺服器。連結和密碼會保留在此裝置上。",
+            "Derbis 只會連線到你的伺服器。連結和密碼會保留在此裝置上。",
             "允許未加密的 HTTP", "僅用於你信任的伺服器，例如家用網路中的伺服器。",
             "繼續", "正在讀取播放清單…", "收藏集名稱", "已略過項目：{n}", "已合併重複項目：{n}",
             "使用 HTTP 的曲目：{n}", "自動重新整理", "連線時每天約檢查兩次變更",
@@ -916,7 +916,7 @@ internal object LevyraPersonalCollectionCatalog {
             "這是 HLS 串流資訊清單，不是音樂播放清單。", "這不是有效的 M3U 或 JSON 播放清單。",
             "沒有可播放的曲目。相對路徑需要播放清單連結或 baseUrl。",
             "無法儲存收藏集。", "發生問題。請再試一次。",
-            "允許存取區域網路", "Levyra 需要此權限才能連線至家用網路中的伺服器。", "允許"
+            "允許存取區域網路", "Derbis 需要此權限才能連線至家用網路中的伺服器。", "允許"
         ),
         "ja" to listOf(
             "コレクション", "パーソナルコレクション", "コレクションはまだありません",
@@ -924,7 +924,7 @@ internal object LevyraPersonalCollectionCatalog {
             "コレクションを追加", "新しいコレクション", "プレイリストファイル", "このデバイス上の M3U、M3U8、JSON",
             "プレイリストのリンク", "自分のサーバーから読み込み、最新の状態を保ちます", "プレイリストの URL",
             "ユーザー名（任意）", "パスワード（任意）",
-            "Levyra が接続するのはあなたのサーバーだけです。リンクとパスワードはこのデバイスに保存されます。",
+            "Derbis が接続するのはあなたのサーバーだけです。リンクとパスワードはこのデバイスに保存されます。",
             "暗号化されていない HTTP を許可", "自宅ネットワーク内など、信頼できるサーバーにのみ使用してください。",
             "続ける", "プレイリストを読み込んでいます…", "コレクション名", "スキップした項目：{n}", "統合した重複：{n}",
             "HTTP の曲：{n}", "自動で更新", "オンライン時に 1 日 2 回ほど変更を確認します",
@@ -950,7 +950,7 @@ internal object LevyraPersonalCollectionCatalog {
             "컬렉션 추가", "새 컬렉션", "재생목록 파일", "이 기기에 저장된 M3U, M3U8 또는 JSON",
             "재생목록 링크", "내 서버에서 가져오고 최신 상태로 유지", "재생목록 URL",
             "사용자 이름(선택)", "비밀번호(선택)",
-            "Levyra는 내 서버에만 연결합니다. 링크와 비밀번호는 이 기기에만 저장됩니다.",
+            "Derbis는 내 서버에만 연결합니다. 링크와 비밀번호는 이 기기에만 저장됩니다.",
             "암호화되지 않은 HTTP 허용", "홈 네트워크의 서버처럼 신뢰할 수 있는 서버에만 사용하세요.",
             "계속", "재생목록을 읽는 중…", "컬렉션 이름", "건너뛴 항목: {n}", "합친 중복 항목: {n}",
             "HTTP 사용 트랙: {n}", "자동으로 새로고침", "온라인 상태일 때 하루에 약 두 번 변경 사항을 확인합니다",
@@ -968,7 +968,7 @@ internal object LevyraPersonalCollectionCatalog {
             "음악 재생목록이 아닌 HLS 스트리밍 매니페스트입니다.", "올바른 M3U 또는 JSON 재생목록이 아닙니다.",
             "재생할 수 있는 트랙이 없습니다. 상대 경로에는 재생목록 링크나 baseUrl이 필요합니다.",
             "컬렉션을 저장하지 못했습니다.", "문제가 발생했습니다. 다시 시도하세요.",
-            "로컬 네트워크 액세스 허용", "Levyra가 홈 네트워크의 서버에 연결하려면 이 권한이 필요합니다.", "허용"
+            "로컬 네트워크 액세스 허용", "Derbis가 홈 네트워크의 서버에 연결하려면 이 권한이 필요합니다.", "허용"
         ),
         "hi" to listOf(
             "संग्रह", "निजी संग्रह", "अभी कोई संग्रह नहीं",
@@ -976,7 +976,7 @@ internal object LevyraPersonalCollectionCatalog {
             "संग्रह जोड़ें", "नया संग्रह", "प्लेलिस्ट फ़ाइल", "इस डिवाइस पर M3U, M3U8 या JSON",
             "प्लेलिस्ट लिंक", "अपने सर्वर से इंपोर्ट करें और अपडेट रखें", "प्लेलिस्ट URL",
             "उपयोगकर्ता नाम (वैकल्पिक)", "पासवर्ड (वैकल्पिक)",
-            "Levyra केवल आपके सर्वर से जुड़ता है। लिंक और पासवर्ड इसी डिवाइस पर रहते हैं।",
+            "Derbis केवल आपके सर्वर से जुड़ता है। लिंक और पासवर्ड इसी डिवाइस पर रहते हैं।",
             "बिना एन्क्रिप्शन वाला HTTP अनुमति दें", "केवल भरोसेमंद सर्वर के लिए, जैसे आपके होम नेटवर्क पर।",
             "जारी रखें", "प्लेलिस्ट पढ़ी जा रही है…", "संग्रह का नाम", "छोड़ी गई प्रविष्टियाँ: {n}", "मिलाए गए डुप्लिकेट: {n}",
             "HTTP वाले ट्रैक: {n}", "अपने-आप रीफ़्रेश करें", "ऑनलाइन रहने पर दिन में लगभग दो बार बदलाव जाँचता है",
@@ -994,7 +994,7 @@ internal object LevyraPersonalCollectionCatalog {
             "यह HLS स्ट्रीमिंग मैनिफ़ेस्ट है, संगीत प्लेलिस्ट नहीं।", "यह मान्य M3U या JSON प्लेलिस्ट नहीं है।",
             "चलाने लायक कोई ट्रैक नहीं मिला। रिलेटिव पाथ के लिए प्लेलिस्ट लिंक या baseUrl चाहिए।",
             "संग्रह सहेजा नहीं जा सका।", "कुछ गलत हुआ। फिर से कोशिश करें।",
-            "लोकल नेटवर्क एक्सेस की अनुमति दें", "होम नेटवर्क के सर्वर तक पहुँचने के लिए Levyra को यह अनुमति चाहिए।", "अनुमति दें"
+            "लोकल नेटवर्क एक्सेस की अनुमति दें", "होम नेटवर्क के सर्वर तक पहुँचने के लिए Derbis को यह अनुमति चाहिए।", "अनुमति दें"
         ),
         "id" to listOf(
             "Koleksi", "Koleksi pribadi", "Belum ada koleksi",
@@ -1002,7 +1002,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Tambah koleksi", "Koleksi baru", "File playlist", "M3U, M3U8, atau JSON di perangkat ini",
             "Link playlist", "Impor dari servermu dan tetap terbarui", "URL playlist",
             "Nama pengguna (opsional)", "Sandi (opsional)",
-            "Levyra hanya terhubung ke servermu. Link dan sandi tetap di perangkat ini.",
+            "Derbis hanya terhubung ke servermu. Link dan sandi tetap di perangkat ini.",
             "Izinkan HTTP tanpa enkripsi", "Hanya untuk server tepercaya, misalnya di jaringan rumah.",
             "Lanjut", "Membaca playlist…", "Nama koleksi", "Entri dilewati: {n}", "Duplikat digabung: {n}",
             "Lagu lewat HTTP: {n}", "Perbarui otomatis", "Memeriksa perubahan sekitar dua kali sehari saat online",
@@ -1020,7 +1020,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ini manifes streaming HLS, bukan playlist musik.", "Bukan playlist M3U atau JSON yang valid.",
             "Tidak ada lagu yang bisa diputar. Path relatif memerlukan link playlist atau baseUrl.",
             "Koleksi tidak dapat disimpan.", "Terjadi kesalahan. Coba lagi.",
-            "Izinkan akses jaringan lokal", "Levyra memerlukan izin ini untuk menjangkau server di jaringan rumahmu.", "Izinkan"
+            "Izinkan akses jaringan lokal", "Derbis memerlukan izin ini untuk menjangkau server di jaringan rumahmu.", "Izinkan"
         ),
         "ms" to listOf(
             "Koleksi", "Koleksi peribadi", "Belum ada koleksi",
@@ -1028,7 +1028,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Tambah koleksi", "Koleksi baharu", "Fail senarai main", "M3U, M3U8 atau JSON pada peranti ini",
             "Pautan senarai main", "Import dari pelayan anda dan kekal dikemas kini", "URL senarai main",
             "Nama pengguna (pilihan)", "Kata laluan (pilihan)",
-            "Levyra hanya bersambung ke pelayan anda. Pautan dan kata laluan kekal pada peranti ini.",
+            "Derbis hanya bersambung ke pelayan anda. Pautan dan kata laluan kekal pada peranti ini.",
             "Benarkan HTTP tanpa penyulitan", "Hanya untuk pelayan yang dipercayai, seperti di rangkaian rumah.",
             "Teruskan", "Membaca senarai main…", "Nama koleksi", "Entri dilangkau: {n}", "Pendua digabungkan: {n}",
             "Lagu melalui HTTP: {n}", "Muat semula secara automatik", "Menyemak perubahan kira-kira dua kali sehari ketika dalam talian",
@@ -1046,7 +1046,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Ini manifest penstriman HLS, bukan senarai main muzik.", "Bukan senarai main M3U atau JSON yang sah.",
             "Tiada lagu yang boleh dimainkan. Laluan relatif memerlukan pautan senarai main atau baseUrl.",
             "Koleksi tidak dapat disimpan.", "Berlaku masalah. Cuba lagi.",
-            "Benarkan akses rangkaian setempat", "Levyra memerlukan kebenaran ini untuk mencapai pelayan dalam rangkaian rumah anda.", "Benarkan"
+            "Benarkan akses rangkaian setempat", "Derbis memerlukan kebenaran ini untuk mencapai pelayan dalam rangkaian rumah anda.", "Benarkan"
         ),
         "vi" to listOf(
             "Bộ sưu tập", "Bộ sưu tập cá nhân", "Chưa có bộ sưu tập",
@@ -1054,7 +1054,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Thêm bộ sưu tập", "Bộ sưu tập mới", "Tệp danh sách phát", "M3U, M3U8 hoặc JSON trên thiết bị này",
             "Liên kết danh sách phát", "Nhập từ máy chủ của bạn và luôn cập nhật", "URL danh sách phát",
             "Tên người dùng (tùy chọn)", "Mật khẩu (tùy chọn)",
-            "Levyra chỉ kết nối với máy chủ của bạn. Liên kết và mật khẩu ở lại trên thiết bị này.",
+            "Derbis chỉ kết nối với máy chủ của bạn. Liên kết và mật khẩu ở lại trên thiết bị này.",
             "Cho phép HTTP không mã hóa", "Chỉ dùng cho máy chủ đáng tin cậy, như máy chủ trong mạng gia đình.",
             "Tiếp tục", "Đang đọc danh sách phát…", "Tên bộ sưu tập", "Mục đã bỏ qua: {n}", "Mục trùng đã gộp: {n}",
             "Bản nhạc dùng HTTP: {n}", "Tự động làm mới", "Kiểm tra thay đổi khoảng hai lần mỗi ngày khi trực tuyến",
@@ -1072,7 +1072,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Đây là tệp kê khai phát trực tuyến HLS, không phải danh sách nhạc.", "Không phải danh sách phát M3U hoặc JSON hợp lệ.",
             "Không có bản nhạc phát được. Đường dẫn tương đối cần liên kết danh sách phát hoặc baseUrl.",
             "Không thể lưu bộ sưu tập.", "Đã xảy ra lỗi. Hãy thử lại.",
-            "Cho phép truy cập mạng cục bộ", "Levyra cần quyền này để kết nối với máy chủ trong mạng gia đình của bạn.", "Cho phép"
+            "Cho phép truy cập mạng cục bộ", "Derbis cần quyền này để kết nối với máy chủ trong mạng gia đình của bạn.", "Cho phép"
         ),
         "th" to listOf(
             "คอลเลกชัน", "คอลเลกชันส่วนตัว", "ยังไม่มีคอลเลกชัน",
@@ -1080,7 +1080,7 @@ internal object LevyraPersonalCollectionCatalog {
             "เพิ่มคอลเลกชัน", "คอลเลกชันใหม่", "ไฟล์เพลย์ลิสต์", "M3U, M3U8 หรือ JSON ในอุปกรณ์นี้",
             "ลิงก์เพลย์ลิสต์", "นำเข้าจากเซิร์ฟเวอร์ของคุณและอัปเดตอยู่เสมอ", "URL ของเพลย์ลิสต์",
             "ชื่อผู้ใช้ (ไม่บังคับ)", "รหัสผ่าน (ไม่บังคับ)",
-            "Levyra เชื่อมต่อกับเซิร์ฟเวอร์ของคุณเท่านั้น ลิงก์และรหัสผ่านจะอยู่ในอุปกรณ์นี้",
+            "Derbis เชื่อมต่อกับเซิร์ฟเวอร์ของคุณเท่านั้น ลิงก์และรหัสผ่านจะอยู่ในอุปกรณ์นี้",
             "อนุญาต HTTP ที่ไม่เข้ารหัส", "ใช้เฉพาะกับเซิร์ฟเวอร์ที่เชื่อถือได้ เช่น ในเครือข่ายบ้าน",
             "ดำเนินการต่อ", "กำลังอ่านเพลย์ลิสต์…", "ชื่อคอลเลกชัน", "รายการที่ข้าม: {n}", "รายการซ้ำที่รวมแล้ว: {n}",
             "แทร็กที่ใช้ HTTP: {n}", "รีเฟรชอัตโนมัติ", "ตรวจหาการเปลี่ยนแปลงประมาณวันละสองครั้งเมื่อออนไลน์",
@@ -1098,7 +1098,7 @@ internal object LevyraPersonalCollectionCatalog {
             "นี่คือไฟล์ HLS สำหรับสตรีม ไม่ใช่เพลย์ลิสต์เพลง", "ไม่ใช่เพลย์ลิสต์ M3U หรือ JSON ที่ถูกต้อง",
             "ไม่มีแทร็กที่เล่นได้ เส้นทางแบบสัมพัทธ์ต้องใช้ลิงก์เพลย์ลิสต์หรือ baseUrl",
             "บันทึกคอลเลกชันไม่ได้", "เกิดข้อผิดพลาด โปรดลองอีกครั้ง",
-            "อนุญาตให้เข้าถึงเครือข่ายท้องถิ่น", "Levyra ต้องใช้สิทธิ์นี้เพื่อเชื่อมต่อกับเซิร์ฟเวอร์ในเครือข่ายบ้านของคุณ", "อนุญาต"
+            "อนุญาตให้เข้าถึงเครือข่ายท้องถิ่น", "Derbis ต้องใช้สิทธิ์นี้เพื่อเชื่อมต่อกับเซิร์ฟเวอร์ในเครือข่ายบ้านของคุณ", "อนุญาต"
         ),
         "fil" to listOf(
             "Mga koleksyon", "Mga personal na koleksyon", "Wala pang koleksyon",
@@ -1106,7 +1106,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Magdagdag ng koleksyon", "Bagong koleksyon", "Playlist file", "M3U, M3U8 o JSON sa device na ito",
             "Link ng playlist", "Mag-import mula sa iyong server at panatilihin itong updated", "URL ng playlist",
             "Username (opsyonal)", "Password (opsyonal)",
-            "Sa iyong server lang kumokonekta ang Levyra. Mananatili sa device na ito ang mga link at password.",
+            "Sa iyong server lang kumokonekta ang Derbis. Mananatili sa device na ito ang mga link at password.",
             "Payagan ang hindi naka-encrypt na HTTP", "Para lang sa mga server na pinagkakatiwalaan mo, gaya ng nasa home network.",
             "Magpatuloy", "Binabasa ang playlist…", "Pangalan ng koleksyon", "Nilaktawang entry: {n}", "Pinagsamang duplicate: {n}",
             "Mga track sa HTTP: {n}", "Awtomatikong i-refresh", "Tumitingin ng pagbabago mga dalawang beses kada araw kapag online",
@@ -1124,7 +1124,7 @@ internal object LevyraPersonalCollectionCatalog {
             "Isa itong HLS streaming manifest, hindi music playlist.", "Hindi ito valid na M3U o JSON playlist.",
             "Walang mape-play na track. Kailangan ng relative path ang link ng playlist o baseUrl.",
             "Hindi ma-save ang koleksyon.", "May nangyaring mali. Subukan ulit.",
-            "Payagan ang access sa local network", "Kailangan ng Levyra ang pahintulot na ito para maabot ang mga server sa iyong home network.", "Payagan"
+            "Payagan ang access sa local network", "Kailangan ng Derbis ang pahintulot na ito para maabot ang mga server sa iyong home network.", "Payagan"
         ),
         "he" to listOf(
             "אוספים", "אוספים אישיים", "אין עדיין אוספים",
@@ -1132,7 +1132,7 @@ internal object LevyraPersonalCollectionCatalog {
             "הוספת אוסף", "אוסף חדש", "קובץ פלייליסט", "M3U, M3U8 או JSON שנשמר במכשיר",
             "קישור לפלייליסט", "ייבוא מהשרת שלך ושמירה על עדכניות", "כתובת URL של הפלייליסט",
             "שם משתמש (אופציונלי)", "סיסמה (אופציונלי)",
-            "Levyra מתחבר רק לשרת שלך. קישורים וסיסמאות נשארים במכשיר הזה.",
+            "Derbis מתחבר רק לשרת שלך. קישורים וסיסמאות נשארים במכשיר הזה.",
             "לאפשר HTTP לא מוצפן", "רק לשרתים מהימנים, למשל ברשת הביתית.",
             "המשך", "קורא את הפלייליסט…", "שם האוסף", "פריטים שדולגו: {n}", "כפילויות שאוחדו: {n}",
             "רצועות דרך HTTP: {n}", "רענון אוטומטי", "בודק שינויים בערך פעמיים ביום כשיש חיבור",
@@ -1150,7 +1150,7 @@ internal object LevyraPersonalCollectionCatalog {
             "זהו מניפסט הזרמה של HLS, לא פלייליסט מוזיקה.", "זה אינו פלייליסט M3U או JSON תקין.",
             "לא נמצאו רצועות להשמעה. נתיבים יחסיים דורשים קישור לפלייליסט או baseUrl.",
             "לא ניתן לשמור את האוסף.", "משהו השתבש. כדאי לנסות שוב.",
-            "לאפשר גישה לרשת המקומית", "Levyra צריך את ההרשאה הזאת כדי להגיע לשרתים ברשת הביתית.", "לאפשר"
+            "לאפשר גישה לרשת המקומית", "Derbis צריך את ההרשאה הזאת כדי להגיע לשרתים ברשת הביתית.", "לאפשר"
         )
     )
 

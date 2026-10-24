@@ -20,8 +20,8 @@ import com.luc4n3x.levyra.ui.artwork.rememberArtworkPalette
 import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.materialkolor.hct.Hct
 
-internal const val PrismPaletteId = "levyra_prism"
-internal const val TorquePaletteId = "levyra_torque"
+internal const val PrismPaletteId = "derbis_prism"
+internal const val TorquePaletteId = "derbis_torque"
 val LevyraIsTorque: Boolean get() = LevyraActivePalette.id == TorquePaletteId
 val LevyraIsPrism: Boolean get() = LevyraActivePalette.id == PrismPaletteId || LevyraIsTorque || LevyraIsIvory || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsYouTubeMusic
 internal val LevyraSkinManagesLayout: Boolean get() = LevyraIsNocturne || LevyraIsPrism

@@ -177,7 +177,7 @@ internal fun supportsOfflineExport(manifest: ResolvedPlaybackManifest): Boolean 
 }
 
 internal fun preserveEditorialArtwork(presented: Track, resolved: Track): Track {
-    val artworkLocked = presented.source.equals("Levyra Editorial", ignoreCase = true) ||
+    val artworkLocked = presented.source.equals("Derbis Editorial", ignoreCase = true) ||
         EDITORIAL_ARTWORK_LOCK_TAG in presented.moodTags
     if (!artworkLocked) return resolved
     val artwork = presented.largeThumbnailUrl.trim().ifBlank { presented.thumbnailUrl.trim() }
@@ -331,8 +331,8 @@ internal fun readBoundedYoutubeJsonBody(
 class PlaybackResolver private constructor(private val context: Context) {
     companion object {
         private const val YOUTUBE_VIDEO_ID_PATTERN = "[A-Za-z0-9_-]{11}"
-        private const val LEVYRA_EXTRACTOR_PROVIDER = "LevyraExtractor"
-        private const val LEVYRA_EXTRACTOR_HLS_PROVIDER = "LevyraExtractor HLS"
+        private const val LEVYRA_EXTRACTOR_PROVIDER = "DerbisExtractor"
+        private const val LEVYRA_EXTRACTOR_HLS_PROVIDER = "DerbisExtractor HLS"
         private const val AUDIO_HEALTH_MODE = "audio"
         private const val VIDEO_HEALTH_MODE = "video"
         private const val MAX_STREAM_CACHE_ENTRIES = 128
@@ -359,8 +359,8 @@ class PlaybackResolver private constructor(private val context: Context) {
 
     private val apiKey = BuildConfig.YOUTUBE_INNERTUBE_API_KEY
     private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
-    private val prefs = context.getSharedPreferences("levyra_stream_cache", Context.MODE_PRIVATE)
-    private val clientHealthPrefs = context.getSharedPreferences("levyra_innertube_client_health", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences("derbis_stream_cache", Context.MODE_PRIVATE)
+    private val clientHealthPrefs = context.getSharedPreferences("derbis_innertube_client_health", Context.MODE_PRIVATE)
     private val userPreferences = LevyraPreferences(context)
     private val streamCache = ConcurrentHashMap<String, CachedStream>()
     private val streamCacheMutationLock = Any()
@@ -1303,7 +1303,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             val resolved = resolveAudioByCompatibilityPolicy(track, audioQuality, errors, expectedGeneration)
             if (resolved != null) return@withContext resolved
 
-            val reason = errors.firstOrNull { it.startsWith("LevyraExtractor:") }
+            val reason = errors.firstOrNull { it.startsWith("DerbisExtractor:") }
                 ?: errors.firstOrNull {
                     it.contains("age", true) ||
                         it.contains("anonymous", true) ||
@@ -1374,7 +1374,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             return@withContext alternate
         }
 
-        val reason = errors.firstOrNull { it.startsWith("LevyraExtractor:") }
+        val reason = errors.firstOrNull { it.startsWith("DerbisExtractor:") }
             ?: errors.firstOrNull { it.contains("age", true) || it.contains("anonymous", true) || it.contains("login", true) || it.contains("accedi", true) }
             ?: errors.firstOrNull()
             ?: "Stream non disponibile"
@@ -1687,7 +1687,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             }
             result.onSuccess { offer(it) }
                 .onFailure { error ->
-                    errors += "LevyraExtractor video: ${error.playbackDiagnostic()}"
+                    errors += "DerbisExtractor video: ${error.playbackDiagnostic()}"
                 }
         }
         val innerTubeJob = launch {
@@ -2121,7 +2121,7 @@ class PlaybackResolver private constructor(private val context: Context) {
                 val resolved = runCatchingPreservingCancellation { resolveWithLevyraExtractor(track, false, audioQuality) }
                 resolved.onSuccess { winner.complete(it) }
                     .onFailure { error ->
-                        errors += "LevyraExtractor: ${error.playbackDiagnostic()}"
+                        errors += "DerbisExtractor: ${error.playbackDiagnostic()}"
                     }
             }
             val innerTubeJob = launch {
@@ -2153,7 +2153,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             val resolved = runCatchingPreservingCancellation { resolveWithLevyraExtractor(track, true, audioQuality) }
             resolved.onSuccess { winner.complete(it) }
                 .onFailure { error ->
-                    errors += "LevyraExtractor: ${error.playbackDiagnostic()}"
+                    errors += "DerbisExtractor: ${error.playbackDiagnostic()}"
                 }
         }
         val innerTubeJob = launch {
@@ -2356,7 +2356,7 @@ class PlaybackResolver private constructor(private val context: Context) {
                 resolveWithLevyraExtractor(sourceTrack, preferMp4Audio, audioQuality)
             }
         }.onFailure { error ->
-            errors += "Persistent LevyraExtractor: ${error.playbackDiagnostic()}"
+            errors += "Persistent DerbisExtractor: ${error.playbackDiagnostic()}"
         }.getOrNull()
         if (extractor != null && manifestUrlsUsable(extractor.playbackManifest, isVideoMode, preferMp4Audio)) return extractor
         val direct = runCatchingPreservingCancellation {
@@ -3801,7 +3801,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             null
         }
         val url = audio?.content ?: muxedAudioSource?.content ?: hlsUrl
-            ?: throw IllegalStateException("LevyraExtractor non ha restituito stream audio diretti o HLS per ${track.title}")
+            ?: throw IllegalStateException("DerbisExtractor non ha restituito stream audio diretti o HLS per ${track.title}")
         val bestThumb = info.thumbnails.maxByOrNull { image ->
             image.width.coerceAtLeast(0) * image.height.coerceAtLeast(0)
         }?.url.orEmpty()
@@ -3840,7 +3840,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             videoStreamUrl = "",
             durationMs = durationMs,
             source = when {
-                audio != null -> "LevyraExtractor${label.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()}"
+                audio != null -> "DerbisExtractor${label.takeIf { it.isNotBlank() }?.let { " · $it" }.orEmpty()}"
                 muxedAudioSource != null -> LEVYRA_EXTRACTOR_PROVIDER
                 else -> LEVYRA_EXTRACTOR_HLS_PROVIDER
             },
@@ -3915,7 +3915,7 @@ class PlaybackResolver private constructor(private val context: Context) {
                 streamUrl = selectedAudioUrl,
                 videoStreamUrl = selectedVideoUrl,
                 durationMs = durationMs,
-                source = "LevyraExtractor · ${selection.reason}",
+                source = "DerbisExtractor · ${selection.reason}",
                 playbackManifest = manifest,
                 videoSubtitleTracks = extractorVideoSubtitleTracks(info)
             )

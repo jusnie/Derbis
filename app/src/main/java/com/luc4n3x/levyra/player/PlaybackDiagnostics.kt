@@ -182,7 +182,7 @@ internal data class PlaybackDiagnosticSnapshot(
     }
 
     fun safeReport(): String = buildString {
-        appendLine("LEVYRA PLAYBACK DIAGNOSTICS")
+        appendLine("DERBIS PLAYBACK DIAGNOSTICS")
         appendLine("status=${status.name}")
         appendSection("playback", playbackRows())
         appendSection("formats", formatRows())
@@ -399,9 +399,9 @@ internal class PlaybackDiagnosticsReader(context: Context) {
     }
 
     private companion object {
-        const val PLAYBACK_STRATEGY_HEALTH_PREFS = "levyra_playback_strategy_health"
+        const val PLAYBACK_STRATEGY_HEALTH_PREFS = "derbis_playback_strategy_health"
         const val PLAYBACK_STRATEGY_HEALTH_KEY = "health"
-        const val EXTRA_SOURCE = "levyra.source"
+        const val EXTRA_SOURCE = "derbis.source"
     }
 }
 

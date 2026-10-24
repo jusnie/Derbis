@@ -4,7 +4,7 @@ import com.luc4n3x.levyra.data.local.LocalMediaEntity
 import java.text.Normalizer
 import java.util.Locale
 
-internal const val LEVYRA_DOWNLOAD_RELATIVE_PATH = "Music/Levyra/"
+internal const val LEVYRA_DOWNLOAD_RELATIVE_PATH = "Music/Derbis/"
 internal const val LOCAL_MEDIA_TRACK_ID_PREFIX = "local:"
 internal const val LOCAL_MEDIA_SOURCE = "Offline"
 

@@ -55,7 +55,7 @@ internal object WaveSeekRuntime {
         }
         val extras = mediaItem.mediaMetadata.extras
         val metadataDurationMs = extras
-            ?.getLong("levyra.durationMs", C.TIME_UNSET)
+            ?.getLong("derbis.durationMs", C.TIME_UNSET)
             ?: C.TIME_UNSET
         val playerDurationMs = player.duration
         val durationMs = waveSeekResolvedDurationMs(

@@ -21,7 +21,7 @@ import com.luc4n3x.levyra.domain.IvorySettings
 import com.luc4n3x.levyra.domain.LevyraFontPreset
 import com.luc4n3x.levyra.domain.LevyraInterfaceSettings
 
-internal const val IvoryPaletteId = "levyra_ivory"
+internal const val IvoryPaletteId = "derbis_ivory"
 val LevyraIsIvory: Boolean get() = LevyraActivePalette.id == IvoryPaletteId
 internal var activeIvorySettings by mutableStateOf(IvorySettings())
     private set

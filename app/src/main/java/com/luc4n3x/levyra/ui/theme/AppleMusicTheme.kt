@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.materialkolor.hct.Hct
 
-internal const val AppleMusicPaletteId = "levyra_apple_music_style"
+internal const val AppleMusicPaletteId = "derbis_apple_music_style"
 val LevyraIsAppleMusic: Boolean get() = LevyraActivePalette.id == AppleMusicPaletteId
 
 internal object AppleMusicDesign {

@@ -372,7 +372,7 @@ class LevyraStrings private constructor(
     val hiddenPlaylists: String get() = value("hiddenPlaylists")
     val hiddenPlaylistsEmpty: String get() = value("hiddenPlaylistsEmpty")
     val welcomeBadge: String get() = value("welcomeBadge")
-    val levyraMix: String get() = value("levyraMix")
+    val levyraMix: String get() = value("derbisMix")
     val mixCreate: String get() = value("mixCreate")
     val mixStartRadio: String get() = value("mixStartRadio")
     val mixFamiliarLabel: String get() = value("mixFamiliarLabel")
@@ -546,32 +546,32 @@ class LevyraStrings private constructor(
         else -> "App font"
     }
     val appFontSubtitle: String get() = when (code) {
-        "it" -> "Scegli il font usato in tutta Levyra"
-        "es" -> "Elige la tipografía usada en toda Levyra"
-        "fr" -> "Choisissez la police utilisée dans Levyra"
-        "de" -> "Wähle die Schriftart für ganz Levyra"
-        "pt" -> "Escolha o tipo de letra usado em toda a Levyra"
-        "nl" -> "Kies het lettertype voor heel Levyra"
-        "pl" -> "Wybierz krój pisma używany w całej Levyra"
-        "ro" -> "Alege fontul folosit în toată aplicația Levyra"
-        "el" -> "Επίλεξε τη γραμματοσειρά για όλο το Levyra"
-        "sv" -> "Välj typsnittet som används i hela Levyra"
-        "da" -> "Vælg skrifttypen til hele Levyra"
-        "cs" -> "Vyberte písmo používané v celé aplikaci Levyra"
-        "uk" -> "Виберіть шрифт для всього Levyra"
-        "ru" -> "Выберите шрифт для всего Levyra"
-        "tr" -> "Levyra genelinde kullanılacak yazı tipini seç"
-        "ar" -> "اختر الخط المستخدم في جميع أنحاء Levyra"
-        "zh" -> "选择 Levyra 全局使用的字体"
-        "ja" -> "Levyra 全体で使用するフォントを選択"
-        "ko" -> "Levyra 전체에서 사용할 글꼴을 선택하세요"
-        "hi" -> "पूरे Levyra में इस्तेमाल होने वाला फ़ॉन्ट चुनें"
-        "id" -> "Pilih font yang digunakan di seluruh Levyra"
-        "vi" -> "Chọn phông chữ dùng trong toàn bộ Levyra"
-        "th" -> "เลือกแบบอักษรที่ใช้ทั่วทั้ง Levyra"
-        "fil" -> "Piliin ang font na gagamitin sa buong Levyra"
-        "he" -> "בחרו את הגופן שישמש בכל Levyra"
-        else -> "Choose the typeface used across Levyra"
+        "it" -> "Scegli il font usato in tutta Derbis"
+        "es" -> "Elige la tipografía usada en toda Derbis"
+        "fr" -> "Choisissez la police utilisée dans Derbis"
+        "de" -> "Wähle die Schriftart für ganz Derbis"
+        "pt" -> "Escolha o tipo de letra usado em toda a Derbis"
+        "nl" -> "Kies het lettertype voor heel Derbis"
+        "pl" -> "Wybierz krój pisma używany w całej Derbis"
+        "ro" -> "Alege fontul folosit în toată aplicația Derbis"
+        "el" -> "Επίλεξε τη γραμματοσειρά για όλο το Derbis"
+        "sv" -> "Välj typsnittet som används i hela Derbis"
+        "da" -> "Vælg skrifttypen til hele Derbis"
+        "cs" -> "Vyberte písmo používané v celé aplikaci Derbis"
+        "uk" -> "Виберіть шрифт для всього Derbis"
+        "ru" -> "Выберите шрифт для всего Derbis"
+        "tr" -> "Derbis genelinde kullanılacak yazı tipini seç"
+        "ar" -> "اختر الخط المستخدم في جميع أنحاء Derbis"
+        "zh" -> "选择 Derbis 全局使用的字体"
+        "ja" -> "Derbis 全体で使用するフォントを選択"
+        "ko" -> "Derbis 전체에서 사용할 글꼴을 선택하세요"
+        "hi" -> "पूरे Derbis में इस्तेमाल होने वाला फ़ॉन्ट चुनें"
+        "id" -> "Pilih font yang digunakan di seluruh Derbis"
+        "vi" -> "Chọn phông chữ dùng trong toàn bộ Derbis"
+        "th" -> "เลือกแบบอักษรที่ใช้ทั่วทั้ง Derbis"
+        "fil" -> "Piliin ang font na gagamitin sa buong Derbis"
+        "he" -> "בחרו את הגופן שישמש בכל Derbis"
+        else -> "Choose the typeface used across Derbis"
     }
     val personalOrbitTitle: String get() = value("personalOrbitTitle")
     val personalOrbitSubtitle: String get() = value("personalOrbitSubtitle")
@@ -593,7 +593,7 @@ class LevyraStrings private constructor(
         "it" -> "RESTORATION & ENHANCEMENT"
         else -> "RESTORATION & ENHANCEMENT"
     }
-    val enhancedAudioTitle: String get() = "Levyra Enhanced Audio"
+    val enhancedAudioTitle: String get() = "Derbis Enhanced Audio"
     val enhancedAudioSubtitle: String get() = when (code) {
         "it" -> "Ripristina i dettagli persi durante la compressione lossy lasciando il flusso originale intatto quando l'elaborazione non è benefica."
         "es" -> "Restaura los detalles perdidos durante la compresión manteniendo el flujo original si no es beneficioso."
@@ -1142,7 +1142,7 @@ class LevyraStrings private constructor(
         else -> if (code == "it") "Ogni settimana" else "Weekly"
     }
     fun backupRetentionLabel(count: Int): String = if (code == "it") "$count copie" else "$count copies"
-    val vaultTitle: String get() = "Levyra Vault"
+    val vaultTitle: String get() = "Derbis Vault"
     val vaultSubtitle: String get() = if (code == "it") {
         "Proteggi playlist, preferiti, cronologia e impostazioni"
     } else {
@@ -1169,9 +1169,9 @@ class LevyraStrings private constructor(
     }
     val backupLocationInternal: String get() = if (code == "it") "Usa memoria interna" else "Use internal storage"
     val backupLocationInternalSubtitle: String get() = if (code == "it") {
-        "Torna alla cartella interna di Levyra"
+        "Torna alla cartella interna di Derbis"
     } else {
-        "Go back to Levyra's internal folder"
+        "Go back to Derbis's internal folder"
     }
     val backupBeforeUpdates: String get() = if (code == "it") {
         "Backup prima degli aggiornamenti"
@@ -1190,7 +1190,7 @@ class LevyraStrings private constructor(
         "Open the automatic backups folder"
     }
     val vaultBusy: String get() = if (code == "it") "Operazione Vault in corso..." else "Vault operation in progress..."
-    val restorePreviewTitle: String get() = if (code == "it") "Ripristina Levyra" else "Restore Levyra"
+    val restorePreviewTitle: String get() = if (code == "it") "Ripristina Derbis" else "Restore Derbis"
     val restorePreviewCompatible: String get() = if (code == "it") "Backup compatibile" else "Compatible backup"
     val restorePreviewIncompatible: String get() = if (code == "it") {
         "Backup non compatibile con questa versione"
@@ -1198,7 +1198,7 @@ class LevyraStrings private constructor(
         "Backup incompatible with this version"
     }
     val restorePreviewCreated: String get() = if (code == "it") "Creato" else "Created"
-    val restorePreviewVersion: String get() = if (code == "it") "Versione Levyra" else "Levyra version"
+    val restorePreviewVersion: String get() = if (code == "it") "Versione Derbis" else "Derbis version"
     val restorePreviewSize: String get() = if (code == "it") "Dimensione" else "Size"
     val restorePreviewContents: String get() = if (code == "it") "Contenuti" else "Contents"
     val restoreConfirm: String get() = if (code == "it") "Ripristina" else "Restore"
@@ -1261,7 +1261,7 @@ class LevyraStrings private constructor(
     val statArtists: String get() = value("statArtists")
     val statTracks: String get() = value("statTracks")
 
-    val levyraSelection: String get() = value("levyraSelection")
+    val levyraSelection: String get() = value("derbisSelection")
     val releasedToday: String get() = value("releasedToday")
     val justReleased: String get() = value("justReleased")
     val chartTrending: String get() = value("chartTrending")
@@ -1489,7 +1489,7 @@ class LevyraStrings private constructor(
     val localFolders: String get() = value("localFolders")
     val localScanQuick: String get() = value("localScanQuick")
     val localScanFull: String get() = value("localScanFull")
-    val localRebuildLevyra: String get() = value("localRebuildLevyra")
+    val localRebuildLevyra: String get() = value("localRebuildDerbis")
     val localScanning: String get() = value("localScanning")
     val localScanFailed: String get() = localScanFailedLocalization(code)
     val localScanUpToDate: String get() = value("localScanUpToDate")
@@ -1753,9 +1753,9 @@ class LevyraStrings private constructor(
             if (code == "it") "brano esportato" else "exported track"
         })
         val tagStatus = when {
-            code == "it" && embeddedMetadata -> "con copertina e tag Levyra"
+            code == "it" && embeddedMetadata -> "con copertina e tag Derbis"
             code == "it" -> "con metadati Android"
-            embeddedMetadata -> "with Levyra cover and tags"
+            embeddedMetadata -> "with Derbis cover and tags"
             else -> "with Android metadata"
         }
         return if (code == "it") {
@@ -1799,9 +1799,9 @@ class LevyraStrings private constructor(
                 }
             raw.contains("Primary directory Music not allowed", ignoreCase = true) ||
                 raw.contains("content://media/external_primary/file", ignoreCase = true) -> if (code == "it") {
-                    "Questo dispositivo non ha consentito il salvataggio in Music/Levyra"
+                    "Questo dispositivo non ha consentito il salvataggio in Music/Derbis"
                 } else {
-                    "This device did not allow saving to Music/Levyra"
+                    "This device did not allow saving to Music/Derbis"
                 }
             else -> operationFailed
         }
@@ -2009,7 +2009,7 @@ class LevyraStrings private constructor(
     fun formatPauseDownload(title: String): String = "$pauseDownload ${directionalValue(title)}"
 
     companion object {
-        private val requiredKeys = setOf("welcomeBadge", "welcomeTitle", "languageQuestion", "nameQuestion", "namePlaceholder", "tasteQuestion", "skipAndContinue", "startListening", "settings", "settingsSubtitle", "design", "playback", "preferences", "app", "animations", "animationsSubtitle", "dynamicColor", "dynamicColorSubtitle", "sponsorBlock", "sponsorBlockSubtitle", "skipSilence", "skipSilenceSubtitle", "redoQuestionnaire", "redoQuestionnaireSubtitle", "language", "languageSubtitle", "home", "search", "library", "player", "queue", "lyrics", "related", "song", "video", "nowPlaying", "emptyPlayer", "phoneSpeaker", "connected", "volume", "audioQuality", "done", "queueEmpty", "lyricsUnavailable", "synced", "libraryTitle", "librarySubtitle", "playlists", "newItem", "downloads", "favorites", "recent", "quickPicks", "play", "newReleases", "albumsForYou", "top50Unavailable", "artists", "albumsAndSingles", "songs", "searchPlaceholder", "back", "clear", "voice", "createPlaylistHint", "selectLanguagePrompt", "explore", "exploreTitle", "exploreSubtitle", "exploreMoods", "exploreSamples", "exploreSamplesSubtitle", "exploreSamplesError", "exploreSamplesRetry", "exploreFresh", "exploreNewVideos", "exploreEmpty", "localWaveName", "localWaveEmoji", "localWaveQuery", "exploreNewReleases", "exploreRapDrill", "exploreElectronic", "explorePopGlobal", "exploreRnbSoul", "exploreRockAlt", "exploreLatino", "exploreLofiChill", "exploreJpopAnime", "followArtist", "followingArtist", "releaseRadar", "similarArtists", "similarToFollowed", "theme", "themeSubtitle", "personalOrbitTitle", "personalOrbitSubtitle", "voicesTitle", "voicesSubtitle", "totalComments", "engagement", "audioEngine", "audioEngineSubtitle", "equalizer", "equalizerSubtitle", "preset", "bassBoost", "virtualizer", "crossfade", "djSoft", "replayGain", "tempo", "pitch", "gapless", "restartRequiredTitle", "restartRequiredBody", "restartNow", "later", "audioQualityAuto", "audioQualityHigh", "audioQualityLow", "pulseSectionBand", "pulseTitle", "pulseSubtitle", "followedArtistsTitle", "followedArtistsSubtitle", "listeningHistoryEmptyTitle", "listeningHistoryEmptyDetail", "pulseMinutes", "pulseMinuteShort", "pulsePlays", "pulseStreak", "pulseCompletion", "pulseTopArtists", "pulseWeek", "pulsePeakHour", "pulseEmpty", "listeningHistory", "listeningHistorySubtitle", "listeningPrompt", "voiceSearchUnsupported", "musicFiltersComingSoon", "recentSearches", "actions", "removeFromFavorites", "addToFavorites", "playNext", "addToQueue", "addToPlaylist", "alreadyOffline", "download", "openArtist", "openAlbum", "deleteDownload", "share", "shareSong", "removeFromRecentSearches", "songOptions", "goToPlayer", "saveOffline", "favorite", "downloaded", "remove", "youMightAlsoLike", "topResult", "currentlyPlaying", "artistLabel", "playNow", "biography", "newUpdate", "updateDescription", "whatsNew", "update", "updateRetry", "updateDownloading", "updatePreparing", "updateInstalling", "updateReadyToInstall", "updateFailed", "updateAllowInstalls", "updateLinkUnavailable", "cannotOpenDownload", "externalLinkUnavailable", "cannotOpenExternalLink", "continuousRadio", "continuousRadioSubtitle", "artistsLabelPlural", "albumMood", "openLyricsAnalysis", "closeLyrics", "lyricsDuet", "lyricsCinema", "lyricsPage", "lyricsRomanization", "lyricsCompact", "changeLyrics", "automaticLyrics", "selectVerses", "copyVerses", "shareVerses", "lyricsVersions", "lyricsSections", "lyricsSectionIntro", "lyricsSectionVerse", "lyricsSectionPreChorus", "lyricsSectionChorus", "lyricsSectionBridge", "lyricsSectionInstrumental", "lyricsSectionOutro", "automaticTranslation", "automaticTranslationSubtitle", "atmosphere", "themes", "chorusDetected", "goToChorus", "close", "complete", "delete", "newPlaylist", "playlistName", "create", "cancel", "newPlaylistName", "createNewPlaylist", "createAndAdd", "downloadPlaylist", "playAll", "playingFrom", "closePlayer", "options", "showLyrics", "shuffle", "previous", "next", "repeat", "persistentQueue", "continueListening", "favoritesPlain", "offline", "more", "mix", "mixForYou", "genres", "smartMusicProfile", "flow", "pictureInPicture", "discoveryFlow", "shareDiagnostics", "albumUnavailable", "albumTracksUnavailable", "showLess", "showMore", "playing", "artistProfileUnavailable", "popularTracks", "showAll", "versionLabel", "generalImprovements", "historyLabel", "undoRemoval", "lyricsAnalysis", "linesLabel", "wordsLabel", "localAnalysis", "open", "newRelease", "newReleaseSubtitle", "saved", "save", "noOfflineDownloads", "createFirstPlaylist", "createFirstPlaylistSubtitle", "downloadTrackHint", "savedTracks", "favoritesEmpty", "playlistEmpty", "showPersonalListening", "showRecentReleases", "showRecommendedAlbums", "showDiscoveredArtists", "showChartsCountry", "partialDownloadResume", "lyricsAnalysisSection", "lyricsAnalysisCompact", "lyricsAnalysisCompactSubtitle", "createDataBackup", "createDataBackupSubtitle", "updateAvailable", "updates", "checkingLatestVersion", "latestVersionReady", "latestInstalled", "checkNewVersions", "releasePageReady", "installedVersion", "openPlayer", "searchSongsArtists", "songsPlain", "shareVia", "emptySearchPrompt", "cancelDownload", "readAll", "singlesAndEps", "tapHeartToAdd", "all", "automaticResume", "simultaneousDownloads", "simultaneousDownloadsSubtitle", "backupRestoreSection", "restoreBackup", "restoreBackupSubtitle", "playbackResilienceSection", "exportSafeDiagnostics", "generateResolverTrace", "safeDiagnosticsSubtitle", "check", "checking", "dragToReorder", "homeInterfaceSection", "compactHome", "compactHomeSubtitle", "yourOrbitSetting", "voicesSetting", "voicesSettingSubtitle", "newReleasesSetting", "albumsForYouSetting", "trendingArtists", "top50Charts", "mobilePlayerSection", "advancedGestures", "advancedGesturesSubtitle", "pureBlack", "pureBlackSubtitle", "hapticFeedback", "hapticFeedbackSubtitle", "doubleTapSeek", "doubleTapSeekSubtitle", "longPress", "longPressSubtitle", "downloadEngineSection", "wifiOnly", "wifiOnlySubtitle", "chargingOnly", "chargingOnlySubtitle", "resumeDownload", "pauseDownload", "signedApkReady", "downloadsInProgress", "downloadInProgress", "newAlbums", "newSingles", "newAlbum", "downloadsFolder", "offlineDownloadsPlain", "personalPlaylists", "searchingYouTubeMusic", "searchingLyrics", "pause", "newSingle", "albumsPlain", "albumPlain", "singlePlain", "playlistsPlain", "profileActive", "profileLearning", "newBadge", "brightness", "timer", "normalizationShort", "coverAndTags", "madeWithBy", "activeIndicator", "batteryUnrestricted", "batteryUnrestrictedSubtitle", "batteryUnrestrictedActive", "levyraSelection", "releasedToday", "justReleased", "chartTrending", "selectedForYou", "availableToday", "releasedThisWeek", "popularInCharts", "collectionsTitle", "collectionsSubtitle", "collectionFresh", "collectionLocal", "collectionWorkout", "collectionChill", "collectionFocus", "collectionParty", "collectionRap", "collectionPop", "collectionDiscovery", "collectionUpdatedToday", "collectionEditorial", "collectionCharts", "collectionRepeat", "collectionThrowback", "collectionGems", "downloadQualityPreset", "downloadQualityPresetSubtitle", "downloadPresetAutomatic", "downloadPresetHighQuality", "downloadPresetDataSaver", "downloadFolderOrganization", "downloadFolderOrganizationSubtitle", "downloadFolderArtist", "downloadFolderArtistAlbum", "downloadSpeedLimit", "downloadSpeedLimitSubtitle", "downloadSpeedUnlimited", "downloadEmbedMetadata", "downloadEmbedMetadataSubtitle", "downloadEmbedArtwork", "downloadEmbedArtworkSubtitle", "downloadVerifyFile", "downloadVerifyFileSubtitle", "downloadSkipDuplicates", "downloadSkipDuplicatesSubtitle", "trailTitle", "trailPlays", "trailUnique", "trailLastPlayed", "statPlays", "statArtists", "statTracks", "introHeadline", "introBody", "introFeatureSound", "introFeatureLyrics", "introFeatureOffline", "introStart", "expandPlayer", "collapsePlayer", "lyricsFocus")
+        private val requiredKeys = setOf("welcomeBadge", "welcomeTitle", "languageQuestion", "nameQuestion", "namePlaceholder", "tasteQuestion", "skipAndContinue", "startListening", "settings", "settingsSubtitle", "design", "playback", "preferences", "app", "animations", "animationsSubtitle", "dynamicColor", "dynamicColorSubtitle", "sponsorBlock", "sponsorBlockSubtitle", "skipSilence", "skipSilenceSubtitle", "redoQuestionnaire", "redoQuestionnaireSubtitle", "language", "languageSubtitle", "home", "search", "library", "player", "queue", "lyrics", "related", "song", "video", "nowPlaying", "emptyPlayer", "phoneSpeaker", "connected", "volume", "audioQuality", "done", "queueEmpty", "lyricsUnavailable", "synced", "libraryTitle", "librarySubtitle", "playlists", "newItem", "downloads", "favorites", "recent", "quickPicks", "play", "newReleases", "albumsForYou", "top50Unavailable", "artists", "albumsAndSingles", "songs", "searchPlaceholder", "back", "clear", "voice", "createPlaylistHint", "selectLanguagePrompt", "explore", "exploreTitle", "exploreSubtitle", "exploreMoods", "exploreSamples", "exploreSamplesSubtitle", "exploreSamplesError", "exploreSamplesRetry", "exploreFresh", "exploreNewVideos", "exploreEmpty", "localWaveName", "localWaveEmoji", "localWaveQuery", "exploreNewReleases", "exploreRapDrill", "exploreElectronic", "explorePopGlobal", "exploreRnbSoul", "exploreRockAlt", "exploreLatino", "exploreLofiChill", "exploreJpopAnime", "followArtist", "followingArtist", "releaseRadar", "similarArtists", "similarToFollowed", "theme", "themeSubtitle", "personalOrbitTitle", "personalOrbitSubtitle", "voicesTitle", "voicesSubtitle", "totalComments", "engagement", "audioEngine", "audioEngineSubtitle", "equalizer", "equalizerSubtitle", "preset", "bassBoost", "virtualizer", "crossfade", "djSoft", "replayGain", "tempo", "pitch", "gapless", "restartRequiredTitle", "restartRequiredBody", "restartNow", "later", "audioQualityAuto", "audioQualityHigh", "audioQualityLow", "pulseSectionBand", "pulseTitle", "pulseSubtitle", "followedArtistsTitle", "followedArtistsSubtitle", "listeningHistoryEmptyTitle", "listeningHistoryEmptyDetail", "pulseMinutes", "pulseMinuteShort", "pulsePlays", "pulseStreak", "pulseCompletion", "pulseTopArtists", "pulseWeek", "pulsePeakHour", "pulseEmpty", "listeningHistory", "listeningHistorySubtitle", "listeningPrompt", "voiceSearchUnsupported", "musicFiltersComingSoon", "recentSearches", "actions", "removeFromFavorites", "addToFavorites", "playNext", "addToQueue", "addToPlaylist", "alreadyOffline", "download", "openArtist", "openAlbum", "deleteDownload", "share", "shareSong", "removeFromRecentSearches", "songOptions", "goToPlayer", "saveOffline", "favorite", "downloaded", "remove", "youMightAlsoLike", "topResult", "currentlyPlaying", "artistLabel", "playNow", "biography", "newUpdate", "updateDescription", "whatsNew", "update", "updateRetry", "updateDownloading", "updatePreparing", "updateInstalling", "updateReadyToInstall", "updateFailed", "updateAllowInstalls", "updateLinkUnavailable", "cannotOpenDownload", "externalLinkUnavailable", "cannotOpenExternalLink", "continuousRadio", "continuousRadioSubtitle", "artistsLabelPlural", "albumMood", "openLyricsAnalysis", "closeLyrics", "lyricsDuet", "lyricsCinema", "lyricsPage", "lyricsRomanization", "lyricsCompact", "changeLyrics", "automaticLyrics", "selectVerses", "copyVerses", "shareVerses", "lyricsVersions", "lyricsSections", "lyricsSectionIntro", "lyricsSectionVerse", "lyricsSectionPreChorus", "lyricsSectionChorus", "lyricsSectionBridge", "lyricsSectionInstrumental", "lyricsSectionOutro", "automaticTranslation", "automaticTranslationSubtitle", "atmosphere", "themes", "chorusDetected", "goToChorus", "close", "complete", "delete", "newPlaylist", "playlistName", "create", "cancel", "newPlaylistName", "createNewPlaylist", "createAndAdd", "downloadPlaylist", "playAll", "playingFrom", "closePlayer", "options", "showLyrics", "shuffle", "previous", "next", "repeat", "persistentQueue", "continueListening", "favoritesPlain", "offline", "more", "mix", "mixForYou", "genres", "smartMusicProfile", "flow", "pictureInPicture", "discoveryFlow", "shareDiagnostics", "albumUnavailable", "albumTracksUnavailable", "showLess", "showMore", "playing", "artistProfileUnavailable", "popularTracks", "showAll", "versionLabel", "generalImprovements", "historyLabel", "undoRemoval", "lyricsAnalysis", "linesLabel", "wordsLabel", "localAnalysis", "open", "newRelease", "newReleaseSubtitle", "saved", "save", "noOfflineDownloads", "createFirstPlaylist", "createFirstPlaylistSubtitle", "downloadTrackHint", "savedTracks", "favoritesEmpty", "playlistEmpty", "showPersonalListening", "showRecentReleases", "showRecommendedAlbums", "showDiscoveredArtists", "showChartsCountry", "partialDownloadResume", "lyricsAnalysisSection", "lyricsAnalysisCompact", "lyricsAnalysisCompactSubtitle", "createDataBackup", "createDataBackupSubtitle", "updateAvailable", "updates", "checkingLatestVersion", "latestVersionReady", "latestInstalled", "checkNewVersions", "releasePageReady", "installedVersion", "openPlayer", "searchSongsArtists", "songsPlain", "shareVia", "emptySearchPrompt", "cancelDownload", "readAll", "singlesAndEps", "tapHeartToAdd", "all", "automaticResume", "simultaneousDownloads", "simultaneousDownloadsSubtitle", "backupRestoreSection", "restoreBackup", "restoreBackupSubtitle", "playbackResilienceSection", "exportSafeDiagnostics", "generateResolverTrace", "safeDiagnosticsSubtitle", "check", "checking", "dragToReorder", "homeInterfaceSection", "compactHome", "compactHomeSubtitle", "yourOrbitSetting", "voicesSetting", "voicesSettingSubtitle", "newReleasesSetting", "albumsForYouSetting", "trendingArtists", "top50Charts", "mobilePlayerSection", "advancedGestures", "advancedGesturesSubtitle", "pureBlack", "pureBlackSubtitle", "hapticFeedback", "hapticFeedbackSubtitle", "doubleTapSeek", "doubleTapSeekSubtitle", "longPress", "longPressSubtitle", "downloadEngineSection", "wifiOnly", "wifiOnlySubtitle", "chargingOnly", "chargingOnlySubtitle", "resumeDownload", "pauseDownload", "signedApkReady", "downloadsInProgress", "downloadInProgress", "newAlbums", "newSingles", "newAlbum", "downloadsFolder", "offlineDownloadsPlain", "personalPlaylists", "searchingYouTubeMusic", "searchingLyrics", "pause", "newSingle", "albumsPlain", "albumPlain", "singlePlain", "playlistsPlain", "profileActive", "profileLearning", "newBadge", "brightness", "timer", "normalizationShort", "coverAndTags", "madeWithBy", "activeIndicator", "batteryUnrestricted", "batteryUnrestrictedSubtitle", "batteryUnrestrictedActive", "derbisSelection", "releasedToday", "justReleased", "chartTrending", "selectedForYou", "availableToday", "releasedThisWeek", "popularInCharts", "collectionsTitle", "collectionsSubtitle", "collectionFresh", "collectionLocal", "collectionWorkout", "collectionChill", "collectionFocus", "collectionParty", "collectionRap", "collectionPop", "collectionDiscovery", "collectionUpdatedToday", "collectionEditorial", "collectionCharts", "collectionRepeat", "collectionThrowback", "collectionGems", "downloadQualityPreset", "downloadQualityPresetSubtitle", "downloadPresetAutomatic", "downloadPresetHighQuality", "downloadPresetDataSaver", "downloadFolderOrganization", "downloadFolderOrganizationSubtitle", "downloadFolderArtist", "downloadFolderArtistAlbum", "downloadSpeedLimit", "downloadSpeedLimitSubtitle", "downloadSpeedUnlimited", "downloadEmbedMetadata", "downloadEmbedMetadataSubtitle", "downloadEmbedArtwork", "downloadEmbedArtworkSubtitle", "downloadVerifyFile", "downloadVerifyFileSubtitle", "downloadSkipDuplicates", "downloadSkipDuplicatesSubtitle", "trailTitle", "trailPlays", "trailUnique", "trailLastPlayed", "statPlays", "statArtists", "statTracks", "introHeadline", "introBody", "introFeatureSound", "introFeatureLyrics", "introFeatureOffline", "introStart", "expandPlayer", "collapsePlayer", "lyricsFocus")
         private val motionArtworkKeys = setOf("motionArtwork", "motionArtworkSubtitle")
         private val exploreSectionKeys = setOf("exploreMoodSection", "exploreAfrobeats")
         private val freshCurrentsKeys = setOf("freshScopeWorld", "freshMomentTitle")
@@ -2296,7 +2296,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Skip and continue",
             "startListening" to "Start listening",
             "settings" to "Settings",
-            "settingsSubtitle" to "Customize LEVYRA",
+            "settingsSubtitle" to "Customize DERBIS",
             "design" to "DESIGN",
             "playback" to "PLAYBACK",
             "preferences" to "PREFERENCES",
@@ -2379,7 +2379,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Similar artists",
             "similarToFollowed" to "Similar to artists you follow",
             "theme" to "Theme",
-            "themeSubtitle" to "Choose your LEVYRA look",
+            "themeSubtitle" to "Choose your DERBIS look",
             "personalOrbitTitle" to "Your orbit",
             "personalOrbitSubtitle" to "The songs that always come back to you",
             "voicesTitle" to "Voices that resonate",
@@ -2399,7 +2399,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Restart LEVYRA?",
+            "restartRequiredTitle" to "Restart DERBIS?",
             "restartRequiredBody" to "The language has been saved. Restart the app now to reload every screen cleanly.",
             "restartNow" to "Restart now",
             "later" to "Later",
@@ -2552,7 +2552,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "No downloads saved offline.",
             "createFirstPlaylist" to "Create your first playlist",
             "createFirstPlaylistSubtitle" to "Collect the songs you want to find again instantly.",
-            "downloadTrackHint" to "Tap download on a song to save it in Music/Levyra.",
+            "downloadTrackHint" to "Tap download on a song to save it in Music/Derbis.",
             "savedTracks" to "Saved tracks",
             "favoritesEmpty" to "No favorites yet",
             "playlistEmpty" to "This playlist is empty. Add songs from a song's three-dot menu.",
@@ -2566,7 +2566,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Discreet local analysis",
             "lyricsAnalysisCompactSubtitle" to "Stays compact until opened, shows only useful signals and can take you straight to the chorus.",
             "createDataBackup" to "Create data backup",
-            "createDataBackupSubtitle" to "Favorites, playlists, history, queue and settings in a SHA-256 verified archive. Audio files remain in Music/Levyra.",
+            "createDataBackupSubtitle" to "Favorites, playlists, history, queue and settings in a SHA-256 verified archive. Audio files remain in Music/Derbis.",
             "updateAvailable" to "Update available",
             "updates" to "Updates",
             "checkingLatestVersion" to "Checking the latest version…",
@@ -2653,7 +2653,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Made with ❤️ by",
             "activeIndicator" to "ON",
             "batteryUnrestricted" to "Unrestricted background playback",
-            "batteryUnrestrictedSubtitle" to "Exclude Levyra from battery optimization so music keeps playing with the screen off",
+            "batteryUnrestrictedSubtitle" to "Exclude Derbis from battery optimization so music keeps playing with the screen off",
             "batteryUnrestrictedActive" to "Active — the system will not stop playback",
             "downloadQualityPreset" to "Quality preset",
             "downloadQualityPresetSubtitle" to "Balance quality, speed and data usage",
@@ -2694,7 +2694,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Salta e continua",
             "startListening" to "Inizia ad ascoltare",
             "settings" to "Impostazioni",
-            "settingsSubtitle" to "Personalizza LEVYRA",
+            "settingsSubtitle" to "Personalizza DERBIS",
             "design" to "DESIGN",
             "playback" to "RIPRODUZIONE",
             "preferences" to "PREFERENZE",
@@ -2777,7 +2777,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Artisti simili",
             "similarToFollowed" to "Simili agli artisti che segui",
             "theme" to "Tema",
-            "themeSubtitle" to "Scegli il look di LEVYRA",
+            "themeSubtitle" to "Scegli il look di DERBIS",
             "personalOrbitTitle" to "La tua orbita",
             "personalOrbitSubtitle" to "I brani che tornano sempre da te",
             "voicesTitle" to "Voci che risuonano",
@@ -2797,7 +2797,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Riavviare LEVYRA?",
+            "restartRequiredTitle" to "Riavviare DERBIS?",
             "restartRequiredBody" to "La lingua è stata salvata. Riavvia l'app ora per ricaricare bene tutte le schermate.",
             "restartNow" to "Riavvia ora",
             "later" to "Più tardi",
@@ -2950,7 +2950,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Nessun download salvato offline.",
             "createFirstPlaylist" to "Crea la tua prima playlist",
             "createFirstPlaylistSubtitle" to "Raccogli i brani che vuoi ritrovare subito.",
-            "downloadTrackHint" to "Tocca Scarica su un brano per salvarlo in Music/Levyra.",
+            "downloadTrackHint" to "Tocca Scarica su un brano per salvarlo in Music/Derbis.",
             "savedTracks" to "Brani salvati",
             "favoritesEmpty" to "Nessun preferito",
             "playlistEmpty" to "La playlist è vuota. Aggiungi brani dal menu con i tre puntini di un brano.",
@@ -2964,7 +2964,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Analisi locale discreta",
             "lyricsAnalysisCompactSubtitle" to "Rimane compatta finché non la apri, mostra solo segnali utili e può portarti direttamente al ritornello.",
             "createDataBackup" to "Crea backup dei dati",
-            "createDataBackupSubtitle" to "Preferiti, playlist, cronologia, coda e impostazioni in un archivio verificato con SHA-256. I file audio restano in Music/Levyra.",
+            "createDataBackupSubtitle" to "Preferiti, playlist, cronologia, coda e impostazioni in un archivio verificato con SHA-256. I file audio restano in Music/Derbis.",
             "updateAvailable" to "Aggiornamento disponibile",
             "updates" to "Aggiornamenti",
             "checkingLatestVersion" to "Controllo dell'ultima versione…",
@@ -3051,7 +3051,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Creato con ❤️ da",
             "activeIndicator" to "ATTIVO",
             "batteryUnrestricted" to "Riproduzione in background senza limiti",
-            "batteryUnrestrictedSubtitle" to "Escludi Levyra dall'ottimizzazione batteria così la musica continua a schermo spento",
+            "batteryUnrestrictedSubtitle" to "Escludi Derbis dall'ottimizzazione batteria così la musica continua a schermo spento",
             "batteryUnrestrictedActive" to "Attivo — il sistema non fermerà la riproduzione",
             "downloadQualityPreset" to "Preset qualità",
             "downloadQualityPresetSubtitle" to "Bilancia qualità, velocità e consumo dati",
@@ -3092,7 +3092,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Saltar y continuar",
             "startListening" to "Empezar a escuchar",
             "settings" to "Ajustes",
-            "settingsSubtitle" to "Personaliza LEVYRA",
+            "settingsSubtitle" to "Personaliza DERBIS",
             "design" to "DISEÑO",
             "playback" to "REPRODUCCIÓN",
             "preferences" to "PREFERENCIAS",
@@ -3175,7 +3175,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Artistas similares",
             "similarToFollowed" to "Similares a los artistas que sigues",
             "theme" to "Tema",
-            "themeSubtitle" to "Elige el estilo de LEVYRA",
+            "themeSubtitle" to "Elige el estilo de DERBIS",
             "personalOrbitTitle" to "Tu órbita",
             "personalOrbitSubtitle" to "Las canciones que siempre vuelven a ti",
             "voicesTitle" to "Voces que resuenan",
@@ -3195,7 +3195,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "¿Reiniciar LEVYRA?",
+            "restartRequiredTitle" to "¿Reiniciar DERBIS?",
             "restartRequiredBody" to "El idioma se ha guardado. Reinicia la app ahora para recargar todas las pantallas correctamente.",
             "restartNow" to "Reiniciar ahora",
             "later" to "Más tarde",
@@ -3348,7 +3348,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "No hay descargas guardadas sin conexión.",
             "createFirstPlaylist" to "Crea tu primera playlist",
             "createFirstPlaylistSubtitle" to "Reúne las canciones que quieras volver a encontrar al instante.",
-            "downloadTrackHint" to "Pulsa Descargar en una canción para guardarla en Music/Levyra.",
+            "downloadTrackHint" to "Pulsa Descargar en una canción para guardarla en Music/Derbis.",
             "savedTracks" to "Canciones guardadas",
             "favoritesEmpty" to "Aún no hay favoritos",
             "playlistEmpty" to "La playlist está vacía. Añade canciones desde el menú de tres puntos de una canción.",
@@ -3362,7 +3362,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Análisis local discreto",
             "lyricsAnalysisCompactSubtitle" to "Permanece compacto hasta que lo abras, muestra solo señales útiles y puede llevarte directamente al estribillo.",
             "createDataBackup" to "Crear copia de seguridad",
-            "createDataBackupSubtitle" to "Favoritos, playlists, historial, cola y ajustes en un archivo verificado con SHA-256. Los archivos de audio permanecen en Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoritos, playlists, historial, cola y ajustes en un archivo verificado con SHA-256. Los archivos de audio permanecen en Music/Derbis.",
             "updateAvailable" to "Actualización disponible",
             "updates" to "Actualizaciones",
             "checkingLatestVersion" to "Comprobando la última versión…",
@@ -3449,7 +3449,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Creado con ❤️ por",
             "activeIndicator" to "ACTIVO",
             "batteryUnrestricted" to "Reproducción en segundo plano sin límites",
-            "batteryUnrestrictedSubtitle" to "Excluye Levyra de la optimización de batería para que la música siga sonando con la pantalla apagada",
+            "batteryUnrestrictedSubtitle" to "Excluye Derbis de la optimización de batería para que la música siga sonando con la pantalla apagada",
             "batteryUnrestrictedActive" to "Activo — el sistema no detendrá la reproducción",
             "downloadQualityPreset" to "Ajuste de calidad",
             "downloadQualityPresetSubtitle" to "Equilibra calidad, velocidad y consumo de datos",
@@ -3490,7 +3490,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Ignorer et continuer",
             "startListening" to "Commencer l'écoute",
             "settings" to "Paramètres",
-            "settingsSubtitle" to "Personnalise LEVYRA",
+            "settingsSubtitle" to "Personnalise DERBIS",
             "design" to "DESIGN",
             "playback" to "LECTURE",
             "preferences" to "PRÉFÉRENCES",
@@ -3573,7 +3573,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Artistes similaires",
             "similarToFollowed" to "Similaires aux artistes que tu suis",
             "theme" to "Thème",
-            "themeSubtitle" to "Choisis le style de LEVYRA",
+            "themeSubtitle" to "Choisis le style de DERBIS",
             "personalOrbitTitle" to "Ton orbite",
             "personalOrbitSubtitle" to "Les titres qui reviennent toujours vers toi",
             "voicesTitle" to "Voix qui résonnent",
@@ -3593,7 +3593,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Redémarrer LEVYRA ?",
+            "restartRequiredTitle" to "Redémarrer DERBIS ?",
             "restartRequiredBody" to "La langue a été enregistrée. Redémarre l'app maintenant pour recharger proprement tous les écrans.",
             "restartNow" to "Redémarrer",
             "later" to "Plus tard",
@@ -3746,7 +3746,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Aucun téléchargement enregistré hors connexion.",
             "createFirstPlaylist" to "Créez votre première playlist",
             "createFirstPlaylistSubtitle" to "Regroupez les titres que vous souhaitez retrouver instantanément.",
-            "downloadTrackHint" to "Touchez Télécharger sur un titre pour l'enregistrer dans Music/Levyra.",
+            "downloadTrackHint" to "Touchez Télécharger sur un titre pour l'enregistrer dans Music/Derbis.",
             "savedTracks" to "Titres enregistrés",
             "favoritesEmpty" to "Aucun favori pour le moment",
             "playlistEmpty" to "La playlist est vide. Ajoutez des titres depuis le menu à trois points d'un titre.",
@@ -3760,7 +3760,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Analyse locale discrète",
             "lyricsAnalysisCompactSubtitle" to "Reste compacte jusqu'à son ouverture, n'affiche que les signaux utiles et peut vous mener directement au refrain.",
             "createDataBackup" to "Créer une sauvegarde des données",
-            "createDataBackupSubtitle" to "Favoris, playlists, historique, file d'attente et réglages dans une archive vérifiée par SHA-256. Les fichiers audio restent dans Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoris, playlists, historique, file d'attente et réglages dans une archive vérifiée par SHA-256. Les fichiers audio restent dans Music/Derbis.",
             "updateAvailable" to "Mise à jour disponible",
             "updates" to "Mises à jour",
             "checkingLatestVersion" to "Recherche de la dernière version…",
@@ -3847,7 +3847,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Créé avec ❤️ par",
             "activeIndicator" to "ACTIF",
             "batteryUnrestricted" to "Lecture en arrière-plan sans limites",
-            "batteryUnrestrictedSubtitle" to "Exclure Levyra de l'optimisation de la batterie pour que la musique continue écran éteint",
+            "batteryUnrestrictedSubtitle" to "Exclure Derbis de l'optimisation de la batterie pour que la musique continue écran éteint",
             "batteryUnrestrictedActive" to "Actif — le système n'arrêtera pas la lecture",
             "downloadQualityPreset" to "Préréglage de qualité",
             "downloadQualityPresetSubtitle" to "Équilibre qualité, vitesse et consommation de données",
@@ -3888,7 +3888,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Überspringen und weiter",
             "startListening" to "Anhören starten",
             "settings" to "Einstellungen",
-            "settingsSubtitle" to "Passe LEVYRA an",
+            "settingsSubtitle" to "Passe DERBIS an",
             "design" to "DESIGN",
             "playback" to "WIEDERGABE",
             "preferences" to "EINSTELLUNGEN",
@@ -3971,7 +3971,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Ähnliche Künstler",
             "similarToFollowed" to "Ähnlich wie Künstler, denen du folgst",
             "theme" to "Design",
-            "themeSubtitle" to "Wähle deinen LEVYRA-Look",
+            "themeSubtitle" to "Wähle deinen DERBIS-Look",
             "personalOrbitTitle" to "Deine Umlaufbahn",
             "personalOrbitSubtitle" to "Die Songs, die immer wieder zu dir zurückkehren",
             "voicesTitle" to "Stimmen, die nachklingen",
@@ -3991,7 +3991,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "LEVYRA neu starten?",
+            "restartRequiredTitle" to "DERBIS neu starten?",
             "restartRequiredBody" to "Die Sprache wurde gespeichert. Starte die App neu, damit alle Ansichten sauber geladen werden.",
             "restartNow" to "Jetzt neu starten",
             "later" to "Später",
@@ -4144,7 +4144,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Keine Offline-Downloads gespeichert.",
             "createFirstPlaylist" to "Erstelle deine erste Playlist",
             "createFirstPlaylistSubtitle" to "Sammle die Titel, die du sofort wiederfinden möchtest.",
-            "downloadTrackHint" to "Tippe bei einem Titel auf Herunterladen, um ihn in Music/Levyra zu speichern.",
+            "downloadTrackHint" to "Tippe bei einem Titel auf Herunterladen, um ihn in Music/Derbis zu speichern.",
             "savedTracks" to "Gespeicherte Titel",
             "favoritesEmpty" to "Noch keine Favoriten",
             "playlistEmpty" to "Die Playlist ist leer. Füge Titel über das Drei-Punkte-Menü eines Titels hinzu.",
@@ -4158,7 +4158,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Diskrete lokale Analyse",
             "lyricsAnalysisCompactSubtitle" to "Bleibt kompakt, bis du sie öffnest, zeigt nur nützliche Hinweise und kann dich direkt zum Refrain bringen.",
             "createDataBackup" to "Datensicherung erstellen",
-            "createDataBackupSubtitle" to "Favoriten, Playlists, Verlauf, Warteschlange und Einstellungen in einem SHA-256-geprüften Archiv. Audiodateien bleiben in Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoriten, Playlists, Verlauf, Warteschlange und Einstellungen in einem SHA-256-geprüften Archiv. Audiodateien bleiben in Music/Derbis.",
             "updateAvailable" to "Update verfügbar",
             "updates" to "Updates",
             "checkingLatestVersion" to "Neueste Version wird geprüft…",
@@ -4245,7 +4245,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Mit ❤️ erstellt von",
             "activeIndicator" to "AKTIV",
             "batteryUnrestricted" to "Uneingeschränkte Hintergrundwiedergabe",
-            "batteryUnrestrictedSubtitle" to "Levyra von der Akku-Optimierung ausschließen, damit die Musik bei ausgeschaltetem Bildschirm weiterläuft",
+            "batteryUnrestrictedSubtitle" to "Derbis von der Akku-Optimierung ausschließen, damit die Musik bei ausgeschaltetem Bildschirm weiterläuft",
             "batteryUnrestrictedActive" to "Aktiv — das System stoppt die Wiedergabe nicht",
             "downloadQualityPreset" to "Qualitätsvoreinstellung",
             "downloadQualityPresetSubtitle" to "Balanciert Qualität, Tempo und Datenverbrauch",
@@ -4286,7 +4286,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Saltar e continuar",
             "startListening" to "Começar a ouvir",
             "settings" to "Definições",
-            "settingsSubtitle" to "Personaliza o LEVYRA",
+            "settingsSubtitle" to "Personaliza o DERBIS",
             "design" to "DESIGN",
             "playback" to "REPRODUÇÃO",
             "preferences" to "PREFERÊNCIAS",
@@ -4369,7 +4369,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Artistas semelhantes",
             "similarToFollowed" to "Semelhantes aos artistas que você segue",
             "theme" to "Tema",
-            "themeSubtitle" to "Escolha o visual do LEVYRA",
+            "themeSubtitle" to "Escolha o visual do DERBIS",
             "personalOrbitTitle" to "A tua órbita",
             "personalOrbitSubtitle" to "As músicas que voltam sempre para ti",
             "voicesTitle" to "Vozes que ressoam",
@@ -4389,7 +4389,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Pitch",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Reiniciar LEVYRA?",
+            "restartRequiredTitle" to "Reiniciar DERBIS?",
             "restartRequiredBody" to "O idioma foi guardado. Reinicia a app agora para recarregar todos os ecrãs corretamente.",
             "restartNow" to "Reiniciar agora",
             "later" to "Mais tarde",
@@ -4542,7 +4542,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Não existem transferências guardadas offline.",
             "createFirstPlaylist" to "Cria a tua primeira playlist",
             "createFirstPlaylistSubtitle" to "Reúne as músicas que queres reencontrar de imediato.",
-            "downloadTrackHint" to "Toca em Transferir numa música para a guardar em Music/Levyra.",
+            "downloadTrackHint" to "Toca em Transferir numa música para a guardar em Music/Derbis.",
             "savedTracks" to "Músicas guardadas",
             "favoritesEmpty" to "Ainda não há favoritos",
             "playlistEmpty" to "A playlist está vazia. Adiciona músicas através do menu de três pontos de uma música.",
@@ -4556,7 +4556,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Análise local discreta",
             "lyricsAnalysisCompactSubtitle" to "Mantém-se compacta até ser aberta, mostra apenas sinais úteis e pode levar-te diretamente ao refrão.",
             "createDataBackup" to "Criar cópia de segurança dos dados",
-            "createDataBackupSubtitle" to "Favoritos, playlists, histórico, fila e definições num arquivo verificado por SHA-256. Os ficheiros de áudio permanecem em Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoritos, playlists, histórico, fila e definições num arquivo verificado por SHA-256. Os ficheiros de áudio permanecem em Music/Derbis.",
             "updateAvailable" to "Atualização disponível",
             "updates" to "Atualizações",
             "checkingLatestVersion" to "A verificar a versão mais recente…",
@@ -4643,7 +4643,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Criado com ❤️ por",
             "activeIndicator" to "ATIVO",
             "batteryUnrestricted" to "Reprodução em segundo plano sem limites",
-            "batteryUnrestrictedSubtitle" to "Exclua o Levyra da otimização de bateria para a música continuar com a tela desligada",
+            "batteryUnrestrictedSubtitle" to "Exclua o Derbis da otimização de bateria para a música continuar com a tela desligada",
             "batteryUnrestrictedActive" to "Ativo — o sistema não interromperá a reprodução",
             "downloadQualityPreset" to "Predefinição de qualidade",
             "downloadQualityPresetSubtitle" to "Equilibra qualidade, velocidade e consumo de dados",
@@ -4684,7 +4684,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Overslaan en doorgaan",
             "startListening" to "Begin met luisteren",
             "settings" to "Instellingen",
-            "settingsSubtitle" to "Pas LEVYRA aan",
+            "settingsSubtitle" to "Pas DERBIS aan",
             "design" to "DESIGN",
             "playback" to "AFSPELEN",
             "preferences" to "VOORKEUREN",
@@ -4767,7 +4767,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Vergelijkbare artiesten",
             "similarToFollowed" to "Vergelijkbaar met artiesten die je volgt",
             "theme" to "Thema",
-            "themeSubtitle" to "Kies de uitstraling van LEVYRA",
+            "themeSubtitle" to "Kies de uitstraling van DERBIS",
             "personalOrbitTitle" to "Jouw baan",
             "personalOrbitSubtitle" to "De nummers die steeds bij je terugkomen",
             "voicesTitle" to "Stemmen die resoneren",
@@ -4787,7 +4787,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Toonhoogte",
             "gapless" to "Naadloos",
-            "restartRequiredTitle" to "LEVYRA opnieuw starten?",
+            "restartRequiredTitle" to "DERBIS opnieuw starten?",
             "restartRequiredBody" to "De taal is opgeslagen. Start de app nu opnieuw om elk scherm correct te laden.",
             "restartNow" to "Nu opnieuw starten",
             "later" to "Later",
@@ -4940,7 +4940,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Geen downloads offline opgeslagen.",
             "createFirstPlaylist" to "Maak je eerste playlist",
             "createFirstPlaylistSubtitle" to "Verzamel de nummers die je direct terug wilt vinden.",
-            "downloadTrackHint" to "Tik bij een nummer op Downloaden om het in Music/Levyra op te slaan.",
+            "downloadTrackHint" to "Tik bij een nummer op Downloaden om het in Music/Derbis op te slaan.",
             "savedTracks" to "Opgeslagen nummers",
             "favoritesEmpty" to "Nog geen favorieten",
             "playlistEmpty" to "De playlist is leeg. Voeg nummers toe via het menu met de drie puntjes van een nummer.",
@@ -4954,7 +4954,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Discrete lokale analyse",
             "lyricsAnalysisCompactSubtitle" to "Blijft compact tot je deze opent, toont alleen nuttige signalen en kan je rechtstreeks naar het refrein brengen.",
             "createDataBackup" to "Gegevensback-up maken",
-            "createDataBackupSubtitle" to "Favorieten, playlists, geschiedenis, wachtrij en instellingen in een met SHA-256 geverifieerd archief. Audiobestanden blijven in Music/Levyra.",
+            "createDataBackupSubtitle" to "Favorieten, playlists, geschiedenis, wachtrij en instellingen in een met SHA-256 geverifieerd archief. Audiobestanden blijven in Music/Derbis.",
             "updateAvailable" to "Update beschikbaar",
             "updates" to "Updates",
             "checkingLatestVersion" to "Nieuwste versie controleren…",
@@ -5041,7 +5041,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Gemaakt met ❤️ door",
             "activeIndicator" to "ACTIEF",
             "batteryUnrestricted" to "Onbeperkt afspelen op de achtergrond",
-            "batteryUnrestrictedSubtitle" to "Sluit Levyra uit van batterijoptimalisatie zodat muziek blijft spelen met het scherm uit",
+            "batteryUnrestrictedSubtitle" to "Sluit Derbis uit van batterijoptimalisatie zodat muziek blijft spelen met het scherm uit",
             "batteryUnrestrictedActive" to "Actief — het systeem stopt het afspelen niet",
             "downloadQualityPreset" to "Kwaliteitsvoorinstelling",
             "downloadQualityPresetSubtitle" to "Balanceert kwaliteit, snelheid en dataverbruik",
@@ -5082,7 +5082,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Pomiń i kontynuuj",
             "startListening" to "Zacznij słuchać",
             "settings" to "Ustawienia",
-            "settingsSubtitle" to "Dostosuj LEVYRA",
+            "settingsSubtitle" to "Dostosuj DERBIS",
             "design" to "WYGLĄD",
             "playback" to "ODTWARZANIE",
             "preferences" to "PREFERENCJE",
@@ -5165,7 +5165,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Podobni artyści",
             "similarToFollowed" to "Podobni do obserwowanych artystów",
             "theme" to "Motyw",
-            "themeSubtitle" to "Wybierz wygląd LEVYRA",
+            "themeSubtitle" to "Wybierz wygląd DERBIS",
             "personalOrbitTitle" to "Twoja orbita",
             "personalOrbitSubtitle" to "Utwory, które zawsze do ciebie wracają",
             "voicesTitle" to "Głosy, które rezonują",
@@ -5185,7 +5185,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Wysokość dźwięku",
             "gapless" to "Odtwarzanie bez przerw",
-            "restartRequiredTitle" to "Uruchomić LEVYRA ponownie?",
+            "restartRequiredTitle" to "Uruchomić DERBIS ponownie?",
             "restartRequiredBody" to "Język został zapisany. Uruchom aplikację ponownie, aby wszystkie ekrany wczytały się poprawnie.",
             "restartNow" to "Uruchom ponownie",
             "later" to "Później",
@@ -5338,7 +5338,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Brak pobrań zapisanych offline.",
             "createFirstPlaylist" to "Utwórz pierwszą playlistę",
             "createFirstPlaylistSubtitle" to "Zbierz utwory, do których chcesz szybko wracać.",
-            "downloadTrackHint" to "Dotknij Pobierz przy utworze, aby zapisać go w Music/Levyra.",
+            "downloadTrackHint" to "Dotknij Pobierz przy utworze, aby zapisać go w Music/Derbis.",
             "savedTracks" to "Zapisane utwory",
             "favoritesEmpty" to "Brak ulubionych",
             "playlistEmpty" to "Playlista jest pusta. Dodaj utwory z menu z trzema kropkami przy utworze.",
@@ -5352,7 +5352,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Dyskretna analiza lokalna",
             "lyricsAnalysisCompactSubtitle" to "Pozostaje zwinięta, dopóki jej nie otworzysz, pokazuje tylko przydatne informacje i może przenieść Cię prosto do refrenu.",
             "createDataBackup" to "Utwórz kopię zapasową danych",
-            "createDataBackupSubtitle" to "Ulubione, playlisty, historia, kolejka i ustawienia w archiwum zweryfikowanym SHA-256. Pliki audio pozostają w Music/Levyra.",
+            "createDataBackupSubtitle" to "Ulubione, playlisty, historia, kolejka i ustawienia w archiwum zweryfikowanym SHA-256. Pliki audio pozostają w Music/Derbis.",
             "updateAvailable" to "Dostępna aktualizacja",
             "updates" to "Aktualizacje",
             "checkingLatestVersion" to "Sprawdzanie najnowszej wersji…",
@@ -5439,7 +5439,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Stworzone z ❤️ przez",
             "activeIndicator" to "AKTYWNE",
             "batteryUnrestricted" to "Nieograniczone odtwarzanie w tle",
-            "batteryUnrestrictedSubtitle" to "Wyklucz Levyra z optymalizacji baterii, aby muzyka grała przy wyłączonym ekranie",
+            "batteryUnrestrictedSubtitle" to "Wyklucz Derbis z optymalizacji baterii, aby muzyka grała przy wyłączonym ekranie",
             "batteryUnrestrictedActive" to "Aktywne — system nie zatrzyma odtwarzania",
             "downloadQualityPreset" to "Ustawienie jakości",
             "downloadQualityPresetSubtitle" to "Równoważy jakość, szybkość i zużycie danych",
@@ -5480,7 +5480,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Sari și continuă",
             "startListening" to "Începe să asculți",
             "settings" to "Setări",
-            "settingsSubtitle" to "Personalizează LEVYRA",
+            "settingsSubtitle" to "Personalizează DERBIS",
             "design" to "DESIGN",
             "playback" to "REDARE",
             "preferences" to "PREFERINȚE",
@@ -5563,7 +5563,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Artiști similari",
             "similarToFollowed" to "Similari cu artiștii pe care îi urmărești",
             "theme" to "Temă",
-            "themeSubtitle" to "Alege aspectul LEVYRA",
+            "themeSubtitle" to "Alege aspectul DERBIS",
             "personalOrbitTitle" to "Orbita ta",
             "personalOrbitSubtitle" to "Melodiile care revin mereu la tine",
             "voicesTitle" to "Voci care rezonează",
@@ -5583,7 +5583,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Înălțime",
             "gapless" to "Fără pauze",
-            "restartRequiredTitle" to "Repornești LEVYRA?",
+            "restartRequiredTitle" to "Repornești DERBIS?",
             "restartRequiredBody" to "Limba a fost salvată. Repornește aplicația pentru a reîncărca corect toate ecranele.",
             "restartNow" to "Repornește acum",
             "later" to "Mai târziu",
@@ -5736,7 +5736,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Nu există descărcări salvate offline.",
             "createFirstPlaylist" to "Creează primul tău playlist",
             "createFirstPlaylistSubtitle" to "Adună piesele pe care vrei să le găsești imediat.",
-            "downloadTrackHint" to "Apasă Descarcă pe o piesă pentru a o salva în Music/Levyra.",
+            "downloadTrackHint" to "Apasă Descarcă pe o piesă pentru a o salva în Music/Derbis.",
             "savedTracks" to "Piese salvate",
             "favoritesEmpty" to "Nu există încă favorite",
             "playlistEmpty" to "Playlistul este gol. Adaugă piese din meniul cu trei puncte al unei piese.",
@@ -5750,7 +5750,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Analiză locală discretă",
             "lyricsAnalysisCompactSubtitle" to "Rămâne compactă până o deschizi, afișează doar semnalele utile și te poate duce direct la refren.",
             "createDataBackup" to "Creează o copie de siguranță a datelor",
-            "createDataBackupSubtitle" to "Favorite, playlisturi, istoric, coadă și setări într-o arhivă verificată SHA-256. Fișierele audio rămân în Music/Levyra.",
+            "createDataBackupSubtitle" to "Favorite, playlisturi, istoric, coadă și setări într-o arhivă verificată SHA-256. Fișierele audio rămân în Music/Derbis.",
             "updateAvailable" to "Actualizare disponibilă",
             "updates" to "Actualizări",
             "checkingLatestVersion" to "Se verifică cea mai recentă versiune…",
@@ -5837,7 +5837,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Creat cu ❤️ de",
             "activeIndicator" to "ACTIV",
             "batteryUnrestricted" to "Redare în fundal fără limite",
-            "batteryUnrestrictedSubtitle" to "Exclude Levyra din optimizarea bateriei pentru ca muzica să continue cu ecranul stins",
+            "batteryUnrestrictedSubtitle" to "Exclude Derbis din optimizarea bateriei pentru ca muzica să continue cu ecranul stins",
             "batteryUnrestrictedActive" to "Activ — sistemul nu va opri redarea",
             "downloadQualityPreset" to "Presetare calitate",
             "downloadQualityPresetSubtitle" to "Echilibrează calitatea, viteza și consumul de date",
@@ -5878,7 +5878,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Παράλειψη και συνέχεια",
             "startListening" to "Έναρξη ακρόασης",
             "settings" to "Ρυθμίσεις",
-            "settingsSubtitle" to "Προσαρμογή LEVYRA",
+            "settingsSubtitle" to "Προσαρμογή DERBIS",
             "design" to "ΣΧΕΔΙΑΣΗ",
             "playback" to "ΑΝΑΠΑΡΑΓΩΓΗ",
             "preferences" to "ΠΡΟΤΙΜΗΣΕΙΣ",
@@ -5961,7 +5961,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Παρόμοιοι καλλιτέχνες",
             "similarToFollowed" to "Παρόμοιοι με καλλιτέχνες που ακολουθείς",
             "theme" to "Θέμα",
-            "themeSubtitle" to "Διάλεξε την εμφάνιση του LEVYRA",
+            "themeSubtitle" to "Διάλεξε την εμφάνιση του DERBIS",
             "personalOrbitTitle" to "Η τροχιά σου",
             "personalOrbitSubtitle" to "Τα τραγούδια που επιστρέφουν πάντα σε εσένα",
             "voicesTitle" to "Φωνές που αντηχούν",
@@ -5981,7 +5981,7 @@ class LevyraStrings private constructor(
             "tempo" to "Ρυθμός",
             "pitch" to "Τονικό ύψος",
             "gapless" to "Χωρίς κενά",
-            "restartRequiredTitle" to "Επανεκκίνηση του LEVYRA;",
+            "restartRequiredTitle" to "Επανεκκίνηση του DERBIS;",
             "restartRequiredBody" to "Η γλώσσα αποθηκεύτηκε. Επανεκκίνησε τώρα την εφαρμογή για να φορτωθούν σωστά όλες οι οθόνες.",
             "restartNow" to "Επανεκκίνηση τώρα",
             "later" to "Αργότερα",
@@ -6134,7 +6134,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Δεν υπάρχουν λήψεις αποθηκευμένες offline.",
             "createFirstPlaylist" to "Δημιούργησε την πρώτη σου playlist",
             "createFirstPlaylistSubtitle" to "Συγκέντρωσε τα τραγούδια που θέλεις να βρίσκεις ξανά αμέσως.",
-            "downloadTrackHint" to "Πάτησε Λήψη σε ένα τραγούδι για να το αποθηκεύσεις στο Music/Levyra.",
+            "downloadTrackHint" to "Πάτησε Λήψη σε ένα τραγούδι για να το αποθηκεύσεις στο Music/Derbis.",
             "savedTracks" to "Αποθηκευμένα τραγούδια",
             "favoritesEmpty" to "Δεν υπάρχουν ακόμη αγαπημένα",
             "playlistEmpty" to "Η playlist είναι άδεια. Πρόσθεσε τραγούδια από το μενού με τις τρεις τελείες ενός τραγουδιού.",
@@ -6148,7 +6148,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Διακριτική τοπική ανάλυση",
             "lyricsAnalysisCompactSubtitle" to "Παραμένει συμπτυγμένη μέχρι να την ανοίξεις, δείχνει μόνο χρήσιμα στοιχεία και μπορεί να σε μεταφέρει απευθείας στο ρεφρέν.",
             "createDataBackup" to "Δημιουργία αντιγράφου ασφαλείας δεδομένων",
-            "createDataBackupSubtitle" to "Αγαπημένα, playlists, ιστορικό, ουρά και ρυθμίσεις σε αρχείο επαληθευμένο με SHA-256. Τα αρχεία ήχου παραμένουν στο Music/Levyra.",
+            "createDataBackupSubtitle" to "Αγαπημένα, playlists, ιστορικό, ουρά και ρυθμίσεις σε αρχείο επαληθευμένο με SHA-256. Τα αρχεία ήχου παραμένουν στο Music/Derbis.",
             "updateAvailable" to "Διαθέσιμη ενημέρωση",
             "updates" to "Ενημερώσεις",
             "checkingLatestVersion" to "Έλεγχος της πιο πρόσφατης έκδοσης…",
@@ -6235,7 +6235,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Δημιουργήθηκε με ❤️ από",
             "activeIndicator" to "ΕΝΕΡΓΟ",
             "batteryUnrestricted" to "Απεριόριστη αναπαραγωγή στο παρασκήνιο",
-            "batteryUnrestrictedSubtitle" to "Εξαιρέστε το Levyra από τη βελτιστοποίηση μπαταρίας ώστε η μουσική να συνεχίζει με σβηστή οθόνη",
+            "batteryUnrestrictedSubtitle" to "Εξαιρέστε το Derbis από τη βελτιστοποίηση μπαταρίας ώστε η μουσική να συνεχίζει με σβηστή οθόνη",
             "batteryUnrestrictedActive" to "Ενεργό — το σύστημα δεν θα σταματήσει την αναπαραγωγή",
             "downloadQualityPreset" to "Προρύθμιση ποιότητας",
             "downloadQualityPresetSubtitle" to "Ισορροπεί ποιότητα, ταχύτητα και κατανάλωση δεδομένων",
@@ -6276,7 +6276,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Hoppa över och fortsätt",
             "startListening" to "Börja lyssna",
             "settings" to "Inställningar",
-            "settingsSubtitle" to "Anpassa LEVYRA",
+            "settingsSubtitle" to "Anpassa DERBIS",
             "design" to "DESIGN",
             "playback" to "UPPSPELNING",
             "preferences" to "INSTÄLLNINGAR",
@@ -6359,7 +6359,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Liknande artister",
             "similarToFollowed" to "Liknar artister du följer",
             "theme" to "Tema",
-            "themeSubtitle" to "Välj hur LEVYRA ska se ut",
+            "themeSubtitle" to "Välj hur DERBIS ska se ut",
             "personalOrbitTitle" to "Din omloppsbana",
             "personalOrbitSubtitle" to "Låtarna du alltid återvänder till",
             "voicesTitle" to "Röster som berör",
@@ -6379,7 +6379,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Tonhöjd",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Starta om LEVYRA?",
+            "restartRequiredTitle" to "Starta om DERBIS?",
             "restartRequiredBody" to "Språket har sparats. Starta om appen nu så att alla skärmar läses in korrekt.",
             "restartNow" to "Starta om nu",
             "later" to "Senare",
@@ -6532,7 +6532,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Inga nedladdningar har sparats offline.",
             "createFirstPlaylist" to "Skapa din första playlist",
             "createFirstPlaylistSubtitle" to "Samla låtarna du vill kunna hitta direkt igen.",
-            "downloadTrackHint" to "Tryck på Ladda ned vid en låt för att spara den i Music/Levyra.",
+            "downloadTrackHint" to "Tryck på Ladda ned vid en låt för att spara den i Music/Derbis.",
             "savedTracks" to "Sparade låtar",
             "favoritesEmpty" to "Inga favoriter än",
             "playlistEmpty" to "Playlisten är tom. Lägg till låtar från trepunktsmenyn på en låt.",
@@ -6546,7 +6546,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Diskret lokal analys",
             "lyricsAnalysisCompactSubtitle" to "Förblir kompakt tills du öppnar den, visar bara användbara signaler och kan ta dig direkt till refrängen.",
             "createDataBackup" to "Skapa säkerhetskopia",
-            "createDataBackupSubtitle" to "Favoriter, playlists, historik, kö och inställningar i ett SHA-256-verifierat arkiv. Ljudfilerna ligger kvar i Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoriter, playlists, historik, kö och inställningar i ett SHA-256-verifierat arkiv. Ljudfilerna ligger kvar i Music/Derbis.",
             "updateAvailable" to "Uppdatering tillgänglig",
             "updates" to "Uppdateringar",
             "checkingLatestVersion" to "Söker efter den senaste versionen…",
@@ -6633,7 +6633,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Skapad med ❤️ av",
             "activeIndicator" to "AKTIV",
             "batteryUnrestricted" to "Obegränsad bakgrundsuppspelning",
-            "batteryUnrestrictedSubtitle" to "Undanta Levyra från batterioptimering så att musiken fortsätter med släckt skärm",
+            "batteryUnrestrictedSubtitle" to "Undanta Derbis från batterioptimering så att musiken fortsätter med släckt skärm",
             "batteryUnrestrictedActive" to "Aktiv — systemet stoppar inte uppspelningen",
             "downloadQualityPreset" to "Kvalitetsförval",
             "downloadQualityPresetSubtitle" to "Balanserar kvalitet, hastighet och dataförbrukning",
@@ -6674,7 +6674,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Spring over og fortsæt",
             "startListening" to "Begynd at lytte",
             "settings" to "Indstillinger",
-            "settingsSubtitle" to "Tilpas LEVYRA",
+            "settingsSubtitle" to "Tilpas DERBIS",
             "design" to "DESIGN",
             "playback" to "AFSPILNING",
             "preferences" to "PRÆFERENCER",
@@ -6757,7 +6757,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Lignende kunstnere",
             "similarToFollowed" to "Ligner kunstnere, du følger",
             "theme" to "Tema",
-            "themeSubtitle" to "Vælg, hvordan LEVYRA skal se ud",
+            "themeSubtitle" to "Vælg, hvordan DERBIS skal se ud",
             "personalOrbitTitle" to "Din bane",
             "personalOrbitSubtitle" to "Sangene, du altid vender tilbage til",
             "voicesTitle" to "Stemmer, der rammer",
@@ -6777,7 +6777,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Tonehøjde",
             "gapless" to "Gapless",
-            "restartRequiredTitle" to "Genstart LEVYRA?",
+            "restartRequiredTitle" to "Genstart DERBIS?",
             "restartRequiredBody" to "Sproget er gemt. Genstart appen nu, så alle skærme indlæses korrekt.",
             "restartNow" to "Genstart nu",
             "later" to "Senere",
@@ -6930,7 +6930,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Ingen downloads er gemt offline.",
             "createFirstPlaylist" to "Opret din første playlist",
             "createFirstPlaylistSubtitle" to "Saml de sange, du vil kunne finde igen med det samme.",
-            "downloadTrackHint" to "Tryk på Download ved en sang for at gemme den i Music/Levyra.",
+            "downloadTrackHint" to "Tryk på Download ved en sang for at gemme den i Music/Derbis.",
             "savedTracks" to "Gemte sange",
             "favoritesEmpty" to "Ingen favoritter endnu",
             "playlistEmpty" to "Playlisten er tom. Tilføj sange fra menuen med tre prikker på en sang.",
@@ -6944,7 +6944,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Diskret lokal analyse",
             "lyricsAnalysisCompactSubtitle" to "Forbliver kompakt, indtil du åbner den, viser kun nyttige signaler og kan føre dig direkte til omkvædet.",
             "createDataBackup" to "Opret sikkerhedskopi af data",
-            "createDataBackupSubtitle" to "Favoritter, playlists, historik, kø og indstillinger i et SHA-256-verificeret arkiv. Lydfiler forbliver i Music/Levyra.",
+            "createDataBackupSubtitle" to "Favoritter, playlists, historik, kø og indstillinger i et SHA-256-verificeret arkiv. Lydfiler forbliver i Music/Derbis.",
             "updateAvailable" to "Opdatering tilgængelig",
             "updates" to "Opdateringer",
             "checkingLatestVersion" to "Søger efter den nyeste version…",
@@ -7031,7 +7031,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Skabt med ❤️ af",
             "activeIndicator" to "AKTIV",
             "batteryUnrestricted" to "Ubegrænset baggrundsafspilning",
-            "batteryUnrestrictedSubtitle" to "Undtag Levyra fra batterioptimering, så musikken fortsætter med slukket skærm",
+            "batteryUnrestrictedSubtitle" to "Undtag Derbis fra batterioptimering, så musikken fortsætter med slukket skærm",
             "batteryUnrestrictedActive" to "Aktiv — systemet stopper ikke afspilningen",
             "downloadQualityPreset" to "Kvalitetsforvalg",
             "downloadQualityPresetSubtitle" to "Balancerer kvalitet, hastighed og dataforbrug",
@@ -7072,7 +7072,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Přeskočit a pokračovat",
             "startListening" to "Začít poslouchat",
             "settings" to "Nastavení",
-            "settingsSubtitle" to "Přizpůsobit LEVYRA",
+            "settingsSubtitle" to "Přizpůsobit DERBIS",
             "design" to "DESIGN",
             "playback" to "PŘEHRÁVÁNÍ",
             "preferences" to "PŘEDVOLBY",
@@ -7155,7 +7155,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Podobní interpreti",
             "similarToFollowed" to "Podobní interpretům, které sleduješ",
             "theme" to "Motiv",
-            "themeSubtitle" to "Vyber vzhled aplikace LEVYRA",
+            "themeSubtitle" to "Vyber vzhled aplikace DERBIS",
             "personalOrbitTitle" to "Tvoje oběžná dráha",
             "personalOrbitSubtitle" to "Skladby, ke kterým se pořád vracíš",
             "voicesTitle" to "Hlasy, které rezonují",
@@ -7175,7 +7175,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Výška tónu",
             "gapless" to "Plynulé přehrávání",
-            "restartRequiredTitle" to "Restartovat LEVYRA?",
+            "restartRequiredTitle" to "Restartovat DERBIS?",
             "restartRequiredBody" to "Jazyk byl uložen. Restartuj aplikaci, aby se všechny obrazovky správně načetly.",
             "restartNow" to "Restartovat teď",
             "later" to "Později",
@@ -7328,7 +7328,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Žádné stažené soubory nejsou uloženy offline.",
             "createFirstPlaylist" to "Vytvoř svůj první playlist",
             "createFirstPlaylistSubtitle" to "Shromáždi skladby, které chceš rychle znovu najít.",
-            "downloadTrackHint" to "Klepni u skladby na Stáhnout a ulož ji do Music/Levyra.",
+            "downloadTrackHint" to "Klepni u skladby na Stáhnout a ulož ji do Music/Derbis.",
             "savedTracks" to "Uložené skladby",
             "favoritesEmpty" to "Zatím žádné oblíbené",
             "playlistEmpty" to "Playlist je prázdný. Přidej skladby z nabídky se třemi tečkami u skladby.",
@@ -7342,7 +7342,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Nenápadná místní analýza",
             "lyricsAnalysisCompactSubtitle" to "Zůstává sbalená, dokud ji neotevřeš, zobrazuje jen užitečné informace a může tě přenést přímo na refrén.",
             "createDataBackup" to "Vytvořit zálohu dat",
-            "createDataBackupSubtitle" to "Oblíbené, playlisty, historie, fronta a nastavení v archivu ověřeném SHA-256. Zvukové soubory zůstávají v Music/Levyra.",
+            "createDataBackupSubtitle" to "Oblíbené, playlisty, historie, fronta a nastavení v archivu ověřeném SHA-256. Zvukové soubory zůstávají v Music/Derbis.",
             "updateAvailable" to "Je dostupná aktualizace",
             "updates" to "Aktualizace",
             "checkingLatestVersion" to "Kontrola nejnovější verze…",
@@ -7429,7 +7429,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Vytvořeno s ❤️ od",
             "activeIndicator" to "AKTIVNÍ",
             "batteryUnrestricted" to "Neomezené přehrávání na pozadí",
-            "batteryUnrestrictedSubtitle" to "Vyjměte Levyra z optimalizace baterie, aby hudba hrála i s vypnutou obrazovkou",
+            "batteryUnrestrictedSubtitle" to "Vyjměte Derbis z optimalizace baterie, aby hudba hrála i s vypnutou obrazovkou",
             "batteryUnrestrictedActive" to "Aktivní — systém přehrávání nezastaví",
             "downloadQualityPreset" to "Předvolba kvality",
             "downloadQualityPresetSubtitle" to "Vyvažuje kvalitu, rychlost a spotřebu dat",
@@ -7470,7 +7470,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Пропустити й продовжити",
             "startListening" to "Почати слухати",
             "settings" to "Налаштування",
-            "settingsSubtitle" to "Налаштувати LEVYRA",
+            "settingsSubtitle" to "Налаштувати DERBIS",
             "design" to "ДИЗАЙН",
             "playback" to "ВІДТВОРЕННЯ",
             "preferences" to "ПАРАМЕТРИ",
@@ -7553,7 +7553,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Схожі артисти",
             "similarToFollowed" to "Схожі на артистів, за якими ти стежиш",
             "theme" to "Тема",
-            "themeSubtitle" to "Вибери вигляд LEVYRA",
+            "themeSubtitle" to "Вибери вигляд DERBIS",
             "personalOrbitTitle" to "Твоя орбіта",
             "personalOrbitSubtitle" to "Пісні, до яких ти завжди повертаєшся",
             "voicesTitle" to "Голоси, що резонують",
@@ -7573,7 +7573,7 @@ class LevyraStrings private constructor(
             "tempo" to "Темп",
             "pitch" to "Висота тону",
             "gapless" to "Без пауз",
-            "restartRequiredTitle" to "Перезапустити LEVYRA?",
+            "restartRequiredTitle" to "Перезапустити DERBIS?",
             "restartRequiredBody" to "Мову збережено. Перезапусти застосунок, щоб усі екрани завантажилися правильно.",
             "restartNow" to "Перезапустити зараз",
             "later" to "Пізніше",
@@ -7726,7 +7726,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Офлайн-завантажень ще немає.",
             "createFirstPlaylist" to "Створи свій перший плейлист",
             "createFirstPlaylistSubtitle" to "Збери пісні, які хочеш миттєво знаходити знову.",
-            "downloadTrackHint" to "Натисни Завантажити біля пісні, щоб зберегти її в Music/Levyra.",
+            "downloadTrackHint" to "Натисни Завантажити біля пісні, щоб зберегти її в Music/Derbis.",
             "savedTracks" to "Збережені треки",
             "favoritesEmpty" to "Обраного ще немає",
             "playlistEmpty" to "Плейлист порожній. Додай треки з меню з трьома крапками біля треку.",
@@ -7740,7 +7740,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Ненав'язливий локальний аналіз",
             "lyricsAnalysisCompactSubtitle" to "Залишається згорнутим, доки ти його не відкриєш, показує лише корисні сигнали й може одразу перенести до приспіву.",
             "createDataBackup" to "Створити резервну копію даних",
-            "createDataBackupSubtitle" to "Обране, плейлисти, історія, черга та налаштування в архіві, перевіреному SHA-256. Аудіофайли залишаються в Music/Levyra.",
+            "createDataBackupSubtitle" to "Обране, плейлисти, історія, черга та налаштування в архіві, перевіреному SHA-256. Аудіофайли залишаються в Music/Derbis.",
             "updateAvailable" to "Доступне оновлення",
             "updates" to "Оновлення",
             "checkingLatestVersion" to "Перевіряється найновіша версія…",
@@ -7827,7 +7827,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Створено з ❤️ автором",
             "activeIndicator" to "АКТИВНО",
             "batteryUnrestricted" to "Необмежене відтворення у фоні",
-            "batteryUnrestrictedSubtitle" to "Виключіть Levyra з оптимізації батареї, щоб музика грала з вимкненим екраном",
+            "batteryUnrestrictedSubtitle" to "Виключіть Derbis з оптимізації батареї, щоб музика грала з вимкненим екраном",
             "batteryUnrestrictedActive" to "Активно — система не зупинить відтворення",
             "downloadQualityPreset" to "Пресет якості",
             "downloadQualityPresetSubtitle" to "Балансує якість, швидкість і витрату трафіку",
@@ -7868,7 +7868,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Пропустить и продолжить",
             "startListening" to "Начать слушать",
             "settings" to "Настройки",
-            "settingsSubtitle" to "Настрой LEVYRA под себя",
+            "settingsSubtitle" to "Настрой DERBIS под себя",
             "design" to "ДИЗАЙН",
             "playback" to "ВОСПРОИЗВЕДЕНИЕ",
             "preferences" to "ПРЕДПОЧТЕНИЯ",
@@ -7951,7 +7951,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Похожие исполнители",
             "similarToFollowed" to "Похожи на исполнителей, на которых ты подписан",
             "theme" to "Тема",
-            "themeSubtitle" to "Выбери оформление LEVYRA",
+            "themeSubtitle" to "Выбери оформление DERBIS",
             "personalOrbitTitle" to "Твоя орбита",
             "personalOrbitSubtitle" to "Треки, к которым ты всегда возвращаешься",
             "voicesTitle" to "Голоса, которые находят отклик",
@@ -7971,7 +7971,7 @@ class LevyraStrings private constructor(
             "tempo" to "Темп",
             "pitch" to "Высота тона",
             "gapless" to "Без пауз",
-            "restartRequiredTitle" to "Перезапустить LEVYRA?",
+            "restartRequiredTitle" to "Перезапустить DERBIS?",
             "restartRequiredBody" to "Язык сохранён. Перезапусти приложение, чтобы все экраны загрузились корректно.",
             "restartNow" to "Перезапустить сейчас",
             "later" to "Позже",
@@ -8124,7 +8124,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Офлайн-загрузок пока нет.",
             "createFirstPlaylist" to "Создай свой первый плейлист",
             "createFirstPlaylistSubtitle" to "Собери треки, которые хочешь мгновенно находить снова.",
-            "downloadTrackHint" to "Нажми Скачать рядом с треком, чтобы сохранить его в Music/Levyra.",
+            "downloadTrackHint" to "Нажми Скачать рядом с треком, чтобы сохранить его в Music/Derbis.",
             "savedTracks" to "Сохранённые треки",
             "favoritesEmpty" to "В избранном пока пусто",
             "playlistEmpty" to "Плейлист пуст. Добавь треки через меню с тремя точками рядом с треком.",
@@ -8138,7 +8138,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Ненавязчивый локальный анализ",
             "lyricsAnalysisCompactSubtitle" to "Остаётся свёрнутым, пока ты его не откроешь, показывает только полезные сигналы и может сразу перейти к припеву.",
             "createDataBackup" to "Создать резервную копию данных",
-            "createDataBackupSubtitle" to "Избранное, плейлисты, история, очередь и настройки в архиве, проверенном SHA-256. Аудиофайлы остаются в Music/Levyra.",
+            "createDataBackupSubtitle" to "Избранное, плейлисты, история, очередь и настройки в архиве, проверенном SHA-256. Аудиофайлы остаются в Music/Derbis.",
             "updateAvailable" to "Доступно обновление",
             "updates" to "Обновления",
             "checkingLatestVersion" to "Проверяется последняя версия…",
@@ -8225,7 +8225,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "Создано с ❤️ автором",
             "activeIndicator" to "АКТИВНО",
             "batteryUnrestricted" to "Фоновое воспроизведение без ограничений",
-            "batteryUnrestrictedSubtitle" to "Исключите Levyra из оптимизации батареи, чтобы музыка играла при выключенном экране",
+            "batteryUnrestrictedSubtitle" to "Исключите Derbis из оптимизации батареи, чтобы музыка играла при выключенном экране",
             "batteryUnrestrictedActive" to "Активно — система не остановит воспроизведение",
             "downloadQualityPreset" to "Пресет качества",
             "downloadQualityPresetSubtitle" to "Балансирует качество, скорость и расход трафика",
@@ -8266,7 +8266,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "Atla ve devam et",
             "startListening" to "Dinlemeye başla",
             "settings" to "Ayarlar",
-            "settingsSubtitle" to "LEVYRA'yı özelleştir",
+            "settingsSubtitle" to "DERBIS'yı özelleştir",
             "design" to "TASARIM",
             "playback" to "OYNATMA",
             "preferences" to "TERCİHLER",
@@ -8349,7 +8349,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "Benzer sanatçılar",
             "similarToFollowed" to "Takip ettiğin sanatçılara benzer",
             "theme" to "Tema",
-            "themeSubtitle" to "LEVYRA'nın görünümünü seç",
+            "themeSubtitle" to "DERBIS'nın görünümünü seç",
             "personalOrbitTitle" to "Yörüngen",
             "personalOrbitSubtitle" to "Her zaman geri döndüğün şarkılar",
             "voicesTitle" to "Yankı uyandıran sesler",
@@ -8369,7 +8369,7 @@ class LevyraStrings private constructor(
             "tempo" to "Tempo",
             "pitch" to "Perde",
             "gapless" to "Kesintisiz oynatma",
-            "restartRequiredTitle" to "LEVYRA yeniden başlatılsın mı?",
+            "restartRequiredTitle" to "DERBIS yeniden başlatılsın mı?",
             "restartRequiredBody" to "Dil kaydedildi. Tüm ekranların doğru yüklenmesi için uygulamayı şimdi yeniden başlat.",
             "restartNow" to "Şimdi yeniden başlat",
             "later" to "Daha sonra",
@@ -8522,7 +8522,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "Çevrimdışı kaydedilmiş indirme yok.",
             "createFirstPlaylist" to "İlk playlistini oluştur",
             "createFirstPlaylistSubtitle" to "Hemen yeniden bulmak istediğin şarkıları bir araya getir.",
-            "downloadTrackHint" to "Bir şarkıyı Music/Levyra'ya kaydetmek için İndir'e dokun.",
+            "downloadTrackHint" to "Bir şarkıyı Music/Derbis'ya kaydetmek için İndir'e dokun.",
             "savedTracks" to "Kaydedilen şarkılar",
             "favoritesEmpty" to "Henüz favori yok",
             "playlistEmpty" to "Playlist boş. Bir şarkının üç noktalı menüsünden şarkı ekle.",
@@ -8536,7 +8536,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "Göze batmayan yerel analiz",
             "lyricsAnalysisCompactSubtitle" to "Sen açana kadar küçük kalır, yalnızca yararlı işaretleri gösterir ve seni doğrudan nakarata götürebilir.",
             "createDataBackup" to "Veri yedeği oluştur",
-            "createDataBackupSubtitle" to "Favoriler, playlistler, geçmiş, sıra ve ayarlar SHA-256 ile doğrulanmış bir arşivde tutulur. Ses dosyaları Music/Levyra'da kalır.",
+            "createDataBackupSubtitle" to "Favoriler, playlistler, geçmiş, sıra ve ayarlar SHA-256 ile doğrulanmış bir arşivde tutulur. Ses dosyaları Music/Derbis'da kalır.",
             "updateAvailable" to "Güncelleme mevcut",
             "updates" to "Güncellemeler",
             "checkingLatestVersion" to "En son sürüm kontrol ediliyor…",
@@ -8623,7 +8623,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "❤️ ile hazırlayan",
             "activeIndicator" to "ETKİN",
             "batteryUnrestricted" to "Sınırsız arka plan oynatma",
-            "batteryUnrestrictedSubtitle" to "Ekran kapalıyken müziğin devam etmesi için Levyra'yı pil optimizasyonundan hariç tutun",
+            "batteryUnrestrictedSubtitle" to "Ekran kapalıyken müziğin devam etmesi için Derbis'yı pil optimizasyonundan hariç tutun",
             "batteryUnrestrictedActive" to "Etkin — sistem oynatmayı durdurmayacak",
             "downloadQualityPreset" to "Kalite ön ayarı",
             "downloadQualityPresetSubtitle" to "Kalite, hız ve veri kullanımını dengeler",
@@ -8664,7 +8664,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "تخطَّ وتابع",
             "startListening" to "ابدأ الاستماع",
             "settings" to "الإعدادات",
-            "settingsSubtitle" to "خصّص LEVYRA",
+            "settingsSubtitle" to "خصّص DERBIS",
             "design" to "التصميم",
             "playback" to "التشغيل",
             "preferences" to "التفضيلات",
@@ -8747,7 +8747,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "فنانون مشابهون",
             "similarToFollowed" to "مشابه لفنانين تتابعهم",
             "theme" to "السمة",
-            "themeSubtitle" to "اختر مظهر LEVYRA",
+            "themeSubtitle" to "اختر مظهر DERBIS",
             "personalOrbitTitle" to "مدارك",
             "personalOrbitSubtitle" to "الأغنيات التي تعود إليك دائمًا",
             "voicesTitle" to "أصوات تلامس الإحساس",
@@ -8767,7 +8767,7 @@ class LevyraStrings private constructor(
             "tempo" to "الإيقاع",
             "pitch" to "الطبقة",
             "gapless" to "تشغيل بلا فواصل",
-            "restartRequiredTitle" to "إعادة تشغيل LEVYRA؟",
+            "restartRequiredTitle" to "إعادة تشغيل DERBIS؟",
             "restartRequiredBody" to "تم حفظ اللغة. أعد تشغيل التطبيق الآن لإعادة تحميل كل الشاشات بصورة سليمة.",
             "restartNow" to "إعادة التشغيل الآن",
             "later" to "لاحقًا",
@@ -8920,7 +8920,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "لا توجد تنزيلات محفوظة بلا إنترنت.",
             "createFirstPlaylist" to "أنشئ أول قائمة تشغيل",
             "createFirstPlaylistSubtitle" to "اجمع الأغنيات التي تريد العثور عليها مجددًا فورًا.",
-            "downloadTrackHint" to "اضغط تنزيل على أي أغنية لحفظها في Music/Levyra.",
+            "downloadTrackHint" to "اضغط تنزيل على أي أغنية لحفظها في Music/Derbis.",
             "savedTracks" to "المقاطع المحفوظة",
             "favoritesEmpty" to "لا توجد مفضلات بعد",
             "playlistEmpty" to "قائمة التشغيل هذه فارغة. أضف الأغنيات من قائمة النقاط الثلاث لأي أغنية.",
@@ -8934,7 +8934,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "تحليل محلي هادئ",
             "lyricsAnalysisCompactSubtitle" to "يبقى مضغوطًا حتى تفتحه، ويعرض الإشارات المفيدة فقط، ويمكنه نقلك مباشرةً إلى اللازمة.",
             "createDataBackup" to "إنشاء نسخة احتياطية للبيانات",
-            "createDataBackupSubtitle" to "المفضلة وقوائم التشغيل والسجل وقائمة الانتظار والإعدادات داخل أرشيف متحقق منه بخوارزمية SHA-256. تبقى ملفات الصوت في Music/Levyra.",
+            "createDataBackupSubtitle" to "المفضلة وقوائم التشغيل والسجل وقائمة الانتظار والإعدادات داخل أرشيف متحقق منه بخوارزمية SHA-256. تبقى ملفات الصوت في Music/Derbis.",
             "updateAvailable" to "يتوفر تحديث",
             "updates" to "التحديثات",
             "checkingLatestVersion" to "جارٍ التحقق من أحدث إصدار…",
@@ -9021,7 +9021,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "صُنع بـ ❤️ بواسطة",
             "activeIndicator" to "مفعّل",
             "batteryUnrestricted" to "تشغيل غير مقيد في الخلفية",
-            "batteryUnrestrictedSubtitle" to "استثنِ Levyra من تحسين البطارية ليستمر تشغيل الموسيقى مع إطفاء الشاشة",
+            "batteryUnrestrictedSubtitle" to "استثنِ Derbis من تحسين البطارية ليستمر تشغيل الموسيقى مع إطفاء الشاشة",
             "batteryUnrestrictedActive" to "مفعّل — لن يوقف النظام التشغيل",
             "downloadQualityPreset" to "إعداد الجودة",
             "downloadQualityPresetSubtitle" to "يوازن بين الجودة والسرعة واستهلاك البيانات",
@@ -9062,7 +9062,7 @@ class LevyraStrings private constructor(
             "skipAndContinue" to "跳过并继续",
             "startListening" to "开始聆听",
             "settings" to "设置",
-            "settingsSubtitle" to "自定义 LEVYRA",
+            "settingsSubtitle" to "自定义 DERBIS",
             "design" to "设计",
             "playback" to "播放",
             "preferences" to "偏好设置",
@@ -9145,7 +9145,7 @@ class LevyraStrings private constructor(
             "similarArtists" to "相似歌手",
             "similarToFollowed" to "与你关注的歌手相似",
             "theme" to "主题",
-            "themeSubtitle" to "选择你的 LEVYRA 风格",
+            "themeSubtitle" to "选择你的 DERBIS 风格",
             "personalOrbitTitle" to "你的音乐星轨",
             "personalOrbitSubtitle" to "那些总会回到你身边的歌曲",
             "voicesTitle" to "引发共鸣的声音",
@@ -9165,7 +9165,7 @@ class LevyraStrings private constructor(
             "tempo" to "速度",
             "pitch" to "音高",
             "gapless" to "无缝播放",
-            "restartRequiredTitle" to "重新启动 LEVYRA？",
+            "restartRequiredTitle" to "重新启动 DERBIS？",
             "restartRequiredBody" to "语言已保存。立即重新启动应用，以完整刷新所有界面。",
             "restartNow" to "立即重启",
             "later" to "稍后",
@@ -9318,7 +9318,7 @@ class LevyraStrings private constructor(
             "noOfflineDownloads" to "没有离线保存的下载内容。",
             "createFirstPlaylist" to "创建你的第一个播放列表",
             "createFirstPlaylistSubtitle" to "收集那些想要随时再次找到的歌曲。",
-            "downloadTrackHint" to "点击歌曲的下载按钮，将其保存到 Music/Levyra。",
+            "downloadTrackHint" to "点击歌曲的下载按钮，将其保存到 Music/Derbis。",
             "savedTracks" to "已保存歌曲",
             "favoritesEmpty" to "还没有收藏",
             "playlistEmpty" to "此播放列表为空。请通过歌曲的三点菜单添加歌曲。",
@@ -9332,7 +9332,7 @@ class LevyraStrings private constructor(
             "lyricsAnalysisCompact" to "低调的本地分析",
             "lyricsAnalysisCompactSubtitle" to "未打开时保持紧凑，只显示有用信息，并可直接跳转到副歌。",
             "createDataBackup" to "创建数据备份",
-            "createDataBackupSubtitle" to "将收藏、播放列表、历史记录、播放队列和设置保存到经 SHA-256 校验的压缩包中。音频文件仍保留在 Music/Levyra。",
+            "createDataBackupSubtitle" to "将收藏、播放列表、历史记录、播放队列和设置保存到经 SHA-256 校验的压缩包中。音频文件仍保留在 Music/Derbis。",
             "updateAvailable" to "有可用更新",
             "updates" to "更新",
             "checkingLatestVersion" to "正在检查最新版本…",
@@ -9419,7 +9419,7 @@ class LevyraStrings private constructor(
             "madeWithBy" to "由 ❤️ 倾心打造",
             "activeIndicator" to "已启用",
             "batteryUnrestricted" to "不受限制的后台播放",
-            "batteryUnrestrictedSubtitle" to "将 Levyra 排除在电池优化之外，熄屏时音乐继续播放",
+            "batteryUnrestrictedSubtitle" to "将 Derbis 排除在电池优化之外，熄屏时音乐继续播放",
             "batteryUnrestrictedActive" to "已启用 — 系统不会停止播放",
             "downloadQualityPreset" to "质量预设",
             "downloadQualityPresetSubtitle" to "平衡质量、速度与流量消耗",

@@ -104,6 +104,6 @@ internal fun crossfadeStepWallClockMs(
 
 private const val MIN_TRACK_MS = 30_000L
 private const val MIN_TRANSITION_MS = 800L
-private const val MAX_TRANSITION_MS = 12_000L
+private const val MAX_TRANSITION_MS = 30_000L
 private const val PRELOAD_MARGIN_MS = 8_000L
-private const val MAX_PRELOAD_LEAD_MS = 20_000L
+private const val MAX_PRELOAD_LEAD_MS = 40_000L

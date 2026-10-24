@@ -35,7 +35,7 @@ object LevyraMediaCache {
     internal fun configuredMaxBytes(): Long = configuredMaxBytes
 
     private fun create(context: Context): SimpleCache {
-        val directory = File(context.cacheDir, "levyra_media_cache")
+        val directory = File(context.cacheDir, "derbis_media_cache")
         val maxBytes = maxCacheBytes(context, directory)
         configuredMaxBytes = maxBytes
         return runCatching {

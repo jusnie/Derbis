@@ -37,7 +37,7 @@ class PersonalOrbitArtworkWorker(
     }
 
     companion object {
-        private const val WORK_NAME = "levyra_personal_orbit_artwork"
+        private const val WORK_NAME = "derbis_personal_orbit_artwork"
         private const val KEY_LANGUAGE_CODE = "language_code"
 
         fun enqueue(context: Context, languageCode: String = "") {

@@ -376,7 +376,7 @@ class AppleMetadataEnricher(private val context: Context) {
         private const val APPLE_SEARCH_URL = "https://itunes.apple.com/search"
         private const val APPLE_LOOKUP_URL = "https://itunes.apple.com/lookup"
         private const val AMP_BASE_URL = "https://amp-api.music.apple.com"
-        private const val USER_AGENT = "Levyra/2.3.20 Android"
+        private const val USER_AGENT = "Derbis/2.3.20 Android"
         private const val CACHE_MAX_ENTRIES = 384
         private const val MISS_CACHE_MAX_ENTRIES = 512
         private const val MISS_SWEEP_INTERVAL = 64

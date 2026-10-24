@@ -105,7 +105,7 @@ enum class StudioWidgetStyle(val key: String) {
 enum class StudioPalette(val key: String) {
     Artwork("artwork"),
     MaterialYou("material_you"),
-    Levyra("levyra"),
+    Levyra("derbis"),
     Light("light"),
     Dark("dark"),
     Custom("custom");

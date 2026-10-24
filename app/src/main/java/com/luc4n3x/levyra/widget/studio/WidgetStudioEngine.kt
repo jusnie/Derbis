@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 object WidgetStudioEngine {
     private val executor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "levyra-widget-studio").apply { isDaemon = true }
+        Thread(runnable, "derbis-widget-studio").apply { isDaemon = true }
     }
     private val renderQueued = AtomicBoolean(false)
     private val progressQueued = AtomicBoolean(false)

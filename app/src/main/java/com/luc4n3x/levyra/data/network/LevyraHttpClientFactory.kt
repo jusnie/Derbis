@@ -16,7 +16,7 @@ import okhttp3.Protocol
 import okhttp3.brotli.BrotliInterceptor
 
 object LevyraHttpClientFactory {
-    private const val FEED_CACHE_DIRECTORY = "levyra_feed_http"
+    private const val FEED_CACHE_DIRECTORY = "derbis_feed_http"
     private const val FEED_CACHE_BYTES = 8L * 1024L * 1024L
 
     private val mediaConnectionPool = ConnectionPool(24, 5, TimeUnit.MINUTES)

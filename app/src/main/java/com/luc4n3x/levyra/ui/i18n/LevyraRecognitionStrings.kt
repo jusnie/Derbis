@@ -13,8 +13,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Recognition is unavailable right now",
         "recognitionHistoryEmpty" to "Recognized tracks appear here",
         "recognitionClearHistory" to "Clear history",
-        "recognitionCatalogMatch" to "Available in Levyra",
-        "recognitionCatalogMissing" to "Not found in the Levyra catalog"
+        "recognitionCatalogMatch" to "Available in Derbis",
+        "recognitionCatalogMissing" to "Not found in the Derbis catalog"
     ),
     "it" to mapOf(
         "recognitionTitle" to "Riconoscimento",
@@ -28,8 +28,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Riconoscimento non disponibile ora",
         "recognitionHistoryEmpty" to "I brani riconosciuti appaiono qui",
         "recognitionClearHistory" to "Cancella cronologia",
-        "recognitionCatalogMatch" to "Disponibile in Levyra",
-        "recognitionCatalogMissing" to "Non trovato nel catalogo Levyra"
+        "recognitionCatalogMatch" to "Disponibile in Derbis",
+        "recognitionCatalogMissing" to "Non trovato nel catalogo Derbis"
     ),
     "es" to mapOf(
         "recognitionTitle" to "Reconocimiento",
@@ -43,8 +43,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Reconocimiento no disponible ahora",
         "recognitionHistoryEmpty" to "Las canciones reconocidas aparecen aquí",
         "recognitionClearHistory" to "Borrar historial",
-        "recognitionCatalogMatch" to "Disponible en Levyra",
-        "recognitionCatalogMissing" to "No está en el catálogo de Levyra"
+        "recognitionCatalogMatch" to "Disponible en Derbis",
+        "recognitionCatalogMissing" to "No está en el catálogo de Derbis"
     ),
     "fr" to mapOf(
         "recognitionTitle" to "Reconnaissance",
@@ -58,8 +58,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Reconnaissance indisponible pour le moment",
         "recognitionHistoryEmpty" to "Les titres reconnus apparaissent ici",
         "recognitionClearHistory" to "Effacer l'historique",
-        "recognitionCatalogMatch" to "Disponible dans Levyra",
-        "recognitionCatalogMissing" to "Introuvable dans le catalogue Levyra"
+        "recognitionCatalogMatch" to "Disponible dans Derbis",
+        "recognitionCatalogMissing" to "Introuvable dans le catalogue Derbis"
     ),
     "de" to mapOf(
         "recognitionTitle" to "Erkennung",
@@ -73,8 +73,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Erkennung derzeit nicht verfügbar",
         "recognitionHistoryEmpty" to "Erkannte Titel erscheinen hier",
         "recognitionClearHistory" to "Verlauf löschen",
-        "recognitionCatalogMatch" to "In Levyra verfügbar",
-        "recognitionCatalogMissing" to "Nicht im Levyra-Katalog gefunden"
+        "recognitionCatalogMatch" to "In Derbis verfügbar",
+        "recognitionCatalogMissing" to "Nicht im Derbis-Katalog gefunden"
     ),
     "pt" to mapOf(
         "recognitionTitle" to "Reconhecimento",
@@ -88,8 +88,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Reconhecimento indisponível de momento",
         "recognitionHistoryEmpty" to "As faixas reconhecidas aparecem aqui",
         "recognitionClearHistory" to "Limpar histórico",
-        "recognitionCatalogMatch" to "Disponível no Levyra",
-        "recognitionCatalogMissing" to "Não encontrado no catálogo Levyra"
+        "recognitionCatalogMatch" to "Disponível no Derbis",
+        "recognitionCatalogMissing" to "Não encontrado no catálogo Derbis"
     ),
     "nl" to mapOf(
         "recognitionTitle" to "Herkenning",
@@ -103,8 +103,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Herkenning is nu niet beschikbaar",
         "recognitionHistoryEmpty" to "Herkende nummers verschijnen hier",
         "recognitionClearHistory" to "Geschiedenis wissen",
-        "recognitionCatalogMatch" to "Beschikbaar in Levyra",
-        "recognitionCatalogMissing" to "Niet gevonden in de Levyra-catalogus"
+        "recognitionCatalogMatch" to "Beschikbaar in Derbis",
+        "recognitionCatalogMissing" to "Niet gevonden in de Derbis-catalogus"
     ),
     "pl" to mapOf(
         "recognitionTitle" to "Rozpoznawanie",
@@ -118,8 +118,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Rozpoznawanie chwilowo niedostępne",
         "recognitionHistoryEmpty" to "Rozpoznane utwory pojawią się tutaj",
         "recognitionClearHistory" to "Wyczyść historię",
-        "recognitionCatalogMatch" to "Dostępne w Levyra",
-        "recognitionCatalogMissing" to "Nie znaleziono w katalogu Levyra"
+        "recognitionCatalogMatch" to "Dostępne w Derbis",
+        "recognitionCatalogMissing" to "Nie znaleziono w katalogu Derbis"
     ),
     "ro" to mapOf(
         "recognitionTitle" to "Recunoaștere",
@@ -133,8 +133,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Recunoașterea nu este disponibilă acum",
         "recognitionHistoryEmpty" to "Piesele recunoscute apar aici",
         "recognitionClearHistory" to "Șterge istoricul",
-        "recognitionCatalogMatch" to "Disponibil în Levyra",
-        "recognitionCatalogMissing" to "Nu a fost găsit în catalogul Levyra"
+        "recognitionCatalogMatch" to "Disponibil în Derbis",
+        "recognitionCatalogMissing" to "Nu a fost găsit în catalogul Derbis"
     ),
     "el" to mapOf(
         "recognitionTitle" to "Αναγνώριση",
@@ -148,8 +148,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Η αναγνώριση δεν είναι διαθέσιμη τώρα",
         "recognitionHistoryEmpty" to "Τα κομμάτια που αναγνωρίστηκαν εμφανίζονται εδώ",
         "recognitionClearHistory" to "Καθαρισμός ιστορικού",
-        "recognitionCatalogMatch" to "Διαθέσιμο στο Levyra",
-        "recognitionCatalogMissing" to "Δεν βρέθηκε στον κατάλογο Levyra"
+        "recognitionCatalogMatch" to "Διαθέσιμο στο Derbis",
+        "recognitionCatalogMissing" to "Δεν βρέθηκε στον κατάλογο Derbis"
     ),
     "sv" to mapOf(
         "recognitionTitle" to "Igenkänning",
@@ -163,8 +163,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Igenkänning är inte tillgänglig just nu",
         "recognitionHistoryEmpty" to "Igenkända låtar visas här",
         "recognitionClearHistory" to "Rensa historik",
-        "recognitionCatalogMatch" to "Finns i Levyra",
-        "recognitionCatalogMissing" to "Hittades inte i Levyra-katalogen"
+        "recognitionCatalogMatch" to "Finns i Derbis",
+        "recognitionCatalogMissing" to "Hittades inte i Derbis-katalogen"
     ),
     "da" to mapOf(
         "recognitionTitle" to "Genkendelse",
@@ -178,8 +178,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Genkendelse er ikke tilgængelig lige nu",
         "recognitionHistoryEmpty" to "Genkendte numre vises her",
         "recognitionClearHistory" to "Ryd historik",
-        "recognitionCatalogMatch" to "Findes i Levyra",
-        "recognitionCatalogMissing" to "Ikke fundet i Levyra-kataloget"
+        "recognitionCatalogMatch" to "Findes i Derbis",
+        "recognitionCatalogMissing" to "Ikke fundet i Derbis-kataloget"
     ),
     "cs" to mapOf(
         "recognitionTitle" to "Rozpoznávání",
@@ -193,8 +193,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Rozpoznávání teď není dostupné",
         "recognitionHistoryEmpty" to "Rozpoznané skladby se objeví zde",
         "recognitionClearHistory" to "Vymazat historii",
-        "recognitionCatalogMatch" to "Dostupné v Levyra",
-        "recognitionCatalogMissing" to "Nenalezeno v katalogu Levyra"
+        "recognitionCatalogMatch" to "Dostupné v Derbis",
+        "recognitionCatalogMissing" to "Nenalezeno v katalogu Derbis"
     ),
     "uk" to mapOf(
         "recognitionTitle" to "Розпізнавання",
@@ -208,8 +208,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Розпізнавання зараз недоступне",
         "recognitionHistoryEmpty" to "Розпізнані треки з’являться тут",
         "recognitionClearHistory" to "Очистити історію",
-        "recognitionCatalogMatch" to "Доступно в Levyra",
-        "recognitionCatalogMissing" to "Не знайдено в каталозі Levyra"
+        "recognitionCatalogMatch" to "Доступно в Derbis",
+        "recognitionCatalogMissing" to "Не знайдено в каталозі Derbis"
     ),
     "ru" to mapOf(
         "recognitionTitle" to "Распознавание",
@@ -223,8 +223,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Распознавание сейчас недоступно",
         "recognitionHistoryEmpty" to "Распознанные треки появятся здесь",
         "recognitionClearHistory" to "Очистить историю",
-        "recognitionCatalogMatch" to "Доступно в Levyra",
-        "recognitionCatalogMissing" to "Не найдено в каталоге Levyra"
+        "recognitionCatalogMatch" to "Доступно в Derbis",
+        "recognitionCatalogMissing" to "Не найдено в каталоге Derbis"
     ),
     "tr" to mapOf(
         "recognitionTitle" to "Tanıma",
@@ -238,8 +238,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Tanıma şu anda kullanılamıyor",
         "recognitionHistoryEmpty" to "Tanınan parçalar burada görünür",
         "recognitionClearHistory" to "Geçmişi temizle",
-        "recognitionCatalogMatch" to "Levyra içinde mevcut",
-        "recognitionCatalogMissing" to "Levyra kataloğunda bulunamadı"
+        "recognitionCatalogMatch" to "Derbis içinde mevcut",
+        "recognitionCatalogMissing" to "Derbis kataloğunda bulunamadı"
     ),
     "ar" to mapOf(
         "recognitionTitle" to "التعرف",
@@ -253,8 +253,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "التعرف غير متاح حاليًا",
         "recognitionHistoryEmpty" to "تظهر المقاطع المتعرف عليها هنا",
         "recognitionClearHistory" to "مسح السجل",
-        "recognitionCatalogMatch" to "متاح في Levyra",
-        "recognitionCatalogMissing" to "غير موجود في كتالوج Levyra"
+        "recognitionCatalogMatch" to "متاح في Derbis",
+        "recognitionCatalogMissing" to "غير موجود في كتالوج Derbis"
     ),
     "zh" to mapOf(
         "recognitionTitle" to "识别",
@@ -268,8 +268,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "识别当前不可用",
         "recognitionHistoryEmpty" to "识别到的歌曲会显示在这里",
         "recognitionClearHistory" to "清除历史",
-        "recognitionCatalogMatch" to "Levyra 中可用",
-        "recognitionCatalogMissing" to "未在 Levyra 曲库中找到"
+        "recognitionCatalogMatch" to "Derbis 中可用",
+        "recognitionCatalogMissing" to "未在 Derbis 曲库中找到"
     ),
     "ja" to mapOf(
         "recognitionTitle" to "認識",
@@ -283,8 +283,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "現在は認識を利用できません",
         "recognitionHistoryEmpty" to "認識した曲はここに表示されます",
         "recognitionClearHistory" to "履歴を消去",
-        "recognitionCatalogMatch" to "Levyra で利用可能",
-        "recognitionCatalogMissing" to "Levyra のカタログに見つかりません"
+        "recognitionCatalogMatch" to "Derbis で利用可能",
+        "recognitionCatalogMissing" to "Derbis のカタログに見つかりません"
     ),
     "ko" to mapOf(
         "recognitionTitle" to "인식",
@@ -298,8 +298,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "지금은 인식을 사용할 수 없습니다",
         "recognitionHistoryEmpty" to "인식한 곡이 여기에 표시됩니다",
         "recognitionClearHistory" to "기록 지우기",
-        "recognitionCatalogMatch" to "Levyra에서 사용 가능",
-        "recognitionCatalogMissing" to "Levyra 카탈로그에 없음"
+        "recognitionCatalogMatch" to "Derbis에서 사용 가능",
+        "recognitionCatalogMissing" to "Derbis 카탈로그에 없음"
     ),
     "hi" to mapOf(
         "recognitionTitle" to "पहचान",
@@ -313,8 +313,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "पहचान अभी उपलब्ध नहीं है",
         "recognitionHistoryEmpty" to "पहचाने गए गाने यहाँ दिखेंगे",
         "recognitionClearHistory" to "इतिहास साफ़ करें",
-        "recognitionCatalogMatch" to "Levyra में उपलब्ध",
-        "recognitionCatalogMissing" to "Levyra कैटलॉग में नहीं मिला"
+        "recognitionCatalogMatch" to "Derbis में उपलब्ध",
+        "recognitionCatalogMissing" to "Derbis कैटलॉग में नहीं मिला"
     ),
     "id" to mapOf(
         "recognitionTitle" to "Pengenalan",
@@ -328,8 +328,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Pengenalan sedang tidak tersedia",
         "recognitionHistoryEmpty" to "Lagu yang dikenali muncul di sini",
         "recognitionClearHistory" to "Hapus riwayat",
-        "recognitionCatalogMatch" to "Tersedia di Levyra",
-        "recognitionCatalogMissing" to "Tidak ditemukan di katalog Levyra"
+        "recognitionCatalogMatch" to "Tersedia di Derbis",
+        "recognitionCatalogMissing" to "Tidak ditemukan di katalog Derbis"
     ),
     "vi" to mapOf(
         "recognitionTitle" to "Nhận diện",
@@ -343,8 +343,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Hiện chưa thể nhận diện",
         "recognitionHistoryEmpty" to "Các bài đã nhận diện hiện ở đây",
         "recognitionClearHistory" to "Xóa lịch sử",
-        "recognitionCatalogMatch" to "Có trong Levyra",
-        "recognitionCatalogMissing" to "Không có trong danh mục Levyra"
+        "recognitionCatalogMatch" to "Có trong Derbis",
+        "recognitionCatalogMissing" to "Không có trong danh mục Derbis"
     ),
     "th" to mapOf(
         "recognitionTitle" to "การจดจำเพลง",
@@ -358,8 +358,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "ยังใช้การจดจำไม่ได้ในขณะนี้",
         "recognitionHistoryEmpty" to "เพลงที่จดจำได้จะแสดงที่นี่",
         "recognitionClearHistory" to "ล้างประวัติ",
-        "recognitionCatalogMatch" to "มีใน Levyra",
-        "recognitionCatalogMissing" to "ไม่พบในแคตตาล็อก Levyra"
+        "recognitionCatalogMatch" to "มีใน Derbis",
+        "recognitionCatalogMissing" to "ไม่พบในแคตตาล็อก Derbis"
     ),
     "fil" to mapOf(
         "recognitionTitle" to "Pagkilala",
@@ -373,8 +373,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Hindi available ang pagkilala ngayon",
         "recognitionHistoryEmpty" to "Lalabas dito ang mga nakilalang kanta",
         "recognitionClearHistory" to "I-clear ang kasaysayan",
-        "recognitionCatalogMatch" to "Available sa Levyra",
-        "recognitionCatalogMissing" to "Wala sa katalogo ng Levyra"
+        "recognitionCatalogMatch" to "Available sa Derbis",
+        "recognitionCatalogMissing" to "Wala sa katalogo ng Derbis"
     ),
     "he" to mapOf(
         "recognitionTitle" to "זיהוי",
@@ -388,8 +388,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "הזיהוי אינו זמין כרגע",
         "recognitionHistoryEmpty" to "שירים שזוהו יופיעו כאן",
         "recognitionClearHistory" to "נקה היסטוריה",
-        "recognitionCatalogMatch" to "זמין ב-Levyra",
-        "recognitionCatalogMissing" to "לא נמצא בקטלוג של Levyra"
+        "recognitionCatalogMatch" to "זמין ב-Derbis",
+        "recognitionCatalogMissing" to "לא נמצא בקטלוג של Derbis"
     ),
     "fi" to mapOf(
         "recognitionTitle" to "Tunnistus",
@@ -403,8 +403,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Tunnistus ei ole juuri nyt saatavilla",
         "recognitionHistoryEmpty" to "Tunnistetut kappaleet näkyvät täällä",
         "recognitionClearHistory" to "Tyhjennä historia",
-        "recognitionCatalogMatch" to "Saatavilla Levyra-sovelluksessa",
-        "recognitionCatalogMissing" to "Ei löydy Levyran luettelosta"
+        "recognitionCatalogMatch" to "Saatavilla Derbis-sovelluksessa",
+        "recognitionCatalogMissing" to "Ei löydy Derbisn luettelosta"
     ),
     "et" to mapOf(
         "recognitionTitle" to "Tuvastamine",
@@ -418,8 +418,8 @@ private val recognitionBundles: Map<String, Map<String, String>> = mapOf(
         "recognitionUnavailable" to "Tuvastamine pole praegu saadaval",
         "recognitionHistoryEmpty" to "Tuvastatud lood ilmuvad siia",
         "recognitionClearHistory" to "Kustuta ajalugu",
-        "recognitionCatalogMatch" to "Saadaval Levyras",
-        "recognitionCatalogMissing" to "Ei leitud Levyra kataloogist"
+        "recognitionCatalogMatch" to "Saadaval Derbiss",
+        "recognitionCatalogMissing" to "Ei leitud Derbis kataloogist"
     )
 )
 

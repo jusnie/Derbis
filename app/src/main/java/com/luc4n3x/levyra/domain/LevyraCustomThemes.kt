@@ -42,7 +42,7 @@ data class LevyraCustomTheme(
         const val MAX_NAME_LENGTH = 32
         const val DEFAULT_CORNER_SCALE = 100
         val CORNER_SCALE_RANGE = 60..140
-        private const val FALLBACK_NAME = "Levyra"
+        private const val FALLBACK_NAME = "Derbis"
         private const val OPAQUE = 0xFF000000.toInt()
 
         fun isCustomId(id: String?): Boolean = id != null && id.startsWith(ID_PREFIX) && id.length > ID_PREFIX.length

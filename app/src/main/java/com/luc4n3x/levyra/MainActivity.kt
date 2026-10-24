@@ -89,6 +89,7 @@ private data class MainActivityUiSlice(
     val fontPreset: LevyraFontPreset,
     val animationsEnabled: Boolean,
     val liquidGlassEnabled: Boolean,
+    val forceHighRefreshRate: Boolean,
     val glassStyle: LevyraGlassStyle,
     val isPlaying: Boolean,
     val showSettings: Boolean,
@@ -101,8 +102,9 @@ private data class MainActivityUiSlice(
 
 private fun LevyraUiState.toMainActivityUiSlice(): MainActivityUiSlice = MainActivityUiSlice(
     fontPreset = interfaceSettings.fontPreset,
-    animationsEnabled = animationsEnabled,
-    liquidGlassEnabled = interfaceSettings.liquidGlassEnabled && interfaceSettings.skin == com.luc4n3x.levyra.domain.LevyraSkin.Default,
+    animationsEnabled = if (interfaceSettings.liteMode) false else animationsEnabled,
+    liquidGlassEnabled = if (interfaceSettings.liteMode) false else interfaceSettings.liquidGlassEnabled,
+    forceHighRefreshRate = interfaceSettings.forceHighRefreshRate,
     glassStyle = LevyraGlassStyle(
         blur = interfaceSettings.glassBlur,
         transparency = interfaceSettings.glassTransparency,
@@ -199,6 +201,27 @@ class MainActivity : ComponentActivity() {
                         val nowMs = SystemClock.elapsedRealtime()
                         listenedPlaybackMs += (nowMs - lastTickMs).coerceAtLeast(0L)
                         lastTickMs = nowMs
+                    }
+                }
+
+                LaunchedEffect(activityUiState.forceHighRefreshRate) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val display = window.context.display
+                        if (activityUiState.forceHighRefreshRate) {
+                            val highMode = display?.supportedModes
+                                ?.filter { it.refreshRate >= 89.0f }
+                                ?.maxByOrNull { it.refreshRate }
+                                ?: display?.supportedModes?.maxByOrNull { it.refreshRate }
+                            if (highMode != null) {
+                                val params = window.attributes
+                                params.preferredDisplayModeId = highMode.modeId
+                                window.attributes = params
+                            }
+                        } else {
+                            val params = window.attributes
+                            params.preferredDisplayModeId = 0
+                            window.attributes = params
+                        }
                     }
                 }
 
@@ -526,7 +549,7 @@ class MainActivity : ComponentActivity() {
         updatePhase.value = LevyraUpdatePhase.Installing(prepared.versionName)
         val installIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(apkUri, "application/vnd.android.package-archive")
-            clipData = ClipData.newRawUri("Levyra update", apkUri)
+            clipData = ClipData.newRawUri("Derbis update", apkUri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         runCatching { startActivity(installIntent) }

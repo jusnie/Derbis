@@ -106,7 +106,7 @@ private val NavStudioCardShape = RoundedCornerShape(24.dp)
 private val NavStudioStageShape = RoundedCornerShape(32.dp)
 
 internal fun navigationStyleName(style: NavStyle): String = when (style) {
-    NavStyle.Original -> "Levyra Original"
+    NavStyle.Original -> "Derbis Original"
     NavStyle.SuperExpressive -> "Super Expressive"
     NavStyle.FloatingDock -> "Floating Dock"
     NavStyle.Minimal -> "Minimal"

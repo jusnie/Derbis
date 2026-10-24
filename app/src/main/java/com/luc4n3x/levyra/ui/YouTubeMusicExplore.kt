@@ -76,12 +76,12 @@ internal fun YouTubeMusicExploreContent(
         ) {
             item(key = "ytm-explore-bar", contentType = "ytm-bar") {
                 YouTubeMusicTopBar(
-                    title = "Levyra", searchLabel = copy.search, settingsLabel = copy.settings,
+                    title = "Derbis", searchLabel = copy.search, settingsLabel = copy.settings,
                     onSearch = actions.openSearch, onSettings = actions.home.openSettings
                 )
             }
             item(key = "ytm-explore-shortcuts", contentType = "ytm-shortcuts") { shortcuts() }
-            item(key = "ytm-explore-levyra-mix", contentType = "ytm-levyra-mix") { levyraMix() }
+            item(key = "ytm-explore-derbis-mix", contentType = "ytm-derbis-mix") { levyraMix() }
             if (feed.shelves.isEmpty() && feed.failed) {
                 item(key = "ytm-explore-failed", contentType = "ytm-notice") {
                     YouTubeMusicNotice(copy.homeUnavailable, copy.retry) { exploreViewModel.load(strings.code, force = true, browseId = EXPLORE_BROWSE_ID) }

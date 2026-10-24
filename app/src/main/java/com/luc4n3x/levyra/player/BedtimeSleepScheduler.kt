@@ -74,6 +74,6 @@ class BedtimeAlarmReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_BEDTIME = "com.luc4n3x.levyra.action.BEDTIME_SLEEP_TIMER"
+        const val ACTION_BEDTIME = "com.luc4n3x.derbis.action.BEDTIME_SLEEP_TIMER"
     }
 }

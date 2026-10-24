@@ -22,7 +22,7 @@ internal const val REMOTE_ANNOUNCEMENTS_URL =
 
 private const val REMOTE_SCHEMA_VERSION = 2
 private const val CHECK_INTERVAL_MS = 12L * 60L * 60L * 1_000L
-private const val STORE_NAME = "levyra_remote_announcements"
+private const val STORE_NAME = "derbis_remote_announcements"
 private const val KEY_CACHED_JSON = "cached_json"
 private const val KEY_ETAG = "etag"
 private const val KEY_LAST_SUCCESSFUL_CHECK = "last_successful_check"
@@ -389,7 +389,7 @@ internal class RemoteAnnouncementRepository(context: Context) {
         val request = Request.Builder()
             .url(REMOTE_ANNOUNCEMENTS_URL)
             .header("Accept", "application/json")
-            .header("User-Agent", "LEVYRA/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "DERBIS/${BuildConfig.VERSION_NAME}")
             .apply { store.etag()?.takeIf { it.isNotBlank() }?.let { header("If-None-Match", it) } }
             .build()
         return runCatching {

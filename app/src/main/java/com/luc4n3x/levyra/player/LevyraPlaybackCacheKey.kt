@@ -15,17 +15,17 @@ object LevyraPlaybackCacheKey {
         val id = PlaybackSourceIdentity.sourceVideoId(track)
             .ifBlank { stableId(track) }
             .replace(':', '_')
-        return "levyra:$id:stream-v2:${streamVariant(track)}"
+        return "derbis:$id:stream-v2:${streamVariant(track)}"
     }
 
     fun personalCollection(track: Track): String =
-        "levyra:pc:${sha256(track.id + "\u0000" + track.streamUrl.substringBefore('#')).take(32)}:collection-v1"
+        "derbis:pc:${sha256(track.id + "\u0000" + track.streamUrl.substringBefore('#')).take(32)}:collection-v1"
 
     fun offlineStream(track: Track): String {
         val id = PlaybackSourceIdentity.sourceVideoId(track)
             .ifBlank { stableId(track) }
             .replace(':', '_')
-        return "levyra:$id:offline-v1:${variant(track.streamUrl)}"
+        return "derbis:$id:offline-v1:${variant(track.streamUrl)}"
     }
 
     fun video(track: Track): String {
@@ -33,7 +33,7 @@ object LevyraPlaybackCacheKey {
             .ifBlank { stableId(track) }
             .replace(':', '_')
         val url = track.videoStreamUrl.ifBlank { track.streamUrl }
-        return "levyra:$id:video-v5:${variant(url)}"
+        return "derbis:$id:video-v5:${variant(url)}"
     }
 
     private fun stableId(track: Track): String = track.id.trim()

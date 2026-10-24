@@ -25,7 +25,7 @@ internal object LiveRadioArtworkResolver {
     private const val MAX_IMAGE_CANDIDATES = 4
     private const val MAX_CACHE_ENTRIES = 256
     private const val FAILED_LOOKUP_RETRY_MS = 5 * 60 * 1_000L
-    private const val USER_AGENT = "Mozilla/5.0 (Linux; Android) Levyra Live Radio"
+    private const val USER_AGENT = "Mozilla/5.0 (Linux; Android) Derbis Live Radio"
     private const val MAX_ARTWORK_BYTES = 1024 * 1024
     private const val MAX_STORED_ARTWORKS = 48
     private const val ARTWORK_DIRECTORY = "live-radio-artwork"

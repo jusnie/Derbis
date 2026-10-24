@@ -115,7 +115,7 @@ internal fun PlaylistImportSource.displayName(): String = when (this) {
     PlaylistImportSource.KREATE -> "Kreate CSV"
     PlaylistImportSource.JSON -> "JSON"
     PlaylistImportSource.TEXT -> "TXT"
-    PlaylistImportSource.LEVYRA -> "Levyra"
+    PlaylistImportSource.LEVYRA -> "Derbis"
 }
 
 private const val SUPPORTED_SERVICES = "YouTube Music · YouTube · Spotify · Apple Music · Deezer · JioSaavn · Bandcamp"

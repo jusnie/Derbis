@@ -64,7 +64,7 @@ private fun homeStudio(vararg value: String): HomeStudioCopy {
 private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     "en" to homeStudio(
         "Customize Home", "Styles, sections and layouts", "Style",
-        "The classic Levyra Home", "Bold shapes, asymmetric layouts and expressive motion",
+        "The classic Derbis Home", "Bold shapes, asymmetric layouts and expressive motion",
         "Compact and fast, built for instant listening", "Large artwork and elegant, magazine-like sections",
         "Essential, clean and light on resources", "Cinematic covers and colors drawn from artwork", "Pure Material 3 Expressive: tonal surfaces, morphing shapes and hero carousels",
         "Apply", "In use", "Preview", "Sections", "Hold and drag to reorder", "Layout",
@@ -79,7 +79,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "it" to homeStudio(
         "Personalizza Home", "Stili, sezioni e layout", "Stile",
-        "La Home classica di Levyra", "Forme audaci, layout asimmetrici e animazioni espressive",
+        "La Home classica di Derbis", "Forme audaci, layout asimmetrici e animazioni espressive",
         "Compatta e veloce, pensata per ascoltare subito", "Artwork grandi e sezioni eleganti in stile rivista",
         "Essenziale, pulita e leggera sulle risorse", "Copertine cinematografiche e colori dagli artwork", "Material 3 Expressive puro: superfici tonali, forme che si trasformano e caroselli hero",
         "Applica", "In uso", "Anteprima", "Sezioni", "Tieni premuto e trascina per riordinare", "Layout",
@@ -94,7 +94,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "es" to homeStudio(
         "Personalizar inicio", "Estilos, secciones y diseños", "Estilo",
-        "El inicio clásico de Levyra", "Formas audaces, diseños asimétricos y animación expresiva",
+        "El inicio clásico de Derbis", "Formas audaces, diseños asimétricos y animación expresiva",
         "Compacto y rápido, pensado para escuchar al instante", "Portadas grandes y secciones elegantes tipo revista",
         "Esencial, limpio y ligero en recursos", "Portadas cinematográficas y colores del arte", "Material 3 Expressive puro: superficies tonales, formas que se transforman y carruseles hero",
         "Aplicar", "En uso", "Vista previa", "Secciones", "Mantén pulsado y arrastra para reordenar", "Diseño",
@@ -109,7 +109,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "fr" to homeStudio(
         "Personnaliser l'accueil", "Styles, sections et dispositions", "Style",
-        "L'accueil classique de Levyra", "Formes audacieuses, mises en page asymétriques et animations expressives",
+        "L'accueil classique de Derbis", "Formes audacieuses, mises en page asymétriques et animations expressives",
         "Compact et rapide, pour écouter tout de suite", "Grandes pochettes et sections élégantes façon magazine",
         "Essentiel, épuré et léger en ressources", "Pochettes cinématographiques et couleurs issues des visuels", "Material 3 Expressive pur : surfaces tonales, formes qui se transforment et carrousels héros",
         "Appliquer", "Utilisé", "Aperçu", "Sections", "Maintenez et faites glisser pour réorganiser", "Disposition",
@@ -124,7 +124,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "de" to homeStudio(
         "Start anpassen", "Stile, Bereiche und Layouts", "Stil",
-        "Der klassische Levyra-Start", "Kräftige Formen, asymmetrische Layouts und ausdrucksstarke Animationen",
+        "Der klassische Derbis-Start", "Kräftige Formen, asymmetrische Layouts und ausdrucksstarke Animationen",
         "Kompakt und schnell, zum sofortigen Hören", "Große Cover und elegante Bereiche im Magazinstil",
         "Reduziert, klar und ressourcenschonend", "Kinoreife Cover und Farben aus dem Artwork", "Reines Material 3 Expressive: tonale Flächen, wandelbare Formen und Hero-Karussells",
         "Anwenden", "Aktiv", "Vorschau", "Bereiche", "Gedrückt halten und ziehen zum Sortieren", "Layout",
@@ -139,7 +139,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "pt" to homeStudio(
         "Personalizar início", "Estilos, seções e layouts", "Estilo",
-        "O início clássico do Levyra", "Formas ousadas, layouts assimétricos e animações expressivas",
+        "O início clássico do Derbis", "Formas ousadas, layouts assimétricos e animações expressivas",
         "Compacto e rápido, feito para ouvir na hora", "Capas grandes e seções elegantes estilo revista",
         "Essencial, limpo e leve nos recursos", "Capas cinematográficas e cores tiradas da arte", "Material 3 Expressive puro: superfícies tonais, formas que se transformam e carrosséis hero",
         "Aplicar", "Em uso", "Prévia", "Seções", "Toque e segure, depois arraste para reordenar", "Layout",
@@ -154,7 +154,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "nl" to homeStudio(
         "Home aanpassen", "Stijlen, secties en indelingen", "Stijl",
-        "De klassieke Levyra-home", "Gedurfde vormen, asymmetrische indelingen en expressieve animaties",
+        "De klassieke Derbis-home", "Gedurfde vormen, asymmetrische indelingen en expressieve animaties",
         "Compact en snel, om direct te luisteren", "Grote hoezen en elegante secties in tijdschriftstijl",
         "Essentieel, strak en zuinig met middelen", "Filmische hoezen en kleuren uit de artwork", "Puur Material 3 Expressive: tonale vlakken, veranderende vormen en hero-carrousels",
         "Toepassen", "In gebruik", "Voorbeeld", "Secties", "Houd vast en sleep om te ordenen", "Indeling",
@@ -169,7 +169,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "pl" to homeStudio(
         "Dostosuj stronę główną", "Style, sekcje i układy", "Styl",
-        "Klasyczna strona główna Levyra", "Śmiałe kształty, asymetryczne układy i ekspresyjne animacje",
+        "Klasyczna strona główna Derbis", "Śmiałe kształty, asymetryczne układy i ekspresyjne animacje",
         "Zwarta i szybka, do natychmiastowego słuchania", "Duże okładki i eleganckie sekcje jak w magazynie",
         "Prosta, czysta i oszczędna dla zasobów", "Kinowe okładki i kolory z grafik", "Czysty Material 3 Expressive: tonalne powierzchnie, zmieniające się kształty i karuzele hero",
         "Zastosuj", "W użyciu", "Podgląd", "Sekcje", "Przytrzymaj i przeciągnij, aby zmienić kolejność", "Układ",
@@ -184,7 +184,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ro" to homeStudio(
         "Personalizează pagina principală", "Stiluri, secțiuni și aranjamente", "Stil",
-        "Pagina principală clasică Levyra", "Forme îndrăznețe, aranjamente asimetrice și animații expresive",
+        "Pagina principală clasică Derbis", "Forme îndrăznețe, aranjamente asimetrice și animații expresive",
         "Compactă și rapidă, pentru ascultare imediată", "Coperți mari și secțiuni elegante, ca într-o revistă",
         "Esențială, curată și ușoară cu resursele", "Coperți cinematice și culori din artwork", "Material 3 Expressive pur: suprafețe tonale, forme care se transformă și caruseluri hero",
         "Aplică", "În uz", "Previzualizare", "Secțiuni", "Ține apăsat și trage pentru a reordona", "Aranjament",
@@ -199,7 +199,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "el" to homeStudio(
         "Προσαρμογή Αρχικής", "Στυλ, ενότητες και διατάξεις", "Στυλ",
-        "Η κλασική Αρχική του Levyra", "Τολμηρά σχήματα, ασύμμετρες διατάξεις και εκφραστική κίνηση",
+        "Η κλασική Αρχική του Derbis", "Τολμηρά σχήματα, ασύμμετρες διατάξεις και εκφραστική κίνηση",
         "Συμπαγής και γρήγορη, για άμεση ακρόαση", "Μεγάλα εξώφυλλα και κομψές ενότητες σαν περιοδικό",
         "Λιτή, καθαρή και ελαφριά σε πόρους", "Κινηματογραφικά εξώφυλλα και χρώματα από το artwork", "Καθαρό Material 3 Expressive: τονικές επιφάνειες, σχήματα που μεταμορφώνονται και hero καρουζέλ",
         "Εφαρμογή", "Σε χρήση", "Προεπισκόπηση", "Ενότητες", "Κράτησε πατημένο και σύρε για αναδιάταξη", "Διάταξη",
@@ -214,7 +214,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "sv" to homeStudio(
         "Anpassa startsidan", "Stilar, sektioner och layouter", "Stil",
-        "Levyras klassiska startsida", "Djärva former, asymmetriska layouter och uttrycksfull rörelse",
+        "Derbiss klassiska startsida", "Djärva former, asymmetriska layouter och uttrycksfull rörelse",
         "Kompakt och snabb, för att lyssna direkt", "Stora omslag och eleganta sektioner i magasinsstil",
         "Avskalad, ren och resurssnål", "Filmiska omslag och färger från omslagsbilden", "Ren Material 3 Expressive: tonala ytor, formskiftande former och hero-karuseller",
         "Använd", "Används", "Förhandsvisning", "Sektioner", "Håll in och dra för att ändra ordning", "Layout",
@@ -229,7 +229,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "da" to homeStudio(
         "Tilpas Hjem", "Stilarter, sektioner og layouts", "Stil",
-        "Levyras klassiske Hjem", "Modige former, asymmetriske layouts og udtryksfuld bevægelse",
+        "Derbiss klassiske Hjem", "Modige former, asymmetriske layouts og udtryksfuld bevægelse",
         "Kompakt og hurtig, til at lytte med det samme", "Store covers og elegante sektioner i magasinstil",
         "Enkel, ren og let på ressourcer", "Filmiske covers og farver fra artwork", "Ren Material 3 Expressive: tonale flader, skiftende former og hero-karruseller",
         "Anvend", "I brug", "Forhåndsvisning", "Sektioner", "Hold og træk for at omarrangere", "Layout",
@@ -244,7 +244,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "cs" to homeStudio(
         "Přizpůsobit Domů", "Styly, sekce a rozvržení", "Styl",
-        "Klasická domovská stránka Levyra", "Výrazné tvary, asymetrická rozvržení a expresivní pohyb",
+        "Klasická domovská stránka Derbis", "Výrazné tvary, asymetrická rozvržení a expresivní pohyb",
         "Kompaktní a rychlá, pro okamžitý poslech", "Velké obaly a elegantní sekce jako v časopise",
         "Úsporná, čistá a šetrná ke zdrojům", "Filmové obaly a barvy z artworku", "Čistý Material 3 Expressive: tónové plochy, proměnlivé tvary a hero karusely",
         "Použít", "Používá se", "Náhled", "Sekce", "Podržte a přetáhněte pro změnu pořadí", "Rozvržení",
@@ -259,7 +259,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "sk" to homeStudio(
         "Prispôsobiť Domov", "Štýly, sekcie a rozloženia", "Štýl",
-        "Klasická domovská stránka Levyra", "Výrazné tvary, asymetrické rozloženia a expresívny pohyb",
+        "Klasická domovská stránka Derbis", "Výrazné tvary, asymetrické rozloženia a expresívny pohyb",
         "Kompaktná a rýchla, na okamžité počúvanie", "Veľké obaly a elegantné sekcie ako v časopise",
         "Úsporná, čistá a šetrná k zdrojom", "Filmové obaly a farby z artworku", "Čistý Material 3 Expressive: tónové plochy, premenlivé tvary a hero karusely",
         "Použiť", "Používa sa", "Náhľad", "Sekcie", "Podržte a potiahnite na zmenu poradia", "Rozloženie",
@@ -274,7 +274,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "bn" to homeStudio(
         "হোম সাজান", "স্টাইল, সেকশন ও লেআউট", "স্টাইল",
-        "Levyra-র ক্লাসিক হোম", "সাহসী আকার, অসম লেআউট ও প্রাণবন্ত অ্যানিমেশন",
+        "Derbis-র ক্লাসিক হোম", "সাহসী আকার, অসম লেআউট ও প্রাণবন্ত অ্যানিমেশন",
         "কমপ্যাক্ট ও দ্রুত, তাৎক্ষণিক শোনার জন্য", "বড় কভার আর ম্যাগাজিনের মতো মার্জিত সেকশন",
         "সংযত, পরিচ্ছন্ন ও রিসোর্স-সাশ্রয়ী", "সিনেমাটিক কভার আর অ্যালবাম আর্টের রং", "খাঁটি Material 3 Expressive: টোনাল সারফেস, পরিবর্তনশীল আকার ও হিরো ক্যারোসেল",
         "প্রয়োগ করুন", "ব্যবহৃত হচ্ছে", "প্রিভিউ", "সেকশন", "ক্রম বদলাতে চেপে ধরে টানুন", "লেআউট",
@@ -289,7 +289,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "kk" to homeStudio(
         "Басты бетті баптау", "Стильдер, бөлімдер және орналасу", "Стиль",
-        "Levyra-ның классикалық басты беті", "Батыл пішіндер, асимметриялық орналасу және мәнерлі анимациялар",
+        "Derbis-ның классикалық басты беті", "Батыл пішіндер, асимметриялық орналасу және мәнерлі анимациялар",
         "Ықшам әрі жылдам, лезде тыңдау үшін", "Үлкен мұқабалар мен журналдағыдай сәнді бөлімдер",
         "Ұстамды, таза және ресурс үнемдейтін", "Кинематографиялық мұқабалар мен альбом түстері", "Таза Material 3 Expressive: тондық беттер, өзгермелі пішіндер және hero карусельдер",
         "Қолдану", "Қолданыста", "Алдын ала қарау", "Бөлімдер", "Ретін өзгерту үшін басып тұрып сүйреңіз", "Орналасу",
@@ -304,7 +304,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "sr" to homeStudio(
         "Прилагоди почетну", "Стилови, одељци и распореди", "Стил",
-        "Класична Levyra почетна", "Смели облици, асиметрични распореди и изражајне анимације",
+        "Класична Derbis почетна", "Смели облици, асиметрични распореди и изражајне анимације",
         "Компактна и брза, за тренутно слушање", "Велике насловнице и елегантни одељци као у часопису",
         "Сведена, чиста и штедљива према ресурсима", "Филмске насловнице и боје омота", "Чисти Material 3 Expressive: тонске површине, променљиви облици и hero вртешке",
         "Примени", "У употреби", "Преглед", "Одељци", "Задржи и превуци за промену редоследа", "Распоред",
@@ -319,7 +319,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "sq" to homeStudio(
         "Përshtat kreun", "Stile, seksione dhe paraqitje", "Stili",
-        "Kreu klasik i Levyra", "Forma të guximshme, paraqitje asimetrike dhe animacione shprehëse",
+        "Kreu klasik i Derbis", "Forma të guximshme, paraqitje asimetrike dhe animacione shprehëse",
         "Kompakt dhe i shpejtë, për dëgjim të menjëhershëm", "Kopertina të mëdha dhe seksione elegante si në revistë",
         "Minimal, i pastër dhe i kursyer me burimet", "Kopertina kinematografike dhe ngjyra nga albumi", "Material 3 Expressive i pastër: sipërfaqe tonale, forma që ndryshojnë dhe karusele hero",
         "Zbato", "Në përdorim", "Pamje paraprake", "Seksionet", "Mbaj dhe tërhiq për të ndryshuar renditjen", "Paraqitja",
@@ -349,7 +349,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "bg" to homeStudio(
         "Персонализиране на началото", "Стилове, секции и оформления", "Стил",
-        "Класическото начало на Levyra", "Смели форми, асиметрични оформления и изразителна анимация",
+        "Класическото начало на Derbis", "Смели форми, асиметрични оформления и изразителна анимация",
         "Компактно и бързо, за слушане веднага", "Големи обложки и елегантни секции като в списание",
         "Изчистено, семпло и пестеливо към ресурсите", "Кинематографични обложки и цветове от артуърка", "Чист Material 3 Expressive: тонални повърхности, променящи се форми и hero карусели",
         "Приложи", "Използва се", "Преглед", "Секции", "Задръжте и плъзнете за пренареждане", "Оформление",
@@ -364,7 +364,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "hu" to homeStudio(
         "Kezdőlap testreszabása", "Stílusok, szakaszok és elrendezések", "Stílus",
-        "A klasszikus Levyra kezdőlap", "Merész formák, aszimmetrikus elrendezések és kifejező mozgás",
+        "A klasszikus Derbis kezdőlap", "Merész formák, aszimmetrikus elrendezések és kifejező mozgás",
         "Tömör és gyors, az azonnali hallgatáshoz", "Nagy borítók és elegáns, magazinszerű szakaszok",
         "Letisztult, egyszerű és erőforrás-kímélő", "Filmszerű borítók és a borítóból vett színek", "Tiszta Material 3 Expressive: tonális felületek, alakváltó formák és hero körhinták",
         "Alkalmaz", "Használatban", "Előnézet", "Szakaszok", "Tartsd lenyomva és húzd az átrendezéshez", "Elrendezés",
@@ -379,7 +379,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "fi" to homeStudio(
         "Muokkaa kotinäkymää", "Tyylit, osiot ja asettelut", "Tyyli",
-        "Levyran klassinen kotinäkymä", "Rohkeat muodot, epäsymmetriset asettelut ja ilmeikäs liike",
+        "Derbisn klassinen kotinäkymä", "Rohkeat muodot, epäsymmetriset asettelut ja ilmeikäs liike",
         "Tiivis ja nopea, heti kuunteluun", "Suuret kannet ja tyylikkäät lehtimäiset osiot",
         "Pelkistetty, selkeä ja kevyt resursseille", "Elokuvalliset kannet ja värit kansikuvista", "Puhdas Material 3 Expressive: sävypinnat, muuntuvat muodot ja hero-karusellit",
         "Käytä", "Käytössä", "Esikatselu", "Osiot", "Järjestä pitämällä painettuna ja vetämällä", "Asettelu",
@@ -394,7 +394,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "et" to homeStudio(
         "Kohanda avalehte", "Stiilid, jaotised ja paigutused", "Stiil",
-        "Levyra klassikaline avaleht", "Julged vormid, asümmeetrilised paigutused ja ilmekas liikumine",
+        "Derbis klassikaline avaleht", "Julged vormid, asümmeetrilised paigutused ja ilmekas liikumine",
         "Kompaktne ja kiire, kohe kuulamiseks", "Suured kaanepildid ja elegantsed ajakirjalikud jaotised",
         "Lihtne, puhas ja ressursisäästlik", "Kinolikud kaaned ja värvid kaanepildist", "Puhas Material 3 Expressive: toonilised pinnad, muutuvad vormid ja hero-karussellid",
         "Rakenda", "Kasutusel", "Eelvaade", "Jaotised", "Järjestamiseks hoia all ja lohista", "Paigutus",
@@ -409,7 +409,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "nb" to homeStudio(
         "Tilpass Hjem", "Stiler, seksjoner og oppsett", "Stil",
-        "Levyras klassiske Hjem", "Dristige former, asymmetriske oppsett og uttrykksfull bevegelse",
+        "Derbiss klassiske Hjem", "Dristige former, asymmetriske oppsett og uttrykksfull bevegelse",
         "Kompakt og rask, for å lytte med en gang", "Store omslag og elegante seksjoner i magasinstil",
         "Enkel, ren og lett på ressurser", "Filmatiske omslag og farger fra omslagsbildet", "Ren Material 3 Expressive: tonale flater, skiftende former og hero-karuseller",
         "Bruk", "I bruk", "Forhåndsvisning", "Seksjoner", "Hold og dra for å endre rekkefølge", "Oppsett",
@@ -424,7 +424,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ca" to homeStudio(
         "Personalitza l'inici", "Estils, seccions i disposicions", "Estil",
-        "L'inici clàssic de Levyra", "Formes atrevides, disposicions asimètriques i animació expressiva",
+        "L'inici clàssic de Derbis", "Formes atrevides, disposicions asimètriques i animació expressiva",
         "Compacte i ràpid, per escoltar a l'instant", "Portades grans i seccions elegants d'estil revista",
         "Essencial, net i lleuger en recursos", "Portades cinematogràfiques i colors de l'art", "Material 3 Expressive pur: superfícies tonals, formes que es transformen i carrusels hero",
         "Aplica", "En ús", "Previsualització", "Seccions", "Mantén premut i arrossega per reordenar", "Disposició",
@@ -439,7 +439,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "uk" to homeStudio(
         "Налаштувати головну", "Стилі, розділи та макети", "Стиль",
-        "Класична головна Levyra", "Сміливі форми, асиметричні макети та виразна анімація",
+        "Класична головна Derbis", "Сміливі форми, асиметричні макети та виразна анімація",
         "Компактна й швидка, щоб слухати одразу", "Великі обкладинки та елегантні розділи як у журналі",
         "Лаконічна, чиста й ощадлива до ресурсів", "Кінематографічні обкладинки та кольори з артворку", "Чистий Material 3 Expressive: тональні поверхні, мінливі форми та hero-каруселі",
         "Застосувати", "Використовується", "Попередній перегляд", "Розділи", "Утримуйте й перетягуйте, щоб змінити порядок", "Макет",
@@ -454,7 +454,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ru" to homeStudio(
         "Настроить главную", "Стили, разделы и макеты", "Стиль",
-        "Классическая главная Levyra", "Смелые формы, асимметричные макеты и выразительная анимация",
+        "Классическая главная Derbis", "Смелые формы, асимметричные макеты и выразительная анимация",
         "Компактная и быстрая, чтобы слушать сразу", "Крупные обложки и элегантные разделы как в журнале",
         "Лаконичная, чистая и бережная к ресурсам", "Кинематографичные обложки и цвета из артворка", "Чистый Material 3 Expressive: тональные поверхности, меняющиеся формы и hero-карусели",
         "Применить", "Используется", "Предпросмотр", "Разделы", "Удерживайте и перетаскивайте, чтобы изменить порядок", "Макет",
@@ -469,7 +469,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "tr" to homeStudio(
         "Ana sayfayı özelleştir", "Stiller, bölümler ve düzenler", "Stil",
-        "Klasik Levyra ana sayfası", "Cesur şekiller, asimetrik düzenler ve etkileyici animasyonlar",
+        "Klasik Derbis ana sayfası", "Cesur şekiller, asimetrik düzenler ve etkileyici animasyonlar",
         "Kompakt ve hızlı, hemen dinlemek için", "Büyük kapaklar ve dergi tarzı zarif bölümler",
         "Sade, temiz ve kaynak dostu", "Sinematik kapaklar ve kapak görselinden renkler", "Saf Material 3 Expressive: tonlu yüzeyler, dönüşen şekiller ve hero döngüleri",
         "Uygula", "Kullanımda", "Önizleme", "Bölümler", "Sıralamak için basılı tutup sürükle", "Düzen",
@@ -484,7 +484,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ar" to homeStudio(
         "تخصيص الرئيسية", "الأنماط والأقسام والتخطيطات", "النمط",
-        "الصفحة الرئيسية الكلاسيكية في Levyra", "أشكال جريئة وتخطيطات غير متماثلة وحركة معبّرة",
+        "الصفحة الرئيسية الكلاسيكية في Derbis", "أشكال جريئة وتخطيطات غير متماثلة وحركة معبّرة",
         "مدمجة وسريعة للاستماع فورًا", "أغلفة كبيرة وأقسام أنيقة بأسلوب المجلات",
         "بسيطة ونظيفة وخفيفة على الموارد", "أغلفة سينمائية وألوان مستمدة من الصور", "Material 3 Expressive خالص: أسطح لونية وأشكال متحولة وشرائط عرض بارزة",
         "تطبيق", "قيد الاستخدام", "معاينة", "الأقسام", "اضغط مطولًا واسحب لإعادة الترتيب", "التخطيط",
@@ -499,7 +499,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "fa" to homeStudio(
         "شخصی‌سازی خانه", "سبک‌ها، بخش‌ها و چیدمان‌ها", "سبک",
-        "خانهٔ کلاسیک Levyra", "شکل‌های جسورانه، چیدمان‌های نامتقارن و حرکت گویا",
+        "خانهٔ کلاسیک Derbis", "شکل‌های جسورانه، چیدمان‌های نامتقارن و حرکت گویا",
         "فشرده و سریع، برای شنیدن فوری", "کاورهای بزرگ و بخش‌های شیک به سبک مجله",
         "ساده، تمیز و کم‌مصرف", "کاورهای سینمایی و رنگ‌هایی از تصویر جلد", "Material 3 Expressive خالص: سطوح رنگی، شکل‌های دگرگون‌شونده و چرخ‌فلک‌های برجسته",
         "اعمال", "در حال استفاده", "پیش‌نمایش", "بخش‌ها", "برای مرتب‌سازی نگه دارید و بکشید", "چیدمان",
@@ -514,7 +514,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "zh" to homeStudio(
         "自定义首页", "风格、版块与布局", "风格",
-        "Levyra 经典首页", "大胆的形状、不对称布局与富有表现力的动效",
+        "Derbis 经典首页", "大胆的形状、不对称布局与富有表现力的动效",
         "紧凑快速，打开即听", "大幅封面与杂志般优雅的版块",
         "简洁干净，资源占用低", "电影感封面与取自封面的色彩", "纯正 Material 3 Expressive：色调表面、形变形状与主视觉轮播",
         "应用", "使用中", "预览", "版块", "长按并拖动以重新排序", "布局",
@@ -529,7 +529,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "zh-Hant" to homeStudio(
         "自訂首頁", "風格、區塊與版面", "風格",
-        "Levyra 經典首頁", "大膽的形狀、不對稱版面與富表現力的動態效果",
+        "Derbis 經典首頁", "大膽的形狀、不對稱版面與富表現力的動態效果",
         "精簡快速，打開即聽", "大幅封面與雜誌般優雅的區塊",
         "簡潔乾淨，資源占用低", "電影感封面與取自封面的色彩", "純正 Material 3 Expressive：色調表面、形變形狀與主視覺輪播",
         "套用", "使用中", "預覽", "區塊", "長按並拖曳以重新排序", "版面",
@@ -544,7 +544,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ja" to homeStudio(
         "ホームをカスタマイズ", "スタイル、セクション、レイアウト", "スタイル",
-        "Levyra のクラシックなホーム", "大胆な形、非対称のレイアウト、表情豊かなモーション",
+        "Derbis のクラシックなホーム", "大胆な形、非対称のレイアウト、表情豊かなモーション",
         "コンパクトで速く、すぐに聴ける", "大きなアートワークと雑誌のような上品なセクション",
         "必要なものだけ、すっきり軽快", "映画のようなカバーとアートワーク由来の色", "純粋な Material 3 Expressive：トーナルな面、変形するシェイプ、ヒーローカルーセル",
         "適用", "使用中", "プレビュー", "セクション", "長押ししてドラッグで並べ替え", "レイアウト",
@@ -559,7 +559,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ko" to homeStudio(
         "홈 맞춤 설정", "스타일, 섹션 및 레이아웃", "스타일",
-        "Levyra의 클래식 홈", "과감한 형태, 비대칭 레이아웃, 표현력 있는 모션",
+        "Derbis의 클래식 홈", "과감한 형태, 비대칭 레이아웃, 표현력 있는 모션",
         "작고 빠르게, 바로 들을 수 있도록", "큰 아트워크와 매거진 같은 우아한 섹션",
         "핵심만 담은 깔끔하고 가벼운 구성", "시네마틱한 커버와 아트워크에서 가져온 색상", "순수한 Material 3 Expressive: 톤 표면, 변형되는 도형, 히어로 캐러셀",
         "적용", "사용 중", "미리보기", "섹션", "길게 누른 뒤 드래그하여 순서 변경", "레이아웃",
@@ -574,7 +574,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "hi" to homeStudio(
         "होम कस्टमाइज़ करें", "स्टाइल, सेक्शन और लेआउट", "स्टाइल",
-        "Levyra का क्लासिक होम", "साहसी आकार, असममित लेआउट और भावपूर्ण मोशन",
+        "Derbis का क्लासिक होम", "साहसी आकार, असममित लेआउट और भावपूर्ण मोशन",
         "कॉम्पैक्ट और तेज़, तुरंत सुनने के लिए", "बड़े आर्टवर्क और पत्रिका जैसे सुरुचिपूर्ण सेक्शन",
         "सरल, साफ़ और संसाधनों पर हल्का", "सिनेमाई कवर और आर्टवर्क से लिए रंग", "शुद्ध Material 3 Expressive: टोनल सतहें, बदलते आकार और हीरो कैरोसेल",
         "लागू करें", "उपयोग में", "पूर्वावलोकन", "सेक्शन", "क्रम बदलने के लिए दबाकर रखें और खींचें", "लेआउट",
@@ -589,7 +589,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "id" to homeStudio(
         "Sesuaikan Beranda", "Gaya, bagian, dan tata letak", "Gaya",
-        "Beranda klasik Levyra", "Bentuk berani, tata letak asimetris, dan gerakan ekspresif",
+        "Beranda klasik Derbis", "Bentuk berani, tata letak asimetris, dan gerakan ekspresif",
         "Ringkas dan cepat, untuk langsung mendengarkan", "Artwork besar dan bagian elegan bergaya majalah",
         "Esensial, bersih, dan ringan", "Sampul sinematik dan warna dari artwork", "Material 3 Expressive murni: permukaan tonal, bentuk yang berubah, dan korsel hero",
         "Terapkan", "Digunakan", "Pratinjau", "Bagian", "Tahan dan seret untuk mengurutkan", "Tata letak",
@@ -604,7 +604,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "ms" to homeStudio(
         "Sesuaikan Laman Utama", "Gaya, bahagian dan susun atur", "Gaya",
-        "Laman utama klasik Levyra", "Bentuk berani, susun atur asimetri dan gerakan ekspresif",
+        "Laman utama klasik Derbis", "Bentuk berani, susun atur asimetri dan gerakan ekspresif",
         "Padat dan pantas, untuk terus mendengar", "Karya seni besar dan bahagian elegan gaya majalah",
         "Ringkas, kemas dan ringan pada sumber", "Kulit album sinematik dan warna daripada karya seni", "Material 3 Expressive tulen: permukaan tonal, bentuk berubah dan karusel hero",
         "Guna", "Sedang digunakan", "Pratonton", "Bahagian", "Tahan dan seret untuk menyusun semula", "Susun atur",
@@ -619,7 +619,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "vi" to homeStudio(
         "Tùy chỉnh Trang chủ", "Phong cách, mục và bố cục", "Phong cách",
-        "Trang chủ cổ điển của Levyra", "Hình khối táo bạo, bố cục bất đối xứng và chuyển động biểu cảm",
+        "Trang chủ cổ điển của Derbis", "Hình khối táo bạo, bố cục bất đối xứng và chuyển động biểu cảm",
         "Gọn và nhanh, để nghe ngay", "Ảnh bìa lớn và các mục thanh lịch kiểu tạp chí",
         "Tinh gọn, sạch sẽ và nhẹ tài nguyên", "Ảnh bìa điện ảnh và màu sắc lấy từ ảnh bìa", "Material 3 Expressive thuần: bề mặt tông màu, hình khối biến đổi và băng chuyền hero",
         "Áp dụng", "Đang dùng", "Xem trước", "Các mục", "Nhấn giữ và kéo để sắp xếp lại", "Bố cục",
@@ -634,7 +634,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "th" to homeStudio(
         "ปรับแต่งหน้าแรก", "สไตล์ ส่วน และเลย์เอาต์", "สไตล์",
-        "หน้าแรกคลาสสิกของ Levyra", "รูปทรงโดดเด่น เลย์เอาต์ไม่สมมาตร และการเคลื่อนไหวที่มีชีวิตชีวา",
+        "หน้าแรกคลาสสิกของ Derbis", "รูปทรงโดดเด่น เลย์เอาต์ไม่สมมาตร และการเคลื่อนไหวที่มีชีวิตชีวา",
         "กะทัดรัดและรวดเร็ว พร้อมฟังทันที", "อาร์ตเวิร์กขนาดใหญ่และส่วนที่หรูหราแบบนิตยสาร",
         "เรียบง่าย สะอาดตา และประหยัดทรัพยากร", "ปกสไตล์ภาพยนตร์และสีจากอาร์ตเวิร์ก", "Material 3 Expressive แท้: พื้นผิวโทนสี รูปทรงที่แปรเปลี่ยน และภาพหมุนฮีโร่",
         "ใช้", "กำลังใช้", "ตัวอย่าง", "ส่วนต่างๆ", "กดค้างแล้วลากเพื่อจัดลำดับใหม่", "เลย์เอาต์",
@@ -649,7 +649,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "fil" to homeStudio(
         "I-customize ang Home", "Mga istilo, seksyon at layout", "Istilo",
-        "Ang klasikong Home ng Levyra", "Matatapang na hugis, asymmetric na layout at masiglang galaw",
+        "Ang klasikong Home ng Derbis", "Matatapang na hugis, asymmetric na layout at masiglang galaw",
         "Compact at mabilis, para makinig agad", "Malalaking artwork at eleganteng seksyon na parang magasin",
         "Simple, malinis at magaan sa resources", "Cinematic na cover at mga kulay mula sa artwork", "Purong Material 3 Expressive: tonal na surface, nagbabagong hugis at hero carousel",
         "Ilapat", "Ginagamit", "Preview", "Mga seksyon", "Pindutin nang matagal at i-drag para ayusin", "Layout",
@@ -664,7 +664,7 @@ private val homeStudioCopies: Map<String, HomeStudioCopy> = mapOf(
     ),
     "he" to homeStudio(
         "התאמה אישית של הבית", "סגנונות, מקטעים ופריסות", "סגנון",
-        "דף הבית הקלאסי של Levyra", "צורות נועזות, פריסות א־סימטריות ותנועה אקספרסיבית",
+        "דף הבית הקלאסי של Derbis", "צורות נועזות, פריסות א־סימטריות ותנועה אקספרסיבית",
         "קומפקטי ומהיר, להאזנה מיידית", "עטיפות גדולות ומקטעים אלגנטיים בסגנון מגזין",
         "מינימלי, נקי וחסכוני במשאבים", "עטיפות קולנועיות וצבעים מתוך העטיפה", "Material 3 Expressive טהור: משטחים טונליים, צורות משתנות וקרוסלות גיבור",
         "החלה", "בשימוש", "תצוגה מקדימה", "מקטעים", "לחץ לחיצה ארוכה וגרור כדי לסדר", "פריסה",

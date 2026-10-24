@@ -226,7 +226,7 @@ data class LevyraAudioSettings(
             replayGainEnabled = normalizedReplayGainMode != ReplayGainMode.OFF,
             replayGainMode = normalizedReplayGainMode,
             replayGainPreampDb = replayGainPreampDb.coerceIn(-12f, 12f),
-            crossfadeSeconds = crossfadeSeconds.coerceIn(0, 12),
+            crossfadeSeconds = crossfadeSeconds.coerceIn(0, 30),
             playbackSpeed = playbackSpeed.coerceIn(0.5f, 2.0f),
             pitch = pitch.coerceIn(0.5f, 2.0f),
             customPresets = custom,

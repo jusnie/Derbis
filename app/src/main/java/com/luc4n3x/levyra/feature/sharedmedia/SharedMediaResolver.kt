@@ -44,7 +44,7 @@ class SharedMediaResolver(
                 subtitle = request.url,
                 thumbnailUrl = "",
                 tracks = emptyList(),
-                error = "Levyra accetta link YouTube e YouTube Music"
+                error = "Derbis accetta link YouTube e YouTube Music"
             )
         }
     }
@@ -58,7 +58,7 @@ class SharedMediaResolver(
         if (decoded is LevyraPlaylistDecodeResult.Failure) {
             return SharedMediaPreview(
                 request = request,
-                title = if (italian) "Playlist Levyra non valida" else "Invalid Levyra playlist",
+                title = if (italian) "Playlist Derbis non valida" else "Invalid Derbis playlist",
                 subtitle = "",
                 thumbnailUrl = "",
                 tracks = emptyList(),
@@ -67,7 +67,7 @@ class SharedMediaResolver(
         }
         val playlist = (decoded as LevyraPlaylistDecodeResult.Success).playlist
         val tracks = sharedPlaylistTracks(playlist, languageCode)
-        val fallbackTitle = if (italian) "Playlist Levyra" else "Levyra playlist"
+        val fallbackTitle = if (italian) "Playlist Derbis" else "Derbis playlist"
         val countLabel = if (italian) "brani" else "songs"
         return SharedMediaPreview(
             request = request,
@@ -89,7 +89,7 @@ class SharedMediaResolver(
 
     private fun sharedPlaylistErrorMessage(error: LevyraPlaylistDecodeError, italian: Boolean): String = when (error) {
         LevyraPlaylistDecodeError.UnsupportedVersion ->
-            if (italian) "Questa playlist richiede una versione più recente di Levyra" else "This playlist needs a newer Levyra version"
+            if (italian) "Questa playlist richiede una versione più recente di Derbis" else "This playlist needs a newer Derbis version"
         LevyraPlaylistDecodeError.TooLarge ->
             if (italian) "Playlist troppo grande" else "Playlist too large"
         LevyraPlaylistDecodeError.ChecksumMismatch ->
@@ -98,7 +98,7 @@ class SharedMediaResolver(
             if (italian) "La playlist condivisa è vuota" else "The shared playlist is empty"
         LevyraPlaylistDecodeError.Malformed,
         LevyraPlaylistDecodeError.NotLevyraPayload ->
-            if (italian) "Link Levyra non leggibile" else "Unreadable Levyra link"
+            if (italian) "Link Derbis non leggibile" else "Unreadable Derbis link"
     }
 
     private suspend fun resolveBulkLinks(request: SharedMediaRequest, languageCode: String): SharedMediaPreview {
@@ -187,7 +187,7 @@ class SharedMediaResolver(
             videoUrl = request.url,
             thumbnailUrl = thumbnail,
             largeThumbnailUrl = "https://i.ytimg.com/vi/${request.videoId}/maxresdefault.jpg",
-            source = "Shared with Levyra",
+            source = "Shared with Derbis",
             moodTags = setOf("shared", "youtube"),
             energy = 50,
             vocal = 50,

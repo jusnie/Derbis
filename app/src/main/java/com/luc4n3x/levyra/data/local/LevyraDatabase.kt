@@ -667,8 +667,8 @@ abstract class LevyraDatabase : RoomDatabase() {
                         "durationMs INTEGER NOT NULL, mimeType TEXT NOT NULL, bitrate INTEGER NOT NULL, " +
                         "sizeBytes INTEGER NOT NULL, dateAddedMs INTEGER NOT NULL, dateModifiedMs INTEGER NOT NULL, " +
                         "albumId INTEGER NOT NULL, albumKey TEXT NOT NULL, artistKey TEXT NOT NULL, " +
-                        "contentFingerprint TEXT NOT NULL, levyraTrackId TEXT NOT NULL, " +
-                        "isLevyraDownload INTEGER NOT NULL, available INTEGER NOT NULL, " +
+                        "contentFingerprint TEXT NOT NULL, derbisTrackId TEXT NOT NULL, " +
+                        "isDerbisDownload INTEGER NOT NULL, available INTEGER NOT NULL, " +
                         "missingSince INTEGER NOT NULL, lastSeenAt INTEGER NOT NULL)"
                 )
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_local_media_identityKey ON local_media(identityKey)")
@@ -866,7 +866,7 @@ abstract class LevyraDatabase : RoomDatabase() {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     LevyraDatabase::class.java,
-                    "levyra.db"
+                    "derbis.db"
                 )
                     .addMigrations(*MIGRATIONS)
                     .build()

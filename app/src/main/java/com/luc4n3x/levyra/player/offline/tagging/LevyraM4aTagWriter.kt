@@ -514,7 +514,7 @@ object LevyraM4aTagWriter {
     private const val DATA_SIGNED_INTEGER = 21
     private const val DATA_PNG = 14
     private const val MAX_LYRICS_CHARS = 128 * 1024
-    private const val FREEFORM_MEAN = "com.luc4n3x.levyra"
+    private const val FREEFORM_MEAN = "com.luc4n3x.derbis"
     private const val FREEFORM_ISRC = "ISRC"
     private const val FREEFORM_UPC = "UPC"
     private const val FREEFORM_SOURCE_URL = "SOURCE_URL"
@@ -588,7 +588,7 @@ data class LevyraM4aMetadata(
     val albumUrl: String = "",
     val counterpartId: String = "",
     val mediaType: String = "",
-    val encodedBy: String = "Levyra",
+    val encodedBy: String = "Derbis",
     val artworkData: ByteArray? = null,
     val composer: String = "",
     val copyright: String = ""

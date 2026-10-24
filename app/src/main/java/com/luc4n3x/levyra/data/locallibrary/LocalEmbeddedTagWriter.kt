@@ -427,7 +427,7 @@ internal object LocalEmbeddedTagWriter {
     }
 
     private fun createVorbisComment(edits: LocalTagEdits): ByteArray =
-        encodeVorbisComment("Levyra".toByteArray(StandardCharsets.UTF_8), vorbisEditEntries(edits))
+        encodeVorbisComment("Derbis".toByteArray(StandardCharsets.UTF_8), vorbisEditEntries(edits))
 
     private fun vorbisEditEntries(edits: LocalTagEdits): List<String> = buildList {
         fun addValue(key: String, raw: String) {

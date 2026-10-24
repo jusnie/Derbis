@@ -582,7 +582,7 @@ internal class PlaybackCompatibilityPolicyStore(
     }
 
     companion object {
-        private const val PREFS_NAME = "levyra_playback_compatibility_policy"
+        private const val PREFS_NAME = "derbis_playback_compatibility_policy"
         private const val KEY_POLICY_JSON = "policy_json"
         private const val KEY_ETAG = "etag"
         private const val KEY_CHECKED_AT_MS = "checked_at_ms"

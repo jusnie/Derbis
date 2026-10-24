@@ -251,7 +251,7 @@ internal class EditorialChartsRepository private constructor(context: Context) {
             val request = Request.Builder()
                 .url(CATALOG_URL)
                 .header("Accept", "application/json")
-                .header("User-Agent", "Levyra/${BuildConfig.VERSION_NAME} Android")
+                .header("User-Agent", "Derbis/${BuildConfig.VERSION_NAME} Android")
                 .cacheControl(CacheControl.FORCE_NETWORK)
                 .build()
             val call = httpClient.newCall(request)
@@ -329,7 +329,7 @@ internal class EditorialChartsRepository private constructor(context: Context) {
         }
 
         private const val CACHE_RELATIVE_PATH = "editorial/charts-v2.json"
-        private const val HTTP_CACHE_DIRECTORY = "levyra_editorial_http"
+        private const val HTTP_CACHE_DIRECTORY = "derbis_editorial_http"
         private const val HTTP_CACHE_BYTES = 4L * 1024L * 1024L
         private const val REFRESH_RETRY_TTL_MS = 5L * 60L * 1000L
         private const val MAX_CATALOG_BYTES = 4 * 1024 * 1024
@@ -639,10 +639,10 @@ internal object EditorialCatalogParser {
 
     private const val SUPPORTED_SCHEMA_VERSION = 1
     private const val MAX_TRACKS_PER_MARKET = 100
-    private const val EDITORIAL_SOURCE = "Levyra Editorial"
-    private const val EDITORIAL_RELEASE_SOURCE = "Levyra Editorial Releases"
-    private const val EDITORIAL_DISCOVERY_SOURCE = "Levyra Editorial Discovery"
-    private const val EDITORIAL_ALBUM = "Levyra Top 50"
+    private const val EDITORIAL_SOURCE = "Derbis Editorial"
+    private const val EDITORIAL_RELEASE_SOURCE = "Derbis Editorial Releases"
+    private const val EDITORIAL_DISCOVERY_SOURCE = "Derbis Editorial Discovery"
+    private const val EDITORIAL_ALBUM = "Derbis Top 50"
     private const val MAX_ARTWORK_URL_LENGTH = 512
     private const val HTTPS_DEFAULT_PORT = 443
     private const val MIN_AUDIO_MAPPING_CONFIDENCE = 82

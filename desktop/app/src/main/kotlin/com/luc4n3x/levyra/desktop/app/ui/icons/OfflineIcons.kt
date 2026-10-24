@@ -26,7 +26,7 @@ private fun offlineStrokeIcon(name: String, block: PathBuilder.() -> Unit): Imag
 
 object OfflineIcons {
     val Library: ImageVector by lazy {
-        offlineStrokeIcon("LevyraLibrary") {
+        offlineStrokeIcon("DerbisLibrary") {
             moveTo(5f, 4.5f)
             lineTo(5f, 19.5f)
             moveTo(10f, 4.5f)
@@ -40,7 +40,7 @@ object OfflineIcons {
     }
 
     val Download: ImageVector by lazy {
-        offlineStrokeIcon("LevyraDownload") {
+        offlineStrokeIcon("DerbisDownload") {
             moveTo(12f, 4f)
             lineTo(12f, 15f)
             moveTo(7.5f, 11f)
@@ -52,7 +52,7 @@ object OfflineIcons {
     }
 
     val Folder: ImageVector by lazy {
-        offlineStrokeIcon("LevyraFolder") {
+        offlineStrokeIcon("DerbisFolder") {
             moveTo(3.5f, 7f)
             curveTo(3.5f, 5.9f, 4.4f, 5f, 5.5f, 5f)
             lineTo(10f, 5f)
@@ -68,7 +68,7 @@ object OfflineIcons {
     }
 
     val History: ImageVector by lazy {
-        offlineStrokeIcon("LevyraHistory") {
+        offlineStrokeIcon("DerbisHistory") {
             moveTo(5f, 8f)
             lineTo(5f, 4.5f)
             moveTo(5f, 4.5f)
@@ -85,7 +85,7 @@ object OfflineIcons {
     }
 
     val Check: ImageVector by lazy {
-        offlineStrokeIcon("LevyraCheck") {
+        offlineStrokeIcon("DerbisCheck") {
             moveTo(5f, 12.5f)
             lineTo(9.5f, 17f)
             lineTo(19f, 7f)

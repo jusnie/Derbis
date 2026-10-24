@@ -19,7 +19,7 @@ class AutomaticBackupDocumentsProvider : DocumentsProvider() {
         cursor.newRow()
             .add(Root.COLUMN_ROOT_ID, ROOT_ID)
             .add(Root.COLUMN_DOCUMENT_ID, ROOT_DOCUMENT_ID)
-            .add(Root.COLUMN_TITLE, "Levyra")
+            .add(Root.COLUMN_TITLE, "Derbis")
             .add(Root.COLUMN_SUMMARY, automaticBackupsLabel())
             .add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY)
             .add(Root.COLUMN_MIME_TYPES, BACKUP_MIME_TYPE)
@@ -122,7 +122,7 @@ class AutomaticBackupDocumentsProvider : DocumentsProvider() {
         projection?.map { it }?.toTypedArray() ?: DEFAULT_DOCUMENT_PROJECTION
 
     private companion object {
-        const val ROOT_ID = "levyra-automatic-backups"
+        const val ROOT_ID = "derbis-automatic-backups"
         const val ROOT_DOCUMENT_ID = "automatic-backups-root"
         const val FILE_DOCUMENT_PREFIX = "automatic-backup:"
         const val BACKUP_MIME_TYPE = "application/zip"

@@ -18,7 +18,7 @@ import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
 object LevyraWidgetCenter {
-    private const val PREFS_NAME = "levyra_widget"
+    private const val PREFS_NAME = "derbis_widget"
     private const val KEY_TITLE = "title"
     private const val KEY_ARTIST = "artist"
     private const val KEY_ARTWORK = "artwork"
@@ -78,7 +78,7 @@ object LevyraWidgetCenter {
         val artworkUrl = prefs.getString(KEY_ARTWORK, "").orEmpty()
         val playing = prefs.getBoolean(KEY_PLAYING, false)
         val accent = prefs.getInt(KEY_ACCENT, DEFAULT_ACCENT)
-        val views = RemoteViews(context.packageName, R.layout.derbis_widget)
+        val views = RemoteViews(context.packageName, R.layout.levyra_widget)
         views.setViewVisibility(R.id.widget_playing, if (playing) View.VISIBLE else View.GONE)
         views.setInt(R.id.widget_playing, "setColorFilter", accent)
         views.setInt(R.id.widget_toggle, "setColorFilter", if (playing) accent else Color.WHITE)

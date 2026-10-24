@@ -33,7 +33,7 @@ data class JamSessionCode(
         const val TOTAL_BYTES = ADDRESS_BYTES + PORT_BYTES + SECRET_BYTES
         const val ENCODED_LENGTH = (TOTAL_BYTES * 8 + 4) / 5
         const val GROUP_SIZE = 6
-        const val DEEP_LINK_PREFIX = "levyra://jam/"
+        const val DEEP_LINK_PREFIX = "derbis://jam/"
         const val MIN_PORT = 1024
         const val MAX_PORT = 65_535
 

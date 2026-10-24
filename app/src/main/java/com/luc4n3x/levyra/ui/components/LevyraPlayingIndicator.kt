@@ -73,7 +73,7 @@ private fun rememberPlayingIndicatorBars(animate: Boolean): List<State<Float>> {
     if (!animate) {
         return remember { List(BarCount) { index -> mutableFloatStateOf(BarIdleHeights[index]) } }
     }
-    val transition = rememberInfiniteTransition(label = "levyra-playing")
+    val transition = rememberInfiniteTransition(label = "derbis-playing")
     return List(BarCount) { index ->
         transition.animateFloat(
             initialValue = BarMinimums[index],
@@ -82,7 +82,7 @@ private fun rememberPlayingIndicatorBars(animate: Boolean): List<State<Float>> {
                 animation = tween(durationMillis = BarDurations[index]),
                 repeatMode = RepeatMode.Reverse
             ),
-            label = "levyra-playing-bar-$index"
+            label = "derbis-playing-bar-$index"
         )
     }
 }

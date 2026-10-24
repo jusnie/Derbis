@@ -127,7 +127,7 @@ internal fun Track.toMatchCandidate(): CatalogCandidate {
         "UGC" in type -> CandidateKind.USER_VIDEO
         else -> CandidateKind.UNKNOWN
     }
-    val separator = artistTitleSeparator.find(title).takeIf { source == "LevyraExtractor Search" }
+    val separator = artistTitleSeparator.find(title).takeIf { source == "DerbisExtractor Search" }
     val titleArtist = separator?.let { title.substring(0, it.range.first).trim() }.orEmpty()
     val channelArtist = MusicIdentityText.normalizeArtist(artist.replace(channelSuffix, ""))
     val artistPrefixMatchesChannel = channelArtist.isNotBlank() &&

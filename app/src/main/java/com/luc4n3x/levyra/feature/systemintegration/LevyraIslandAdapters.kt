@@ -16,8 +16,8 @@ import com.luc4n3x.levyra.R
 import com.luc4n3x.levyra.domain.LevyraLanguageCatalog
 import com.luc4n3x.levyra.ui.i18n.deviceIntegrationCopy
 
-internal const val LEVYRA_ISLAND_CHANNEL_ID = "levyra_device_island"
-internal const val LEVYRA_ISLAND_LOG_TAG = "LevyraDeviceIsland"
+internal const val LEVYRA_ISLAND_CHANNEL_ID = "derbis_device_island"
+internal const val LEVYRA_ISLAND_LOG_TAG = "DerbisDeviceIsland"
 private const val VIVO_ISLAND_NOTIFICATION_ID = 0x4c564956
 private const val VIVO_REMOVE_TIMEOUT_MS = 5_000L
 private const val VIVO_MAX_DURATION_MS = 8L * 60L * 60L * 1_000L

@@ -528,7 +528,7 @@ class OfflineAudioExporter(
         }
         if (playable.streamUrl.isBlank()) throw IOException("Stream audio non disponibile")
         reportProgress(10)
-        val workspace = File(context.cacheDir, "levyra_offline_export").apply { mkdirs() }
+        val workspace = File(context.cacheDir, "derbis_offline_export").apply { mkdirs() }
         Timber.i("Offline export started: %s", track.title)
         cleanupWorkspace(workspace)
         var metadataTrack = mergeOfflineMetadataTrack(track, playable)
@@ -627,7 +627,7 @@ class OfflineAudioExporter(
         val sourceUrl = playable.streamUrl
         if (isPersonalCollectionStreamingOnly(sourceUrl)) throw IOException(PERSONAL_COLLECTION_STREAM_ONLY)
         reportProgress(8)
-        val workspace = File(context.cacheDir, "levyra_offline_export").apply { mkdirs() }
+        val workspace = File(context.cacheDir, "derbis_offline_export").apply { mkdirs() }
         cleanupWorkspace(workspace)
         val partial = resumablePartialFile(workspace, AudioContainer("audio", "application/octet-stream", false))
         val identityFile = resumeIdentitySidecar(partial)
@@ -1499,7 +1499,7 @@ class OfflineAudioExporter(
                     trackId = original.id.ifBlank { resolved.id },
                     title = original.title.ifBlank { resolved.title },
                     artist = original.artist.ifBlank { resolved.artist },
-                    album = original.album.ifBlank { resolved.album.ifBlank { "Levyra" } },
+                    album = original.album.ifBlank { resolved.album.ifBlank { "Derbis" } },
                     durationMs = original.durationMs.takeIf { it > 0L } ?: resolved.durationMs.coerceAtLeast(0L),
                     fileName = fileName,
                     uri = uri.toString(),
@@ -1564,7 +1564,7 @@ class OfflineAudioExporter(
             throw error
         }
         val rootLabel = DownloadFolderAccess.displayName(context, rawTreeUri)
-            ?: Uri.decode(treeUri.lastPathSegment.orEmpty()).substringAfterLast(':').ifBlank { "Levyra" }
+            ?: Uri.decode(treeUri.lastPathSegment.orEmpty()).substringAfterLast(':').ifBlank { "Derbis" }
         val destinationLabel = listOf(rootLabel, relativeFolderSuffix(track))
             .filter(String::isNotBlank)
             .joinToString("/")
@@ -1651,7 +1651,7 @@ class OfflineAudioExporter(
             put(MediaStore.MediaColumns.SIZE, input.length())
             put(MediaStore.Audio.Media.TITLE, track.title)
             put(MediaStore.Audio.Media.ARTIST, track.artist)
-            put(MediaStore.Audio.Media.ALBUM, track.album.ifBlank { "Levyra" })
+            put(MediaStore.Audio.Media.ALBUM, track.album.ifBlank { "Derbis" })
             put(MediaStore.Audio.Media.DURATION, track.durationMs.coerceAtLeast(0L))
             put(MediaStore.Audio.Media.IS_MUSIC, 1)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
@@ -1717,7 +1717,7 @@ class OfflineAudioExporter(
 
     private suspend fun saveLegacy(input: File, track: Track, container: AudioContainer): SavedAudioDestination {
         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), legacyRelativeSubdirectory(track)).apply { mkdirs() }
-        if (!dir.exists()) throw IOException("Cartella musicale Levyra non disponibile")
+        if (!dir.exists()) throw IOException("Cartella musicale Derbis non disponibile")
         val target = uniqueFile(dir, buildFileName(track, container.extension))
         val coroutineContext = currentCoroutineContext()
         try {
@@ -1741,7 +1741,7 @@ class OfflineAudioExporter(
                 put(MediaStore.MediaColumns.SIZE, target.length())
                 put(MediaStore.Audio.Media.TITLE, track.title)
                 put(MediaStore.Audio.Media.ARTIST, track.artist)
-                put(MediaStore.Audio.Media.ALBUM, track.album.ifBlank { "Levyra" })
+                put(MediaStore.Audio.Media.ALBUM, track.album.ifBlank { "Derbis" })
                 put(MediaStore.Audio.Media.DURATION, track.durationMs.coerceAtLeast(0L))
                 put(MediaStore.Audio.Media.IS_MUSIC, 1)
             }
@@ -1847,12 +1847,12 @@ class OfflineAudioExporter(
 
     private fun musicDestinationLabel(track: Track): String {
         val suffix = relativeFolderSuffix(track)
-        return listOf(Environment.DIRECTORY_MUSIC, "Levyra", suffix).filter { it.isNotBlank() }.joinToString("/")
+        return listOf(Environment.DIRECTORY_MUSIC, "Derbis", suffix).filter { it.isNotBlank() }.joinToString("/")
     }
 
     private fun legacyRelativeSubdirectory(track: Track): String {
         val suffix = relativeFolderSuffix(track)
-        return listOf("Levyra", suffix).filter { it.isNotBlank() }.joinToString(File.separator)
+        return listOf("Derbis", suffix).filter { it.isNotBlank() }.joinToString(File.separator)
     }
 
     private fun relativeFolderSegments(track: Track): List<String> =
@@ -1891,7 +1891,7 @@ class OfflineAudioExporter(
 
     private fun buildFileName(track: Track, extension: String): String {
         val artist = sanitize(track.artist).ifBlank { "Unknown Artist" }
-        val title = sanitize(track.title).ifBlank { track.id.ifBlank { "Levyra Track" } }
+        val title = sanitize(track.title).ifBlank { track.id.ifBlank { "Derbis Track" } }
         return "$artist - $title.$extension"
     }
 
@@ -1931,7 +1931,7 @@ class OfflineAudioExporter(
 
     companion object {
         fun discardPartialDownload(context: Context, taskKey: String) {
-            val workspace = File(context.applicationContext.cacheDir, "levyra_offline_export")
+            val workspace = File(context.applicationContext.cacheDir, "derbis_offline_export")
             val prefix = "resume-${offlineDownloadTaskFileKey(taskKey)}."
             workspace.listFiles()?.forEach { file ->
                 if (file.name.startsWith(prefix) && (file.name.endsWith(".part") || file.name.endsWith(".part.id"))) {

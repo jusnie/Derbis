@@ -86,7 +86,7 @@ internal class YoutubePlaybackSecurity private constructor(
     private val preferences: LevyraPreferences
 ) {
     private val appContext = context.applicationContext
-    private val prefs = appContext.getSharedPreferences("levyra_youtube_guest", Context.MODE_PRIVATE)
+    private val prefs = appContext.getSharedPreferences("derbis_youtube_guest", Context.MODE_PRIVATE)
     private val sessionMutex = Mutex()
     private val sessionStateLock = Any()
     private val failureStateLock = Any()
@@ -1041,7 +1041,7 @@ internal class YoutubePoTokenRuntime private constructor(
                 val challenge = requestBotguard(CREATE_URL, JSONArray().put(REQUEST_KEY).toString())
                 val parsed = parseChallengeData(challenge)
                 webView.evaluateJavascript(
-                    "try{const data=$parsed;runBotGuard(data).then(function(r){window.__levyraWebPoSignalOutput=r.webPoSignalOutput;$JS_INTERFACE.onBotguardResult(String(r.botguardResponse));}).catch(function(e){$JS_INTERFACE.onInitError(String(e));});}catch(e){$JS_INTERFACE.onInitError(String(e));}",
+                    "try{const data=$parsed;runBotGuard(data).then(function(r){window.__derbisWebPoSignalOutput=r.webPoSignalOutput;$JS_INTERFACE.onBotguardResult(String(r.botguardResponse));}).catch(function(e){$JS_INTERFACE.onInitError(String(e));});}catch(e){$JS_INTERFACE.onInitError(String(e));}",
                     null
                 )
             } catch (error: CancellationException) {
@@ -1068,7 +1068,7 @@ internal class YoutubePoTokenRuntime private constructor(
                 expiresAtMs = safeExpiryAt(issuedAt, parsed.second)
                 refreshAtMs = refreshDeadline(issuedAt, expiresAtMs)
                 webView.evaluateJavascript(
-                    "try{createPoTokenMinter(window.__levyraWebPoSignalOutput,${parsed.first}).then(function(){$JS_INTERFACE.onMinterReady();}).catch(function(e){$JS_INTERFACE.onInitError(String(e));});}catch(e){$JS_INTERFACE.onInitError(String(e));}",
+                    "try{createPoTokenMinter(window.__derbisWebPoSignalOutput,${parsed.first}).then(function(){$JS_INTERFACE.onMinterReady();}).catch(function(e){$JS_INTERFACE.onInitError(String(e));});}catch(e){$JS_INTERFACE.onInitError(String(e));}",
                     null
                 )
             } catch (error: CancellationException) {
@@ -1188,7 +1188,7 @@ internal class YoutubePoTokenRuntime private constructor(
     }
 
     companion object {
-        private const val JS_INTERFACE = "LevyraPoToken"
+        private const val JS_INTERFACE = "DerbisPoToken"
         private const val REQUEST_KEY = "O43z0dpjhgX20SCx4KAo"
         private val botguardApiKey = "AIzaSyDyT5W0Jh49F30Pqq" + "tyfdf7pDLFKLJoAnw"
         private const val CREATE_URL = "https://www.youtube.com/api/jnn/v1/Create"

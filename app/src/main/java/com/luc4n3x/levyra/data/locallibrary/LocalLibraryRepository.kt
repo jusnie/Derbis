@@ -280,7 +280,7 @@ class LocalLibraryRepository private constructor(context: Context) {
                 LevyraTagIdentityReader.readTrackId(input, descriptor.length)
             }
         }
-    }.onFailure { Timber.d(it, "Levyra tag identity unavailable") }.getOrNull()
+    }.onFailure { Timber.d(it, "Derbis tag identity unavailable") }.getOrNull()
 
     private fun contentReadable(rawUri: String): Boolean {
         if (rawUri.isBlank()) return false
@@ -295,7 +295,7 @@ class LocalLibraryRepository private constructor(context: Context) {
     }
 
     companion object {
-        private const val PREFERENCES_NAME = "levyra_local_library"
+        private const val PREFERENCES_NAME = "derbis_local_library"
         private const val KEY_CHANGE_TOKEN = "change_token"
         private const val KEY_LAST_SCAN_AT = "last_scan_at"
         private const val KEY_EXCLUDED_FOLDERS = "excluded_folders"

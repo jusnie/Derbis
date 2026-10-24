@@ -44,7 +44,7 @@ fun Modifier.levyraPressable(
     val scale by animateFloatAsState(
         targetValue = if (pressed && enabled && animationsEnabled) pressedScale else 1f,
         animationSpec = LevyraMotion.physics(animationsEnabled, LevyraMotion.press),
-        label = "levyra-press"
+        label = "derbis-press"
     )
     val indication = if (animationsEnabled) null else LocalIndication.current
     val click: () -> Unit = {

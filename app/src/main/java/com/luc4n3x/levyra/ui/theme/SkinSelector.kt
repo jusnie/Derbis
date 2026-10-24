@@ -81,7 +81,7 @@ import com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 
 private fun LevyraSkin.title(): String = when (this) {
-    LevyraSkin.Default -> "Levyra Default"
+    LevyraSkin.Default -> "Derbis Default"
     LevyraSkin.Nocturne78 -> Nocturne78Palette.label
     LevyraSkin.Prism -> "Prism"
     LevyraSkin.Torque -> "Torque"
@@ -240,7 +240,7 @@ internal fun SkinManagedNotice(onUseDefault: (() -> Unit)? = null) {
             color = LevyraMuted
         )
         if (onUseDefault != null) {
-            TextButton(onClick = onUseDefault) { Text("Levyra Default") }
+            TextButton(onClick = onUseDefault) { Text("Derbis Default") }
         }
     }
 }

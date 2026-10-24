@@ -20,7 +20,7 @@ import java.io.FileNotFoundException
 import okio.buffer
 import okio.source
 
-private const val LOCAL_ARTWORK_SCHEME = "levyra-local-art"
+private const val LOCAL_ARTWORK_SCHEME = "derbis-local-art"
 private const val LOCAL_ARTWORK_PREFIX = "$LOCAL_ARTWORK_SCHEME://art?"
 private const val DEFAULT_LOCAL_ARTWORK_PX = 512
 private const val MIN_LOCAL_ARTWORK_PX = 96

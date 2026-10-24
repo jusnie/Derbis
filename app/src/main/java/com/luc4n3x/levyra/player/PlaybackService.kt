@@ -266,23 +266,23 @@ class PlaybackService : MediaLibraryService() {
     companion object {
         private const val RUNNING_LOW_LEVEL = 10
         private const val RUNNING_CRITICAL_LEVEL = 15
-        const val EXTRA_VIDEO_URL = "levyra.videoUrl"
-        const val EXTRA_VIDEO_CACHE_KEY = "levyra.videoCacheKey"
-        const val EXTRA_VIDEO_MIME_TYPE = "levyra.videoMimeType"
-        const val EXTRA_VIDEO_MODE = "levyra.videoMode"
-        const val EXTRA_LIVE_RADIO = "levyra.liveRadio"
-        const val EXTRA_PERSONAL_COLLECTION = "levyra.personalCollection"
-        const val EXTRA_YOUTUBE_LOUDNESS_DB = "levyra.youtubeLoudnessDb"
-        const val EXTRA_YOUTUBE_PERCEPTUAL_LOUDNESS_DB = "levyra.youtubePerceptualLoudnessDb"
-        const val EXTRA_REPLAY_GAIN_TRACK_DB = "levyra.replayGain.trackDb"
-        const val EXTRA_REPLAY_GAIN_ALBUM_DB = "levyra.replayGain.albumDb"
-        const val EXTRA_REPLAY_GAIN_TRACK_PEAK = "levyra.replayGain.trackPeak"
-        const val EXTRA_REPLAY_GAIN_ALBUM_PEAK = "levyra.replayGain.albumPeak"
-        const val ACTION_GET_PLATFORM_TOKEN = "levyra.media.GET_PLATFORM_TOKEN"
-        const val ACTION_SET_VIDEO_SUBTITLE = "levyra.media.SET_VIDEO_SUBTITLE"
-        const val KEY_PLATFORM_TOKEN = "levyra.media.PLATFORM_TOKEN"
-        const val KEY_VIDEO_SUBTITLE_ID = "levyra.media.VIDEO_SUBTITLE_ID"
-        private const val PLAYBACK_STATE_PREFS = "levyra.playback.service.state"
+        const val EXTRA_VIDEO_URL = "derbis.videoUrl"
+        const val EXTRA_VIDEO_CACHE_KEY = "derbis.videoCacheKey"
+        const val EXTRA_VIDEO_MIME_TYPE = "derbis.videoMimeType"
+        const val EXTRA_VIDEO_MODE = "derbis.videoMode"
+        const val EXTRA_LIVE_RADIO = "derbis.liveRadio"
+        const val EXTRA_PERSONAL_COLLECTION = "derbis.personalCollection"
+        const val EXTRA_YOUTUBE_LOUDNESS_DB = "derbis.youtubeLoudnessDb"
+        const val EXTRA_YOUTUBE_PERCEPTUAL_LOUDNESS_DB = "derbis.youtubePerceptualLoudnessDb"
+        const val EXTRA_REPLAY_GAIN_TRACK_DB = "derbis.replayGain.trackDb"
+        const val EXTRA_REPLAY_GAIN_ALBUM_DB = "derbis.replayGain.albumDb"
+        const val EXTRA_REPLAY_GAIN_TRACK_PEAK = "derbis.replayGain.trackPeak"
+        const val EXTRA_REPLAY_GAIN_ALBUM_PEAK = "derbis.replayGain.albumPeak"
+        const val ACTION_GET_PLATFORM_TOKEN = "derbis.media.GET_PLATFORM_TOKEN"
+        const val ACTION_SET_VIDEO_SUBTITLE = "derbis.media.SET_VIDEO_SUBTITLE"
+        const val KEY_PLATFORM_TOKEN = "derbis.media.PLATFORM_TOKEN"
+        const val KEY_VIDEO_SUBTITLE_ID = "derbis.media.VIDEO_SUBTITLE_ID"
+        private const val PLAYBACK_STATE_PREFS = "derbis.playback.service.state"
         private const val KEY_PLAYBACK_EXPECTED = "playbackExpected"
         private const val KEY_PLAYBACK_HEARTBEAT_AT = "playbackHeartbeatAt"
         private const val PLAYBACK_HEARTBEAT_INTERVAL_MS = 30_000L
@@ -711,9 +711,9 @@ class PlaybackService : MediaLibraryService() {
             val item = player.getMediaItemAt(index)
             if (item.localConfiguration?.uri?.toString() != track.streamUrl) continue
             val extras = Bundle(item.mediaMetadata.extras ?: Bundle.EMPTY).apply {
-                putString("levyra.title", track.title)
-                putString("levyra.artist", track.artist)
-                putString("levyra.album", track.album)
+                putString("derbis.title", track.title)
+                putString("derbis.artist", track.artist)
+                putString("derbis.album", track.album)
             }
             val metadata = item.mediaMetadata
                 .buildUpon()
@@ -844,7 +844,7 @@ class PlaybackService : MediaLibraryService() {
                     "Accept" to "*/*",
                     "Accept-Encoding" to "identity",
                     "Icy-MetaData" to "1",
-                    "User-Agent" to "Levyra/${BuildConfig.VERSION_NAME} (Android; Live Radio)"
+                    "User-Agent" to "Derbis/${BuildConfig.VERSION_NAME} (Android; Live Radio)"
                 )
             )
         val cache = LevyraMediaCache.get(this)
@@ -1479,7 +1479,7 @@ class PlaybackService : MediaLibraryService() {
                 val realDuration = super.getDuration()
                 if (realDuration > 0L) return realDuration
                 val metadataDuration = currentMediaItem?.mediaMetadata?.extras
-                    ?.getLong("levyra.durationMs", androidx.media3.common.C.TIME_UNSET)
+                    ?.getLong("derbis.durationMs", androidx.media3.common.C.TIME_UNSET)
                     ?: androidx.media3.common.C.TIME_UNSET
                 return metadataDuration.takeIf { it > 0L } ?: androidx.media3.common.C.TIME_UNSET
             }
@@ -2093,21 +2093,26 @@ class PlaybackService : MediaLibraryService() {
             consumePreparedQueueNextInternal(target.id.ifBlank { resolved.id })
 
             transitionNormalization?.let { normalizationProcessor.continueFromGain(it.appliedGain) }
+            val handoffPosition = secondary.currentPosition.coerceAtLeast(0L)
             primary.volume = 0f
             primary.setMediaItem(
                 LevyraMediaItemFactory.build(resolved),
-                secondary.currentPosition.coerceAtLeast(0L)
+                handoffPosition
             )
             RuntimeHooks.player(RuntimeSignal.PLAYER_PREPARE)
             RuntimeHooks.hot(RuntimeSignal.HOT_PLAYER_PREPARE)
             primary.prepare()
 
             if (!awaitPrimaryHandoffReady(primary, secondary, targetIdentity, resolved.title)) return
-            if (!synchronizePrimaryHandoff(primary, secondary, targetIdentity)) return
 
-            fadePlayers(secondary, primary, PRIMARY_HANDOFF_FADE_MS) {
-                handoffStillValid(primary, secondary, targetIdentity)
-            }
+            // Clean handoff: mute and pause secondary before unmuting primary to prevent double-voice phase echo
+            val exactPosition = secondary.currentPosition.coerceAtLeast(handoffPosition)
+            secondary.volume = 0f
+            secondary.pause()
+            primary.seekTo(exactPosition)
+            primary.volume = 1f
+            primary.play()
+
             queueEngine.updatePosition(primary.currentPosition)
             if (!isLocalPlaybackTrack(resolved)) prefetchServiceQueueNext()
         } catch (cancelled: CancellationException) {
@@ -3420,7 +3425,7 @@ class PlaybackService : MediaLibraryService() {
         val scheme = mediaItem?.localConfiguration?.uri?.scheme.orEmpty()
         if (scheme.equals("content", ignoreCase = true) || scheme.equals("file", ignoreCase = true)) return true
         return mediaItem?.mediaMetadata?.extras
-            ?.getString("levyra.source")
+            ?.getString("derbis.source")
             ?.equals("Offline", ignoreCase = true) == true
     }
 
@@ -3552,7 +3557,7 @@ internal fun liveRadioLoadRetryDelayMs(error: Throwable, errorCount: Int): Long 
 
 internal const val WATCHDOG_RECOVERIES_WITHOUT_PROGRESS = 1
 private const val WATCHDOG_PROGRESS_THRESHOLD_MS = 250L
-private const val RETIRED_PLAYBACK_LIVE_UPDATE_CHANNEL_ID = "levyra_playback_live_update"
+private const val RETIRED_PLAYBACK_LIVE_UPDATE_CHANNEL_ID = "derbis_playback_live_update"
 
 internal class WatchdogRecoveryAllowance(private val limit: Int = WATCHDOG_RECOVERIES_WITHOUT_PROGRESS) {
     private var used = 0
@@ -3607,7 +3612,7 @@ internal fun isLiveRadioMediaItem(mediaItem: MediaItem?): Boolean {
     if (mediaItem.mediaMetadata.mediaType == androidx.media3.common.MediaMetadata.MEDIA_TYPE_RADIO_STATION) return true
     val extras = mediaItem.mediaMetadata.extras ?: mediaItem.requestMetadata.extras
     return extras?.getBoolean(PlaybackService.EXTRA_LIVE_RADIO, false) == true ||
-        extras?.getString("levyra.source") == LIVE_RADIO_SOURCE
+        extras?.getString("derbis.source") == LIVE_RADIO_SOURCE
 }
 
 @UnstableApi

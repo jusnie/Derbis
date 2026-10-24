@@ -265,8 +265,8 @@ class OfflineExportWorker(
     private fun errorData(message: String): Data = workDataOf(KEY_ERROR to message)
 
     private fun existingDownloadDestinationLabel(rawUri: String): String {
-        val uri = runCatching { android.net.Uri.parse(rawUri) }.getOrNull() ?: return "Music/Levyra"
-        if (uri.authority == MediaStore.AUTHORITY) return "Music/Levyra"
+        val uri = runCatching { android.net.Uri.parse(rawUri) }.getOrNull() ?: return "Music/Derbis"
+        if (uri.authority == MediaStore.AUTHORITY) return "Music/Derbis"
         val documentId = runCatching {
             if (DocumentsContract.isDocumentUri(applicationContext, uri)) {
                 DocumentsContract.getDocumentId(uri)
@@ -278,7 +278,7 @@ class OfflineExportWorker(
             .substringAfter(':', "")
             .substringBeforeLast('/', "")
             .trim('/')
-        return relativePath.ifBlank { "Music/Levyra" }
+        return relativePath.ifBlank { "Music/Derbis" }
     }
 
     private fun isStoredDownloadReadable(rawUri: String): Boolean {
@@ -315,7 +315,7 @@ class OfflineExportWorker(
         liveUpdate: DownloadLiveUpdateContent?
     ): Notification {
         val title = track.title.ifBlank { strings.offlineDownloadsPlain }
-        val artist = track.artist.ifBlank { "LEVYRA" }
+        val artist = track.artist.ifBlank { "DERBIS" }
         val percent = progress.coerceIn(0, 100)
         return NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_widget_download)
@@ -355,7 +355,7 @@ class OfflineExportWorker(
         val intent = Intent(applicationContext, OfflineDownloadCancelReceiver::class.java).apply {
             action = OfflineDownloadCancelReceiver.ACTION_CANCEL_DOWNLOAD
             data = android.net.Uri.Builder()
-                .scheme("levyra")
+                .scheme("derbis")
                 .authority("download-cancel")
                 .appendPath(taskKey)
                 .build()
@@ -389,7 +389,7 @@ class OfflineExportWorker(
         const val KEY_PROGRESS = "progress"
         const val KEY_OWNERSHIP = "ownership"
         const val ERROR_SUPERSEDED = "task_superseded"
-        private const val CHANNEL_ID = "levyra_offline_downloads"
+        private const val CHANNEL_ID = "derbis_offline_downloads"
         private const val PROGRESS_PERSIST_STEP = 3
         private const val PROGRESS_PERSIST_INTERVAL_MS = 750L
         private const val FOREGROUND_PROGRESS_STEP = 5
@@ -443,8 +443,8 @@ class OfflineExportWorker(
                         .build()
                 )
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS)
-                .addTag("levyra_offline_export")
-                .addTag("levyra_offline_${ownership.name.lowercase()}")
+                .addTag("derbis_offline_export")
+                .addTag("derbis_offline_${ownership.name.lowercase()}")
                 .addTag(uniqueName)
                 .build()
             val track = TrackPayloadCodec.decode(trackPayload)
@@ -515,7 +515,7 @@ class OfflineExportWorker(
 
         private fun uniqueNameFor(trackId: String): String {
             val safe = trackId.trim().ifBlank { "unknown" }.replace(Regex("[^A-Za-z0-9_.-]+"), "_").take(120)
-            return "levyra_offline_export_$safe"
+            return "derbis_offline_export_$safe"
         }
 
         private fun idFallback(taskKey: String): UUID = UUID.nameUUIDFromBytes(taskKey.toByteArray())

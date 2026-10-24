@@ -1983,7 +1983,7 @@ fun LevyraApp(
             ?.let { raw -> try { Uri.parse(raw) } catch (_: Throwable) { null } }
             ?: DocumentsContract.buildRootUri(
                 "${toastContext.packageName}.automatic-backups",
-                "levyra-automatic-backups"
+                "derbis-automatic-backups"
             )
         manageBackupsLauncher.launch(
             Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -2417,7 +2417,7 @@ fun LevyraApp(
                     val rtl = layoutDirection == LayoutDirection.Rtl
                     LevyraMotion.tabSwap(state.animationsEnabled, if (forward != rtl) 1 else -1)
                 },
-                label = "levyra-page-transition"
+                label = "derbis-page-transition"
             ) { tab ->
                 Box(
                     modifier = Modifier
@@ -2426,9 +2426,9 @@ fun LevyraApp(
                 ) {
                     when (tab) {
                         LevyraTab.Home -> {
-                            val homeViewModel: HomeViewModel = composeViewModel(key = "levyra-home", factory = screenViewModelFactory)
+                            val homeViewModel: HomeViewModel = composeViewModel(key = "derbis-home", factory = screenViewModelFactory)
                             val renderSnapshot by homeViewModel.renderState.collectAsStateWithLifecycle()
-                            homeSaveableState.SaveableStateProvider("levyra-home") {
+                            homeSaveableState.SaveableStateProvider("derbis-home") {
                                 CompositionLocalProvider(
                                     LocalHomeCompactDensity provides
                                         renderSnapshot.state.interfaceSettings.compactHome
@@ -2507,12 +2507,12 @@ fun LevyraApp(
                             }
                         }
                         LevyraTab.Search -> {
-                            val searchViewModel: SearchViewModel = composeViewModel(key = "levyra-search", factory = screenViewModelFactory)
+                            val searchViewModel: SearchViewModel = composeViewModel(key = "derbis-search", factory = screenViewModelFactory)
                             val screenState by searchViewModel.state.collectAsStateWithLifecycle()
                             SearchScreen(searchViewModel, screenState) { track -> trackActionTarget = track }
                         }
                         LevyraTab.Explore -> {
-                            val exploreViewModel: ExploreViewModel = composeViewModel(key = "levyra-explore", factory = screenViewModelFactory)
+                            val exploreViewModel: ExploreViewModel = composeViewModel(key = "derbis-explore", factory = screenViewModelFactory)
                             val screenState by exploreViewModel.state.collectAsStateWithLifecycle()
                             ExploreScreen(
                                 viewModel = exploreViewModel,
@@ -2524,7 +2524,7 @@ fun LevyraApp(
                             )
                         }
                         LevyraTab.Library -> {
-                            val libraryViewModel: LibraryViewModel = composeViewModel(key = "levyra-library", factory = screenViewModelFactory)
+                            val libraryViewModel: LibraryViewModel = composeViewModel(key = "derbis-library", factory = screenViewModelFactory)
                             val screenState by libraryViewModel.state.collectAsStateWithLifecycle()
                             LevyraLibraryScreen(
                                 libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
@@ -2713,7 +2713,7 @@ fun LevyraApp(
                 DisposableEffect(morphAnchors) {
                     onDispose { morphAnchors.playerContainer = null }
                 }
-                val playerViewModel: PlayerViewModel = composeViewModel(key = "levyra-player", factory = screenViewModelFactory)
+                val playerViewModel: PlayerViewModel = composeViewModel(key = "derbis-player", factory = screenViewModelFactory)
                 val playerScreenState by playerViewModel.state.collectAsStateWithLifecycle()
                 val playerAboveDetail = detailUnderPlayer && (state.showAlbum || state.showArtist || state.openPlaylist != null || state.playlistHitPreview != null)
                 Box(
@@ -2990,7 +2990,7 @@ fun LevyraApp(
                         val diagnostics = viewModel.refreshPlaybackDiagnostics()
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, "LEVYRA playback diagnostics")
+                            putExtra(Intent.EXTRA_SUBJECT, "DERBIS playback diagnostics")
                             putExtra(Intent.EXTRA_TEXT, diagnostics)
                         }
                         toastContext.startActivity(Intent.createChooser(intent, currentStrings.shareDiagnostics))
@@ -3685,7 +3685,7 @@ private fun SharedMediaPreviewDialog(
                     }
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(
-                            text = if (italian) "Condiviso con Levyra" else "Shared with Levyra",
+                            text = if (italian) "Condiviso con Derbis" else "Shared with Derbis",
                             color = LevyraCyan,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Black
@@ -14580,7 +14580,7 @@ internal fun HomeOrbitAvatar(initial: String, photoPath: String, photoVersion: L
         accountAvatarUrl.takeIf(String::isNotBlank) ?: photoPath.takeIf(String::isNotBlank)?.let { path ->
             ImageRequest.Builder(context)
                 .data(File(path))
-                .memoryCacheKey("levyra-profile-photo-$photoVersion")
+                .memoryCacheKey("derbis-profile-photo-$photoVersion")
                 .diskCachePolicy(CachePolicy.DISABLED)
                 .crossfade(false)
                 .build()
@@ -18272,7 +18272,7 @@ private fun DownloadRow(
             Text(download.title, color = if (isCurrent) accent else LevyraText, fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(download.artist, color = LevyraMuted, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                if (download.embeddedMetadata) "Music/Levyra · ${LocalLevyraStrings.current.coverAndTags}" else "Music/Levyra",
+                if (download.embeddedMetadata) "Music/Derbis · ${LocalLevyraStrings.current.coverAndTags}" else "Music/Derbis",
                 color = LevyraMuted.copy(alpha = 0.7f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -20887,7 +20887,7 @@ private fun SettingsOverlay(
     fun categoryTitle(value: String): String = settingsCategoryTitle(value, categoryLocale)
     val categories = remember(strings.code, LevyraActivePalette) {
         listOf(
-            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Levyra Default · Nocturne 78 · Prism · Torque · Ivory · Spotify Style · Apple Music Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
+            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Prism · Torque · Ivory · Spotify Style · Apple Music Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.advancedGestures} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, LevyraPink, SettingsHubGroup.Listening),
@@ -21226,6 +21226,28 @@ private fun SettingsOverlay(
                                     checked = interfaceSettings.liquidGlassEnabled,
                                     onCheckedChange = { value ->
                                         onInterfaceSettings(interfaceSettings.copy(liquidGlassEnabled = value))
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.Speed,
+                                    title = "Lite Mode",
+                                    subtitle = "Disable blurs and heavy animations for maximum speed on low-end devices",
+                                    checked = interfaceSettings.liteMode,
+                                    onCheckedChange = { value ->
+                                        onInterfaceSettings(interfaceSettings.copy(liteMode = value))
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.Refresh,
+                                    title = "Force High Refresh Rate",
+                                    subtitle = "Lock 90Hz / 120Hz display refresh rate for ultra-smooth scrolling",
+                                    checked = interfaceSettings.forceHighRefreshRate,
+                                    onCheckedChange = { value ->
+                                        onInterfaceSettings(interfaceSettings.copy(forceHighRefreshRate = value))
                                     }
                                 )
                             }
@@ -21916,7 +21938,7 @@ private fun SettingsOverlay(
                                     title = strings.downloadFolderOrganization,
                                     subtitle = strings.downloadFolderOrganizationSubtitle,
                                     options = listOf(
-                                        LevyraDownloadFolderMode.Flat.name to "Levyra",
+                                        LevyraDownloadFolderMode.Flat.name to "Derbis",
                                         LevyraDownloadFolderMode.Artist.name to strings.downloadFolderArtist,
                                         LevyraDownloadFolderMode.ArtistAlbum.name to strings.downloadFolderArtistAlbum
                                     ),
@@ -23499,7 +23521,7 @@ private fun SettingsUpdateCard(
                         modifier = Modifier.padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(info.releaseTitle.ifBlank { "LEVYRA ${info.latestVersionName}" }, color = LevyraText, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(info.releaseTitle.ifBlank { "DERBIS ${info.latestVersionName}" }, color = LevyraText, fontSize = 14.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             text = if (info.directApk) LocalLevyraStrings.current.signedApkReady else LocalLevyraStrings.current.releasePageReady,
                             color = LevyraMuted,
@@ -23571,7 +23593,7 @@ private fun SettingsMiniButton(
 @Composable
 internal fun LevyraLogoMark(
     size: Dp = 58.dp,
-    contentDescription: String? = "Levyra"
+    contentDescription: String? = "Derbis"
 ) {
     Box(contentAlignment = Alignment.Center) {
         Box(
@@ -28153,7 +28175,7 @@ private fun LevyraVideoSurface(
             AndroidView(
                     factory = { context ->
                         (android.view.LayoutInflater.from(context).inflate(
-                            R.layout.derbis_video_player_view_zoomable,
+                            R.layout.levyra_video_player_view_zoomable,
                             null,
                             false
                         ) as androidx.media3.ui.PlayerView).apply {

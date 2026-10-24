@@ -56,7 +56,7 @@ internal class YoutubeMusicSessionStore(context: Context) {
 
     private companion object {
         val KEY_LOCK = Any()
-        const val KEY_ALIAS = "levyra.youtube.music.v1"
+        const val KEY_ALIAS = "derbis.youtube.music.v1"
         const val MAX_BYTES = 1024 * 1024
     }
 }

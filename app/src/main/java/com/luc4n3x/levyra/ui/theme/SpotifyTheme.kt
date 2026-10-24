@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.materialkolor.hct.Hct
 
-internal const val SpotifyPaletteId = "levyra_spotify_style"
+internal const val SpotifyPaletteId = "derbis_spotify_style"
 val LevyraIsSpotify: Boolean get() = LevyraActivePalette.id == SpotifyPaletteId
 
 internal object SpotifyDesign {

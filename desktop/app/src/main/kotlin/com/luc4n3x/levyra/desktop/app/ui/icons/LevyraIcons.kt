@@ -89,7 +89,7 @@ private fun filledIcon(name: String, block: PathBuilder.() -> Unit): ImageVector
 object LevyraIcons {
 
     val Play: ImageVector by lazy {
-        filledIcon("LevyraPlay") {
+        filledIcon("DerbisPlay") {
             moveTo(7.5f, 4.8f)
             lineTo(19f, 12f)
             lineTo(7.5f, 19.2f)
@@ -98,7 +98,7 @@ object LevyraIcons {
     }
 
     val Pause: ImageVector by lazy {
-        filledIcon("LevyraPause") {
+        filledIcon("DerbisPause") {
             moveTo(7f, 5f)
             lineTo(10.2f, 5f)
             lineTo(10.2f, 19f)
@@ -113,7 +113,7 @@ object LevyraIcons {
     }
 
     val SkipNext: ImageVector by lazy {
-        filledIcon("LevyraSkipNext") {
+        filledIcon("DerbisSkipNext") {
             moveTo(6f, 5f)
             lineTo(15.5f, 12f)
             lineTo(6f, 19f)
@@ -127,7 +127,7 @@ object LevyraIcons {
     }
 
     val SkipPrevious: ImageVector by lazy {
-        filledIcon("LevyraSkipPrevious") {
+        filledIcon("DerbisSkipPrevious") {
             moveTo(18f, 5f)
             lineTo(8.5f, 12f)
             lineTo(18f, 19f)
@@ -141,7 +141,7 @@ object LevyraIcons {
     }
 
     val Shuffle: ImageVector by lazy {
-        strokeIcon("LevyraShuffle") {
+        strokeIcon("DerbisShuffle") {
             moveTo(4f, 7f)
             lineTo(8f, 7f)
             lineTo(16f, 17f)
@@ -162,11 +162,11 @@ object LevyraIcons {
     }
 
     val Repeat: ImageVector by lazy {
-        strokeIcon("LevyraRepeat") { repeatLoop() }
+        strokeIcon("DerbisRepeat") { repeatLoop() }
     }
 
     val RepeatOne: ImageVector by lazy {
-        strokeIcon("LevyraRepeatOne") {
+        strokeIcon("DerbisRepeatOne") {
             repeatLoop()
             moveTo(11f, 11.4f)
             lineTo(12.2f, 10.4f)
@@ -175,7 +175,7 @@ object LevyraIcons {
     }
 
     val VolumeHigh: ImageVector by lazy {
-        strokeIcon("LevyraVolumeHigh") {
+        strokeIcon("DerbisVolumeHigh") {
             speakerShape()
             moveTo(14.6f, 9.4f)
             curveTo(16f, 10.8f, 16f, 13.2f, 14.6f, 14.6f)
@@ -185,7 +185,7 @@ object LevyraIcons {
     }
 
     val VolumeMuted: ImageVector by lazy {
-        strokeIcon("LevyraVolumeMuted") {
+        strokeIcon("DerbisVolumeMuted") {
             speakerShape()
             moveTo(14.5f, 9.8f)
             lineTo(19.5f, 14.4f)
@@ -195,7 +195,7 @@ object LevyraIcons {
     }
 
     val Queue: ImageVector by lazy {
-        strokeIcon("LevyraQueue") {
+        strokeIcon("DerbisQueue") {
             moveTo(4f, 6.5f)
             lineTo(16f, 6.5f)
             moveTo(4f, 11f)
@@ -210,7 +210,7 @@ object LevyraIcons {
     }
 
     val Search: ImageVector by lazy {
-        strokeIcon("LevyraSearch") {
+        strokeIcon("DerbisSearch") {
             circle(11f, 10.6f, 5.4f)
             moveTo(15.2f, 14.8f)
             lineTo(19.8f, 19.6f)
@@ -218,7 +218,7 @@ object LevyraIcons {
     }
 
     val Home: ImageVector by lazy {
-        strokeIcon("LevyraHome") {
+        strokeIcon("DerbisHome") {
             moveTo(4f, 11f)
             lineTo(12f, 4.4f)
             lineTo(20f, 11f)
@@ -233,7 +233,7 @@ object LevyraIcons {
     }
 
     val Settings: ImageVector by lazy {
-        strokeIcon("LevyraSettings") {
+        strokeIcon("DerbisSettings") {
             moveTo(4f, 7.5f)
             lineTo(20f, 7.5f)
             moveTo(4f, 12f)
@@ -247,15 +247,15 @@ object LevyraIcons {
     }
 
     val Heart: ImageVector by lazy {
-        strokeIcon("LevyraHeart") { heartShape() }
+        strokeIcon("DerbisHeart") { heartShape() }
     }
 
     val HeartFilled: ImageVector by lazy {
-        filledIcon("LevyraHeartFilled") { heartShape() }
+        filledIcon("DerbisHeartFilled") { heartShape() }
     }
 
     val Add: ImageVector by lazy {
-        strokeIcon("LevyraAdd") {
+        strokeIcon("DerbisAdd") {
             moveTo(12f, 5f)
             lineTo(12f, 19f)
             moveTo(5f, 12f)
@@ -264,7 +264,7 @@ object LevyraIcons {
     }
 
     val Close: ImageVector by lazy {
-        strokeIcon("LevyraClose") {
+        strokeIcon("DerbisClose") {
             moveTo(6f, 6f)
             lineTo(18f, 18f)
             moveTo(18f, 6f)
@@ -273,7 +273,7 @@ object LevyraIcons {
     }
 
     val Trash: ImageVector by lazy {
-        strokeIcon("LevyraTrash") {
+        strokeIcon("DerbisTrash") {
             moveTo(4.5f, 7f)
             lineTo(19.5f, 7f)
             moveTo(9.5f, 7f)
@@ -292,14 +292,14 @@ object LevyraIcons {
     }
 
     val Disc: ImageVector by lazy {
-        strokeIcon("LevyraDisc") {
+        strokeIcon("DerbisDisc") {
             circle(12f, 12f, 8f)
             circle(12f, 12f, 2.4f)
         }
     }
 
     val Artist: ImageVector by lazy {
-        strokeIcon("LevyraArtist") {
+        strokeIcon("DerbisArtist") {
             circle(12f, 8.2f, 3.6f)
             moveTo(5.2f, 19.6f)
             curveTo(5.8f, 15.9f, 8.6f, 13.6f, 12f, 13.6f)
@@ -308,7 +308,7 @@ object LevyraIcons {
     }
 
     val Playlist: ImageVector by lazy {
-        strokeIcon("LevyraPlaylist") {
+        strokeIcon("DerbisPlaylist") {
             moveTo(4f, 7f)
             lineTo(20f, 7f)
             moveTo(4f, 12f)
@@ -323,7 +323,7 @@ object LevyraIcons {
     }
 
     val Chart: ImageVector by lazy {
-        strokeIcon("LevyraChart") {
+        strokeIcon("DerbisChart") {
             moveTo(4f, 19.5f)
             lineTo(20f, 19.5f)
             moveTo(6.5f, 19.5f)
@@ -336,7 +336,7 @@ object LevyraIcons {
     }
 
     val Refresh: ImageVector by lazy {
-        strokeIcon("LevyraRefresh") {
+        strokeIcon("DerbisRefresh") {
             moveTo(19f, 12f)
             curveTo(19f, 15.9f, 15.9f, 19f, 12f, 19f)
             curveTo(8.1f, 19f, 5f, 15.9f, 5f, 12f)
@@ -349,7 +349,7 @@ object LevyraIcons {
     }
 
     val ChevronDown: ImageVector by lazy {
-        strokeIcon("LevyraChevronDown") {
+        strokeIcon("DerbisChevronDown") {
             moveTo(6f, 9.5f)
             lineTo(12f, 15.5f)
             lineTo(18f, 9.5f)
@@ -357,7 +357,7 @@ object LevyraIcons {
     }
 
     val ChevronUp: ImageVector by lazy {
-        strokeIcon("LevyraChevronUp") {
+        strokeIcon("DerbisChevronUp") {
             moveTo(6f, 14.5f)
             lineTo(12f, 8.5f)
             lineTo(18f, 14.5f)
@@ -365,7 +365,7 @@ object LevyraIcons {
     }
 
     val ChevronLeft: ImageVector by lazy {
-        strokeIcon("LevyraChevronLeft") {
+        strokeIcon("DerbisChevronLeft") {
             moveTo(14.5f, 5.5f)
             lineTo(8.5f, 12f)
             lineTo(14.5f, 18.5f)
@@ -373,7 +373,7 @@ object LevyraIcons {
     }
 
     val More: ImageVector by lazy {
-        filledIcon("LevyraMore") {
+        filledIcon("DerbisMore") {
             circle(12f, 5.6f, 1.7f)
             circle(12f, 12f, 1.7f)
             circle(12f, 18.4f, 1.7f)

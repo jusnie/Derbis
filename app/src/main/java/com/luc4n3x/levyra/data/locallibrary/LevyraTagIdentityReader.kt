@@ -3,7 +3,7 @@ package com.luc4n3x.levyra.data.locallibrary
 import java.io.InputStream
 
 internal object LevyraTagIdentityReader {
-    private const val LEVYRA_MEAN = "com.luc4n3x.levyra"
+    private const val LEVYRA_MEAN = "com.luc4n3x.derbis"
     private const val TRACK_ID = "TRACK_ID"
     private const val MAX_MOOV_BYTES = 8 * 1024 * 1024
     private const val MAX_TOP_LEVEL_BOXES = 64

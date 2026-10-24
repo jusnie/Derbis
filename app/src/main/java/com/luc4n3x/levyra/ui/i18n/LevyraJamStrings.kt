@@ -2,7 +2,7 @@ package com.luc4n3x.levyra.ui.i18n
 
 private val jamBundles: Map<String, Map<String, String>> = mapOf(
     "en" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Listen together on the same network",
         "jamCreate" to "Create Jam",
         "jamJoin" to "Join Jam",
@@ -27,7 +27,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam works between devices on the same Wi-Fi network"
     ),
     "it" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Ascoltate insieme sulla stessa rete",
         "jamCreate" to "Crea Jam",
         "jamJoin" to "Entra nel Jam",
@@ -52,7 +52,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam funziona tra dispositivi sulla stessa rete Wi-Fi"
     ),
     "es" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Escuchad juntos en la misma red",
         "jamCreate" to "Crear Jam",
         "jamJoin" to "Unirse al Jam",
@@ -77,7 +77,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam funciona entre dispositivos en la misma red Wi-Fi"
     ),
     "fr" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Écoutez ensemble sur le même réseau",
         "jamCreate" to "Créer un Jam",
         "jamJoin" to "Rejoindre le Jam",
@@ -102,7 +102,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam fonctionne entre appareils sur le même réseau Wi-Fi"
     ),
     "de" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Gemeinsam im selben Netzwerk hören",
         "jamCreate" to "Jam erstellen",
         "jamJoin" to "Jam beitreten",
@@ -127,7 +127,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam funktioniert zwischen Geräten im selben WLAN"
     ),
     "pt" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Ouçam juntos na mesma rede",
         "jamCreate" to "Criar Jam",
         "jamJoin" to "Entrar no Jam",
@@ -152,7 +152,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "O Jam funciona entre dispositivos na mesma rede Wi-Fi"
     ),
     "nl" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Luister samen op hetzelfde netwerk",
         "jamCreate" to "Jam maken",
         "jamJoin" to "Deelnemen aan Jam",
@@ -177,7 +177,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam werkt tussen apparaten op hetzelfde wifi-netwerk"
     ),
     "pl" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Słuchajcie razem w tej samej sieci",
         "jamCreate" to "Utwórz Jam",
         "jamJoin" to "Dołącz do Jamu",
@@ -202,7 +202,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam działa między urządzeniami w tej samej sieci Wi-Fi"
     ),
     "ro" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Ascultați împreună în aceeași rețea",
         "jamCreate" to "Creează Jam",
         "jamJoin" to "Intră în Jam",
@@ -227,7 +227,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam funcționează între dispozitive din aceeași rețea Wi-Fi"
     ),
     "el" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Ακούστε μαζί στο ίδιο δίκτυο",
         "jamCreate" to "Δημιουργία Jam",
         "jamJoin" to "Συμμετοχή σε Jam",
@@ -252,7 +252,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Το Jam λειτουργεί μεταξύ συσκευών στο ίδιο δίκτυο Wi-Fi"
     ),
     "sv" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Lyssna tillsammans på samma nätverk",
         "jamCreate" to "Skapa Jam",
         "jamJoin" to "Gå med i Jam",
@@ -277,7 +277,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam fungerar mellan enheter på samma wifi-nätverk"
     ),
     "da" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Lyt sammen på samme netværk",
         "jamCreate" to "Opret Jam",
         "jamJoin" to "Deltag i Jam",
@@ -302,7 +302,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam virker mellem enheder på samme wi-fi-netværk"
     ),
     "cs" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Poslouchejte společně ve stejné síti",
         "jamCreate" to "Vytvořit Jam",
         "jamJoin" to "Připojit se k Jamu",
@@ -327,7 +327,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam funguje mezi zařízeními ve stejné síti Wi-Fi"
     ),
     "uk" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Слухайте разом в одній мережі",
         "jamCreate" to "Створити Jam",
         "jamJoin" to "Приєднатися до Jam",
@@ -352,7 +352,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam працює між пристроями в одній мережі Wi-Fi"
     ),
     "ru" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Слушайте вместе в одной сети",
         "jamCreate" to "Создать Jam",
         "jamJoin" to "Присоединиться к Jam",
@@ -377,7 +377,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam работает между устройствами в одной сети Wi-Fi"
     ),
     "tr" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Aynı ağda birlikte dinleyin",
         "jamCreate" to "Jam oluştur",
         "jamJoin" to "Jam'e katıl",
@@ -402,7 +402,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam aynı Wi-Fi ağındaki cihazlar arasında çalışır"
     ),
     "ar" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "استمعوا معًا على الشبكة نفسها",
         "jamCreate" to "إنشاء Jam",
         "jamJoin" to "الانضمام إلى Jam",
@@ -427,7 +427,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "يعمل Jam بين الأجهزة على شبكة Wi-Fi نفسها"
     ),
     "zh" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "在同一网络下一起听歌",
         "jamCreate" to "创建 Jam",
         "jamJoin" to "加入 Jam",
@@ -452,7 +452,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam 需要设备连接同一个 Wi-Fi 网络"
     ),
     "ja" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "同じネットワークで一緒に聴く",
         "jamCreate" to "Jam を作成",
         "jamJoin" to "Jam に参加",
@@ -477,7 +477,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam は同じ Wi-Fi ネットワーク上の端末間で動作します"
     ),
     "ko" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "같은 네트워크에서 함께 듣기",
         "jamCreate" to "Jam 만들기",
         "jamJoin" to "Jam 참여",
@@ -502,7 +502,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam은 같은 Wi-Fi 네트워크의 기기 사이에서 동작합니다"
     ),
     "hi" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "एक ही नेटवर्क पर साथ सुनें",
         "jamCreate" to "Jam बनाएँ",
         "jamJoin" to "Jam में शामिल हों",
@@ -527,7 +527,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam एक ही Wi-Fi नेटवर्क के डिवाइस के बीच काम करता है"
     ),
     "id" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Dengarkan bersama di jaringan yang sama",
         "jamCreate" to "Buat Jam",
         "jamJoin" to "Gabung Jam",
@@ -552,7 +552,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam bekerja antar perangkat di jaringan Wi-Fi yang sama"
     ),
     "vi" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Cùng nghe trên cùng một mạng",
         "jamCreate" to "Tạo Jam",
         "jamJoin" to "Tham gia Jam",
@@ -577,7 +577,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam hoạt động giữa các thiết bị trong cùng mạng Wi-Fi"
     ),
     "th" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "ฟังด้วยกันบนเครือข่ายเดียวกัน",
         "jamCreate" to "สร้าง Jam",
         "jamJoin" to "เข้าร่วม Jam",
@@ -602,7 +602,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam ใช้ได้ระหว่างอุปกรณ์บนเครือข่าย Wi-Fi เดียวกัน"
     ),
     "fil" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Sabay makinig sa iisang network",
         "jamCreate" to "Gumawa ng Jam",
         "jamJoin" to "Sumali sa Jam",
@@ -627,7 +627,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Gumagana ang Jam sa mga device na iisa ang Wi-Fi network"
     ),
     "he" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "האזינו יחד באותה רשת",
         "jamCreate" to "צור Jam",
         "jamJoin" to "הצטרף ל-Jam",
@@ -652,7 +652,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam פועל בין מכשירים באותה רשת Wi-Fi"
     ),
     "fi" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Kuunnelkaa yhdessä samassa verkossa",
         "jamCreate" to "Luo Jam",
         "jamJoin" to "Liity Jamiin",
@@ -677,7 +677,7 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
         "jamLocalNetworkOnly" to "Jam toimii samassa Wi-Fi-verkossa olevien laitteiden välillä"
     ),
     "et" to mapOf(
-        "jamTitle" to "Levyra Jam",
+        "jamTitle" to "Derbis Jam",
         "jamSubtitle" to "Kuulake koos samas võrgus",
         "jamCreate" to "Loo Jam",
         "jamJoin" to "Liitu Jamiga",

@@ -33,7 +33,7 @@ class AudDRecognitionProvider(private val credentials: AndroidKeystoreCredential
         val body = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("api_token", credentialValue)
             .addFormDataPart("return", "apple_music,spotify")
-            .addFormDataPart("file", "levyra.wav", wav.toRequestBody(WAV))
+            .addFormDataPart("file", "derbis.wav", wav.toRequestBody(WAV))
             .build()
         val request = Request.Builder().url(AUDD_URL).post(body).build()
         return executeAudDRequest(request)

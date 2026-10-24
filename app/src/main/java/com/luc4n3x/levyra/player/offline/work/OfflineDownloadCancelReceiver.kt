@@ -24,7 +24,7 @@ class OfflineDownloadCancelReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_CANCEL_DOWNLOAD = "com.luc4n3x.levyra.action.CANCEL_OFFLINE_DOWNLOAD"
-        const val EXTRA_TASK_KEY = "levyra.download.task_key"
+        const val ACTION_CANCEL_DOWNLOAD = "com.luc4n3x.derbis.action.CANCEL_OFFLINE_DOWNLOAD"
+        const val EXTRA_TASK_KEY = "derbis.download.task_key"
     }
 }

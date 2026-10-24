@@ -36,7 +36,7 @@ import timber.log.Timber
 
 @UnstableApi
 object PlaybackNetworkStack {
-    private const val USER_AGENT = "LevyraPlayer/1.13 Android Music"
+    private const val USER_AGENT = "DerbisPlayer/1.13 Android Music"
     private const val CONNECT_TIMEOUT_MS = 6_000
     private const val READ_TIMEOUT_MS = 30_000
     private const val READ_BUFFER_BYTES = 64 * 1024
@@ -302,7 +302,7 @@ object PlaybackNetworkStack {
         private val threadNumber = AtomicInteger(1)
 
         override fun newThread(runnable: Runnable): Thread {
-            return Thread(runnable, "levyra-cronet-${threadNumber.getAndIncrement()}").apply {
+            return Thread(runnable, "derbis-cronet-${threadNumber.getAndIncrement()}").apply {
                 priority = Thread.NORM_PRIORITY + 1
             }
         }

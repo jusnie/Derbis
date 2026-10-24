@@ -386,7 +386,7 @@ class ChartsRepository(context: Context) {
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/json")
-            .header("User-Agent", "Levyra/${BuildConfig.VERSION_NAME} Android")
+            .header("User-Agent", "Derbis/${BuildConfig.VERSION_NAME} Android")
             .cacheControl(FEED_CACHE_CONTROL)
             .build()
         val call = httpClient.newCall(request)

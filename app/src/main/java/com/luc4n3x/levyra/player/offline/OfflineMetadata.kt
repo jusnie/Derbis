@@ -55,7 +55,7 @@ internal fun mergeOfflineMetadataTrack(original: Track, resolved: Track): Track 
 internal fun Track.toRichM4aMetadata(artwork: ByteArray?, lyrics: String): LevyraM4aMetadata = LevyraM4aMetadata(
     title = title,
     artist = artist,
-    album = album.ifBlank { "Levyra" },
+    album = album.ifBlank { "Derbis" },
     albumArtist = albumArtist.ifBlank { artist },
     year = year,
     releaseDate = releaseDate.ifBlank { year },

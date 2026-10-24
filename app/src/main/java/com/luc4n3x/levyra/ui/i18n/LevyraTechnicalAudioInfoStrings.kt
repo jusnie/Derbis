@@ -40,7 +40,7 @@ internal data class TechnicalAudioInfoCopy(
     val remotePlayback: String = "Remote playback",
     val receiverManaged: String = "Managed by receiver",
     val lossless: String = "Lossless",
-    val enhancedAudio: String = "LEVYRA ENHANCED AUDIO",
+    val enhancedAudio: String = "DERBIS ENHANCED AUDIO",
     val status: String = "Status",
     val active: String = "Active",
     val bypassed: String = "Bypassed",

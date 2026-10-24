@@ -40,7 +40,7 @@ class CollectionPayloadTooLargeException : IOException("Personal collection payl
 class CollectionNotPlaylistException : IOException("Personal collection server returned a web page instead of a playlist")
 
 object PersonalCollectionNetworkPolicy {
-    const val COLLECTION_HEADER = "X-Levyra-Collection"
+    const val COLLECTION_HEADER = "X-Derbis-Collection"
 
     @Volatile private var rules: Map<String, CollectionAccessRule> = emptyMap()
 
@@ -94,7 +94,7 @@ internal class CollectionAccessInterceptor(
     }
 
     companion object {
-        val USER_AGENT = "Levyra/${BuildConfig.VERSION_NAME} (Android)"
+        val USER_AGENT = "Derbis/${BuildConfig.VERSION_NAME} (Android)"
     }
 }
 

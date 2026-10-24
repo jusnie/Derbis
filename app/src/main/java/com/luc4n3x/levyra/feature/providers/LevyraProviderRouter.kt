@@ -192,7 +192,7 @@ class CachedPlaybackProvider(
 class LevyraNativePlaybackProvider(
     private val resolver: PlaybackResolver
 ) : LevyraPlaybackProvider {
-    override val id: String = "levyra_native"
+    override val id: String = "derbis_native"
     override val priority: Int = 10
 
     override suspend fun resolve(track: Track, videoMode: Boolean): Track {

@@ -289,11 +289,11 @@ val DemoLyrics: List<LyricLine> = listOf(
         )
     ),
     LyricLine(
-        text = "Levyra sings your melody",
+        text = "Derbis sings your melody",
         startMs = 10400L,
         endMs = 14000L,
         words = listOf(
-            LyricWord(10400L, 11200L, "Levyra"),
+            LyricWord(10400L, 11200L, "Derbis"),
             LyricWord(11200L, 11900L, "sings"),
             LyricWord(11900L, 12600L, "your"),
             LyricWord(12600L, 14000L, "melody")

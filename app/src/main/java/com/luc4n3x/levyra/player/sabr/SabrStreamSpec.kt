@@ -63,7 +63,7 @@ internal data class SabrStreamSpec(
     }
 
     companion object {
-        const val SCHEME_PREFIX = "levyra-sabr://s/"
+        const val SCHEME_PREFIX = "derbis-sabr://s/"
 
         private const val FIELD_ENDPOINT = "endpoint"
         private const val FIELD_USTREAMER = "ustreamer"

@@ -211,6 +211,8 @@ data class LevyraInterfaceSettings(
     val canvasSource: LevyraCanvasSource = LevyraCanvasSource.Auto,
     val visualPerformance: LevyraVisualPerformance = LevyraVisualPerformance.Full,
     val liquidGlassEnabled: Boolean = true,
+    val liteMode: Boolean = false,
+    val forceHighRefreshRate: Boolean = false,
     val glassBlur: Int = DEFAULT_GLASS_LEVEL,
     val glassTransparency: Int = DEFAULT_GLASS_LEVEL,
     val glassTint: Int = DEFAULT_GLASS_LEVEL,

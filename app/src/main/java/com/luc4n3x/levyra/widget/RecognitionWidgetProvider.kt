@@ -38,7 +38,7 @@ class RecognitionWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "com.luc4n3x.levyra.widget.RECOGNIZE"
+        const val ACTION_TOGGLE = "com.luc4n3x.derbis.widget.RECOGNIZE"
 
         fun toggleIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
             context,

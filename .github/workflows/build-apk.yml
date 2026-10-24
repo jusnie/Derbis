@@ -55,18 +55,20 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1
-          name: "Derbis v1.0.1"
+          tag_name: v3.0.2
+          name: "Derbis v3.0.2"
           draft: false
           prerelease: false
           body: |
-            ## Derbis v1.0.1 Release
-            - ⚡ **Lightweight & High Performance**: Completely removed Chucker HTTP monitoring and enabled full R8 minification & resource shrinking.
-            - 🚀 **Lag & ANR Fix**: Zero background network inspection, smooth 120Hz scrolling, fast startup.
-            - 🖤 **AMOLED Pitch Black & Crisp White**: Optimized for battery and OLED displays (#000000).
-            - 🌅 **Dynamic Greetings**: Morning, afternoon, evening, and night greetings.
-            - 🔗 **Updated Sources**: GitHub repo and update checks pointed directly to `jusnie/Derbis`.
-            - 🏷️ **Clean Branding**: Attributed to Yasuda, all legacy author names and links updated.
+            ## Derbis v3.0.2 Release
+            - ◈ **New Derbis Logo**: Updated Android adaptive launcher icons, notification artwork, desktop PNG, and Windows icon.
+            - 🎛️ **DJ Mix**: Crossfade / DJ transition control now supports 0–30 seconds; handoff logic prevents the occasional doubled-voice replay between tracks.
+            - 🎬 **Animated Artwork**: Auto-selects the best available motion artwork, with Spotify Canvas, Apple Music, and TIDAL choices.
+            - 🍎 **Apple Music Player Refresh**: Latest-style player presentation, audio badge, animated artwork stage, and synchronized lyric-line preview.
+            - ⚡ **Lite Mode & High Refresh Rate**: Low-end optimization disables costly visuals; optional 90/120Hz display mode is available on supported devices.
+            - ∞ **Endless Queue**: Continuous-radio queue capacity increased to 1,000 tracks with lazy scrolling.
+            - 🧾 **Insights**: Derbis Wrapped and shareable Receiptify-style top-song cards are now fully Derbis-branded.
+            - 🫧 **Liquid Glass**: Retained as a configurable player/interface design option.
           files: build-assets/Derbis-Release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

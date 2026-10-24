@@ -43,7 +43,7 @@ fun rememberNowPlayingAccent(track: Track?, fallback: Color): Color {
         } else {
             snap()
         },
-        label = "levyra-now-playing-accent"
+        label = "derbis-now-playing-accent"
     )
     return accent
 }

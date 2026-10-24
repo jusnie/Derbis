@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val RECEIPT_ASPECT = 4f / 5f
-private const val RECEIPT_BRAND = "LEVYRA"
+private const val RECEIPT_BRAND = "DERBIS"
 private val ReceiptOnAccent = Color(0xFF07080C)
 
 private enum class ReceiptAction { Share, Save }

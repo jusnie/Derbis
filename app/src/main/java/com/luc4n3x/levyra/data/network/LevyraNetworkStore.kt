@@ -58,7 +58,7 @@ class LevyraNetworkStore(context: Context) {
     }
 
     private companion object {
-        const val PREFERENCES = "levyra_network"
+        const val PREFERENCES = "derbis_network"
         const val PROXY_PASSWORD_SLOT = "network_proxy_password"
         const val KEY_DNS_MODE = "dns_mode"
         const val KEY_CUSTOM_DOH_URL = "custom_doh_url"

@@ -1040,13 +1040,13 @@ private fun toggled(family: StudioWidgetFamily, current: Set<StudioControl>, con
 }
 
 private fun familyName(family: StudioWidgetFamily): String = when (family) {
-    StudioWidgetFamily.Mini -> "Levyra Mini"
-    StudioWidgetFamily.Slim -> "Levyra Slim"
-    StudioWidgetFamily.Expressive -> "Levyra Expressive"
-    StudioWidgetFamily.Hero -> "Levyra Artwork Hero"
-    StudioWidgetFamily.Immersive -> "Levyra Immersive"
-    StudioWidgetFamily.Vinyl -> "Levyra Vinyl"
-    StudioWidgetFamily.QuickActions -> "Levyra Quick Actions"
+    StudioWidgetFamily.Mini -> "Derbis Mini"
+    StudioWidgetFamily.Slim -> "Derbis Slim"
+    StudioWidgetFamily.Expressive -> "Derbis Expressive"
+    StudioWidgetFamily.Hero -> "Derbis Artwork Hero"
+    StudioWidgetFamily.Immersive -> "Derbis Immersive"
+    StudioWidgetFamily.Vinyl -> "Derbis Vinyl"
+    StudioWidgetFamily.QuickActions -> "Derbis Quick Actions"
 }
 
 private fun familyDescription(copy: WidgetStudioCopy, family: StudioWidgetFamily): String = copy[

@@ -19,7 +19,7 @@ import timber.log.Timber
 
 internal object ArtworkMediaStore {
 
-    private const val RELATIVE_PATH = "Pictures/Levyra"
+    private const val RELATIVE_PATH = "Pictures/Derbis"
     private const val MIME_TYPE = "image/jpeg"
 
     suspend fun save(

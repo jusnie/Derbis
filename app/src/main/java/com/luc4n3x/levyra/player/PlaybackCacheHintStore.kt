@@ -48,7 +48,7 @@ internal fun isPlaybackCacheHintQualityCompatible(
 internal const val PLAYBACK_CACHE_HINT_CAPACITY = 32
 
 internal object PlaybackCacheHintStore {
-    private const val PREFS_NAME = "levyra.playback.cache.hints"
+    private const val PREFS_NAME = "derbis.playback.cache.hints"
     private const val KEY_HINTS = "recent"
     private const val MAX_CACHE_KEY_LENGTH = 512
 
@@ -158,7 +158,7 @@ internal object PlaybackCacheHintStore {
     }
 }
 
-private const val PLAYBACK_CACHE_ONLY_PREFIX = "levyra-cache://media?"
+private const val PLAYBACK_CACHE_ONLY_PREFIX = "derbis-cache://media?"
 
 internal fun playbackCacheOnlyUri(hint: PlaybackCacheHint): String =
     buildString {

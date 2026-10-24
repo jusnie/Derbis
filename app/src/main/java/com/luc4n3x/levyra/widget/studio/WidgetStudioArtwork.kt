@@ -23,7 +23,7 @@ internal object WidgetStudioArtwork {
     private val failed = LruCache<String, Long>(24)
     private val inFlight: MutableSet<String> = ConcurrentHashMap.newKeySet()
     private val executor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "levyra-widget-artwork").apply { isDaemon = true }
+        Thread(runnable, "derbis-widget-artwork").apply { isDaemon = true }
     }
 
     @Volatile

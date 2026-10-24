@@ -203,7 +203,7 @@ internal class RadioStore(private val preferences: SharedPreferences) {
 
     private companion object {
         val mutex = Mutex()
-        const val PREFERENCES = "levyra_live_radio"
+        const val PREFERENCES = "derbis_live_radio"
         const val KEY_FAVORITES = "favorites"
         const val KEY_CUSTOM = "custom_stations"
         const val MAX_CUSTOM = 200

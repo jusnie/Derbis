@@ -131,7 +131,7 @@ internal fun LiveRadioScreen(
     BackHandler(enabled = backEnabled, onBack = onBack)
     val context = androidx.compose.ui.platform.LocalContext.current
     val factory = remember(context.applicationContext) { LiveRadioViewModel.factory(context.applicationContext) }
-    val viewModel: LiveRadioViewModel = composeViewModel(key = "levyra-live-radio", factory = factory)
+    val viewModel: LiveRadioViewModel = composeViewModel(key = "derbis-live-radio", factory = factory)
     val state by viewModel.state.collectAsStateWithLifecycle()
     val strings = LocalLevyraStrings.current
     val radioStrings = remember(languageCode) { LevyraLiveRadioCatalog.forCode(languageCode) }

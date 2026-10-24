@@ -371,7 +371,7 @@ internal class LyricsPlusProvider(private val client: OkHttpClient) {
             Request.Builder()
                 .url(url)
                 .header("Accept", accept)
-                .header("User-Agent", "LEVYRA Lyrics Engine/3.5 Android")
+                .header("User-Agent", "DERBIS Lyrics Engine/3.5 Android")
                 .get()
                 .build()
         }.getOrElse { return HttpOutcome.Failure }

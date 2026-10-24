@@ -551,7 +551,7 @@ internal object OfflineFileName {
     private val invalidFileNameChars = Regex("""[\\/:*?"<>|\p{Cntrl}]""")
 
     fun baseName(track: Track): String {
-        val artist = safeComponent(track.artist.ifBlank { "Levyra" })
+        val artist = safeComponent(track.artist.ifBlank { "Derbis" })
         val title = safeComponent(track.title.ifBlank { track.id })
         val suffixBlock = " [${stableSuffix(track)}]"
         val availableDescriptionLength =

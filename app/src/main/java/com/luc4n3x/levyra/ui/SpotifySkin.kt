@@ -93,7 +93,7 @@ internal fun SpotifyPlayCircle(playing: Boolean, resolving: Boolean, size: Dp, m
 @Composable
 internal fun SpotifyAvatar(name: String, size: Dp, modifier: Modifier = Modifier) {
     val initial = name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "L"
-    Box(modifier.size(size).clip(CircleShape).background(spotifyBrowseColor(name.ifBlank { "levyra" })), contentAlignment = Alignment.Center) {
+    Box(modifier.size(size).clip(CircleShape).background(spotifyBrowseColor(name.ifBlank { "derbis" })), contentAlignment = Alignment.Center) {
         Text(initial, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.44f).sp, maxLines = 1)
     }
 }

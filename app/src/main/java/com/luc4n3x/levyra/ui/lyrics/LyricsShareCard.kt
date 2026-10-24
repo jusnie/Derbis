@@ -66,7 +66,7 @@ internal object LyricsShareCard {
     private const val MAX_CACHE_FILES = 4
     private const val MAX_CACHE_AGE_MS = 24L * 60L * 60L * 1000L
     private const val SHARE_DIRECTORY = "share/lyrics"
-    private const val BRAND = "LEVYRA"
+    private const val BRAND = "DERBIS"
     private const val FALLBACK_START = 0xFF26B2D6.toInt()
     private const val FALLBACK_END = 0xFF6F4CFF.toInt()
     private const val MINIMAL_BACKGROUND = 0xFF0C0D12.toInt()

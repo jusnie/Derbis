@@ -217,7 +217,7 @@ internal class PlaybackStrategyHealthStore(context: Context) {
     private val stats = ConcurrentHashMap<String, PlaybackStrategyStats>()
     private val persistenceScheduled = AtomicBoolean(false)
     private val persistenceExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
-        Thread(runnable, "levyra-playback-strategy-health").apply { isDaemon = true }
+        Thread(runnable, "derbis-playback-strategy-health").apply { isDaemon = true }
     }
 
     init {
@@ -287,7 +287,7 @@ internal class PlaybackStrategyHealthStore(context: Context) {
     private fun keyFor(mode: String, strategy: String): String = "$mode::$strategy"
 
     private companion object {
-        const val PREFS_NAME = "levyra_playback_strategy_health"
+        const val PREFS_NAME = "derbis_playback_strategy_health"
         const val KEY_HEALTH = "health"
         const val MAX_ENTRIES = 32
         const val PERSIST_DEBOUNCE_MS = 1_500L

@@ -44,7 +44,7 @@ internal object YoutubePlayerUrlFactoryAnalyzer {
         "(function(s){var u=$factory(\"$PROBE_URL\",\"s\",encodeURIComponent(s));" +
             "var r=u.get(\"s\");return typeof r===\"string\"?decodeURIComponent(r):s;})(INPUT)"
 
-    private const val PROBE_URL = "https://www.youtube.com/watch?v=levyra"
+    private const val PROBE_URL = "https://www.youtube.com/watch?v=derbis"
     private const val MAX_FACTORY_MATCHES = 4
     private const val URL_CLASS_CONFIDENCE = 190
     private const val FACTORY_CONFIDENCE = 120

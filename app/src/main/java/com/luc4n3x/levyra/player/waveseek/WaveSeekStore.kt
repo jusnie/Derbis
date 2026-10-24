@@ -39,7 +39,7 @@ internal fun waveSeekUpdatedIndex(
 }
 
 internal object WaveSeekStore {
-    private const val PREFS_NAME = "levyra.waveseek"
+    private const val PREFS_NAME = "derbis.waveseek"
     private const val INDEX_KEY = "recent"
     private const val MAX_ENTRIES = 64
 

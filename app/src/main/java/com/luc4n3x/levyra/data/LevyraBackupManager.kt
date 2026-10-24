@@ -674,9 +674,9 @@ class LevyraBackupManager(private val context: Context) {
             "${MediaStore.MediaColumns.DATA} LIKE ? AND ${MediaStore.MediaColumns.SIZE} > 0"
         }
         val path = if (scoped) {
-            "${Environment.DIRECTORY_MUSIC}/Levyra/%"
+            "${Environment.DIRECTORY_MUSIC}/Derbis/%"
         } else {
-            "%${File.separator}${Environment.DIRECTORY_MUSIC}${File.separator}Levyra${File.separator}%"
+            "%${File.separator}${Environment.DIRECTORY_MUSIC}${File.separator}Derbis${File.separator}%"
         }
         return runCatching {
             resolver.query(collection, projection, selection, arrayOf(path), null)?.use { cursor ->
@@ -692,7 +692,7 @@ class LevyraBackupManager(private val context: Context) {
                     while (cursor.moveToNext()) {
                         val name = cursor.getString(fileName).orEmpty()
                         val mediaTitle = cursor.getString(title)?.takeUnless { it.isBlank() || it == MediaStore.UNKNOWN_STRING }
-                            ?: name.substringBeforeLast('.').ifBlank { "Levyra Track" }
+                            ?: name.substringBeforeLast('.').ifBlank { "Derbis Track" }
                         add(
                             DownloadEntity(
                                 trackId = "",
@@ -1478,8 +1478,8 @@ class LevyraBackupManager(private val context: Context) {
         const val MAX_PLAYLIST_COVER_TOTAL_BYTES = 64L * 1024L * 1024L
         const val MAX_AUTOMATIC_BACKUPS = 12
         const val AUTOMATIC_BACKUP_DIRECTORY = "backups"
-        const val AUTOMATIC_BACKUP_PREFIX = "levyra-auto-backup-"
-        const val VAULT_EXTENSION = ".levyra"
+        const val AUTOMATIC_BACKUP_PREFIX = "derbis-auto-backup-"
+        const val VAULT_EXTENSION = ".derbis"
         val ALLOWED_VAULT_ENTRIES = setOf(
             MANIFEST_ENTRY,
             SETTINGS_ENTRY,
@@ -1533,9 +1533,9 @@ internal fun vaultStructureCompatible(entryNames: Collection<String>): Boolean =
     missingRequiredVaultSections(entryNames).isEmpty()
 
 internal fun isAutomaticBackupName(name: String): Boolean {
-    if (!name.startsWith("levyra-auto-backup-")) return false
-    val body = name.removePrefix("levyra-auto-backup-")
-    val suffixes = listOf(".levyra.zip", ".levyra", ".zip")
+    if (!name.startsWith("derbis-auto-backup-")) return false
+    val body = name.removePrefix("derbis-auto-backup-")
+    val suffixes = listOf(".derbis.zip", ".derbis", ".zip")
     val suffix = suffixes.firstOrNull { body.endsWith(it) } ?: return false
     val timestamp = body.removeSuffix(suffix)
     return timestamp.isNotEmpty() && timestamp.all(Char::isDigit)
@@ -1543,7 +1543,7 @@ internal fun isAutomaticBackupName(name: String): Boolean {
 
 internal fun levyraVaultFileName(timestamp: Long): String {
     val date = java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US).format(java.util.Date(timestamp))
-    return "Levyra_${date}.levyra"
+    return "Derbis_${date}.derbis"
 }
 
 internal fun automaticBackupFilesToDelete(fileNames: List<String>, retentionCount: Int): List<String> = fileNames
@@ -1811,6 +1811,8 @@ internal fun backupInterfaceSettingsToJson(value: LevyraInterfaceSettings): JSON
     .put("canvasSource", value.canvasSource.name)
     .put("visualPerformance", value.visualPerformance.name)
     .put("liquidGlassEnabled", value.liquidGlassEnabled)
+    .put("liteMode", value.liteMode)
+    .put("forceHighRefreshRate", value.forceHighRefreshRate)
     .put("glassBlur", value.glassBlur)
     .put("glassTransparency", value.glassTransparency)
     .put("glassTint", value.glassTint)
@@ -1870,6 +1872,8 @@ internal fun backupInterfaceSettingsFromJson(
         canvasSource = LevyraCanvasSource.from(json.optString("canvasSource")),
         visualPerformance = LevyraVisualPerformance.from(json.optString("visualPerformance")),
         liquidGlassEnabled = json.optBoolean("liquidGlassEnabled", true),
+        liteMode = json.optBoolean("liteMode", false),
+        forceHighRefreshRate = json.optBoolean("forceHighRefreshRate", false),
         glassBlur = json.optInt("glassBlur", LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassTransparency = json.optInt("glassTransparency", LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassTint = json.optInt("glassTint", LevyraInterfaceSettings.DEFAULT_GLASS_LEVEL),

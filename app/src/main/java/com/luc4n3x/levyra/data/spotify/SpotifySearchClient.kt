@@ -47,7 +47,7 @@ internal class SpotifySearchClient(
         if (trimmed.isEmpty()) return@withContext SearchResults()
         val tracks = try {
             catalogSearch(trimmed, limit.coerceIn(1, 25)).take(limit.coerceIn(1, 25)).map { track ->
-                if (track.id.startsWith("levyra-") && track.audioVideoId.isBlank() &&
+                if (track.id.startsWith("derbis-") && track.audioVideoId.isBlank() &&
                     track.counterpartVideoId.isBlank() && track.videoUrl.isBlank()) {
                     track.copy(id = "spotify:${track.id}")
                 } else track
@@ -73,7 +73,7 @@ internal class SpotifySearchClient(
         val request = Request.Builder()
             .url(endpoint)
             .post(payload.toString().toRequestBody(JSON_MEDIA_TYPE))
-            .header("X-Levyra-Key", clientKey)
+            .header("X-Derbis-Key", clientKey)
             .header("Accept", "application/json")
             .build()
         val remote = try {

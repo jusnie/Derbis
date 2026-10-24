@@ -1,7 +1,7 @@
 package com.luc4n3x.levyra.ui.i18n
 
 private val homeEditorialKeys = listOf(
-    "levyraSelection",
+    "derbisSelection",
     "releasedToday",
     "justReleased",
     "chartTrending",
@@ -30,7 +30,7 @@ private val homeEditorialKeys = listOf(
 
 private val homeEditorialCatalog = """
 @@en
-Levyra Selection
+Derbis Selection
 Released today
 Just released
 Chart trending
@@ -38,7 +38,7 @@ Selected for you
 Available today
 Released this week
 Popular in the charts
-Levyra Collections
+Derbis Collections
 Curated playlists around the music you love
 New this week
 Local hits
@@ -56,7 +56,7 @@ On repeat
 Throwback
 Hidden gems
 @@it
-Selezione Levyra
+Selezione Derbis
 Uscita oggi
 Appena uscito
 In classifica
@@ -64,7 +64,7 @@ Scelto per te
 Disponibile da oggi
 Uscito questa settimana
 Tra i brani in classifica
-Levyra Collections
+Derbis Collections
 Playlist curate intorno alla musica che ami
 Novità della settimana
 Hit italiane
@@ -82,7 +82,7 @@ In loop
 Throwback
 Gemme nascoste
 @@es
-Selección Levyra
+Selección Derbis
 Lanzamiento de hoy
 Recién lanzado
 En las listas
@@ -90,7 +90,7 @@ Elegido para ti
 Disponible desde hoy
 Lanzado esta semana
 Popular en las listas
-Levyra Collections
+Derbis Collections
 Playlists seleccionadas en torno a la música que amas
 Novedades del momento
 Esenciales locales
@@ -108,7 +108,7 @@ En bucle
 Clásicos de ayer
 Joyas ocultas
 @@fr
-Sélection Levyra
+Sélection Derbis
 Sortie aujourd’hui
 Tout juste sorti
 Dans les classements
@@ -116,7 +116,7 @@ Choisi pour vous
 Disponible dès aujourd’hui
 Sorti cette semaine
 Populaire dans les classements
-Levyra Collections
+Derbis Collections
 Playlists pensées autour de la musique que vous aimez
 Nouveautés du moment
 Essentiels locaux
@@ -134,7 +134,7 @@ En boucle
 Retour en arrière
 Pépites cachées
 @@de
-Levyra-Auswahl
+Derbis-Auswahl
 Heute veröffentlicht
 Gerade erschienen
 In den Charts
@@ -142,7 +142,7 @@ Für dich ausgewählt
 Ab heute verfügbar
 Diese Woche erschienen
 Beliebt in den Charts
-Levyra Collections
+Derbis Collections
 Kuratierte Playlists rund um die Musik, die du liebst
 Gerade neu
 Lokale Essentials
@@ -160,7 +160,7 @@ Auf Dauerschleife
 Throwback
 Verborgene Perlen
 @@pt
-Seleção Levyra
+Seleção Derbis
 Lançado hoje
 Acabou de sair
 Nos tops
@@ -168,7 +168,7 @@ Escolhido para você
 Disponível a partir de hoje
 Lançado esta semana
 Popular nos tops
-Levyra Collections
+Derbis Collections
 Playlists selecionadas em torno da música que você ama
 Novidades do momento
 Essenciais locais
@@ -186,7 +186,7 @@ No repeat
 Relíquias
 Joias escondidas
 @@nl
-Levyra-selectie
+Derbis-selectie
 Vandaag uitgebracht
 Net uitgebracht
 In de hitlijsten
@@ -194,7 +194,7 @@ Voor jou gekozen
 Vanaf vandaag beschikbaar
 Deze week uitgebracht
 Populair in de hitlijsten
-Levyra Collections
+Derbis Collections
 Playlists rond de muziek waar je van houdt
 Nu vers
 Lokale essentials
@@ -212,7 +212,7 @@ Op repeat
 Throwback
 Verborgen pareltjes
 @@pl
-Wybór Levyra
+Wybór Derbis
 Premiera dzisiaj
 Właśnie wydane
 Na listach
@@ -220,7 +220,7 @@ Wybrane dla Ciebie
 Dostępne od dzisiaj
 Wydane w tym tygodniu
 Popularne na listach
-Levyra Collections
+Derbis Collections
 Playlisty dopasowane do muzyki, którą lubisz
 Świeże teraz
 Lokalne klasyki
@@ -238,7 +238,7 @@ Na repeat
 Powrót do przeszłości
 Ukryte perełki
 @@ro
-Selecția Levyra
+Selecția Derbis
 Lansat astăzi
 Tocmai lansat
 În topuri
@@ -246,7 +246,7 @@ Ales pentru tine
 Disponibil de astăzi
 Lansat săptămâna aceasta
 Popular în topuri
-Levyra Collections
+Derbis Collections
 Playlisturi create în jurul muzicii pe care o iubești
 Noutăți acum
 Esențiale locale
@@ -264,7 +264,7 @@ Pe repeat
 Throwback
 Comori ascunse
 @@el
-Επιλογή Levyra
+Επιλογή Derbis
 Κυκλοφόρησε σήμερα
 Μόλις κυκλοφόρησε
 Στα charts
@@ -272,7 +272,7 @@ Comori ascunse
 Διαθέσιμο από σήμερα
 Κυκλοφόρησε αυτή την εβδομάδα
 Δημοφιλές στα charts
-Levyra Collections
+Derbis Collections
 Λίστες φτιαγμένες γύρω από τη μουσική που αγαπάς
 Φρέσκα τώρα
 Τοπικά απαραίτητα
@@ -290,7 +290,7 @@ Levyra Collections
 Αναδρομή
 Κρυμμένα διαμάντια
 @@sv
-Levyra-val
+Derbis-val
 Släppt idag
 Precis släppt
 På topplistorna
@@ -298,7 +298,7 @@ Utvalt för dig
 Tillgängligt från idag
 Släppt den här veckan
 Populär på topplistorna
-Levyra Collections
+Derbis Collections
 Spellistor formade kring musiken du älskar
 Nytt just nu
 Lokala måsten
@@ -316,7 +316,7 @@ På repeat
 Throwback
 Dolda pärlor
 @@da
-Levyra-udvalg
+Derbis-udvalg
 Udgivet i dag
 Netop udgivet
 På hitlisterne
@@ -324,7 +324,7 @@ Udvalgt til dig
 Tilgængelig fra i dag
 Udgivet i denne uge
 Populær på hitlisterne
-Levyra Collections
+Derbis Collections
 Playlister tilpasset den musik du elsker
 Nyt lige nu
 Lokale favoritter
@@ -342,7 +342,7 @@ På repeat
 Throwback
 Skjulte perler
 @@cs
-Výběr Levyra
+Výběr Derbis
 Vydáno dnes
 Právě vydáno
 V žebříčcích
@@ -350,7 +350,7 @@ Vybráno pro vás
 Dostupné ode dneška
 Vydáno tento týden
 Populární v žebříčcích
-Levyra Collections
+Derbis Collections
 Playlisty sestavené podle hudby, kterou máš rád
 Čerstvé novinky
 Místní essentials
@@ -368,7 +368,7 @@ Pořád dokola
 Návrat v čase
 Skryté poklady
 @@uk
-Вибір Levyra
+Вибір Derbis
 Вийшло сьогодні
 Щойно вийшло
 У чартах
@@ -376,7 +376,7 @@ Skryté poklady
 Доступно від сьогодні
 Вийшло цього тижня
 Популярне в чартах
-Levyra Collections
+Derbis Collections
 Плейлисти, створені навколо музики, яку ви любите
 Свіже зараз
 Місцеві хіти
@@ -394,7 +394,7 @@ Levyra Collections
 Ретро
 Приховані перлини
 @@ru
-Выбор Levyra
+Выбор Derbis
 Вышло сегодня
 Только что вышло
 В чартах
@@ -402,7 +402,7 @@ Levyra Collections
 Доступно с сегодняшнего дня
 Вышло на этой неделе
 Популярно в чартах
-Levyra Collections
+Derbis Collections
 Плейлисты, собранные вокруг любимой музыки
 Свежее сейчас
 Местные хиты
@@ -420,7 +420,7 @@ Levyra Collections
 Ретро
 Скрытые жемчужины
 @@tr
-Levyra Seçkisi
+Derbis Seçkisi
 Bugün yayınlandı
 Yeni yayınlandı
 Listelerde
@@ -428,7 +428,7 @@ Senin için seçildi
 Bugünden itibaren kullanılabilir
 Bu hafta yayınlandı
 Listelerde popüler
-Levyra Collections
+Derbis Collections
 Sevdiğin müziğe göre hazırlanmış çalma listeleri
 Şu an yeni
 Yerel vazgeçilmezler
@@ -446,7 +446,7 @@ Tekrarda
 Eskiler
 Gizli cevherler
 @@ar
-اختيار Levyra
+اختيار Derbis
 صدر اليوم
 صدر للتو
 في القوائم
@@ -454,7 +454,7 @@ Gizli cevherler
 متاح ابتداءً من اليوم
 صدر هذا الأسبوع
 رائج في القوائم
-مجموعات Levyra
+مجموعات Derbis
 قوائم تشغيل مصممة حول الموسيقى التي تحبها
 جديد الآن
 أساسيات محلية
@@ -472,7 +472,7 @@ Gizli cevherler
 ذكريات
 جواهر مخفية
 @@zh
-Levyra 精选
+Derbis 精选
 今日发行
 刚刚发行
 榜单热门
@@ -480,7 +480,7 @@ Levyra 精选
 今日起可听
 本周发行
 榜单中的热门歌曲
-Levyra 合集
+Derbis 合集
 围绕你喜爱的音乐打造的歌单
 此刻新鲜
 本地精选
@@ -498,7 +498,7 @@ Levyra 合集
 怀旧金曲
 遗珠之作
 @@ja
-Levyra セレクション
+Derbis セレクション
 本日リリース
 リリースされたばかり
 チャートで人気
@@ -506,7 +506,7 @@ Levyra セレクション
 本日より配信
 今週リリース
 チャートで注目
-Levyra Collections
+Derbis Collections
 あなたの好きな音楽を中心に選んだプレイリスト
 今すぐ聴きたい新曲
 ローカル定番
@@ -524,7 +524,7 @@ Levyra Collections
 スローバック
 隠れた名曲
 @@ko
-Levyra 셀렉션
+Derbis 셀렉션
 오늘 발매
 방금 공개됨
 차트 인기곡
@@ -532,7 +532,7 @@ Levyra 셀렉션
 오늘부터 감상 가능
 이번 주 발매
 차트에서 인기
-Levyra Collections
+Derbis Collections
 좋아하는 음악을 중심으로 구성한 플레이리스트
 지금 막 나온 음악
 로컬 필수곡
@@ -550,7 +550,7 @@ Levyra Collections
 추억의 노래
 숨은 명곡
 @@hi
-Levyra चयन
+Derbis चयन
 आज रिलीज़
 अभी-अभी रिलीज़
 चार्ट में लोकप्रिय
@@ -558,7 +558,7 @@ Levyra चयन
 आज से उपलब्ध
 इस सप्ताह रिलीज़
 चार्ट में लोकप्रिय गीत
-Levyra Collections
+Derbis Collections
 आपके पसंदीदा संगीत के आसपास तैयार प्लेलिस्ट
 अभी नया
 स्थानीय पसंदीदा
@@ -576,7 +576,7 @@ Levyra Collections
 पुराने हिट
 छिपे रत्न
 @@id
-Pilihan Levyra
+Pilihan Derbis
 Rilis hari ini
 Baru saja dirilis
 Di tangga lagu
@@ -584,7 +584,7 @@ Dipilih untukmu
 Tersedia mulai hari ini
 Dirilis minggu ini
 Populer di tangga lagu
-Levyra Collections
+Derbis Collections
 Playlist yang disusun dari musik yang kamu sukai
 Baru saat ini
 Esensial lokal
@@ -602,7 +602,7 @@ Diputar ulang
 Nostalgia
 Permata tersembunyi
 @@vi
-Tuyển chọn Levyra
+Tuyển chọn Derbis
 Phát hành hôm nay
 Vừa phát hành
 Đang nổi trên bảng xếp hạng
@@ -610,7 +610,7 @@ Chọn riêng cho bạn
 Có từ hôm nay
 Phát hành tuần này
 Phổ biến trên bảng xếp hạng
-Levyra Collections
+Derbis Collections
 Playlist được xây dựng quanh âm nhạc bạn yêu thích
 Mới ngay lúc này
 Tinh hoa địa phương
@@ -628,7 +628,7 @@ Nghe lặp lại
 Hoài niệm
 Viên ngọc ẩn
 @@th
-Levyra คัดสรร
+Derbis คัดสรร
 เปิดตัววันนี้
 เพิ่งเปิดตัว
 มาแรงในชาร์ต
@@ -636,7 +636,7 @@ Levyra คัดสรร
 ฟังได้ตั้งแต่วันนี้
 เปิดตัวสัปดาห์นี้
 เพลงยอดนิยมในชาร์ต
-Levyra Collections
+Derbis Collections
 เพลย์ลิสต์ที่จัดขึ้นจากเพลงที่คุณชื่นชอบ
 เพลงใหม่ตอนนี้
 เพลงท้องถิ่นที่ต้องฟัง
@@ -654,7 +654,7 @@ Levyra Collections
 ย้อนวันวาน
 เพลงเพราะที่ซ่อนอยู่
 @@fil
-Levyra Selection
+Derbis Selection
 Inilabas ngayong araw
 Kakalabas lang
 Sikat sa charts
@@ -662,7 +662,7 @@ Pinili para sa iyo
 Available simula ngayon
 Inilabas ngayong linggo
 Popular sa charts
-Levyra Collections
+Derbis Collections
 Mga playlist na binuo ayon sa musikang gusto mo
 Bagong-bago ngayon
 Lokal na essentials
@@ -680,7 +680,7 @@ Paulit-ulit
 Throwback
 Mga nakatagong hiyas
 @@he
-בחירת Levyra
+בחירת Derbis
 יצא היום
 יצא ממש עכשיו
 פופולרי במצעדים
@@ -688,7 +688,7 @@ Mga nakatagong hiyas
 זמין מהיום
 יצא השבוע
 בין השירים הפופולריים במצעדים
-אוספי Levyra
+אוספי Derbis
 פלייליסטים סביב המוזיקה שאתם אוהבים
 חדש עכשיו
 מקומיים חיוניים
@@ -706,7 +706,7 @@ Mga nakatagong hiyas
 נוסטלגיה
 פנינים נסתרות
 @@fi
-Levyran valinta
+Derbisn valinta
 Julkaistu tänään
 Juuri julkaistu
 Listojen nousijat
@@ -714,7 +714,7 @@ Valittu sinulle
 Saatavilla tänään
 Julkaistu tällä viikolla
 Suosittu listoilla
-Levyra-kokoelmat
+Derbis-kokoelmat
 Kuratoituja soittolistoja rakastamasi musiikin ympärille
 Uutta tällä viikolla
 Kotimaiset hitit
@@ -732,7 +732,7 @@ Toistolla
 Muistojen bulevardi
 Piilotetut helmet
 @@et
-Levyra valik
+Derbis valik
 Ilmus täna
 Äsja ilmunud
 Edetabelite trendid
@@ -740,7 +740,7 @@ Valitud sinule
 Saadaval tänasest
 Ilmus sel nädalal
 Populaarne edetabelites
-Levyra kogud
+Derbis kogud
 Kureeritud esitusloendid sinu lemmikmuusika põhjal
 Selle nädala uudised
 Kohalikud hitid

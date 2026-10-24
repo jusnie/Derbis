@@ -12,13 +12,13 @@ import com.luc4n3x.levyra.feature.radio.isLiveRadio
 import com.luc4n3x.levyra.player.queue.PlaybackQueueSnapshot
 
 internal enum class SystemMediaCommand(val customAction: String) {
-    AddFavorite("levyra.system.favorite.add"),
-    RemoveFavorite("levyra.system.favorite.remove"),
-    EnableShuffle("levyra.system.shuffle.enable"),
-    DisableShuffle("levyra.system.shuffle.disable"),
-    SetRepeatOff("levyra.system.repeat.off"),
-    SetRepeatAll("levyra.system.repeat.all"),
-    SetRepeatOne("levyra.system.repeat.one");
+    AddFavorite("derbis.system.favorite.add"),
+    RemoveFavorite("derbis.system.favorite.remove"),
+    EnableShuffle("derbis.system.shuffle.enable"),
+    DisableShuffle("derbis.system.shuffle.disable"),
+    SetRepeatOff("derbis.system.repeat.off"),
+    SetRepeatAll("derbis.system.repeat.all"),
+    SetRepeatOne("derbis.system.repeat.one");
 
     companion object {
         fun fromCustomAction(customAction: String): SystemMediaCommand? =

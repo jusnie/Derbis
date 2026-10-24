@@ -177,6 +177,6 @@ private fun LevyraStrings.diagnosticStatusLabel(status: PlaybackDiagnosticStatus
 
 private fun copyDiagnostics(context: Context, snapshot: PlaybackDiagnosticSnapshot, copiedMessage: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
-    clipboard.setPrimaryClip(ClipData.newPlainText("Levyra playback diagnostics", snapshot.safeReport()))
+    clipboard.setPrimaryClip(ClipData.newPlainText("Derbis playback diagnostics", snapshot.safeReport()))
     Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
 }

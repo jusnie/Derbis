@@ -113,7 +113,7 @@ internal class ReturnYoutubeDislikeRepository {
             .url("$RYD_API_BASE_URL/votes?videoId=$videoId")
             .get()
             .header("Accept", "application/json")
-            .header("User-Agent", "Levyra-Android/1.0 (read-only engagement metadata)")
+            .header("User-Agent", "Derbis-Android/1.0 (read-only engagement metadata)")
             .build()
 
         val result = try {

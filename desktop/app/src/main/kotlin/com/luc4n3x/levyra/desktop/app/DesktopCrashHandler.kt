@@ -58,7 +58,7 @@ internal object DesktopCrashHandler {
             throwable.printStackTrace(PrintWriter(writer))
         }.toString()
         return buildString {
-            appendLine("Levyra Desktop ${AppInfo.version()}")
+            appendLine("Derbis Desktop ${AppInfo.version()}")
             appendLine("Timestamp: ${Instant.now()}")
             appendLine("Thread: ${thread.name}")
             appendLine("OS: ${System.getProperty("os.name")} ${System.getProperty("os.version")}")
@@ -77,7 +77,7 @@ internal object DesktopCrashHandler {
                 .withZone(ZoneOffset.UTC)
                 .format(Instant.now())
             Files.writeString(
-                directory.resolve("levyra-crash-$timestamp.txt"),
+                directory.resolve("derbis-crash-$timestamp.txt"),
                 report,
                 StandardCharsets.UTF_8
             )
@@ -88,14 +88,14 @@ internal object DesktopCrashHandler {
         runCatching { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()) }
         val italian = Locale.getDefault().language.equals("it", ignoreCase = true)
         val dialog = JDialog().apply {
-            title = if (italian) "Levyra - Errore imprevisto" else "Levyra - Unexpected error"
+            title = if (italian) "Derbis - Errore imprevisto" else "Derbis - Unexpected error"
             isModal = true
             defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
             preferredSize = Dimension(760, 520)
             minimumSize = Dimension(560, 380)
         }
 
-        val title = if (italian) "Levyra si è chiusa in modo imprevisto" else "Levyra closed unexpectedly"
+        val title = if (italian) "Derbis si è chiusa in modo imprevisto" else "Derbis closed unexpectedly"
         val subtitle = if (italian) {
             "Il rapporto è stato salvato nella cartella dati dell'app. Puoi copiarlo per la diagnosi."
         } else {
@@ -110,7 +110,7 @@ internal object DesktopCrashHandler {
         }
         val header = JPanel(BorderLayout(0, 5)).apply {
             add(JLabel(title).apply { font = font.deriveFont(Font.BOLD, 17f) }, BorderLayout.NORTH)
-            add(JLabel("<html>$subtitle<br><font color='gray'>Levyra Desktop ${AppInfo.version()}</font></html>"), BorderLayout.CENTER)
+            add(JLabel("<html>$subtitle<br><font color='gray'>Derbis Desktop ${AppInfo.version()}</font></html>"), BorderLayout.CENTER)
         }
         val textArea = JTextArea(report).apply {
             isEditable = false

@@ -388,7 +388,7 @@ private fun WrappedIntro(year: Int, strings: LevyraStrings) {
                 modifier = Modifier.size(44.dp)
             )
             Text(
-                text = "LEVYRA",
+                text = "DERBIS",
                 color = WrappedInk,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Black,

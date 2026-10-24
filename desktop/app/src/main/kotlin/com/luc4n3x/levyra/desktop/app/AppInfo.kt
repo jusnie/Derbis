@@ -22,7 +22,7 @@ object AppInfo {
         return bundled.ifBlank { DEVELOPMENT_VERSION }
     }
 
-    private const val VERSION_RESOURCE = "levyra-desktop-version.properties"
-    private const val VERSION_KEY = "levyraDesktopVersion"
+    private const val VERSION_RESOURCE = "derbis-desktop-version.properties"
+    private const val VERSION_KEY = "derbisDesktopVersion"
     private const val DEVELOPMENT_VERSION = "0.0.0-dev"
 }

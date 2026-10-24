@@ -17,8 +17,8 @@ object WidgetStudioStore {
     @Volatile
     private var liveSnapshotMs = 0L
 
-    private const val CONFIG_PREFS = "levyra_widget_studio"
-    private const val STATE_PREFS = "levyra_widget_studio_state"
+    private const val CONFIG_PREFS = "derbis_widget_studio"
+    private const val STATE_PREFS = "derbis_widget_studio_state"
 
     private const val KEY_STYLE = "style"
     private const val KEY_PALETTE = "palette"

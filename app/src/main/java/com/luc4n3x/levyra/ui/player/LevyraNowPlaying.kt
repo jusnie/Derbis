@@ -292,7 +292,8 @@ private fun LevyraNowPlayingContent(
         artworkUrl = paletteArtworkUrl,
         fallback = fallbackPalette
     )
-    val motionEnabled = animated && !state.isVideoMode && !motionSuspended
+    // Lite Mode stops expensive Canvas decoding and animated artwork before it reaches the player.
+    val motionEnabled = animated && !state.interfaceSettings.liteMode && !state.isVideoMode && !motionSuspended
     var canvasBackdropPalette by remember(track?.id, state.isVideoMode) {
         mutableStateOf<MotionBackdropPalette?>(null)
     }
@@ -584,7 +585,7 @@ private fun LevyraNowPlayingContent(
             } else {
                 PlayerSourceEyebrow(
                     label = strings.playingFrom,
-                    source = track?.source ?: "LEVYRA",
+                    source = track?.source ?: "DERBIS",
                     surfaces = surfaces
                 )
             }
@@ -1209,7 +1210,8 @@ private fun LevyraNowPlayingContent(
                     track, deckSlots, artworkCap, state.isPlaying,
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = appleMusicCanvas,
-                    video = state.isVideoMode
+                    video = state.isVideoMode,
+                    activeLyricText = state.activeLyric?.text
                 )
             } else {
                 PrismPlayerScene(track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying)
@@ -1911,7 +1913,7 @@ private fun PlayerLiveRadioMetadata(
 ) {
     val context = LocalContext.current
     val factory = remember(context.applicationContext) { LiveRadioViewModel.factory(context.applicationContext) }
-    val radioViewModel: LiveRadioViewModel = composeViewModel(key = "levyra-live-radio", factory = factory)
+    val radioViewModel: LiveRadioViewModel = composeViewModel(key = "derbis-live-radio", factory = factory)
     val radioState by radioViewModel.state.collectAsStateWithLifecycle()
     val strings = LocalLevyraStrings.current
     LaunchedEffect(station?.uuid) { radioViewModel.refreshFavorites() }

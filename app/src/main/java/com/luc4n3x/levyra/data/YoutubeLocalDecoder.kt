@@ -1489,7 +1489,7 @@ internal class YoutubePlayerConfigStore(
 
     companion object {
         private const val BUNDLED_CONFIG_ASSET = "player_configs.json"
-        private const val USER_AGENT = "Levyra/2.3.20 Android local-decoder"
+        private const val USER_AGENT = "Derbis/2.3.20 Android local-decoder"
         private const val CONFIG_TTL_MS = 6L * 60L * 60L * 1000L
         private const val UNKNOWN_REFRESH_COOLDOWN_MS = 60_000L
         private const val REJECTION_REFRESH_COOLDOWN_MS = 5L * 60L * 1000L
@@ -1982,7 +1982,7 @@ internal object YoutubeLocalDecoderFeedbackPolicy {
 
     fun shouldRefresh(source: String, now: Long, lastDecodeAtMs: Long): Boolean {
         val normalized = source.lowercase(Locale.ROOT)
-        val relevantSource = normalized.contains("youtube") || normalized.contains("levyraextractor")
+        val relevantSource = normalized.contains("youtube") || normalized.contains("derbisextractor")
         return relevantSource && YoutubePlayerConfigStore.withinWindow(now, lastDecodeAtMs, FEEDBACK_WINDOW_MS)
     }
 }
@@ -2110,7 +2110,7 @@ internal object YoutubePlayerJsSupport {
     fun injectExports(javascript: String, config: YoutubePlayerCipherConfig): String {
         val signature = config.signatureExpression.replace("INPUT", "sig")
         val nExpression = config.nExpression.replace("INPUT", "n")
-        val exports = ";window.__levyraSig=function(sig){return $signature;};window.__levyraN=function(n){return $nExpression;};"
+        val exports = ";window.__derbisSig=function(sig){return $signature;};window.__derbisN=function(n){return $nExpression;};"
         val marker = "})(_yt_player);"
         val index = javascript.lastIndexOf(marker)
         if (index < 0) {
@@ -2169,7 +2169,7 @@ private class YoutubeCipherWebRuntime private constructor(
                 if (isDead || closed.get()) {
                     throw YoutubeRendererFailureException("Local decoder renderer unavailable")
                 }
-                val script = "window.__levyraDecode(${JSONObject.quote(kind)},${JSONObject.quote(value)},${JSONObject.quote(id)});"
+                val script = "window.__derbisDecode(${JSONObject.quote(kind)},${JSONObject.quote(value)},${JSONObject.quote(id)});"
                 webView.evaluateJavascript(script, null)
             }
             val output = withTimeout(EVALUATION_TIMEOUT_MS) { deferred.await() }
@@ -2246,7 +2246,7 @@ private class YoutubeCipherWebRuntime private constructor(
     }
 
     companion object {
-        private const val JS_INTERFACE = "LevyraDecoderBridge"
+        private const val JS_INTERFACE = "DerbisDecoderBridge"
         private const val READY_TIMEOUT_MS = 6_000L
         private const val EVALUATION_TIMEOUT_MS = 2_500L
 
@@ -2310,41 +2310,41 @@ private class YoutubeCipherWebRuntime private constructor(
 
         private val HTML = """
             <!doctype html><html><head><meta charset="utf-8"><script>
-            window.__levyraValidTransform=function(input,result){
+            window.__derbisValidTransform=function(input,result){
               return typeof result==='string'&&result!==input&&result.length>=5&&/^[A-Za-z0-9_-]+$/.test(result);
             };
-            window.__levyraValidN=window.__levyraValidTransform;
-            window.__levyraReady=function(){
-              var sigAvailable=typeof window.__levyraSig==='function';
-              var nAvailable=typeof window.__levyraN==='function';
+            window.__derbisValidN=window.__derbisValidTransform;
+            window.__derbisReady=function(){
+              var sigAvailable=typeof window.__derbisSig==='function';
+              var nAvailable=typeof window.__derbisN==='function';
               var sigValidated=false;
               var nValidated=false;
               if(sigAvailable){
                 try{
                   var sigProbe='abcdefghijklmnopqrstuvwxyz';
-                  sigValidated=window.__levyraValidTransform(sigProbe,String(window.__levyraSig(sigProbe)));
+                  sigValidated=window.__derbisValidTransform(sigProbe,String(window.__derbisSig(sigProbe)));
                 }catch(error){sigValidated=false;}
               }
               if(nAvailable){
                 try{
                   var probe='KdrqFlzJXl9EcCwlmEy';
-                  nValidated=window.__levyraValidN(probe,String(window.__levyraN(probe)));
+                  nValidated=window.__derbisValidN(probe,String(window.__derbisN(probe)));
                 }catch(error){nValidated=false;}
               }
-              LevyraDecoderBridge.onReady(sigAvailable,sigValidated,nAvailable,nValidated);
+              DerbisDecoderBridge.onReady(sigAvailable,sigValidated,nAvailable,nValidated);
             };
-            window.__levyraDecode=function(kind,input,id){
+            window.__derbisDecode=function(kind,input,id){
               try{
-                var fn=kind==='sig'?window.__levyraSig:window.__levyraN;
-                if(typeof fn!=='function'){LevyraDecoderBridge.onError(id,'decoder function unavailable: '+kind);return;}
+                var fn=kind==='sig'?window.__derbisSig:window.__derbisN;
+                if(typeof fn!=='function'){DerbisDecoderBridge.onError(id,'decoder function unavailable: '+kind);return;}
                 var result=fn(input);
-                if(result===null||result===undefined||String(result).length===0){LevyraDecoderBridge.onError(id,'empty decoder result: '+kind);return;}
+                if(result===null||result===undefined||String(result).length===0){DerbisDecoderBridge.onError(id,'empty decoder result: '+kind);return;}
                 result=String(result);
-                if(kind==='n'&&!window.__levyraValidN(input,result)){LevyraDecoderBridge.onError(id,'invalid n-transform result');return;}
-                LevyraDecoderBridge.onResult(id,result);
-              }catch(error){LevyraDecoderBridge.onError(id,String(error&&error.stack?error.stack:error));}
+                if(kind==='n'&&!window.__derbisValidN(input,result)){DerbisDecoderBridge.onError(id,'invalid n-transform result');return;}
+                DerbisDecoderBridge.onResult(id,result);
+              }catch(error){DerbisDecoderBridge.onError(id,String(error&&error.stack?error.stack:error));}
             };
-            </script><script src="player.js" onload="window.__levyraReady()" onerror="LevyraDecoderBridge.onLoadError('player.js')"></script></head><body></body></html>
+            </script><script src="player.js" onload="window.__derbisReady()" onerror="DerbisDecoderBridge.onLoadError('player.js')"></script></head><body></body></html>
         """.trimIndent()
     }
 }

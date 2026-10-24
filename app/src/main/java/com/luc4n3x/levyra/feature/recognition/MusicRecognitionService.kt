@@ -219,13 +219,13 @@ class MusicRecognitionService : Service() {
 
     companion object {
         private const val ACTION_RECOGNIZE_MICROPHONE =
-            "com.luc4n3x.levyra.action.RECOGNIZE_MICROPHONE"
+            "com.luc4n3x.derbis.action.RECOGNIZE_MICROPHONE"
         private const val ACTION_RECOGNIZE_DEVICE_PLAYBACK =
-            "com.luc4n3x.levyra.action.RECOGNIZE_DEVICE_PLAYBACK"
+            "com.luc4n3x.derbis.action.RECOGNIZE_DEVICE_PLAYBACK"
         private const val ACTION_CANCEL =
-            "com.luc4n3x.levyra.action.CANCEL_RECOGNITION"
-        private const val EXTRA_RESULT_CODE = "levyra.projection_result_code"
-        private const val EXTRA_RESULT_DATA = "levyra.projection_result_data"
+            "com.luc4n3x.derbis.action.CANCEL_RECOGNITION"
+        private const val EXTRA_RESULT_CODE = "derbis.projection_result_code"
+        private const val EXTRA_RESULT_DATA = "derbis.projection_result_data"
 
         fun microphoneIntent(context: Context): Intent =
             Intent(context, MusicRecognitionService::class.java).setAction(ACTION_RECOGNIZE_MICROPHONE)

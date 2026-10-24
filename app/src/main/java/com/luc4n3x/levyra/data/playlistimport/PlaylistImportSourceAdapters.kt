@@ -135,9 +135,9 @@ class LevyraSharePlaylistAdapter : PlaylistImportSourceAdapter {
 
     override suspend fun read(input: PlaylistImportInput, detected: DetectedPlaylistInput, progress: PlaylistReadProgress): PlaylistSourceResult {
         val payload = LevyraPlaylistShareCodec.extractPayload(input.text)
-            ?: throw PlaylistImportException(PlaylistImportFailureKind.INVALID_INPUT, "No Levyra playlist payload")
+            ?: throw PlaylistImportException(PlaylistImportFailureKind.INVALID_INPUT, "No Derbis playlist payload")
         val decoded = LevyraPlaylistShareCodec.decode(payload) as? LevyraPlaylistDecodeResult.Success
-            ?: throw PlaylistImportException(PlaylistImportFailureKind.FILE_MALFORMED, "Invalid Levyra playlist payload")
+            ?: throw PlaylistImportException(PlaylistImportFailureKind.FILE_MALFORMED, "Invalid Derbis playlist payload")
         val tracks = decoded.playlist.tracks.mapIndexedNotNull { index, shared ->
             if (shared.id.isBlank() && shared.title.isBlank()) return@mapIndexedNotNull null
             ImportedTrackIdentity(
@@ -147,7 +147,7 @@ class LevyraSharePlaylistAdapter : PlaylistImportSourceAdapter {
                 directCatalogId = shared.id.takeIf { youtubeId.matches(it) }.orEmpty()
             )
         }
-        if (tracks.isEmpty()) throw PlaylistImportException(PlaylistImportFailureKind.NO_USABLE_TRACKS, "Empty Levyra playlist")
+        if (tracks.isEmpty()) throw PlaylistImportException(PlaylistImportFailureKind.NO_USABLE_TRACKS, "Empty Derbis playlist")
         progress.onRead(tracks.size, tracks.size)
         return PlaylistSourceResult(
             ParsedPlaylist(

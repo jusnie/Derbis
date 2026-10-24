@@ -443,7 +443,7 @@ private const val REMOTE_PLAYLIST_PREVIEW_TRACK_LIMIT = 300
 private val ACTIVE_DOWNLOAD_STATES = setOf("QUEUED", "RUNNING", "PAUSED", "RETRYING")
 
 private const val LOCAL_SEARCH_CACHE_CANDIDATE_LIMIT = 600
-private const val SEARCH_LATENCY_LOG_TAG = "LevyraSearch"
+private const val SEARCH_LATENCY_LOG_TAG = "DerbisSearch"
 
 private data class HomeArtistCandidate(
     val name: String,
@@ -3343,7 +3343,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         if (preview.request.kind != SharedMediaKind.LevyraPlaylist) return
         val payload = preview.request.sharedPlaylistPayload
         dismissSharedMedia()
-        playlistImport.open("levyra://playlist?v=${LevyraPlaylistShareCodec.SCHEMA_VERSION}&d=$payload")
+        playlistImport.open("derbis://playlist?v=${LevyraPlaylistShareCodec.SCHEMA_VERSION}&d=$payload")
     }
 
     private fun enhanceVideoSection(
@@ -3629,7 +3629,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun jamDisplayNameOrDefault(): String {
         val name = _state.value.jamDisplayName.trim()
-        return name.ifBlank { _state.value.userName.trim().ifBlank { "Levyra" } }
+        return name.ifBlank { _state.value.userName.trim().ifBlank { "Derbis" } }
     }
 
     private fun observeJamState() {
@@ -5968,7 +5968,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val preview = _state.value.backupPreview
         if (preview != null && !preview.compatible) {
             _state.update {
-                it.copy(backupMessage = "Backup non compatibile con questa versione di Levyra", backupPreview = null, pendingRestoreUri = null)
+                it.copy(backupMessage = "Backup non compatibile con questa versione di Derbis", backupPreview = null, pendingRestoreUri = null)
             }
             return
         }
@@ -8677,7 +8677,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val completedTrack = activeDownloadTracks.remove(trackId)
         activeDownloadTitles.remove(trackId)
         val fileName = workInfo.outputData.getString(OfflineExportWorker.KEY_FILE_NAME).orEmpty()
-        val destinationLabel = workInfo.outputData.getString(OfflineExportWorker.KEY_DESTINATION_LABEL).orEmpty().ifBlank { "Music/Levyra" }
+        val destinationLabel = workInfo.outputData.getString(OfflineExportWorker.KEY_DESTINATION_LABEL).orEmpty().ifBlank { "Music/Derbis" }
         val embedded = workInfo.outputData.getBoolean(OfflineExportWorker.KEY_EMBEDDED_METADATA, false)
         val strings = LevyraStrings.forCode(_state.value.languageCode)
         completedTrack?.let { recordSmartDownload(it) }
@@ -13219,7 +13219,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             val terminateProcess = withContext(Dispatchers.IO) {
                 runCatchingPreservingCancellation {
                     val work = WorkManager.getInstance(getApplication<Application>())
-                        .getWorkInfosByTag("levyra_offline_export")
+                        .getWorkInfosByTag("derbis_offline_export")
                         .get(5L, java.util.concurrent.TimeUnit.SECONDS)
                     canTerminateProcessForExit(work.map { it.state })
                 }.getOrDefault(false)
@@ -13985,7 +13985,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         const val MIX_HISTORY_DAYS = 180
         const val MIX_LAB_PLAYLIST_TAG = "Mix Lab"
         const val MIX_SURPRISE_ANCHORS = 3
-        const val MIX_UNAVAILABLE_MARKER = "levyra_mix_unavailable"
+        const val MIX_UNAVAILABLE_MARKER = "derbis_mix_unavailable"
         const val JAM_TRACK_SOURCE = "jam"
         const val JAM_DISPLAY_NAME_MAX_LENGTH = 32
         const val LIVE_RADIO_RECOVERY_STABLE_MS = 10_000L
@@ -14133,7 +14133,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 _state.update { it.copy(mixLoading = false) }
                 throw cancelled
             } catch (error: Exception) {
-                Timber.w(error, "Levyra mix build failed")
+                Timber.w(error, "Derbis mix build failed")
                 _state.update { it.copy(mixLoading = false, mixMessage = MIX_UNAVAILABLE_MARKER) }
             }
         }

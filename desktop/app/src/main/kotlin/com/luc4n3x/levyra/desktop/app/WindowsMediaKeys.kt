@@ -26,7 +26,7 @@ internal class WindowsMediaKeys(private val onAction: (MediaKeyAction) -> Unit) 
     fun start(): Boolean {
         if (!isWindows) return false
         if (!running.compareAndSet(false, true)) return true
-        val started = Thread({ pumpMessages() }, "levyra-media-keys").apply {
+        val started = Thread({ pumpMessages() }, "derbis-media-keys").apply {
             isDaemon = true
             start()
         }
@@ -37,7 +37,7 @@ internal class WindowsMediaKeys(private val onAction: (MediaKeyAction) -> Unit) 
     fun stop() {
         if (!running.compareAndSet(true, false)) return
         thread = null
-        Thread({ quitMessageLoop() }, "levyra-media-keys-stop").apply {
+        Thread({ quitMessageLoop() }, "derbis-media-keys-stop").apply {
             isDaemon = true
             start()
         }

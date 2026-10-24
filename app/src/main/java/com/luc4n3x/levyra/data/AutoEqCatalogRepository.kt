@@ -91,7 +91,7 @@ internal class AutoEqCatalogRepository(context: Context) : AutoEqCatalogSource {
         val request = Request.Builder()
             .url(INDEX_URL)
             .header("Accept", "text/markdown, text/plain")
-            .header("User-Agent", "LEVYRA/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "DERBIS/${BuildConfig.VERSION_NAME}")
             .apply { etag?.let { header("If-None-Match", it) } }
             .build()
         return try {
@@ -127,7 +127,7 @@ internal class AutoEqCatalogRepository(context: Context) : AutoEqCatalogSource {
         val request = Request.Builder()
             .url("$REPOSITORY_ROOT/$path")
             .header("Accept", "text/plain")
-            .header("User-Agent", "LEVYRA/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "DERBIS/${BuildConfig.VERSION_NAME}")
             .build()
         return try {
             client.newCall(request).execute().use { response ->
@@ -193,7 +193,7 @@ internal class AutoEqCatalogRepository(context: Context) : AutoEqCatalogSource {
     companion object {
         private const val REPOSITORY_ROOT = "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master"
         private const val INDEX_URL = "$REPOSITORY_ROOT/results/INDEX.md"
-        private const val STORE_NAME = "levyra_autoeq_catalog"
+        private const val STORE_NAME = "derbis_autoeq_catalog"
         private const val KEY_ETAG = "index_etag"
         private const val KEY_CHECKED_AT = "index_checked_at"
         private const val INDEX_FILE = "autoeq/INDEX.md"

@@ -33,7 +33,7 @@ sealed interface LevyraPlaylistDecodeResult {
     data class Failure(val error: LevyraPlaylistDecodeError) : LevyraPlaylistDecodeResult
 }
 
-const val LEVYRA_SHARE_SCHEME = "levyra"
+const val LEVYRA_SHARE_SCHEME = "derbis"
 const val LEVYRA_SHARE_PLAYLIST_HOST = "playlist"
 
 object LevyraPlaylistShareCodec {
@@ -49,7 +49,7 @@ object LevyraPlaylistShareCodec {
     private val TRACK_ID = Regex("^[A-Za-z0-9_-]{6,24}$")
     private val CONTROL_CHARS = Regex("\\p{Cntrl}")
     private val LINK_PREFIX = "$LEVYRA_SHARE_SCHEME://$LEVYRA_SHARE_PLAYLIST_HOST"
-    private val LINK_PATTERN = Regex("""(?i)levyra://playlist\?\S+""")
+    private val LINK_PATTERN = Regex("""(?i)derbis://playlist\?\S+""")
     private val PAYLOAD_CHARS = (('A'..'Z') + ('a'..'z') + ('0'..'9') + listOf('_', '-')).toSet()
 
     fun encode(title: String, tracks: List<LevyraSharedTrack>): String? {

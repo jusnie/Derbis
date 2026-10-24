@@ -116,8 +116,8 @@ class ReleaseRadarWorker(
     }
 
     companion object {
-        const val CHANNEL_ID = "levyra_new_releases"
-        private const val WORK_NAME = "levyra_release_radar"
+        const val CHANNEL_ID = "derbis_new_releases"
+        private const val WORK_NAME = "derbis_release_radar"
         private const val MAX_ARTISTS_PER_RUN = 12
         private const val MAX_NOTIFICATIONS_PER_ARTIST = 2
         private const val MAX_NOTIFICATIONS_PER_RUN = 5
@@ -235,7 +235,7 @@ private class ReleaseNotificationCoordinator(context: Context) {
             .setSummaryText(strings.releaseRadar)
         lines.forEach { style.addLine(it) }
         val notification = NotificationCompat.Builder(appContext, ReleaseRadarWorker.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_derbis_radar)
+            .setSmallIcon(R.drawable.ic_levyra_radar)
             .setContentTitle(title)
             .setContentText(lines.first())
             .setStyle(style)

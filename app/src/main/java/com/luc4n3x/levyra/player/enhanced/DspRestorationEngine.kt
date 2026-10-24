@@ -9,7 +9,7 @@ import kotlin.math.sqrt
 import kotlin.math.tanh
 
 class DspRestorationEngine : EnhancedAudioEngine {
-    override val name: String = "Levyra Band Replication"
+    override val name: String = "Derbis Band Replication"
 
     private var sampleRate = 44_100
     private var channels = 2

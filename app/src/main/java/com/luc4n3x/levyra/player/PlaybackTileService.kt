@@ -131,7 +131,7 @@ class PlaybackTileService : TileService() {
             if (controllerFuture === future) controllerFuture = null
             val connected = runCatching { future.get() }.getOrNull()
             if (connected == null) {
-                Timber.w("Levyra playback tile could not attach to the playback session")
+                Timber.w("Derbis playback tile could not attach to the playback session")
                 if (pendingToggle) {
                     pendingToggle = false
                     openApp()

@@ -96,7 +96,7 @@ private val localTagBundles = mapOf(
         "Genre", "Year", "Track", "Disc",
         "Composer", "Lyricist", "Comment", "Copyright",
         "Credits", "Save changes", "Saving…", "Tags saved",
-        "Couldn't write these tags.", "Safe tag editing isn't available for this file format.", "This file is too large for Levyra to edit its tags safely.", "Write access wasn't granted."
+        "Couldn't write these tags.", "Safe tag editing isn't available for this file format.", "This file is too large for Derbis to edit its tags safely.", "Write access wasn't granted."
     ),
     "it" to localTagBundle(
         "Cerca titolo, artista, album, compositore, autore del testo, commenti o tag",
@@ -107,7 +107,7 @@ private val localTagBundles = mapOf(
         "Genere", "Anno", "Traccia", "Disco",
         "Compositore", "Autore del testo", "Commento", "Copyright",
         "Crediti", "Salva modifiche", "Salvataggio…", "Tag salvati",
-        "Impossibile scrivere questi tag.", "La modifica sicura dei tag non è disponibile per questo formato.", "Il file è troppo grande perché Levyra possa modificarne i tag in sicurezza.", "L'accesso in scrittura non è stato concesso."
+        "Impossibile scrivere questi tag.", "La modifica sicura dei tag non è disponibile per questo formato.", "Il file è troppo grande perché Derbis possa modificarne i tag in sicurezza.", "L'accesso in scrittura non è stato concesso."
     ),
     "es" to localTagBundle(
         "Buscar por título, artista, álbum, compositor, letrista, comentarios o etiquetas",
@@ -118,7 +118,7 @@ private val localTagBundles = mapOf(
         "Género", "Año", "Pista", "Disco",
         "Compositor", "Letrista", "Comentario", "Copyright",
         "Créditos", "Guardar cambios", "Guardando…", "Etiquetas guardadas",
-        "No se pudieron escribir estas etiquetas.", "La edición segura de etiquetas no está disponible para este formato.", "El archivo es demasiado grande para que Levyra edite sus etiquetas de forma segura.", "No se concedió permiso de escritura."
+        "No se pudieron escribir estas etiquetas.", "La edición segura de etiquetas no está disponible para este formato.", "El archivo es demasiado grande para que Derbis edite sus etiquetas de forma segura.", "No se concedió permiso de escritura."
     ),
     "fr" to localTagBundle(
         "Rechercher par titre, artiste, album, compositeur, parolier, commentaires ou tags",
@@ -129,7 +129,7 @@ private val localTagBundles = mapOf(
         "Genre", "Année", "Piste", "Disque",
         "Compositeur", "Parolier", "Commentaire", "Copyright",
         "Crédits", "Enregistrer les modifications", "Enregistrement…", "Tags enregistrés",
-        "Impossible d'écrire ces tags.", "L'édition sécurisée des tags n'est pas disponible pour ce format.", "Ce fichier est trop volumineux pour que Levyra modifie ses tags en toute sécurité.", "L'autorisation d'écriture n'a pas été accordée."
+        "Impossible d'écrire ces tags.", "L'édition sécurisée des tags n'est pas disponible pour ce format.", "Ce fichier est trop volumineux pour que Derbis modifie ses tags en toute sécurité.", "L'autorisation d'écriture n'a pas été accordée."
     ),
     "de" to localTagBundle(
         "Nach Titel, Interpret, Album, Komponist, Texter, Kommentaren oder Tags suchen",
@@ -140,7 +140,7 @@ private val localTagBundles = mapOf(
         "Genre", "Jahr", "Titelnummer", "Disc",
         "Komponist", "Texter", "Kommentar", "Copyright",
         "Mitwirkende", "Änderungen speichern", "Speichern…", "Tags gespeichert",
-        "Diese Tags konnten nicht geschrieben werden.", "Sicheres Bearbeiten von Tags ist für dieses Dateiformat nicht verfügbar.", "Die Datei ist zu groß, damit Levyra ihre Tags sicher bearbeiten kann.", "Schreibzugriff wurde nicht erteilt."
+        "Diese Tags konnten nicht geschrieben werden.", "Sicheres Bearbeiten von Tags ist für dieses Dateiformat nicht verfügbar.", "Die Datei ist zu groß, damit Derbis ihre Tags sicher bearbeiten kann.", "Schreibzugriff wurde nicht erteilt."
     ),
     "pt" to localTagBundle(
         "Pesquisar por título, artista, álbum, compositor, letrista, comentários ou etiquetas",
@@ -151,7 +151,7 @@ private val localTagBundles = mapOf(
         "Género", "Ano", "Faixa", "Disco",
         "Compositor", "Letrista", "Comentário", "Copyright",
         "Créditos", "Guardar alterações", "A guardar…", "Etiquetas guardadas",
-        "Não foi possível gravar estas etiquetas.", "A edição segura de etiquetas não está disponível para este formato.", "O ficheiro é demasiado grande para o Levyra editar as etiquetas em segurança.", "A permissão de escrita não foi concedida."
+        "Não foi possível gravar estas etiquetas.", "A edição segura de etiquetas não está disponível para este formato.", "O ficheiro é demasiado grande para o Derbis editar as etiquetas em segurança.", "A permissão de escrita não foi concedida."
     ),
     "nl" to localTagBundle(
         "Zoek op titel, artiest, album, componist, tekstschrijver, opmerkingen of tags",
@@ -162,7 +162,7 @@ private val localTagBundles = mapOf(
         "Genre", "Jaar", "Nummer", "Schijf",
         "Componist", "Tekstschrijver", "Opmerking", "Auteursrecht",
         "Medewerkers", "Wijzigingen opslaan", "Opslaan…", "Tags opgeslagen",
-        "Deze tags konden niet worden geschreven.", "Veilige tagbewerking is niet beschikbaar voor dit bestandsformaat.", "Dit bestand is te groot om de tags veilig met Levyra te bewerken.", "Schrijftoegang is niet verleend."
+        "Deze tags konden niet worden geschreven.", "Veilige tagbewerking is niet beschikbaar voor dit bestandsformaat.", "Dit bestand is te groot om de tags veilig met Derbis te bewerken.", "Schrijftoegang is niet verleend."
     ),
     "pl" to localTagBundle(
         "Wyszukaj według tytułu, wykonawcy, albumu, kompozytora, autora tekstu, komentarzy lub tagów",
@@ -173,7 +173,7 @@ private val localTagBundles = mapOf(
         "Gatunek", "Rok", "Utwór", "Płyta",
         "Kompozytor", "Autor tekstu", "Komentarz", "Prawa autorskie",
         "Twórcy", "Zapisz zmiany", "Zapisywanie…", "Tagi zapisane",
-        "Nie udało się zapisać tych tagów.", "Bezpieczna edycja tagów nie jest dostępna dla tego formatu pliku.", "Ten plik jest zbyt duży, aby Levyra mogła bezpiecznie edytować jego tagi.", "Nie przyznano uprawnienia do zapisu."
+        "Nie udało się zapisać tych tagów.", "Bezpieczna edycja tagów nie jest dostępna dla tego formatu pliku.", "Ten plik jest zbyt duży, aby Derbis mogła bezpiecznie edytować jego tagi.", "Nie przyznano uprawnienia do zapisu."
     ),
     "ro" to localTagBundle(
         "Caută după titlu, artist, album, compozitor, textier, comentarii sau etichete",
@@ -184,7 +184,7 @@ private val localTagBundles = mapOf(
         "Gen", "An", "Piesă", "Disc",
         "Compozitor", "Textier", "Comentariu", "Drepturi de autor",
         "Credite", "Salvează modificările", "Se salvează…", "Etichete salvate",
-        "Aceste etichete nu au putut fi scrise.", "Editarea sigură a etichetelor nu este disponibilă pentru acest format.", "Fișierul este prea mare pentru ca Levyra să-i editeze etichetele în siguranță.", "Permisiunea de scriere nu a fost acordată."
+        "Aceste etichete nu au putut fi scrise.", "Editarea sigură a etichetelor nu este disponibilă pentru acest format.", "Fișierul este prea mare pentru ca Derbis să-i editeze etichetele în siguranță.", "Permisiunea de scriere nu a fost acordată."
     ),
     "el" to localTagBundle(
         "Αναζήτηση κατά τίτλο, καλλιτέχνη, άλμπουμ, συνθέτη, στιχουργό, σχόλια ή ετικέτες",
@@ -195,7 +195,7 @@ private val localTagBundles = mapOf(
         "Είδος", "Έτος", "Κομμάτι", "Δίσκος",
         "Συνθέτης", "Στιχουργός", "Σχόλιο", "Πνευματικά δικαιώματα",
         "Συντελεστές", "Αποθήκευση αλλαγών", "Αποθήκευση…", "Οι ετικέτες αποθηκεύτηκαν",
-        "Δεν ήταν δυνατή η εγγραφή αυτών των ετικετών.", "Η ασφαλής επεξεργασία ετικετών δεν είναι διαθέσιμη για αυτή τη μορφή αρχείου.", "Το αρχείο είναι πολύ μεγάλο για ασφαλή επεξεργασία ετικετών από το Levyra.", "Δεν παραχωρήθηκε άδεια εγγραφής."
+        "Δεν ήταν δυνατή η εγγραφή αυτών των ετικετών.", "Η ασφαλής επεξεργασία ετικετών δεν είναι διαθέσιμη για αυτή τη μορφή αρχείου.", "Το αρχείο είναι πολύ μεγάλο για ασφαλή επεξεργασία ετικετών από το Derbis.", "Δεν παραχωρήθηκε άδεια εγγραφής."
     ),
     "sv" to localTagBundle(
         "Sök efter titel, artist, album, kompositör, textförfattare, kommentarer eller taggar",
@@ -206,7 +206,7 @@ private val localTagBundles = mapOf(
         "Genre", "År", "Spår", "Skiva",
         "Kompositör", "Textförfattare", "Kommentar", "Upphovsrätt",
         "Medverkande", "Spara ändringar", "Sparar…", "Taggar sparade",
-        "Det gick inte att skriva dessa taggar.", "Säker taggredigering är inte tillgänglig för det här filformatet.", "Filen är för stor för att Levyra ska kunna redigera taggarna säkert.", "Skrivbehörighet beviljades inte."
+        "Det gick inte att skriva dessa taggar.", "Säker taggredigering är inte tillgänglig för det här filformatet.", "Filen är för stor för att Derbis ska kunna redigera taggarna säkert.", "Skrivbehörighet beviljades inte."
     ),
     "da" to localTagBundle(
         "Søg efter titel, kunstner, album, komponist, tekstforfatter, kommentarer eller tags",
@@ -217,7 +217,7 @@ private val localTagBundles = mapOf(
         "Genre", "År", "Spor", "Disk",
         "Komponist", "Tekstforfatter", "Kommentar", "Ophavsret",
         "Medvirkende", "Gem ændringer", "Gemmer…", "Tags gemt",
-        "Disse tags kunne ikke skrives.", "Sikker tagredigering er ikke tilgængelig for dette filformat.", "Filen er for stor til, at Levyra kan redigere dens tags sikkert.", "Skriveadgang blev ikke givet."
+        "Disse tags kunne ikke skrives.", "Sikker tagredigering er ikke tilgængelig for dette filformat.", "Filen er for stor til, at Derbis kan redigere dens tags sikkert.", "Skriveadgang blev ikke givet."
     ),
     "cs" to localTagBundle(
         "Hledat podle názvu, interpreta, alba, skladatele, textaře, komentářů nebo tagů",
@@ -228,7 +228,7 @@ private val localTagBundles = mapOf(
         "Žánr", "Rok", "Skladba", "Disk",
         "Skladatel", "Textař", "Komentář", "Autorská práva",
         "Autoři", "Uložit změny", "Ukládání…", "Tagy uloženy",
-        "Tyto tagy se nepodařilo zapsat.", "Bezpečná úprava tagů není pro tento formát souboru dostupná.", "Tento soubor je příliš velký, aby Levyra mohla jeho tagy bezpečně upravit.", "Nebyl udělen přístup k zápisu."
+        "Tyto tagy se nepodařilo zapsat.", "Bezpečná úprava tagů není pro tento formát souboru dostupná.", "Tento soubor je příliš velký, aby Derbis mohla jeho tagy bezpečně upravit.", "Nebyl udělen přístup k zápisu."
     ),
     "sk" to localTagBundle(
         "Hľadať podľa názvu, interpreta, albumu, skladateľa, textára, komentárov alebo tagov",
@@ -239,7 +239,7 @@ private val localTagBundles = mapOf(
         "Žáner", "Rok", "Skladba", "Disk",
         "Skladateľ", "Textár", "Komentár", "Autorské práva",
         "Autori", "Uložiť zmeny", "Ukladanie…", "Tagy uložené",
-        "Tieto tagy sa nepodarilo zapísať.", "Bezpečná úprava tagov nie je pre tento formát súboru dostupná.", "Tento súbor je príliš veľký, aby Levyra mohla jeho tagy bezpečne upraviť.", "Povolenie na zápis nebolo udelené."
+        "Tieto tagy sa nepodarilo zapísať.", "Bezpečná úprava tagov nie je pre tento formát súboru dostupná.", "Tento súbor je príliš veľký, aby Derbis mohla jeho tagy bezpečne upraviť.", "Povolenie na zápis nebolo udelené."
     ),
     "bn" to localTagBundle(
         "শিরোনাম, শিল্পী, অ্যালবাম, সুরকার, গীতিকার, মন্তব্য বা ট্যাগ খুঁজুন",
@@ -250,7 +250,7 @@ private val localTagBundles = mapOf(
         "ধারা", "বছর", "ট্র্যাক", "ডিস্ক",
         "সুরকার", "গীতিকার", "মন্তব্য", "কপিরাইট",
         "কৃতিত্ব", "পরিবর্তন সংরক্ষণ করুন", "সংরক্ষণ করা হচ্ছে…", "ট্যাগ সংরক্ষিত হয়েছে",
-        "এই ট্যাগগুলো লেখা যায়নি।", "এই ফাইল ফরম্যাটের জন্য নিরাপদ ট্যাগ সম্পাদনা উপলব্ধ নয়।", "Levyra নিরাপদে ট্যাগ সম্পাদনা করার জন্য এই ফাইলটি অনেক বড়।", "লেখার অনুমতি দেওয়া হয়নি।"
+        "এই ট্যাগগুলো লেখা যায়নি।", "এই ফাইল ফরম্যাটের জন্য নিরাপদ ট্যাগ সম্পাদনা উপলব্ধ নয়।", "Derbis নিরাপদে ট্যাগ সম্পাদনা করার জন্য এই ফাইলটি অনেক বড়।", "লেখার অনুমতি দেওয়া হয়নি।"
     ),
     "kk" to localTagBundle(
         "Атауы, орындаушы, альбом, композитор, мәтін авторы, пікірлер немесе тегтер бойынша іздеу",
@@ -261,7 +261,7 @@ private val localTagBundles = mapOf(
         "Жанр", "Жыл", "Трек", "Диск",
         "Композитор", "Мәтін авторы", "Пікір", "Авторлық құқық",
         "Қатысушылар", "Өзгерістерді сақтау", "Сақталуда…", "Тегтер сақталды",
-        "Бұл тегтерді жазу мүмкін болмады.", "Бұл файл пішімі үшін тегтерді қауіпсіз өңдеу қолжетімсіз.", "Levyra тегтерді қауіпсіз өңдеуі үшін бұл файл тым үлкен.", "Жазуға рұқсат берілмеді."
+        "Бұл тегтерді жазу мүмкін болмады.", "Бұл файл пішімі үшін тегтерді қауіпсіз өңдеу қолжетімсіз.", "Derbis тегтерді қауіпсіз өңдеуі үшін бұл файл тым үлкен.", "Жазуға рұқсат берілмеді."
     ),
     "sr" to localTagBundle(
         "Претражи наслов, извођача, албум, композитора, текстописца, коментаре или ознаке",
@@ -272,7 +272,7 @@ private val localTagBundles = mapOf(
         "Жанр", "Година", "Песма", "Диск",
         "Композитор", "Текстописац", "Коментар", "Ауторска права",
         "Заслуге", "Сачувај промене", "Чување…", "Ознаке су сачуване",
-        "Није могуће уписати ове ознаке.", "Безбедно уређивање ознака није доступно за овај формат датотеке.", "Ова датотека је превелика да би Levyra могла безбедно да уреди њене ознаке.", "Дозвола за упис није одобрена."
+        "Није могуће уписати ове ознаке.", "Безбедно уређивање ознака није доступно за овај формат датотеке.", "Ова датотека је превелика да би Derbis могла безбедно да уреди њене ознаке.", "Дозвола за упис није одобрена."
     ),
     "sq" to localTagBundle(
         "Kërko titull, artist, album, kompozitor, tekstshkrues, komente ose etiketa",
@@ -283,7 +283,7 @@ private val localTagBundles = mapOf(
         "Zhanri", "Viti", "Kënga", "Disku",
         "Kompozitori", "Tekstshkruesi", "Komenti", "E drejta e autorit",
         "Meritat", "Ruaj ndryshimet", "Po ruhet…", "Etiketat u ruajtën",
-        "Këto etiketa nuk mund të shkruheshin.", "Redaktimi i sigurt i etiketave nuk ofrohet për këtë format skedari.", "Ky skedar është shumë i madh që Levyra të redaktojë me siguri etiketat e tij.", "Leja për shkrim nuk u dha."
+        "Këto etiketa nuk mund të shkruheshin.", "Redaktimi i sigurt i etiketave nuk ofrohet për këtë format skedari.", "Ky skedar është shumë i madh që Derbis të redaktojë me siguri etiketat e tij.", "Leja për shkrim nuk u dha."
     ),
     "hr" to localTagBundle(
         "Pretraži naslov, izvođača, album, skladatelja, tekstopisca, komentare ili oznake",
@@ -294,7 +294,7 @@ private val localTagBundles = mapOf(
         "Žanr", "Godina", "Pjesma", "Disk",
         "Skladatelj", "Tekstopisac", "Komentar", "Autorska prava",
         "Zasluge", "Spremi promjene", "Spremanje…", "Oznake spremljene",
-        "Nije moguće zapisati ove oznake.", "Sigurno uređivanje oznaka nije dostupno za ovaj format datoteke.", "Ova je datoteka prevelika da bi Levyra mogla sigurno urediti njezine oznake.", "Dozvola za pisanje nije odobrena."
+        "Nije moguće zapisati ove oznake.", "Sigurno uređivanje oznaka nije dostupno za ovaj format datoteke.", "Ova je datoteka prevelika da bi Derbis mogla sigurno urediti njezine oznake.", "Dozvola za pisanje nije odobrena."
     ),
     "bg" to localTagBundle(
         "Търсене по заглавие, изпълнител, албум, композитор, текстописец, коментари или тагове",
@@ -305,7 +305,7 @@ private val localTagBundles = mapOf(
         "Жанр", "Година", "Песен", "Диск",
         "Композитор", "Текстописец", "Коментар", "Авторски права",
         "Участници", "Запазване на промените", "Запазване…", "Таговете са запазени",
-        "Тези тагове не можаха да бъдат записани.", "Безопасното редактиране на тагове не е налично за този файлов формат.", "Файлът е твърде голям, за да може Levyra безопасно да редактира таговете му.", "Не е предоставено разрешение за запис."
+        "Тези тагове не можаха да бъдат записани.", "Безопасното редактиране на тагове не е налично за този файлов формат.", "Файлът е твърде голям, за да може Derbis безопасно да редактира таговете му.", "Не е предоставено разрешение за запис."
     ),
     "hu" to localTagBundle(
         "Keresés cím, előadó, album, zeneszerző, dalszövegíró, megjegyzés vagy címke alapján",
@@ -316,7 +316,7 @@ private val localTagBundles = mapOf(
         "Műfaj", "Év", "Sáv", "Lemez",
         "Zeneszerző", "Dalszövegíró", "Megjegyzés", "Szerzői jog",
         "Közreműködők", "Módosítások mentése", "Mentés…", "Címkék mentve",
-        "Ezeket a címkéket nem sikerült beírni.", "Ehhez a fájlformátumhoz nem érhető el biztonságos címkeszerkesztés.", "Ez a fájl túl nagy ahhoz, hogy a Levyra biztonságosan szerkessze a címkéit.", "Az írási engedély nem lett megadva."
+        "Ezeket a címkéket nem sikerült beírni.", "Ehhez a fájlformátumhoz nem érhető el biztonságos címkeszerkesztés.", "Ez a fájl túl nagy ahhoz, hogy a Derbis biztonságosan szerkessze a címkéit.", "Az írási engedély nem lett megadva."
     ),
     "fi" to localTagBundle(
         "Hae nimikkeellä, esittäjällä, albumilla, säveltäjällä, sanoittajalla, kommenteilla tai tunnisteilla",
@@ -327,7 +327,7 @@ private val localTagBundles = mapOf(
         "Tyylilaji", "Vuosi", "Raita", "Levy",
         "Säveltäjä", "Sanoittaja", "Kommentti", "Tekijänoikeus",
         "Tekijätiedot", "Tallenna muutokset", "Tallennetaan…", "Tunnisteet tallennettu",
-        "Näitä tunnisteita ei voitu kirjoittaa.", "Turvallinen tunnisteiden muokkaus ei ole käytettävissä tälle tiedostomuodolle.", "Tiedosto on liian suuri, jotta Levyra voisi muokata sen tunnisteita turvallisesti.", "Kirjoitusoikeutta ei myönnetty."
+        "Näitä tunnisteita ei voitu kirjoittaa.", "Turvallinen tunnisteiden muokkaus ei ole käytettävissä tälle tiedostomuodolle.", "Tiedosto on liian suuri, jotta Derbis voisi muokata sen tunnisteita turvallisesti.", "Kirjoitusoikeutta ei myönnetty."
     ),
     "et" to localTagBundle(
         "Otsi pealkirja, esitaja, albumi, helilooja, sõnade autori, kommentaaride või siltide järgi",
@@ -338,7 +338,7 @@ private val localTagBundles = mapOf(
         "Žanr", "Aasta", "Lugu", "Plaat",
         "Helilooja", "Sõnade autor", "Kommentaar", "Autoriõigus",
         "Autorid ja tegijad", "Salvesta muudatused", "Salvestamine…", "Sildid salvestatud",
-        "Neid silte ei saanud kirjutada.", "Turvaline siltide muutmine pole selle failivormingu puhul saadaval.", "Fail on liiga suur, et Levyra saaks selle silte turvaliselt muuta.", "Kirjutamisluba ei antud."
+        "Neid silte ei saanud kirjutada.", "Turvaline siltide muutmine pole selle failivormingu puhul saadaval.", "Fail on liiga suur, et Derbis saaks selle silte turvaliselt muuta.", "Kirjutamisluba ei antud."
     ),
     "nb" to localTagBundle(
         "Søk etter tittel, artist, album, komponist, tekstforfatter, kommentarer eller tagger",
@@ -349,7 +349,7 @@ private val localTagBundles = mapOf(
         "Sjanger", "År", "Spor", "Plate",
         "Komponist", "Tekstforfatter", "Kommentar", "Opphavsrett",
         "Medvirkende", "Lagre endringer", "Lagrer…", "Tagger lagret",
-        "Disse taggene kunne ikke skrives.", "Sikker taggredigering er ikke tilgjengelig for dette filformatet.", "Filen er for stor til at Levyra kan redigere taggene sikkert.", "Skrivetillatelse ble ikke gitt."
+        "Disse taggene kunne ikke skrives.", "Sikker taggredigering er ikke tilgjengelig for dette filformatet.", "Filen er for stor til at Derbis kan redigere taggene sikkert.", "Skrivetillatelse ble ikke gitt."
     ),
     "ca" to localTagBundle(
         "Cerca per títol, artista, àlbum, compositor, lletrista, comentaris o etiquetes",
@@ -360,7 +360,7 @@ private val localTagBundles = mapOf(
         "Gènere", "Any", "Pista", "Disc",
         "Compositor", "Lletrista", "Comentari", "Drets d'autor",
         "Crèdits", "Desa els canvis", "Desant…", "Etiquetes desades",
-        "No s'han pogut escriure aquestes etiquetes.", "L'edició segura d'etiquetes no està disponible per a aquest format.", "Aquest fitxer és massa gran perquè Levyra n'editi les etiquetes amb seguretat.", "No s'ha concedit permís d'escriptura."
+        "No s'han pogut escriure aquestes etiquetes.", "L'edició segura d'etiquetes no està disponible per a aquest format.", "Aquest fitxer és massa gran perquè Derbis n'editi les etiquetes amb seguretat.", "No s'ha concedit permís d'escriptura."
     ),
     "uk" to localTagBundle(
         "Пошук за назвою, виконавцем, альбомом, композитором, автором тексту, коментарями або тегами",
@@ -371,7 +371,7 @@ private val localTagBundles = mapOf(
         "Жанр", "Рік", "Трек", "Диск",
         "Композитор", "Автор тексту", "Коментар", "Авторські права",
         "Учасники", "Зберегти зміни", "Збереження…", "Теги збережено",
-        "Не вдалося записати ці теги.", "Безпечне редагування тегів недоступне для цього формату файлу.", "Цей файл завеликий, щоб Levyra могла безпечно редагувати його теги.", "Дозвіл на запис не надано."
+        "Не вдалося записати ці теги.", "Безпечне редагування тегів недоступне для цього формату файлу.", "Цей файл завеликий, щоб Derbis могла безпечно редагувати його теги.", "Дозвіл на запис не надано."
     ),
     "ru" to localTagBundle(
         "Поиск по названию, исполнителю, альбому, композитору, автору текста, комментариям или тегам",
@@ -382,7 +382,7 @@ private val localTagBundles = mapOf(
         "Жанр", "Год", "Трек", "Диск",
         "Композитор", "Автор текста", "Комментарий", "Авторские права",
         "Участники", "Сохранить изменения", "Сохранение…", "Теги сохранены",
-        "Не удалось записать эти теги.", "Безопасное редактирование тегов недоступно для этого формата файла.", "Этот файл слишком большой, чтобы Levyra могла безопасно изменить его теги.", "Разрешение на запись не предоставлено."
+        "Не удалось записать эти теги.", "Безопасное редактирование тегов недоступно для этого формата файла.", "Этот файл слишком большой, чтобы Derbis могла безопасно изменить его теги.", "Разрешение на запись не предоставлено."
     ),
     "tr" to localTagBundle(
         "Başlık, sanatçı, albüm, besteci, söz yazarı, yorumlar veya etiketlerde ara",
@@ -393,7 +393,7 @@ private val localTagBundles = mapOf(
         "Tür", "Yıl", "Parça", "Disk",
         "Besteci", "Söz yazarı", "Yorum", "Telif hakkı",
         "Emeği geçenler", "Değişiklikleri kaydet", "Kaydediliyor…", "Etiketler kaydedildi",
-        "Bu etiketler yazılamadı.", "Güvenli etiket düzenleme bu dosya biçimi için kullanılamıyor.", "Bu dosya, Levyra'nın etiketlerini güvenle düzenleyebilmesi için fazla büyük.", "Yazma izni verilmedi."
+        "Bu etiketler yazılamadı.", "Güvenli etiket düzenleme bu dosya biçimi için kullanılamıyor.", "Bu dosya, Derbis'nın etiketlerini güvenle düzenleyebilmesi için fazla büyük.", "Yazma izni verilmedi."
     ),
     "ar" to localTagBundle(
         "ابحث حسب العنوان أو الفنان أو الألبوم أو الملحن أو كاتب الكلمات أو التعليقات أو الوسوم",
@@ -404,7 +404,7 @@ private val localTagBundles = mapOf(
         "النوع", "السنة", "المسار", "القرص",
         "الملحن", "كاتب الكلمات", "تعليق", "حقوق النشر",
         "المساهمون", "حفظ التغييرات", "جارٍ الحفظ…", "تم حفظ الوسوم",
-        "تعذرت كتابة هذه الوسوم.", "التحرير الآمن للوسوم غير متاح لتنسيق هذا الملف.", "هذا الملف كبير جدًا بحيث لا يمكن لـ Levyra تعديل وسومه بأمان.", "لم يتم منح إذن الكتابة."
+        "تعذرت كتابة هذه الوسوم.", "التحرير الآمن للوسوم غير متاح لتنسيق هذا الملف.", "هذا الملف كبير جدًا بحيث لا يمكن لـ Derbis تعديل وسومه بأمان.", "لم يتم منح إذن الكتابة."
     ),
     "fa" to localTagBundle(
         "جستجو در عنوان، هنرمند، آلبوم، آهنگساز، ترانه‌سرا، نظرها یا برچسب‌ها",
@@ -415,7 +415,7 @@ private val localTagBundles = mapOf(
         "سبک", "سال", "ترک", "دیسک",
         "آهنگساز", "ترانه‌سرا", "توضیح", "حق نشر",
         "عوامل", "ذخیره تغییرات", "در حال ذخیره…", "برچسب‌ها ذخیره شدند",
-        "نوشتن این برچسب‌ها ممکن نشد.", "ویرایش امن برچسب برای این قالب فایل در دسترس نیست.", "این فایل برای ویرایش امن برچسب‌ها در Levyra بیش از حد بزرگ است.", "مجوز نوشتن داده نشد."
+        "نوشتن این برچسب‌ها ممکن نشد.", "ویرایش امن برچسب برای این قالب فایل در دسترس نیست.", "این فایل برای ویرایش امن برچسب‌ها در Derbis بیش از حد بزرگ است.", "مجوز نوشتن داده نشد."
     ),
     "zh" to localTagBundle(
         "搜索标题、艺人、专辑、作曲、作词、评论或标签",
@@ -426,7 +426,7 @@ private val localTagBundles = mapOf(
         "流派", "年份", "曲目", "碟片",
         "作曲", "作词", "评论", "版权",
         "制作人员", "保存更改", "正在保存…", "标签已保存",
-        "无法写入这些标签。", "此文件格式不支持安全的标签编辑。", "此文件过大，Levyra 无法安全编辑其标签。", "未授予写入权限。"
+        "无法写入这些标签。", "此文件格式不支持安全的标签编辑。", "此文件过大，Derbis 无法安全编辑其标签。", "未授予写入权限。"
     ),
     "zh-Hant" to localTagBundle(
         "搜尋標題、藝人、專輯、作曲、作詞、註解或標籤",
@@ -437,7 +437,7 @@ private val localTagBundles = mapOf(
         "類型", "年份", "曲目", "光碟",
         "作曲", "作詞", "註解", "著作權",
         "製作人員", "儲存變更", "儲存中…", "標籤已儲存",
-        "無法寫入這些標籤。", "此檔案格式不支援安全的標籤編輯。", "此檔案過大，Levyra 無法安全編輯其標籤。", "未授予寫入權限。"
+        "無法寫入這些標籤。", "此檔案格式不支援安全的標籤編輯。", "此檔案過大，Derbis 無法安全編輯其標籤。", "未授予寫入權限。"
     ),
     "ja" to localTagBundle(
         "タイトル、アーティスト、アルバム、作曲者、作詞者、コメント、タグを検索",
@@ -448,7 +448,7 @@ private val localTagBundles = mapOf(
         "ジャンル", "年", "トラック", "ディスク",
         "作曲者", "作詞者", "コメント", "著作権",
         "クレジット", "変更を保存", "保存中…", "タグを保存しました",
-        "これらのタグを書き込めませんでした。", "このファイル形式では安全なタグ編集を利用できません。", "このファイルは大きすぎるため、Levyra では安全にタグを編集できません。", "書き込み権限が許可されませんでした。"
+        "これらのタグを書き込めませんでした。", "このファイル形式では安全なタグ編集を利用できません。", "このファイルは大きすぎるため、Derbis では安全にタグを編集できません。", "書き込み権限が許可されませんでした。"
     ),
     "ko" to localTagBundle(
         "제목, 아티스트, 앨범, 작곡가, 작사가, 댓글 또는 태그 검색",
@@ -459,7 +459,7 @@ private val localTagBundles = mapOf(
         "장르", "연도", "트랙", "디스크",
         "작곡가", "작사가", "댓글", "저작권",
         "크레딧", "변경 사항 저장", "저장 중…", "태그를 저장했습니다",
-        "이 태그를 기록할 수 없습니다.", "이 파일 형식은 안전한 태그 편집을 지원하지 않습니다.", "이 파일은 너무 커서 Levyra에서 안전하게 태그를 편집할 수 없습니다.", "쓰기 권한이 허용되지 않았습니다."
+        "이 태그를 기록할 수 없습니다.", "이 파일 형식은 안전한 태그 편집을 지원하지 않습니다.", "이 파일은 너무 커서 Derbis에서 안전하게 태그를 편집할 수 없습니다.", "쓰기 권한이 허용되지 않았습니다."
     ),
     "hi" to localTagBundle(
         "शीर्षक, कलाकार, एल्बम, संगीतकार, गीतकार, टिप्पणियाँ या टैग खोजें",
@@ -470,7 +470,7 @@ private val localTagBundles = mapOf(
         "शैली", "वर्ष", "ट्रैक", "डिस्क",
         "संगीतकार", "गीतकार", "टिप्पणी", "कॉपीराइट",
         "क्रेडिट", "बदलाव सहेजें", "सहेजा जा रहा है…", "टैग सहेजे गए",
-        "ये टैग लिखे नहीं जा सके।", "इस फ़ाइल प्रारूप के लिए सुरक्षित टैग संपादन उपलब्ध नहीं है।", "यह फ़ाइल इतनी बड़ी है कि Levyra इसके टैग सुरक्षित रूप से संपादित नहीं कर सकता।", "लिखने की अनुमति नहीं दी गई।"
+        "ये टैग लिखे नहीं जा सके।", "इस फ़ाइल प्रारूप के लिए सुरक्षित टैग संपादन उपलब्ध नहीं है।", "यह फ़ाइल इतनी बड़ी है कि Derbis इसके टैग सुरक्षित रूप से संपादित नहीं कर सकता।", "लिखने की अनुमति नहीं दी गई।"
     ),
     "id" to localTagBundle(
         "Cari judul, artis, album, komposer, penulis lirik, komentar, atau tag",
@@ -481,7 +481,7 @@ private val localTagBundles = mapOf(
         "Genre", "Tahun", "Trek", "Disk",
         "Komposer", "Penulis lirik", "Komentar", "Hak cipta",
         "Kredit", "Simpan perubahan", "Menyimpan…", "Tag disimpan",
-        "Tag ini tidak dapat ditulis.", "Pengeditan tag yang aman tidak tersedia untuk format file ini.", "File ini terlalu besar untuk diedit tag-nya dengan aman oleh Levyra.", "Izin menulis tidak diberikan."
+        "Tag ini tidak dapat ditulis.", "Pengeditan tag yang aman tidak tersedia untuk format file ini.", "File ini terlalu besar untuk diedit tag-nya dengan aman oleh Derbis.", "Izin menulis tidak diberikan."
     ),
     "ms" to localTagBundle(
         "Cari tajuk, artis, album, komposer, penulis lirik, komen atau tag",
@@ -492,7 +492,7 @@ private val localTagBundles = mapOf(
         "Genre", "Tahun", "Trek", "Cakera",
         "Komposer", "Penulis lirik", "Komen", "Hak cipta",
         "Kredit", "Simpan perubahan", "Menyimpan…", "Tag disimpan",
-        "Tag ini tidak dapat ditulis.", "Penyuntingan tag selamat tidak tersedia untuk format fail ini.", "Fail ini terlalu besar untuk Levyra menyunting tag dengan selamat.", "Kebenaran menulis tidak diberikan."
+        "Tag ini tidak dapat ditulis.", "Penyuntingan tag selamat tidak tersedia untuk format fail ini.", "Fail ini terlalu besar untuk Derbis menyunting tag dengan selamat.", "Kebenaran menulis tidak diberikan."
     ),
     "vi" to localTagBundle(
         "Tìm theo tiêu đề, nghệ sĩ, album, nhạc sĩ, người viết lời, bình luận hoặc thẻ",
@@ -503,7 +503,7 @@ private val localTagBundles = mapOf(
         "Thể loại", "Năm", "Bản nhạc", "Đĩa",
         "Nhạc sĩ", "Người viết lời", "Bình luận", "Bản quyền",
         "Ghi công", "Lưu thay đổi", "Đang lưu…", "Đã lưu thẻ",
-        "Không thể ghi các thẻ này.", "Không hỗ trợ chỉnh sửa thẻ an toàn cho định dạng tệp này.", "Tệp này quá lớn để Levyra chỉnh sửa thẻ một cách an toàn.", "Chưa cấp quyền ghi."
+        "Không thể ghi các thẻ này.", "Không hỗ trợ chỉnh sửa thẻ an toàn cho định dạng tệp này.", "Tệp này quá lớn để Derbis chỉnh sửa thẻ một cách an toàn.", "Chưa cấp quyền ghi."
     ),
     "th" to localTagBundle(
         "ค้นหาชื่อเพลง ศิลปิน อัลบั้ม ผู้ประพันธ์ ผู้แต่งเนื้อร้อง ความคิดเห็น หรือแท็ก",
@@ -514,7 +514,7 @@ private val localTagBundles = mapOf(
         "แนวเพลง", "ปี", "แทร็ก", "ดิสก์",
         "ผู้ประพันธ์", "ผู้แต่งเนื้อร้อง", "ความคิดเห็น", "ลิขสิทธิ์",
         "เครดิต", "บันทึกการเปลี่ยนแปลง", "กำลังบันทึก…", "บันทึกแท็กแล้ว",
-        "ไม่สามารถเขียนแท็กเหล่านี้ได้", "รูปแบบไฟล์นี้ไม่รองรับการแก้ไขแท็กอย่างปลอดภัย", "ไฟล์นี้มีขนาดใหญ่เกินไปสำหรับ Levyra ที่จะแก้ไขแท็กอย่างปลอดภัย", "ไม่ได้รับสิทธิ์ในการเขียน"
+        "ไม่สามารถเขียนแท็กเหล่านี้ได้", "รูปแบบไฟล์นี้ไม่รองรับการแก้ไขแท็กอย่างปลอดภัย", "ไฟล์นี้มีขนาดใหญ่เกินไปสำหรับ Derbis ที่จะแก้ไขแท็กอย่างปลอดภัย", "ไม่ได้รับสิทธิ์ในการเขียน"
     ),
     "fil" to localTagBundle(
         "Maghanap ayon sa pamagat, artist, album, kompositor, manunulat ng liriko, komento, o tag",
@@ -525,7 +525,7 @@ private val localTagBundles = mapOf(
         "Genre", "Taon", "Track", "Disc",
         "Kompositor", "Manunulat ng liriko", "Komento", "Copyright",
         "Mga kredito", "I-save ang mga pagbabago", "Sine-save…", "Na-save ang mga tag",
-        "Hindi maisulat ang mga tag na ito.", "Hindi available ang ligtas na pag-edit ng tag para sa format na ito.", "Masyadong malaki ang file na ito para ligtas na ma-edit ng Levyra ang mga tag nito.", "Hindi ibinigay ang pahintulot sa pagsulat."
+        "Hindi maisulat ang mga tag na ito.", "Hindi available ang ligtas na pag-edit ng tag para sa format na ito.", "Masyadong malaki ang file na ito para ligtas na ma-edit ng Derbis ang mga tag nito.", "Hindi ibinigay ang pahintulot sa pagsulat."
     ),
     "he" to localTagBundle(
         "חיפוש לפי כותרת, אמן, אלבום, מלחין, כותב מילים, הערות או תגיות",
@@ -536,7 +536,7 @@ private val localTagBundles = mapOf(
         "ז'אנר", "שנה", "רצועה", "דיסק",
         "מלחין", "כותב מילים", "הערה", "זכויות יוצרים",
         "קרדיטים", "שמירת שינויים", "שומר…", "התגיות נשמרו",
-        "לא ניתן היה לכתוב את התגיות האלה.", "עריכת תגיות בטוחה אינה זמינה עבור פורמט קובץ זה.", "הקובץ גדול מדי כדי ש-Levyra יוכל לערוך את התגיות שלו בבטחה.", "לא ניתנה הרשאת כתיבה."
+        "לא ניתן היה לכתוב את התגיות האלה.", "עריכת תגיות בטוחה אינה זמינה עבור פורמט קובץ זה.", "הקובץ גדול מדי כדי ש-Derbis יוכל לערוך את התגיות שלו בבטחה.", "לא ניתנה הרשאת כתיבה."
     )
 )
 

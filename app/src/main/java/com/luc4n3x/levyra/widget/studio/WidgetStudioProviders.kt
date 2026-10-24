@@ -135,11 +135,11 @@ class WidgetStudioActionReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_TOGGLE = "com.luc4n3x.levyra.widget.studio.TOGGLE"
-        const val ACTION_NEXT = "com.luc4n3x.levyra.widget.studio.NEXT"
-        const val ACTION_PREVIOUS = "com.luc4n3x.levyra.widget.studio.PREVIOUS"
-        const val ACTION_LIKE = "com.luc4n3x.levyra.widget.studio.LIKE"
-        const val ACTION_SHUFFLE = "com.luc4n3x.levyra.widget.studio.SHUFFLE"
-        const val ACTION_REPEAT = "com.luc4n3x.levyra.widget.studio.REPEAT"
+        const val ACTION_TOGGLE = "com.luc4n3x.derbis.widget.studio.TOGGLE"
+        const val ACTION_NEXT = "com.luc4n3x.derbis.widget.studio.NEXT"
+        const val ACTION_PREVIOUS = "com.luc4n3x.derbis.widget.studio.PREVIOUS"
+        const val ACTION_LIKE = "com.luc4n3x.derbis.widget.studio.LIKE"
+        const val ACTION_SHUFFLE = "com.luc4n3x.derbis.widget.studio.SHUFFLE"
+        const val ACTION_REPEAT = "com.luc4n3x.derbis.widget.studio.REPEAT"
     }
 }

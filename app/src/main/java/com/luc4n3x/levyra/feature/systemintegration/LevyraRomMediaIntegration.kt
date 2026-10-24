@@ -83,7 +83,7 @@ private fun buildOPlusLyricsJson(
         .put("lyricType", 0)
         .put("lyric", lyric)
         .put("provider", context.packageName)
-        .put("source", "levyra:${context.provider.ifBlank { "automatic" }}")
+        .put("source", "derbis:${context.provider.ifBlank { "automatic" }}")
         .put(
             "trackKey",
             listOf(

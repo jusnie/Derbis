@@ -25,7 +25,7 @@ class PersonalCollectionSyncWorker(context: Context, params: WorkerParameters) :
 }
 
 object PersonalCollectionSyncScheduler {
-    private const val WORK_NAME = "levyra_personal_collection_refresh"
+    private const val WORK_NAME = "derbis_personal_collection_refresh"
     private const val INTERVAL_HOURS = 12L
 
     fun update(context: Context, enabled: Boolean) {

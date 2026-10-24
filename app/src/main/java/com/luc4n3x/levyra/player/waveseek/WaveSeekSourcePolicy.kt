@@ -22,7 +22,7 @@ internal object WaveSeekSourcePolicy {
         if (clean.isBlank()) return false
         val uri = runCatching { URI(clean) }.getOrNull() ?: return false
         return when (uri.scheme.orEmpty().lowercase(Locale.ROOT)) {
-            "content", "file", "levyra-cache", "levyra-sabr" -> true
+            "content", "file", "derbis-cache", "derbis-sabr" -> true
             "http", "https" -> isDirectMediaUri(uri)
             else -> false
         }

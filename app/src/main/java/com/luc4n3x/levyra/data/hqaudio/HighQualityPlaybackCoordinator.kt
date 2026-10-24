@@ -206,7 +206,7 @@ class HighQualityPlaybackCoordinator(
         const val AUTOMATIC_WAIT_MS = 2_500L
         const val AUTOMATIC_GRACE_MS = 1_200L
         const val PREFER_320_WAIT_MS = 8_500L
-        const val SOURCE_LABEL = "Levyra HQ"
+        const val SOURCE_LABEL = "Derbis HQ"
         private const val DATA_SAVER_AUDIO_QUALITY = "Low"
         private const val OFFLINE_SOURCE = "Offline"
     }

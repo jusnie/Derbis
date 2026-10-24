@@ -61,9 +61,9 @@ class AppUpdateRepository(context: Context) {
 
     internal suspend fun latestInstallable(): InstallableAppUpdate = withContext(Dispatchers.IO) {
         val update = parseLatestRelease(fetchLatestRelease())
-        if (!update.info.isNewer) throw IllegalStateException("No newer Levyra release is available")
+        if (!update.info.isNewer) throw IllegalStateException("No newer Derbis release is available")
         if (!update.info.directApk || update.assetDownloadUrl.isBlank()) {
-            throw IllegalStateException("The latest Levyra release has no installable APK")
+            throw IllegalStateException("The latest Derbis release has no installable APK")
         }
         update
     }
@@ -79,13 +79,13 @@ class AppUpdateRepository(context: Context) {
         val request = Request.Builder()
             .url(endpoint)
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LEVYRA/${BuildConfig.VERSION_NAME}")
+            .header("User-Agent", "DERBIS/${BuildConfig.VERSION_NAME}")
             .build()
         client.newCall(request).execute().use { response ->
             if (response.isRedirect) throw IOException("Update metadata redirect rejected")
             if (!response.isSuccessful) {
                 val message = when (response.code) {
-                    404 -> "Nessuna release pubblicata per LEVYRA"
+                    404 -> "Nessuna release pubblicata per DERBIS"
                     403 -> "Controllo aggiornamenti temporaneamente limitato"
                     else -> "Controllo aggiornamenti non riuscito (${response.code})"
                 }
@@ -117,7 +117,7 @@ class AppUpdateRepository(context: Context) {
             assetDownloadUrl.ifBlank { releaseUrl }
         }
         val assetName = selected?.name.orEmpty()
-        val releaseTitle = root.optString("name").ifBlank { "LEVYRA $latestVersion" }
+        val releaseTitle = root.optString("name").ifBlank { "DERBIS $latestVersion" }
         val notes = root.optString("body").trim()
         val current = BuildConfig.VERSION_NAME
         val info = AppUpdateInfo(

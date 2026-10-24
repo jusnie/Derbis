@@ -26,7 +26,7 @@ import com.luc4n3x.levyra.domain.ArtistCredit
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.artistCredits
 
-private const val ArtistAnnotationTag = "levyra_player_artist"
+private const val ArtistAnnotationTag = "derbis_player_artist"
 
 @Composable
 internal fun PlayerArtistText(

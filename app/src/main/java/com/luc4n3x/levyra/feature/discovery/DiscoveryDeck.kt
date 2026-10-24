@@ -56,7 +56,7 @@ data class DiscoveryWeek(val id: String, val monday: LocalDate) {
             val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             val year = date.get(IsoFields.WEEK_BASED_YEAR)
             val week = date.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR)
-            return DiscoveryWeek("levyra-discovery-$year-w${week.toString().padStart(2, '0')}", monday)
+            return DiscoveryWeek("derbis-discovery-$year-w${week.toString().padStart(2, '0')}", monday)
         }
     }
 }

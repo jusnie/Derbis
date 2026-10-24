@@ -194,7 +194,7 @@ object RecognitionWidgetCenter {
                 if (published || superseded) render(context, latestState)
             }
         }.apply {
-            name = "Levyra-recognition-widget-art"
+            name = "Derbis-recognition-widget-art"
             isDaemon = true
         }.start()
     }

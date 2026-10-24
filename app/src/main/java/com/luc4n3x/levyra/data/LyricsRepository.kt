@@ -916,7 +916,7 @@ class LyricsRepository(context: Context? = null) {
         val request = Request.Builder()
             .url(url)
             .header("Accept", accept)
-            .header("User-Agent", "LEVYRA Lyrics Engine/3.4 Android")
+            .header("User-Agent", "DERBIS Lyrics Engine/3.4 Android")
             .get()
             .build()
         return suspendCancellableCoroutine { continuation ->

@@ -113,7 +113,7 @@ private class OkHttpDeArrowFetcher(private val client: OkHttpClient) : DeArrowHt
             .url(httpUrl)
             .get()
             .header("Accept", "application/json")
-            .header("User-Agent", "Levyra-Android/1.0 (DeArrow branding, read-only)")
+            .header("User-Agent", "Derbis-Android/1.0 (DeArrow branding, read-only)")
             .build()
         val response = client.newCall(request).execute()
         val body = response.body

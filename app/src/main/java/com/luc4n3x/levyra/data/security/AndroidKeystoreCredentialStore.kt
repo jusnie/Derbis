@@ -74,9 +74,9 @@ class AndroidKeystoreCredentialStore(context: Context) {
 
     private companion object {
         val KEY_LOCK = Any()
-        const val PREFERENCES = "levyra_external_credentials"
+        const val PREFERENCES = "derbis_external_credentials"
         const val KEYSTORE = "AndroidKeyStore"
-        const val KEY_ALIAS = "levyra.external.credentials.v1"
+        const val KEY_ALIAS = "derbis.external.credentials.v1"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val TAG_BITS = 128
     }

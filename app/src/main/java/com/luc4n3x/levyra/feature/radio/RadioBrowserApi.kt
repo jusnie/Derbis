@@ -218,7 +218,7 @@ internal class RadioBrowserApi(
     }
 
     private companion object {
-        val USER_AGENT = "Levyra/${BuildConfig.VERSION_NAME} (Android; Live Radio)"
+        val USER_AGENT = "Derbis/${BuildConfig.VERSION_NAME} (Android; Live Radio)"
         const val MAX_QUERY_LENGTH = 80
         const val MAX_STATION_LIMIT = 64
         const val SIBLING_STATION_LIMIT = 20

@@ -226,7 +226,7 @@ class UniversalPlaylistImporter(
         videoUrl = "https://www.youtube.com/watch?v=$id",
         thumbnailUrl = "",
         largeThumbnailUrl = "",
-        source = "Levyra playlist",
+        source = "Derbis playlist",
         moodTags = setOf("music", "shared"),
         energy = 50,
         vocal = 50,
