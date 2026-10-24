@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Mini-Player, Favoriten-Schnellzugriff, täglicher Flow, Offline-Mix und Songtexte</string>
+    <string name="widget_idle_subtitle">Zum Anhören tippen</string>
+    <string name="widget_toggle">Wiedergabe/Pause</string>
+    <string name="widget_next">Weiter</string>
+    <string name="widget_previous">Zurück</string>
+    <string name="widget_favorites">Favoriten</string>
+    <string name="widget_flow">Täglicher Flow</string>
+    <string name="widget_offline">Offline-Mix</string>
+    <string name="widget_lyrics">Songtexte</string>
+    <string name="radar_channel_name">Release-Radar</string>
+    <string name="radar_channel_description">Neue Veröffentlichungen von Künstlern, denen du folgst</string>
+    <string name="radar_new_release_title">Neue Veröffentlichung von %1$s</string>
+    <string name="automatic_backups">Automatische Sicherungen</string>
+    <string name="car_home">Start</string>
+    <string name="car_downloads">Downloads</string>
+    <string name="car_favorites">Favoriten</string>
+    <string name="car_playlists">Playlists</string>
+    <string name="car_no_content">Keine Inhalte</string>
+    <string name="car_content_unavailable">Inhalt nicht verfügbar</string>
+    <string name="car_search_tracks">Titel suchen</string>
+    <string name="car_no_results">Keine Ergebnisse</string>
+    <string name="car_connecting_player">Verbindung zum Player wird hergestellt</string>
+    <string name="car_now_playing">Aktuelle Wiedergabe</string>
+    <string name="car_queue">Warteschlange</string>
+
+    <!-- Android Auto browse tree -->
+    <string name="car_root_subtitle">Für Android Auto optimierte Musik</string>
+    <string name="car_home_subtitle">Schnelle Mixe, Offline und Charts</string>
+    <string name="car_queue_title">Warteschlange</string>
+    <string name="car_queue_subtitle">Persistente Warteschlange, geteilt mit Levyra</string>
+    <string name="car_recommended_title">Empfohlen</string>
+    <string name="car_recommended_subtitle">Musikprofil, Favoriten und kürzlich gehört</string>
+    <string name="car_albums_title">Alben</string>
+    <string name="car_albums_subtitle">Lokale Alben und Vorschläge</string>
+    <string name="car_artists_title">Künstler</string>
+    <string name="car_artists_subtitle">Meistgehörte und verfolgte Künstler</string>
+    <string name="car_flow_subtitle">Persönliches Levyra Radio</string>
+    <string name="car_favorites_subtitle">Gespeicherte Titel</string>
+    <string name="car_downloads_subtitle">Offline verfügbare Musik</string>
+    <string name="car_playlists_subtitle">In der App erstellte Sammlungen</string>
+    <string name="car_recents_title">Zuletzt gehört</string>
+    <string name="car_recents_subtitle">Kürzlich entdeckte Titel</string>
+    <string name="car_home_recommended_title">Für dich</string>
+    <string name="car_home_recommended_subtitle">Empfehlungen aus dem Musikprofil</string>
+    <string name="car_home_driver_title">Für die Fahrt</string>
+    <string name="car_home_driver_subtitle">Favoriten, kürzlich gehört und energiegeladene Titel</string>
+    <string name="car_home_offline_title">Offline bereit</string>
+    <string name="car_home_offline_subtitle">Downloads ohne Netzwerk spielbar</string>
+    <string name="car_home_top_local_title">Top lokal</string>
+    <string name="car_home_top_local_subtitle">Aktuelle Musikcharts für die gewählte Sprache</string>
+    <string name="car_home_flow_subtitle">Kontinuierlicher persönlicher Mix</string>
+    <string name="car_playlist_unavailable">Playlist nicht verfügbar</string>
+    <string name="car_album_unavailable">Album nicht verfügbar</string>
+    <string name="car_artist_unavailable">Künstler nicht verfügbar</string>
+    <string name="car_item_unavailable">Element nicht verfügbar</string>
+
+    <!-- Android Auto dynamic strings -->
+    <plurals name="car_tracks_count">
+        <item quantity="one">%1$d Titel</item>
+        <item quantity="other">%1$d Titel</item>
+    </plurals>
+    <string name="car_artist_folder_subtitle">Titel, Favoriten und Vorschläge</string>
+    <string name="notification_favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="notification_favorite_remove">Aus Favoriten entfernen</string>
+    <string name="notification_shuffle_enable">Zufallswiedergabe aktivieren</string>
+    <string name="notification_shuffle_disable">Zufallswiedergabe deaktivieren</string>
+    <string name="notification_repeat_off">Wiederholen aus</string>
+    <string name="notification_repeat_all">Alle wiederholen</string>
+    <string name="notification_repeat_one">Titel wiederholen</string>
+    <string name="tile_recognize_music">Musik erkennen</string>
+    <string name="tile_playback">Wiedergabe</string>
+    <string name="shortcut_search">Suche</string>
+    <string name="shortcut_library">Mediathek</string>
+    <string name="shortcut_recognition">Musik erkennen</string>
+    <string name="shortcut_resume">Wiedergabe fortsetzen</string>
+    <string name="widget_original_label">Original (Standard)</string>
+    <string name="widget_studio_mini_desc">Kompakter Player mit Cover</string>
+    <string name="widget_studio_slim_desc">Schlanke Steuerung in einer Zeile</string>
+    <string name="widget_studio_expressive_desc">Voller Player mit Fortschritt</string>
+    <string name="widget_studio_hero_desc">Großes Cover, Premium-Player</string>
+    <string name="widget_studio_immersive_desc">Cover, Warteschlange, Songtexte und mehr</string>
+    <string name="widget_studio_vinyl_desc">Player mit Cover im Schallplattenstil</string>
+    <string name="widget_studio_quick_desc">Flow, Favoriten, Downloads und mehr</string>
+</resources>

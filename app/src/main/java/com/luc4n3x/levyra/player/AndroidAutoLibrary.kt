@@ -1,0 +1,854 @@
+package com.luc4n3x.levyra.player
+
+import android.content.Context
+import android.os.Bundle
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import com.luc4n3x.levyra.R
+import com.luc4n3x.levyra.data.ChartsRepository
+import com.luc4n3x.levyra.data.locallibrary.mediaSessionArtworkUri
+import com.luc4n3x.levyra.data.FavoritesStore
+import com.luc4n3x.levyra.data.LevyraPreferences
+import com.luc4n3x.levyra.data.LevyraSmartMusicProfileStore
+import com.luc4n3x.levyra.data.PlaybackResolver
+import com.luc4n3x.levyra.data.collections.isPersonalCollectionTrack
+import com.luc4n3x.levyra.data.PlaylistStore
+import com.luc4n3x.levyra.data.TrackPayloadCodec
+import com.luc4n3x.levyra.data.YoutubeMusicRepository
+import com.luc4n3x.levyra.data.local.DownloadEntity
+import com.luc4n3x.levyra.data.local.LevyraDatabase
+import com.luc4n3x.levyra.domain.LevyraContentLocales
+import com.luc4n3x.levyra.domain.AlbumHit
+import com.luc4n3x.levyra.domain.Playlist
+import com.luc4n3x.levyra.domain.SmartMusicProfile
+import com.luc4n3x.levyra.domain.Track
+import com.luc4n3x.levyra.player.queue.PersistentQueueEngine
+import com.luc4n3x.levyra.player.queue.playbackQueueIdentity
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.withContext
+import timber.log.Timber
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.LinkedHashMap
+import java.util.Locale
+
+private fun <T> autoCatalog(maxEntries: Int): MutableMap<String, T> =
+    java.util.Collections.synchronizedMap(object : LinkedHashMap<String, T>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, T>?): Boolean = size > maxEntries
+    })
+
+internal data class AndroidAutoPageWindow(val offset: Int, val limit: Int) {
+    companion object {
+        fun of(page: Int, pageSize: Int, maxItems: Int = Int.MAX_VALUE): AndroidAutoPageWindow {
+            val effectivePageSize = if (pageSize <= 0) maxItems else pageSize.coerceAtMost(maxItems)
+            if (effectivePageSize <= 0) return AndroidAutoPageWindow(0, 0)
+            val offset = page.coerceAtLeast(0).toLong() * effectivePageSize.toLong()
+            if (offset > Int.MAX_VALUE) return AndroidAutoPageWindow(Int.MAX_VALUE, 0)
+            return AndroidAutoPageWindow(offset.toInt(), effectivePageSize)
+        }
+
+        fun limited(limit: Int): AndroidAutoPageWindow = AndroidAutoPageWindow(0, limit.coerceAtLeast(0))
+    }
+}
+
+internal fun <T> List<T>.androidAutoWindow(window: AndroidAutoPageWindow): List<T> {
+    if (window.limit <= 0 || window.offset >= size) return emptyList()
+    val end = (window.offset.toLong() + window.limit.toLong()).coerceAtMost(size.toLong()).toInt()
+    return subList(window.offset, end).toList()
+}
+
+class AndroidAutoLibrary(context: Context) {
+    private val appContext = context.applicationContext
+    private val favoritesStore = FavoritesStore(appContext)
+    private val playlistStore = PlaylistStore(appContext)
+    private val preferences = LevyraPreferences(appContext)
+    private val smartProfileStore = LevyraSmartMusicProfileStore(appContext)
+    private val database = LevyraDatabase.get(appContext)
+    private val chartsRepository = ChartsRepository(appContext)
+    private val musicRepository = YoutubeMusicRepository(appContext)
+    private val resolver = PlaybackResolver.getInstance(appContext)
+    private val queueEngine = PersistentQueueEngine.get(appContext)
+    private val catalog = autoCatalog<Track>(1_024)
+    private val folders = autoCatalog<MediaItem>(2_048)
+    @Volatile
+    private var foldersLocale: Locale? = null
+    private val albumFolders = autoCatalog<Pair<String, String>>(1_024)
+    private val artistFolders = autoCatalog<String>(1_024)
+    private val searchAlbums = autoCatalog<AlbumHit>(512)
+    private val searchCacheLock = Any()
+    private val searchCache = object : LinkedHashMap<String, TimedItems>(
+        MAX_SEARCH_CACHE_ENTRIES,
+        0.75f,
+        true
+    ) {
+        override fun removeEldestEntry(
+            eldest: MutableMap.MutableEntry<String, TimedItems>?
+        ): Boolean = size > MAX_SEARCH_CACHE_ENTRIES
+    }
+
+    fun root(): MediaItem = folder(
+        ID_ROOT,
+        appContext.getString(R.string.car_root_title),
+        appContext.getString(R.string.car_root_subtitle)
+    )
+
+    suspend fun children(parentId: String, page: Int = 0, pageSize: Int = 0): List<MediaItem> = withContext(Dispatchers.IO) {
+        val window = AndroidAutoPageWindow.of(page, pageSize, MAX_PAGE_ITEMS)
+        when (parentId) {
+            ID_ROOT -> rootChildren().androidAutoWindow(window)
+            ID_HOME -> homeChildren().androidAutoWindow(window)
+            ID_QUEUE -> queueTracks(window).map { trackItem(it) }
+            ID_RECOMMENDED -> smartRecommended().androidAutoWindow(window).map { trackItem(it) }
+            ID_ALBUMS -> albumChildren().androidAutoWindow(window)
+            ID_ARTISTS -> artistChildren().androidAutoWindow(window)
+            ID_HOME_DRIVER -> drivingMix().androidAutoWindow(window).map { trackItem(it) }
+            ID_HOME_TOP_IT -> topLocal().androidAutoWindow(window).map { trackItem(it) }
+            ID_HOME_OFFLINE -> downloads(window).map { trackItem(it) }
+            ID_FLOW -> flowTracks().androidAutoWindow(window).map { trackItem(it) }
+            ID_AUTO_HOME_RECOMMENDED -> smartRecommended().androidAutoWindow(window).map { trackItem(it) }
+            ID_AUTO_HOME_FLOW -> flowTracks().androidAutoWindow(window).map { trackItem(it) }
+            ID_FAVORITES -> favorites(window).map { trackItem(it) }
+            ID_DOWNLOADS -> downloads(window).map { trackItem(it) }
+            ID_RECENTS -> recents(window).map { trackItem(it) }
+            ID_PLAYLISTS -> playlists(window).map { playlist -> playlistFolder(playlist) }
+            else -> when {
+                parentId.startsWith(ID_PLAYLIST_PREFIX) ->
+                    playlistTracks(parentId.removePrefix(ID_PLAYLIST_PREFIX), window).map { trackItem(it) }
+                parentId.startsWith(ID_ALBUM_PREFIX) -> albumTracks(parentId).androidAutoWindow(window).map { trackItem(it) }
+                parentId.startsWith(ID_ARTIST_PREFIX) -> artistTracks(parentId).androidAutoWindow(window).map { trackItem(it) }
+                else -> emptyList()
+            }
+        }
+    }
+
+    suspend fun item(mediaId: String): MediaItem = withContext(Dispatchers.IO) {
+        localizedFolders()[mediaId] ?: findTrack(mediaId)?.let { trackItem(it, mediaId) } ?: when {
+            mediaId == ID_ROOT -> root()
+            mediaId == ID_HOME -> folder(
+                ID_HOME,
+                appContext.getString(R.string.car_home),
+                appContext.getString(R.string.car_home_subtitle)
+            )
+            mediaId == ID_QUEUE -> folder(
+                ID_QUEUE,
+                appContext.getString(R.string.car_queue_title),
+                appContext.getString(R.string.car_queue_subtitle)
+            )
+            mediaId == ID_RECOMMENDED -> folder(
+                ID_RECOMMENDED,
+                appContext.getString(R.string.car_recommended_title),
+                appContext.getString(R.string.car_recommended_subtitle)
+            )
+            mediaId == ID_ALBUMS -> folder(
+                ID_ALBUMS,
+                appContext.getString(R.string.car_albums_title),
+                appContext.getString(R.string.car_albums_subtitle)
+            )
+            mediaId == ID_ARTISTS -> folder(
+                ID_ARTISTS,
+                appContext.getString(R.string.car_artists_title),
+                appContext.getString(R.string.car_artists_subtitle)
+            )
+            mediaId == ID_FLOW -> folder(
+                ID_FLOW,
+                appContext.getString(R.string.car_flow_title),
+                appContext.getString(R.string.car_flow_subtitle)
+            )
+            mediaId == ID_AUTO_HOME_RECOMMENDED -> folder(
+                ID_AUTO_HOME_RECOMMENDED,
+                appContext.getString(R.string.car_home_recommended_title),
+                appContext.getString(R.string.car_home_recommended_subtitle)
+            )
+            mediaId == ID_AUTO_HOME_FLOW -> folder(
+                ID_AUTO_HOME_FLOW,
+                appContext.getString(R.string.car_home_flow_title),
+                appContext.getString(R.string.car_home_flow_subtitle)
+            )
+            mediaId == ID_HOME_DRIVER || mediaId == ID_HOME_OFFLINE || mediaId == ID_HOME_TOP_IT ->
+                homeChildren().first { it.mediaId == mediaId }
+            mediaId == ID_FAVORITES -> folder(
+                ID_FAVORITES,
+                appContext.getString(R.string.car_favorites),
+                appContext.getString(R.string.car_favorites_subtitle)
+            )
+            mediaId == ID_DOWNLOADS -> folder(
+                ID_DOWNLOADS,
+                appContext.getString(R.string.car_downloads),
+                appContext.getString(R.string.car_downloads_subtitle)
+            )
+            mediaId == ID_PLAYLISTS -> folder(
+                ID_PLAYLISTS,
+                appContext.getString(R.string.car_playlists),
+                appContext.getString(R.string.car_playlists_subtitle)
+            )
+            mediaId == ID_RECENTS -> folder(
+                ID_RECENTS,
+                appContext.getString(R.string.car_recents_title),
+                appContext.getString(R.string.car_recents_subtitle)
+            )
+            mediaId.startsWith(ID_PLAYLIST_PREFIX) -> playlistStore.load(mediaId.removePrefix(ID_PLAYLIST_PREFIX))?.let { playlistFolder(it) }
+                ?: folder(
+                    mediaId,
+                    appContext.getString(R.string.car_playlists),
+                    appContext.getString(R.string.car_playlist_unavailable)
+                )
+            mediaId.startsWith(ID_ALBUM_PREFIX) -> albumFolders[mediaId]?.let { pair -> folder(mediaId, pair.first, pair.second) }
+                ?: folder(
+                    mediaId,
+                    appContext.getString(R.string.car_albums_title),
+                    appContext.getString(R.string.car_album_unavailable)
+                )
+            mediaId.startsWith(ID_ARTIST_PREFIX) -> artistFolders[mediaId]?.let { artist -> folder(mediaId, artist, appContext.getString(R.string.car_artist_folder_subtitle)) }
+                ?: folder(
+                    mediaId,
+                    appContext.getString(R.string.car_artists_title),
+                    appContext.getString(R.string.car_artist_unavailable)
+                )
+            else -> folder(
+                mediaId,
+                appContext.getString(R.string.car_root_title),
+                appContext.getString(R.string.car_item_unavailable)
+            )
+        }
+    }
+
+    suspend fun search(query: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val clean = query.voiceSearchQuery()
+        if (clean.length < 2) return@withContext emptyList()
+        searchItems(clean)
+    }
+
+    fun close() {
+        synchronized(searchCacheLock) { searchCache.clear() }
+        catalog.clear()
+        searchAlbums.clear()
+        folders.clear()
+        albumFolders.clear()
+        artistFolders.clear()
+    }
+
+    suspend fun playableItems(mediaItems: List<MediaItem>): List<MediaItem> = withContext(Dispatchers.IO) {
+        mediaItems.mapNotNull { item ->
+            try {
+                playableItem(item)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Timber.w("Android Auto item resolution failed: %s", error.javaClass.simpleName)
+                null
+            }
+        }
+    }
+
+    suspend fun playableSelection(mediaItems: List<MediaItem>, startIndex: Int): MediaItem = withContext(Dispatchers.IO) {
+        if (mediaItems.size == 1) return@withContext playableItem(mediaItems.single())
+        val index = startIndex.takeIf { it in mediaItems.indices } ?: 0
+        val tracks = mediaItems.map { item ->
+            findTrack(item.mediaId)
+                ?: item.mediaMetadata.extras?.getString(EXTRA_TRACK_PAYLOAD)?.let(TrackPayloadCodec::decode)
+                ?: throw IllegalArgumentException("Android Auto track unavailable")
+        }
+        val selected = tracks[index]
+        val ready = resolveAutoTrack(selected)
+        val normalized = tracks.toMutableList().apply { this[index] = ready }.distinctBy(::playbackQueueIdentity)
+        val selectedIndex = normalized.indexOfFirst { playbackQueueIdentity(it) == playbackQueueIdentity(ready) }
+        currentCoroutineContext().ensureActive()
+        queueEngine.replace(
+            tracks = normalized.toMutableList().apply { this[selectedIndex] = ready },
+            currentIndex = selectedIndex,
+            keepPlaybackModes = true,
+            radioEnabled = !ready.streamUrl.isLocalUri()
+        )
+        buildPlaybackItem(ready)
+    }
+
+    private fun rootChildren(): List<MediaItem> = listOf(
+        folder(
+            ID_HOME,
+            appContext.getString(R.string.car_home),
+            appContext.getString(R.string.car_home_subtitle)
+        ),
+        folder(
+            ID_QUEUE,
+            appContext.getString(R.string.car_queue_title),
+            appContext.getString(R.string.car_queue_subtitle)
+        ),
+        folder(
+            ID_RECOMMENDED,
+            appContext.getString(R.string.car_recommended_title),
+            appContext.getString(R.string.car_recommended_subtitle)
+        ),
+        folder(
+            ID_ALBUMS,
+            appContext.getString(R.string.car_albums_title),
+            appContext.getString(R.string.car_albums_subtitle)
+        ),
+        folder(
+            ID_ARTISTS,
+            appContext.getString(R.string.car_artists_title),
+            appContext.getString(R.string.car_artists_subtitle)
+        ),
+        folder(
+            ID_FLOW,
+            appContext.getString(R.string.car_flow_title),
+            appContext.getString(R.string.car_flow_subtitle)
+        ),
+        folder(
+            ID_FAVORITES,
+            appContext.getString(R.string.car_favorites),
+            appContext.getString(R.string.car_favorites_subtitle)
+        ),
+        folder(
+            ID_DOWNLOADS,
+            appContext.getString(R.string.car_downloads),
+            appContext.getString(R.string.car_downloads_subtitle)
+        ),
+        folder(
+            ID_PLAYLISTS,
+            appContext.getString(R.string.car_playlists),
+            appContext.getString(R.string.car_playlists_subtitle)
+        ),
+        folder(
+            ID_RECENTS,
+            appContext.getString(R.string.car_recents_title),
+            appContext.getString(R.string.car_recents_subtitle)
+        )
+    )
+
+    private fun homeChildren(): List<MediaItem> = listOf(
+        folder(
+            ID_AUTO_HOME_RECOMMENDED,
+            appContext.getString(R.string.car_home_recommended_title),
+            appContext.getString(R.string.car_home_recommended_subtitle)
+        ),
+        folder(
+            ID_HOME_DRIVER,
+            appContext.getString(R.string.car_home_driver_title),
+            appContext.getString(R.string.car_home_driver_subtitle)
+        ),
+        folder(
+            ID_HOME_OFFLINE,
+            appContext.getString(R.string.car_home_offline_title),
+            appContext.getString(R.string.car_home_offline_subtitle)
+        ),
+        folder(
+            ID_HOME_TOP_IT,
+            appContext.getString(R.string.car_home_top_local_title),
+            appContext.getString(R.string.car_home_top_local_subtitle)
+        ),
+        folder(
+            ID_AUTO_HOME_FLOW,
+            appContext.getString(R.string.car_home_flow_title),
+            appContext.getString(R.string.car_home_flow_subtitle)
+        )
+    )
+
+    private fun localizedFolders(): MutableMap<String, MediaItem> {
+        val locale = appContext.resources.configuration.locales[0]
+        if (locale != foldersLocale) {
+            folders.clear()
+            foldersLocale = locale
+        }
+        return folders
+    }
+
+    private fun folder(id: String, title: String, subtitle: String): MediaItem {
+        return localizedFolders().getOrPut(id) {
+            MediaItem.Builder()
+                .setMediaId(id)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(title)
+                        .setSubtitle(subtitle)
+                        .setDescription(subtitle)
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
+                        .build()
+                )
+                .build()
+        }
+    }
+
+    private fun playlistFolder(playlist: Playlist): MediaItem {
+        val id = ID_PLAYLIST_PREFIX + playlist.id
+        return folder(
+            id,
+            playlist.name,
+            appContext.resources.getQuantityString(R.plurals.car_tracks_count, playlist.size, playlist.size)
+        )
+    }
+
+    private fun trackItem(track: Track, forcedMediaId: String? = null): MediaItem {
+        val mediaId = forcedMediaId ?: trackMediaId(track)
+        catalog[mediaId] = track
+        val art = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl }
+        val extras = Bundle().apply {
+            putString(EXTRA_TRACK_PAYLOAD, TrackPayloadCodec.encode(track.copy(streamUrl = streamUrlForPayload(track))))
+            putString(EXTRA_SOURCE, track.source)
+        }
+        val metadata = MediaMetadata.Builder()
+            .setTitle(track.title)
+            .setArtist(track.artist)
+            .setAlbumTitle(track.album)
+            .setSubtitle(track.artist.ifBlank { track.source })
+            .setDescription(track.source)
+            .setIsBrowsable(false)
+            .setIsPlayable(true)
+            .setDurationMs(track.durationMs.takeIf { it > 0L })
+            .setExtras(extras)
+            .apply { mediaSessionArtworkUri(art)?.let(::setArtworkUri) }
+            .build()
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setMediaMetadata(metadata)
+            .apply { if (track.streamUrl.isNotBlank()) setUri(track.streamUrl) }
+            .build()
+    }
+
+    private suspend fun playableItem(mediaItem: MediaItem): MediaItem {
+        if (!mediaItem.mediaId.startsWith(ID_TRACK_PREFIX) && mediaItem.localConfiguration?.uri != null) return mediaItem
+        val mediaId = mediaItem.mediaId
+        val track = findTrack(mediaId)
+            ?: mediaItem.mediaMetadata.extras?.getString(EXTRA_TRACK_PAYLOAD)?.let(TrackPayloadCodec::decode)
+            ?: return mediaItem
+        val queueSnapshot = queueEngine.state.value
+        val queueIndex = queueSnapshot.tracks.indexOfFirst { playbackQueueIdentity(it) == playbackQueueIdentity(track) }
+        if (queueIndex >= 0) queueEngine.select(queueIndex, positionMs = 0L, rememberCurrent = true)
+        val ready = resolveAutoTrack(track)
+        if (queueIndex >= 0) {
+            queueEngine.updateTrackAt(queueIndex, ready)
+        } else {
+            queueEngine.replace(
+                tracks = listOf(ready),
+                currentIndex = 0,
+                keepPlaybackModes = true,
+                radioEnabled = !ready.streamUrl.isLocalUri()
+            )
+        }
+        return buildPlaybackItem(ready)
+    }
+
+    private suspend fun resolveAutoTrack(track: Track): Track = when {
+        track.streamUrl.isLocalUri() -> track
+        track.isPersonalCollectionTrack() -> resolver.resolve(track)
+        else -> resolver.resolve(track.ensureYoutubeIdentity())
+    }
+
+    private suspend fun Track.ensureYoutubeIdentity(): Track {
+        if (streamUrl.isNotBlank() && !streamUrl.isLocalUri()) return this
+        if (videoUrl.isNotBlank() && !id.startsWith("chart-", true) && !id.startsWith("auto-", true)) return this
+        val match = musicRepository.searchSongMatch(title.cleanQuery(), artist.cleanQuery(), contentLanguage())
+            ?: return this
+        return match.copy(
+            title = title.ifBlank { match.title },
+            artist = artist.ifBlank { match.artist },
+            album = album.ifBlank { match.album },
+            thumbnailUrl = thumbnailUrl.ifBlank { match.thumbnailUrl },
+            largeThumbnailUrl = largeThumbnailUrl.ifBlank { match.largeThumbnailUrl },
+            accentStart = accentStart,
+            accentEnd = accentEnd
+        )
+    }
+
+    private fun buildPlaybackItem(track: Track): MediaItem {
+        return LevyraMediaItemFactory.build(track)
+    }
+
+    private fun trackMediaId(track: Track): String {
+        return ID_TRACK_PREFIX + playbackQueueIdentity(track).sha256().take(24)
+    }
+
+    private suspend fun findTrack(mediaId: String): Track? {
+        catalog[mediaId]?.let { return it }
+        if (!mediaId.startsWith(ID_TRACK_PREFIX)) return null
+        fun List<Track>.matching(): Track? = firstOrNull { trackMediaId(it) == mediaId }
+        val known = queueEngine.state.value.tracks.matching()
+            ?: musicRepository.cachedTracks().matching()
+            ?: favoritesStore.load().matching()
+            ?: preferences.loadRecentSearches().matching()
+            ?: playlistStore.loadAll().asSequence().flatMap { it.tracks.asSequence() }.firstOrNull { trackMediaId(it) == mediaId }
+        if (known != null) return known.also { catalog[mediaId] = it }
+        var offset = 0
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            val page = downloads(AndroidAutoPageWindow(offset, MAX_PAGE_ITEMS))
+            page.matching()?.let { return it.also { track -> catalog[mediaId] = track } }
+            if (page.size < MAX_PAGE_ITEMS) return null
+            offset += MAX_PAGE_ITEMS
+        }
+    }
+
+    private suspend fun queueTracks(window: AndroidAutoPageWindow = DERIVED_WINDOW): List<Track> = withContext(Dispatchers.IO) {
+        if (queueEngine.state.value.tracks.isEmpty()) {
+            queueEngine.restore(
+                fallbackTracks = emptyList(),
+                fallbackIndex = -1,
+                fallbackPositionMs = 0L,
+                fallbackRadioEnabled = true
+            )
+        }
+        queueEngine.state.value.tracks.androidAutoWindow(window)
+    }
+
+    private suspend fun favorites(window: AndroidAutoPageWindow = DERIVED_WINDOW): List<Track> = withContext(Dispatchers.IO) {
+        favoritesStore.load().distinctTracks().androidAutoWindow(window)
+    }
+
+    private suspend fun recents(window: AndroidAutoPageWindow = DERIVED_WINDOW): List<Track> = withContext(Dispatchers.IO) {
+        preferences.loadRecentSearches().distinctTracks().androidAutoWindow(window)
+    }
+
+    private suspend fun downloads(window: AndroidAutoPageWindow = DERIVED_WINDOW): List<Track> = withContext(Dispatchers.IO) {
+        database.downloadedTracksDao()
+            .page(limit = window.limit, offset = window.offset)
+            .map { it.toAutoTrack() }
+    }
+
+    private suspend fun playlists(window: AndroidAutoPageWindow = PLAYLIST_WINDOW): List<Playlist> = withContext(Dispatchers.IO) {
+        playlistStore.loadAll().androidAutoWindow(window)
+    }
+
+    private suspend fun playlistTracks(
+        playlistId: String,
+        window: AndroidAutoPageWindow = DERIVED_WINDOW
+    ): List<Track> = withContext(Dispatchers.IO) {
+        playlistStore.load(playlistId)?.tracks.orEmpty().distinctTracks().androidAutoWindow(window)
+    }
+
+    private fun contentLanguage(): String = preferences.languageCode()
+
+    private suspend fun topLocal(): List<Track> = withContext(Dispatchers.IO) {
+        val locale = LevyraContentLocales.forLanguage(contentLanguage())
+        val ranked = runCatching { chartsRepository.topSongs(locale.chartCountry, 40) }.getOrDefault(emptyList())
+        runCatching { chartsRepository.officialChartArtwork(ranked, locale.chartCountry) }.getOrDefault(ranked).distinctTracks().take(40)
+    }
+
+    private suspend fun drivingMix(): List<Track> = withContext(Dispatchers.IO) {
+        val mixed = buildList {
+            addAll(favorites().filter { it.energy >= 55 }.take(18))
+            addAll(recents().filter { it.energy >= 50 }.take(18))
+            addAll(downloads().take(12))
+            addAll(topLocal().take(16))
+        }
+        mixed.distinctTracks().take(MAX_FOLDER_TRACKS)
+    }
+
+    private suspend fun flowTracks(): List<Track> = withContext(Dispatchers.IO) {
+        val local = buildList {
+            addAll(favorites())
+            addAll(recents())
+            addAll(downloads())
+        }.distinctTracks()
+        if (local.size >= 16) return@withContext local.sortedByDescending { it.replayScore + it.cacheScore + it.energy }.take(MAX_FOLDER_TRACKS)
+        val languageCode = contentLanguage()
+        val query = LevyraContentLocales.forLanguage(languageCode).homeQueries.joinToString(" ")
+        val fallback = runCatching { musicRepository.search(query, 36, languageCode) }.getOrDefault(emptyList())
+        (local + fallback).distinctTracks().take(MAX_FOLDER_TRACKS)
+    }
+
+    private suspend fun searchItems(query: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val languageCode = contentLanguage()
+        val cacheKey = "$languageCode\u001f${query.lowercase(Locale.ROOT)}"
+        cachedSearch(cacheKey)?.let { return@withContext it }
+        val local = searchLocal(query).map { trackItem(it) }
+        val remote = try {
+            val results = musicRepository.searchForAndroidAuto(query, languageCode)
+            buildList<MediaItem> {
+                addAll((results.songs + results.videos).distinctTracks().map { trackItem(it) })
+                results.artists.take(8).forEach { artist ->
+                    val id = ID_ARTIST_PREFIX + artist.name.lowercase(Locale.ROOT).sha256().take(22)
+                    artistFolders[id] = artist.name
+                    add(folder(id, artist.name, appContext.getString(R.string.car_artist_folder_subtitle)))
+                }
+                results.albums.take(8).forEach { album ->
+                    val id = ID_ALBUM_PREFIX + album.browseId.ifBlank { album.query }.sha256().take(22)
+                    searchAlbums[id] = album
+                    albumFolders[id] = album.title to album.artist
+                    add(folder(id, album.title, album.artist))
+                }
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Timber.w("Android Auto remote search failed: %s at %s; local=%d", error.javaClass.simpleName,
+                error.stackTrace.firstOrNull { it.className.startsWith("com.luc4n3x.levyra") }, local.size)
+            if (local.isNotEmpty()) return@withContext local
+            throw error
+        }
+        val result = (local + remote).distinctBy { it.mediaId }.take(MAX_FOLDER_TRACKS)
+        currentCoroutineContext().ensureActive()
+        cacheSearch(cacheKey, result)
+        result
+    }
+
+    private fun cachedSearch(query: String): List<MediaItem>? = synchronized(searchCacheLock) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val iterator = searchCache.entries.iterator()
+        while (iterator.hasNext()) {
+            if (now - iterator.next().value.createdAt >= SEARCH_TTL_MS) iterator.remove()
+        }
+        searchCache[query]?.items
+    }
+
+    private fun cacheSearch(query: String, items: List<MediaItem>) {
+        synchronized(searchCacheLock) {
+            searchCache[query] = TimedItems(items, android.os.SystemClock.elapsedRealtime())
+        }
+    }
+
+    private suspend fun searchLocal(query: String): List<Track> = withContext(Dispatchers.IO) {
+        val needle = query.lowercase(Locale.ROOT)
+        val tokens = query.searchTokens()
+        buildList {
+            addAll(favorites())
+            addAll(recents())
+            addAll(downloads())
+            playlists().forEach { addAll(it.tracks) }
+        }.filter { track ->
+            val searchable = listOf(track.title, track.artist, track.album)
+                .joinToString(" ")
+                .lowercase(Locale.ROOT)
+            searchable.contains(needle) || tokens.isNotEmpty() && tokens.all(searchable::contains)
+        }.sortedByDescending { track ->
+            val title = track.title.lowercase(Locale.ROOT)
+            val artist = track.artist.lowercase(Locale.ROOT)
+            when {
+                title == needle -> 5
+                title.startsWith(needle) -> 4
+                artist == needle -> 3
+                title.contains(needle) -> 2
+                artist.contains(needle) -> 2
+                track.album.lowercase(Locale.ROOT).contains(needle) -> 1
+                else -> 0
+            }
+        }.distinctTracks().take(24)
+    }
+
+
+    private suspend fun smartRecommended(): List<Track> = withContext(Dispatchers.IO) {
+        val profile = smartProfileStore.load()
+        val local = buildList {
+            addAll(favorites())
+            addAll(recents())
+            addAll(downloads())
+            playlists().take(12).forEach { addAll(it.tracks) }
+        }.distinctTracks()
+        val rankedLocal = local.sortedByDescending { smartWeight(it, profile) }.take(MAX_FOLDER_TRACKS)
+        if (rankedLocal.size >= 18) return@withContext rankedLocal
+        val languageCode = contentLanguage()
+        val queries = (profile.albumQueries + profile.artistQueries).ifEmpty { LevyraContentLocales.forLanguage(languageCode).homeQueries }
+        val remote = queries.take(4).flatMap { query ->
+            runCatching { musicRepository.search(query, 12, languageCode) }.getOrDefault(emptyList())
+        }
+        (rankedLocal + remote).distinctTracks().sortedByDescending { smartWeight(it, profile) }.take(MAX_FOLDER_TRACKS)
+    }
+
+    private suspend fun albumChildren(): List<MediaItem> = withContext(Dispatchers.IO) {
+        val profile = smartProfileStore.load()
+        val local = buildList {
+            addAll(downloads())
+            addAll(favorites())
+            addAll(recents())
+            playlists().take(20).forEach { addAll(it.tracks) }
+        }.distinctTracks()
+        val grouped = local
+            .filter { it.album.isNotBlank() && !it.album.equals(it.title, ignoreCase = true) }
+            .groupBy { "${it.album.trim()}|${it.artist.trim()}" }
+            .entries
+            .sortedByDescending { entry -> entry.value.sumOf { smartWeight(it, profile) } + entry.value.size * 20 }
+            .take(36)
+        grouped.map { entry ->
+            val first = entry.value.first()
+            val title = first.album.trim()
+            val artist = first.artist.trim()
+            val id = ID_ALBUM_PREFIX + entry.key.sha256().take(22)
+            albumFolders[id] = title to artist
+            folder(
+                id,
+                title,
+                listOf(
+                    artist,
+                    appContext.resources.getQuantityString(R.plurals.car_tracks_count, entry.value.size, entry.value.size)
+                ).filter { it.isNotBlank() }.joinToString(" · ")
+            )
+        }
+    }
+
+    private suspend fun artistChildren(): List<MediaItem> = withContext(Dispatchers.IO) {
+        val profile = smartProfileStore.load()
+        val localArtists = buildList {
+            addAll(profile.topArtists.map { it.label })
+            addAll(favorites().map { it.artist })
+            addAll(recents().map { it.artist })
+            addAll(downloads().map { it.artist })
+        }.map { it.trim() }.filter { it.isNotBlank() && !it.equals("YouTube Music", ignoreCase = true) }.distinctBy { it.lowercase(Locale.ROOT) }.take(40)
+        localArtists.map { artist ->
+            val id = ID_ARTIST_PREFIX + artist.sha256().take(22)
+            artistFolders[id] = artist
+            folder(id, artist, appContext.getString(R.string.car_artist_folder_subtitle))
+        }
+    }
+
+    private suspend fun albumTracks(parentId: String): List<Track> = withContext(Dispatchers.IO) {
+        searchAlbums[parentId]?.let { album ->
+            return@withContext musicRepository.albumDetail(album, contentLanguage()).tracks.take(MAX_FOLDER_TRACKS)
+        }
+        val pair = albumFolders[parentId] ?: return@withContext emptyList()
+        val local = buildList {
+            addAll(downloads())
+            addAll(favorites())
+            addAll(recents())
+            playlists().take(20).forEach { addAll(it.tracks) }
+        }.filter { it.album.equals(pair.first, ignoreCase = true) && (pair.second.isBlank() || it.artist.equals(pair.second, ignoreCase = true)) }
+            .distinctTracks()
+        if (local.isNotEmpty()) return@withContext local.take(MAX_FOLDER_TRACKS)
+        val query = listOf(pair.first, pair.second, "album").filter { it.isNotBlank() }.joinToString(" ")
+        runCatching { musicRepository.search(query, 30, contentLanguage()) }.getOrDefault(emptyList()).distinctTracks().take(MAX_FOLDER_TRACKS)
+    }
+
+    private suspend fun artistTracks(parentId: String): List<Track> = withContext(Dispatchers.IO) {
+        val artist = artistFolders[parentId] ?: return@withContext emptyList()
+        val local = buildList {
+            addAll(favorites())
+            addAll(recents())
+            addAll(downloads())
+            playlists().take(20).forEach { addAll(it.tracks) }
+        }.filter { it.artist.equals(artist, ignoreCase = true) }
+            .distinctTracks()
+        if (local.size >= 8) return@withContext local.take(MAX_FOLDER_TRACKS)
+        val remote = runCatching { musicRepository.search(artist, 30, contentLanguage()) }.getOrDefault(emptyList())
+        (local + remote).distinctTracks().take(MAX_FOLDER_TRACKS)
+    }
+
+    private fun smartWeight(track: Track, profile: SmartMusicProfile): Int {
+        val artist = track.artist.trim().lowercase(Locale.ROOT)
+        val album = track.album.trim().lowercase(Locale.ROOT)
+        val artistScore = profile.topArtists.firstOrNull { it.label.lowercase(Locale.ROOT) == artist }?.weight ?: 0
+        val albumScore = profile.topAlbums.firstOrNull { seed -> seed.label.lowercase(Locale.ROOT).contains(album) && seed.label.lowercase(Locale.ROOT).contains(artist) }?.weight ?: 0
+        return track.replayScore + track.cacheScore + track.energy / 2 + artistScore * 2 + albumScore * 3
+    }
+
+    private fun DownloadEntity.toAutoTrack(): Track = Track(
+        id = "download-$id-${trackId.ifBlank { fileName }}".sha256().take(20),
+        title = title.ifBlank { fileName },
+        artist = artist,
+        album = album.ifBlank { "Download" },
+        durationMs = durationMs,
+        streamUrl = uri,
+        videoUrl = "",
+        thumbnailUrl = "",
+        largeThumbnailUrl = "",
+        source = "Download",
+        moodTags = setOf("offline", "download"),
+        energy = 64,
+        vocal = 50,
+        replayScore = 90,
+        cacheScore = 100,
+        accentStart = 0xFF00E5FF.toInt(),
+        accentEnd = 0xFF7C4DFF.toInt()
+    )
+
+    private fun List<Track>.distinctTracks(): List<Track> {
+        val seen = LinkedHashSet<String>()
+        val result = ArrayList<Track>(size)
+        forEach { track ->
+            val key = when {
+                track.streamUrl.isLocalUri() -> "local:${track.streamUrl}"
+                track.videoUrl.isNotBlank() -> "video:${track.videoUrl}"
+                else -> "meta:${track.id}:${track.title}:${track.artist}"
+            }.lowercase(Locale.ROOT)
+            if (seen.add(key) && track.title.isNotBlank()) result += track
+        }
+        return result
+    }
+
+    private fun String.cleanQuery(): String = trim()
+        .replace(Regex("[^\\p{L}\\p{M}\\p{N} .,'’&+_-]+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .take(90)
+        .trim()
+
+    private fun String.voiceSearchQuery(): String {
+        var value = cleanQuery()
+        while (true) {
+            val prefix = VOICE_COMMAND_PREFIXES.firstOrNull {
+                value.startsWith(it, ignoreCase = true)
+            } ?: break
+            value = value.drop(prefix.length).trim()
+        }
+        while (true) {
+            val lowered = value.lowercase(Locale.ROOT)
+            val suffix = VOICE_APP_SUFFIXES.firstOrNull(lowered::endsWith) ?: break
+            value = value.dropLast(suffix.length).trim()
+        }
+        return value.cleanQuery()
+    }
+
+    private fun String.searchTokens(): List<String> = cleanQuery()
+        .lowercase(Locale.ROOT)
+        .split(' ')
+        .map(String::trim)
+        .filter { it.isNotEmpty() && it !in SEARCH_STOP_WORDS }
+        .distinct()
+
+    private fun String.sha256(): String = MessageDigest.getInstance("SHA-256")
+        .digest(toByteArray(StandardCharsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+
+    private fun String.isLocalUri(): Boolean {
+        val lower = lowercase(Locale.ROOT)
+        return lower.startsWith("content://") || lower.startsWith("file://")
+    }
+
+    private fun streamUrlForPayload(track: Track): String = if (track.streamUrl.isLocalUri()) track.streamUrl else ""
+
+    private data class TimedItems(val items: List<MediaItem>, val createdAt: Long)
+
+    companion object {
+        const val ID_ROOT = "levyra:auto:root"
+        const val ID_HOME = "levyra:auto:home"
+        const val ID_QUEUE = "levyra:auto:queue"
+        const val ID_HOME_DRIVER = "levyra:auto:home:driver"
+        const val ID_HOME_TOP_IT = "levyra:auto:home:top-it"
+        const val ID_HOME_OFFLINE = "levyra:auto:home:offline"
+        const val ID_RECOMMENDED = "levyra:auto:recommended"
+        const val ID_ALBUMS = "levyra:auto:albums"
+        const val ID_ARTISTS = "levyra:auto:artists"
+        const val ID_FLOW = "levyra:auto:flow"
+        const val ID_AUTO_HOME_RECOMMENDED = "levyra:auto:home:recommended"
+        const val ID_AUTO_HOME_FLOW = "levyra:auto:home:flow"
+        const val ID_FAVORITES = "levyra:auto:favorites"
+        const val ID_DOWNLOADS = "levyra:auto:downloads"
+        const val ID_PLAYLISTS = "levyra:auto:playlists"
+        const val ID_RECENTS = "levyra:auto:recents"
+        const val ID_PLAYLIST_PREFIX = "levyra:auto:playlist:"
+        const val ID_ALBUM_PREFIX = "levyra:auto:album:"
+        const val ID_ARTIST_PREFIX = "levyra:auto:artist:"
+        const val ID_TRACK_PREFIX = "levyra:auto:track:"
+        const val EXTRA_TRACK_PAYLOAD = "levyra.auto.TRACK_PAYLOAD"
+        const val EXTRA_SOURCE = "levyra.auto.SOURCE"
+        const val EXTRA_SEARCH_FAILURE = "levyra.auto.SEARCH_FAILURE"
+        private const val MAX_FOLDER_TRACKS = 80
+        private const val MAX_PLAYLISTS = 60
+        private const val MAX_PAGE_ITEMS = 100
+        private val DERIVED_WINDOW = AndroidAutoPageWindow.limited(MAX_FOLDER_TRACKS)
+        private val PLAYLIST_WINDOW = AndroidAutoPageWindow.limited(MAX_PLAYLISTS)
+        private const val SEARCH_TTL_MS = 3L * 60L * 1000L
+        private const val MAX_SEARCH_CACHE_ENTRIES = 64
+        private val VOICE_COMMAND_PREFIXES = listOf(
+            "riproduci ", "suona ", "metti ", "ascolta ", "cerca ",
+            "play ", "reproduce ", "toca ", "escucha ", "écoute ", "joue ",
+            "spiele ", "suche ", "ouvir ", "toque "
+        )
+        private val VOICE_APP_SUFFIXES = listOf(
+            " su levyra", " in levyra", " en levyra", " dans levyra", " mit levyra"
+        )
+        private val SEARCH_STOP_WORDS = setOf(
+            "di", "del", "della", "dei", "degli", "delle", "da", "by", "the",
+            "un", "una", "uno", "il", "lo", "la", "i", "gli", "le"
+        )
+    }
+}
