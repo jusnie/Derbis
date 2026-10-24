@@ -229,7 +229,8 @@ data class LevyraInterfaceSettings(
     val playerColorAccent: Int = PlayerColorMode.DEFAULT_ACCENT,
     val librarySort: LibrarySort = LibrarySort.Recent,
     val librarySortDirection: LibrarySortDirection = LibrarySort.Recent.defaultDirection,
-    val skin: LevyraSkin = LevyraSkin.Default,
+    // New installs open with the Apple Music-inspired player requested for Derbis.
+    val skin: LevyraSkin = LevyraSkin.AppleMusicStyle,
     val prism: PrismSettings = PrismSettings(),
     val torque: TorqueSettings = TorqueSettings(),
     val ivory: IvorySettings = IvorySettings()
