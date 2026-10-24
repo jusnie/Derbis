@@ -365,7 +365,7 @@ class YoutubePlayerConfigStoreTest {
             YoutubePlayerConfigSources.active
         )
         assertEquals(
-            "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/main/app/src/main/assets/player_configs.json",
+            "https://raw.githubusercontent.com/jusnie/Derbis/main/app/src/main/assets/player_configs.json",
             YoutubePlayerConfigSources.LEVYRA_VERIFIED_MIRROR.url
         )
         assertEquals(YoutubePlayerConfigTrust.VERIFIED, YoutubePlayerConfigSources.LEVYRA_VERIFIED_MIRROR.trust)

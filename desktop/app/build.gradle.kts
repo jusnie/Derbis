@@ -67,7 +67,7 @@ kotlin {
 
 val generatedComposeResources = layout.buildDirectory.dir("generated/composeResources/main")
 val prepareComposeResources = tasks.register<Sync>("prepareComposeResources") {
-    from(layout.projectDirectory.file("src/main/resources/icons/levyra.png"))
+    from(layout.projectDirectory.file("src/main/resources/icons/derbis.png"))
     into(generatedComposeResources.map { it.dir("drawable") })
 }
 
@@ -125,7 +125,7 @@ compose.desktop {
             appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
 
             windows {
-                iconFile.set(rootProject.file("packaging/windows/levyra.ico"))
+                iconFile.set(rootProject.file("packaging/windows/derbis.ico"))
                 menu = true
                 menuGroup = "Derbis"
                 shortcut = true

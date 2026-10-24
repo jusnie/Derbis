@@ -61,14 +61,14 @@ class RuntimePreflightTest {
 
     @Test
     fun validatesProviderEndpointAndJsonDocuments() {
-        assertTrue(providerEndpointAllowed("https://api.github.com/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
-        assertFalse(providerEndpointAllowed("https://api.github.com.evil.example/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
-        assertFalse(providerEndpointAllowed("https://user@api.github.com/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
-        assertFalse(providerEndpointAllowed("http://api.github.com/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
-        assertTrue(providerEndpointAllowed("https://api.github.com:443/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
-        assertFalse(providerEndpointAllowed("https://api.github.com/repos/OTHER/Levyra-deepsound/releases/latest"))
-        assertFalse(providerEndpointAllowed("https://api.github.com/repos/LUC4N3X/Levyra-deepsound/releases/latest?redirect=true"))
-        assertFalse(providerEndpointAllowed("https://evil.example/repos/LUC4N3X/Levyra-deepsound/releases/latest"))
+        assertTrue(providerEndpointAllowed("https://api.github.com/repos/jusnie/Derbis/releases/latest"))
+        assertFalse(providerEndpointAllowed("https://api.github.com.evil.example/repos/jusnie/Derbis/releases/latest"))
+        assertFalse(providerEndpointAllowed("https://user@api.github.com/repos/jusnie/Derbis/releases/latest"))
+        assertFalse(providerEndpointAllowed("http://api.github.com/repos/jusnie/Derbis/releases/latest"))
+        assertTrue(providerEndpointAllowed("https://api.github.com:443/repos/jusnie/Derbis/releases/latest"))
+        assertFalse(providerEndpointAllowed("https://api.github.com/repos/OTHER/Derbis/releases/latest"))
+        assertFalse(providerEndpointAllowed("https://api.github.com/repos/jusnie/Derbis/releases/latest?redirect=true"))
+        assertFalse(providerEndpointAllowed("https://evil.example/repos/jusnie/Derbis/releases/latest"))
         assertTrue(jsonDocumentValid("{\"version\":1}"))
         assertTrue(jsonDocumentValid("[1,2,3]"))
         assertFalse(jsonDocumentValid("not-json"))

@@ -290,9 +290,9 @@ class RemoteAnnouncementRepositoryTest {
     @Test
     fun actionLinksAreRestrictedToOfficialGithubPaths() {
         assertTrue(RemoteAnnouncementRules.isSafeActionUrl(LEVYRA_REPOSITORY_URL))
-        assertTrue(RemoteAnnouncementRules.isSafeActionUrl("https://github.com/LUC4N3X/Levyra-deepsound/releases"))
-        assertFalse(RemoteAnnouncementRules.isSafeActionUrl("http://github.com/LUC4N3X/Levyra-deepsound"))
-        assertFalse(RemoteAnnouncementRules.isSafeActionUrl("https://example.com/LUC4N3X/Levyra-deepsound"))
+        assertTrue(RemoteAnnouncementRules.isSafeActionUrl("https://github.com/jusnie/Derbis/releases"))
+        assertFalse(RemoteAnnouncementRules.isSafeActionUrl("http://github.com/jusnie/Derbis"))
+        assertFalse(RemoteAnnouncementRules.isSafeActionUrl("https://example.com/jusnie/Derbis"))
         assertFalse(RemoteAnnouncementRules.isSafeActionUrl("https://github.com/another-owner/project"))
     }
 

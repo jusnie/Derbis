@@ -443,9 +443,9 @@ exit ${'$'}process.ExitCode
 
     private companion object {
         const val DESKTOP_RELEASES_URL =
-            "https://api.github.com/repos/LUC4N3X/Levyra-deepsound/releases?per_page=50"
+            "https://api.github.com/repos/jusnie/Derbis/releases?per_page=50"
         const val DESKTOP_RELEASE_TAG_PREFIX = "desktop-v"
-        const val RELEASE_ASSET_PATH_PREFIX = "/LUC4N3X/Levyra-deepsound/releases/download/"
+        const val RELEASE_ASSET_PATH_PREFIX = "/jusnie/Derbis/releases/download/"
         const val UPDATE_DIRECTORY = "updates"
         const val BUFFER_SIZE = 64 * 1024
         const val PROGRESS_INTERVAL_BYTES = 256 * 1024L

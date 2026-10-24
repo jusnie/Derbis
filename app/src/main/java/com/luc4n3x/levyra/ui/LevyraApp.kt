@@ -22473,7 +22473,7 @@ private fun SettingsHubFooter(onExitApplication: () -> Unit) {
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://github.com/LUC4N3X/Levyra-deepsound/blob/main/docs/legal/LEGAL.md")
+                                Uri.parse("https://github.com/jusnie/Derbis")
                             )
                         )
                     }
@@ -28153,7 +28153,7 @@ private fun LevyraVideoSurface(
             AndroidView(
                     factory = { context ->
                         (android.view.LayoutInflater.from(context).inflate(
-                            R.layout.levyra_video_player_view_zoomable,
+                            R.layout.derbis_video_player_view_zoomable,
                             null,
                             false
                         ) as androidx.media3.ui.PlayerView).apply {

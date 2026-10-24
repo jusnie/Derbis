@@ -895,9 +895,9 @@ internal object YoutubePlayerConfigSources {
         trust = YoutubePlayerConfigTrust.PROVISIONAL
     )
 
-    const val LEVYRA_VERIFIED_MIRROR_ID = "levyra-verified-mirror"
+    const val LEVYRA_VERIFIED_MIRROR_ID = "derbis-verified-mirror"
     const val LEVYRA_VERIFIED_MIRROR_URL =
-        "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/main/app/src/main/assets/player_configs.json"
+        "https://raw.githubusercontent.com/jusnie/Derbis/main/app/src/main/assets/player_configs.json"
 
     val LEVYRA_VERIFIED_MIRROR = YoutubePlayerConfigSource(
         id = LEVYRA_VERIFIED_MIRROR_ID,

@@ -3,7 +3,7 @@ version = 1
 [[annotations]]
 path = "**"
 precedence = "closest"
-SPDX-FileCopyrightText = "2026 LUC4N3X and Levyra contributors"
+SPDX-FileCopyrightText = "2026 Yasuda and Derbis contributors"
 SPDX-License-Identifier = "GPL-3.0-only"
 
 [[annotations]]
@@ -33,7 +33,7 @@ path = [
 precedence = "override"
 SPDX-FileCopyrightText = [
   "2015-present Ionic",
-  "2026 LUC4N3X",
+  "2026 Yasuda",
 ]
 SPDX-License-Identifier = "MIT"
 

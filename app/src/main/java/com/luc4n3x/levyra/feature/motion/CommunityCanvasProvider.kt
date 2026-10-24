@@ -380,12 +380,12 @@ class CommunityCanvasProvider internal constructor(
     companion object {
         const val PROVIDER_ID = "community-canvas"
         const val INDEX_ROOT_URL =
-            "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/canvas-data/catalog/index/v2"
+            "https://raw.githubusercontent.com/jusnie/Derbis/canvas-data/catalog/index/v2"
         const val INDEX_MANIFEST_URL = "$INDEX_ROOT_URL/manifest.json"
         const val MIRROR_CATALOG_URL =
-            "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/canvas-data/catalog/community-canvas.json"
+            "https://raw.githubusercontent.com/jusnie/Derbis/canvas-data/catalog/community-canvas.json"
         const val USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/142 Mobile Safari/537.36 Levyra/CommunityCanvas"
+            "Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/142 Mobile Safari/537.36 Derbis/CommunityCanvas"
         const val MAX_CATALOG_BYTES = 1024 * 1024
         const val MAX_INDEX_MANIFEST_BYTES = 256 * 1024
         const val MAX_INDEX_SHARD_BYTES = 192 * 1024

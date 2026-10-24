@@ -49,9 +49,9 @@ internal data class PreparedAppUpdate(
 
 internal const val MAX_UPDATE_APK_BYTES = 250L * 1024L * 1024L
 private const val MAX_UPDATE_REDIRECTS = 5
-private const val UPDATE_APK_FILE = "levyra-update.apk"
-private const val UPDATE_APK_PART_FILE = "levyra-update.apk.part"
-private const val LEVYRA_RELEASE_PATH_PREFIX = "/LUC4N3X/Levyra-deepsound/releases/download/"
+private const val UPDATE_APK_FILE = "derbis-update.apk"
+private const val UPDATE_APK_PART_FILE = "derbis-update.apk.part"
+private const val LEVYRA_RELEASE_PATH_PREFIX = "/jusnie/Derbis/releases/download/"
 private val UPDATE_REDIRECT_CODES = setOf(301, 302, 303, 307, 308)
 
 internal fun validateLevyraUpdateUrl(value: String, initial: Boolean): HttpUrl? {

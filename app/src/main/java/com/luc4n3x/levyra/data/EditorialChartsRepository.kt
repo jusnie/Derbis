@@ -334,7 +334,7 @@ internal class EditorialChartsRepository private constructor(context: Context) {
         private const val REFRESH_RETRY_TTL_MS = 5L * 60L * 1000L
         private const val MAX_CATALOG_BYTES = 4 * 1024 * 1024
         private const val CATALOG_URL =
-            "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/editorial-data/catalog/editorial.json"
+            "https://raw.githubusercontent.com/jusnie/Derbis/main/catalog/editorial.json"
     }
 }
 

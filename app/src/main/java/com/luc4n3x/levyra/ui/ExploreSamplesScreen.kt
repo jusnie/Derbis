@@ -494,7 +494,7 @@ private fun ExploreSampleVideoSurface(
     AndroidView(
         factory = { context ->
             (LayoutInflater.from(context).inflate(
-                R.layout.levyra_video_player_view,
+                R.layout.derbis_video_player_view,
                 null,
                 false
             ) as PlayerView).apply {

@@ -78,7 +78,7 @@ object LevyraWidgetCenter {
         val artworkUrl = prefs.getString(KEY_ARTWORK, "").orEmpty()
         val playing = prefs.getBoolean(KEY_PLAYING, false)
         val accent = prefs.getInt(KEY_ACCENT, DEFAULT_ACCENT)
-        val views = RemoteViews(context.packageName, R.layout.levyra_widget)
+        val views = RemoteViews(context.packageName, R.layout.derbis_widget)
         views.setViewVisibility(R.id.widget_playing, if (playing) View.VISIBLE else View.GONE)
         views.setInt(R.id.widget_playing, "setColorFilter", accent)
         views.setInt(R.id.widget_toggle, "setColorFilter", if (playing) accent else Color.WHITE)

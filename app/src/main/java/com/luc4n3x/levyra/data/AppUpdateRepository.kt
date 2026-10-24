@@ -193,7 +193,7 @@ internal const val UPDATE_METADATA_CONNECT_TIMEOUT_SECONDS = 5L
 internal const val UPDATE_METADATA_READ_TIMEOUT_SECONDS = 10L
 internal const val UPDATE_METADATA_CALL_TIMEOUT_SECONDS = 12L
 private const val UPDATE_METADATA_HOST = "api.github.com"
-private const val UPDATE_METADATA_PATH = "/repos/LUC4N3X/Levyra-deepsound/releases/latest"
+private const val UPDATE_METADATA_PATH = "/repos/jusnie/Derbis/releases/latest"
 
 internal fun validateLevyraReleaseMetadataUrl(value: String): HttpUrl? {
     val url = value.trim().toHttpUrlOrNull() ?: return null

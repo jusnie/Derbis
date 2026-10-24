@@ -30,7 +30,7 @@ ARTIST_SEPARATOR_PATTERN = re.compile(
 )
 APOSTROPHES = {"’", "'", "`", "´"}
 BRACKETS = set("()[]{}")
-USER_AGENT = "Levyra-community-canvas-mirror/2.0 (+https://github.com/LUC4N3X/Levyra-deepsound)"
+USER_AGENT = "Levyra-community-canvas-mirror/2.0 (+https://github.com/jusnie/Derbis)"
 MAX_PAYLOAD_BYTES = 256 * 1024 * 1024
 DEFAULT_COMPAT_MAX_BYTES = 900 * 1024
 DEFAULT_COMPAT_MIN_ENTRIES = 100

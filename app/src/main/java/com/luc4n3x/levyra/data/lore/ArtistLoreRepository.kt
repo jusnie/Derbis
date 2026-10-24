@@ -637,7 +637,7 @@ class ArtistLoreRepository(context: Context?) {
             .url(url)
             .header("Accept", accept)
             .header("Accept-Language", languageCode)
-            .header("User-Agent", "Levyra/${BuildConfig.VERSION_NAME} (https://github.com/LUC4N3X/Levyra-deepsound) Android")
+            .header("User-Agent", "Derbis/${BuildConfig.VERSION_NAME} (https://github.com/jusnie/Derbis) Android")
             .get()
             .build()
         return when (val response = client.await(request)) {

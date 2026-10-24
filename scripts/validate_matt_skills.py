@@ -94,7 +94,7 @@ def main() -> int:
             "docs/ai/MATT_POCOCK_SKILLS.md",
         ),
     )
-    require(errors, "docs/agents/issue-tracker.md", ("LUC4N3X/Levyra-deepsound", "owner explicitly authorizes", "PRs as a request surface: no"))
+    require(errors, "docs/agents/issue-tracker.md", ("jusnie/Derbis", "owner explicitly authorizes", "PRs as a request surface: no"))
     require(errors, "docs/agents/domain.md", ("CONTEXT.md", "docs/adr/", "created lazily"))
 
     settings_relative = f"{CLAUDE_ROOT}/settings.json"

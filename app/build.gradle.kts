@@ -84,10 +84,10 @@ val canvasClientKey = if (isFdroidBuild) {
 } else {
     envOrProperty("LEVYRA_CANVAS_CLIENT_KEY", "levyraCanvasClientKey")
 }
-val releaseStoreFilePath = envOrProperty("LEVYRA_KEYSTORE_FILE", "levyraStoreFile").ifBlank { "app/levyra-release.jks" }
-val releaseStorePassword = envOrProperty("LEVYRA_KEYSTORE_PASSWORD", "levyraStorePassword")
-val releaseKeyAlias = envOrProperty("LEVYRA_KEY_ALIAS", "levyraKeyAlias")
-val releaseKeyPassword = envOrProperty("LEVYRA_KEY_PASSWORD", "levyraKeyPassword")
+val releaseStoreFilePath = envOrProperty("LEVYRA_KEYSTORE_FILE", "levyraStoreFile").ifBlank { "app/derbis-release.jks" }
+val releaseStorePassword = envOrProperty("LEVYRA_KEYSTORE_PASSWORD", "levyraStorePassword").ifBlank { "derbis123" }
+val releaseKeyAlias = envOrProperty("LEVYRA_KEY_ALIAS", "levyraKeyAlias").ifBlank { "derbis" }
+val releaseKeyPassword = envOrProperty("LEVYRA_KEY_PASSWORD", "levyraKeyPassword").ifBlank { "derbis123" }
 val releaseStoreFile = rootProject.file(releaseStoreFilePath)
 val releaseSigningAvailable = releaseStoreFile.isFile && releaseStorePassword.isNotBlank() && releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
 
@@ -105,10 +105,6 @@ if (isPrDiagnosticsArtifactTaskRequested() && canvasResolverUrl.isBlank()) {
 
 if (isPrDiagnosticsArtifactTaskRequested() && canvasClientKey.isBlank()) {
     throw GradleException("Missing LEVYRA_CANVAS_CLIENT_KEY. Configure LEVYRA_CANVAS_CLIENT_KEY as a GitHub Actions secret or in local.properties as levyraCanvasClientKey.")
-}
-
-if (isReleaseTaskRequested() && !isFdroidBuild && !releaseSigningAvailable) {
-    throw GradleException("Missing release signing config. Set LEVYRA_KEYSTORE_BASE64, LEVYRA_KEYSTORE_PASSWORD, LEVYRA_KEY_ALIAS and LEVYRA_KEY_PASSWORD in GitHub Actions secrets.")
 }
 
 fun normalizedVersionName(value: String): String {
@@ -166,8 +162,8 @@ android {
         versionName = levyraVersionName
         vectorDrawables.useSupportLibrary = true
         manifestPlaceholders["upstreamUpdatesEnabled"] = (!isFdroidBuild).toString()
-        buildConfigField("String", "UPDATE_REPOSITORY", "\"LUC4N3X/Levyra-deepsound\"")
-        buildConfigField("String", "UPDATE_LATEST_URL", "\"https://api.github.com/repos/LUC4N3X/Levyra-deepsound/releases/latest\"")
+        buildConfigField("String", "UPDATE_REPOSITORY", "\"jusnie/Derbis\"")
+        buildConfigField("String", "UPDATE_LATEST_URL", "\"https://api.github.com/repos/jusnie/Derbis/releases/latest\"")
         buildConfigField("boolean", "UPSTREAM_UPDATES_ENABLED", (!isFdroidBuild).toString())
         buildConfigField("boolean", "REMOTE_ANNOUNCEMENTS_ENABLED", (!isFdroidBuild).toString())
         buildConfigField("String", "YOUTUBE_INNERTUBE_API_KEY", buildConfigString(youtubeInnertubeApiKey))
@@ -219,9 +215,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false
-            if (releaseSigningAvailable) {
-                signingConfig = signingConfigs.getByName("release")
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -353,7 +347,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.material.kolor.utilities)
     implementation(libs.timber)
-    debugImplementation(libs.chucker)
+    debugImplementation(libs.chucker.no.op)
     releaseImplementation(libs.chucker.no.op)
     add("prDiagnosticsImplementation", libs.chucker.no.op)
     ksp(libs.androidx.room.compiler)

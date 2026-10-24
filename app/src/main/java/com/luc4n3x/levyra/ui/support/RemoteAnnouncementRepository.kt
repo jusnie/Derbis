@@ -15,10 +15,10 @@ import okhttp3.Request
 import org.json.JSONObject
 
 internal const val BUILT_IN_SUPPORT_ANNOUNCEMENT_ID = "github-star-2026-08"
-internal const val LEVYRA_REPOSITORY_URL = "https://github.com/LUC4N3X/Levyra-deepsound"
+internal const val LEVYRA_REPOSITORY_URL = "https://github.com/jusnie/Derbis"
 internal const val BUNDLED_ANNOUNCEMENTS_ASSET = "config/announcements.json"
 internal const val REMOTE_ANNOUNCEMENTS_URL =
-    "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/main/app/src/main/assets/config/announcements.json"
+    "https://raw.githubusercontent.com/jusnie/Derbis/main/app/src/main/assets/config/announcements.json"
 
 private const val REMOTE_SCHEMA_VERSION = 2
 private const val CHECK_INTERVAL_MS = 12L * 60L * 60L * 1_000L
@@ -124,7 +124,7 @@ internal object RemoteAnnouncementRules {
                 host in safeActionHosts &&
                 uri.userInfo == null &&
                 uri.fragment == null &&
-                uri.path.orEmpty().startsWith("/LUC4N3X/")
+                uri.path.orEmpty().startsWith("/jusnie/")
         }.getOrDefault(false)
     }
 

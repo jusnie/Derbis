@@ -6,17 +6,17 @@ Categories:
   - Multimedia
   - Online Media Player
 License: GPL-3.0-only
-AuthorName: LUC4N3X
-SourceCode: https://github.com/LUC4N3X/Levyra-deepsound
-IssueTracker: https://github.com/LUC4N3X/Levyra-deepsound/issues
-Changelog: https://github.com/LUC4N3X/Levyra-deepsound/releases
+AuthorName: Yasuda
+SourceCode: https://github.com/jusnie/Derbis
+IssueTracker: https://github.com/jusnie/Derbis/issues
+Changelog: https://github.com/jusnie/Derbis/releases
 
-AutoName: LEVYRA
+AutoName: Derbis
 
 RepoType: git
-Repo: https://github.com/LUC4N3X/Levyra-deepsound.git
+Repo: https://github.com/jusnie/Derbis.git
 Binaries:@FDROID_YAML_SPACE@
-  https://github.com/LUC4N3X/Levyra-deepsound/releases/download/fdroid-%v-r6/LEVYRA-%v-fdroid.apk
+  https://github.com/jusnie/Derbis/releases/download/v%v/Derbis-%v.apk
 
 Builds:
   - versionName: @VERSION@

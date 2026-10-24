@@ -235,7 +235,7 @@ private class ReleaseNotificationCoordinator(context: Context) {
             .setSummaryText(strings.releaseRadar)
         lines.forEach { style.addLine(it) }
         val notification = NotificationCompat.Builder(appContext, ReleaseRadarWorker.CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_levyra_radar)
+            .setSmallIcon(R.drawable.ic_derbis_radar)
             .setContentTitle(title)
             .setContentText(lines.first())
             .setStyle(style)

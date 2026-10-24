@@ -1,7 +1,6 @@
 package com.luc4n3x.levyra.data.network
 
 import android.content.Context
-import com.chuckerteam.chucker.api.ChuckerInterceptor
 import com.luc4n3x.levyra.BuildConfig
 import com.luc4n3x.levyra.data.NewPipeRuntime
 import com.luc4n3x.levyra.data.network.byedpi.ByeDpiDns
@@ -297,14 +296,6 @@ object LevyraHttpClientFactory {
     }
 
     private fun applyDebugInterceptors(builder: OkHttpClient.Builder, context: Context?): OkHttpClient.Builder {
-        if (BuildConfig.DEBUG && context != null) {
-            builder.addInterceptor(
-                ChuckerInterceptor.Builder(context.applicationContext)
-                    .maxContentLength(250_000L)
-                    .alwaysReadResponseBody(false)
-                    .build()
-            )
-        }
         return builder
     }
 }

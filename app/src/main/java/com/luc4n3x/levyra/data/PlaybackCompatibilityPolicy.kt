@@ -590,8 +590,8 @@ internal class PlaybackCompatibilityPolicyStore(
         private const val FAILED_FETCH_BACKOFF_MS = 30_000L
         private const val REJECTION_REFRESH_COOLDOWN_MS = 30_000L
         private const val MAX_POLICY_BYTES = 64L * 1024L
-        private const val USER_AGENT = "Levyra playback-policy/1"
+        private const val USER_AGENT = "Derbis playback-policy/1"
         private const val REMOTE_POLICY_URL =
-            "https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/main/config/playback_policy.json"
+            "https://raw.githubusercontent.com/jusnie/Derbis/main/config/playback_policy.json"
     }
 }

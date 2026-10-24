@@ -40,7 +40,7 @@ class OpenClawEvidenceContractsTest(unittest.TestCase):
             "exact `head_sha`",
             "push-triggered",
             "empty commit-status surface",
-            "gh run list --repo LUC4N3X/Levyra-deepsound --commit <sha>",
+            "gh run list --repo jusnie/Derbis --commit <sha>",
             "PR-scoped queries only",
         ):
             self.assertIn(term, ci)

@@ -1,13 +1,16 @@
-name: Build Derbis APK
+name: Build Derbis Release APK
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Release APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -34,11 +37,36 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
-      - name: Build Derbis Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build Derbis Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Upload Derbis APK
+      - name: Stage Release APK
+        run: |
+          mkdir -p build-assets
+          find app/build/outputs/apk/release/ -type f -name "*.apk" -exec cp {} build-assets/Derbis-Release.apk \;
+
+      - name: Upload Derbis Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: Derbis-Release-APK
+          path: build-assets/*.apk
+
+      - name: Create / Update GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.1
+          name: "Derbis v1.0.1"
+          draft: false
+          prerelease: false
+          body: |
+            ## Derbis v1.0.1 Release
+            - ⚡ **Lightweight & High Performance**: Completely removed Chucker HTTP monitoring and enabled full R8 minification & resource shrinking.
+            - 🚀 **Lag & ANR Fix**: Zero background network inspection, smooth 120Hz scrolling, fast startup.
+            - 🖤 **AMOLED Pitch Black & Crisp White**: Optimized for battery and OLED displays (#000000).
+            - 🌅 **Dynamic Greetings**: Morning, afternoon, evening, and night greetings.
+            - 🔗 **Updated Sources**: GitHub repo and update checks pointed directly to `jusnie/Derbis`.
+            - 🏷️ **Clean Branding**: Attributed to Yasuda, all legacy author names and links updated.
+          files: build-assets/Derbis-Release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

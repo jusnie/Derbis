@@ -4,8 +4,8 @@
 
 **The extraction engine built for Levyra.**
 
-[![Release](https://img.shields.io/github/v/release/LUC4N3X/LevyraExtractor?style=flat-square&logo=github)](https://github.com/LUC4N3X/LevyraExtractor/releases)
-[![JitPack](https://img.shields.io/jitpack/version/com.github.LUC4N3X/LevyraExtractor?style=flat-square)](https://jitpack.io/#LUC4N3X/LevyraExtractor)
+[![Release](https://img.shields.io/github/v/release/jusnie/Derbis?style=flat-square&logo=github)](https://github.com/jusnie/Derbis/releases)
+[![JitPack](https://img.shields.io/jitpack/version/com.github.jusnie/Derbis?style=flat-square)](https://jitpack.io/#jusnie/Derbis)
 [![Java 17](https://img.shields.io/badge/Java-17-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/17/)
 [![GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
 
@@ -96,6 +96,6 @@ See [LICENSE](LICENSE) for the complete license text.
 
 <div align="center">
 
-Built for **Levyra** by [LUC4N3X](https://github.com/LUC4N3X)
+Built for **Derbis** by [Yasuda](https://github.com/jusnie)
 
 </div>

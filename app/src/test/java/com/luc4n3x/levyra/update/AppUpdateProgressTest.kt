@@ -144,9 +144,9 @@ class AppUpdateProgressTest {
 
     @Test
     fun settingsDownloadOnlyLaunchesHttpsOrTheInternalInstallHandoff() {
-        assertTrue(isLaunchableUpdateTarget("https://github.com/LUC4N3X/Levyra-deepsound/releases/latest"))
+        assertTrue(isLaunchableUpdateTarget("https://github.com/jusnie/Derbis/releases/latest"))
         assertTrue(isLaunchableUpdateTarget(AppUpdateContract.INSTALL_URI))
-        assertFalse(isLaunchableUpdateTarget("http://github.com/LUC4N3X/Levyra-deepsound/releases"))
+        assertFalse(isLaunchableUpdateTarget("http://github.com/jusnie/Derbis/releases"))
         assertFalse(isLaunchableUpdateTarget("javascript:alert(1)"))
         assertFalse(isLaunchableUpdateTarget("file:///data/local/tmp/evil.apk"))
         assertFalse(isLaunchableUpdateTarget("levyra-internal://updates/other"))

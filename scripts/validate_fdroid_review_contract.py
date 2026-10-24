@@ -302,7 +302,7 @@ def collect_violations(
     editorial_path = "app/src/main/java/com/luc4n3x/levyra/data/EditorialChartsRepository.kt"
     editorial = read(editorial_path)
     for marker in (
-        '"https://raw.githubusercontent.com/LUC4N3X/Levyra-deepsound/editorial-data/catalog/editorial.json"',
+        '"https://raw.githubusercontent.com/jusnie/Derbis/editorial-data/catalog/editorial.json"',
         'host == "i.scdn.co"',
         'host.endsWith(".scdn.co")',
         'host == "image-cdn-ak.spotifycdn.com"',

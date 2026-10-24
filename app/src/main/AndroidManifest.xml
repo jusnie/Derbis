@@ -179,7 +179,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/levyra_widget_info" />
+                android:resource="@xml/derbis_widget_info" />
         </receiver>
 
         <receiver
