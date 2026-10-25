@@ -50,6 +50,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.luc4n3x.levyra.data.LevyraArtworkCache
 import com.luc4n3x.levyra.data.LevyraBackupManager
+import com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection
+import com.luc4n3x.levyra.feature.discord.DerbisDiscordRichPresence
 import com.luc4n3x.levyra.domain.AppUpdateInfo
 import com.luc4n3x.levyra.domain.ChartsCatalog
 import com.luc4n3x.levyra.domain.LevyraFontPreset
@@ -79,6 +81,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -153,6 +156,17 @@ class MainActivity : ComponentActivity() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = startPalette.isLight
             isAppearanceLightNavigationBars = startPalette.isLight
+        }
+        DerbisSpotifyConnection.initialize(applicationContext)
+        DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+        DerbisDiscordRichPresence.attach(this)
+        lifecycleScope.launch {
+            viewModel.state
+                .map { state -> Triple(state.currentTrack?.title, state.currentTrack?.artist, state.isPlaying) }
+                .distinctUntilChanged()
+                .collect { (title, artist, playing) ->
+                    DerbisDiscordRichPresence.publish(applicationContext, title, artist, playing)
+                }
         }
         LevyraLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
@@ -305,6 +319,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
         LevyraLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
     }
@@ -364,6 +379,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         updateJob?.cancel()
+        DerbisDiscordRichPresence.release()
         LevyraPipBridge.unbind()
         super.onDestroy()
         if (exitApplicationRequested) android.os.Process.killProcess(android.os.Process.myPid())

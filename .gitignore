@@ -6,6 +6,7 @@ local.properties
 app/*.jks
 !app/derbis-release.jks
 app/*.keystore
+app/libs/discord_partner_sdk.aar
 app/build/
 .idea/
 *.iml
@@ -28,3 +29,7 @@ skills-lock.json
 # Local build diagnostics
 /[Bb]uild log.txt
 /.report/
+
+# Local toolchains and Node relay dependencies
+/.tools/
+/server/derbis-jam-relay/node_modules/

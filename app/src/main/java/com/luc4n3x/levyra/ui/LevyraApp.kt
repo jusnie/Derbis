@@ -22298,6 +22298,71 @@ private fun SettingsSearchResultRow(title: String, description: String, category
 }
 
 @Composable
+private fun DiscordRichPresenceSettingsPanel() {
+    val context = LocalContext.current
+    val available = remember(context) { com.luc4n3x.levyra.feature.discord.DerbisDiscordRichPresence.isAvailable() }
+    var enabled by remember(context, available) {
+        mutableStateOf(available && com.luc4n3x.levyra.feature.discord.DerbisDiscordRichPresence.isEnabled(context))
+    }
+    Text("Discord", color = LevyraText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    SettingsToggle(
+        icon = Icons.Rounded.AccountCircle,
+        title = "Discord Rich Presence",
+        subtitle = if (available) {
+            "Show your current Derbis track in the signed-in Discord app"
+        } else {
+            "Discord Social SDK is unavailable in this build"
+        },
+        checked = enabled,
+        onCheckedChange = { value ->
+            enabled = value && available
+            com.luc4n3x.levyra.feature.discord.DerbisDiscordRichPresence.setEnabled(context, enabled)
+        }
+    )
+}
+
+@Composable
+private fun SpotifyConnectionSettingsPanel() {
+    val context = LocalContext.current
+    val spotifyState by com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
+    LaunchedEffect(context) {
+        com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection.initialize(context)
+    }
+    val subtitle = when (spotifyState.status) {
+        com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Connected ->
+            spotifyState.displayName.ifBlank { "Connected" }
+        com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Connecting ->
+            spotifyState.detail.ifBlank { "Continue in Spotify to finish connecting" }
+        com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Error ->
+            spotifyState.detail.ifBlank { "Connection failed. Try again." }
+        com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Unavailable ->
+            spotifyState.detail
+        com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Disconnected ->
+            "Connect your account with Spotify’s official sign-in"
+    }
+    Text("Spotify", color = LevyraText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    SettingsButton(
+        icon = Icons.Rounded.AccountCircle,
+        title = if (spotifyState.isConnected) "Disconnect Spotify" else "Connect Spotify",
+        subtitle = subtitle,
+        enabled = spotifyState.status != com.luc4n3x.levyra.data.spotify.SpotifyConnectionStatus.Connecting
+    ) {
+        if (spotifyState.isConnected) {
+            com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection.disconnect(context)
+        } else {
+            val authorizationUri = com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection.begin(context)
+            if (authorizationUri != null) {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
+                }.onFailure {
+                    com.luc4n3x.levyra.data.spotify.DerbisSpotifyConnection.disconnect(context)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun IntegrationSettingsPanel(
     lastFmConfigured: Boolean, lastFmAuthorizationPending: Boolean,
     listenBrainzConfigured: Boolean, audDConfigured: Boolean,
@@ -22311,6 +22376,8 @@ private fun IntegrationSettingsPanel(
     var listenBrainzToken by remember { mutableStateOf("") }
     var audDToken by remember { mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        DiscordRichPresenceSettingsPanel()
+        SpotifyConnectionSettingsPanel()
         Text("Last.fm", color = LevyraText, fontWeight = FontWeight.Black, fontSize = 17.sp)
         OutlinedTextField(
             lastFmKey,

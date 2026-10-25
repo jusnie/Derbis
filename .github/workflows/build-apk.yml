@@ -37,6 +37,20 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
+      - name: Fetch authorized Discord Social SDK
+        env:
+          DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DISCORD_SOCIAL_SDK_URL}" ]]; then
+            echo "DISCORD_SOCIAL_SDK_URL is required for the official Discord Rich Presence release build."
+            exit 1
+          fi
+          mkdir -p app/libs
+          curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}"
+          unzip -tq app/libs/discord_partner_sdk.aar
+
       - name: Build Derbis Release APK
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
