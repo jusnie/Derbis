@@ -106,7 +106,8 @@ private data class MainActivityUiSlice(
 private fun LevyraUiState.toMainActivityUiSlice(): MainActivityUiSlice = MainActivityUiSlice(
     fontPreset = interfaceSettings.fontPreset,
     animationsEnabled = if (interfaceSettings.liteMode) false else animationsEnabled,
-    liquidGlassEnabled = if (interfaceSettings.liteMode) false else interfaceSettings.liquidGlassEnabled,
+    liquidGlassEnabled = if (interfaceSettings.liteMode) false else
+        (interfaceSettings.liquidGlassEnabled || interfaceSettings.skin == com.luc4n3x.levyra.domain.LevyraSkin.Prism),
     forceHighRefreshRate = interfaceSettings.forceHighRefreshRate,
     glassStyle = LevyraGlassStyle(
         blur = interfaceSettings.glassBlur,

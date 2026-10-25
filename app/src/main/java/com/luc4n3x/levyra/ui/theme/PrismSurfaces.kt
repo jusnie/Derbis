@@ -22,7 +22,9 @@ internal fun prismGlassColor(): Color {
     if (LevyraIsSpotify) return SpotifyDesign.elevated
     if (LevyraIsAppleMusic) return AppleMusicDesign.chrome
     if (LevyraIsYouTubeMusic) return YouTubeMusicDesign.surface
-    return MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 1f else 0.96f)
+    // A single, quiet material keeps the skin coherent; low-RAM/power-save uses an opaque
+    // fallback rather than attempting costly backdrop sampling.
+    return MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 0.88f else 0.42f)
 }
 
 @Composable
@@ -64,10 +66,19 @@ internal fun prismPlayerSurfaces(palette: LevyraPalette): PlayerSurfaceTokens = 
     hero = Color.White, heroContent = Color.Black,
     content = SpotifyDesign.text, contentMuted = SpotifyDesign.subdued, contentFaint = SpotifyDesign.faint, glow = Color.Transparent
 ) else PlayerSurfaceTokens(
-    amoled = false, control = palette.panelSoft, controlQuiet = palette.panel, outline = palette.outline,
-    active = palette.panelSoft, activeContent = palette.cyan, tonal = palette.panel,
-    hero = palette.cyan, heroContent = prismHeroContent(palette),
-    content = palette.text, contentMuted = palette.muted, contentFaint = palette.muted, glow = Color.Transparent
+    amoled = false,
+    control = palette.panelSoft.copy(alpha = 0.56f),
+    controlQuiet = palette.panel.copy(alpha = 0.38f),
+    outline = palette.outline.copy(alpha = 0.46f),
+    active = palette.panelSoft.copy(alpha = 0.68f),
+    activeContent = palette.cyan,
+    tonal = palette.panel.copy(alpha = 0.44f),
+    hero = palette.cyan,
+    heroContent = prismHeroContent(palette),
+    content = palette.text,
+    contentMuted = palette.muted,
+    contentFaint = palette.muted,
+    glow = Color.Transparent
 )
 
 internal fun prismHeroContent(palette: LevyraPalette): Color = when {

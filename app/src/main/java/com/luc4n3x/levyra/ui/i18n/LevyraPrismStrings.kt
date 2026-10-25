@@ -13,7 +13,7 @@ internal data class PrismCopy(
 internal object LevyraPrismStrings {
     private val copies = mapOf(
         "en" to PrismCopy(
-            body = "Deep black, quiet surfaces and a single raspberry accent. Artwork leads, controls stay calm.",
+            body = "Original Liquid Glass skin: translucent, layered controls and navigation that keep content in focus. It uses a lightweight fallback on low-end devices; it is not an Apple UI.",
             appearance = "Appearance",
             player = "Player layout",
             translucency = "Translucent effects",

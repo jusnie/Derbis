@@ -83,7 +83,7 @@ import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 private fun LevyraSkin.title(): String = when (this) {
     LevyraSkin.Default -> "Derbis Default"
     LevyraSkin.Nocturne78 -> Nocturne78Palette.label
-    LevyraSkin.Prism -> "Prism"
+    LevyraSkin.Prism -> "Liquid Glass"
     LevyraSkin.Torque -> "Torque"
     LevyraSkin.Ivory -> "Ivory"
     LevyraSkin.SpotifyStyle -> "Spotify Style"
@@ -271,6 +271,7 @@ private fun SkinPhonePreview(skin: LevyraSkin, corner: Dp, modifier: Modifier) {
 
 private fun DrawScope.playerPreview(skin: LevyraSkin, palette: LevyraPalette, w: Float, h: Float) {
     val nocturne = skin == LevyraSkin.Nocturne78
+    // The persisted Prism id is the migration-safe backing id for the Liquid Glass skin.
     val prism = skin == LevyraSkin.Prism
     val pad = w * 0.12f
     val line = w - pad * 2

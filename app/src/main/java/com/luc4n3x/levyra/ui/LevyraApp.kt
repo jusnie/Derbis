@@ -2240,9 +2240,10 @@ fun LevyraApp(
             val dockState = rememberLevyraDockState()
             val glassBlurAllowed = rememberGlassBlurAllowed()
             val dockGlass = rememberGlassBackdropState(
-                enabled = !LevyraSkinManagesLayout && state.interfaceSettings.liquidGlassEnabled &&
+                enabled = state.interfaceSettings.liquidGlassEnabled &&
                     state.animationsEnabled &&
-                    glassBlurAllowed
+                    glassBlurAllowed &&
+                    (!LevyraSkinManagesLayout || state.interfaceSettings.skin == LevyraSkin.Prism)
             )
 
             val homeListState = rememberLazyListState()
@@ -20954,7 +20955,7 @@ private fun SettingsOverlay(
     fun categoryTitle(value: String): String = settingsCategoryTitle(value, categoryLocale)
     val categories = remember(strings.code, LevyraActivePalette) {
         listOf(
-            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Prism · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
+            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.advancedGestures} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, LevyraPink, SettingsHubGroup.Listening),
@@ -21316,7 +21317,7 @@ private fun SettingsOverlay(
                                 SettingsToggle(
                                     icon = Icons.Rounded.Refresh,
                                     title = "Force High Refresh Rate",
-                                    subtitle = "Lock 90Hz / 120Hz display refresh rate for ultra-smooth scrolling",
+                                    subtitle = "Request the fastest supported 90Hz / 120Hz mode for smooth scrolling; unsupported displays keep their normal rate.",
                                     checked = interfaceSettings.forceHighRefreshRate,
                                     onCheckedChange = { value ->
                                         onInterfaceSettings(interfaceSettings.copy(forceHighRefreshRate = value))
@@ -28545,7 +28546,14 @@ private fun SettingsHubHeader(onClose: () -> Unit) {
 private fun SettingsSkinSelection(interfaceSettings: LevyraInterfaceSettings, onInterfaceSettings: (LevyraInterfaceSettings) -> Unit) {
     SkinSelector(
         selected = interfaceSettings.skin,
-        onSelect = { onInterfaceSettings(interfaceSettings.copy(skin = it)) }
+        onSelect = { skin ->
+            onInterfaceSettings(
+                interfaceSettings.copy(
+                    skin = skin,
+                    liquidGlassEnabled = if (skin == LevyraSkin.Prism) true else interfaceSettings.liquidGlassEnabled
+                )
+            )
+        }
     )
     if (interfaceSettings.skin == LevyraSkin.Prism) {
         PrismSettingsPanel(interfaceSettings.prism) { onInterfaceSettings(interfaceSettings.copy(prism = it)) }

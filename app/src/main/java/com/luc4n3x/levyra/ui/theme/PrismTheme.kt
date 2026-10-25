@@ -102,7 +102,7 @@ internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark:
     val light = settings.appearance == PrismAppearance.Light ||
         settings.appearance == PrismAppearance.Automatic && !systemDark
     return LevyraThemes.cosmic.copy(
-        id = PrismPaletteId, label = "Prism", emoji = "◈", isLight = light,
+        id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
         black = prismColor(light, 0xFFF7F6F8, 0xFF000000),
         ink = prismColor(light, 0xFFFFFFFF, 0xFF0B0B0D),
@@ -176,14 +176,24 @@ internal fun prismMiniSettings(saved: LevyraMiniPlayerStudioSettings): LevyraMin
     if (LevyraIsAppleMusic) return appleMusicMiniSettings(saved)
     if (LevyraIsYouTubeMusic) return youTubeMusicMiniSettings(saved)
     val torque = LevyraIsTorque
-    val tuning = LevyraMiniPlayerStudioSettings.spec(MiniPlayerStyle.Floating).defaults.copy(
-        cornerDp = if (torque) 2 else if (LevyraIsIvory) 26 else 20, heightDp = 64, artworkDp = 46, shadow = 0, glow = 0,
-        artworkShape = if (torque) MiniArtworkShape.Square else MiniArtworkShape.Rounded, progress = MiniProgressStyle.Line,
-        buttons = if (torque) MiniButtonStyle.Outlined else MiniButtonStyle.Filled, colorMode = MiniColorMode.Theme,
-        background = MiniBackground.Solid, motion = MiniMotion.Normal,
-        controls = saved.activeTuning().controls, showClose = saved.activeTuning().showClose
+    val liquidGlass = LevyraActivePalette.id == PrismPaletteId
+    val style = if (liquidGlass) MiniPlayerStyle.LiquidGlass else MiniPlayerStyle.Floating
+    val tuning = LevyraMiniPlayerStudioSettings.spec(style).defaults.copy(
+        cornerDp = if (torque) 2 else if (LevyraIsIvory) 26 else if (liquidGlass) 30 else 20,
+        heightDp = 64,
+        artworkDp = 46,
+        shadow = 0,
+        glow = 0,
+        artworkShape = if (torque) MiniArtworkShape.Square else MiniArtworkShape.Rounded,
+        progress = MiniProgressStyle.Line,
+        buttons = if (torque) MiniButtonStyle.Outlined else MiniButtonStyle.Filled,
+        colorMode = MiniColorMode.Theme,
+        background = MiniBackground.Solid,
+        motion = if (liquidGlass) MiniMotion.Minimal else MiniMotion.Normal,
+        controls = saved.activeTuning().controls,
+        showClose = saved.activeTuning().showClose
     )
-    return saved.copy(style = MiniPlayerStyle.Floating, tunings = saved.tunings + (MiniPlayerStyle.Floating to tuning))
+    return saved.copy(style = style, tunings = saved.tunings + (style to tuning))
 }
 
 private fun spotifyMiniSettings(saved: LevyraMiniPlayerStudioSettings): LevyraMiniPlayerStudioSettings {
@@ -232,13 +242,21 @@ internal fun skinMiniPlayerCorner(tuning: MiniPlayerTuning): Dp =
     }
 
 internal fun prismNavSettings(saved: LevyraNavigationStudioSettings): LevyraNavigationStudioSettings {
+    val liquidGlass = LevyraActivePalette.id == PrismPaletteId
+    val style = if (liquidGlass) NavStyle.LiquidGlass else NavStyle.FloatingDock
     val tuning = saved.activeTuning().copy(
-        cornerDp = if (LevyraIsTorque) 0 else 24, heightDp = 64, indicator = NavIndicator.Pill,
-        background = NavBackground.Solid, colorSource = NavColorSource.Theme,
-        surfaceTone = NavSurfaceTone.Auto, motion = NavMotion.Minimal,
-        opacity = 96, inactiveAlpha = 100, labels = NavLabelMode.Always
+        cornerDp = if (LevyraIsTorque) 0 else if (liquidGlass) 32 else 24,
+        heightDp = 64,
+        indicator = if (liquidGlass) NavIndicator.Floating else NavIndicator.Pill,
+        background = if (liquidGlass) NavBackground.Translucent else NavBackground.Solid,
+        colorSource = NavColorSource.Theme,
+        surfaceTone = NavSurfaceTone.Auto,
+        motion = if (liquidGlass) NavMotion.Spring else NavMotion.Minimal,
+        opacity = if (liquidGlass) 72 else 96,
+        inactiveAlpha = 100,
+        labels = NavLabelMode.Always
     )
-    return saved.copy(style = NavStyle.FloatingDock, tunings = saved.tunings + (NavStyle.FloatingDock to tuning))
+    return saved.copy(style = style, tunings = saved.tunings + (style to tuning))
 }
 
 internal fun skinNavigationSettings(saved: LevyraNavigationStudioSettings): LevyraNavigationStudioSettings = when {

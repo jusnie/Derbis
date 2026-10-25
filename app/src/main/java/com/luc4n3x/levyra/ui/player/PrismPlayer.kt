@@ -27,7 +27,12 @@ import com.luc4n3x.levyra.domain.PrismPlayerLayout
 import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.PrismPlayDisc
+import com.luc4n3x.levyra.ui.LocalGlassBackdrop
+import com.luc4n3x.levyra.ui.glassBackdropSource
+import com.luc4n3x.levyra.ui.rememberGlassBackdropState
 import com.luc4n3x.levyra.ui.components.PlayerControlLabels
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.components.formatSeekbarMillis
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.theme.*
@@ -59,7 +64,18 @@ internal fun PrismPlayerScene(
         return
     }
     val focus = activePrismSettings.playerLayout == PrismPlayerLayout.Focus
-    BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
+    // Real blur is scoped to one player backdrop. Low-RAM, battery saver, and Lite Mode resolve
+    // this to the same lightweight opaque material instead of leaving an expensive layer alive.
+    val playerGlass = rememberGlassBackdropState(rememberGlassBlurAllowed())
+    CompositionLocalProvider(LocalGlassBackdrop provides playerGlass) {
+        BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .glassBackdropSource(playerGlass)
+            ) {
+                PrismPlayerAtmosphere(Modifier.fillMaxSize())
+            }
         val artSize = minOf(maxWidth - PrismDesign.gutter * 2, maxHeight * if (focus) 0.5f else 0.44f, artworkCap)
         val viewport = maxHeight
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = PrismDesign.gutter)) {
@@ -68,7 +84,20 @@ internal fun PrismPlayerScene(
                 Box(Modifier.fillMaxWidth().padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
                     slots.stage(track, Modifier.size(artSize), PrismDesign.artworkCorner)
                 }
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (focus) 14.dp else 6.dp)) {
+                val infoShape = RoundedCornerShape(28.dp)
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .levyraGlass(
+                            shape = infoShape,
+                            baseTint = LevyraPanelSoft,
+                            fallbackColor = LevyraPanel,
+                            fallbackBorderColor = LevyraText.copy(alpha = 0.18f),
+                            intensity = LevyraGlassIntensity.Subtle
+                        )
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (focus) 14.dp else 6.dp)
+                ) {
                     if (focus) {
                         slots.progress(PlayerProgressStyle.Classic)
                         metadata()
@@ -78,12 +107,26 @@ internal fun PrismPlayerScene(
                         slots.progress(PlayerProgressStyle.Classic)
                     }
                 }
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { transport() }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .levyraGlass(
+                            shape = RoundedCornerShape(32.dp),
+                            baseTint = LevyraPanelSoft,
+                            fallbackColor = LevyraPanel,
+                            fallbackBorderColor = LevyraText.copy(alpha = 0.18f),
+                            intensity = LevyraGlassIntensity.Standard
+                        )
+                        .padding(horizontal = 12.dp, vertical = 2.dp)
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { transport() }
+                }
                 Column(Modifier.fillMaxWidth().padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     slots.dock(track)
                     if (focus) slots.engagement(track)
                 }
             }
+        }
         }
     }
 }
@@ -134,7 +177,16 @@ internal fun PrismTransport(
 @Composable
 private fun PrismModeButton(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(48.dp).clip(CircleShape).toggleable(value = active, role = Role.Switch, onValueChange = { onClick() }),
+        Modifier
+            .size(48.dp)
+            .levyraGlass(
+                shape = CircleShape,
+                baseTint = if (active) LevyraCyan else LevyraPanelSoft,
+                fallbackColor = if (active) LevyraCyan.copy(alpha = 0.82f) else LevyraPanel,
+                fallbackBorderColor = LevyraText.copy(alpha = 0.18f),
+                intensity = LevyraGlassIntensity.Subtle
+            )
+            .toggleable(value = active, role = Role.Switch, onValueChange = { onClick() }),
         contentAlignment = Alignment.Center
     ) {
         Icon(icon, label, tint = if (active) LevyraCyan else LevyraMuted, modifier = Modifier.size(24.dp))

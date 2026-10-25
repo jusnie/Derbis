@@ -33,7 +33,7 @@ internal fun PrismSettingsPanel(settings: PrismSettings, onSettings: (PrismSetti
     val copy = LevyraPrismStrings.forCode(LocalLevyraStrings.current.code)
     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PrismChoice(copy.appearance, listOf(PrismAppearance.Night to copy.night, PrismAppearance.Light to copy.light, PrismAppearance.Automatic to copy.automatic), settings.appearance) { onSettings(settings.copy(appearance = it)) }
-        PrismChoice(copy.player, PrismPlayerLayout.entries.map { it to "Prism ${it.name}" }, settings.playerLayout) { onSettings(settings.copy(playerLayout = it)) }
+        PrismChoice(copy.player, PrismPlayerLayout.entries.map { it to "Liquid Glass ${it.name}" }, settings.playerLayout) { onSettings(settings.copy(playerLayout = it)) }
         PrismChoice(copy.translucency, listOf(PrismTranslucency.Automatic to copy.automatic, PrismTranslucency.Reduced to copy.reduced), settings.translucency) { onSettings(settings.copy(translucency = it)) }
     }
 }

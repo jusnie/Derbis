@@ -28,6 +28,7 @@ class PrismThemeTest {
 
     @Test fun nightIsDeepBlackWithFixedRaspberryAccentAndNoBlue() {
         val night = prismPalette()
+        assertEquals("Liquid Glass", night.label)
         assertEquals(Color.Black, night.black)
         listOf(PrismAppearance.Night, PrismAppearance.Light).forEach { appearance ->
             val p = prismPalette(PrismSettings(appearance = appearance))
@@ -145,14 +146,24 @@ class PrismThemeTest {
         assertEquals(LevyraNavigationStudioSettings(), nav)
     }
 
+    @Test fun liquidGlassSkinProjectsGlassMiniPlayerAndNavigation() {
+        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
+        val mini = prismMiniSettings(LevyraMiniPlayerStudioSettings())
+        val nav = prismNavSettings(LevyraNavigationStudioSettings())
+
+        assertEquals(MiniPlayerStyle.LiquidGlass, mini.style)
+        assertEquals(NavStyle.LiquidGlass, nav.style)
+        assertEquals(NavBackground.Translucent, nav.activeTuning().background)
+    }
+
     @Test fun switchingSkinsUpdatesMiniPlayerCornerAfterDesignerNormalization() {
         val saved = LevyraMiniPlayerStudioSettings()
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
-        assertEquals(20, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
+        assertEquals(30, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Torque)
         assertEquals(2, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
-        assertEquals(20, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
+        assertEquals(30, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Nocturne78)
         val nocturneTuning = nocturneMiniSettings(saved).activeTuning()
         assertEquals(10, skinMiniPlayerCorner(nocturneTuning).value.toInt())

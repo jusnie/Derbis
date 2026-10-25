@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.components.LevyraPlayingIndicator
 import com.luc4n3x.levyra.ui.components.levyraPressable
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
@@ -50,7 +52,18 @@ internal fun PrismPageHeader(title: String, subtitle: String = "", actions: @Com
 
 @Composable
 internal fun PrismPlayDisc(playing: Boolean, resolving: Boolean, size: Dp, modifier: Modifier = Modifier) {
-    Box(modifier.size(size).clip(CircleShape).background(PrismAccent.gradient()), contentAlignment = Alignment.Center) {
+    Box(
+        modifier
+            .size(size)
+            .levyraGlass(
+                shape = CircleShape,
+                baseTint = LevyraCyan,
+                fallbackColor = LevyraCyan,
+                fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                intensity = LevyraGlassIntensity.Standard
+            ),
+        contentAlignment = Alignment.Center
+    ) {
         val glyph = if (LevyraIsIvory) IvoryDesign.onInk else if (LevyraIsSpotify) Color.Black else Color.White
         if (resolving) LevyraLoadingIndicator(color = glyph, modifier = Modifier.size(size * 0.42f))
         else Icon(if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = glyph, modifier = Modifier.size(size * 0.5f))
