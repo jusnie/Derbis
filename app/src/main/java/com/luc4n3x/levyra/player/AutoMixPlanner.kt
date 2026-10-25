@@ -78,7 +78,7 @@ internal fun planAutoMix(
     // A manually chosen timeline position must be honoured exactly, never replaced by analysis.
     val beatPlan = if (
         manualOutgoingStart == null && manualIncomingStart == null &&
-        savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null
+        normalized.beatSyncEnabled && savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null
     ) {
         val sync = DerbisMixStudio.beatSync(currentBeatGrid, nextBeatGrid)
         val start = DerbisMixStudio.beatAlignedTransitionStartMs(current.durationMs, requestedTransition, currentBeatGrid)

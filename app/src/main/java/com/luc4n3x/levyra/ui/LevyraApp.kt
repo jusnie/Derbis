@@ -3123,6 +3123,7 @@ fun LevyraApp(
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,
                     onCrossfade = viewModel::setCrossfadeSeconds,
                     onDjSoft = viewModel::setDjSoftMode,
+                    onBeatSync = viewModel::setBeatSyncEnabled,
                     onReplayGain = viewModel::setReplayGainEnabled,
                     onTempo = viewModel::setPlaybackSpeed,
                     onPitch = viewModel::setPitch,
@@ -3328,6 +3329,7 @@ fun LevyraApp(
                     DerbisMixStudioScreen(
                         session = session,
                         controller = viewModel.mixStudio,
+                        beatSyncAvailable = state.audioSettings.beatSyncEnabled,
                         onClose = viewModel::closeMixStudio
                     )
                 }

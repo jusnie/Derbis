@@ -202,6 +202,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_AUDIO_LIMITER] = normalizedAudio.limiterEnabled
             mutable[KEY_AUDIO_CROSSFADE] = normalizedAudio.crossfadeSeconds
             mutable[KEY_AUDIO_DJ_SOFT] = normalizedAudio.djSoftMode
+            mutable[KEY_AUDIO_BEAT_SYNC] = normalizedAudio.beatSyncEnabled
             mutable[KEY_AUDIO_REPLAY_GAIN] = normalizedAudio.replayGainActive
             mutable[KEY_AUDIO_REPLAY_GAIN_MODE] = normalizedAudio.effectiveReplayGainMode.storageValue
             mutable[KEY_AUDIO_REPLAY_GAIN_PREAMP] = normalizedAudio.replayGainPreampDb
@@ -574,6 +575,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_AUDIO_LIMITER] = normalized.limiterEnabled
             it[KEY_AUDIO_CROSSFADE] = normalized.crossfadeSeconds
             it[KEY_AUDIO_DJ_SOFT] = normalized.djSoftMode
+            it[KEY_AUDIO_BEAT_SYNC] = normalized.beatSyncEnabled
             it[KEY_AUDIO_REPLAY_GAIN] = normalized.replayGainActive
             it[KEY_AUDIO_REPLAY_GAIN_MODE] = normalized.effectiveReplayGainMode.storageValue
             it[KEY_AUDIO_REPLAY_GAIN_PREAMP] = normalized.replayGainPreampDb
@@ -1072,6 +1074,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             limiterEnabled = preferences[KEY_AUDIO_LIMITER] ?: true,
             crossfadeSeconds = preferences[KEY_AUDIO_CROSSFADE] ?: 0,
             djSoftMode = preferences[KEY_AUDIO_DJ_SOFT] ?: false,
+            beatSyncEnabled = preferences[KEY_AUDIO_BEAT_SYNC] ?: false,
             replayGainEnabled = replayGainMode != ReplayGainMode.OFF,
             replayGainMode = replayGainMode,
             replayGainPreampDb = preferences[KEY_AUDIO_REPLAY_GAIN_PREAMP] ?: 0f,

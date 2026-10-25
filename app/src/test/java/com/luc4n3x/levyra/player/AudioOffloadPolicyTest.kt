@@ -162,6 +162,11 @@ class AudioOffloadPolicyTest {
     }
 
     @Test
+    fun eightD_audio_blocksOffload_asPcmDsp() {
+        assertEquals(setOf(AudioOffloadBlocker.DSP), decide(settings = plainSettings.copy(eightDAudioEnabled = true)))
+    }
+
+    @Test
     fun requiredTruePeakLimiter_blocksAsDspEvenWithEqualizerOff() {
         val virtualizerOnly = plainSettings.copy(virtualizer = 40)
         assertEquals(setOf(AudioOffloadBlocker.DSP), decide(settings = virtualizerOnly).blockers)
@@ -248,6 +253,13 @@ class AudioOffloadPolicyTest {
             AudioOffloadPreference.AUTOMATIC,
             backupAudioSettingsFromJson(JSONObject().put("audioOffloadPreference", "unknown")).audioOffloadPreference
         )
+    }
+
+    @Test
+    fun backup_roundTripsBeatSyncMasterSwitch() {
+        val restored = backupAudioSettingsFromJson(backupAudioSettingsToJson(LevyraAudioSettings(beatSyncEnabled = true)))
+        assertTrue(restored.beatSyncEnabled)
+        assertFalse(restored.djSoftMode)
     }
 
     @Test

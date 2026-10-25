@@ -57,6 +57,7 @@ private val MixAccent = Color(0xFFEDEDED)
 internal fun DerbisMixStudioScreen(
     session: DerbisMixStudioSession,
     controller: DerbisMixStudioController,
+    beatSyncAvailable: Boolean,
     onClose: () -> Unit
 ) {
     BackHandler(onBack = onClose)
@@ -103,7 +104,11 @@ internal fun DerbisMixStudioScreen(
                         Switch(checked = session.draft.enabled, onCheckedChange = controller::setEnabled, enabled = !session.saving)
                     }
                     Text(
-                        "Derbis analyzes PCM locally for BPM and a beat-grid candidate while tracks play. Beat Align only engages when both grids are confident; EQ and filter curves are not claimed here.",
+                        if (beatSyncAvailable) {
+                            "Derbis analyzes PCM locally for BPM and a beat-grid candidate while tracks play. Beat Sync only engages when both grids are confident; EQ and filter curves are not claimed here."
+                        } else {
+                            "Beat Sync is off in Audio Settings. Turn off DJ Crossfade, then enable Beat Sync to use verified BPM and beat-grid alignment."
+                        },
                         color = MixMuted,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
@@ -139,6 +144,7 @@ internal fun DerbisMixStudioScreen(
                 incoming = pair.second,
                 setting = session.draft.settingFor(pair.first, pair.second),
                 enabled = !session.saving,
+                beatSyncAvailable = beatSyncAvailable,
                 onPreset = { controller.setPreset(pair.first, pair.second, it) },
                 onDuration = { controller.adjustDuration(pair.first, pair.second, it) },
                 onBeatSync = { controller.setBeatSync(pair.first, pair.second, it) }
@@ -154,6 +160,7 @@ private fun MixTransitionCard(
     incoming: Track,
     setting: com.luc4n3x.levyra.domain.DerbisMixTransitionSetting?,
     enabled: Boolean,
+    beatSyncAvailable: Boolean,
     onPreset: (DerbisMixTransitionPreset) -> Unit,
     onDuration: (Long) -> Unit,
     onBeatSync: (Boolean) -> Unit
@@ -170,12 +177,13 @@ private fun MixTransitionCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("BEAT ALIGN", color = MixText, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Text(
-                        "Uses local BPM and beat-grid analysis when both tracks are ready.",
+                        if (beatSyncAvailable) "Uses local BPM and beat-grid analysis when both tracks are ready."
+                        else "Enable Beat Sync in Audio Settings after turning off DJ Crossfade.",
                         color = MixMuted,
                         fontSize = 11.sp
                     )
                 }
-                Switch(checked = beatSyncEnabled, onCheckedChange = onBeatSync, enabled = enabled)
+                Switch(checked = beatSyncEnabled, onCheckedChange = onBeatSync, enabled = enabled && beatSyncAvailable)
             }
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),

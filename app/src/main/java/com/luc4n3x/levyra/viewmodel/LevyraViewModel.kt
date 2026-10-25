@@ -4845,7 +4845,17 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setDjSoftMode(value: Boolean) {
-        updateAudioSettings(_state.value.audioSettings.copy(djSoftMode = value, crossfadeSeconds = if (value && _state.value.audioSettings.crossfadeSeconds == 0) 6 else _state.value.audioSettings.crossfadeSeconds))
+        val settings = _state.value.audioSettings
+        updateAudioSettings(settings.copy(
+            djSoftMode = value,
+            beatSyncEnabled = if (value) false else settings.beatSyncEnabled,
+            crossfadeSeconds = if (value && settings.crossfadeSeconds == 0) 6 else settings.crossfadeSeconds
+        ))
+    }
+
+    fun setBeatSyncEnabled(value: Boolean) {
+        val settings = _state.value.audioSettings
+        updateAudioSettings(settings.copy(beatSyncEnabled = value, djSoftMode = if (value) false else settings.djSoftMode))
     }
 
     fun setReplayGainEnabled(value: Boolean) {

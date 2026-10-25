@@ -190,6 +190,7 @@ internal fun AudioSettingsPanel(
     onEnhancedAudio: (Boolean) -> Unit = {},
     onCrossfade: (Int) -> Unit,
     onDjSoft: (Boolean) -> Unit,
+    onBeatSync: (Boolean) -> Unit,
     onReplayGain: (Boolean) -> Unit,
     onTempo: (Float) -> Unit,
     onPitch: (Float) -> Unit,
@@ -546,9 +547,27 @@ internal fun AudioSettingsPanel(
                 }
                 item {
                     AudioToggleRow(
-                        title = strings.djSoft,
-                        subtitle = "${strings.crossfade} ${audioSettings.crossfadeSeconds}s",
+                        title = "Beat Sync",
+                        subtitle = if (audioSettings.djSoftMode) {
+                            "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified Mix Studio beat alignment."
+                        } else {
+                            "Enables verified BPM and beat-grid alignment for transitions selected in Mix Studio."
+                        },
+                        checked = audioSettings.beatSyncEnabled,
+                        enabled = !audioSettings.djSoftMode,
+                        onCheckedChange = onBeatSync
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = "DJ Crossfade",
+                        subtitle = if (audioSettings.beatSyncEnabled) {
+                            "Unavailable while Beat Sync is on. Turn Beat Sync off to restore energy-adaptive crossfades."
+                        } else {
+                            "${strings.crossfade} ${audioSettings.crossfadeSeconds}s"
+                        },
                         checked = audioSettings.djSoftMode,
+                        enabled = !audioSettings.beatSyncEnabled,
                         onCheckedChange = onDjSoft
                     )
                 }
@@ -1436,10 +1455,11 @@ private fun AudioCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun AudioExpressiveSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier) {
+private fun AudioExpressiveSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean = true, modifier: Modifier = Modifier) {
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
+        enabled = enabled,
         thumbContent = if (checked) {
             { Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
         } else {
@@ -1766,11 +1786,13 @@ private fun AudioToggleRow(
     title: String,
     subtitle: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Surface(
         checked = checked,
         onCheckedChange = onCheckedChange,
+        enabled = enabled,
         color = AudioCardSurface,
         shape = CardShape,
         modifier = Modifier.fillMaxWidth()
@@ -1797,7 +1819,7 @@ private fun AudioToggleRow(
                     )
                 }
             }
-            AudioExpressiveSwitch(checked = checked, onCheckedChange = null)
+            AudioExpressiveSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
         }
     }
 }

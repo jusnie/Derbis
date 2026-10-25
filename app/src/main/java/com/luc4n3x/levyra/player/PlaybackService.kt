@@ -2063,8 +2063,8 @@ class PlaybackService : MediaLibraryService() {
             lowRam = adaptivePlaybackPolicy.current(videoMode = false).lowRam,
             shuffleEnabled = snapshot.shuffleEnabled,
             mixStudioSetting = mixStudioSetting,
-            currentBeatGrid = mixStudioSetting?.takeIf { it.beatSyncEnabled }?.let { beatGridStore.gridFor(current.id) },
-            nextBeatGrid = mixStudioSetting?.takeIf { it.beatSyncEnabled }?.let { beatGridStore.gridFor(next.id) }
+            currentBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(current.id) },
+            nextBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(next.id) }
         ) ?: return
         if (remaining > plan.preloadLeadMs) return
         queueTransitionJob = serviceScope.launch {

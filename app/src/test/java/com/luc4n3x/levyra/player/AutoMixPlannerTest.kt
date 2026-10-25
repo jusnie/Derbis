@@ -177,7 +177,7 @@ class AutoMixPlannerTest {
         val plan = planAutoMix(
             current = track("out"),
             next = track("in"),
-            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false, beatSyncEnabled = true),
             repeatMode = RepeatMode.Off,
             videoMode = false,
             lowRam = false,
@@ -198,7 +198,7 @@ class AutoMixPlannerTest {
         val plan = planAutoMix(
             current = track("out"),
             next = track("in"),
-            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false, beatSyncEnabled = true),
             repeatMode = RepeatMode.Off,
             videoMode = false,
             lowRam = false,

@@ -6,7 +6,7 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ### New
 - Android Home now offers **Create** actions for a local playlist and **Derbis Jam — LAN**.
-- Player Deck replaces the **Bloom** choice with **Apple Music 13**: an original Derbis layout with uncropped artwork, an artwork-colour field, active lyric preview, and available stream details. Existing Bloom selections migrate to Apple Music 13.
+- Player Deck replaces the **Bloom** choice with **Apple Music 13**: an original Derbis layout with uncropped artwork, a neutral dark field, active lyric preview, and available stream details. Existing Bloom selections migrate to Apple Music 13.
 - Lyrics options and Lyrics Studio now include a persisted **Apple Music 13 Lyrics** renderer. When enabled, its centered, blurred-artwork, word-timed presentation exclusively replaces the Derbis lyric renderer until it is switched off.
 - Now Playing places the genuine crossfade handoff card at the bottom of the player, showing the outgoing and incoming track. Crossfade handoff now re-aligns the replacement deck before it becomes audible to reduce transition jumps.
 - **Endless listening** replaces the legacy finite, shuffled autoplay path. Starting a single song now begins a true listening session instead of turning nearby results into a queue; a small hidden rolling buffer follows the song currently playing and retries after a temporary empty response. Albums and playlists remain their exact chosen finite lists. Turning Endless listening off removes its recommendation buffer without interrupting the current track.
@@ -17,6 +17,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - **Tidal Music** is an original high-contrast Player Deck with a dark editorial stage, oversized rounded artwork, direct transport, and the local **TIDAL Style** palette. Selecting the deck applies that skin without connecting a TIDAL account or service.
 - **Apple Music 13** now renders the lyric line beneath its artwork word by word when verified word timestamps are available, with a smooth playback clock between player progress updates. It falls back to the current synced line when a source only supplies line timing.
 - Apple Music 13 now uses a neutral dark player field instead of an artwork-derived colour overlay. Audio settings add an opt-in **8D headphone orbit** switch that runs a real slow stereo panning DSP effect; it is persisted and applies automatically while enabled.
+- Audio Settings now includes a persisted **Beat Sync** master switch for verified playlist Mix Studio alignment. It is mutually exclusive with **DJ Crossfade**: enable one and the other becomes unavailable until it is turned off.
 
 ### Changed
 - Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.

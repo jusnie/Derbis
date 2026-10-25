@@ -9,4 +9,10 @@ class EightDAudioSettingsTest {
         assertFalse(LevyraAudioSettings().normalized().eightDAudioEnabled)
         assertTrue(LevyraAudioSettings(eightDAudioEnabled = true).normalized().eightDAudioEnabled)
     }
+
+    @Test fun `beat sync takes priority over dj crossfade when conflicting settings are restored`() {
+        val normalized = LevyraAudioSettings(djSoftMode = true, beatSyncEnabled = true).normalized()
+        assertTrue(normalized.beatSyncEnabled)
+        assertFalse(normalized.djSoftMode)
+    }
 }
