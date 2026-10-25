@@ -23,6 +23,7 @@ import androidx.core.content.FileProvider
 import com.luc4n3x.levyra.data.ArtworkPaletteCache
 import com.luc4n3x.levyra.data.LevyraArtworkCache
 import com.luc4n3x.levyra.domain.Track
+import com.luc4n3x.levyra.ui.artwork.ArtworkMediaStore
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -144,6 +145,25 @@ internal object LyricsShareCard {
             putExtra(Intent.EXTRA_TEXT, lyricsShareCaption(content))
             clipData = ClipData.newUri(context.contentResolver, "lyrics", uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    suspend fun saveToGallery(
+        context: Context,
+        content: LyricsShareCardContent,
+        artwork: LyricsShareResource<Bitmap>,
+        style: LyricsShareCardStyle,
+        accents: Pair<Int, Int>
+    ): Boolean = ArtworkMediaStore.save(
+        context = context,
+        fileName = "derbis-lyrics-${System.currentTimeMillis()}.png",
+        mimeType = "image/png"
+    ) { output ->
+        val bitmap = artwork.use { cover -> render(content, cover, style, accents, EXPORT_WIDTH_PX) } ?: return@save false
+        try {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+        } finally {
+            bitmap.recycle()
         }
     }
 

@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Música optimitzada per a Android Auto</string>
     <string name="car_home_subtitle">Mescles ràpides, fora de línia i llistes</string>
     <string name="car_queue_title">Cua</string>
-    <string name="car_queue_subtitle">Cua persistent compartida amb Levyra</string>
+    <string name="car_queue_subtitle">Cua persistent compartida amb Derbis</string>
     <string name="car_recommended_title">Recomanats</string>
     <string name="car_recommended_subtitle">Perfil musical, preferits i escoltes recents</string>
     <string name="car_albums_title">Àlbums</string>
     <string name="car_albums_subtitle">Àlbums locals i suggerits</string>
     <string name="car_artists_title">Artistes</string>
     <string name="car_artists_subtitle">Artistes més escoltats i seguits</string>
-    <string name="car_flow_subtitle">Ràdio personal de Levyra</string>
+    <string name="car_flow_subtitle">Ràdio personal de Derbis</string>
     <string name="car_favorites_subtitle">Cançons desades</string>
     <string name="car_downloads_subtitle">Música disponible fora de línia</string>
     <string name="car_playlists_subtitle">Col·leccions creades a l\'app</string>

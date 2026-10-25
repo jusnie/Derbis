@@ -292,7 +292,7 @@ class PlaybackService : MediaLibraryService() {
         private const val WATCHDOG_INTERVAL_MS = 5_000L
         private const val LIVE_RADIO_STALE_PAUSE_MS = 20_000L
         private const val WATCHDOG_STALL_TIMEOUT_MS = 15_000L
-        private const val MAX_TRANSITION_LOOKAHEAD_MS = 20_000L
+        private const val MAX_TRANSITION_LOOKAHEAD_MS = 45_000L
         private const val TRANSITION_PREPARE_TIMEOUT_MS = 8_000L
         private const val PREPARED_QUEUE_WAIT_MS = 2_000L
         private const val PREPARED_QUEUE_MAX_AGE_MS = 15L * 60L * 1_000L
@@ -319,6 +319,9 @@ class PlaybackService : MediaLibraryService() {
 
         private val _sleepTimerStateFlow = MutableStateFlow<PlaybackSleepTimerState>(PlaybackSleepTimerState.Disabled)
         val sleepTimerStateFlow: StateFlow<PlaybackSleepTimerState> = _sleepTimerStateFlow.asStateFlow()
+
+        private val _crossfadeProgressFlow = MutableStateFlow(CrossfadeProgress())
+        val crossfadeProgressFlow: StateFlow<CrossfadeProgress> = _crossfadeProgressFlow.asStateFlow()
 
         private val _liveRadioMetadataFlow = MutableStateFlow(LiveRadioStreamMetadata())
         internal val liveRadioMetadataFlow: StateFlow<LiveRadioStreamMetadata> = _liveRadioMetadataFlow.asStateFlow()
@@ -524,7 +527,7 @@ class PlaybackService : MediaLibraryService() {
         equalizerProcessor.bassBoost = normalized.bassBoost
         equalizerProcessor.preampDb = normalized.preampDb
         parametricEqualizerProcessor.setConfiguration(parametricEnabled, normalized.activeParametricProfile)
-        spatialAudioProcessor.strength = if (normalized.equalizerEnabled || parametricEnabled) normalized.virtualizer else 0
+        spatialAudioProcessor.strength = normalized.virtualizer
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -2074,8 +2077,20 @@ class PlaybackService : MediaLibraryService() {
             if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
 
             isQueueTransitionInProgress = true
+            _crossfadeProgressFlow.value = CrossfadeProgress(
+                active = true,
+                fromTitle = current.title,
+                toTitle = target.title
+            )
             secondary.play()
-            fadePlayers(primary, secondary, plan.transitionMs) {
+            fadePlayers(primary, secondary, plan.transitionMs, onProgress = { fraction ->
+                _crossfadeProgressFlow.value = CrossfadeProgress(
+                    active = true,
+                    fraction = fraction,
+                    fromTitle = current.title,
+                    toTitle = target.title
+                )
+            }) {
                 transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary) &&
                     primary.duration - primary.currentPosition <= plan.transitionMs + SEEK_TOLERANCE_MS
             }
@@ -2121,6 +2136,7 @@ class PlaybackService : MediaLibraryService() {
             Timber.w(error, "Queue crossfade failed")
         } finally {
             isQueueTransitionInProgress = false
+            _crossfadeProgressFlow.value = CrossfadeProgress()
             primary.volume = 1f
             releaseTransitionPlayer(secondary)
         }
@@ -2308,11 +2324,7 @@ class PlaybackService : MediaLibraryService() {
             setConfiguration(parametricActive, currentAudioSettings.activeParametricProfile)
         }
         val spatial = StereoSpatialAudioProcessor().apply {
-            strength = if (currentAudioSettings.equalizerEnabled || parametricActive) {
-                currentAudioSettings.virtualizer
-            } else {
-                0
-            }
+            strength = currentAudioSettings.virtualizer
         }
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
@@ -2398,6 +2410,7 @@ class PlaybackService : MediaLibraryService() {
         outgoing: ExoPlayer,
         incoming: ExoPlayer,
         durationMs: Long,
+        onProgress: (Float) -> Unit = {},
         isValid: () -> Boolean = { true }
     ) {
         val steps = (durationMs / TRANSITION_STEP_MS).toInt().coerceIn(8, 120)
@@ -2406,7 +2419,9 @@ class PlaybackService : MediaLibraryService() {
             if ((!outgoing.playWhenReady || !incoming.playWhenReady || !isValid()) && step < steps) {
                 throw CancellationException("Playback paused during crossfade")
             }
-            val gains = equalPowerCrossfade(step.toFloat() / steps.toFloat())
+            val fraction = step.toFloat() / steps.toFloat()
+            onProgress(fraction)
+            val gains = equalPowerCrossfade(fraction)
             outgoing.volume = gains.outgoing
             incoming.volume = gains.incoming
             if (step < steps) {
@@ -2543,6 +2558,7 @@ class PlaybackService : MediaLibraryService() {
         queueTransitionJob?.cancel()
         queueTransitionJob = null
         isQueueTransitionInProgress = false
+        _crossfadeProgressFlow.value = CrossfadeProgress()
         activePlayer?.volume = 1f
         releaseTransitionPlayer()
     }

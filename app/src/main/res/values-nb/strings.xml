@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Musikk optimalisert for Android Auto</string>
     <string name="car_home_subtitle">Raske mikser, frakoblet og topplister</string>
     <string name="car_queue_title">Kø</string>
-    <string name="car_queue_subtitle">Varig kø delt med Levyra</string>
+    <string name="car_queue_subtitle">Varig kø delt med Derbis</string>
     <string name="car_recommended_title">Anbefalt</string>
     <string name="car_recommended_subtitle">Musikkprofil, favoritter og nylige avspillinger</string>
     <string name="car_albums_title">Album</string>
     <string name="car_albums_subtitle">Lokale og foreslåtte album</string>
     <string name="car_artists_title">Artister</string>
     <string name="car_artists_subtitle">Mest lyttede og fulgte artister</string>
-    <string name="car_flow_subtitle">Personlig Levyra-radio</string>
+    <string name="car_flow_subtitle">Personlig Derbis-radio</string>
     <string name="car_favorites_subtitle">Lagrede spor</string>
     <string name="car_downloads_subtitle">Musikk tilgjengelig frakoblet</string>
     <string name="car_playlists_subtitle">Samlinger laget i appen</string>

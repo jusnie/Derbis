@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Musikang inayos para sa Android Auto</string>
     <string name="car_home_subtitle">Mabilisang mix, offline at chart</string>
     <string name="car_queue_title">Pila ng kanta</string>
-    <string name="car_queue_subtitle">Pila na nakaimbak at kasabay ng Levyra</string>
+    <string name="car_queue_subtitle">Pila na nakaimbak at kasabay ng Derbis</string>
     <string name="car_recommended_title">Inirerekomenda</string>
     <string name="car_recommended_subtitle">Music profile, paborito at mga kamakailang pinakinggan</string>
     <string name="car_albums_title">Mga album</string>
     <string name="car_albums_subtitle">Mga lokal at iminungkahing album</string>
     <string name="car_artists_title">Mga artist</string>
     <string name="car_artists_subtitle">Mga pinakapinakikinggan at sinusundang artist</string>
-    <string name="car_flow_subtitle">Personal na radyo ng Levyra</string>
+    <string name="car_flow_subtitle">Personal na radyo ng Derbis</string>
     <string name="car_favorites_subtitle">Mga naka-save na kanta</string>
     <string name="car_downloads_subtitle">Musikang available offline</string>
     <string name="car_playlists_subtitle">Mga koleksyong ginawa sa app</string>

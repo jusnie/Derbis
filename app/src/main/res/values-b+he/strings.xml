@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">מוזיקה מותאמת ל-Android Auto</string>
     <string name="car_home_subtitle">מיקסים מהירים, אופליין ומצעדים</string>
     <string name="car_queue_title">תור</string>
-    <string name="car_queue_subtitle">תור קבוע המשותף עם Levyra</string>
+    <string name="car_queue_subtitle">תור קבוע המשותף עם Derbis</string>
     <string name="car_recommended_title">מומלצים</string>
     <string name="car_recommended_subtitle">פרופיל מוזיקלי, מועדפים והאזנות אחרונות</string>
     <string name="car_albums_title">אלבומים</string>
     <string name="car_albums_subtitle">אלבומים מקומיים ומוצעים</string>
     <string name="car_artists_title">אמנים</string>
     <string name="car_artists_subtitle">האמנים הכי מושמעים ונעקבים</string>
-    <string name="car_flow_subtitle">רדיו אישי של Levyra</string>
+    <string name="car_flow_subtitle">רדיו אישי של Derbis</string>
     <string name="car_favorites_subtitle">שירים שמורים</string>
     <string name="car_downloads_subtitle">מוזיקה זמינה אופליין</string>
     <string name="car_playlists_subtitle">אוספים שנוצרו באפליקציה</string>

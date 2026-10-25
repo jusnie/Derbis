@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,6 +71,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.luc4n3x.levyra.BuildConfig
+import com.luc4n3x.levyra.R
 import com.luc4n3x.levyra.data.LevyraPreferences
 import com.luc4n3x.levyra.domain.LevyraLanguageCatalog
 import com.luc4n3x.levyra.ui.i18n.LevyraStrings
@@ -204,8 +206,8 @@ fun SupportLevyraSettingsLink(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Star,
-                    contentDescription = null,
+                    painter = painterResource(R.drawable.ic_derbis_github),
+                    contentDescription = "GitHub",
                     tint = supportStarGold,
                     modifier = Modifier.size(22.dp)
                 )

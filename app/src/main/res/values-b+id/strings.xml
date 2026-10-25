@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Musik yang dioptimalkan untuk Android Auto</string>
     <string name="car_home_subtitle">Mix cepat, offline, dan tangga lagu</string>
     <string name="car_queue_title">Antrean</string>
-    <string name="car_queue_subtitle">Antrean tersimpan yang dibagikan dengan Levyra</string>
+    <string name="car_queue_subtitle">Antrean tersimpan yang dibagikan dengan Derbis</string>
     <string name="car_recommended_title">Rekomendasi</string>
     <string name="car_recommended_subtitle">Profil musik, favorit, dan yang baru diputar</string>
     <string name="car_albums_title">Album</string>
     <string name="car_albums_subtitle">Album lokal dan saran</string>
     <string name="car_artists_title">Artis</string>
     <string name="car_artists_subtitle">Artis yang paling sering didengar dan diikuti</string>
-    <string name="car_flow_subtitle">Radio pribadi Levyra</string>
+    <string name="car_flow_subtitle">Radio pribadi Derbis</string>
     <string name="car_favorites_subtitle">Lagu tersimpan</string>
     <string name="car_downloads_subtitle">Musik tersedia offline</string>
     <string name="car_playlists_subtitle">Koleksi yang dibuat di aplikasi</string>

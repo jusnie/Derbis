@@ -1834,6 +1834,25 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                         durationMs = if (synchronizeCurrent) currentPersisted?.durationMs ?: current.durationMs else current.durationMs
                     )
                 }
+                if (externalSelectionChanged && currentPersisted != null && !_state.value.isResolving) {
+                    lyricsVersionsJob?.cancel()
+                    lyricsJob?.cancel()
+                    lyricsRequestGeneration += 1L
+                    lyricsTrackId = ""
+                    _state.update {
+                        it.copy(
+                            lyrics = emptyList(),
+                            lyricsSections = emptyList(),
+                            lyricsSynced = false,
+                            lyricsProvider = "",
+                            lyricsLoading = true,
+                            lyricsVersions = emptyList(),
+                            lyricsVersionsLoading = false,
+                            intelligenceSummary = com.luc4n3x.levyra.domain.LevyraIntelligenceSummary()
+                        )
+                    }
+                    fetchLyrics(currentPersisted)
+                }
                 queueRestored.complete(Unit)
             }
         }

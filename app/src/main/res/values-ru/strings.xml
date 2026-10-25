@@ -29,14 +29,14 @@
     <string name="car_root_subtitle">Музыка, оптимизированная для Android Auto</string>
     <string name="car_home_subtitle">Быстрые миксы, офлайн и чарты</string>
     <string name="car_queue_title">Очередь</string>
-    <string name="car_queue_subtitle">Постоянная очередь, общая с Levyra</string>
+    <string name="car_queue_subtitle">Постоянная очередь, общая с Derbis</string>
     <string name="car_recommended_title">Рекомендуемые</string>
     <string name="car_recommended_subtitle">Музыкальный профиль, избранное и недавние прослушивания</string>
     <string name="car_albums_title">Альбомы</string>
     <string name="car_albums_subtitle">Локальные альбомы и предложения</string>
     <string name="car_artists_title">Исполнители</string>
     <string name="car_artists_subtitle">Самые слушаемые и отслеживаемые исполнители</string>
-    <string name="car_flow_subtitle">Персональное радио Levyra</string>
+    <string name="car_flow_subtitle">Персональное радио Derbis</string>
     <string name="car_favorites_subtitle">Сохраненные треки</string>
     <string name="car_downloads_subtitle">Музыка, доступная офлайн</string>
     <string name="car_playlists_subtitle">Коллекции, созданные в приложении</string>

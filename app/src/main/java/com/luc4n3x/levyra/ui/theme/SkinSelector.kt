@@ -88,6 +88,7 @@ private fun LevyraSkin.title(): String = when (this) {
     LevyraSkin.Ivory -> "Ivory"
     LevyraSkin.SpotifyStyle -> "Spotify Style"
     LevyraSkin.AppleMusicStyle -> "Apple Music Style"
+    LevyraSkin.TidalStyle -> "TIDAL Style"
     LevyraSkin.YouTubeMusicStyle -> "YouTube Music Style"
 }
 
@@ -103,6 +104,7 @@ internal fun SkinSelector(selected: LevyraSkin, onSelect: (LevyraSkin) -> Unit) 
         LevyraSkin.Ivory -> LevyraPrismStrings.forCode(code).ivoryBody
         LevyraSkin.SpotifyStyle -> LevyraPrismStrings.forCode(code).spotifyBody
         LevyraSkin.AppleMusicStyle -> LevyraPrismStrings.forCode(code).appleMusicBody
+        LevyraSkin.TidalStyle -> "Minimal dark player deck with a high-contrast, editorial playback stage."
         LevyraSkin.YouTubeMusicStyle -> LevyraPrismStrings.forCode(code).youTubeMusicBody
     }
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -225,6 +227,7 @@ private fun skinStagePolygon(skin: LevyraSkin): RoundedPolygon = when (skin) {
     LevyraSkin.Ivory -> MaterialShapes.Flower
     LevyraSkin.SpotifyStyle -> MaterialShapes.Cookie12Sided
     LevyraSkin.AppleMusicStyle -> MaterialShapes.Pill
+    LevyraSkin.TidalStyle -> MaterialShapes.Square
     LevyraSkin.YouTubeMusicStyle -> MaterialShapes.Circle
 }
 
@@ -259,6 +262,7 @@ private fun SkinPhonePreview(skin: LevyraSkin, corner: Dp, modifier: Modifier) {
             LevyraSkin.Ivory -> ivoryPreview(palette, w, h)
             LevyraSkin.SpotifyStyle -> spotifyPreview(palette, w, h)
             LevyraSkin.AppleMusicStyle -> appleMusicPreview(palette, w, h)
+            LevyraSkin.TidalStyle -> tidalPreview(palette, w, h)
             LevyraSkin.YouTubeMusicStyle -> youTubeMusicPreview(palette, w, h)
             else -> playerPreview(skin, palette, w, h)
         }
@@ -311,6 +315,7 @@ private fun DrawScope.previewPlayButton(skin: LevyraSkin, palette: LevyraPalette
         LevyraSkin.Ivory -> drawRoundRect(palette.blue, center - Offset(radius * 2.4f, radius), Size(radius * 4.8f, radius * 2), CornerRadius(radius))
         LevyraSkin.SpotifyStyle -> drawCircle(palette.cyan, radius, center)
         LevyraSkin.AppleMusicStyle -> drawCircle(palette.panel, radius, center)
+        LevyraSkin.TidalStyle -> drawRect(palette.cyan, topLeft = center - androidx.compose.ui.geometry.Offset(radius * 0.65f, radius * 0.65f), size = androidx.compose.ui.geometry.Size(radius * 1.3f, radius * 1.3f))
         LevyraSkin.YouTubeMusicStyle -> drawCircle(YouTubeMusicDesign.red, radius, center)
     }
     val glyph = Path().apply {
@@ -327,6 +332,7 @@ private fun DrawScope.previewPlayButton(skin: LevyraSkin, palette: LevyraPalette
         LevyraSkin.Ivory -> palette.black
         LevyraSkin.SpotifyStyle -> Color.Black
         LevyraSkin.AppleMusicStyle -> palette.text
+        LevyraSkin.TidalStyle -> palette.cyan
         LevyraSkin.YouTubeMusicStyle -> Color.White
     }
     drawPath(glyph, glyphColor, style = if (skin == LevyraSkin.Nocturne78) Stroke(1.2.dp.toPx()) else Fill)
@@ -433,6 +439,12 @@ private fun DrawScope.youTubeMusicPreview(palette: LevyraPalette, w: Float, h: F
     }
 }
 
+private fun DrawScope.tidalPreview(palette: LevyraPalette, width: Float, height: Float) {
+    drawRoundRect(palette.black, cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f))
+    drawRoundRect(palette.panel, topLeft = androidx.compose.ui.geometry.Offset(width * 0.16f, height * 0.13f), size = androidx.compose.ui.geometry.Size(width * 0.68f, height * 0.50f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f))
+    drawRoundRect(palette.cyan, topLeft = androidx.compose.ui.geometry.Offset(width * 0.16f, height * 0.71f), size = androidx.compose.ui.geometry.Size(width * 0.38f, 4f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f))
+}
+
 private fun DrawScope.appleMusicPreview(palette: LevyraPalette, w: Float, h: Float) {
     val pad = w * 0.07f
     val gap = w * 0.04f
@@ -469,6 +481,7 @@ private fun skinPreviewPalette(skin: LevyraSkin): LevyraPalette = when (skin) {
     LevyraSkin.Ivory -> ivoryPalette()
     LevyraSkin.SpotifyStyle -> spotifyPalette()
     LevyraSkin.AppleMusicStyle -> appleMusicPalette()
+    LevyraSkin.TidalStyle -> tidalPalette()
     LevyraSkin.YouTubeMusicStyle -> youTubeMusicPalette()
     LevyraSkin.Default -> LevyraThemes.amoled
 }
@@ -481,6 +494,7 @@ private fun skinPreviewArtBrush(skin: LevyraSkin, palette: LevyraPalette): Brush
     LevyraSkin.Ivory -> Brush.linearGradient(listOf(palette.panelSoft, palette.panel))
     LevyraSkin.SpotifyStyle -> Brush.linearGradient(listOf(palette.panelSoft, palette.panel))
     LevyraSkin.AppleMusicStyle -> Brush.linearGradient(listOf(palette.cyan, palette.panelSoft))
+    LevyraSkin.TidalStyle -> Brush.linearGradient(listOf(TidalDesign.black, palette.panelSoft))
     LevyraSkin.YouTubeMusicStyle -> Brush.linearGradient(listOf(Color(0xFF7B1F3A), palette.panelSoft))
 }
 
@@ -488,6 +502,6 @@ private fun DrawScope.drawSkinPreviewWash(skin: LevyraSkin, palette: LevyraPalet
     when (skin) {
         LevyraSkin.Prism -> drawRoundRect(Brush.verticalGradient(listOf(palette.blue.copy(alpha = 0.22f), palette.black), endY = size.height * 0.6f), cornerRadius = frame)
         LevyraSkin.Default -> drawRoundRect(Brush.verticalGradient(listOf(palette.violet.copy(alpha = 0.28f), palette.black), endY = size.height * 0.7f), cornerRadius = frame)
-        LevyraSkin.Nocturne78, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.SpotifyStyle, LevyraSkin.AppleMusicStyle, LevyraSkin.YouTubeMusicStyle -> Unit
+        LevyraSkin.Nocturne78, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.SpotifyStyle, LevyraSkin.AppleMusicStyle, LevyraSkin.TidalStyle, LevyraSkin.YouTubeMusicStyle -> Unit
     }
 }

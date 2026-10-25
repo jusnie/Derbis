@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -85,7 +87,10 @@ internal fun LyricsShareSheet(
     var accents by remember(snapshot) { mutableStateOf<Pair<Int, Int>?>(null) }
     var previewState by remember(snapshot) { mutableStateOf<LyricsSharePreviewState<Bitmap>?>(null) }
     var exportRequest by remember(snapshot) { mutableIntStateOf(0) }
+    var saveRequest by remember(snapshot) { mutableIntStateOf(0) }
     var exporting by remember(snapshot) { mutableStateOf(false) }
+    var saving by remember(snapshot) { mutableStateOf(false) }
+    var saved by remember(snapshot) { mutableStateOf(false) }
     var exportFailed by remember(snapshot) { mutableStateOf(false) }
     val content = remember(snapshot, mode) { lyricsShareCardContent(snapshot, mode) }
     val previewKey = remember(content, style) { LyricsSharePreviewKey(content, style) }
@@ -152,6 +157,24 @@ internal fun LyricsShareSheet(
             exportFailed = intent == null || !startChooser(context, intent, strings.shareVia)
         } finally {
             exporting = false
+        }
+    }
+
+    LaunchedEffect(saveRequest) {
+        if (saveRequest == 0) return@LaunchedEffect
+        val resolvedAccents = accents ?: return@LaunchedEffect
+        saving = true
+        saved = false
+        try {
+            saved = LyricsShareCard.saveToGallery(
+                context = context,
+                content = content,
+                artwork = artwork,
+                style = style,
+                accents = resolvedAccents
+            )
+        } finally {
+            saving = false
         }
     }
 
@@ -236,6 +259,28 @@ internal fun LyricsShareSheet(
                 }
                 Text(
                     text = if (exporting) strings.shareLyricsPreparing else strings.shareLyricsShareImage,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontWeight = FontWeight.Black
+                )
+            }
+            Button(
+                onClick = { saveRequest += 1 },
+                enabled = accents != null && !saving && content.lyrics.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (saved) LevyraCyan.copy(alpha = 0.72f) else Color.Transparent,
+                    contentColor = if (saved) LevyraOnAccent else LevyraCyan
+                ),
+                border = BorderStroke(1.dp, LevyraCyan.copy(alpha = 0.65f)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+            ) {
+                when {
+                    saving -> CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = LevyraCyan)
+                    saved -> Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                    else -> Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                Text(
+                    text = when { saving -> strings.shareLyricsPreparing; saved -> strings.saved; else -> strings.save },
                     modifier = Modifier.padding(start = 8.dp),
                     fontWeight = FontWeight.Black
                 )

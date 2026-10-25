@@ -800,7 +800,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             userName = preferences[KEY_USER_NAME].orEmpty(),
             languageCode = normalizedLanguage,
             animationsEnabled = preferences[KEY_ANIMATIONS] ?: true,
-            motionArtworkEnabled = preferences[KEY_MOTION_ARTWORK] ?: true,
+            motionArtworkEnabled = preferences[KEY_MOTION_ARTWORK] ?: false,
             dynamicColor = preferences[KEY_DYNAMIC_COLOR] ?: true,
             sponsorBlock = preferences[KEY_SPONSORBLOCK] ?: DEFAULT_SPONSORBLOCK_ENABLED,
             skipSilence = preferences[KEY_SKIP_SILENCE] ?: false,

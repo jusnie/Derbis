@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Android Auto-এর জন্য অপ্টিমাইজ করা সংগীত</string>
     <string name="car_home_subtitle">দ্রুত মিক্স, অফলাইন ও চার্ট</string>
     <string name="car_queue_title">সারি</string>
-    <string name="car_queue_subtitle">Levyra-এর সাথে শেয়ার করা স্থায়ী সারি</string>
+    <string name="car_queue_subtitle">Derbis-এর সাথে শেয়ার করা স্থায়ী সারি</string>
     <string name="car_recommended_title">প্রস্তাবিত</string>
     <string name="car_recommended_subtitle">সংগীত প্রোফাইল, প্রিয় ও সাম্প্রতিক শোনা</string>
     <string name="car_albums_title">অ্যালবাম</string>
     <string name="car_albums_subtitle">স্থানীয় ও প্রস্তাবিত অ্যালবাম</string>
     <string name="car_artists_title">শিল্পী</string>
     <string name="car_artists_subtitle">সবচেয়ে বেশি শোনা ও অনুসৃত শিল্পী</string>
-    <string name="car_flow_subtitle">Levyra ব্যক্তিগত রেডিও</string>
+    <string name="car_flow_subtitle">Derbis ব্যক্তিগত রেডিও</string>
     <string name="car_favorites_subtitle">সংরক্ষিত গান</string>
     <string name="car_downloads_subtitle">অফলাইনে উপলব্ধ সংগীত</string>
     <string name="car_playlists_subtitle">অ্যাপে তৈরি সংগ্রহ</string>

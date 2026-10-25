@@ -29,14 +29,14 @@
     <string name="car_root_subtitle">Música otimizada para Android Auto</string>
     <string name="car_home_subtitle">Mixes rápidos, offline e paradas</string>
     <string name="car_queue_title">Fila</string>
-    <string name="car_queue_subtitle">Fila persistente partilhada com Levyra</string>
+    <string name="car_queue_subtitle">Fila persistente partilhada com Derbis</string>
     <string name="car_recommended_title">Recomendados</string>
     <string name="car_recommended_subtitle">Perfil musical, favoritos e audições recentes</string>
     <string name="car_albums_title">Álbuns</string>
     <string name="car_albums_subtitle">Álbuns locais e sugeridos</string>
     <string name="car_artists_title">Artistas</string>
     <string name="car_artists_subtitle">Artistas mais ouvidos e seguidos</string>
-    <string name="car_flow_subtitle">Rádio pessoal Levyra</string>
+    <string name="car_flow_subtitle">Rádio pessoal Derbis</string>
     <string name="car_favorites_subtitle">Músicas guardadas</string>
     <string name="car_downloads_subtitle">Música disponível offline</string>
     <string name="car_playlists_subtitle">Coleções criadas na aplicação</string>

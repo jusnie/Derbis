@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Android Auto için optimize edilmiş müzik</string>
     <string name="car_home_subtitle">Hızlı mixler, çevrimdışı ve listeler</string>
     <string name="car_queue_title">Sıra</string>
-    <string name="car_queue_subtitle">Levyra ile paylaşılan kalıcı sıra</string>
+    <string name="car_queue_subtitle">Derbis ile paylaşılan kalıcı sıra</string>
     <string name="car_recommended_title">Önerilenler</string>
     <string name="car_recommended_subtitle">Müzik profili, favoriler ve son dinlenenler</string>
     <string name="car_albums_title">Albümler</string>
     <string name="car_albums_subtitle">Yerel ve önerilen albümler</string>
     <string name="car_artists_title">Sanatçılar</string>
     <string name="car_artists_subtitle">En çok dinlenen ve takip edilen sanatçılar</string>
-    <string name="car_flow_subtitle">Kişisel Levyra radyosu</string>
+    <string name="car_flow_subtitle">Kişisel Derbis radyosu</string>
     <string name="car_favorites_subtitle">Kaydedilen parçalar</string>
     <string name="car_downloads_subtitle">Çevrimdışı kullanılabilir müzik</string>
     <string name="car_playlists_subtitle">Uygulamada oluşturulan koleksiyonlar</string>

@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Android Auto үшін оңтайландырылған музыка</string>
     <string name="car_home_subtitle">Жылдам микстер, офлайн және чарттар</string>
     <string name="car_queue_title">Кезек</string>
-    <string name="car_queue_subtitle">Levyra-мен ортақ тұрақты кезек</string>
+    <string name="car_queue_subtitle">Derbis-мен ортақ тұрақты кезек</string>
     <string name="car_recommended_title">Ұсынылғандар</string>
     <string name="car_recommended_subtitle">Музыкалық профиль, таңдаулылар және соңғы тыңдалғандар</string>
     <string name="car_albums_title">Альбомдар</string>
     <string name="car_albums_subtitle">Жергілікті және ұсынылған альбомдар</string>
     <string name="car_artists_title">Орындаушылар</string>
     <string name="car_artists_subtitle">Ең көп тыңдалған және жазылған орындаушылар</string>
-    <string name="car_flow_subtitle">Levyra жеке радиосы</string>
+    <string name="car_flow_subtitle">Derbis жеке радиосы</string>
     <string name="car_favorites_subtitle">Сақталған әндер</string>
     <string name="car_downloads_subtitle">Офлайн қолжетімді музыка</string>
     <string name="car_playlists_subtitle">Қолданбада жасалған жинақтар</string>

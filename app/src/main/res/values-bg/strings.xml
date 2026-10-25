@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Музика, оптимизирана за Android Auto</string>
     <string name="car_home_subtitle">Бързи миксове, офлайн и класации</string>
     <string name="car_queue_title">Опашка</string>
-    <string name="car_queue_subtitle">Постоянна опашка, споделена с Levyra</string>
+    <string name="car_queue_subtitle">Постоянна опашка, споделена с Derbis</string>
     <string name="car_recommended_title">Препоръчани</string>
     <string name="car_recommended_subtitle">Музикален профил, любими и скорошни слушания</string>
     <string name="car_albums_title">Албуми</string>
     <string name="car_albums_subtitle">Локални и предложени албуми</string>
     <string name="car_artists_title">Изпълнители</string>
     <string name="car_artists_subtitle">Най-слушани и следвани изпълнители</string>
-    <string name="car_flow_subtitle">Лично радио Levyra</string>
+    <string name="car_flow_subtitle">Лично радио Derbis</string>
     <string name="car_favorites_subtitle">Запазени песни</string>
     <string name="car_downloads_subtitle">Музика, достъпна офлайн</string>
     <string name="car_playlists_subtitle">Колекции, създадени в приложението</string>

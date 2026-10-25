@@ -2044,6 +2044,7 @@ fun LevyraApp(
         LevyraSkin.Torque -> TorqueThemeEffect(state.interfaceSettings, state.currentTrack)
         LevyraSkin.Ivory -> IvoryThemeEffect(state.interfaceSettings)
         LevyraSkin.AppleMusicStyle -> AppleMusicThemeEffect()
+        LevyraSkin.TidalStyle -> TidalThemeEffect()
         LevyraSkin.YouTubeMusicStyle -> YouTubeMusicThemeEffect()
         else -> Unit
     }
@@ -2058,7 +2059,7 @@ fun LevyraApp(
         pureBlack,
         customThemes
     ) {
-        if (state.interfaceSettings.skin == LevyraSkin.Prism || state.interfaceSettings.skin == LevyraSkin.Torque || state.interfaceSettings.skin == LevyraSkin.Ivory || state.interfaceSettings.skin == LevyraSkin.AppleMusicStyle || state.interfaceSettings.skin == LevyraSkin.YouTubeMusicStyle) return@LaunchedEffect
+        if (state.interfaceSettings.skin == LevyraSkin.Prism || state.interfaceSettings.skin == LevyraSkin.Torque || state.interfaceSettings.skin == LevyraSkin.Ivory || state.interfaceSettings.skin == LevyraSkin.AppleMusicStyle || state.interfaceSettings.skin == LevyraSkin.TidalStyle || state.interfaceSettings.skin == LevyraSkin.YouTubeMusicStyle) return@LaunchedEffect
         LevyraThemeController.apply(
             state.themePreset,
             accentTrack?.accentStart,
@@ -2075,7 +2076,7 @@ fun LevyraApp(
         val nocturne = state.interfaceSettings.skin == LevyraSkin.Nocturne78
         val base = when (state.interfaceSettings.skin) {
             LevyraSkin.Nocturne78 -> Nocturne78Palette
-            LevyraSkin.Prism, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.AppleMusicStyle, LevyraSkin.YouTubeMusicStyle -> LevyraActivePalette
+            LevyraSkin.Prism, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.AppleMusicStyle, LevyraSkin.TidalStyle, LevyraSkin.YouTubeMusicStyle -> LevyraActivePalette
             LevyraSkin.SpotifyStyle -> spotifyPalette()
             LevyraSkin.Default -> LevyraThemes.byId(state.themePreset)
         }
@@ -7484,50 +7485,16 @@ private fun QueueOverlay(
             if (currentEntries.isEmpty()) {
                 item { Text(strings.queueEmpty, color = LevyraMuted, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
             } else {
-                val currentIndex = state.queueCurrentIndex.takeIf { it in currentEntries.indices }
-                if (currentIndex != null && currentIndex > 0) {
-                    stickyHeader(key = "queue-played-header", contentType = "queue-section-header") {
-                        QueueSectionHeader(strings.queueSectionCopy().played, currentIndex, queueAccent)
-                    }
-                    itemsIndexed(
-                        currentEntries.take(currentIndex),
-                        key = { _, entry -> "q-${entry.key}" },
-                        contentType = { _, _ -> "queue-track" }
-                    ) { index, entry ->
-                        queueTrackRow(index, entry, Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade))
-                    }
-                }
-                if (currentIndex != null) {
-                    stickyHeader(key = "queue-current-header", contentType = "queue-section-header") {
-                        QueueSectionHeader(strings.nowPlaying, null, queueAccent)
-                    }
-                    item(
-                        key = "q-${currentEntries[currentIndex].key}",
-                        contentType = "queue-current"
-                    ) {
-                        queueTrackRow(
-                            currentIndex,
-                            currentEntries[currentIndex],
-                            Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade)
-                        )
-                    }
-                }
-                val upNextStart = currentIndex?.plus(1) ?: 0
-                if (upNextStart < currentEntries.size) {
-                    stickyHeader(key = "queue-up-next-header", contentType = "queue-section-header") {
-                        QueueSectionHeader(strings.queueSectionCopy().upNext, currentEntries.size - upNextStart, queueAccent)
-                    }
-                    itemsIndexed(
-                        currentEntries.drop(upNextStart),
-                        key = { _, entry -> "q-${entry.key}" },
-                        contentType = { _, _ -> "queue-track" }
-                    ) { relativeIndex, entry ->
-                        queueTrackRow(
-                            upNextStart + relativeIndex,
-                            entry,
-                            Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade)
-                        )
-                    }
+                itemsIndexed(
+                    currentEntries,
+                    key = { _, entry -> "q-${entry.key}" },
+                    contentType = { _, entry -> if (entry.index == state.queueCurrentIndex) "queue-current" else "queue-track" }
+                ) { index, entry ->
+                    queueTrackRow(
+                        index,
+                        entry,
+                        Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade)
+                    )
                 }
             }
         }
@@ -20887,7 +20854,7 @@ private fun SettingsOverlay(
     fun categoryTitle(value: String): String = settingsCategoryTitle(value, categoryLocale)
     val categories = remember(strings.code, LevyraActivePalette) {
         listOf(
-            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Prism · Torque · Ivory · Spotify Style · Apple Music Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
+            SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Prism · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.advancedGestures} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, LevyraPink, SettingsHubGroup.Listening),
@@ -22464,24 +22431,13 @@ private fun SettingsHubFooter(onExitApplication: () -> Unit) {
             letterSpacing = 2.sp
         )
         Spacer(modifier = Modifier.height(13.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                "${strings.madeWithBy} ",
-                color = LevyraMuted,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                "Yasuda",
-                color = LevyraText,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.3.sp
-            )
-        }
+        Text(
+            "Developer/Author: Yasuda",
+            color = LevyraText,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.3.sp
+        )
         Spacer(modifier = Modifier.height(12.dp))
         SupportLevyraSettingsLink(
             languageCode = strings.code,

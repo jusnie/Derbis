@@ -1053,7 +1053,7 @@ class LevyraBackupManager(private val context: Context) {
     private fun parseSettings(json: JSONObject): LevyraPreferencesSnapshot {
         val legacyVisualMode = if (json.has("playerVisualMode")) {
             PlayerVisualMode.from(json.optString("playerVisualMode"))
-        } else if (json.optBoolean("motionArtworkEnabled", true)) {
+        } else if (json.optBoolean("motionArtworkEnabled", false)) {
             PlayerVisualMode.CanvasCard
         } else {
             PlayerVisualMode.Artwork
@@ -1064,7 +1064,7 @@ class LevyraBackupManager(private val context: Context) {
             userName = json.optString("userName"),
             languageCode = json.optString("languageCode"),
             animationsEnabled = json.optBoolean("animationsEnabled", true),
-            motionArtworkEnabled = json.optBoolean("motionArtworkEnabled", true),
+            motionArtworkEnabled = json.optBoolean("motionArtworkEnabled", false),
             dynamicColor = json.optBoolean("dynamicColor", true),
             sponsorBlock = json.optBoolean("sponsorBlock", true),
             skipSilence = json.optBoolean("skipSilence", false),

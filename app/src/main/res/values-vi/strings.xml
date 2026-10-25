@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Nhạc được tối ưu cho Android Auto</string>
     <string name="car_home_subtitle">Mix nhanh, ngoại tuyến và bảng xếp hạng</string>
     <string name="car_queue_title">Hàng đợi</string>
-    <string name="car_queue_subtitle">Hàng đợi lâu dài dùng chung với Levyra</string>
+    <string name="car_queue_subtitle">Hàng đợi lâu dài dùng chung với Derbis</string>
     <string name="car_recommended_title">Đề xuất</string>
     <string name="car_recommended_subtitle">Hồ sơ âm nhạc, yêu thích và nghe gần đây</string>
     <string name="car_albums_title">Album</string>
     <string name="car_albums_subtitle">Album trên máy và được gợi ý</string>
     <string name="car_artists_title">Nghệ sĩ</string>
     <string name="car_artists_subtitle">Nghệ sĩ được nghe và theo dõi nhiều nhất</string>
-    <string name="car_flow_subtitle">Radio cá nhân Levyra</string>
+    <string name="car_flow_subtitle">Radio cá nhân Derbis</string>
     <string name="car_favorites_subtitle">Bài hát đã lưu</string>
     <string name="car_downloads_subtitle">Nhạc có sẵn ngoại tuyến</string>
     <string name="car_playlists_subtitle">Bộ sưu tập tạo trong ứng dụng</string>

@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Muziek geoptimaliseerd voor Android Auto</string>
     <string name="car_home_subtitle">Snelle mixen, offline en hitlijsten</string>
     <string name="car_queue_title">Wachtrij</string>
-    <string name="car_queue_subtitle">Blijvende wachtrij gedeeld met Levyra</string>
+    <string name="car_queue_subtitle">Blijvende wachtrij gedeeld met Derbis</string>
     <string name="car_recommended_title">Aanbevolen</string>
     <string name="car_recommended_subtitle">Muziekprofiel, favorieten en recent geluisterd</string>
     <string name="car_albums_title">Albums</string>
     <string name="car_albums_subtitle">Lokale en voorgestelde albums</string>
     <string name="car_artists_title">Artiesten</string>
     <string name="car_artists_subtitle">Meest beluisterde en gevolgde artiesten</string>
-    <string name="car_flow_subtitle">Persoonlijke Levyra-radio</string>
+    <string name="car_flow_subtitle">Persoonlijke Derbis-radio</string>
     <string name="car_favorites_subtitle">Opgeslagen nummers</string>
     <string name="car_downloads_subtitle">Muziek offline beschikbaar</string>
     <string name="car_playlists_subtitle">Collecties gemaakt in de app</string>

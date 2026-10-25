@@ -56,7 +56,7 @@
     <string name="car_albums_subtitle">Helyi és javasolt albumok</string>
     <string name="car_artists_title">Előadók</string>
     <string name="car_artists_subtitle">Legtöbbet hallgatott és követett előadók</string>
-    <string name="car_flow_subtitle">Személyes Levyra rádió</string>
+    <string name="car_flow_subtitle">Személyes Derbis rádió</string>
     <string name="car_favorites_subtitle">Mentett számok</string>
     <string name="car_downloads_subtitle">Offline elérhető zene</string>
     <string name="car_playlists_subtitle">Az alkalmazásban létrehozott gyűjtemények</string>

@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name" translatable="false">Derbis</string>
     <string name="widget_description">Mini player, quick favorites, daily flow, offline and lyrics</string>
-    <string name="widget_idle_title" translatable="false">LEVYRA</string>
+    <string name="widget_idle_title" translatable="false">DERBIS</string>
     <string name="widget_idle_subtitle">Tap to listen</string>
     <string name="widget_toggle">Play/Pause</string>
     <string name="widget_next">Next</string>

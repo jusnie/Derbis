@@ -29,14 +29,14 @@
     <string name="car_root_subtitle">Android Auto向けに最適化された音楽</string>
     <string name="car_home_subtitle">クイックミックス、オフライン、チャート</string>
     <string name="car_queue_title">再生キュー</string>
-    <string name="car_queue_subtitle">Levyraと共有される持続的なキュー</string>
+    <string name="car_queue_subtitle">Derbisと共有される持続的なキュー</string>
     <string name="car_recommended_title">おすすめ</string>
     <string name="car_recommended_subtitle">ミュージックプロフィール、お気に入り、最近の再生履歴</string>
     <string name="car_albums_title">アルバム</string>
     <string name="car_albums_subtitle">ローカルアルバムとおすすめ</string>
     <string name="car_artists_title">アーティスト</string>
     <string name="car_artists_subtitle">最も再生され、フォローされているアーティスト</string>
-    <string name="car_flow_subtitle">パーソナルLevyraラジオ</string>
+    <string name="car_flow_subtitle">パーソナルDerbisラジオ</string>
     <string name="car_favorites_subtitle">保存した曲</string>
     <string name="car_downloads_subtitle">オフラインで利用可能な音楽</string>
     <string name="car_playlists_subtitle">アプリで作成されたコレクション</string>

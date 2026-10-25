@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Muzică optimizată pentru Android Auto</string>
     <string name="car_home_subtitle">Mixuri rapide, offline și topuri</string>
     <string name="car_queue_title">Coadă</string>
-    <string name="car_queue_subtitle">Coadă persistentă partajată cu Levyra</string>
+    <string name="car_queue_subtitle">Coadă persistentă partajată cu Derbis</string>
     <string name="car_recommended_title">Recomandate</string>
     <string name="car_recommended_subtitle">Profil muzical, favorite și ascultări recente</string>
     <string name="car_albums_title">Albume</string>
     <string name="car_albums_subtitle">Albume locale și sugerate</string>
     <string name="car_artists_title">Artiști</string>
     <string name="car_artists_subtitle">Cei mai ascultați și urmăriți artiști</string>
-    <string name="car_flow_subtitle">Radio personal Levyra</string>
+    <string name="car_flow_subtitle">Radio personal Derbis</string>
     <string name="car_favorites_subtitle">Piese salvate</string>
     <string name="car_downloads_subtitle">Muzică disponibilă offline</string>
     <string name="car_playlists_subtitle">Colecții create în aplicație</string>

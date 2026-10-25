@@ -470,6 +470,7 @@ object LevyraThemeController {
             LevyraSkin.Ivory -> ivoryPalette(ivory, systemDark)
             LevyraSkin.SpotifyStyle -> spotifyPalette()
             LevyraSkin.AppleMusicStyle -> appleMusicPalette(systemDark)
+            LevyraSkin.TidalStyle -> tidalPalette()
             LevyraSkin.YouTubeMusicStyle -> youTubeMusicPalette()
         }
         val tinted = when {

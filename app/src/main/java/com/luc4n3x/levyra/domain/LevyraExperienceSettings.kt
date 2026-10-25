@@ -183,6 +183,7 @@ enum class LevyraSkin {
     Ivory,
     SpotifyStyle,
     AppleMusicStyle,
+    TidalStyle,
     YouTubeMusicStyle;
 
     companion object {

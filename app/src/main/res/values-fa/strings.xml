@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">موسیقی بهینه‌شده برای Android Auto</string>
     <string name="car_home_subtitle">میکس‌های سریع، آفلاین و جدول‌ها</string>
     <string name="car_queue_title">صف پخش</string>
-    <string name="car_queue_subtitle">صف دائمی مشترک با Levyra</string>
+    <string name="car_queue_subtitle">صف دائمی مشترک با Derbis</string>
     <string name="car_recommended_title">پیشنهادی</string>
     <string name="car_recommended_subtitle">نمایه موسیقی، علاقه‌مندی‌ها و شنیده‌های اخیر</string>
     <string name="car_albums_title">آلبوم‌ها</string>
     <string name="car_albums_subtitle">آلبوم‌های محلی و پیشنهادی</string>
     <string name="car_artists_title">هنرمندان</string>
     <string name="car_artists_subtitle">پرشنونده‌ترین و دنبال‌شده‌ترین هنرمندان</string>
-    <string name="car_flow_subtitle">رادیوی شخصی Levyra</string>
+    <string name="car_flow_subtitle">رادیوی شخصی Derbis</string>
     <string name="car_favorites_subtitle">آهنگ‌های ذخیره‌شده</string>
     <string name="car_downloads_subtitle">موسیقی در دسترس به‌صورت آفلاین</string>
     <string name="car_playlists_subtitle">مجموعه‌های ساخته‌شده در برنامه</string>

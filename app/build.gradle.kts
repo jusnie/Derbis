@@ -110,7 +110,7 @@ if (isPrDiagnosticsArtifactTaskRequested() && canvasClientKey.isBlank()) {
 fun normalizedVersionName(value: String): String {
     val clean = value.trim().removePrefix("v").removePrefix("V")
     val match = Regex("\\d+(?:\\.\\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?").find(clean)?.value
-    return match ?: clean.ifBlank { "3.0.2" }
+    return match ?: clean.ifBlank { "1.0.3" }
 }
 
 fun generatedVersionCode(versionName: String): Int {
@@ -137,18 +137,18 @@ fun githubTagVersionName(): String? {
     }
 }
 
-val levyraVersionName = normalizedVersionName(
-    (findProperty("levyraVersionName") as? String)
-        ?: System.getenv("LEVYRA_VERSION_NAME")
+val derbisVersionName = normalizedVersionName(
+    (findProperty("derbisVersionName") as? String)
+        ?: System.getenv("DERBIS_VERSION_NAME")
         ?: githubTagVersionName()
-        ?: "3.0.2"
+        ?: "1.0.3"
 )
 
-val levyraVersionCode = ((findProperty("levyraVersionCode") as? String)
-    ?: System.getenv("LEVYRA_VERSION_CODE"))
+val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
+    ?: System.getenv("DERBIS_VERSION_CODE"))
     ?.toIntOrNull()
     ?.takeIf { it > 0 }
-    ?: generatedVersionCode(levyraVersionName)
+    ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_201)
 
 android {
     namespace = "com.luc4n3x.levyra"
@@ -158,8 +158,8 @@ android {
         applicationId = "com.derbis.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = levyraVersionCode
-        versionName = levyraVersionName
+        versionCode = derbisVersionCode
+        versionName = derbisVersionName
         vectorDrawables.useSupportLibrary = true
         manifestPlaceholders["upstreamUpdatesEnabled"] = (!isFdroidBuild).toString()
         buildConfigField("String", "UPDATE_REPOSITORY", "\"jusnie/Derbis\"")

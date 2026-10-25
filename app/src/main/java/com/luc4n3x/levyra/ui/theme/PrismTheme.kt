@@ -23,7 +23,7 @@ import com.materialkolor.hct.Hct
 internal const val PrismPaletteId = "derbis_prism"
 internal const val TorquePaletteId = "derbis_torque"
 val LevyraIsTorque: Boolean get() = LevyraActivePalette.id == TorquePaletteId
-val LevyraIsPrism: Boolean get() = LevyraActivePalette.id == PrismPaletteId || LevyraIsTorque || LevyraIsIvory || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsYouTubeMusic
+val LevyraIsPrism: Boolean get() = LevyraActivePalette.id == PrismPaletteId || LevyraIsTorque || LevyraIsIvory || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsTidal || LevyraIsYouTubeMusic
 internal val LevyraSkinManagesLayout: Boolean get() = LevyraIsNocturne || LevyraIsPrism
 internal val LevyraSkinLabel: String get() = LevyraActivePalette.label
 internal var activePrismSettings by mutableStateOf(PrismSettings())

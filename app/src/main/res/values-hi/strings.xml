@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Android Auto के लिए ऑप्टिमाइज़ किया गया संगीत</string>
     <string name="car_home_subtitle">तेज़ मिक्स, ऑफ़लाइन और चार्ट</string>
     <string name="car_queue_title">क्यू</string>
-    <string name="car_queue_subtitle">Levyra के साथ साझा स्थायी क्यू</string>
+    <string name="car_queue_subtitle">Derbis के साथ साझा स्थायी क्यू</string>
     <string name="car_recommended_title">सुझाए गए</string>
     <string name="car_recommended_subtitle">संगीत प्रोफ़ाइल, पसंदीदा और हाल में सुने गए</string>
     <string name="car_albums_title">एल्बम</string>
     <string name="car_albums_subtitle">स्थानीय और सुझाए गए एल्बम</string>
     <string name="car_artists_title">कलाकार</string>
     <string name="car_artists_subtitle">सबसे ज़्यादा सुने और फ़ॉलो किए गए कलाकार</string>
-    <string name="car_flow_subtitle">Levyra निजी रेडियो</string>
+    <string name="car_flow_subtitle">Derbis निजी रेडियो</string>
     <string name="car_favorites_subtitle">सहेजे गए गाने</string>
     <string name="car_downloads_subtitle">ऑफ़लाइन उपलब्ध संगीत</string>
     <string name="car_playlists_subtitle">ऐप में बनाए गए संग्रह</string>

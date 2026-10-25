@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Μουσική βελτιστοποιημένη για Android Auto</string>
     <string name="car_home_subtitle">Γρήγορα μίξ, εκτός σύνδεσης και τσαρτ</string>
     <string name="car_queue_title">Ουρά</string>
-    <string name="car_queue_subtitle">Μόνιμη ουρά κοινή με το Levyra</string>
+    <string name="car_queue_subtitle">Μόνιμη ουρά κοινή με το Derbis</string>
     <string name="car_recommended_title">Προτεινόμενα</string>
     <string name="car_recommended_subtitle">Μουσικό προφίλ, αγαπημένα και πρόσφατες ακροάσεις</string>
     <string name="car_albums_title">Άλμπουμ</string>
     <string name="car_albums_subtitle">Τοπικά και προτεινόμενα άλμπουμ</string>
     <string name="car_artists_title">Καλλιτέχνες</string>
     <string name="car_artists_subtitle">Οι πιο ακουσμένοι και ακολουθούμενοι καλλιτέχνες</string>
-    <string name="car_flow_subtitle">Προσωπικό ραδιόφωνο Levyra</string>
+    <string name="car_flow_subtitle">Προσωπικό ραδιόφωνο Derbis</string>
     <string name="car_favorites_subtitle">Αποθηκευμένα κομμάτια</string>
     <string name="car_downloads_subtitle">Μουσική διαθέσιμη εκτός σύνδεσης</string>
     <string name="car_playlists_subtitle">Συλλογές που δημιουργήθηκαν στην εφαρμογή</string>

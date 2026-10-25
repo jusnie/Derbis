@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">موسيقى محسّنة لـ Android Auto</string>
     <string name="car_home_subtitle">مزيج سريع ودون اتصال وقوائم الأفضل</string>
     <string name="car_queue_title">قائمة الانتظار</string>
-    <string name="car_queue_subtitle">قائمة انتظار دائمة مشتركة مع Levyra</string>
+    <string name="car_queue_subtitle">قائمة انتظار دائمة مشتركة مع Derbis</string>
     <string name="car_recommended_title">مقترحات</string>
     <string name="car_recommended_subtitle">الملف الموسيقي والمفضلة وما استمعت إليه مؤخرًا</string>
     <string name="car_albums_title">الألبومات</string>
     <string name="car_albums_subtitle">ألبومات محلية ومقترحة</string>
     <string name="car_artists_title">الفنانون</string>
     <string name="car_artists_subtitle">الفنانون الأكثر استماعًا ومتابعة</string>
-    <string name="car_flow_subtitle">راديو Levyra الشخصي</string>
+    <string name="car_flow_subtitle">راديو Derbis الشخصي</string>
     <string name="car_favorites_subtitle">المقاطع المحفوظة</string>
     <string name="car_downloads_subtitle">موسيقى متاحة دون اتصال</string>
     <string name="car_playlists_subtitle">مجموعات أُنشئت في التطبيق</string>

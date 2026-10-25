@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Android Autolle optimoitua musiikkia</string>
     <string name="car_home_subtitle">Pikamiksit, offline ja listat</string>
     <string name="car_queue_title">Jono</string>
-    <string name="car_queue_subtitle">Pysyvä jono jaettuna Levyran kanssa</string>
+    <string name="car_queue_subtitle">Pysyvä jono jaettuna Derbisn kanssa</string>
     <string name="car_recommended_title">Suositellut</string>
     <string name="car_recommended_subtitle">Musiikkiprofiili, suosikit ja viimeaikaiset kuuntelut</string>
     <string name="car_albums_title">Albumit</string>
     <string name="car_albums_subtitle">Paikalliset ja ehdotetut albumit</string>
     <string name="car_artists_title">Artistit</string>
     <string name="car_artists_subtitle">Kuunnelluimmat ja seuratut artistit</string>
-    <string name="car_flow_subtitle">Henkilökohtainen Levyra-radio</string>
+    <string name="car_flow_subtitle">Henkilökohtainen Derbis-radio</string>
     <string name="car_favorites_subtitle">Tallennetut kappaleet</string>
     <string name="car_downloads_subtitle">Offline-käytössä oleva musiikki</string>
     <string name="car_playlists_subtitle">Sovelluksessa luodut kokoelmat</string>

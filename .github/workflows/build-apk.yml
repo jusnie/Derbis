@@ -55,12 +55,12 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v3.0.2
-          name: "Derbis v3.0.2"
+          tag_name: v1.0.3
+          name: "Derbis v1.0.3"
           draft: false
           prerelease: false
           body: |
-            ## Derbis v3.0.2 Release
+            ## Derbis v1.0.3 Release
             - ◈ **New Derbis Logo**: Updated Android adaptive launcher icons, notification artwork, desktop PNG, and Windows icon.
             - 🎛️ **DJ Mix**: Crossfade / DJ transition control now supports 0–30 seconds; handoff logic prevents the occasional doubled-voice replay between tracks.
             - 🎬 **Animated Artwork**: Auto-selects the best available motion artwork, with Spotify Canvas, Apple Music, and TIDAL choices.

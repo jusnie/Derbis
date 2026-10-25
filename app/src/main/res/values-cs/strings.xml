@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Hudba optimalizovaná pro Android Auto</string>
     <string name="car_home_subtitle">Rychlé mixy, offline a žebříčky</string>
     <string name="car_queue_title">Fronta</string>
-    <string name="car_queue_subtitle">Trvalá fronta sdílená s Levyra</string>
+    <string name="car_queue_subtitle">Trvalá fronta sdílená s Derbis</string>
     <string name="car_recommended_title">Doporučené</string>
     <string name="car_recommended_subtitle">Hudební profil, oblíbené a nedávný poslech</string>
     <string name="car_albums_title">Alba</string>
     <string name="car_albums_subtitle">Místní a navržená alba</string>
     <string name="car_artists_title">Interpreti</string>
     <string name="car_artists_subtitle">Nejposlouchanější a sledovaní interpreti</string>
-    <string name="car_flow_subtitle">Osobní rádio Levyra</string>
+    <string name="car_flow_subtitle">Osobní rádio Derbis</string>
     <string name="car_favorites_subtitle">Uložené skladby</string>
     <string name="car_downloads_subtitle">Hudba dostupná offline</string>
     <string name="car_playlists_subtitle">Sbírky vytvořené v aplikaci</string>

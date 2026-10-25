@@ -121,7 +121,7 @@ data class LevyraUiState(
     val isSamplesOpen: Boolean = false,
     val showSettings: Boolean = false,
     val animationsEnabled: Boolean = true,
-    val motionArtworkEnabled: Boolean = true,
+    val motionArtworkEnabled: Boolean = false,
     val recognitionAvailable: Boolean = true,
     val lastFmConfigured: Boolean = false,
     val lastFmAuthorizationPending: Boolean = false,

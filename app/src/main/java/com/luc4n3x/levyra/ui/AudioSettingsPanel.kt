@@ -434,16 +434,26 @@ internal fun AudioSettingsPanel(
                     }
                 }
 
-                item { AudioSectionLabel(strings.audioSectionSpatial) }
+                item { AudioSectionLabel("Derbis Spatial Audio") }
                 item {
-                    AudioSliderRow(
-                        title = strings.virtualizer,
-                        valueLabel = "${audioSettings.virtualizer}%",
-                        value = audioSettings.virtualizer.toFloat(),
-                        range = 0f..100f,
-                        icon = true,
-                        onValue = { onVirtualizer(it.roundToInt()) }
+                    AudioToggleRow(
+                        title = "Derbis Spatial Audio",
+                        subtitle = "Optional virtual surround processing for headphones and stereo speakers.",
+                        checked = audioSettings.virtualizer > 0,
+                        onCheckedChange = { enabled -> onVirtualizer(if (enabled) 55 else 0) }
                     )
+                }
+                if (audioSettings.virtualizer > 0) {
+                    item {
+                        AudioSliderRow(
+                            title = "Spatial intensity",
+                            valueLabel = "${audioSettings.virtualizer}%",
+                            value = audioSettings.virtualizer.toFloat(),
+                            range = 1f..100f,
+                            icon = true,
+                            onValue = { onVirtualizer(it.roundToInt()) }
+                        )
+                    }
                 }
 
                 item { AudioSectionLabel(strings.audioSectionEnhancement) }

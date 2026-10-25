@@ -29,14 +29,14 @@
     <string name="car_root_subtitle">为 Android Auto 优化的音乐</string>
     <string name="car_home_subtitle">快速混合、离线和排行榜</string>
     <string name="car_queue_title">播放队列</string>
-    <string name="car_queue_subtitle">与 Levyra 共享的持久队列</string>
+    <string name="car_queue_subtitle">与 Derbis 共享的持久队列</string>
     <string name="car_recommended_title">推荐</string>
     <string name="car_recommended_subtitle">音乐档案、收藏和最近播放</string>
     <string name="car_albums_title">专辑</string>
     <string name="car_albums_subtitle">本地专辑和推荐</string>
     <string name="car_artists_title">歌手</string>
     <string name="car_artists_subtitle">播放最多和关注的歌手</string>
-    <string name="car_flow_subtitle">个人 Levyra 电台</string>
+    <string name="car_flow_subtitle">个人 Derbis 电台</string>
     <string name="car_favorites_subtitle">已保存的歌曲</string>
     <string name="car_downloads_subtitle">可离线播放的音乐</string>
     <string name="car_playlists_subtitle">应用中创建的收藏集</string>

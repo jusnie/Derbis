@@ -49,14 +49,14 @@
     <string name="car_root_subtitle">Muzikë e optimizuar për Android Auto</string>
     <string name="car_home_subtitle">Mikse të shpejta, offline dhe lista</string>
     <string name="car_queue_title">Radha</string>
-    <string name="car_queue_subtitle">Radhë e qëndrueshme e ndarë me Levyra</string>
+    <string name="car_queue_subtitle">Radhë e qëndrueshme e ndarë me Derbis</string>
     <string name="car_recommended_title">Të rekomanduara</string>
     <string name="car_recommended_subtitle">Profili muzikor, të preferuarat dhe dëgjimet e fundit</string>
     <string name="car_albums_title">Albume</string>
     <string name="car_albums_subtitle">Albume lokale dhe të sugjeruara</string>
     <string name="car_artists_title">Artistë</string>
     <string name="car_artists_subtitle">Artistët më të dëgjuar dhe të ndjekur</string>
-    <string name="car_flow_subtitle">Radio personale Levyra</string>
+    <string name="car_flow_subtitle">Radio personale Derbis</string>
     <string name="car_favorites_subtitle">Këngë të ruajtura</string>
     <string name="car_downloads_subtitle">Muzikë e disponueshme offline</string>
     <string name="car_playlists_subtitle">Koleksione të krijuara në aplikacion</string>
