@@ -1,5 +1,9 @@
 package com.luc4n3x.levyra.player
 
+import com.luc4n3x.levyra.domain.DerbisBeatGrid
+import com.luc4n3x.levyra.domain.DerbisMixStudio
+import com.luc4n3x.levyra.domain.DerbisMixTransitionPreset
+import com.luc4n3x.levyra.domain.DerbisMixTransitionSetting
 import com.luc4n3x.levyra.domain.LevyraAudioSettings
 import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.domain.Track
@@ -8,8 +12,25 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
-data class AutoMixPlan(val transitionMs: Long, val preloadLeadMs: Long)
+enum class CrossfadeCurve { EqualPower, LinearFade, IncomingRise }
+
+data class AutoMixPlan(
+    val transitionMs: Long,
+    val preloadLeadMs: Long,
+    val curve: CrossfadeCurve = CrossfadeCurve.EqualPower,
+    val transitionStartMs: Long? = null,
+    val incomingStartMs: Long = 0L,
+    val incomingTempo: Float = 1f,
+    val beatAligned: Boolean = false
+)
 data class CrossfadeGains(val outgoing: Float, val incoming: Float)
+
+private data class BeatAlignedAutoMix(
+    val startMs: Long,
+    val durationMs: Long,
+    val incomingStartMs: Long,
+    val incomingTempo: Float
+)
 
 internal fun planAutoMix(
     current: Track,
@@ -18,14 +39,19 @@ internal fun planAutoMix(
     repeatMode: RepeatMode,
     videoMode: Boolean,
     lowRam: Boolean,
-    shuffleEnabled: Boolean = false
+    shuffleEnabled: Boolean = false,
+    mixStudioSetting: DerbisMixTransitionSetting? = null,
+    currentBeatGrid: DerbisBeatGrid? = null,
+    nextBeatGrid: DerbisBeatGrid? = null
 ): AutoMixPlan? {
     val normalized = settings.normalized()
-    if (!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0 || next == null) return null
-    if (repeatMode == RepeatMode.One || videoMode || lowRam || current.durationMs <= MIN_TRACK_MS) return null
-    if (continuesSameRelease(current, next, shuffleEnabled)) return null
-    val base = normalized.crossfadeSeconds * 1_000L
-    val adaptive = if (normalized.djSoftMode) {
+    val savedMix = mixStudioSetting?.normalized()
+    if ((!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0) && savedMix == null) return null
+    if (next == null || repeatMode == RepeatMode.One || videoMode || lowRam || current.durationMs <= MIN_TRACK_MS) return null
+    if (savedMix == null && continuesSameRelease(current, next, shuffleEnabled)) return null
+    val base = savedMix?.durationMs
+        ?: if (savedMix != null) DEFAULT_STUDIO_TRANSITION_MS else (normalized.crossfadeSeconds * 1_000L)
+    val adaptive = if (savedMix == null && normalized.djSoftMode) {
         val energyDistance = abs(current.energy - next.energy)
         val vocalOverlap = (current.vocal + next.vocal) / 2
         when {
@@ -35,11 +61,35 @@ internal fun planAutoMix(
             else -> base
         }
     } else base
-    val transition = adaptive.coerceIn(MIN_TRANSITION_MS, MAX_TRANSITION_MS)
+    val styled = when (savedMix?.preset) {
+        DerbisMixTransitionPreset.Cut -> MIN_TRANSITION_MS
+        else -> adaptive
+    }
+    val requestedTransition = styled.coerceIn(MIN_TRANSITION_MS, MAX_TRANSITION_MS)
         .coerceAtMost(current.durationMs / 4L)
+    val beatPlan = if (savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null) {
+        val sync = DerbisMixStudio.beatSync(currentBeatGrid, nextBeatGrid)
+        val start = DerbisMixStudio.beatAlignedTransitionStartMs(current.durationMs, requestedTransition, currentBeatGrid)
+        if (sync.aligned && start != null) {
+            val duration = current.durationMs - start
+            if (duration in MIN_TRANSITION_MS..MAX_TRANSITION_MS) {
+                BeatAlignedAutoMix(start, duration, sync.incomingSeekMs, sync.incomingTempo)
+            } else null
+        } else null
+    } else null
+    val transition = beatPlan?.durationMs ?: requestedTransition
     return AutoMixPlan(
         transitionMs = transition,
-        preloadLeadMs = (transition + PRELOAD_MARGIN_MS).coerceAtMost(MAX_PRELOAD_LEAD_MS)
+        preloadLeadMs = (transition + PRELOAD_MARGIN_MS).coerceAtMost(MAX_PRELOAD_LEAD_MS),
+        curve = when (savedMix?.preset) {
+            DerbisMixTransitionPreset.Fade -> CrossfadeCurve.LinearFade
+            DerbisMixTransitionPreset.Rise -> CrossfadeCurve.IncomingRise
+            else -> CrossfadeCurve.EqualPower
+        },
+        transitionStartMs = beatPlan?.startMs,
+        incomingStartMs = beatPlan?.incomingStartMs ?: 0L,
+        incomingTempo = beatPlan?.incomingTempo ?: 1f,
+        beatAligned = beatPlan != null
     )
 }
 
@@ -71,8 +121,19 @@ private fun followsInRunningOrder(current: Track, next: Track): Boolean {
     return currentDisc > 0 && nextDisc == currentDisc + 1 && next.trackNumber == 1
 }
 
-internal fun equalPowerCrossfade(progress: Float): CrossfadeGains {
-    val t = progress.coerceIn(0f, 1f)
+internal fun equalPowerCrossfade(
+    progress: Float,
+    curve: CrossfadeCurve = CrossfadeCurve.EqualPower
+): CrossfadeGains {
+    val linear = progress.coerceIn(0f, 1f)
+    if (curve == CrossfadeCurve.LinearFade) {
+        return CrossfadeGains(outgoing = 1f - linear, incoming = linear)
+    }
+    val t = when (curve) {
+        CrossfadeCurve.EqualPower -> linear
+        CrossfadeCurve.IncomingRise -> linear * linear
+        CrossfadeCurve.LinearFade -> linear
+    }
     val angle = t * (PI.toFloat() / 2f)
     return CrossfadeGains(outgoing = cos(angle), incoming = sin(angle))
 }
@@ -107,3 +168,4 @@ private const val MIN_TRANSITION_MS = 800L
 private const val MAX_TRANSITION_MS = 30_000L
 private const val PRELOAD_MARGIN_MS = 8_000L
 private const val MAX_PRELOAD_LEAD_MS = 40_000L
+private const val DEFAULT_STUDIO_TRANSITION_MS = 6_000L

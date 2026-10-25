@@ -22,12 +22,15 @@
 
 ---
 
-## 📥 Downloads
+## 📥 Downloads and version history
 
-Download the latest version of Derbis directly from [GitHub Releases](https://github.com/jusnie/Derbis/releases):
+Every release has a version-specific **New**, **Fixed**, and **Known limitations** record. Browse the full [GitHub Releases history](https://github.com/jusnie/Derbis/releases) or read the concise [CHANGELOG](CHANGELOG.md).
 
-- **Android (APK)**: [Derbis Latest APK](https://github.com/jusnie/Derbis/releases/latest)
-- **Desktop**: [Derbis Desktop Releases](https://github.com/jusnie/Derbis/releases)
+- **Android (APK):** [Derbis v1.0.3](https://github.com/jusnie/Derbis/releases/tag/v1.0.3)
+- **Windows (recommended MSI):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
+- **Windows (alternative EXE):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
+
+For the Windows installers, download the matching `.sha256` asset to verify the file integrity. See the [release process](docs/RELEASE_PROCESS.md) for package naming, test-release, and publication rules.
 
 ---
 

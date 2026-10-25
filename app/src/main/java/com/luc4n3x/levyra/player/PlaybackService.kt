@@ -66,6 +66,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.luc4n3x.levyra.BuildConfig
 import com.luc4n3x.levyra.MainActivity
+import com.luc4n3x.levyra.data.DerbisBeatGridStore
+import com.luc4n3x.levyra.data.DerbisMixStudioStore
 import com.luc4n3x.levyra.data.FavoritesStore
 import com.luc4n3x.levyra.data.LevyraPreferences
 import com.luc4n3x.levyra.data.PlaybackResolver
@@ -149,6 +151,8 @@ class PlaybackService : MediaLibraryService() {
     private lateinit var autoLibrary: AndroidAutoLibrary
     private lateinit var queueEngine: PersistentQueueEngine
     private lateinit var favoritesStore: FavoritesStore
+    private lateinit var mixStudioStore: DerbisMixStudioStore
+    private lateinit var beatGridStore: DerbisBeatGridStore
     private lateinit var resolver: PlaybackResolver
     private lateinit var musicRepository: YoutubeMusicRepository
     private lateinit var sharedMediaSourceFactory: MediaSource.Factory
@@ -186,6 +190,9 @@ class PlaybackService : MediaLibraryService() {
     private val spatialAudioProcessor = StereoSpatialAudioProcessor()
     private val limiterProcessor = TruePeakLimiterAudioProcessor()
     private val visualizerProcessor = VisualizerAudioProcessor()
+    private val beatGridProcessor = BeatGridAnalysisAudioProcessor { trackId, grid ->
+        if (::beatGridStore.isInitialized) beatGridStore.save(trackId, grid)
+    }
     private val pcm16OutputProcessor = Pcm16OutputAudioProcessor()
     private val audioOffloadController = AudioOffloadController()
     private lateinit var playbackWakeLock: PowerManager.WakeLock
@@ -790,6 +797,8 @@ class PlaybackService : MediaLibraryService() {
             .apply { setReferenceCounted(false) }
         queueEngine = PersistentQueueEngine.get(this)
         favoritesStore = FavoritesStore(this)
+        mixStudioStore = DerbisMixStudioStore(this)
+        beatGridStore = DerbisBeatGridStore(this)
         resolver = PlaybackResolver.getInstance(this)
         musicRepository = YoutubeMusicRepository(this)
         autoLibrary = AndroidAutoLibrary(this)
@@ -910,6 +919,7 @@ class PlaybackService : MediaLibraryService() {
                             spatialAudioProcessor,
                             limiterProcessor,
                             visualizerProcessor,
+                            beatGridProcessor,
                             pcm16OutputProcessor
                         )
                     )
@@ -980,6 +990,8 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                queueEngine.state.value.currentTrack?.id?.takeIf(String::isNotBlank)
+                    ?.let(beatGridProcessor::beginTrack)
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
                     VideoDecoderFallback.Shared.reset()
@@ -2032,6 +2044,7 @@ class PlaybackService : MediaLibraryService() {
         val nextIndex = queueTransitionTargetIndex(snapshot) ?: return
         val next = snapshot.tracks.getOrNull(nextIndex) ?: return
         val videoMode = player.currentMediaItem?.mediaMetadata?.extras?.getBoolean(EXTRA_VIDEO_MODE, false) == true
+        val mixStudioSetting = mixStudioStore.activeTransitionFor(snapshot.tracks, current, next)
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
             next = next,
@@ -2039,7 +2052,10 @@ class PlaybackService : MediaLibraryService() {
             repeatMode = snapshot.repeatMode,
             videoMode = videoMode,
             lowRam = adaptivePlaybackPolicy.current(videoMode = false).lowRam,
-            shuffleEnabled = snapshot.shuffleEnabled
+            shuffleEnabled = snapshot.shuffleEnabled,
+            mixStudioSetting = mixStudioSetting,
+            currentBeatGrid = mixStudioSetting?.takeIf { it.beatSyncEnabled }?.let { beatGridStore.gridFor(current.id) },
+            nextBeatGrid = mixStudioSetting?.takeIf { it.beatSyncEnabled }?.let { beatGridStore.gridFor(next.id) }
         ) ?: return
         if (remaining > plan.preloadLeadMs) return
         queueTransitionJob = serviceScope.launch {
@@ -2070,7 +2086,9 @@ class PlaybackService : MediaLibraryService() {
                 transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)
             } ?: return
 
-            while (primary.duration > 0L && primary.duration - primary.currentPosition > plan.transitionMs) {
+            val transitionStartMs = plan.transitionStartMs
+                ?: (primary.duration - plan.transitionMs).coerceAtLeast(0L)
+            while (primary.duration > 0L && primary.currentPosition < transitionStartMs) {
                 if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
                 delay(50L)
             }
@@ -2082,8 +2100,17 @@ class PlaybackService : MediaLibraryService() {
                 fromTitle = current.title,
                 toTitle = target.title
             )
+            if (plan.beatAligned) {
+                secondary.seekTo(plan.incomingStartMs)
+                secondary.setPlaybackParameters(
+                    PlaybackParameters(
+                        (currentAudioSettings.playbackSpeed * plan.incomingTempo).coerceIn(.25f, 4f),
+                        currentAudioSettings.pitch
+                    )
+                )
+            }
             secondary.play()
-            fadePlayers(primary, secondary, plan.transitionMs, onProgress = { fraction ->
+            fadePlayers(primary, secondary, plan.transitionMs, plan.curve, onProgress = { fraction ->
                 _crossfadeProgressFlow.value = CrossfadeProgress(
                     active = true,
                     fraction = fraction,
@@ -2410,6 +2437,7 @@ class PlaybackService : MediaLibraryService() {
         outgoing: ExoPlayer,
         incoming: ExoPlayer,
         durationMs: Long,
+        curve: CrossfadeCurve = CrossfadeCurve.EqualPower,
         onProgress: (Float) -> Unit = {},
         isValid: () -> Boolean = { true }
     ) {
@@ -2421,7 +2449,7 @@ class PlaybackService : MediaLibraryService() {
             }
             val fraction = step.toFloat() / steps.toFloat()
             onProgress(fraction)
-            val gains = equalPowerCrossfade(fraction)
+            val gains = equalPowerCrossfade(fraction, curve)
             outgoing.volume = gains.outgoing
             incoming.volume = gains.incoming
             if (step < steps) {

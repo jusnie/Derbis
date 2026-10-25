@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.luc4n3x.levyra.feature.jam.DerbisJamRelay
 import com.luc4n3x.levyra.feature.jam.JamConnectionState
 import com.luc4n3x.levyra.feature.jam.JamFailure
 import com.luc4n3x.levyra.feature.jam.JamGuestPermission
@@ -105,6 +106,7 @@ internal fun LevyraJamOverlay(
     onClose: () -> Unit
 ) {
     val strings = LocalLevyraStrings.current
+    val remoteJamConfigured = remember { DerbisJamRelay.isConfigured }
     var joinCode by rememberSaveable { mutableStateOf("") }
     var pendingPermissionId by rememberSaveable { mutableStateOf(JamGuestPermission.AddSongs.id) }
     var pendingApproval by rememberSaveable { mutableStateOf(true) }
@@ -140,7 +142,11 @@ internal fun LevyraJamOverlay(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item(contentType = "jam-header") {
-                JamHeader(title = strings.jamTitle, subtitle = strings.jamSubtitle, onClose = onClose)
+                JamHeader(
+                    title = strings.jamTitle,
+                    subtitle = if (remoteJamConfigured) "Listen together from any distance" else strings.jamSubtitle,
+                    onClose = onClose
+                )
             }
 
             jam.failure?.let { failure ->
@@ -202,7 +208,11 @@ internal fun LevyraJamOverlay(
                             onClick = { onJoin(joinCode) }
                         )
                         Text(
-                            strings.jamLocalNetworkOnly,
+                            if (remoteJamConfigured) {
+                                "Remote Jam is active. Everyone plays from their own available music source."
+                            } else {
+                                "Remote Jam will be available when this build is connected to the Derbis Jam relay."
+                            },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall
                         )

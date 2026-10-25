@@ -61,7 +61,7 @@ private fun jamActionExceedsQueueLimit(action: JamAction, queue: List<JamTrack>)
 class JamController(
     private val scope: CoroutineScope,
     private val bridge: JamPlayerBridge,
-    private val transports: JamTransportFactory = LanJamTransportFactory,
+    private val transports: JamTransportFactory = DerbisJamTransportFactory,
     private val elapsedMs: () -> Long = { SystemClock.elapsedRealtime() },
     private val wallClockMs: () -> Long = { System.currentTimeMillis() }
 ) {

@@ -372,7 +372,8 @@ class PlaylistImportController(
             try {
                 persistNow()
                 val tracks = selection.map(::trackFor)
-                val name = current.playlistName.ifBlank { base.descriptor.title }.ifBlank { DEFAULT_NAME }
+                val baseName = current.playlistName.ifBlank { base.descriptor.title }.ifBlank { DEFAULT_NAME }
+                val name = importedPlaylistName(baseName, base.descriptor.source)
                 val committed = if (existingId != null) {
                     gateway.append(existingId, tracks)
                     existingId
@@ -798,6 +799,12 @@ class PlaylistImportController(
         synchronized(trackCache) { trackCache.clear() }
     }
 
+    private fun importedPlaylistName(name: String, source: PlaylistImportSource): String {
+        if (source != PlaylistImportSource.SPOTIFY) return name
+        val clean = name.removeSuffix(SPOTIFY_IMPORT_LABEL).trim()
+        return clean.take(MAX_NAME_LENGTH - SPOTIFY_IMPORT_LABEL.length).trimEnd() + SPOTIFY_IMPORT_LABEL
+    }
+
     companion object {
         const val RESOLUTION_WORKERS = 4
         const val IMPORTED_SOURCE = "Imported playlist"
@@ -807,6 +814,7 @@ class PlaylistImportController(
         private const val PERSIST_DEBOUNCE_MS = 1_200L
         private const val MAX_NAME_LENGTH = 120
         private const val MAX_LABEL_LENGTH = 300
+        private const val SPOTIFY_IMPORT_LABEL = " · Imported from Spotify"
         private const val DEFAULT_NAME = "Imported playlist"
     }
 }

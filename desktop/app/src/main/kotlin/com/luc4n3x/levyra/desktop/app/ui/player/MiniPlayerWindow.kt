@@ -47,7 +47,7 @@ import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import com.luc4n3x.levyra.desktop.app.state.PlaybackUiState
 import com.luc4n3x.levyra.desktop.app.ui.components.Artwork
-import com.luc4n3x.levyra.desktop.app.ui.components.levyraIconPainter
+import com.luc4n3x.levyra.desktop.app.ui.components.derbisIconPainter
 import com.luc4n3x.levyra.desktop.app.ui.i18n.LevyraStrings
 import com.luc4n3x.levyra.desktop.app.ui.i18n.LocalStrings
 import com.luc4n3x.levyra.desktop.app.ui.icons.LevyraIcons
@@ -106,7 +106,7 @@ fun MiniPlayerWindow(
         onCloseRequest = onClose,
         state = windowState,
         title = "Derbis · Mini ${strings.navNowPlaying}",
-        icon = levyraIconPainter(),
+        icon = derbisIconPainter(),
         alwaysOnTop = true,
         undecorated = true,
         transparent = true,

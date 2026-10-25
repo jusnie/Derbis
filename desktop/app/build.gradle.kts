@@ -17,25 +17,25 @@ val desktopVersionProperties = Properties().apply {
     desktopVersionFile.inputStream().use(::load)
 }
 
-val levyraDesktopVersion = providers.gradleProperty("levyraDesktopVersion").getOrElse(
-    desktopVersionProperties.getProperty("levyraDesktopVersion")
+val derbisDesktopVersion = providers.gradleProperty("derbisDesktopVersion").getOrElse(
+    desktopVersionProperties.getProperty("derbisDesktopVersion")
         ?.trim()
         ?.takeIf { it.isNotBlank() }
-        ?: error("levyraDesktopVersion non trovato in desktop/version.properties")
+        ?: error("derbisDesktopVersion non trovato in desktop/version.properties")
 )
 
-require(levyraDesktopVersion.matches(Regex("^[0-9]+\\.[0-9]+\\.[0-9]+([-.+][0-9A-Za-z.-]+)?$"))) {
-    "Versione Levyra Desktop non valida: $levyraDesktopVersion"
+require(derbisDesktopVersion.matches(Regex("^[0-9]+\\.[0-9]+\\.[0-9]+([-.+][0-9A-Za-z.-]+)?$"))) {
+    "Versione Derbis Desktop non valida: $derbisDesktopVersion"
 }
 
 val generatedVersionResources = layout.buildDirectory.dir("generated/resources/desktopVersion")
 val generateDesktopVersionResource = tasks.register("generateDesktopVersionResource") {
-    inputs.property("levyraDesktopVersion", levyraDesktopVersion)
+    inputs.property("derbisDesktopVersion", derbisDesktopVersion)
     outputs.dir(generatedVersionResources)
     doLast {
-        val output = generatedVersionResources.get().file("levyra-desktop-version.properties").asFile
+        val output = generatedVersionResources.get().file("derbis-desktop-version.properties").asFile
         output.parentFile.mkdirs()
-        output.writeText("levyraDesktopVersion=$levyraDesktopVersion\n")
+        output.writeText("derbisDesktopVersion=$derbisDesktopVersion\n")
     }
 }
 
@@ -48,7 +48,7 @@ kotlin {
     sourceSets.named("main") {
         val sharedAndroidSources = objects.sourceDirectorySet(
             "sharedAndroidSources",
-            "Android sources shared with Levyra Desktop"
+            "Android sources shared with Derbis Desktop"
         ).apply {
             srcDir(rootProject.file("../app/src/main/java"))
             include("com/luc4n3x/levyra/ui/i18n/**/*.kt")
@@ -57,6 +57,7 @@ kotlin {
             include("com/luc4n3x/levyra/domain/PlaylistImportFailureKind.kt")
             include("com/luc4n3x/levyra/domain/LyricsProviderPriority.kt")
             include("com/luc4n3x/levyra/feature/radio/RadioCategory.kt")
+            include("com/luc4n3x/levyra/feature/radio/CustomRadioError.kt")
             exclude("com/luc4n3x/levyra/ui/i18n/LevyraPersonalizedSearchStrings.kt")
             exclude("com/luc4n3x/levyra/ui/i18n/LevyraPersonalCollectionStrings.kt")
             exclude("com/luc4n3x/levyra/ui/i18n/LevyraSmartOfflineCount.kt")
@@ -116,7 +117,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Derbis"
-            packageVersion = levyraDesktopVersion
+            packageVersion = derbisDesktopVersion
             description = "Derbis Desktop"
             copyright = "Copyright (c) Yasuda"
             vendor = "Yasuda"

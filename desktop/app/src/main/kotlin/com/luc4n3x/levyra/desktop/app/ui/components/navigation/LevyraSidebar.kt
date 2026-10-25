@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.desktop.app.state.Destination
 import com.luc4n3x.levyra.desktop.app.ui.i18n.LocalStrings
-import com.luc4n3x.levyra.desktop.app.ui.components.levyraIconPainter
+import com.luc4n3x.levyra.desktop.app.ui.components.derbisIconPainter
 import com.luc4n3x.levyra.desktop.app.ui.icons.LevyraIcons
 import com.luc4n3x.levyra.desktop.app.ui.icons.OfflineIcons
 import com.luc4n3x.levyra.desktop.app.ui.theme.LevyraMotion
@@ -222,7 +222,7 @@ private fun SidebarBrand(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = levyraIconPainter(),
+                    painter = derbisIconPainter(),
                     contentDescription = appName,
                     modifier = Modifier.size(36.dp)
                 )

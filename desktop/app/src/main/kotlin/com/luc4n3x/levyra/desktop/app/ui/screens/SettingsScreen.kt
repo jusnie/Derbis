@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.luc4n3x.levyra.desktop.app.ui.components.CountryPicker
 import com.luc4n3x.levyra.desktop.app.ui.components.EqualizerBars
@@ -59,6 +60,7 @@ fun SettingsScreen(
     onBrowseVlc: () -> Unit,
     onVerifyVlc: () -> Unit,
     onOpenDataFolder: () -> Unit,
+    onOpenVersionHistory: () -> Unit,
     onRefreshAudioOutputDevices: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -505,6 +507,14 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp)
+                )
+                OutlinedButton(onClick = onOpenVersionHistory) {
+                    Text("Version history")
+                }
+                Text(
+                    text = "See changes and fixes for every Derbis release.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

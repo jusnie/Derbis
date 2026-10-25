@@ -1313,7 +1313,8 @@ internal fun resolvedQueueTrackForHandoff(
         id = selected.id,
         title = selected.title,
         artist = selected.artist,
-        videoUrl = selected.videoUrl
+        videoUrl = selected.videoUrl,
+        playlistEntryId = selected.playlistEntryId
     )
 }
 

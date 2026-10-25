@@ -3,8 +3,6 @@ package com.luc4n3x.levyra.feature.radio
 import java.util.UUID
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-internal enum class CustomRadioError { Name, StreamUrl, ImageUrl, Duplicate, Storage, Limit }
-
 internal class CustomRadioException(val reason: CustomRadioError) : IllegalArgumentException(reason.name)
 
 internal fun customRadioStation(name: String, url: String, image: String, existing: RadioStation? = null): RadioStation {
