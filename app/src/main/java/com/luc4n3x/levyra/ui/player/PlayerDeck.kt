@@ -24,7 +24,8 @@ internal enum class PlayerDeckLayout {
     Folio,
     Flow,
     Sleeve,
-    AppleMusic13
+    AppleMusic13,
+    TidalMusic
 }
 
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
@@ -34,6 +35,7 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
+    PlayerVisualMode.TidalMusic,
     PlayerVisualMode.Artwork,
     PlayerVisualMode.Pulse
 )
@@ -43,6 +45,7 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.CanvasImmersive -> PlayerDeckLayout.Aura
     PlayerVisualMode.Artwork -> PlayerDeckLayout.Poster
     PlayerVisualMode.AppleMusic13 -> PlayerDeckLayout.AppleMusic13
+    PlayerVisualMode.TidalMusic -> PlayerDeckLayout.TidalMusic
     PlayerVisualMode.Pulse -> PlayerDeckLayout.Pulse
     PlayerVisualMode.Halo -> PlayerDeckLayout.Halo
     PlayerVisualMode.Folio -> PlayerDeckLayout.Folio

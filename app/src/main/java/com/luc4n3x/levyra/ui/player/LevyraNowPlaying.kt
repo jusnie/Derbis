@@ -250,7 +250,8 @@ private fun LevyraNowPlayingContent(
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
     val artworkUrl = track?.let(::preferredPlayerArtworkUrl).orEmpty()
     val nocturne = LevyraIsNocturne
-    val selectedVisualMode = if (LevyraIsPrism) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
+    // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
+    val selectedVisualMode = if (LevyraIsPrism && !LevyraIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
     val velvetAppleMusic = appleMusicPalette != null
     val appleMusicDeck = !LevyraSkinManagesLayout && selectedVisualMode == PlayerVisualMode.AppleMusic13
@@ -408,6 +409,7 @@ private fun LevyraNowPlayingContent(
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Artwork ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Folio ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Flow ||
+        state.interfaceSettings.playerVisualMode == PlayerVisualMode.TidalMusic ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Pulse
     val artRestScale = if (artworkRestsFullBleed) 1f else LevyraPlayerDesign.ArtworkPausedScale
     val artRestOffset = if (artworkRestsFullBleed) 0.dp else 4.dp
@@ -1213,7 +1215,7 @@ private fun LevyraNowPlayingContent(
             .widthIn(max = detailMaxWidth)
             .align(Alignment.TopCenter)
 
-        if ((LevyraIsPrism || velvetAppleMusic) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != LevyraPlayerPane.SideBySide || appleMusicPlayer)) {
+        if (((LevyraIsPrism && !LevyraIsTidal) || velvetAppleMusic) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != LevyraPlayerPane.SideBySide || appleMusicPlayer)) {
             if (LevyraIsYouTubeMusic) {
                 YouTubeMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
@@ -1231,6 +1233,23 @@ private fun LevyraNowPlayingContent(
             } else {
                 PrismPlayerScene(track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying)
             }
+        } else if (deckLayout == PlayerDeckLayout.TidalMusic && track != null) {
+            TidalMusicPlayerScene(
+                track = track,
+                slots = deckSlots,
+                artworkCap = artworkCap,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                modifier = deckModifier
+            )
         } else if (deckLayout == PlayerDeckLayout.Aura && track != null) {
             PlayerAuraDeck(
                 track = track,
@@ -2310,6 +2329,7 @@ internal fun visualModeStateDescription(
     PlayerVisualMode.CanvasCard -> strings.playerVisualModeCanvasCard
     PlayerVisualMode.CanvasImmersive -> strings.playerVisualModeCanvasImmersive
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
+    PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
     PlayerVisualMode.Pulse -> strings.playerDeckPulse
     PlayerVisualMode.Halo -> strings.playerDeckHalo
     PlayerVisualMode.Folio -> strings.playerDeckFolio
@@ -2321,6 +2341,7 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.CanvasCard -> Icons.Rounded.AutoAwesome
     PlayerVisualMode.CanvasImmersive -> Icons.Rounded.BlurOn
     PlayerVisualMode.AppleMusic13 -> Icons.Rounded.MusicNote
+    PlayerVisualMode.TidalMusic -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Halo -> Icons.Rounded.Album
     PlayerVisualMode.Folio -> Icons.Rounded.Newspaper

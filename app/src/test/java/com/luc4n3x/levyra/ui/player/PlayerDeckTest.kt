@@ -29,6 +29,7 @@ class PlayerDeckTest {
         assertEquals(PlayerDeckLayout.Sleeve, PlayerVisualMode.CanvasCard.deckLayout())
         assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
         assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
+        assertEquals(PlayerDeckLayout.TidalMusic, PlayerVisualMode.TidalMusic.deckLayout())
         assertEquals(PlayerDeckLayout.Pulse, PlayerVisualMode.Pulse.deckLayout())
         assertEquals(PlayerDeckLayout.Flow, PlayerVisualMode.Flow.deckLayout())
     }
@@ -44,7 +45,7 @@ class PlayerDeckTest {
 
     @Test
     fun `new styles fall back to the levyra layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Artwork, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
+        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, LevyraPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Levyra, resolvePlayerDeckLayout(mode, true, false, LevyraPlayerPane.Stacked, true))
@@ -181,6 +182,7 @@ class PlayerDeckTest {
         assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("CanvasCard"))
         assertEquals(PlayerVisualMode.Flow, PlayerVisualMode.from("flow"))
         assertEquals(PlayerVisualMode.Folio, PlayerVisualMode.from("Folio"))
+        assertEquals(PlayerVisualMode.TidalMusic, PlayerVisualMode.from("tidal_player"))
         assertEquals(PlayerVisualMode.Flow, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Flow))
         assertEquals(PlayerVisualMode.CanvasCard, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Levyra))
     }
@@ -262,6 +264,7 @@ class PlayerDeckTest {
         }
         val italian = LevyraStrings.forCode("it")
         assertEquals("Apple Music 13", visualModeStateDescription(PlayerVisualMode.AppleMusic13, italian))
+        assertEquals("Tidal Music", visualModeStateDescription(PlayerVisualMode.TidalMusic, italian))
         assertEquals("Late Night", visualModeStateDescription(PlayerVisualMode.Pulse, italian))
         assertEquals("Velvet", playerDeckLabel(PlayerVisualMode.CanvasImmersive, italian))
         assertEquals("Sleeve", playerDeckLabel(PlayerVisualMode.CanvasCard, italian))

@@ -21522,6 +21522,7 @@ private fun SettingsOverlay(
                                         PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
                                         PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
                                         PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
+                                        PlayerVisualMode.TidalMusic.name to strings.playerDeckTidalMusic,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
                                         PlayerVisualMode.Halo.name to strings.playerDeckHalo,
                                         PlayerVisualMode.Folio.name to strings.playerDeckFolio,
@@ -21529,8 +21530,14 @@ private fun SettingsOverlay(
                                     ),
                                     selected = interfaceSettings.playerVisualMode.name,
                                     onSelect = { value ->
+                                        val mode = PlayerVisualMode.from(value)
                                         onInterfaceSettings(
-                                            interfaceSettings.copy(playerVisualMode = PlayerVisualMode.from(value))
+                                            interfaceSettings.copy(
+                                                playerVisualMode = mode,
+                                                skin = if (mode == PlayerVisualMode.TidalMusic) {
+                                                    com.luc4n3x.levyra.domain.LevyraSkin.TidalStyle
+                                                } else interfaceSettings.skin
+                                            )
                                         )
                                     }
                                 )

@@ -3,11 +3,14 @@ package com.luc4n3x.levyra.viewmodel
 import com.luc4n3x.levyra.domain.PlayerBackgroundMode
 import com.luc4n3x.levyra.domain.PlayerVisualMode
 import com.luc4n3x.levyra.domain.ReactiveAuraPreset
+import com.luc4n3x.levyra.domain.LevyraSkin
 
 fun LevyraViewModel.setPlayerVisualMode(mode: PlayerVisualMode) {
     val current = state.value.interfaceSettings
-    if (current.playerVisualMode == mode) return
-    setInterfaceSettings(current.copy(playerVisualMode = mode))
+    val targetSkin = if (mode == PlayerVisualMode.TidalMusic) LevyraSkin.TidalStyle else current.skin
+    if (current.playerVisualMode == mode && current.skin == targetSkin) return
+    // Tidal Music is an original Derbis deck that deliberately selects the matching local skin.
+    setInterfaceSettings(current.copy(playerVisualMode = mode, skin = targetSkin))
 }
 
 fun LevyraViewModel.setPlayerBackground(mode: PlayerBackgroundMode) {

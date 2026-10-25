@@ -296,6 +296,7 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: LevyraStrings): St
         PlayerVisualMode.CanvasCard -> labels.canvasCard
         PlayerVisualMode.Artwork -> labels.artwork
         PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
+        PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
         PlayerVisualMode.Pulse -> labels.pulse
         PlayerVisualMode.Halo -> labels.halo
         PlayerVisualMode.Folio -> labels.folio
@@ -308,6 +309,7 @@ internal fun playerDeckHint(mode: PlayerVisualMode, strings: LevyraStrings): Str
     PlayerVisualMode.CanvasCard -> strings.playerDeckCardHint
     PlayerVisualMode.Artwork -> strings.playerDeckArtworkHint
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13Hint
+    PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusicHint
     PlayerVisualMode.Pulse -> strings.playerDeckPulseHint
     PlayerVisualMode.Halo -> strings.playerDeckHaloHint
     PlayerVisualMode.Folio -> strings.playerDeckFolioHint
@@ -326,6 +328,7 @@ private fun PlayerDeckPreview(
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
+        PlayerVisualMode.TidalMusic -> TidalMusicPreview(track, artworkUrl)
         PlayerVisualMode.Pulse -> PulsePreview(track, artworkUrl, accent)
         PlayerVisualMode.Halo -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Folio -> ExpressivePreview(track, artworkUrl, accent)
@@ -415,6 +418,34 @@ private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color)
             Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Box(Modifier.fillMaxWidth().height(2.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.40f)))
+        }
+    }
+}
+
+@Composable
+private fun TidalMusicPreview(track: Track, artworkUrl: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF292929), Color(0xFF050505))))
+    ) {
+        DeckArtwork(
+            track = track,
+            artworkUrl = artworkUrl,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 14.dp)
+                .fillMaxWidth(0.80f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(14.dp))
+        )
+        Column(
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(track.artist, color = Color.White.copy(alpha = .64f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Box(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape).background(Color.White.copy(alpha = .48f)))
         }
     }
 }

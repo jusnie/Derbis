@@ -73,6 +73,7 @@ enum class PlayerVisualMode {
     CanvasCard,
     CanvasImmersive,
     AppleMusic13,
+    TidalMusic,
     Pulse,
     Halo,
     Folio,
@@ -87,6 +88,7 @@ enum class PlayerVisualMode {
         fun from(value: String): PlayerVisualMode {
             return when (value.trim().lowercase()) {
                 "expressive", "bloom", "editorial", "apple_music_13", "applemusic13", "apple_music" -> AppleMusic13
+                "tidal_music", "tidalmusic", "tidal_player" -> TidalMusic
                 else -> entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                     ?: when (value.trim().lowercase()) {
                         "canvas_card", "card" -> CanvasCard
