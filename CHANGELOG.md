@@ -8,6 +8,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - Android Home now offers **Create** actions for a local playlist and **Derbis Jam — LAN**.
 - Player Deck replaces the **Bloom** choice with **Apple Music 13**: an original Derbis layout with uncropped artwork, an artwork-colour field, active lyric preview, and available stream details. Existing Bloom selections migrate to Apple Music 13.
 - Lyrics options and Lyrics Studio now include a persisted **Apple Music 13 Lyrics** renderer. When enabled, its centered, blurred-artwork, word-timed presentation exclusively replaces the Derbis lyric renderer until it is switched off.
+- Now Playing places the genuine crossfade handoff card at the bottom of the player, showing the outgoing and incoming track. Crossfade handoff now re-aligns the replacement deck before it becomes audible to reduce transition jumps.
 - Android's Add to Playlist picker now filters local playlist destinations by name before adding a track.
 - Windows' expanded library sidebar now lets listeners search and sort their local playlists, open them directly, and collapse the library browser when they want a simpler navigation rail.
 

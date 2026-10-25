@@ -2146,8 +2146,11 @@ class PlaybackService : MediaLibraryService() {
             primary.prepare()
 
             if (!awaitPrimaryHandoffReady(primary, secondary, targetIdentity, resolved.title)) return
+            // The replacement primary can lag its preloaded peer after a network/decoder stall.
+            // Re-align before muting the audible incoming deck so the listener never hears a jump.
+            if (!synchronizePrimaryHandoff(primary, secondary, targetIdentity)) return
 
-            // Clean handoff: mute and pause secondary before unmuting primary to prevent double-voice phase echo
+            // Clean handoff: mute and pause secondary before unmuting primary to prevent double-voice phase echo.
             val exactPosition = secondary.currentPosition.coerceAtLeast(handoffPosition)
             secondary.volume = 0f
             secondary.pause()

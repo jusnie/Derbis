@@ -430,12 +430,14 @@ private fun LevyraNowPlayingContent(
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        // Keep the transition cue at the bottom, close to the transport controls, so it does
+        // not cover the compact track header or artwork during a real two-player crossfade.
         CrossfadeStatusPill(
             progress = crossfade,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = 48.dp)
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, bottom = 24.dp)
                 .zIndex(20f)
         )
         val layoutMode = resolveLevyraLayoutMode(maxWidth.value, maxHeight.value)
@@ -2350,6 +2352,15 @@ private fun PlayerGestureFeedbackPill(text: String, modifier: Modifier = Modifie
 }
 
 
+
+private fun crossfadeTrackHandoffLabel(progress: com.luc4n3x.levyra.player.CrossfadeProgress): String = when {
+    progress.fromTitle.isNotBlank() && progress.toTitle.isNotBlank() ->
+        "${progress.fromTitle}  →  ${progress.toTitle}"
+    progress.toTitle.isNotBlank() -> progress.toTitle
+    progress.fromTitle.isNotBlank() -> progress.fromTitle
+    else -> progress.label
+}
+
 @Composable
 private fun CrossfadeStatusPill(progress: com.luc4n3x.levyra.player.CrossfadeProgress, modifier: Modifier = Modifier) {
     AnimatedVisibility(
@@ -2364,10 +2375,24 @@ private fun CrossfadeStatusPill(progress: com.luc4n3x.levyra.player.CrossfadePro
             shape = RoundedCornerShape(18.dp)
         ) {
             Column(
-                modifier = Modifier.widthIn(min = 176.dp, max = 260.dp).padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                modifier = Modifier.widthIn(min = 196.dp, max = 300.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text(progress.label, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text = "Crossfading",
+                    color = LevyraCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.7.sp
+                )
+                Text(
+                    text = crossfadeTrackHandoffLabel(progress),
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 LinearProgressIndicator(
                     progress = { progress.fraction.coerceIn(0f, 1f) },
                     color = LevyraCyan,
