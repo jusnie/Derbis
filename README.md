@@ -48,6 +48,9 @@ cd desktop
 ./gradlew packageDistributionForCurrentOS
 ```
 
+### Website
+The dependency-free responsive web companion lives in [`website/`](website/). It uses browser-native HTML5 audio, so it does **not** need VLC or a desktop helper. Its optional Google/YouTube connection is limited to official Google authorization and YouTube Data API access; setup instructions are in [`website/README.md`](website/README.md).
+
 ---
 
 ## 📄 License
