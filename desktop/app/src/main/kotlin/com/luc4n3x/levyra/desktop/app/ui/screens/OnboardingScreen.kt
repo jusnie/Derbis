@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.desktop.app.ui.catalog.CountryOption
 import com.luc4n3x.levyra.desktop.app.ui.catalog.LocaleCatalog
 import com.luc4n3x.levyra.desktop.app.ui.components.CountryFlag
-import com.luc4n3x.levyra.desktop.app.ui.components.levyraIconPainter
+import com.luc4n3x.levyra.desktop.app.ui.components.derbisIconPainter
 import com.luc4n3x.levyra.desktop.app.ui.components.tracksTextInputFocus
 import com.luc4n3x.levyra.desktop.app.ui.i18n.LocalStrings
 import com.luc4n3x.levyra.desktop.app.ui.i18n.stringsFor
@@ -258,7 +258,7 @@ private fun OnboardingRail(
                 horizontalArrangement = Arrangement.spacedBy(13.dp)
             ) {
                 Image(
-                    painter = levyraIconPainter(),
+                    painter = derbisIconPainter(),
                     contentDescription = strings.appName,
                     modifier = Modifier.size(50.dp)
                 )

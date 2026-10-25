@@ -35,7 +35,7 @@ import com.luc4n3x.levyra.desktop.app.state.PlaybackUiState
 import com.luc4n3x.levyra.desktop.app.ui.DesktopUpdateDialogHost
 import com.luc4n3x.levyra.desktop.app.ui.LevyraRoot
 import com.luc4n3x.levyra.desktop.app.ui.components.TextInputFocus
-import com.luc4n3x.levyra.desktop.app.ui.components.levyraIconPainter
+import com.luc4n3x.levyra.desktop.app.ui.components.derbisIconPainter
 import com.luc4n3x.levyra.desktop.app.ui.i18n.LevyraStrings
 import com.luc4n3x.levyra.desktop.app.ui.i18n.stringsFor
 import com.luc4n3x.levyra.desktop.app.ui.player.MiniPlayerWindow
@@ -181,7 +181,7 @@ fun main(args: Array<String>) {
             state = windowState,
             visible = windowVisible,
             title = strings.appName,
-            icon = levyraIconPainter(),
+            icon = derbisIconPainter(),
             onKeyEvent = { event ->
                 val action = DesktopShortcuts.resolve(event, TextInputFocus.active)
                 if (action == null) {
@@ -281,7 +281,7 @@ private fun ApplicationScope.LevyraTray(
     onQuit: () -> Unit
 ) {
     Tray(
-        icon = levyraIconPainter(),
+        icon = derbisIconPainter(),
         tooltip = trackTooltip?.let { "${strings.appName} · $it" } ?: strings.appName,
         onAction = onShow,
         menu = {
