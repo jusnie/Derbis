@@ -196,6 +196,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_AUDIO_EQ_BANDS] = normalizedAudio.bandLevels.joinToString(",")
             mutable[KEY_AUDIO_BASS_BOOST] = normalizedAudio.bassBoost
             mutable[KEY_AUDIO_VIRTUALIZER] = normalizedAudio.virtualizer
+            mutable[KEY_AUDIO_8D] = normalizedAudio.eightDAudioEnabled
             mutable[KEY_AUDIO_PREAMP_DB] = normalizedAudio.preampDb
             mutable[KEY_AUDIO_CUSTOM_PRESETS] = customPresetsToJson(normalizedAudio.customPresets)
             mutable[KEY_AUDIO_LIMITER] = normalizedAudio.limiterEnabled
@@ -567,6 +568,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_AUDIO_EQ_BANDS] = normalized.bandLevels.joinToString(",")
             it[KEY_AUDIO_BASS_BOOST] = normalized.bassBoost
             it[KEY_AUDIO_VIRTUALIZER] = normalized.virtualizer
+            it[KEY_AUDIO_8D] = normalized.eightDAudioEnabled
             it[KEY_AUDIO_PREAMP_DB] = normalized.preampDb
             it[KEY_AUDIO_CUSTOM_PRESETS] = customPresetsToJson(normalized.customPresets)
             it[KEY_AUDIO_LIMITER] = normalized.limiterEnabled
@@ -1065,6 +1067,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             bandLevels = levels,
             bassBoost = preferences[KEY_AUDIO_BASS_BOOST] ?: (customPreset?.bassBoost ?: LevyraAudioPresets.preset(presetId).bassBoost),
             virtualizer = preferences[KEY_AUDIO_VIRTUALIZER] ?: (customPreset?.virtualizer ?: LevyraAudioPresets.preset(presetId).virtualizer),
+            eightDAudioEnabled = preferences[KEY_AUDIO_8D] ?: false,
             preampDb = preferences[KEY_AUDIO_PREAMP_DB] ?: 0f,
             limiterEnabled = preferences[KEY_AUDIO_LIMITER] ?: true,
             crossfadeSeconds = preferences[KEY_AUDIO_CROSSFADE] ?: 0,
@@ -1331,6 +1334,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_AUDIO_EQ_BANDS = stringPreferencesKey("audio_equalizer_bands")
         val KEY_AUDIO_BASS_BOOST = intPreferencesKey("audio_bass_boost")
         val KEY_AUDIO_VIRTUALIZER = intPreferencesKey("audio_virtualizer")
+        val KEY_AUDIO_8D = booleanPreferencesKey("audio_8d_enabled")
         val KEY_AUDIO_PREAMP_DB = floatPreferencesKey("audio_preamp_db")
         val KEY_AUDIO_CUSTOM_PRESETS = stringPreferencesKey("audio_custom_presets")
         val KEY_AUDIO_LIMITER = booleanPreferencesKey("audio_limiter_enabled")

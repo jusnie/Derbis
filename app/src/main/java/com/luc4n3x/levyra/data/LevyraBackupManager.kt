@@ -1688,6 +1688,7 @@ internal fun backupAudioSettingsToJson(value: LevyraAudioSettings): JSONObject =
     .put("bandLevels", JSONArray(value.bandLevels))
     .put("bassBoost", value.bassBoost)
     .put("virtualizer", value.virtualizer)
+    .put("eightDAudioEnabled", value.eightDAudioEnabled)
     .put("preampDb", value.preampDb.toDouble())
     .put("limiterEnabled", value.limiterEnabled)
     .put("crossfadeSeconds", value.crossfadeSeconds)
@@ -1765,6 +1766,7 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): LevyraAudioSettings
         bandLevels = levels,
         bassBoost = json.optInt("bassBoost"),
         virtualizer = json.optInt("virtualizer"),
+        eightDAudioEnabled = json.optBoolean("eightDAudioEnabled", false),
         preampDb = json.optDouble("preampDb", 0.0).toFloat(),
         limiterEnabled = json.optBoolean("limiterEnabled", true),
         crossfadeSeconds = json.optInt("crossfadeSeconds"),

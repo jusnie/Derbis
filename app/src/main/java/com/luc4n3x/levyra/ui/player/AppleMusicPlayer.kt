@@ -48,7 +48,6 @@ import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.PlayerControlLabels
 import com.luc4n3x.levyra.ui.components.formatSeekbarMillis
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
-import com.luc4n3x.levyra.ui.rememberSpotifyCoverTone
 import com.luc4n3x.levyra.ui.theme.AppleMusicDesign
 import com.luc4n3x.levyra.ui.theme.AppleMusicShapes
 import com.luc4n3x.levyra.ui.theme.AppleMusicTypography
@@ -112,9 +111,10 @@ internal fun AppleMusicPlayerScene(
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L
 ) {
-    val field by rememberSpotifyCoverTone(track, AppleMusicDesign::playerField)
-    val deep by rememberSpotifyCoverTone(track, AppleMusicDesign::playerFieldDeep)
-    BoxWithConstraints(modifier.fillMaxSize().background(Brush.verticalGradient(0f to field, 0.55f to lerpField(field, deep), 1f to deep))) {
+    // Keep the artwork itself untouched: this deck no longer derives a coloured overlay from it.
+    val field = Color(0xFF151515)
+    val deep = Color.Black
+    BoxWithConstraints(modifier.fillMaxSize().background(Brush.verticalGradient(0f to field, 0.55f to Color(0xFF0B0B0B), 1f to deep))) {
         val landscape = maxWidth > maxHeight
         val immersive = appleMusicCanvasImmersive(canvas, maxWidth, maxHeight, video)
         val canvasAlpha by animateFloatAsState(if (immersive) 1f else 0f, label = "apple-player-canvas-alpha")
@@ -277,7 +277,6 @@ private fun AppleMusicLandscapeDeck(
     }
 }
 
-private fun lerpField(field: Color, deep: Color): Color = androidx.compose.ui.graphics.lerp(field, deep, 0.5f)
 
 @Composable
 internal fun AppleMusicTransport(

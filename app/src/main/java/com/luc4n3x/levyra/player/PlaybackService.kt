@@ -189,6 +189,7 @@ class PlaybackService : MediaLibraryService() {
     private val equalizerProcessor = LevyraEqualizerAudioProcessor()
     private val parametricEqualizerProcessor = LevyraParametricEqualizerAudioProcessor()
     private val spatialAudioProcessor = StereoSpatialAudioProcessor()
+    private val eightDAudioProcessor = EightDAudioProcessor()
     private val limiterProcessor = TruePeakLimiterAudioProcessor()
     private val visualizerProcessor = VisualizerAudioProcessor()
     private val beatGridProcessor = BeatGridAnalysisAudioProcessor { trackId, grid ->
@@ -536,6 +537,7 @@ class PlaybackService : MediaLibraryService() {
         equalizerProcessor.preampDb = normalized.preampDb
         parametricEqualizerProcessor.setConfiguration(parametricEnabled, normalized.activeParametricProfile)
         spatialAudioProcessor.strength = normalized.virtualizer
+        eightDAudioProcessor.enabled = normalized.eightDAudioEnabled
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -918,6 +920,7 @@ class PlaybackService : MediaLibraryService() {
                             equalizerProcessor,
                             parametricEqualizerProcessor,
                             spatialAudioProcessor,
+                            eightDAudioProcessor,
                             limiterProcessor,
                             visualizerProcessor,
                             beatGridProcessor,
@@ -2362,6 +2365,7 @@ class PlaybackService : MediaLibraryService() {
         val spatial = StereoSpatialAudioProcessor().apply {
             strength = currentAudioSettings.virtualizer
         }
+        val eightD = EightDAudioProcessor().apply { enabled = currentAudioSettings.eightDAudioEnabled }
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
         }
@@ -2395,6 +2399,7 @@ class PlaybackService : MediaLibraryService() {
                         equalizer,
                         parametricEqualizer,
                         spatial,
+                        eightD,
                         limiter,
                         Pcm16OutputAudioProcessor()
                     )

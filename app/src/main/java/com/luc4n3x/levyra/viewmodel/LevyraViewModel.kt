@@ -4837,6 +4837,9 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         updateAudioSettings(settings.copy(equalizerEnabled = !settings.parametricEqualizerEnabled, virtualizer = value))
     }
 
+    fun setEightDAudioEnabled(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(eightDAudioEnabled = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }

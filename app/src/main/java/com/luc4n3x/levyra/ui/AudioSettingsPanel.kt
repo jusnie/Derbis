@@ -184,6 +184,7 @@ internal fun AudioSettingsPanel(
     onBandLevel: (Int, Int) -> Unit,
     onBassBoost: (Int) -> Unit,
     onVirtualizer: (Int) -> Unit,
+    onEightDAudio: (Boolean) -> Unit,
     onPreamp: (Float) -> Unit,
     onLimiter: (Boolean) -> Unit,
     onEnhancedAudio: (Boolean) -> Unit = {},
@@ -441,6 +442,14 @@ internal fun AudioSettingsPanel(
                         subtitle = "Optional virtual surround processing for headphones and stereo speakers.",
                         checked = audioSettings.virtualizer > 0,
                         onCheckedChange = { enabled -> onVirtualizer(if (enabled) 55 else 0) }
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = "8D headphone orbit",
+                        subtitle = "Slowly moves stereo sound around your head. Best with headphones; turn it off for a neutral mix.",
+                        checked = audioSettings.eightDAudioEnabled,
+                        onCheckedChange = onEightDAudio
                     )
                 }
                 if (audioSettings.virtualizer > 0) {

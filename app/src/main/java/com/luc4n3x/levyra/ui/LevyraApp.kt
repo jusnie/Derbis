@@ -3117,6 +3117,7 @@ fun LevyraApp(
                     onBandLevel = viewModel::setEqualizerBand,
                     onBassBoost = viewModel::setBassBoost,
                     onVirtualizer = viewModel::setVirtualizer,
+                    onEightDAudio = viewModel::setEightDAudioEnabled,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,
