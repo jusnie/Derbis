@@ -1,8 +1,8 @@
 name: Build Derbis Release APK
 
+# Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
+# release secret are configured and device validation has passed.
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
