@@ -24,6 +24,10 @@ All notable, user-visible changes are documented here. Each published Android an
 ### Changed
 - Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.
 
+### Fixed
+- Now Playing no longer renders provider-style YouTube likes, estimated-dislikes, or comment-count controls beneath the track.
+- Album and discovery-category artwork now use a quiet neutral surface while unavailable and a compact loading indicator while resolving; they never substitute title/artist initials, words, or genre emoji/stickers for artwork.
+
 ### Known limitations
 - This is the first safe phase of the SimpMusic-inspired rollout. Cached-playback collection refinements, additional Home/player polish, and compliant authenticated YouTube social features remain separate follow-up work; YouTube actions will not be enabled without compliant authenticated access.
 

@@ -1378,7 +1378,6 @@ private fun ExploreCategorySectionHeader(title: String) {
 
 private data class ExploreCategoryCardMetrics(
     val artworkSize: androidx.compose.ui.unit.Dp,
-    val emojiSize: androidx.compose.ui.unit.TextUnit,
     val placeholderSize: androidx.compose.ui.unit.Dp,
     val titleSize: androidx.compose.ui.unit.TextUnit,
     val titleWidthFraction: Float
@@ -1388,7 +1387,6 @@ private fun exploreCategoryCardMetrics(prominent: Boolean): ExploreCategoryCardM
     if (prominent) {
         ExploreCategoryCardMetrics(
             artworkSize = 86.dp,
-            emojiSize = 30.sp,
             placeholderSize = 38.dp,
             titleSize = 17.sp,
             titleWidthFraction = 0.74f
@@ -1396,7 +1394,6 @@ private fun exploreCategoryCardMetrics(prominent: Boolean): ExploreCategoryCardM
     } else {
         ExploreCategoryCardMetrics(
             artworkSize = 78.dp,
-            emojiSize = 26.sp,
             placeholderSize = 34.dp,
             titleSize = 16.sp,
             titleWidthFraction = 0.76f
@@ -1410,7 +1407,6 @@ internal fun ExploreDiscoveryCategoryCard(
     artworkUrl: String = "",
     modifier: Modifier = Modifier,
     prominent: Boolean = false,
-    emoji: String = "",
     accentColors: Pair<Color, Color>? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit
@@ -1479,7 +1475,6 @@ internal fun ExploreDiscoveryCategoryCard(
         )
         ExploreDiscoveryCategoryArtwork(
             artworkUrl = artworkUrl,
-            emoji = emoji,
             metrics = metrics
         )
         Text(
@@ -1504,7 +1499,6 @@ internal fun ExploreDiscoveryCategoryCard(
 @Composable
 private fun BoxScope.ExploreDiscoveryCategoryArtwork(
     artworkUrl: String,
-    emoji: String,
     metrics: ExploreCategoryCardMetrics
 ) {
     val artworkModifier = Modifier
@@ -1514,42 +1508,30 @@ private fun BoxScope.ExploreDiscoveryCategoryArtwork(
         .rotate(13f)
         .clip(RoundedCornerShape(9.dp))
     var artworkFailed by remember(artworkUrl) { mutableStateOf(false) }
-    if (artworkUrl.isNotBlank() && !artworkFailed) {
-        AsyncImage(
-            model = artworkUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            onError = { artworkFailed = true },
-            modifier = artworkModifier
-        )
-        return
-    }
+    var artworkLoading by remember(artworkUrl) { mutableStateOf(artworkUrl.isNotBlank()) }
     Box(
         modifier = artworkModifier.background(Color.White.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center
     ) {
-        ExploreDiscoveryCategoryArtworkFallback(emoji, metrics)
+        if (artworkUrl.isNotBlank() && !artworkFailed) {
+            AsyncImage(
+                model = artworkUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                onLoading = { artworkLoading = true },
+                onSuccess = { artworkLoading = false },
+                onError = { artworkLoading = false; artworkFailed = true },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        if (artworkLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(metrics.placeholderSize * 0.52f),
+                color = Color.White.copy(alpha = 0.72f),
+                strokeWidth = 2.dp
+            )
+        }
     }
-}
-
-@Composable
-private fun ExploreDiscoveryCategoryArtworkFallback(
-    emoji: String,
-    metrics: ExploreCategoryCardMetrics
-) {
-    if (emoji.isNotBlank()) {
-        Text(
-            text = emoji,
-            fontSize = metrics.emojiSize,
-            maxLines = 1
-        )
-        return
-    }
-    Box(
-        modifier = Modifier
-            .size(metrics.placeholderSize)
-            .background(Color.White.copy(alpha = 0.12f), CircleShape)
-    )
 }
 
 @Composable

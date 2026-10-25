@@ -259,7 +259,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -444,9 +443,7 @@ import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TaskAlt
-import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.rounded.Style
-import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.automirrored.rounded.Reply
@@ -692,7 +689,6 @@ import com.luc4n3x.levyra.domain.HomeSpotlightKind
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.YoutubeComment
 import com.luc4n3x.levyra.domain.YoutubeCommentsState
-import com.luc4n3x.levyra.domain.YoutubeEngagementState
 import com.luc4n3x.levyra.LevyraLaunchActions
 import com.luc4n3x.levyra.domain.LevyraNetworkSettings
 import com.luc4n3x.levyra.domain.LevyraNetworkSettingsError
@@ -871,7 +867,6 @@ import com.luc4n3x.levyra.ui.theme.LevyraType
 internal val LocalAnimationsEnabled = compositionLocalOf { true }
 
 private val BiographyWhitespacePattern = Regex("""\s+""")
-private val CompactNumberTrailingZeroPattern = Regex("[,.]0$")
 private val CommentCountBadgePattern = Regex("""\d[\d\s.,]*(?:[KMBkmb])?""")
 private val TrackRowShape = RoundedCornerShape(18.dp)
 private val TrackRowArtworkShape = RoundedCornerShape(12.dp)
@@ -1501,6 +1496,7 @@ internal fun CoverImage(
     val crossfadeMs = if (LocalAnimationsEnabled.current && highRes && model !is File) 120 else 0
     var artworkLoaded by remember(track.id, highRes, model) { mutableStateOf(false) }
     var artworkSucceeded by remember(track.id, highRes, model) { mutableStateOf(false) }
+    var artworkUnavailable by remember(track.id, highRes) { mutableStateOf(false) }
     LaunchedEffect(artworkSucceeded, crossfadeMs) {
         if (artworkSucceeded) {
             if (crossfadeMs > 0) delay(crossfadeMs.toLong())
@@ -1528,14 +1524,11 @@ internal fun CoverImage(
             if (model == null) LevyraArtworkStartupMetrics.recordArtworkLoading(artworkKey)
         }
     }
-    val background = remember(track.accentStart, track.accentEnd) {
-        Brush.linearGradient(listOf(Color(track.accentStart), Color(track.accentEnd)))
-    }
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         if (!artworkLoaded) {
             InstantArtworkPlaceholder(
-                track = track,
-                modifier = Modifier.fillMaxSize().background(background)
+                loading = model != null && !artworkUnavailable,
+                modifier = Modifier.fillMaxSize()
             )
         }
         if (model != null) {
@@ -1561,7 +1554,7 @@ internal fun CoverImage(
                 },
                 onError = {
                     LevyraArtworkStartupMetrics.recordArtworkFailure(artworkKey)
-                    if (modelIndex < models.lastIndex) modelIndex += 1
+                    if (modelIndex < models.lastIndex) modelIndex += 1 else artworkUnavailable = true
                 },
                 modifier = Modifier.fillMaxSize().scale(zoom)
             )
@@ -1570,35 +1563,23 @@ internal fun CoverImage(
 }
 
 @Composable
-internal fun InstantArtworkPlaceholder(track: Track, modifier: Modifier) {
-    val initials = remember(track.title, track.artist) {
-        listOf(track.title, track.artist)
-            .mapNotNull { value -> value.trim().firstOrNull()?.uppercaseChar()?.toString() }
-            .take(2)
-            .joinToString("")
-            .ifBlank { "♪" }
-    }
+internal fun InstantArtworkPlaceholder(
+    modifier: Modifier,
+    loading: Boolean = false
+) {
+    // Never manufacture cover text, genre stickers, or initials. A cover is either loading or
+    // unavailable; both states stay visually quiet until real artwork exists.
+    val neutralSurface = if (LevyraIsLight) Color(0xFFE6E7EB) else Color(0xFF24262C)
     Box(
-        modifier = modifier
-            .background(
-                Brush.radialGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.22f),
-                        Color(track.accentStart).copy(alpha = 0.46f),
-                        Color(track.accentEnd).copy(alpha = 0.64f)
-                    )
-                )
-            ),
+        modifier = modifier.background(neutralSurface),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initials,
-            color = LevyraText.copy(alpha = 0.88f),
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            maxLines = 1,
-            overflow = TextOverflow.Clip
-        )
+        if (loading) {
+            LevyraLoadingIndicator(
+                modifier = Modifier.size(26.dp),
+                color = LevyraText.copy(alpha = 0.72f)
+            )
+        }
     }
 }
 @Composable
@@ -14303,7 +14284,7 @@ private fun HomeMusicVideoArtwork(item: HomeVideoCardItem) {
     }
     val frameFit = fit
     if (frameFit == null) {
-        InstantArtworkPlaceholder(track = item.track, modifier = Modifier.fillMaxSize())
+        InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize())
         return
     }
     val squareArtwork = item.squareArtwork
@@ -18774,7 +18755,7 @@ private fun PlayerArtworkCanvas(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    InstantArtworkPlaceholder(track = track, modifier = Modifier.fillMaxSize())
+                    InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize())
                 }
             }
             Box(
@@ -18827,7 +18808,7 @@ private fun PlayerImmersiveMotionCanvas(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                InstantArtworkPlaceholder(track = track, modifier = Modifier.fillMaxSize())
+                InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize())
             }
         }
         PlayerCanvasFusionScrim(
@@ -19338,188 +19319,6 @@ private fun RowScope.PlayerDockAction(
             overflow = TextOverflow.Ellipsis
         )
     }
-}
-
-private fun compactYoutubeCount(value: Long): String {
-    val absolute = kotlin.math.abs(value.toDouble())
-    val (scaled, suffix) = when {
-        absolute >= 1_000_000_000.0 -> value / 1_000_000_000.0 to "B"
-        absolute >= 1_000_000.0 -> value / 1_000_000.0 to "M"
-        absolute >= 1_000.0 -> value / 1_000.0 to "K"
-        else -> return value.toString()
-    }
-    val pattern = if (kotlin.math.abs(scaled) >= 100.0) "%.0f" else "%.1f"
-    return String.format(Locale.getDefault(), pattern, scaled)
-        .replace(CompactNumberTrailingZeroPattern, "") + suffix
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PlayerYoutubeEngagementRow(
-    track: Track,
-    engagement: YoutubeEngagementState,
-    compact: Boolean,
-    onComments: () -> Unit
-) {
-    val strings = LocalLevyraStrings.current
-    val hasLikes = track.youtubeLikeCount >= 0L
-    val hasDislikeEstimate = engagement.dislikeEstimateAvailable && engagement.estimatedDislikeCount >= 0L
-    val comments = engagement.comments
-    val commentBadge = youtubeCommentCountBadge(comments.countText)
-    val canOpenComments = engagement.videoId.isNotBlank()
-    val visible = hasLikes || hasDislikeEstimate || engagement.dislikeEstimateLoading || canOpenComments
-    val appleMusic = LevyraIsAppleMusic
-    val baseContent = if (LevyraIsLight && !appleMusic) Color(0xFF1A1B20) else Color.White
-    val accent = if (appleMusic) Color.White else if (LevyraSkinManagesLayout) LevyraCyan else Color(track.accentStart).playerMix(baseContent, if (LevyraIsLight) 0.34f else 0.26f)
-    val quietContent = baseContent.copy(alpha = if (appleMusic) 0.6f else 0.66f)
-    val strongContent = baseContent.copy(alpha = 0.90f)
-    val surface = if (appleMusic) {
-        AppleMusicVibrant.quaternary
-    } else if (LevyraIsLight) {
-        LevyraAdaptiveChip
-    } else {
-        Color.White.copy(alpha = 0.10f)
-    }
-    val rowHeight = if (appleMusic) 32.dp else if (compact) 36.dp else 40.dp
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(animationSpec = tween(220)) + slideInVertically(initialOffsetY = { it / 3 }),
-        exit = fadeOut(animationSpec = tween(140))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = LevyraPlayerDesign.MinimumTouchTarget)
-                .pointerInput(Unit) { detectTapGestures { } },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(EngagementSegmentGap, Alignment.Start)
-        ) {
-            EngagementSegment(index = 0, count = 3, height = rowHeight, fill = surface) {
-                Icon(
-                    imageVector = Icons.Rounded.ThumbUp,
-                    contentDescription = null,
-                    tint = if (hasLikes) accent else quietContent,
-                    modifier = Modifier.size(16.dp)
-                )
-                if (hasLikes) {
-                    Text(
-                        text = compactYoutubeCount(track.youtubeLikeCount),
-                        color = strongContent,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
-            }
-            EngagementSegment(index = 1, count = 3, height = rowHeight, fill = surface) {
-                Icon(
-                    imageVector = Icons.Rounded.ThumbDown,
-                    contentDescription = null,
-                    tint = if (hasDislikeEstimate) quietContent else quietContent.copy(alpha = 0.68f),
-                    modifier = Modifier.size(16.dp)
-                )
-                when {
-                    engagement.dislikeEstimateLoading -> CircularProgressIndicator(
-                        modifier = Modifier.size(11.dp),
-                        strokeWidth = 1.4.dp,
-                        color = quietContent
-                    )
-                    hasDislikeEstimate -> Text(
-                        text = "~${compactYoutubeCount(engagement.estimatedDislikeCount)}",
-                        color = quietContent.copy(alpha = 0.92f),
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
-            }
-            EngagementSegment(
-                index = 2,
-                count = 3,
-                height = rowHeight,
-                fill = if (comments.visible) accent.copy(alpha = 0.26f) else surface,
-                onClick = onComments.takeIf { canOpenComments },
-                clickLabel = strings.tapToOpenComments
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.ChatBubbleOutline,
-                    contentDescription = null,
-                    tint = when {
-                        comments.visible -> accent
-                        canOpenComments -> strongContent.copy(alpha = 0.82f)
-                        else -> quietContent.copy(alpha = 0.62f)
-                    },
-                    modifier = Modifier.size(16.dp)
-                )
-                when {
-                    comments.loading && !comments.loaded -> CircularProgressIndicator(
-                        modifier = Modifier.size(11.dp),
-                        strokeWidth = 1.4.dp,
-                        color = quietContent
-                    )
-                    commentBadge.isNotBlank() -> Text(
-                        text = commentBadge,
-                        color = if (comments.visible) accent else strongContent,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val EngagementSegmentGap = 3.dp
-
-@Composable
-private fun EngagementSegment(
-    index: Int,
-    count: Int,
-    height: Dp,
-    fill: Color,
-    onClick: (() -> Unit)? = null,
-    clickLabel: String? = null,
-    content: @Composable RowScope.() -> Unit
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val inner by animateDpAsState(
-        targetValue = if (pressed) height / 2 else 6.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "engagement-segment-corner"
-    )
-    val outer = height / 2
-    val shape = RoundedCornerShape(
-        topStart = if (index == 0) outer else inner,
-        bottomStart = if (index == 0) outer else inner,
-        topEnd = if (index == count - 1) outer else inner,
-        bottomEnd = if (index == count - 1) outer else inner
-    )
-    Row(
-        modifier = Modifier
-            .height(height)
-            .clip(shape)
-            .background(fill)
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interaction,
-                        indication = LocalIndication.current,
-                        onClickLabel = clickLabel,
-                        role = Role.Button,
-                        onClick = onClick
-                    )
-                } else {
-                    Modifier.pointerInput(Unit) { detectTapGestures { } }
-                }
-            )
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        content = content
-    )
 }
 
 internal fun youtubeCommentCountBadge(value: String): String {
@@ -20166,14 +19965,9 @@ private fun PlayerScreen(
                 modifier = modifier
             )
         },
-        engagementContent = { activeTrack ->
-            PlayerYoutubeEngagementRow(
-                track = activeTrack,
-                engagement = state.youtubeEngagement,
-                compact = true,
-                onComments = viewModel::openYoutubeComments
-            )
-        },
+        // Keep Now Playing focused on playback. Engagement and comments are not rendered as
+        // provider-style buttons beneath the track metadata.
+        engagementContent = { _ -> },
         similarSongsContent = { activeTrack ->
             PlayerSimilarSongsSection(
                 similarSongs = visibleSimilarSongs,
@@ -27348,7 +27142,6 @@ private fun ExploreMoodRailRow(
                             title = zone.label,
                             identity = zone.id,
                             artworkUrl = artworkUrl,
-                            emoji = zone.emoji,
                             accentColors = if (LevyraIsNocturne) LevyraPanel to LevyraPanelSoft else Color(zone.accentStart) to Color(zone.accentEnd),
                             modifier = Modifier
                                 .weight(1f)
@@ -27362,7 +27155,6 @@ private fun ExploreMoodRailRow(
                     ExploreDiscoveryCategoryCard(
                         title = strings.showAll,
                         identity = "all-moods",
-                        emoji = "↗",
                         accentColors = Color(0xFF343C48) to Color(0xFF202632),
                         modifier = Modifier
                             .weight(1f)
