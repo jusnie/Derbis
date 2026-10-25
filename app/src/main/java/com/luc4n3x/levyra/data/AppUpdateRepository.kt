@@ -23,6 +23,7 @@ import okhttp3.ResponseBody
 import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import org.json.JSONArray
 import org.json.JSONObject
 
 internal data class InstallableAppUpdate(
@@ -74,7 +75,7 @@ class AppUpdateRepository(context: Context) {
     }
 
     private fun fetchLatestRelease(): JSONObject {
-        val endpoint = validateLevyraReleaseMetadataUrl(BuildConfig.UPDATE_LATEST_URL)
+        val endpoint = validateDerbisReleaseListUrl(BuildConfig.UPDATE_RELEASES_URL)
             ?: throw IOException("Invalid update metadata endpoint")
         val request = Request.Builder()
             .url(endpoint)
@@ -94,9 +95,26 @@ class AppUpdateRepository(context: Context) {
             if (!updateMetadataContentTypeAccepted(response.header("Content-Type"))) {
                 throw IOException("Unexpected update metadata content type")
             }
-            val body = readUpdateMetadataBody(response.body)
-            return JSONObject(body)
+            return selectLatestAndroidRelease(JSONArray(readUpdateMetadataBody(response.body)))
+                ?: throw IllegalStateException("Nessuna release Android pubblicata per DERBIS")
         }
+    }
+
+    /**
+     * GitHub's /releases/latest endpoint is repository-wide. Derbis publishes separate
+     * Android and Windows releases, so select the newest published Android APK release
+     * from the ordered release list instead of accidentally offering a Windows installer.
+     */
+    internal fun selectLatestAndroidRelease(releases: JSONArray): JSONObject? {
+        for (index in 0 until releases.length()) {
+            val release = releases.optJSONObject(index) ?: continue
+            if (release.optBoolean("draft") || release.optBoolean("prerelease")) continue
+            val tag = release.optString("tag_name").trim()
+            if (!ANDROID_RELEASE_TAG.matches(tag)) continue
+            if (releaseAssets(release).none { it.directApk }) continue
+            return release
+        }
+        return null
     }
 
     private fun parseLatestRelease(root: JSONObject): InstallableAppUpdate {
@@ -193,14 +211,16 @@ internal const val UPDATE_METADATA_CONNECT_TIMEOUT_SECONDS = 5L
 internal const val UPDATE_METADATA_READ_TIMEOUT_SECONDS = 10L
 internal const val UPDATE_METADATA_CALL_TIMEOUT_SECONDS = 12L
 private const val UPDATE_METADATA_HOST = "api.github.com"
-private const val UPDATE_METADATA_PATH = "/repos/jusnie/Derbis/releases/latest"
+private const val UPDATE_RELEASES_PATH = "/repos/jusnie/Derbis/releases"
+private const val UPDATE_RELEASES_QUERY = "per_page=30"
+private val ANDROID_RELEASE_TAG = Regex("^v[0-9]+(?:\\.[0-9]+){1,3}(?:[-+][0-9A-Za-z.-]+)?$")
 
-internal fun validateLevyraReleaseMetadataUrl(value: String): HttpUrl? {
+internal fun validateDerbisReleaseListUrl(value: String): HttpUrl? {
     val url = value.trim().toHttpUrlOrNull() ?: return null
     if (!url.isHttps || url.port != 443) return null
     if (url.username.isNotEmpty() || url.password.isNotEmpty() || url.fragment != null) return null
     if (!url.host.equals(UPDATE_METADATA_HOST, ignoreCase = true)) return null
-    if (url.encodedPath != UPDATE_METADATA_PATH || url.query != null) return null
+    if (url.encodedPath != UPDATE_RELEASES_PATH || url.query != UPDATE_RELEASES_QUERY) return null
     return url
 }
 

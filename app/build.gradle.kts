@@ -180,7 +180,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         manifestPlaceholders["upstreamUpdatesEnabled"] = (!isFdroidBuild).toString()
         buildConfigField("String", "UPDATE_REPOSITORY", "\"jusnie/Derbis\"")
-        buildConfigField("String", "UPDATE_LATEST_URL", "\"https://api.github.com/repos/jusnie/Derbis/releases/latest\"")
+        buildConfigField("String", "UPDATE_RELEASES_URL", "\"https://api.github.com/repos/jusnie/Derbis/releases?per_page=30\"")
         buildConfigField("boolean", "UPSTREAM_UPDATES_ENABLED", (!isFdroidBuild).toString())
         buildConfigField("boolean", "REMOTE_ANNOUNCEMENTS_ENABLED", (!isFdroidBuild).toString())
         buildConfigField("String", "YOUTUBE_INNERTUBE_API_KEY", buildConfigString(youtubeInnertubeApiKey))
