@@ -221,6 +221,8 @@ data class LevyraInterfaceSettings(
     val canvasQuality: LevyraCanvasQuality = LevyraCanvasQuality.Auto,
     val canvasSource: LevyraCanvasSource = LevyraCanvasSource.Auto,
     val visualPerformance: LevyraVisualPerformance = LevyraVisualPerformance.Full,
+    // Local transform only: no video artwork, provider request, or Spotify Canvas is involved.
+    val gentleArtworkDriftEnabled: Boolean = true,
     val liquidGlassEnabled: Boolean = true,
     val liteMode: Boolean = false,
     val forceHighRefreshRate: Boolean = false,

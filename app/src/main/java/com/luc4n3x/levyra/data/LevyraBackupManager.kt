@@ -1812,6 +1812,7 @@ internal fun backupInterfaceSettingsToJson(value: LevyraInterfaceSettings): JSON
     .put("canvasQuality", value.canvasQuality.name)
     .put("canvasSource", value.canvasSource.name)
     .put("visualPerformance", value.visualPerformance.name)
+    .put("gentleArtworkDriftEnabled", value.gentleArtworkDriftEnabled)
     .put("liquidGlassEnabled", value.liquidGlassEnabled)
     .put("liteMode", value.liteMode)
     .put("forceHighRefreshRate", value.forceHighRefreshRate)
@@ -1873,6 +1874,7 @@ internal fun backupInterfaceSettingsFromJson(
         canvasQuality = LevyraCanvasQuality.from(json.optString("canvasQuality")),
         canvasSource = LevyraCanvasSource.from(json.optString("canvasSource")),
         visualPerformance = LevyraVisualPerformance.from(json.optString("visualPerformance")),
+        gentleArtworkDriftEnabled = json.optBoolean("gentleArtworkDriftEnabled", true),
         liquidGlassEnabled = json.optBoolean("liquidGlassEnabled", true),
         liteMode = json.optBoolean("liteMode", false),
         forceHighRefreshRate = json.optBoolean("forceHighRefreshRate", false),

@@ -249,6 +249,15 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
+    fun gentleArtworkDriftDefaultsOnAndRoundTripsThroughBackup() {
+        assertTrue(LevyraInterfaceSettings().gentleArtworkDriftEnabled)
+        val restored = backupInterfaceSettingsFromJson(
+            backupInterfaceSettingsToJson(LevyraInterfaceSettings(gentleArtworkDriftEnabled = false))
+        )
+        assertFalse(restored.gentleArtworkDriftEnabled)
+    }
+
+    @Test
     fun playerColorsDefaultToDynamicAndRoundTripThroughBackup() {
         assertEquals(PlayerColorMode.Dynamic, LevyraInterfaceSettings().playerColorMode)
         assertEquals(PlayerColorMode.Dynamic, backupInterfaceSettingsFromJson(JSONObject()).playerColorMode)

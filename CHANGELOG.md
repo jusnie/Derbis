@@ -26,7 +26,8 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ### Fixed
 - Now Playing no longer renders provider-style YouTube likes, estimated-dislikes, or comment-count controls beneath the track.
-- Retired moving Canvas/animated-artwork playback. The player, settings, and Player Deck picker now use static artwork only; previous Canvas selections safely migrate to the Artwork deck.
+- Retired remote Canvas/animated-artwork playback. The player, settings, and Player Deck picker now use static artwork sources only; previous Canvas selections safely migrate to the Artwork deck.
+- Added **Gentle cover movement**, enabled by default: a slow local side-to-side Now Playing album-cover drift. It uses no remote artwork/video provider and automatically stops for Lite Mode, paused playback, or disabled animations.
 - Album and discovery-category artwork now use a quiet neutral surface while unavailable and a compact loading indicator while resolving; they never substitute title/artist initials, words, or genre emoji/stickers for artwork.
 
 ### Known limitations
