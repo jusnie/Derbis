@@ -51,7 +51,20 @@ jobs:
           curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}"
           unzip -tq app/libs/discord_partner_sdk.aar
 
+      - name: Verify Derbis Jam relay configuration
+        env:
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "${DERBIS_JAM_RELAY_URL}" =~ ^wss://.+/jam$ ]]; then
+            echo "Set the DERBIS_JAM_RELAY_URL repository variable to wss://YOUR-RAILWAY-DOMAIN/jam before releasing."
+            exit 1
+          fi
+
       - name: Build Derbis Release APK
+        env:
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Stage Release APK

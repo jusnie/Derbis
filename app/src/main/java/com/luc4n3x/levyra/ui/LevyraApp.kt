@@ -21045,14 +21045,19 @@ private fun SettingsOverlay(
                         }
                         "jam" -> item {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                val remoteJamConfigured = com.luc4n3x.levyra.feature.jam.DerbisJamRelay.isConfigured
                                 Text(
-                                    strings.jamSubtitle,
+                                    if (remoteJamConfigured) "Listen together from any distance" else strings.jamSubtitle,
                                     color = LevyraMuted,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    strings.jamLocalNetworkOnly,
+                                    if (remoteJamConfigured) {
+                                        "Remote rooms are enabled. Each listener streams from their own available source."
+                                    } else {
+                                        "Remote rooms will be enabled once the Derbis Jam relay is configured for this build."
+                                    },
                                     color = LevyraMuted,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold
