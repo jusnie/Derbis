@@ -91,6 +91,17 @@ class QueueSelectionKeyTest {
     }
 
     @Test
+    fun entriesRetainBackingQueueIndexesAfterReordering() {
+        var entries = buildQueueEntries(listOf(track("a"), track("b"), track("c")))
+        assertEquals(listOf(0, 1, 2), entries.map(QueueEntry::queueIndex))
+
+        entries = reorderQueueEntries(entries, from = 2, to = 0)
+
+        assertEquals(listOf(0, 1, 2), entries.map(QueueEntry::queueIndex))
+        assertEquals(listOf("c", "a", "b"), entries.map { it.track.id })
+    }
+
+    @Test
     fun repeatedReorderingWithThreeDuplicatesPreservesAllIdentities() {
         val trackA = track("a")
         val queue = listOf(trackA, trackA, trackA)

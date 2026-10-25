@@ -1827,6 +1827,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                     val synchronizeCurrent = !current.isResolving && (!current.isPlaying || externalSelectionChanged)
                     current.copy(
                         queue = queueSnapshot.tracks,
+                        automaticQueueTrackKeys = queueEngine.automaticTrackKeys(),
                         activeQueueSpaceId = queueSnapshot.spaceId,
                         queueCurrentIndex = queueSnapshot.currentIndex,
                         queueUndoAvailable = queueSnapshot.undoAvailable,
@@ -6391,7 +6392,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     fun playAll(tracks: List<Track>) {
         if (tracks.isEmpty()) return
         leaveLiveRadioQueue()
-        queueEngine.replace(tracks, 0, keepPlaybackModes = true, radioEnabled = queueEngine.state.value.radioEnabled)
+        // Play all is an explicit collection, so preserve its authored order and endpoint.
+        queueEngine.replace(tracks, 0, keepPlaybackModes = true, radioEnabled = tracks.size <= 1)
+        radioJob?.cancel()
+        if (tracks.size <= 1) beginRadioSession() else radioSession.set(null)
         queueIndex = 0
         startResolve(tracks.first())
     }
@@ -6991,6 +6995,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             radioJob?.cancel()
             radioSession.set(null)
+            queueEngine.clearAutomaticTracks()
         }
     }
 
@@ -9958,12 +9963,14 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         leaveLiveRadioQueue()
-        val contextualQueue = queueForTrack(track)
-        loopCurrentQueueOnCompletion = contextualQueue.size > 1
-        val index = contextualQueue.indexOfFirst { samePlayableTrack(it, track) }.coerceAtLeast(0)
-        queueEngine.replace(contextualQueue, index, keepPlaybackModes = true, radioEnabled = queueEngine.state.value.radioEnabled)
-        queueIndex = index
-        startResolve(contextualQueue.getOrElse(index) { track })
+        // A single-song action starts a listening session, not an implicit finite queue assembled
+        // from nearby Home/search results. Explicit albums and playlists use playFrom instead.
+        loopCurrentQueueOnCompletion = false
+        queueEngine.replace(listOf(track), 0, keepPlaybackModes = true, radioEnabled = true)
+        radioJob?.cancel()
+        beginRadioSession()
+        queueIndex = 0
+        startResolve(track)
     }
 
     fun playFrom(
@@ -9982,7 +9989,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         leaveLiveRadioQueue()
         loopCurrentQueueOnCompletion = loopOnCompletion
         val index = list.indexOfFirst { samePlayableTrack(it, track) }.coerceAtLeast(0)
-        queueEngine.replace(list, index, keepPlaybackModes = true, radioEnabled = queueEngine.state.value.radioEnabled)
+        // Albums and playlists are deliberate finite collections. Do not attach radio tracks to them.
+        queueEngine.replace(list, index, keepPlaybackModes = true, radioEnabled = list.size <= 1)
+        radioJob?.cancel()
+        if (list.size <= 1) beginRadioSession() else radioSession.set(null)
         queueIndex = index
         startResolve(list.getOrElse(index) { track })
     }
@@ -13059,24 +13069,6 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private fun currentQueue(): List<Track> {
         val snapshot = _state.value
         return snapshot.queue.ifEmpty { snapshot.searchResults }.ifEmpty { snapshot.tracks }
-    }
-
-    private fun queueForTrack(track: Track): List<Track> {
-        val snapshot = _state.value
-        val sections = snapshot.homeSections.firstOrNull { section -> section.tracks.any { samePlayableTrack(it, track) } }?.tracks.orEmpty()
-        val candidates = listOf(
-            snapshot.openPlaylist?.tracks.orEmpty(),
-            sections,
-            snapshot.searchResults,
-            snapshot.charts,
-            snapshot.personalOrbitTracks,
-            snapshot.tracks,
-            snapshot.queue
-        )
-        val selected = candidates.firstOrNull { list -> list.any { samePlayableTrack(it, track) } && list.size > 1 }
-            ?: candidates.firstOrNull { list -> list.any { samePlayableTrack(it, track) } }
-            ?: listOf(track)
-        return selected.distinctBy { playbackIdentity(it) }
     }
 
     private fun samePlayableTrack(left: Track, right: Track): Boolean = playbackIdentity(left) == playbackIdentity(right)

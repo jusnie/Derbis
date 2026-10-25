@@ -751,6 +751,27 @@ class PersistentQueueEngine internal constructor(
         current.copy(radioEnabled = enabled)
     }
 
+    /**
+     * Drops the hidden recommendation buffer when endless listening is turned off. The current
+     * track is retained so stopping the feature never stops playback or turns suggestions into a
+     * user-owned queue.
+     */
+    fun clearAutomaticTracks(): PlaybackQueueSnapshot = mutate(structural = true, immediatePersist = true) { current ->
+        val automatic = tombstones.automaticKeys(current.spaceId)
+        if (automatic.isEmpty()) return@mutate current
+        val currentIdentity = current.currentTrack?.let(::playbackQueueIdentity)
+        val retained = current.tracks.filter { track ->
+            playbackQueueIdentity(track) == currentIdentity || playbackQueueIdentity(track) !in automatic
+        }
+        tombstones.resetAutomatic(current.spaceId)
+        val currentIndex = currentIdentity
+            ?.let { identity -> retained.indexOfFirst { playbackQueueIdentity(it) == identity } }
+            ?.takeIf { it >= 0 }
+            ?: retained.indices.firstOrNull()
+            ?: -1
+        rebuildAfterStructureChange(current, retained, currentIndex)
+    }
+
     fun next(respectRepeatOne: Boolean = true): Track? = advanceNext(respectRepeatOne, expectedIdentity = null)
 
     fun nextMatching(expectedIdentity: String, respectRepeatOne: Boolean = true): Track? =
@@ -924,6 +945,11 @@ class PersistentQueueEngine internal constructor(
         val nextTracks = prepared.tracks.toMutableList().apply { addAll(insertionIndex, additions) }
         tombstones.markAutomatic(prepared.spaceId, additions)
         rebuildAfterStructureChange(prepared, nextTracks, prepared.currentIndex)
+    }
+
+    /** Identities in the small rolling recommendation buffer; callers must not treat them as a playlist. */
+    fun automaticTrackKeys(): Set<String> = synchronized(lock) {
+        tombstones.automaticKeys(_state.value.spaceId)
     }
 
     fun rejectedAutomaticKeys(): Set<String> = synchronized(lock) {

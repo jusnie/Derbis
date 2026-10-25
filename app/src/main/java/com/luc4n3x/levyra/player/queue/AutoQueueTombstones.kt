@@ -28,6 +28,8 @@ internal class AutoQueueTombstones(
     fun isAutomatic(spaceId: String, track: Track): Boolean =
         automatic[spaceId]?.contains(playbackQueueIdentity(track)) == true
 
+    fun automaticKeys(spaceId: String): Set<String> = automatic[spaceId]?.toSet().orEmpty()
+
     fun recordRemoval(spaceId: String, tracks: List<Track>) {
         val automaticKeys = automatic[spaceId] ?: return
         tracks.forEach { track ->

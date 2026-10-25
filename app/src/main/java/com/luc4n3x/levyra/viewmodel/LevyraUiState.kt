@@ -157,6 +157,8 @@ data class LevyraUiState(
     val queuePlaylistDraft: QueuePlaylistDraft? = null,
     val pendingQueueAddTracks: List<Track> = emptyList(),
     val queueSwitching: Boolean = false,
+    /** Related tracks held only as a rolling endless-listening playback buffer, never a saved playlist. */
+    val automaticQueueTrackKeys: Set<String> = emptySet(),
     val queueUnavailableUris: Set<String> = emptySet(),
     val localLibrary: LocalLibraryUiState = LocalLibraryUiState(),
     val queueUndoAvailable: Boolean = false,

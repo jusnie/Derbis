@@ -6962,7 +6962,9 @@ private fun openExternalUrl(
 
 internal data class QueueEntry(
     val key: String,
-    val track: Track
+    val track: Track,
+    /** Index in the backing playback queue; differs from a filtered display position. */
+    val queueIndex: Int = -1
 )
 
 private data class QueueRemovalTarget(
@@ -6983,7 +6985,7 @@ internal fun reorderQueueEntries(
     val mutable = entries.toMutableList()
     val moved = mutable.removeAt(from)
     mutable.add(to, moved)
-    return mutable
+    return mutable.mapIndexed { queueIndex, entry -> entry.copy(queueIndex = queueIndex) }
 }
 
 internal fun buildQueueEntries(
@@ -6998,7 +7000,7 @@ internal fun buildQueueEntries(
     val usedKeys = hashSetOf<String>()
     val result = ArrayList<QueueEntry>(queue.size)
 
-    for (track in queue) {
+    for ((queueIndex, track) in queue.withIndex()) {
         val exactIndex = available.indexOfFirst { it.track === track }
             .takeIf { it >= 0 }
             ?: available.indexOfFirst { it.track == track }
@@ -7009,7 +7011,7 @@ internal fun buildQueueEntries(
         if (exactIndex != null) {
             val matched = available.removeAt(exactIndex)
             usedKeys.add(matched.key)
-            result.add(QueueEntry(matched.key, track))
+            result.add(QueueEntry(matched.key, track, queueIndex))
         } else {
             val base = "${track.id}|${track.videoUrl}"
             var occurrence = 1
@@ -7018,7 +7020,7 @@ internal fun buildQueueEntries(
             }
             val key = "$base#$occurrence"
             usedKeys.add(key)
-            result.add(QueueEntry(key, track))
+            result.add(QueueEntry(key, track, queueIndex))
         }
     }
     return result
@@ -7072,20 +7074,34 @@ private fun QueueOverlay(
             buildQueueEntries(state.queue, queueEntries).also { queueEntries = it }
         }
     }
-    val onMoveEntry: (Int, Int) -> Unit = { from, to ->
-        queueEntries = reorderQueueEntries(currentEntries, from, to)
-        onMove(from, to)
+    val endlessListeningBufferActive = state.radioEnabled && state.automaticQueueTrackKeys.isNotEmpty()
+    val displayEntries = remember(
+        currentEntries,
+        state.automaticQueueTrackKeys,
+        state.queueCurrentIndex,
+        endlessListeningBufferActive
+    ) {
+        if (!endlessListeningBufferActive) currentEntries else currentEntries.filter { entry ->
+            entry.queueIndex == state.queueCurrentIndex ||
+                com.luc4n3x.levyra.player.queue.playbackQueueIdentity(entry.track) !in state.automaticQueueTrackKeys
+        }
     }
-    val selectedTracks = remember(currentEntries, selectedQueueKeys) {
-        currentEntries.filter { it.key in selectedQueueKeys }.map { it.track }
+    val onMoveEntry: (Int, Int) -> Unit = move@{ from, to ->
+        val sourceFrom = displayEntries.getOrNull(from)?.queueIndex ?: return@move
+        val sourceTo = displayEntries.getOrNull(to)?.queueIndex ?: return@move
+        queueEntries = reorderQueueEntries(currentEntries, sourceFrom, sourceTo)
+        onMove(sourceFrom, sourceTo)
     }
-    val removableIndices = remember(currentEntries, selectedQueueKeys, state.queueCurrentIndex) {
-        currentEntries.indices.filter { index ->
-            index != state.queueCurrentIndex && currentEntries[index].key in selectedQueueKeys
+    val selectedTracks = remember(displayEntries, selectedQueueKeys) {
+        displayEntries.filter { it.key in selectedQueueKeys }.map { it.track }
+    }
+    val removableIndices = remember(displayEntries, selectedQueueKeys, state.queueCurrentIndex) {
+        displayEntries.mapNotNull { entry ->
+            entry.queueIndex.takeIf { it != state.queueCurrentIndex && entry.key in selectedQueueKeys }
         }
     }
     val selectionActive = selectedTracks.isNotEmpty()
-    val allSelected = currentEntries.isNotEmpty() && selectedTracks.size == currentEntries.size
+    val allSelected = displayEntries.isNotEmpty() && selectedTracks.size == displayEntries.size
     val queueItemFade: FiniteAnimationSpec<Float>? = if (state.animationsEnabled) {
         tween(LevyraMotion.Durations.Short, easing = LevyraMotion.Easings.Standard)
     } else {
@@ -7099,8 +7115,8 @@ private fun QueueOverlay(
 
     val queueTrackRow: @Composable (Int, QueueEntry, Modifier) -> Unit = { index, entry, rowModifier ->
                     val track = entry.track
-                    val isCurrent = index == state.queueCurrentIndex
-                    val wasPlayed = state.queueCurrentIndex >= 0 && index < state.queueCurrentIndex
+                    val isCurrent = entry.queueIndex == state.queueCurrentIndex
+                    val wasPlayed = state.queueCurrentIndex >= 0 && entry.queueIndex < state.queueCurrentIndex
                     val rowKey = entry.key
                     val rowSelected = rowKey in selectedQueueKeys
                     var dragDistance by remember(entry.key) { mutableFloatStateOf(0f) }
@@ -7379,7 +7395,7 @@ private fun QueueOverlay(
                     Column {
                         Text(strings.queue, color = LevyraText, fontSize = 26.sp, fontWeight = FontWeight.Black)
                         Text(
-                            strings.formatQueueSummary(state.queue.size, state.queueHistoryCount),
+                            strings.formatQueueSummary(displayEntries.size, state.queueHistoryCount),
                             color = LevyraMuted,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -7393,7 +7409,7 @@ private fun QueueOverlay(
                     )
                 }
             }
-            item(contentType = "queue-spaces") {
+            if (!endlessListeningBufferActive) item(contentType = "queue-spaces") {
                 Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                     QueueSpacesPanel(
                         spaces = state.queueSpaces,
@@ -7462,7 +7478,7 @@ private fun QueueOverlay(
                     )
                 }
             }
-            item(contentType = "queue-save") {
+            if (!endlessListeningBufferActive) item(contentType = "queue-save") {
                 val loading = state.queuePlaylistLoadingSpaceId == state.activeQueueSpaceId
                 Row(
                     modifier = Modifier
@@ -7507,13 +7523,13 @@ private fun QueueOverlay(
                     )
                 }
             }
-            if (currentEntries.isEmpty()) {
+            if (displayEntries.isEmpty()) {
                 item { Text(strings.queueEmpty, color = LevyraMuted, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
             } else {
                 itemsIndexed(
-                    currentEntries,
+                    displayEntries,
                     key = { _, entry -> "q-${entry.key}" },
-                    contentType = { index, _ -> if (index == state.queueCurrentIndex) "queue-current" else "queue-track" }
+                    contentType = { _, entry -> if (entry.queueIndex == state.queueCurrentIndex) "queue-current" else "queue-track" }
                 ) { index, entry ->
                     queueTrackRow(
                         index,
@@ -7537,7 +7553,7 @@ private fun QueueOverlay(
                 count = selectedTracks.size,
                 allSelected = allSelected,
                 canRemove = removableIndices.isNotEmpty(),
-                onSelectAll = { selectedQueueKeys = currentEntries.map { it.key }.toSet() },
+                onSelectAll = { selectedQueueKeys = displayEntries.map { it.key }.toSet() },
                 onClear = { selectedQueueKeys = emptySet() },
                 onAddToPlaylist = { addToPlaylistTracks = selectedTracks },
                 onDownload = {
