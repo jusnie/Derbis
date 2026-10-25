@@ -2,9 +2,6 @@ package com.luc4n3x.levyra.ui.player
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -28,7 +25,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -60,7 +56,6 @@ import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.playerMix
 import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraPlayerDesign
-import com.luc4n3x.levyra.ui.theme.LocalLevyraVisualCapabilities
 
 private val SleeveScrollingStage = 300.dp
 private const val SleeveSpread = 1.36f
@@ -69,7 +64,6 @@ private const val SleeveDiscRest = 0.05f
 private const val SleeveDiscOut = 0.4f
 private const val SleeveLabelScale = 0.36f
 private const val SleeveGrooveCount = 7
-private const val SleeveSpinMillis = 4_800
 private const val SleeveLabelDepth = 0.35f
 private const val SleeveArtistAlpha = 0.72f
 
@@ -131,8 +125,6 @@ internal fun PlayerSleeveDeck(
             Box(modifier = Modifier.size(width = side * SleeveSpread, height = side)) {
                 SleeveDisc(
                     label = label,
-                    playing = isPlaying,
-                    animated = animated,
                     slide = slide,
                     side = side,
                     modifier = Modifier
@@ -163,13 +155,10 @@ internal fun PlayerSleeveDeck(
 @Composable
 private fun SleeveDisc(
     label: Color,
-    playing: Boolean,
-    animated: Boolean,
     slide: State<Float>,
     side: Dp,
     modifier: Modifier = Modifier
 ) {
-    val spin = rememberSleeveSpin(playing, animated && LocalLevyraVisualCapabilities.current.decorativeMotion)
     val labelShade = label.playerMix(PlayerDarkSurface, SleeveLabelDepth)
     val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
     Box(
@@ -178,25 +167,8 @@ private fun SleeveDisc(
         }
     ) {
         Canvas(modifier = Modifier.matchParentSize()) { drawSleeveVinyl() }
-        Canvas(
-            modifier = Modifier
-                .matchParentSize()
-                .graphicsLayer { rotationZ = spin.value }
-        ) { drawSleeveLabel(label, labelShade) }
+        Canvas(modifier = Modifier.matchParentSize()) { drawSleeveLabel(label, labelShade) }
     }
-}
-
-@Composable
-private fun rememberSleeveSpin(playing: Boolean, enabled: Boolean): Animatable<Float, AnimationVector1D> {
-    val spin = remember { Animatable(0f) }
-    LaunchedEffect(playing, enabled) {
-        if (!playing || !enabled) return@LaunchedEffect
-        while (true) {
-            spin.animateTo(spin.value + 360f, tween(SleeveSpinMillis, easing = LinearEasing))
-            spin.snapTo(spin.value % 360f)
-        }
-    }
-    return spin
 }
 
 private fun DrawScope.drawSleeveVinyl() {

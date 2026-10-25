@@ -1,5 +1,8 @@
 package com.luc4n3x.levyra.player
 
+import com.luc4n3x.levyra.domain.DerbisBeatGrid
+import com.luc4n3x.levyra.domain.DerbisMixTransitionPreset
+import com.luc4n3x.levyra.domain.DerbisMixTransitionSetting
 import com.luc4n3x.levyra.domain.LevyraAudioSettings
 import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.domain.Track
@@ -137,6 +140,122 @@ class AutoMixPlannerTest {
         assertNull(planAutoMix(current, next, crossfade, RepeatMode.One, videoMode = false, lowRam = false))
         assertNull(planAutoMix(current, next, crossfade, RepeatMode.Off, videoMode = true, lowRam = false))
         assertNull(planAutoMix(current, next, crossfade, RepeatMode.Off, videoMode = false, lowRam = true))
+    }
+
+    @Test
+    fun savedMixStudioDurationWorksEvenWhenGlobalCrossfadeIsOff() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", durationMs = 9_000L)
+        )
+
+        assertEquals(9_000L, plan?.transitionMs)
+    }
+
+    @Test
+    fun enabledAutoMixUsesStudioDefaultWhenGlobalCrossfadeIsOff() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in")
+        )
+
+        assertEquals(6_000L, plan?.transitionMs)
+    }
+
+    @Test
+    fun savedBeatAlignUsesGridPhaseAndBoundedTempoCorrection() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", beatSyncEnabled = true),
+            currentBeatGrid = DerbisBeatGrid(bpm = 120f, downbeatMs = 0L, confidence = .9f),
+            nextBeatGrid = DerbisBeatGrid(bpm = 124f, downbeatMs = 120L, confidence = .9f)
+        )
+
+        assertTrue(plan?.beatAligned == true)
+        assertEquals(174_000L, plan?.transitionStartMs)
+        assertEquals(6_000L, plan?.transitionMs)
+        assertEquals(120f / 124f, plan?.incomingTempo ?: 0f, .001f)
+        assertEquals(120L, plan?.incomingStartMs)
+    }
+
+    @Test
+    fun savedBeatAlignFallsBackWhenTempoWouldNeedAnUnsafeCorrection() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", beatSyncEnabled = true),
+            currentBeatGrid = DerbisBeatGrid(bpm = 90f, downbeatMs = 0L, confidence = .9f),
+            nextBeatGrid = DerbisBeatGrid(bpm = 160f, downbeatMs = 0L, confidence = .9f)
+        )
+
+        assertFalse(plan?.beatAligned == true)
+        assertEquals(1f, plan?.incomingTempo ?: 0f, .001f)
+    }
+
+    @Test
+    fun savedMixStudioFadeUsesLinearGainCurve() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", preset = DerbisMixTransitionPreset.Fade)
+        )
+
+        assertEquals(CrossfadeCurve.LinearFade, plan?.curve)
+        assertEquals(.5f, equalPowerCrossfade(.5f, CrossfadeCurve.LinearFade).incoming, .001f)
+    }
+
+    @Test
+    fun savedMixStudioRiseUsesAnIncomingGainCurve() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", preset = DerbisMixTransitionPreset.Rise)
+        )
+
+        assertEquals(CrossfadeCurve.IncomingRise, plan?.curve)
+        assertTrue(equalPowerCrossfade(.5f, CrossfadeCurve.IncomingRise).incoming < equalPowerCrossfade(.5f).incoming)
+    }
+
+    @Test
+    fun savedMixStudioCutUsesSafeMinimumHandoff() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting("out", "in", preset = DerbisMixTransitionPreset.Cut)
+        )
+
+        assertEquals(800L, plan?.transitionMs)
     }
 
     @Test

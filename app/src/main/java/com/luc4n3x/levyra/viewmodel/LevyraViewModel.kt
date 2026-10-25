@@ -1028,6 +1028,11 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private val recommendationFeedbackStore =
         com.luc4n3x.levyra.data.RecommendationFeedbackStore(application.applicationContext)
     private val playlistStore = com.luc4n3x.levyra.data.PlaylistStore(application.applicationContext)
+    private val mixStudioStore = com.luc4n3x.levyra.data.DerbisMixStudioStore(application.applicationContext)
+    val mixStudio = DerbisMixStudioController(
+        scope = viewModelScope,
+        savePlan = { plan -> mixStudioStore.save(plan) }
+    )
     val personalCollections = PersonalCollectionsController(application.applicationContext, viewModelScope)
     val playlistStudio = PlaylistStudioController(
         scope = viewModelScope,
@@ -3966,6 +3971,15 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun closePlaylistStudio() = playlistStudio.close()
 
+    fun openMixStudio(playlistId: String) {
+        viewModelScope.launch {
+            val playlist = playlistStore.load(playlistId) ?: return@launch
+            mixStudio.open(playlist, mixStudioStore.load(playlistId))
+        }
+    }
+
+    fun closeMixStudio() = mixStudio.close()
+
     fun openMixLab(initialParams: com.luc4n3x.levyra.domain.MixLabParams = com.luc4n3x.levyra.domain.MixLabParams()) {
         mixLab.open(initialParams)
     }
@@ -3989,8 +4003,14 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val pl = playlistStore.load(playlistId) ?: return@launch
             if (pl.tracks.isEmpty()) return@launch
+            val plan = mixStudioStore.load(playlistId)
             val start = startTrackId?.let { id -> pl.tracks.firstOrNull { it.id == id } } ?: pl.tracks.first()
-            playFrom(pl.tracks, start, loopOnCompletion = true)
+            playFrom(
+                pl.tracks,
+                start,
+                loopOnCompletion = true,
+                mixStudioPlaylistId = playlistId.takeIf { plan?.enabled == true }
+            )
         }
     }
 
@@ -9946,12 +9966,19 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         startResolve(contextualQueue.getOrElse(index) { track })
     }
 
-    fun playFrom(list: List<Track>, track: Track, loopOnCompletion: Boolean = false) {
+    fun playFrom(
+        list: List<Track>,
+        track: Track,
+        loopOnCompletion: Boolean = false,
+        mixStudioPlaylistId: String? = null
+    ) {
         if (list.isEmpty()) return
         if (_state.value.jam.role == JamRole.Guest) {
             play(track)
             return
         }
+        if (mixStudioPlaylistId != null) mixStudioStore.activateForQueue(mixStudioPlaylistId, list)
+        else mixStudioStore.clearActiveQueue()
         leaveLiveRadioQueue()
         loopCurrentQueueOnCompletion = loopOnCompletion
         val index = list.indexOfFirst { samePlayableTrack(it, track) }.coerceAtLeast(0)
@@ -11291,35 +11318,38 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         if (request.id != playRequestId) return
         consecutiveUnavailableLocalSkips = 0
         val startPaused = shouldStartPlaybackPaused(request, playRequestId)
-        val selectedIndex = queueEngine.state.value.currentIndex
-        if (selectedIndex >= 0) queueEngine.updateTrackAt(selectedIndex, playable)
-        repository.replace(playable)
-        val resumeMs = resumePositionFor(playable)
-        player.play(playable, _state.value.isVideoMode, startPositionMs = resumeMs)
+        val queueSnapshot = queueEngine.state.value
+        val selectedIndex = queueSnapshot.currentIndex
+        val queuedEntryId = queueSnapshot.tracks.getOrNull(selectedIndex)?.playlistEntryId.orEmpty()
+        val resolved = playable.copy(playlistEntryId = queuedEntryId.ifBlank { playable.playlistEntryId })
+        if (selectedIndex >= 0) queueEngine.updateTrackAt(selectedIndex, resolved)
+        repository.replace(resolved)
+        val resumeMs = resumePositionFor(resolved)
+        player.play(resolved, _state.value.isVideoMode, startPositionMs = resumeMs)
         if (startPaused) player.pause()
         queueEngine.updatePosition(resumeMs)
         pendingSeekMs = 0L
         _state.update {
             it.copy(
-                currentTrack = playable,
+                currentTrack = resolved,
                 selectedVideoSubtitleId = null,
-                tracks = mergeTracks(it.tracks, listOf(playable)),
-                searchResults = mergeTracks(it.searchResults, listOf(playable)),
+                tracks = mergeTracks(it.tracks, listOf(resolved)),
+                searchResults = mergeTracks(it.searchResults, listOf(resolved)),
                 activeLyric = lyricsEngine.currentLine(resumeMs, it.lyrics),
                 isPlaying = !startPaused,
                 isResolving = false,
-                durationMs = effectiveDuration(playable),
+                durationMs = effectiveDuration(resolved),
                 positionMs = resumeMs,
                 cacheReport = repository.cacheReport(),
                 playerError = null
             )
         }
-        handlePlaybackStartSideEffects(playable, startPaused)
-        refreshMotionArtworkAround(playable)
-        refreshVideoQualityState(playable)
-        prefetchAlternateMode(playable, _state.value.isVideoMode)
+        handlePlaybackStartSideEffects(resolved, startPaused)
+        refreshMotionArtworkAround(resolved)
+        refreshVideoQualityState(resolved)
+        prefetchAlternateMode(resolved, _state.value.isVideoMode)
         if (_state.value.selectedTab == LevyraTab.Player) {
-            refreshYoutubeEngagement(playable)
+            refreshYoutubeEngagement(resolved)
         }
         updateWidget()
     }
@@ -11863,6 +11893,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             val currentIdentity = _state.value.currentTrack?.let(::playbackIdentity)
             if (generation != lyricsVersionsGeneration || currentIdentity != trackIdentity) return@launch
             lyricsTrackId = trackIdentity
+            val activeLine = lyricsEngine.currentLine(player.positionMs.coerceAtLeast(0L), result.lines)
             _state.update {
                 it.copy(
                     lyrics = result.lines,
@@ -11873,6 +11904,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                     lyricsConfidence = result.confidence,
                     lyricsCached = result.cached,
                     lyricsManualSelection = true,
+                    activeLyric = activeLine,
                     lyricsVersions = it.lyricsVersions.map { candidate ->
                         candidate.copy(selected = candidate.id == version.id)
                     }
@@ -11934,6 +11966,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 lyricsVersions = emptyList(),
                 lyricsVersionsLoading = false,
                 lyricsManualSelection = if (preserveVisibleLyrics) it.lyricsManualSelection else false,
+                activeLyric = if (preserveVisibleLyrics) it.activeLyric else null,
                 lyricsLoading = true,
                 intelligenceSummary = if (preserveVisibleLyrics) it.intelligenceSummary else com.luc4n3x.levyra.domain.LevyraIntelligenceSummary()
             )
@@ -11957,6 +11990,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                     received = true
                     lyricsTrackId = trackIdentity
                     val lines = result.lines
+                    val activeLine = lyricsEngine.currentLine(player.positionMs.coerceAtLeast(0L), lines)
                     _state.update {
                         it.copy(
                             lyrics = lines,
@@ -11967,6 +12001,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                             lyricsConfidence = result.confidence,
                             lyricsCached = result.cached,
                             lyricsManualSelection = result.manualSelection,
+                            activeLyric = activeLine,
                             lyricsLoading = false
                         )
                     }

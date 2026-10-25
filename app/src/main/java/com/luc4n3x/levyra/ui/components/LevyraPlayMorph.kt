@@ -31,7 +31,6 @@ import com.luc4n3x.levyra.ui.theme.LocalLevyraVisualCapabilities
 
 private const val PlaySpinPeriodDegrees = 30f
 private const val PlaySpinPeriodMillis = 5_200
-private const val ArtworkSpinPeriodMillis = 48_000
 private const val NowPlayingSpinPeriodMillis = 3_600
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -104,9 +103,9 @@ internal fun rememberLevyraArtworkMorphShape(playing: Boolean, animated: Boolean
         morph = ArtworkMorph,
         active = playing,
         animated = animated,
-        spin = true,
-        spinDegrees = 360f,
-        spinMillis = ArtworkSpinPeriodMillis,
+        spin = false,
+        spinDegrees = 0f,
+        spinMillis = 0,
         label = "derbis-artwork-morph"
     )
 

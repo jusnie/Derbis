@@ -1791,6 +1791,7 @@ internal fun LevyraPlaylistDetailScreen(
                     },
                     onResetCover = { viewModel.resetPlaylistCover(playlist.id) },
                     onOpenStudio = { viewModel.openPlaylistStudio(playlist.id) },
+                    onOpenMixStudio = { viewModel.openMixStudio(playlist.id) },
                     onEditTags = { tagEditorOpen = true },
                     onToggleHidden = { viewModel.setPlaylistHidden(playlist.id, !playlist.hidden) },
                     isPinnedToHome = SpeedDial.playlistKey(playlist.id)?.let { key -> state.speedDialPins.any { it.key == key } } == true,

@@ -815,6 +815,7 @@ internal fun PlaylistDetailTopActions(
     onChangeCover: () -> Unit,
     onResetCover: () -> Unit,
     onOpenStudio: () -> Unit,
+    onOpenMixStudio: () -> Unit,
     onEditTags: () -> Unit,
     onToggleHidden: () -> Unit,
     isPinnedToHome: Boolean,
@@ -874,10 +875,17 @@ internal fun PlaylistDetailTopActions(
             modifier = Modifier.background(menuBackground)
         ) {
             DropdownMenuItem(
-                text = { Text(strings.playlistStudioOpen) },
+                text = { Text("Edit playlist") },
                 leadingIcon = { Icon(Icons.Rounded.AutoAwesome, null) },
                 onClick = { menuExpanded = false; onOpenStudio() }
             )
+            if (playlist.tracks.size > 1) {
+                DropdownMenuItem(
+                    text = { Text("Derbis Mix Studio") },
+                    leadingIcon = { Icon(Icons.Rounded.AutoAwesome, null) },
+                    onClick = { menuExpanded = false; onOpenMixStudio() }
+                )
+            }
             DropdownMenuItem(
                 text = {
                     Text(

@@ -42,7 +42,8 @@ class PersistentQueueOrderTest {
             id = "",
             videoUrl = "",
             title = "Unresolved title",
-            artist = "Unresolved artist"
+            artist = "Unresolved artist",
+            playlistEntryId = "mix-entry-4"
         )
         val resolved = track(9).copy(
             id = "resolved-track",
@@ -57,6 +58,7 @@ class PersistentQueueOrderTest {
 
         assertEquals(expectedIdentity, playbackQueueIdentity(replacement))
         assertEquals(resolved.streamUrl, replacement.streamUrl)
+        assertEquals("mix-entry-4", replacement.playlistEntryId)
     }
 
     @Test

@@ -1,9 +1,18 @@
 name: Build Derbis Release APK
 
+# Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
+# release secret are configured and device validation has passed.
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Test release tag"
+        required: true
+        default: "v1.0.3-test.1"
+      release_name:
+        description: "Visible test release name"
+        required: true
+        default: "Derbis v1.0.3 Test 1"
 
 permissions:
   contents: write
@@ -37,7 +46,34 @@ jobs:
       - name: Make Gradle Wrapper Executable
         run: chmod +x gradlew
 
-      - name: Build Derbis Release APK
+      - name: Fetch optional authorized Discord Social SDK
+        env:
+          DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${DISCORD_SOCIAL_SDK_URL}" ]]; then
+            mkdir -p app/libs
+            curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}"
+            unzip -tq app/libs/discord_partner_sdk.aar
+          else
+            echo "Discord SDK URL is not configured; this test APK will leave Discord Rich Presence unavailable."
+          fi
+
+      - name: Report optional remote Jam relay configuration
+        env:
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
+        shell: bash
+        run: |
+          if [[ "${DERBIS_JAM_RELAY_URL}" =~ ^wss://.+/jam$ ]]; then
+            echo "Using configured Derbis Jam relay."
+          else
+            echo "No Derbis Jam relay configured; test APK will safely use Derbis Jam — LAN."
+          fi
+
+      - name: Build Derbis Test APK
+        env:
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Stage Release APK
@@ -55,20 +91,29 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: "Derbis v1.0.3"
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name }}
           draft: false
-          prerelease: false
+          prerelease: true
           body: |
-            ## Derbis v1.0.3 Release
-            - ◈ **New Derbis Logo**: Updated Android adaptive launcher icons, notification artwork, desktop PNG, and Windows icon.
-            - 🎛️ **DJ Mix**: Crossfade / DJ transition control now supports 0–30 seconds; handoff logic prevents the occasional doubled-voice replay between tracks.
-            - 🎬 **Animated Artwork**: Auto-selects the best available motion artwork, with Spotify Canvas, Apple Music, and TIDAL choices.
-            - 🍎 **Apple Music Player Refresh**: Latest-style player presentation, audio badge, animated artwork stage, and synchronized lyric-line preview.
-            - ⚡ **Lite Mode & High Refresh Rate**: Low-end optimization disables costly visuals; optional 90/120Hz display mode is available on supported devices.
-            - ∞ **Endless Queue**: Continuous-radio queue capacity increased to 1,000 tracks with lazy scrolling.
-            - 🧾 **Insights**: Derbis Wrapped and shareable Receiptify-style top-song cards are now fully Derbis-branded.
-            - 🫧 **Liquid Glass**: Retained as a configurable player/interface design option.
+            ## Derbis v1.0.3 test build
+
+            ### New
+            - **Derbis Mix Studio:** saved, playlist-specific transition plans with Auto Mix, editable handoff modes, durations, and a mixed-playback toggle.
+            - **Beat Align (beta):** local PCM BPM and beat-grid analysis; a transition only aligns when both tracks have confident local grids and a safe tempo correction is available.
+            - **Spotify playlist imports:** saved playlist titles are explicitly labelled `Imported from Spotify`.
+            - **Metrolist-compatible remote groundwork:** binary protobuf client protocol support has been added for a user-selected, authorized Metroserver endpoint. Public relays are not used by default.
+
+            ### Fixed
+            - Removed decorative rotating album sleeve and continuously spinning artwork shape.
+            - Cleared stale active lyric lines during track changes and immediately selected the correct active line after lyric results load.
+            - Preserved playlist-entry identities through playback resolution and crossfade handoff so Mix Studio transition settings remain attached to the right tracks.
+            - Crossfade handoff protections remain in place to avoid doubled audio voices.
+
+            ### Test-build limitations
+            - Discord Rich Presence is unavailable unless the repository has an authorized `DISCORD_SOCIAL_SDK_URL` secret.
+            - Without a configured owned relay, Jam remains **Derbis Jam — LAN**.
+            - The Metroserver path and Beat Align require device testing before stable release.
           files: build-assets/Derbis.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

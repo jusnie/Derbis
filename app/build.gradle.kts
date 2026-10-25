@@ -84,6 +84,23 @@ val canvasClientKey = if (isFdroidBuild) {
 } else {
     envOrProperty("LEVYRA_CANVAS_CLIENT_KEY", "levyraCanvasClientKey")
 }
+val derbisJamRelayUrl = if (isFdroidBuild) {
+    ""
+} else {
+    envOrProperty("DERBIS_JAM_RELAY_URL", "derbisJamRelayUrl")
+}
+// Spotify client IDs are public identifiers for installed apps. OAuth is protected by PKCE;
+// never add a Spotify client secret to Android, this repository, or GitHub Actions.
+val spotifyClientId = if (isFdroidBuild) "" else envOrProperty("SPOTIFY_CLIENT_ID", "spotifyClientId")
+    .ifBlank { "27265553b42446a7b5d8ab9027dd0bb2" }
+val spotifyRedirectUri = if (isFdroidBuild) "" else envOrProperty("SPOTIFY_REDIRECT_URI", "spotifyRedirectUri")
+    .ifBlank { "derbis-spotify://callback" }
+// The Discord Social SDK is a proprietary build-time dependency supplied by Discord's portal.
+// It stays out of source control and is downloaded only by authorized upstream release builds.
+val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
+val discordSocialSdkAvailable = !isFdroidBuild && discordSocialSdkAar.isFile
+val discordApplicationId = if (isFdroidBuild) "" else envOrProperty("DISCORD_APPLICATION_ID", "discordApplicationId")
+    .ifBlank { "1563840846372012102" }
 val releaseStoreFilePath = envOrProperty("LEVYRA_KEYSTORE_FILE", "levyraStoreFile").ifBlank { "app/derbis-release.jks" }
 val releaseStorePassword = envOrProperty("LEVYRA_KEYSTORE_PASSWORD", "levyraStorePassword").ifBlank { "derbis123" }
 val releaseKeyAlias = envOrProperty("LEVYRA_KEY_ALIAS", "levyraKeyAlias").ifBlank { "derbis" }
@@ -169,6 +186,11 @@ android {
         buildConfigField("String", "YOUTUBE_INNERTUBE_API_KEY", buildConfigString(youtubeInnertubeApiKey))
         buildConfigField("String", "CANVAS_RESOLVER_URL", buildConfigString(canvasResolverUrl))
         buildConfigField("String", "CANVAS_CLIENT_KEY", buildConfigString(canvasClientKey))
+        buildConfigField("String", "JAM_RELAY_URL", buildConfigString(derbisJamRelayUrl))
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", buildConfigString(spotifyClientId))
+        buildConfigField("String", "SPOTIFY_REDIRECT_URI", buildConfigString(spotifyRedirectUri))
+        buildConfigField("boolean", "DISCORD_SOCIAL_SDK_AVAILABLE", discordSocialSdkAvailable.toString())
+        buildConfigField("String", "DISCORD_APPLICATION_ID", buildConfigString(discordApplicationId))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -249,6 +271,23 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        prefab = discordSocialSdkAvailable
+    }
+
+    if (discordSocialSdkAvailable) {
+        defaultConfig {
+            externalNativeBuild {
+                cmake {
+                    cppFlags += listOf("-std=c++17")
+                }
+            }
+        }
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
+        }
     }
 
     dependenciesInfo {
@@ -298,6 +337,9 @@ configurations.configureEach {
 }
 
 dependencies {
+    if (discordSocialSdkAvailable) {
+        implementation(files(discordSocialSdkAar))
+    }
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     if (!isFdroidBuild) implementation(libs.androidx.fragment.ktx)
