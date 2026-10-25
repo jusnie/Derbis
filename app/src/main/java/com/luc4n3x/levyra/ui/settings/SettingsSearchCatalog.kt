@@ -68,7 +68,6 @@ private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: LevyraSt
     entry("design.app_font", strings.appFont, strings.appFontSubtitle, "font typography text", categories.design)
     entry("design.animations", strings.animations, strings.animationsSubtitle, "animation motion", categories.design)
     entry("design.visual_performance", strings.visualPerformance, strings.visualPerformanceFullSubtitle, "${strings.visualPerformanceAuto} ${strings.visualPerformanceSmooth} performance fps", categories.design)
-    entry("design.gentle_artwork_drift", "Gentle cover movement", "Slowly slides the Now Playing album cover side to side.", "album cover artwork slide side to side motion", categories.design)
     entry("design.liquid_glass", strings.liquidGlass, strings.liquidGlassSubtitle, "glass blur transparency", categories.design)
     entry("design.dynamic_color", strings.dynamicColor, strings.dynamicColorSubtitle, "material you color wallpaper", categories.design)
     entry("home.compact", strings.compactHome, strings.compactHomeSubtitle, "home layout", categories.home)

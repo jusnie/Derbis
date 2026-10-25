@@ -890,8 +890,6 @@ private fun LevyraNowPlayingContent(
                         livingArtwork = livingArtwork,
                         animationsEnabled = animated && !state.isVideoMode,
                         motionEnabled = motionEnabled && !lyricsFlip.lyricsSettled,
-                        gentleArtworkDriftEnabled = state.interfaceSettings.gentleArtworkDriftEnabled &&
-                            !state.interfaceSettings.liteMode && !motionSuspended,
                         isPlaying = state.isPlaying,
                         cornerRadius = artworkCorner,
                         canvasQuality = state.interfaceSettings.canvasQuality,

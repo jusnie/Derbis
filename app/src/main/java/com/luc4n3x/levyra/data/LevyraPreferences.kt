@@ -243,7 +243,6 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_UI_CANVAS_QUALITY] = normalizedInterface.canvasQuality.name
             mutable[KEY_UI_CANVAS_SOURCE] = normalizedInterface.canvasSource.name
             mutable[KEY_UI_VISUAL_PERFORMANCE] = normalizedInterface.visualPerformance.name
-            mutable[KEY_UI_GENTLE_ARTWORK_DRIFT] = normalizedInterface.gentleArtworkDriftEnabled
             mutable[KEY_UI_LIQUID_GLASS] = normalizedInterface.liquidGlassEnabled
             mutable[KEY_UI_LITE_MODE] = normalizedInterface.liteMode
             mutable[KEY_UI_FORCE_HIGH_REFRESH_RATE] = normalizedInterface.forceHighRefreshRate
@@ -429,7 +428,6 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_UI_CANVAS_QUALITY] = normalized.canvasQuality.name
             it[KEY_UI_CANVAS_SOURCE] = normalized.canvasSource.name
             it[KEY_UI_VISUAL_PERFORMANCE] = normalized.visualPerformance.name
-            it[KEY_UI_GENTLE_ARTWORK_DRIFT] = normalized.gentleArtworkDriftEnabled
             it[KEY_UI_LIQUID_GLASS] = normalized.liquidGlassEnabled
             it[KEY_UI_GLASS_BLUR] = normalized.glassBlur
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
@@ -877,7 +875,6 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             canvasQuality = LevyraCanvasQuality.from(preferences[KEY_UI_CANVAS_QUALITY].orEmpty()),
             canvasSource = LevyraCanvasSource.from(preferences[KEY_UI_CANVAS_SOURCE].orEmpty()),
             visualPerformance = LevyraVisualPerformance.from(preferences[KEY_UI_VISUAL_PERFORMANCE].orEmpty()),
-            gentleArtworkDriftEnabled = preferences[KEY_UI_GENTLE_ARTWORK_DRIFT] ?: true,
             liquidGlassEnabled = preferences[KEY_UI_LIQUID_GLASS] ?: true,
             liteMode = preferences[KEY_UI_LITE_MODE] ?: false,
             forceHighRefreshRate = preferences[KEY_UI_FORCE_HIGH_REFRESH_RATE] ?: false,
@@ -1392,7 +1389,6 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_UI_CANVAS_QUALITY = stringPreferencesKey("ui_canvas_quality")
         val KEY_UI_CANVAS_SOURCE = stringPreferencesKey("ui_canvas_source")
         val KEY_UI_VISUAL_PERFORMANCE = stringPreferencesKey("ui_visual_performance")
-        val KEY_UI_GENTLE_ARTWORK_DRIFT = booleanPreferencesKey("ui_gentle_artwork_drift")
         val KEY_UI_LIQUID_GLASS = booleanPreferencesKey("ui_liquid_glass")
         val KEY_UI_LITE_MODE = booleanPreferencesKey("ui_lite_mode")
         val KEY_UI_FORCE_HIGH_REFRESH_RATE = booleanPreferencesKey("ui_force_high_refresh_rate")

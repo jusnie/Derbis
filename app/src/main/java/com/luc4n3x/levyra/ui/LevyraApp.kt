@@ -21063,17 +21063,6 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
-                            item {
-                                SettingsToggle(
-                                    icon = Icons.Rounded.Album,
-                                    title = "Gentle cover movement",
-                                    subtitle = "Slowly slides the Now Playing album cover side to side. This is a local visual effect, not Spotify Canvas or video.",
-                                    checked = interfaceSettings.gentleArtworkDriftEnabled,
-                                    onCheckedChange = { value ->
-                                        onInterfaceSettings(interfaceSettings.copy(gentleArtworkDriftEnabled = value))
-                                    }
-                                )
-                            }
                             skinSettingsItems(interfaceSettings.skin, defaults = {
                             item {
                                 SettingsToggle(

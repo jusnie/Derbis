@@ -1,7 +1,6 @@
 package com.luc4n3x.levyra.ui.player
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -23,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -46,16 +44,12 @@ import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
 import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraPlayerDesign
 import com.luc4n3x.levyra.ui.theme.nonNegativeCornerRadius
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.isActive
 
 private const val ArtworkGlowPlaying = 0.42f
 private const val ArtworkGlowPaused = 0.18f
 private const val ArtworkGlowReach = 0.86f
 private const val ArtworkGlowDrop = 0.10f
 private const val ArtworkLandingMs = 260
-private const val ArtworkDriftLegMs = 7_500
-private val ArtworkDriftDistance = 8.dp
 
 @Composable
 internal fun PlayerArtworkHero(
@@ -65,7 +59,6 @@ internal fun PlayerArtworkHero(
     livingArtwork: LivingArtworkColors?,
     animationsEnabled: Boolean,
     motionEnabled: Boolean,
-    gentleArtworkDriftEnabled: Boolean,
     isPlaying: Boolean,
     cornerRadius: Dp,
     canvasQuality: LevyraCanvasQuality,
@@ -107,19 +100,6 @@ internal fun PlayerArtworkHero(
         trackChangeScale.animateTo(1f, LevyraMotion.spatial.spec())
     }
     val artworkShape = RoundedCornerShape(nonNegativeCornerRadius(cornerRadius))
-    val artworkDrift = remember { Animatable(0f) }
-    val driftActive = gentleArtworkDriftEnabled && animationsEnabled && isPlaying
-    LaunchedEffect(track.id, driftActive) {
-        if (!driftActive) {
-            artworkDrift.snapTo(0f)
-            return@LaunchedEffect
-        }
-        while (currentCoroutineContext().isActive) {
-            artworkDrift.animateTo(1f, tween(ArtworkDriftLegMs, easing = LinearEasing))
-            artworkDrift.animateTo(-1f, tween(ArtworkDriftLegMs, easing = LinearEasing))
-        }
-    }
-    val driftDistancePx = with(LocalDensity.current) { ArtworkDriftDistance.toPx() }
 
     Box(
         modifier = modifier
@@ -177,13 +157,7 @@ internal fun PlayerArtworkHero(
                     livingArtwork = livingArtwork,
                     dynamicBackdropEnabled = dynamicBackdropEnabled,
                     onDynamicBackdropPalette = onDynamicBackdropPalette,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            scaleX = if (driftActive) 1.035f else 1f
-                            scaleY = if (driftActive) 1.035f else 1f
-                            translationX = artworkDrift.value * driftDistancePx
-                        }
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     SeamlessArtworkImage(url = artworkUrl, modifier = Modifier.fillMaxSize()) {
                         InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize())
