@@ -59,8 +59,12 @@ jobs:
           set -euo pipefail
           if [[ -n "${DISCORD_SOCIAL_SDK_URL}" ]]; then
             mkdir -p app/libs
-            curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}"
-            unzip -tq app/libs/discord_partner_sdk.aar
+            if curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}" && unzip -tq app/libs/discord_partner_sdk.aar; then
+              echo "Authorized Discord SDK supplied for this build."
+            else
+              rm -f app/libs/discord_partner_sdk.aar
+              echo "Discord SDK could not be fetched or verified; continuing without Rich Presence."
+            fi
           else
             echo "Discord SDK URL is not configured; this test APK will leave Discord Rich Presence unavailable."
           fi
