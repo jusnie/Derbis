@@ -3098,6 +3098,7 @@ fun LevyraApp(
                     onTogglePlay = viewModel::togglePlay,
                     onNext = viewModel::next,
                     onOpenLyricsStudio = viewModel::openLyricsStudio,
+                    onUpdateLyricsStudioSettings = viewModel::setLyricsStudioSettings,
                     onClose = viewModel::closeLyrics
                 )
             }
@@ -7806,6 +7807,7 @@ private fun LyricsOverlay(
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
     onOpenLyricsStudio: () -> Unit = {},
+    onUpdateLyricsStudioSettings: (LevyraLyricsStudioSettings) -> Unit = {},
     onClose: () -> Unit
 ) {
     val strings = LocalLevyraStrings.current
@@ -7835,7 +7837,11 @@ private fun LyricsOverlay(
     )
     val trackLyricsOffsetMs = latencyProfiles.trackOffsetMs(track?.id)
     val lyricsOffsetMs = latencyOffsetMs + trackLyricsOffsetMs
-    var viewMode by remember(track?.id) { mutableStateOf(LyricsViewMode.CINEMA) }
+    val appleMusic13Lyrics = state.lyricsStudioSettings.appleMusic13LyricsEnabled
+    var viewMode by remember(track?.id, appleMusic13Lyrics) { mutableStateOf(LyricsViewMode.CINEMA) }
+    LaunchedEffect(appleMusic13Lyrics) {
+        if (appleMusic13Lyrics) viewMode = LyricsViewMode.CINEMA
+    }
     var showRomanization by rememberSaveable { mutableStateOf(true) }
     val showTranslation = state.lyricsTranslationEnabled
     val translationContext = LocalContext.current
@@ -7868,7 +7874,9 @@ private fun LyricsOverlay(
     var showSecondaryVoices by remember(track?.id) { mutableStateOf(true) }
     var autoScrollEnabled by remember(track?.id) { mutableStateOf(true) }
     val lyricsAnimationsEnabled = LocalAnimationsEnabled.current
-    var lyricsFocusMode by remember(track?.id) { mutableStateOf(lyricsAnimationsEnabled) }
+    var lyricsFocusMode by remember(track?.id, appleMusic13Lyrics) {
+        mutableStateOf(if (appleMusic13Lyrics) true else lyricsAnimationsEnabled)
+    }
     var userScrollGeneration by remember { mutableIntStateOf(0) }
     var showLyricsOptions by remember(track?.id) { mutableStateOf(false) }
     var initialLyricsPositioned by remember(track?.id) { mutableStateOf(false) }
@@ -8136,7 +8144,9 @@ private fun LyricsOverlay(
             .fillMaxSize()
             .consumeOverlayTouches()
     ) {
-        val studioSettings = state.lyricsStudioSettings
+        // Exactly one renderer is resolved here. Apple Music 13 settings intentionally override
+        // dormant Derbis Studio visuals until the user switches the renderer back off.
+        val studioSettings = state.lyricsStudioSettings.settingsForActiveLyricsRenderer()
         if (studioSettings.spotifyLyricsApplies()) {
             SpotifyLyricsBackdrop(track)
         } else if (landscapeLayout && studioSettings.backgroundMode !in setOf(
@@ -8578,6 +8588,23 @@ private fun LyricsOverlay(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                LyricsControlChip(
+                    label = strings.appleMusic13Lyrics,
+                    selected = appleMusic13Lyrics,
+                    icon = Icons.Rounded.MusicNote,
+                    onClick = {
+                        onUpdateLyricsStudioSettings(
+                            state.lyricsStudioSettings.copy(
+                                appleMusic13LyricsEnabled = !appleMusic13Lyrics
+                            )
+                        )
+                        if (!appleMusic13Lyrics) {
+                            viewMode = LyricsViewMode.CINEMA
+                            lyricsFocusMode = true
+                        }
+                    }
+                )
+                if (!appleMusic13Lyrics) {
                 val modeLabel = when (viewMode) {
                     LyricsViewMode.CINEMA -> strings.lyricsCinema
                     LyricsViewMode.PAGE -> strings.lyricsPage
@@ -8616,6 +8643,7 @@ private fun LyricsOverlay(
                     icon = Icons.Rounded.Visibility,
                     onClick = { lyricsFocusMode = !lyricsFocusMode }
                 )
+                }
                 val translationLabel = when (state.lyricsTranslationState) {
                     LyricsTranslationState.ON_DEVICE -> "${strings.automaticTranslation} · ${strings.offline}"
                     LyricsTranslationState.MODEL_DOWNLOAD_REQUIRED -> "${strings.automaticTranslation} · ${strings.download}"

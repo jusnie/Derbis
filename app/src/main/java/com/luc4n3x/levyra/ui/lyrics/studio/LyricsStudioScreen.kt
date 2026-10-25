@@ -180,14 +180,58 @@ internal fun LyricsStudioOverlay(
                             fontWeight = FontWeight.Medium
                         )
                     }
-                    IconButton(
-                        onClick = { showResetDialog = true },
-                        modifier = Modifier.size(LevyraPlayerDesign.MinimumTouchTarget)
+                    if (!settings.appleMusic13LyricsEnabled) {
+                        IconButton(
+                            onClick = { showResetDialog = true },
+                            modifier = Modifier.size(LevyraPlayerDesign.MinimumTouchTarget)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.RestartAlt,
+                                contentDescription = strings.lyricsStudioReset,
+                                tint = LevyraMuted
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Renderer selection is independent of visual presets.  Apple Music 13 is deliberately
+            // exclusive: the standard Derbis renderer stays dormant until this switch is turned off.
+            item(contentType = "studio-renderer") {
+                StudioCard {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.RestartAlt,
-                            contentDescription = strings.lyricsStudioReset,
-                            tint = LevyraMuted
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            tint = if (settings.appleMusic13LyricsEnabled) LevyraCyan else LevyraMuted
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = strings.appleMusic13Lyrics,
+                                color = LevyraText,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = strings.appleMusic13LyricsSubtitle,
+                                color = LevyraMuted,
+                                fontSize = 12.sp,
+                                lineHeight = LevyraTypeRhythm.lineHeight(12f)
+                            )
+                        }
+                        Switch(
+                            checked = settings.appleMusic13LyricsEnabled,
+                            onCheckedChange = {
+                                onUpdateSettings(settings.copy(appleMusic13LyricsEnabled = it))
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = LevyraInk,
+                                checkedTrackColor = LevyraCyan
+                            )
                         )
                     }
                 }
@@ -196,7 +240,7 @@ internal fun LyricsStudioOverlay(
             // Live Preview Card
             item(contentType = "studio-preview") {
                 LyricsStudioLivePreview(
-                    settings = settings,
+                    settings = settings.settingsForActiveLyricsRenderer(),
                     currentTrack = currentTrack,
                     liveLyrics = liveLyrics,
                     lyricsSynced = lyricsSynced,
@@ -205,6 +249,7 @@ internal fun LyricsStudioOverlay(
                 )
             }
 
+            if (!settings.appleMusic13LyricsEnabled) {
             // Presets Selector (5 Stili di Testi)
             item(contentType = "studio-presets") {
                 StudioSectionHeader(
@@ -659,6 +704,7 @@ internal fun LyricsStudioOverlay(
                         )
                     }
                 }
+            }
             }
         }
     }

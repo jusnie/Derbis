@@ -20,6 +20,7 @@ class LevyraLyricsStudioSettingsTest {
         assertEquals(LyricsGlowEffect.OFF, settings.glowEffect)
         assertTrue(settings.progressiveKaraokeEnabled)
         assertTrue(settings.blurEnabled)
+        assertFalse(settings.appleMusic13LyricsEnabled)
     }
 
     @Test
@@ -87,6 +88,27 @@ class LevyraLyricsStudioSettingsTest {
         val decoded = LevyraLyricsStudioSettings.decode(json)
 
         assertEquals(original, decoded)
+    }
+
+    @Test
+    fun appleMusic13RendererRoundTripsAndRemainsExclusiveOfPresetChanges() {
+        val enabled = LevyraLyricsStudioSettings(
+            stylePreset = LyricsStylePreset.CINEMATIC,
+            appleMusic13LyricsEnabled = true
+        )
+
+        assertTrue(LevyraLyricsStudioSettings.decode(enabled.encode()).appleMusic13LyricsEnabled)
+        assertTrue(enabled.applyPreset(LyricsStylePreset.MINIMAL).appleMusic13LyricsEnabled)
+        val rendered = enabled.settingsForActiveLyricsRenderer()
+        assertEquals(LyricsBackgroundMode.BLURRED_ARTWORK, rendered.backgroundMode)
+        assertEquals(LyricsAlignment.CENTER, rendered.alignment)
+        assertFalse(enabled.copy(appleMusic13LyricsEnabled = false).appleMusic13LyricsEnabled)
+    }
+
+    @Test
+    fun decodingLegacyLyricsSettingsDefaultsAppleMusic13RendererOff() {
+        val legacy = LevyraLyricsStudioSettings.decode("""{"stylePreset":"CINEMATIC"}""")
+        assertFalse(legacy.appleMusic13LyricsEnabled)
     }
 
     @Test

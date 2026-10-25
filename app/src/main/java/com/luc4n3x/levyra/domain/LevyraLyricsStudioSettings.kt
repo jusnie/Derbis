@@ -117,12 +117,34 @@ data class LevyraLyricsStudioSettings(
     val glowEffect: LyricsGlowEffect = LyricsGlowEffect.OFF,
     val backgroundMode: LyricsBackgroundMode = LyricsBackgroundMode.ORIGINAL,
     val progressiveKaraokeEnabled: Boolean = true,
-    val blurEnabled: Boolean = true
+    val blurEnabled: Boolean = true,
+    /** Uses the dedicated Apple Music 13-inspired lyrics renderer, not Derbis lyrics styling. */
+    val appleMusic13LyricsEnabled: Boolean = false
 ) {
     fun normalized(): LevyraLyricsStudioSettings = copy(
         inactiveOpacity = inactiveOpacity.coerceIn(0.15f, 0.90f),
         inactiveScale = inactiveScale.coerceIn(0.70f, 1.0f)
     )
+
+    /**
+     * Resolves the one renderer that may draw in the full-screen overlay.  The saved Derbis
+     * Studio choices are kept intact for when the user explicitly switches this renderer off.
+     */
+    fun settingsForActiveLyricsRenderer(): LevyraLyricsStudioSettings =
+        if (!appleMusic13LyricsEnabled) this else copy(
+            stylePreset = LyricsStylePreset.EXPRESSIVE_KARAOKE,
+            textSize = LyricsTextSize.LARGE,
+            fontWeight = LyricsFontWeightPreset.BOLD,
+            alignment = LyricsAlignment.CENTER,
+            lineSpacing = LyricsLineSpacing.RELAXED,
+            inactiveOpacity = 0.30f,
+            inactiveScale = 0.88f,
+            activeColorMode = LyricsActiveColorMode.WHITE,
+            glowEffect = LyricsGlowEffect.SUBTLE,
+            backgroundMode = LyricsBackgroundMode.BLURRED_ARTWORK,
+            progressiveKaraokeEnabled = true,
+            blurEnabled = true
+        )
 
     fun applyPreset(preset: LyricsStylePreset): LevyraLyricsStudioSettings = when (preset) {
         LyricsStylePreset.LEVYRA_ORIGINAL -> LevyraLyricsStudioSettings(
@@ -205,7 +227,7 @@ data class LevyraLyricsStudioSettings(
             progressiveKaraokeEnabled = true,
             blurEnabled = true
         )
-    }
+    }.copy(appleMusic13LyricsEnabled = appleMusic13LyricsEnabled)
 
     fun encode(): String = JSONObject().apply {
         put("stylePreset", stylePreset.name)
@@ -222,6 +244,7 @@ data class LevyraLyricsStudioSettings(
         put("backgroundMode", backgroundMode.name)
         put("progressiveKaraokeEnabled", progressiveKaraokeEnabled)
         put("blurEnabled", blurEnabled)
+        put("appleMusic13LyricsEnabled", appleMusic13LyricsEnabled)
     }.toString()
 
     companion object {
@@ -243,7 +266,8 @@ data class LevyraLyricsStudioSettings(
                     glowEffect = LyricsGlowEffect.from(json.optString("glowEffect")),
                     backgroundMode = LyricsBackgroundMode.from(json.optString("backgroundMode")),
                     progressiveKaraokeEnabled = json.optBoolean("progressiveKaraokeEnabled", true),
-                    blurEnabled = json.optBoolean("blurEnabled", true)
+                    blurEnabled = json.optBoolean("blurEnabled", true),
+                    appleMusic13LyricsEnabled = json.optBoolean("appleMusic13LyricsEnabled", false)
                 ).normalized()
             }.getOrDefault(LevyraLyricsStudioSettings())
         }
