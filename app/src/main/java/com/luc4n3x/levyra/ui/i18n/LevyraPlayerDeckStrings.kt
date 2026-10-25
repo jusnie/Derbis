@@ -16,6 +16,8 @@ internal val playerDeckKeys = setOf(
     "playerDeckFolioHint",
     "playerDeckFlow",
     "playerDeckFlowHint",
+    "playerDeckAppleMusic13",
+    "playerDeckAppleMusic13Hint",
     "playerDeckDefaultBadge",
     "playerDeckLandscapeNote"
 )
@@ -321,6 +323,8 @@ internal fun playerDeckLocalizationEntries(code: String): Map<String, String> =
         "playerDeckFolio" to "Folio",
         "playerDeckFolioHint" to (playerDeckFolioHints[code] ?: playerDeckFolioHints.getValue("en")),
         "playerDeckFlow" to "Derbis Flow",
+        "playerDeckAppleMusic13" to "Apple Music 13",
+        "playerDeckAppleMusic13Hint" to "Full artwork, colour field, active lyric and stream details.",
         "playerDeckCardHint" to (playerDeckSleeveHints[code] ?: playerDeckSleeveHints.getValue("en")),
         "playerDeckFlowHint" to (playerDeckFlowHints[code] ?: playerDeckFlowHints.getValue("en")),
         "playerDeckDefaultBadge" to (playerDeckDefaultBadges[code] ?: playerDeckDefaultBadges.getValue("en"))

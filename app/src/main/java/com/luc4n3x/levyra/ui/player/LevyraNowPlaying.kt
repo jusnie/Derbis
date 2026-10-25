@@ -209,7 +209,8 @@ fun LevyraNowPlaying(
     onOpenPlaylistDialog: ((Track) -> Unit)? = null
 ) {
     val velvet = !LevyraSkinManagesLayout && state.interfaceSettings.playerVisualMode == PlayerVisualMode.CanvasImmersive
-    AppleMusicPlayerStyleScope(velvet) {
+    val appleMusic13 = !LevyraSkinManagesLayout && state.interfaceSettings.playerVisualMode == PlayerVisualMode.AppleMusic13
+    AppleMusicPlayerStyleScope(velvet || appleMusic13) {
         LevyraNowPlayingContent(
             viewModel, state, morphAnchors, morphActive, collapseActions, modifier, motionSuspended,
             modeSwitchContent, videoSurfaceContent, gestureLayerContent, engagementContent,
@@ -252,7 +253,8 @@ private fun LevyraNowPlayingContent(
     val selectedVisualMode = if (LevyraIsPrism) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
     val velvetAppleMusic = appleMusicPalette != null
-    val appleMusicPlayer = LevyraIsAppleMusic || velvetAppleMusic
+    val appleMusicDeck = !LevyraSkinManagesLayout && selectedVisualMode == PlayerVisualMode.AppleMusic13
+    val appleMusicPlayer = LevyraIsAppleMusic || velvetAppleMusic || appleMusicDeck
     val visualMode = if (velvetAppleMusic) PlayerVisualMode.Artwork else selectedVisualMode
     val backgroundMode = state.interfaceSettings.playerBackground.let { selected ->
         if (nocturne || selected == PlayerBackgroundMode.Dark && state.interfaceSettings.pureBlack) {
@@ -2305,7 +2307,7 @@ internal fun visualModeStateDescription(
     PlayerVisualMode.Artwork -> strings.playerVisualModeArtwork
     PlayerVisualMode.CanvasCard -> strings.playerVisualModeCanvasCard
     PlayerVisualMode.CanvasImmersive -> strings.playerVisualModeCanvasImmersive
-    PlayerVisualMode.Expressive -> strings.playerDeckExpressive
+    PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
     PlayerVisualMode.Pulse -> strings.playerDeckPulse
     PlayerVisualMode.Halo -> strings.playerDeckHalo
     PlayerVisualMode.Folio -> strings.playerDeckFolio
@@ -2316,7 +2318,7 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Artwork -> Icons.Rounded.Image
     PlayerVisualMode.CanvasCard -> Icons.Rounded.AutoAwesome
     PlayerVisualMode.CanvasImmersive -> Icons.Rounded.BlurOn
-    PlayerVisualMode.Expressive -> Icons.Rounded.Interests
+    PlayerVisualMode.AppleMusic13 -> Icons.Rounded.MusicNote
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Halo -> Icons.Rounded.Album
     PlayerVisualMode.Folio -> Icons.Rounded.Newspaper

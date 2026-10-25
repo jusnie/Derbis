@@ -295,7 +295,7 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: LevyraStrings): St
         PlayerVisualMode.CanvasImmersive -> labels.immersive
         PlayerVisualMode.CanvasCard -> labels.canvasCard
         PlayerVisualMode.Artwork -> labels.artwork
-        PlayerVisualMode.Expressive -> labels.expressive
+        PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
         PlayerVisualMode.Pulse -> labels.pulse
         PlayerVisualMode.Halo -> labels.halo
         PlayerVisualMode.Folio -> labels.folio
@@ -307,7 +307,7 @@ internal fun playerDeckHint(mode: PlayerVisualMode, strings: LevyraStrings): Str
     PlayerVisualMode.CanvasImmersive -> strings.playerDeckImmersiveHint
     PlayerVisualMode.CanvasCard -> strings.playerDeckCardHint
     PlayerVisualMode.Artwork -> strings.playerDeckArtworkHint
-    PlayerVisualMode.Expressive -> strings.playerDeckExpressiveHint
+    PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13Hint
     PlayerVisualMode.Pulse -> strings.playerDeckPulseHint
     PlayerVisualMode.Halo -> strings.playerDeckHaloHint
     PlayerVisualMode.Folio -> strings.playerDeckFolioHint
@@ -325,7 +325,7 @@ private fun PlayerDeckPreview(
         PlayerVisualMode.CanvasImmersive -> ImmersivePreview(track, artworkUrl, accent)
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
-        PlayerVisualMode.Expressive -> ExpressivePreview(track, artworkUrl, accent)
+        PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
         PlayerVisualMode.Pulse -> PulsePreview(track, artworkUrl, accent)
         PlayerVisualMode.Halo -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Folio -> ExpressivePreview(track, artworkUrl, accent)
@@ -384,6 +384,38 @@ private fun ImmersivePreview(track: Track, artworkUrl: String, accent: Color) {
                 )
         )
         PreviewControls(accent = accent, modifier = Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color) {
+    val field = lerp(accent, Color.Black, 0.58f)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.82f), field, Color.Black)))
+    ) {
+        DeckArtwork(
+            track = track,
+            artworkUrl = artworkUrl,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 14.dp)
+                .fillMaxWidth(0.78f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(10.dp))
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Box(Modifier.fillMaxWidth().height(2.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.40f)))
+        }
     }
 }
 

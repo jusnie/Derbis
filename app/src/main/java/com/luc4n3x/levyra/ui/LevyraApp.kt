@@ -21477,7 +21477,7 @@ private fun SettingsOverlay(
                                         PlayerVisualMode.Artwork.name to strings.playerVisualModeArtwork,
                                         PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
                                         PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
-                                        PlayerVisualMode.Expressive.name to strings.playerDeckExpressive,
+                                        PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
                                         PlayerVisualMode.Halo.name to strings.playerDeckHalo,
                                         PlayerVisualMode.Folio.name to strings.playerDeckFolio,

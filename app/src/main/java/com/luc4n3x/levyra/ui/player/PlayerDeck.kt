@@ -23,7 +23,8 @@ internal enum class PlayerDeckLayout {
     Halo,
     Folio,
     Flow,
-    Sleeve
+    Sleeve,
+    AppleMusic13
 }
 
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
@@ -32,7 +33,7 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.CanvasImmersive,
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
-    PlayerVisualMode.Expressive,
+    PlayerVisualMode.AppleMusic13,
     PlayerVisualMode.Artwork,
     PlayerVisualMode.Pulse
 )
@@ -41,7 +42,7 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.CanvasCard -> PlayerDeckLayout.Sleeve
     PlayerVisualMode.CanvasImmersive -> PlayerDeckLayout.Aura
     PlayerVisualMode.Artwork -> PlayerDeckLayout.Poster
-    PlayerVisualMode.Expressive -> PlayerDeckLayout.Expressive
+    PlayerVisualMode.AppleMusic13 -> PlayerDeckLayout.AppleMusic13
     PlayerVisualMode.Pulse -> PlayerDeckLayout.Pulse
     PlayerVisualMode.Halo -> PlayerDeckLayout.Halo
     PlayerVisualMode.Folio -> PlayerDeckLayout.Folio
@@ -63,6 +64,10 @@ internal fun resolvePlayerDeckLayout(
 ): PlayerDeckLayout {
     val layout = mode.deckLayout()
     if (layout == PlayerDeckLayout.Levyra) return layout
+    // The Apple Music 13 deck owns its portrait, landscape and video layout.
+    if (layout == PlayerDeckLayout.AppleMusic13) {
+        return if (hasTrack && !isLiveRadio) layout else PlayerDeckLayout.Levyra
+    }
     val supported = hasTrack && !isVideoMode && !isLiveRadio && pane == LevyraPlayerPane.Stacked
     return if (supported) layout else PlayerDeckLayout.Levyra
 }

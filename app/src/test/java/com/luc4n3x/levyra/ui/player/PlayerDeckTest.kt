@@ -28,7 +28,7 @@ class PlayerDeckTest {
         assertEquals(PlayerDeckLayout.Poster, PlayerVisualMode.Artwork.deckLayout())
         assertEquals(PlayerDeckLayout.Sleeve, PlayerVisualMode.CanvasCard.deckLayout())
         assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
-        assertEquals(PlayerDeckLayout.Expressive, PlayerVisualMode.Expressive.deckLayout())
+        assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
         assertEquals(PlayerDeckLayout.Pulse, PlayerVisualMode.Pulse.deckLayout())
         assertEquals(PlayerDeckLayout.Flow, PlayerVisualMode.Flow.deckLayout())
     }
@@ -44,7 +44,7 @@ class PlayerDeckTest {
 
     @Test
     fun `new styles fall back to the levyra layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Expressive, PlayerVisualMode.Artwork, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard).forEach { mode ->
+        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Artwork, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, LevyraPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Levyra, resolvePlayerDeckLayout(mode, true, false, LevyraPlayerPane.Stacked, true))
@@ -52,6 +52,26 @@ class PlayerDeckTest {
             assertEquals(PlayerDeckLayout.Levyra, resolvePlayerDeckLayout(mode, false, false, LevyraPlayerPane.SideBySide, true))
             assertEquals(PlayerDeckLayout.Levyra, resolvePlayerDeckLayout(mode, false, false, LevyraPlayerPane.Stacked, false))
         }
+    }
+
+    @Test
+    fun `Apple Music 13 owns song and video layouts until live radio or no track`() {
+        listOf(false, true).forEach { video ->
+            listOf(LevyraPlayerPane.Stacked, LevyraPlayerPane.SideBySide).forEach { pane ->
+                assertEquals(
+                    PlayerDeckLayout.AppleMusic13,
+                    resolvePlayerDeckLayout(PlayerVisualMode.AppleMusic13, video, false, pane, true)
+                )
+            }
+        }
+        assertEquals(
+            PlayerDeckLayout.Levyra,
+            resolvePlayerDeckLayout(PlayerVisualMode.AppleMusic13, false, true, LevyraPlayerPane.Stacked, true)
+        )
+        assertEquals(
+            PlayerDeckLayout.Levyra,
+            resolvePlayerDeckLayout(PlayerVisualMode.AppleMusic13, false, false, LevyraPlayerPane.Stacked, false)
+        )
     }
 
     @Test
@@ -78,7 +98,7 @@ class PlayerDeckTest {
     fun `fallback presentation never lands on the immersive exit affordance`() {
         assertEquals(
             PlayerVisualMode.CanvasCard,
-            resolvePlayerDeckVisualMode(PlayerVisualMode.Expressive, PlayerDeckLayout.Levyra)
+            resolvePlayerDeckVisualMode(PlayerVisualMode.AppleMusic13, PlayerDeckLayout.Levyra)
         )
         assertEquals(
             PlayerVisualMode.CanvasCard,
@@ -202,9 +222,11 @@ class PlayerDeckTest {
     }
 
     @Test
-    fun `stored editorial choice migrates to the expressive deck`() {
-        assertEquals(PlayerVisualMode.Expressive, PlayerVisualMode.from("Editorial"))
-        assertEquals(PlayerVisualMode.Expressive, PlayerVisualMode.from("Expressive"))
+    fun `stored Bloom and editorial choices migrate to Apple Music 13`() {
+        assertEquals(PlayerVisualMode.AppleMusic13, PlayerVisualMode.from("Bloom"))
+        assertEquals(PlayerVisualMode.AppleMusic13, PlayerVisualMode.from("Editorial"))
+        assertEquals(PlayerVisualMode.AppleMusic13, PlayerVisualMode.from("Expressive"))
+        assertEquals(PlayerVisualMode.AppleMusic13, PlayerVisualMode.from("AppleMusic13"))
     }
 
     @Test
@@ -239,7 +261,7 @@ class PlayerDeckTest {
             assertTrue(strings.playerDeckLandscapeNote.isNotBlank())
         }
         val italian = LevyraStrings.forCode("it")
-        assertEquals("Bloom", visualModeStateDescription(PlayerVisualMode.Expressive, italian))
+        assertEquals("Apple Music 13", visualModeStateDescription(PlayerVisualMode.AppleMusic13, italian))
         assertEquals("Late Night", visualModeStateDescription(PlayerVisualMode.Pulse, italian))
         assertEquals("Velvet", playerDeckLabel(PlayerVisualMode.CanvasImmersive, italian))
         assertEquals("Sleeve", playerDeckLabel(PlayerVisualMode.CanvasCard, italian))

@@ -189,6 +189,8 @@ class LevyraStrings private constructor(
     val playerDeckFolioHint: String get() = value("playerDeckFolioHint")
     val playerDeckFlow: String get() = value("playerDeckFlow")
     val playerDeckFlowHint: String get() = value("playerDeckFlowHint")
+    val playerDeckAppleMusic13: String get() = value("playerDeckAppleMusic13")
+    val playerDeckAppleMusic13Hint: String get() = value("playerDeckAppleMusic13Hint")
     val removeDownloadPrompt: String get() = LevyraDownloadRemovalStrings.prompt(code)
     val playerDeckDefaultBadge: String get() = value("playerDeckDefaultBadge")
     val playerDeckLandscapeNote: String get() = value("playerDeckLandscapeNote")

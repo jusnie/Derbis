@@ -72,21 +72,29 @@ enum class PlayerVisualMode {
     Artwork,
     CanvasCard,
     CanvasImmersive,
-    Expressive,
+    AppleMusic13,
     Pulse,
     Halo,
     Folio,
     Flow;
 
     companion object {
-        fun from(value: String): PlayerVisualMode =
-            entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-                ?: when (value.trim().lowercase()) {
-                    "canvas_card", "card" -> CanvasCard
-                    "canvas_immersive", "immersive" -> CanvasImmersive
-                    "editorial" -> Expressive
-                    else -> Artwork
-                }
+        /**
+         * Bloom/Expressive was retired in favour of Apple Music 13.  Map old
+         * saved preferences here so an existing listener's selected deck never
+         * becomes an unavailable, invisible choice.
+         */
+        fun from(value: String): PlayerVisualMode {
+            return when (value.trim().lowercase()) {
+                "expressive", "bloom", "editorial", "apple_music_13", "applemusic13", "apple_music" -> AppleMusic13
+                else -> entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+                    ?: when (value.trim().lowercase()) {
+                        "canvas_card", "card" -> CanvasCard
+                        "canvas_immersive", "immersive" -> CanvasImmersive
+                        else -> Artwork
+                    }
+            }
+        }
     }
 }
 
