@@ -7505,7 +7505,7 @@ private fun QueueOverlay(
                 itemsIndexed(
                     currentEntries,
                     key = { _, entry -> "q-${entry.key}" },
-                    contentType = { _, entry -> if (entry.index == state.queueCurrentIndex) "queue-current" else "queue-track" }
+                    contentType = { index, _ -> if (index == state.queueCurrentIndex) "queue-current" else "queue-track" }
                 ) { index, entry ->
                     queueTrackRow(
                         index,
