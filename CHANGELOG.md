@@ -12,6 +12,10 @@ All notable, user-visible changes are documented here. Each published Android an
 - **Endless listening** replaces the legacy finite, shuffled autoplay path. Starting a single song now begins a true listening session instead of turning nearby results into a queue; a small hidden rolling buffer follows the song currently playing and retries after a temporary empty response. Albums and playlists remain their exact chosen finite lists. Turning Endless listening off removes its recommendation buffer without interrupting the current track.
 - Android's Add to Playlist picker now filters local playlist destinations by name before adding a track.
 - Windows' expanded library sidebar now lets listeners search and sort their local playlists, open them directly, and collapse the library browser when they want a simpler navigation rail.
+- **Derbis Mix** is now a Library **Tools** feature for shaping and playing one direct Music 1 → Music 2 transition. Choose Auto, Fade, Rise, Blend, or Cut and a 3, 6, or 10 second handoff; it uses the real playback transition pipeline.
+
+### Changed
+- Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.
 
 ### Known limitations
 - This is the first safe phase of the SimpMusic-inspired rollout. Cached-playback collection refinements, additional Home/player polish, and compliant authenticated YouTube social features remain separate follow-up work; YouTube actions will not be enabled without compliant authenticated access.

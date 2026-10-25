@@ -389,6 +389,12 @@ class LibraryViewModel(root: LevyraViewModel) : LevyraScreenViewModel(root, ::li
     fun refreshSmartOffline() = root.refreshSmartOffline()
     fun openYourSound() = root.openYourSound()
     fun openMixLab(initialParams: com.luc4n3x.levyra.domain.MixLabParams = com.luc4n3x.levyra.domain.MixLabParams()) = root.openMixLab(initialParams)
+    fun playDerbisMixPair(
+        music1: Track,
+        music2: Track,
+        preset: com.luc4n3x.levyra.domain.DerbisMixTransitionPreset,
+        durationMs: Long
+    ) = root.playDerbisMixPair(music1, music2, preset, durationMs)
     fun openListeningRecap() = root.openListeningRecap()
     fun openListeningInsights() = root.openListeningInsights()
     fun addToPlaylist(playlistId: String, track: Track) = root.addToPlaylist(playlistId, track)

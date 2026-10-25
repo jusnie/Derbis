@@ -35,6 +35,34 @@ class DerbisMixStudioStore(context: Context) {
         if (playlistId.isNotBlank()) preferences.edit().remove(planKey(playlistId)).commit()
     }
 
+    /**
+     * Arms a one-off two-song transition made in the Library Tools surface. It shares the real
+     * playback pipeline with playlist Mix Studio but deliberately stores no Beat Sync request.
+     */
+    suspend fun saveToolTransition(
+        outgoing: Track,
+        incoming: Track,
+        preset: DerbisMixTransitionPreset,
+        durationMs: Long
+    ): String = withContext(Dispatchers.IO) {
+        val plan = DerbisMixStudioPlan(
+            playlistId = TOOL_PLAN_ID,
+            enabled = true,
+            transitions = listOf(
+                DerbisMixTransitionSetting(
+                    outgoingEntryId = outgoing.derbisMixEntryId(),
+                    incomingEntryId = incoming.derbisMixEntryId(),
+                    preset = preset,
+                    durationMs = durationMs,
+                    beatSyncEnabled = false
+                )
+            ),
+            updatedAt = System.currentTimeMillis()
+        )
+        save(plan)
+        TOOL_PLAN_ID
+    }
+
     /** Arms a saved playlist plan for the exact queue started from that playlist. */
     fun activateForQueue(playlistId: String, tracks: List<Track>) {
         val signature = queueSignature(tracks)
@@ -123,5 +151,6 @@ class DerbisMixStudioStore(context: Context) {
         const val PREFERENCES = "derbis_mix_studio"
         const val PLAN_PREFIX = "plan."
         const val ACTIVE_KEY = "active_queue"
+        const val TOOL_PLAN_ID = "derbis.mix.tool"
     }
 }

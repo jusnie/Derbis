@@ -316,6 +316,10 @@ internal fun LevyraLibraryScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var pendingDownloadDelete by remember { mutableStateOf<DownloadedTrack?>(null) }
     var showImportPlaylistCard by rememberSaveable { mutableStateOf(true) }
+    var showDerbisMixTool by rememberSaveable { mutableStateOf(false) }
+    val derbisMixTracks = remember(catalog.tracks, state.currentTrack) {
+        (catalog.tracks + listOfNotNull(state.currentTrack)).distinctBy { "${it.id}|${it.videoUrl}|${it.title}|${it.artist}" }
+    }
     var openSmartCollectionName by rememberSaveable { mutableStateOf<String?>(null) }
     val collectionStrings = remember(strings.code) { LevyraPersonalCollectionCatalog.forCode(strings.code) }
     val personalCollections by viewModel.personalCollections.summaries.collectAsStateWithLifecycle()
@@ -776,6 +780,15 @@ internal fun LevyraLibraryScreen(
                             }
                         }
                     )
+                }
+            }
+
+            if (category == LibraryCategory.Overview && query.isBlank()) {
+                item(key = "overview-tools-title") {
+                    LibrarySectionTitle("Tools", "Make a direct two-song transition")
+                }
+                item(key = "overview-derbis-mix-tool") {
+                    DerbisMixToolCard(trackCount = derbisMixTracks.size, onClick = { showDerbisMixTool = true })
                 }
             }
 
@@ -1308,6 +1321,17 @@ internal fun LevyraLibraryScreen(
                 onClose = { openSmartCollectionName = null }
             )
         }
+    }
+
+    if (showDerbisMixTool) {
+        DerbisMixToolDialog(
+            tracks = derbisMixTracks,
+            onDismiss = { showDerbisMixTool = false },
+            onStartMix = { music1, music2, preset, durationMs ->
+                viewModel.playDerbisMixPair(music1, music2, preset, durationMs)
+                showDerbisMixTool = false
+            }
+        )
     }
 
     if (showCollectionImport) {
