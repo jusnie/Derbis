@@ -43,7 +43,9 @@ class DerbisMixStudioStore(context: Context) {
         outgoing: Track,
         incoming: Track,
         preset: DerbisMixTransitionPreset,
-        durationMs: Long
+        durationMs: Long,
+        outgoingStartMs: Long? = null,
+        incomingStartMs: Long? = null
     ): String = withContext(Dispatchers.IO) {
         val plan = DerbisMixStudioPlan(
             playlistId = TOOL_PLAN_ID,
@@ -54,7 +56,9 @@ class DerbisMixStudioStore(context: Context) {
                     incomingEntryId = incoming.derbisMixEntryId(),
                     preset = preset,
                     durationMs = durationMs,
-                    beatSyncEnabled = false
+                    beatSyncEnabled = false,
+                    outgoingStartMs = outgoingStartMs,
+                    incomingStartMs = incomingStartMs
                 )
             ),
             updatedAt = System.currentTimeMillis()
@@ -115,6 +119,8 @@ class DerbisMixStudioStore(context: Context) {
                     put("preset", setting.preset.name)
                     put("beatSyncEnabled", setting.beatSyncEnabled)
                     setting.durationMs?.let { put("durationMs", it) }
+                    setting.outgoingStartMs?.let { put("outgoingStartMs", it) }
+                    setting.incomingStartMs?.let { put("incomingStartMs", it) }
                 })
             }
         })
@@ -142,7 +148,9 @@ class DerbisMixStudioStore(context: Context) {
                 incomingEntryId = item.optString("incoming"),
                 preset = preset,
                 durationMs = item.takeIf { it.has("durationMs") }?.optLong("durationMs"),
-                beatSyncEnabled = item.optBoolean("beatSyncEnabled", false)
+                beatSyncEnabled = item.optBoolean("beatSyncEnabled", false),
+                outgoingStartMs = item.takeIf { it.has("outgoingStartMs") }?.optLong("outgoingStartMs"),
+                incomingStartMs = item.takeIf { it.has("incomingStartMs") }?.optLong("incomingStartMs")
             ).normalized()?.let(::add)
         }
     }

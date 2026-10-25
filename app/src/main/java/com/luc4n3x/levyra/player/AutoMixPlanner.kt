@@ -67,7 +67,19 @@ internal fun planAutoMix(
     }
     val requestedTransition = styled.coerceIn(MIN_TRANSITION_MS, MAX_TRANSITION_MS)
         .coerceAtMost(current.durationMs / 4L)
-    val beatPlan = if (savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null) {
+    val manualOutgoingStart = savedMix?.outgoingStartMs?.coerceIn(
+        0L,
+        (current.durationMs - MIN_TRANSITION_MS).coerceAtLeast(0L)
+    )
+    val manualIncomingStart = savedMix?.incomingStartMs?.coerceIn(
+        0L,
+        (next.durationMs - MIN_TRANSITION_MS).coerceAtLeast(0L)
+    )
+    // A manually chosen timeline position must be honoured exactly, never replaced by analysis.
+    val beatPlan = if (
+        manualOutgoingStart == null && manualIncomingStart == null &&
+        savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null
+    ) {
         val sync = DerbisMixStudio.beatSync(currentBeatGrid, nextBeatGrid)
         val start = DerbisMixStudio.beatAlignedTransitionStartMs(current.durationMs, requestedTransition, currentBeatGrid)
         if (sync.aligned && start != null) {
@@ -77,7 +89,9 @@ internal fun planAutoMix(
             } else null
         } else null
     } else null
-    val transition = beatPlan?.durationMs ?: requestedTransition
+    val transition = (beatPlan?.durationMs ?: requestedTransition)
+        .coerceAtMost(manualOutgoingStart?.let { current.durationMs - it } ?: Long.MAX_VALUE)
+    if (transition < MIN_TRANSITION_MS) return null
     return AutoMixPlan(
         transitionMs = transition,
         preloadLeadMs = (transition + PRELOAD_MARGIN_MS).coerceAtMost(MAX_PRELOAD_LEAD_MS),
@@ -86,8 +100,8 @@ internal fun planAutoMix(
             DerbisMixTransitionPreset.Rise -> CrossfadeCurve.IncomingRise
             else -> CrossfadeCurve.EqualPower
         },
-        transitionStartMs = beatPlan?.startMs,
-        incomingStartMs = beatPlan?.incomingStartMs ?: 0L,
+        transitionStartMs = manualOutgoingStart ?: beatPlan?.startMs,
+        incomingStartMs = manualIncomingStart ?: beatPlan?.incomingStartMs ?: 0L,
         incomingTempo = beatPlan?.incomingTempo ?: 1f,
         beatAligned = beatPlan != null
     )

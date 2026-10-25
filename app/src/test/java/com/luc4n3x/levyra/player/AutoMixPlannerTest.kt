@@ -244,6 +244,32 @@ class AutoMixPlannerTest {
     }
 
     @Test
+    fun betaCustomTimelineUsesSelectedOutgoingAndIncomingPositions() {
+        val plan = planAutoMix(
+            current = track("music-1"),
+            next = track("music-2"),
+            settings = LevyraAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            mixStudioSetting = DerbisMixTransitionSetting(
+                outgoingEntryId = "music-1",
+                incomingEntryId = "music-2",
+                durationMs = 6_000L,
+                outgoingStartMs = 90_000L,
+                incomingStartMs = 45_000L
+            ),
+            currentBeatGrid = DerbisBeatGrid(bpm = 120f, confidence = .9f),
+            nextBeatGrid = DerbisBeatGrid(bpm = 124f, confidence = .9f)
+        )
+
+        assertEquals(90_000L, plan?.transitionStartMs)
+        assertEquals(45_000L, plan?.incomingStartMs)
+        assertEquals(6_000L, plan?.transitionMs)
+        assertFalse(plan?.beatAligned == true)
+    }
+
+    @Test
     fun directTwoSongMixDoesNotEnableBeatAlignmentAndKeepsItsSelectedCurve() {
         val plan = planAutoMix(
             current = track("music-1"),

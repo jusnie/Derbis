@@ -25,8 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,13 +53,25 @@ import com.luc4n3x.levyra.ui.theme.LevyraText
 internal fun DerbisMixToolDialog(
     tracks: List<Track>,
     onDismiss: () -> Unit,
-    onStartMix: (Track, Track, DerbisMixTransitionPreset, Long) -> Unit
+    onStartMix: (Track, Track, DerbisMixTransitionPreset, Long, Long?, Long?) -> Unit
 ) {
     var music1 by remember { mutableStateOf<Track?>(tracks.firstOrNull()) }
     var music2 by remember { mutableStateOf<Track?>(tracks.drop(1).firstOrNull()) }
     var selectingSlot by remember { mutableStateOf<Int?>(null) }
     var preset by remember { mutableStateOf(DerbisMixTransitionPreset.Auto) }
     var durationMs by remember { mutableStateOf(6_000L) }
+    var customTimeline by remember { mutableStateOf(false) }
+    var outgoingStartMs by remember { mutableStateOf(0L) }
+    var incomingStartMs by remember { mutableStateOf(0L) }
+    val actualDurationMs = if (preset == DerbisMixTransitionPreset.Cut) 800L else durationMs
+    val canPlaceTimeline = (music1?.durationMs ?: 0L) > actualDurationMs && (music2?.durationMs ?: 0L) > 800L
+
+    LaunchedEffect(customTimeline, music1?.id, music1?.videoUrl) {
+        if (customTimeline) outgoingStartMs = ((music1?.durationMs ?: 0L) - actualDurationMs).coerceAtLeast(0L)
+    }
+    LaunchedEffect(customTimeline, music2?.id, music2?.videoUrl) {
+        if (customTimeline) incomingStartMs = 0L
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -84,6 +98,30 @@ internal fun DerbisMixToolDialog(
                 )
                 MixToolSongButton("Music 1", music1, onClick = { selectingSlot = 1 })
                 MixToolSongButton("Music 2", music2, onClick = { selectingSlot = 2 })
+                FilterChip(
+                    selected = customTimeline,
+                    onClick = { customTimeline = !customTimeline },
+                    label = { Text("Custom timeline · Beta") }
+                )
+                if (customTimeline) {
+                    if (canPlaceTimeline) {
+                        Text("Choose the exact overlap positions. Music 1 is cut after the handoff.", color = LevyraMuted, fontSize = 12.sp)
+                        MixTimelineControl(
+                            label = "Music 1 — begin overlap",
+                            positionMs = outgoingStartMs,
+                            maxMs = ((music1?.durationMs ?: 0L) - actualDurationMs).coerceAtLeast(0L),
+                            onPosition = { outgoingStartMs = it }
+                        )
+                        MixTimelineControl(
+                            label = "Music 2 — begin at",
+                            positionMs = incomingStartMs,
+                            maxMs = ((music2?.durationMs ?: 0L) - 800L).coerceAtLeast(0L),
+                            onPosition = { incomingStartMs = it }
+                        )
+                    } else {
+                        Text("Custom placement is available when both selected songs have known durations.", color = LevyraMuted, fontSize = 12.sp)
+                    }
+                }
                 Text("Transition", color = LevyraText, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(DerbisMixTransitionPreset.Auto, DerbisMixTransitionPreset.Fade, DerbisMixTransitionPreset.Rise).forEach { option ->
@@ -129,7 +167,9 @@ internal fun DerbisMixToolDialog(
                         music1!!,
                         music2!!,
                         preset,
-                        if (preset == DerbisMixTransitionPreset.Cut) 800L else durationMs
+                        actualDurationMs,
+                        outgoingStartMs.takeIf { customTimeline && canPlaceTimeline },
+                        incomingStartMs.takeIf { customTimeline && canPlaceTimeline }
                     )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = LevyraCyan, contentColor = Color.Black)
@@ -170,6 +210,33 @@ internal fun DerbisMixToolDialog(
 }
 
 @Composable
+private fun MixTimelineControl(
+    label: String,
+    positionMs: Long,
+    maxMs: Long,
+    onPosition: (Long) -> Unit
+) {
+    val bounded = positionMs.coerceIn(0L, maxMs)
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = LevyraText, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+            Text(formatMixTimelineTime(bounded), color = LevyraCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+        Slider(
+            value = bounded.toFloat(),
+            onValueChange = { onPosition(it.toLong()) },
+            valueRange = 0f..maxMs.toFloat(),
+            enabled = maxMs > 0L
+        )
+    }
+}
+
+private fun formatMixTimelineTime(positionMs: Long): String {
+    val seconds = (positionMs.coerceAtLeast(0L) / 1_000L).toInt()
+    return "%d:%02d".format(seconds / 60, seconds % 60)
+}
+
+@Composable
 private fun MixToolSongButton(label: String, track: Track?, onClick: () -> Unit) {
     Surface(
         color = LevyraPanel,
@@ -202,7 +269,7 @@ internal fun DerbisMixToolCard(trackCount: Int, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text("Derbis Mix", color = LevyraText, fontWeight = FontWeight.Black, fontSize = 16.sp)
                 Text(
-                    if (trackCount >= 2) "Choose two songs and shape their transition" else "Add at least two songs to use this tool",
+                    if (trackCount >= 2) "Choose two songs and shape their transition · timeline beta" else "Add at least two songs to use this tool",
                     color = LevyraMuted,
                     fontSize = 12.sp
                 )

@@ -68,6 +68,7 @@ import com.luc4n3x.levyra.BuildConfig
 import com.luc4n3x.levyra.MainActivity
 import com.luc4n3x.levyra.data.DerbisBeatGridStore
 import com.luc4n3x.levyra.data.DerbisMixStudioStore
+import com.luc4n3x.levyra.domain.DerbisMixStudio
 import com.luc4n3x.levyra.data.FavoritesStore
 import com.luc4n3x.levyra.data.LevyraPreferences
 import com.luc4n3x.levyra.data.PlaybackResolver
@@ -2037,14 +2038,19 @@ class PlaybackService : MediaLibraryService() {
         if (sleepTimer.isEndOfTrackActive()) return
         if (queueTransitionJob?.isActive == true || !player.isPlaying || player.playbackState != Player.STATE_READY) return
         val duration = player.duration.takeIf { it > 0L && it != C.TIME_UNSET } ?: return
-        val remaining = duration - player.currentPosition
-        if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
         val snapshot = queueEngine.state.value
         val current = snapshot.currentTrack ?: return
         val nextIndex = queueTransitionTargetIndex(snapshot) ?: return
         val next = snapshot.tracks.getOrNull(nextIndex) ?: return
         val videoMode = player.currentMediaItem?.mediaMetadata?.extras?.getBoolean(EXTRA_VIDEO_MODE, false) == true
         val mixStudioSetting = mixStudioStore.activeTransitionFor(snapshot.tracks, current, next)
+        // A beta custom timeline can begin before Music 1's natural tail. Begin preparation only
+        // shortly before that selected point; normal crossfades still prepare near the track end.
+        val handoffAtMs = mixStudioSetting?.outgoingStartMs
+            ?.coerceIn(0L, (duration - DerbisMixStudio.MIN_TRANSITION_MS).coerceAtLeast(0L))
+            ?: duration
+        val remaining = handoffAtMs - player.currentPosition
+        if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
             next = next,

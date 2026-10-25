@@ -16,7 +16,7 @@ data class DerbisMixStudioPlan(
 
 /**
  * Values are deliberately limited to controls the current two-player audio pipeline can honour:
- * duration and handoff character. Beat data is kept separately until actual source analysis is
+ * duration, handoff character, and an optional explicit handoff timeline. Beat data is kept separately until actual source analysis is
  * available, so a user never receives a false Beat Sync claim.
  */
 data class DerbisMixTransitionSetting(
@@ -24,13 +24,20 @@ data class DerbisMixTransitionSetting(
     val incomingEntryId: String,
     val preset: DerbisMixTransitionPreset = DerbisMixTransitionPreset.Auto,
     val durationMs: Long? = null,
-    val beatSyncEnabled: Boolean = false
+    val beatSyncEnabled: Boolean = false,
+    /** Optional explicit positions for the beta direct-transition editor. */
+    val outgoingStartMs: Long? = null,
+    val incomingStartMs: Long? = null
 ) {
     val key: String get() = "$outgoingEntryId\u0000$incomingEntryId"
 
     fun normalized(): DerbisMixTransitionSetting? {
         if (outgoingEntryId.isBlank() || incomingEntryId.isBlank()) return null
-        return copy(durationMs = durationMs?.coerceIn(DerbisMixStudio.MIN_TRANSITION_MS, DerbisMixStudio.MAX_TRANSITION_MS))
+        return copy(
+            durationMs = durationMs?.coerceIn(DerbisMixStudio.MIN_TRANSITION_MS, DerbisMixStudio.MAX_TRANSITION_MS),
+            outgoingStartMs = outgoingStartMs?.coerceAtLeast(0L),
+            incomingStartMs = incomingStartMs?.coerceAtLeast(0L)
+        )
     }
 }
 

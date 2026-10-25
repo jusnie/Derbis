@@ -1327,8 +1327,8 @@ internal fun LevyraLibraryScreen(
         DerbisMixToolDialog(
             tracks = derbisMixTracks,
             onDismiss = { showDerbisMixTool = false },
-            onStartMix = { music1, music2, preset, durationMs ->
-                viewModel.playDerbisMixPair(music1, music2, preset, durationMs)
+            onStartMix = { music1, music2, preset, durationMs, outgoingStartMs, incomingStartMs ->
+                viewModel.playDerbisMixPair(music1, music2, preset, durationMs, outgoingStartMs, incomingStartMs)
                 showDerbisMixTool = false
             }
         )

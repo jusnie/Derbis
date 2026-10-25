@@ -393,8 +393,10 @@ class LibraryViewModel(root: LevyraViewModel) : LevyraScreenViewModel(root, ::li
         music1: Track,
         music2: Track,
         preset: com.luc4n3x.levyra.domain.DerbisMixTransitionPreset,
-        durationMs: Long
-    ) = root.playDerbisMixPair(music1, music2, preset, durationMs)
+        durationMs: Long,
+        outgoingStartMs: Long? = null,
+        incomingStartMs: Long? = null
+    ) = root.playDerbisMixPair(music1, music2, preset, durationMs, outgoingStartMs, incomingStartMs)
     fun openListeningRecap() = root.openListeningRecap()
     fun openListeningInsights() = root.openListeningInsights()
     fun addToPlaylist(playlistId: String, track: Track) = root.addToPlaylist(playlistId, track)
