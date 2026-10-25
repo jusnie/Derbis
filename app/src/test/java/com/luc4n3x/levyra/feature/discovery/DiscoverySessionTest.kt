@@ -47,6 +47,18 @@ class DiscoverySessionTest {
     }
 
     @Test
+    fun endlessDeckCompactsConsumedCardsButKeepsTheUndoWindow() {
+        var deck = DiscoveryDeck((1..70).map { DiscoveryCard(track("T$it", "A$it"), DiscoveryReason(DiscoveryReasonKind.Trending)) })
+        repeat(50) { deck = deck.decide(DiscoveryDecision.Dismissed) }
+        val compact = deck.appended(listOf(DiscoveryCard(track("Fresh", "New"), DiscoveryReason(DiscoveryReasonKind.NewRelease))))
+
+        assertEquals(DiscoveryDeck.MAX_HISTORY, compact.history.size)
+        assertEquals("T51", compact.current?.track?.title)
+        assertTrue(compact.cards.size <= DiscoveryDeck.MAX_HISTORY + 21)
+        assertTrue(compact.undo() != null)
+    }
+
+    @Test
     fun historyIsBounded() {
         var deck = DiscoveryDeck((1..60).map { DiscoveryCard(track("T$it", "A$it"), DiscoveryReason(DiscoveryReasonKind.Trending)) })
         repeat(50) { deck = deck.decide(DiscoveryDecision.Dismissed) }

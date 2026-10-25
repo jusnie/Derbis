@@ -41,7 +41,14 @@ data class DiscoveryDeck(
     fun appended(more: List<DiscoveryCard>): DiscoveryDeck {
         val known = cards.mapTo(HashSet()) { it.key }
         val fresh = more.filter { known.add(it.key) }
-        return if (fresh.isEmpty()) this else copy(cards = cards + fresh)
+        return if (fresh.isEmpty()) this else copy(cards = cards + fresh).compactConsumed()
+    }
+
+    /** Keeps the endless feed bounded while preserving every card that can still be undone. */
+    fun compactConsumed(): DiscoveryDeck {
+        val trim = (index - MAX_HISTORY).coerceAtLeast(0)
+        if (trim == 0) return this
+        return copy(cards = cards.drop(trim), index = index - trim)
     }
 
     companion object {

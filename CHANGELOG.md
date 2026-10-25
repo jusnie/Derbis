@@ -18,6 +18,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - **Apple Music 13** now renders the lyric line beneath its artwork word by word when verified word timestamps are available, with a smooth playback clock between player progress updates. It falls back to the current synced line when a source only supplies line timing.
 - Apple Music 13 now uses a neutral dark player field instead of an artwork-derived colour overlay. Audio settings add an opt-in **8D headphone orbit** switch that runs a real slow stereo panning DSP effect; it is persisted and applies automatically while enabled.
 - Audio Settings now includes a persisted **Beat Sync** master switch for verified playlist Mix Studio alignment. It is mutually exclusive with **DJ Crossfade**: enable one and the other becomes unavailable until it is turned off.
+- Home and onboarding use the transparent Derbis PNG mark directly, without the former cloud/cookie-shaped logo container. **Discover for you** now refills from successive ranked source pages while keeping seen picks out of the session and bounding consumed-card memory.
 
 ### Changed
 - Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.

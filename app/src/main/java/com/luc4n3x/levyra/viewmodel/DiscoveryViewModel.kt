@@ -74,6 +74,9 @@ class DiscoveryViewModel internal constructor(private val root: LevyraViewModel)
     private var loadedLanguage = ""
     private var loadedAtMs = 0L
     private var rotation = 0L
+    // Each refill moves to a new ranking page; keys are remembered beyond the visible deck.
+    private var continuationPage = 0L
+    private val seenCardKeys = LinkedHashSet<String>()
     private var sessionActive = false
     private var previewArmed = false
     private var mainResumeToken: String? = null
@@ -140,6 +143,8 @@ class DiscoveryViewModel internal constructor(private val root: LevyraViewModel)
         previewPlayer.release()
         resolved.clear()
         failedKeys.clear()
+        seenCardKeys.clear()
+        continuationPage = 0L
         mainResumeToken?.let(root::resumeMainPlaybackAfterDiscovery)
         mainResumeToken = null
     }
@@ -294,10 +299,13 @@ class DiscoveryViewModel internal constructor(private val root: LevyraViewModel)
         loadJob = viewModelScope.launch {
             try {
                 interactions = runCatchingSafely { interactionStore.load() } ?: interactions
+                continuationPage = 0L
+                seenCardKeys.clear()
                 val result = engine.build(root.discoveryProfile(), interactions, FEED_SIZE, dayRotation())
                 loadedLanguage = language
                 loadedAtMs = System.currentTimeMillis()
                 failedKeys.clear()
+                rememberSeen(result.cards)
                 feed.update { current ->
                     when {
                         result.cards.isNotEmpty() -> current.copy(status = DiscoveryFeedStatus.Ready, deck = DiscoveryDeck(result.cards), refreshing = false)
@@ -322,15 +330,40 @@ class DiscoveryViewModel internal constructor(private val root: LevyraViewModel)
     private fun loadMore() {
         if (moreJob?.isActive == true || loadJob?.isActive == true) return
         moreJob = viewModelScope.launch {
-            val known = feed.value.deck.cards.associate { it.key to 0L }
-            val result = runCatchingSafely {
-                engine.build(root.discoveryProfile(), interactions.copy(dismissed = interactions.dismissed + known), FEED_SIZE, dayRotation() + 1)
-            } ?: return@launch
-            if (result.cards.isNotEmpty()) {
-                feed.update { it.copy(deck = it.deck.appended(result.cards), status = DiscoveryFeedStatus.Ready) }
-                prefetchAhead()
-            } else if (feed.value.deck.current == null) {
-                feed.update { it.copy(status = DiscoveryFeedStatus.Empty) }
+            // A source may return the same top results between calls. Advance through several
+            // independent ranking pages before conceding that the live sources have no new picks.
+            repeat(ENDLESS_REFILL_ATTEMPTS) {
+                continuationPage++
+                val exclusions = seenCardKeys.associateWith { 0L }
+                val result = runCatchingSafely {
+                    engine.build(
+                        root.discoveryProfile(),
+                        interactions.copy(dismissed = interactions.dismissed + exclusions),
+                        FEED_SIZE,
+                        dayRotation() + continuationPage
+                    )
+                } ?: return@launch
+                val fresh = result.cards.filter { it.key !in seenCardKeys }
+                if (fresh.isNotEmpty()) {
+                    rememberSeen(fresh)
+                    feed.update { state ->
+                        state.copy(deck = state.deck.appended(fresh), status = DiscoveryFeedStatus.Ready)
+                    }
+                    prefetchAhead()
+                    return@launch
+                }
+            }
+            // Keep the existing stream usable. If it ran dry, expose the existing retry/refresh
+            // state instead of recycling a static queue as though it were an endless feed.
+            if (feed.value.deck.current == null) feed.update { it.copy(status = DiscoveryFeedStatus.Empty) }
+        }
+    }
+
+    private fun rememberSeen(cards: List<DiscoveryCard>) {
+        cards.forEach { card ->
+            seenCardKeys += card.key
+            while (seenCardKeys.size > MAX_SEEN_CARD_KEYS) {
+                seenCardKeys.iterator().next().also { seenCardKeys.remove(it) }
             }
         }
     }
@@ -373,6 +406,8 @@ class DiscoveryViewModel internal constructor(private val root: LevyraViewModel)
     private companion object {
         const val FEED_SIZE = 30
         const val REFILL_THRESHOLD = 5
+        const val ENDLESS_REFILL_ATTEMPTS = 3
+        const val MAX_SEEN_CARD_KEYS = 720
         const val PREFETCH_AHEAD = 2
         const val RESOLVED_CACHE_SIZE = 16
         const val FEED_TTL_MS = 6L * 60L * 60L * 1000L

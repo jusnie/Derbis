@@ -23738,54 +23738,18 @@ internal fun LevyraLogoMark(
     size: Dp = 58.dp,
     contentDescription: String? = "Derbis"
 ) {
-    Box(contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .size(size * 1.22f)
-                .blur(18.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            LevyraCyan.copy(alpha = 0.24f),
-                            LevyraViolet.copy(alpha = 0.16f),
-                            Color.Transparent
-                        )
-                    ),
-                    CircleShape
-                )
-        )
-        Box(
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .background(Color(0xFF1A1B22))
-                .border(
-                    width = 1.5.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            LevyraCyan.copy(alpha = 0.9f),
-                            LevyraViolet.copy(alpha = 0.5f),
-                            Color.Transparent,
-                            Color.Transparent
-                        )
-                    ),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.levyra_logo),
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = 1.45f
-                        scaleY = 1.45f
-                    }
-            )
-        }
-    }
+    Image(
+        painter = painterResource(id = R.drawable.derbis_logo),
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(size)
+            .graphicsLayer {
+                // The PNG already has transparent padding around the white diamond mark.
+                scaleX = 1.32f
+                scaleY = 1.32f
+            }
+    )
 }
 
 @Composable
@@ -23799,21 +23763,14 @@ internal fun LevyraWordmark(fontSize: TextUnit = 30.sp) {
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun HomeLogoBadge() {
-    val shape = MaterialShapes.Cookie9Sided.toShape()
-    val ring = if (LevyraIsLight) Color(0x1F11131F) else Color.White.copy(alpha = 0.14f)
     Box(
-        modifier = Modifier
-            .size(LevyraHomeDesign.SettingsControlHeight)
-            .clip(shape)
-            .background(HomeLogoInk)
-            .border(1.dp, ring, shape),
+        modifier = Modifier.size(LevyraHomeDesign.SettingsControlHeight),
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.levyra_logo),
+            painter = painterResource(id = R.drawable.derbis_logo),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -23825,8 +23782,6 @@ internal fun HomeLogoBadge() {
         )
     }
 }
-
-private val HomeLogoInk = Color(0xFF000000)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
