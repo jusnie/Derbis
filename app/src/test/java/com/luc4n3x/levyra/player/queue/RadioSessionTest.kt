@@ -9,21 +9,21 @@ import org.junit.Test
 class RadioSessionTest {
 
     @Test
-    fun refillKeepsTheOriginalSeedWhileTheRadioIsStillQueued() {
+    fun refillFollowsTheTrackCurrentlyBeingHeard() {
         val seed = track("seed")
         val session = RadioSession(spaceId = "a", seed = seed).recordAdded(listOf("r1", "r2"))
         val snapshot = snapshot("a", listOf(seed, track("r1"), track("r2")), currentIndex = 2)
 
-        assertEquals("seed", radioSeedFor(session, snapshot)?.id)
+        assertEquals("r2", radioSeedFor(session, snapshot)?.id)
     }
 
     @Test
-    fun manualSongChangeInsideTheRadioKeepsTheSeed() {
+    fun manualSongChangeInsideEndlessListeningUpdatesTheSeed() {
         val seed = track("seed")
         val session = RadioSession(spaceId = "a", seed = seed).recordAdded(listOf("r1"))
         val snapshot = snapshot("a", listOf(track("r1"), track("manual")), currentIndex = 1)
 
-        assertEquals("seed", radioSeedFor(session, snapshot)?.id)
+        assertEquals("manual", radioSeedFor(session, snapshot)?.id)
     }
 
     @Test
@@ -45,12 +45,12 @@ class RadioSessionTest {
     }
 
     @Test
-    fun exhaustedSeedHandsOverToTheCurrentTrack() {
+    fun emptyRecommendationResponseKeepsEndlessListeningActiveForTheNextRefill() {
         val seed = track("seed")
         val session = RadioSession(spaceId = "a", seed = seed).recordAdded(emptyList())
         val snapshot = snapshot("a", listOf(seed, track("r9")), currentIndex = 1)
 
-        assertTrue(session.exhausted)
+        assertTrue(session.isActiveFor(snapshot))
         assertEquals("r9", radioSeedFor(session, snapshot)?.id)
     }
 

@@ -3179,7 +3179,7 @@ fun LevyraApp(
                     onRemoveSelected = viewModel::removeTracksFromQueue,
                     onMove = viewModel::moveQueueItem,
                     onUndo = viewModel::undoQueueRemoval,
-                    onToggleRadio = viewModel::toggleContinuousRadio,
+                    onToggleRadio = viewModel::toggleEndlessListening,
                     onPrepareQueuePlaylist = viewModel::prepareQueueSpacePlaylist,
                     onDismissQueuePlaylist = viewModel::dismissQueuePlaylistDraft,
                     onTrackActions = { target ->

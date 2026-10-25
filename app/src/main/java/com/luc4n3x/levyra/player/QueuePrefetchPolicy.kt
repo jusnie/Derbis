@@ -68,8 +68,9 @@ internal fun advancedPrefetchNetworkAllowed(
     dataSaverOn: Boolean
 ): Boolean = internet && validated && (unmetered || (mobileDataAllowed && !dataSaverOn))
 
-internal const val RADIO_TAIL_MIN_UPCOMING = 3
-private const val RADIO_TAIL_FETCH_HEADROOM = 5
+/** A small rolling buffer protects playback without turning endless listening into a fixed playlist. */
+internal const val RADIO_TAIL_MIN_UPCOMING = 6
+private const val RADIO_TAIL_FETCH_HEADROOM = 6
 private const val RADIO_TAIL_MAX_FETCH = 30
 
 internal fun radioTailTargetUpcoming(advancedPrefetchTracks: Int): Int =

@@ -6980,7 +6980,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         refreshQueuePrefetch()
     }
 
-    fun toggleContinuousRadio() {
+    fun toggleEndlessListening() {
         if (_state.value.currentTrack?.isLiveRadio() == true) return
         val enabled = !queueEngine.state.value.radioEnabled
         queueEngine.setRadioEnabled(enabled)

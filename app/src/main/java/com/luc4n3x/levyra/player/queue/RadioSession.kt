@@ -8,17 +8,17 @@ internal const val RADIO_MIX_CONTEXT_TRACKS = 10
 internal data class RadioSession(
     val spaceId: String,
     val seed: Track,
-    val addedIds: Set<String> = emptySet(),
-    val exhausted: Boolean = false
+    val addedIds: Set<String> = emptySet()
 ) {
-    fun isActiveFor(snapshot: PlaybackQueueSnapshot): Boolean {
-        if (exhausted || spaceId != snapshot.spaceId) return false
-        val seedIdentity = playbackQueueIdentity(seed)
-        return snapshot.tracks.any { track -> track.id in addedIds || playbackQueueIdentity(track) == seedIdentity }
-    }
+    /**
+     * Endless listening belongs to its queue space, rather than to a finite starter batch. This
+     * deliberately stays active after the original seed has scrolled out of the rolling history.
+     */
+    fun isActiveFor(snapshot: PlaybackQueueSnapshot): Boolean = spaceId == snapshot.spaceId
 
+    /** A temporary empty recommendation response must not end endless listening. */
     fun recordAdded(ids: Collection<String>): RadioSession {
-        if (ids.isEmpty()) return copy(exhausted = true)
+        if (ids.isEmpty()) return this
         val merged = LinkedHashSet<String>(addedIds.size + ids.size)
         merged.addAll(addedIds)
         merged.addAll(ids)
@@ -31,8 +31,12 @@ internal data class RadioSession(
     }
 }
 
+/**
+ * Follow the track the listener is hearing now. This makes recommendations evolve naturally
+ * instead of repeatedly building a finite random playlist from the first track.
+ */
 internal fun radioSeedFor(session: RadioSession?, snapshot: PlaybackQueueSnapshot): Track? =
-    session?.takeIf { it.isActiveFor(snapshot) }?.seed ?: snapshot.currentTrack
+    snapshot.currentTrack ?: session?.takeIf { it.isActiveFor(snapshot) }?.seed
 
 internal fun radioMixContext(snapshot: PlaybackQueueSnapshot, insertAfterCurrent: Boolean): List<Track> {
     val tracks = snapshot.tracks
