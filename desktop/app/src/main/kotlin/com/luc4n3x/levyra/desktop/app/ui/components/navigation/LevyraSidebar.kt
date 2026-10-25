@@ -22,17 +22,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,17 +58,35 @@ import com.luc4n3x.levyra.desktop.app.ui.icons.LevyraIcons
 import com.luc4n3x.levyra.desktop.app.ui.icons.OfflineIcons
 import com.luc4n3x.levyra.desktop.app.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.desktop.app.ui.theme.LocalAccentColor
+import com.luc4n3x.levyra.desktop.core.storage.LibraryData
+import com.luc4n3x.levyra.desktop.core.storage.LocalPlaylist
 
 @Composable
 fun LevyraSidebar(
     destination: Destination,
+    openPlaylistId: String,
+    library: LibraryData,
     hasActiveTrack: Boolean,
     isPlaying: Boolean,
     onNavigate: (Destination) -> Unit,
+    onOpenPlaylist: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
     val accent = LocalAccentColor.current
+    var libraryExpanded by rememberSaveable { mutableStateOf(true) }
+    var playlistQuery by rememberSaveable { mutableStateOf("") }
+    var sortAlphabetically by rememberSaveable { mutableStateOf(false) }
+    val visiblePlaylists = remember(library.playlists, playlistQuery, sortAlphabetically) {
+        library.playlists
+            .asSequence()
+            .filter { playlist -> playlist.name.contains(playlistQuery.trim(), ignoreCase = true) }
+            .let { playlists ->
+                if (sortAlphabetically) playlists.sortedBy { it.name.lowercase() }
+                else playlists.sortedByDescending { it.createdAt }
+            }
+            .toList()
+    }
     val shellShape = RoundedCornerShape(20.dp)
     val shellBrush = Brush.verticalGradient(
         colors = listOf(
@@ -130,7 +156,11 @@ fun LevyraSidebar(
             )
 
             Spacer(modifier = Modifier.height(22.dp))
-            SidebarSectionLabel(strings.navSectionLibrary)
+            SidebarLibraryHeader(
+                label = strings.navSectionLibrary,
+                expanded = libraryExpanded,
+                onToggle = { libraryExpanded = !libraryExpanded }
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             SidebarItem(
@@ -139,12 +169,30 @@ fun LevyraSidebar(
                 selected = destination == Destination.LIBRARY || destination == Destination.PLAYLIST,
                 onClick = { onNavigate(Destination.LIBRARY) }
             )
-            SidebarItem(
-                icon = OfflineIcons.Folder,
-                label = strings.localMusic,
-                selected = destination == Destination.LOCAL_MUSIC,
-                onClick = { onNavigate(Destination.LOCAL_MUSIC) }
-            )
+
+            if (libraryExpanded) {
+                SidebarLibraryBrowser(
+                    playlistQuery = playlistQuery,
+                    onPlaylistQueryChange = { playlistQuery = it },
+                    sortAlphabetically = sortAlphabetically,
+                    onToggleSort = { sortAlphabetically = !sortAlphabetically },
+                    playlists = visiblePlaylists,
+                    openPlaylistId = openPlaylistId,
+                    destination = destination,
+                    onOpenPlaylist = onOpenPlaylist,
+                    onOpenLocalMusic = { onNavigate(Destination.LOCAL_MUSIC) },
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                SidebarItem(
+                    icon = OfflineIcons.Folder,
+                    label = strings.localMusic,
+                    selected = destination == Destination.LOCAL_MUSIC,
+                    onClick = { onNavigate(Destination.LOCAL_MUSIC) }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
             SidebarItem(
                 icon = LevyraIcons.Disc,
                 label = strings.navNowPlaying,
@@ -166,7 +214,7 @@ fun LevyraSidebar(
                 onClick = { onNavigate(Destination.NOW_PLAYING) }
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            if (libraryExpanded) Spacer(modifier = Modifier.height(8.dp))
 
             Box(
                 modifier = Modifier
@@ -189,6 +237,171 @@ fun LevyraSidebar(
                 label = strings.navSettings,
                 selected = destination == Destination.SETTINGS,
                 onClick = { onNavigate(Destination.SETTINGS) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarLibraryHeader(
+    label: String,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val accent = LocalAccentColor.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SidebarSectionLabel(label)
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = if (expanded) LevyraIcons.ChevronUp else LevyraIcons.ChevronDown,
+            contentDescription = if (expanded) "Collapse library" else "Expand library",
+            tint = accent,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun SidebarLibraryBrowser(
+    playlistQuery: String,
+    onPlaylistQueryChange: (String) -> Unit,
+    sortAlphabetically: Boolean,
+    onToggleSort: () -> Unit,
+    playlists: List<LocalPlaylist>,
+    openPlaylistId: String,
+    destination: Destination,
+    onOpenPlaylist: (String) -> Unit,
+    onOpenLocalMusic: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val strings = LocalStrings.current
+    val accent = LocalAccentColor.current
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        OutlinedTextField(
+            value = playlistQuery,
+            onValueChange = onPlaylistQueryChange,
+            singleLine = true,
+            placeholder = { Text(strings.searchPlaceholder, maxLines = 1) },
+            trailingIcon = {
+                Text(
+                    text = if (sortAlphabetically) "A–Z" else "Recent",
+                    color = accent,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(7.dp))
+                        .clickable(onClick = onToggleSort)
+                        .padding(horizontal = 5.dp, vertical = 4.dp)
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = accent,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 42.dp)
+        )
+        Spacer(modifier = Modifier.height(7.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            SidebarLibraryCollectionItem(
+                icon = OfflineIcons.Folder,
+                label = strings.localMusic,
+                caption = "",
+                selected = destination == Destination.LOCAL_MUSIC,
+                onClick = onOpenLocalMusic
+            )
+            if (playlists.isNotEmpty()) {
+                Text(
+                    text = strings.libraryPlaylists.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.55.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.66f),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 11.dp, top = 8.dp, bottom = 2.dp)
+                )
+                playlists.forEach { playlist ->
+                    SidebarLibraryCollectionItem(
+                        icon = LevyraIcons.Playlist,
+                        label = playlist.name,
+                        caption = "${playlist.tracks.size}",
+                        selected = destination == Destination.PLAYLIST && openPlaylistId == playlist.id,
+                        onClick = { onOpenPlaylist(playlist.id) }
+                    )
+                }
+            } else if (playlistQuery.isNotBlank()) {
+                Text(
+                    text = strings.searchNoResults,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SidebarLibraryCollectionItem(
+    icon: ImageVector,
+    label: String,
+    caption: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = LocalAccentColor.current
+    val background = if (selected) accent.copy(alpha = 0.14f) else Color.Transparent
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (caption.isNotBlank()) {
+            Text(
+                text = caption,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

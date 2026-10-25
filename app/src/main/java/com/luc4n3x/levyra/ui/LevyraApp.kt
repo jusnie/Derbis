@@ -9790,6 +9790,8 @@ private fun HomeScreen(
                             isResolving = state.isResolving,
                             animationsEnabled = state.animationsEnabled,
                             onSearch = viewModel::openSearch,
+                            onCreatePlaylist = { name -> viewModel.createPlaylist(name) },
+                            onOpenJam = viewModel::openJam,
                             onSettings = viewModel::openSettings
                         )
                     }
@@ -11179,6 +11181,8 @@ private fun LazyListScope.studioHomeHeaderItems(
                             isResolving = state.isResolving,
                             animationsEnabled = homeAnimationsEnabled,
                             onSearch = viewModel::openSearch,
+                            onCreatePlaylist = { name -> viewModel.createPlaylist(name) },
+                            onOpenJam = viewModel::openJam,
                             onSettings = viewModel::openSettings
                         )
                     }
@@ -18371,6 +18375,13 @@ private fun AddToPlaylistDialog(
     val strings = LocalLevyraStrings.current
     var creating by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
+    var playlistQuery by remember { mutableStateOf("") }
+    val visiblePlaylists = remember(playlists, playlistQuery) {
+        val query = playlistQuery.trim()
+        if (query.isBlank()) playlists else playlists.filter { playlist ->
+            playlist.name.contains(query, ignoreCase = true)
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = LevyraPanel,
@@ -18392,6 +18403,20 @@ private fun AddToPlaylistDialog(
                         )
                     )
                 } else {
+                    OutlinedTextField(
+                        value = playlistQuery,
+                        onValueChange = { playlistQuery = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(strings.searchPlaceholder, color = LevyraMuted) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = LevyraText,
+                            unfocusedTextColor = LevyraText,
+                            focusedBorderColor = LevyraCyan,
+                            unfocusedBorderColor = LevyraMuted.copy(alpha = 0.4f),
+                            cursorColor = LevyraCyan
+                        )
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -18404,7 +18429,7 @@ private fun AddToPlaylistDialog(
                         Icon(Icons.Rounded.Add, null, tint = LevyraCyan)
                         Text(LocalLevyraStrings.current.createNewPlaylist, color = LevyraCyan, fontWeight = FontWeight.Bold)
                     }
-                    playlists.forEach { pl ->
+                    visiblePlaylists.forEach { pl ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -18417,6 +18442,9 @@ private fun AddToPlaylistDialog(
                             Icon(Icons.AutoMirrored.Rounded.QueueMusic, null, tint = LevyraMuted)
                             Text(pl.name, color = LevyraText, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
+                    }
+                    if (visiblePlaylists.isEmpty() && playlistQuery.isNotBlank()) {
+                        Text(strings.searchNoResults, color = LevyraMuted, fontSize = 13.sp)
                     }
                 }
             }
@@ -23753,6 +23781,8 @@ private fun GreetingBar(
     isResolving: Boolean,
     animationsEnabled: Boolean,
     onSearch: () -> Unit,
+    onCreatePlaylist: (String) -> Unit,
+    onOpenJam: () -> Unit,
     onSettings: () -> Unit
 ) {
     val strings = LocalLevyraStrings.current
@@ -23765,6 +23795,8 @@ private fun GreetingBar(
         android.icu.text.DateFormat.getInstanceForSkeleton("EEEEMMMMd", locale).format(java.util.Date())
             .replaceFirstChar { it.titlecase(locale) }
     }
+    var createMenuExpanded by remember { mutableStateOf(false) }
+    var createPlaylistDialogVisible by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -23789,6 +23821,33 @@ private fun GreetingBar(
                 modifier = Modifier.weight(1f)
             )
         }
+        Box {
+            HomeHeaderCreateButton(
+                label = strings.create,
+                onClick = { createMenuExpanded = true }
+            )
+            DropdownMenu(
+                expanded = createMenuExpanded,
+                onDismissRequest = { createMenuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text(strings.createNewPlaylist) },
+                    leadingIcon = { Icon(Icons.Rounded.Add, null) },
+                    onClick = {
+                        createMenuExpanded = false
+                        createPlaylistDialogVisible = true
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Start Derbis Jam") },
+                    leadingIcon = { Icon(Icons.Rounded.Groups, null) },
+                    onClick = {
+                        createMenuExpanded = false
+                        onOpenJam()
+                    }
+                )
+            }
+        }
         HomeHeaderIconButton(
             icon = Icons.Rounded.Search,
             contentDescription = strings.search,
@@ -23801,6 +23860,15 @@ private fun GreetingBar(
             polygon = MaterialShapes.Cookie4Sided,
             loading = isResolving,
             onClick = onSettings
+        )
+    }
+    if (createPlaylistDialogVisible) {
+        PlaylistCreateDialog(
+            onDismiss = { createPlaylistDialogVisible = false },
+            onConfirm = { name ->
+                onCreatePlaylist(name)
+                createPlaylistDialogVisible = false
+            }
         )
     }
 }
@@ -23970,6 +24038,34 @@ internal fun rememberCurrentGreetingHour() = produceState(
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HomeHeaderCreateButton(
+    label: String,
+    onClick: () -> Unit
+) {
+    val shape = MaterialShapes.Cookie4Sided.toShape()
+    val background = if (LevyraIsLight) LevyraCyan.copy(alpha = 0.18f) else LevyraCyan.copy(alpha = 0.24f)
+    Surface(
+        color = background,
+        contentColor = LevyraText,
+        shape = shape,
+        border = BorderStroke(Dp.Hairline, LevyraCyan.copy(alpha = 0.42f)),
+        modifier = Modifier
+            .height(LevyraHomeDesign.SettingsControlHeight)
+            .clip(shape)
+            .pressable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Icon(Icons.Rounded.Add, null, modifier = Modifier.size(18.dp), tint = LevyraCyan)
+            Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = LevyraText)
+        }
+    }
+}
+
 @Composable
 private fun HomeHeaderIconButton(
     icon: ImageVector,

@@ -2,6 +2,16 @@
 
 All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **New**, **Fixed**, and **Known limitations** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
 
+## Unreleased — phased library and Home upgrade
+
+### New
+- Android Home now offers **Create** actions for a local playlist and **Derbis Jam — LAN**.
+- Android's Add to Playlist picker now filters local playlist destinations by name before adding a track.
+- Windows' expanded library sidebar now lets listeners search and sort their local playlists, open them directly, and collapse the library browser when they want a simpler navigation rail.
+
+### Known limitations
+- This is the first safe phase of the SimpMusic-inspired rollout. Cached-playback collection refinements, additional Home/player polish, and compliant authenticated YouTube social features remain separate follow-up work; YouTube actions will not be enabled without compliant authenticated access.
+
 ## [1.0.3] — 2026-10-25
 
 ### Android

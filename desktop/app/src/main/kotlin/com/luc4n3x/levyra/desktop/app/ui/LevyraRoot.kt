@@ -246,9 +246,12 @@ fun LevyraRoot(model: LevyraAppModel) {
                             ) {
                                 LevyraSidebar(
                                     destination = destination,
+                                    openPlaylistId = openPlaylistId,
+                                    library = library,
                                     hasActiveTrack = playback.current != null,
                                     isPlaying = playback.isPlaying,
-                                    onNavigate = model::navigate
+                                    onNavigate = model::navigate,
+                                    onOpenPlaylist = model::openPlaylist
                                 )
 
                                 Surface(

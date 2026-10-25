@@ -190,6 +190,7 @@ class HomeViewModel internal constructor(
     fun openArtistFromHit(hit: ArtistHit) = root.openArtistFromHit(hit)
     fun openSettings() = root.openSettings()
     fun openSearch() = root.selectTab(LevyraTab.Search)
+    fun openJam() = root.openJam()
     fun playAlbumRecommendations(albums: List<AlbumHit>) = root.playAlbumRecommendations(albums)
     fun refreshHomeArtists() = root.refreshHomeArtists()
     fun refreshHomeResonanceComments(tracks: List<Track>) = root.refreshHomeResonanceComments(tracks)
