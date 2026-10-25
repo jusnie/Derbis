@@ -7,35 +7,35 @@ import org.junit.Test
 
 class MotionArtworkVerificationPlanTest {
     @Test
-    fun fullSpotifyBudgetStillKeepsAppleFallback() {
+    fun fullCatalogCandidateBudgetKeepsSecondaryCandidates() {
         val ranked = listOf(
-            rankedCandidate("spotify-1", providerRank = 0),
-            rankedCandidate("spotify-2", providerRank = 0),
-            rankedCandidate("spotify-3", providerRank = 0),
-            rankedCandidate("apple", providerRank = 1)
+            rankedCandidate("catalog-1", providerRank = 0),
+            rankedCandidate("catalog-2", providerRank = 0),
+            rankedCandidate("catalog-3", providerRank = 0),
+            rankedCandidate("secondary", providerRank = 1)
         )
 
         val plan = buildMotionArtworkVerificationPlan(ranked)
 
-        assertEquals(listOf("spotify-1", "spotify-2", "spotify-3", "apple"), plan.candidates.map { it.candidate.url })
+        assertEquals(listOf("catalog-1", "catalog-2", "catalog-3", "secondary"), plan.candidates.map { it.candidate.url })
         assertTrue(plan.exhaustive)
     }
 
     @Test
     fun oversizedProviderSetRemainsBoundedWithoutDroppingFallbackProviders() {
         val ranked = listOf(
-            rankedCandidate("spotify-1", providerRank = 0),
-            rankedCandidate("spotify-2", providerRank = 0),
-            rankedCandidate("spotify-3", providerRank = 0),
-            rankedCandidate("spotify-4", providerRank = 0),
-            rankedCandidate("apple", providerRank = 1),
-            rankedCandidate("tidal", providerRank = 2)
+            rankedCandidate("catalog-1", providerRank = 0),
+            rankedCandidate("catalog-2", providerRank = 0),
+            rankedCandidate("catalog-3", providerRank = 0),
+            rankedCandidate("catalog-4", providerRank = 0),
+            rankedCandidate("secondary", providerRank = 1),
+            rankedCandidate("tertiary", providerRank = 2)
         )
 
         val plan = buildMotionArtworkVerificationPlan(ranked)
 
         assertEquals(
-            listOf("spotify-1", "spotify-2", "spotify-3", "apple", "tidal"),
+            listOf("catalog-1", "catalog-2", "catalog-3", "secondary", "tertiary"),
             plan.candidates.map { it.candidate.url }
         )
         assertFalse(plan.exhaustive)
@@ -77,9 +77,9 @@ class MotionArtworkVerificationPlanTest {
         MotionArtworkRankedCandidate(
             candidate = MotionArtworkCandidate(
                 provider = when (providerRank) {
-                    0 -> "community-canvas"
-                    1 -> "apple-motion"
-                    else -> "tidal-video-cover"
+                    0 -> "catalog-primary"
+                    1 -> "catalog-secondary"
+                    else -> "catalog-tertiary"
                 },
                 scope = MotionArtworkScope.TRACK,
                 identity = MotionTrackIdentity(

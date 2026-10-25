@@ -159,7 +159,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_USER_NAME] = snapshot.userName
             mutable[KEY_LANGUAGE_CODE] = normalizedLanguage
             mutable[KEY_ANIMATIONS] = snapshot.animationsEnabled
-            mutable[KEY_MOTION_ARTWORK] = false
+            mutable[KEY_MOTION_ARTWORK] = snapshot.motionArtworkEnabled
             mutable[KEY_DYNAMIC_COLOR] = snapshot.dynamicColor
             mutable[KEY_SPONSORBLOCK] = snapshot.sponsorBlock
             mutable[KEY_SKIP_SILENCE] = snapshot.skipSilence
@@ -241,7 +241,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_UI_LONG_PRESS_SPEED] = normalizedInterface.longPressSpeed
             mutable[KEY_UI_VERTICAL_SWIPE_ACTION] = normalizedInterface.verticalSwipeAction.name
             mutable[KEY_UI_CANVAS_QUALITY] = normalizedInterface.canvasQuality.name
-            mutable[KEY_UI_CANVAS_SOURCE] = normalizedInterface.canvasSource.name
+            mutable[KEY_UI_CANVAS_SOURCE] = LevyraCanvasSource.Auto.name
             mutable[KEY_UI_VISUAL_PERFORMANCE] = normalizedInterface.visualPerformance.name
             mutable[KEY_UI_LIQUID_GLASS] = normalizedInterface.liquidGlassEnabled
             mutable[KEY_UI_LITE_MODE] = normalizedInterface.liteMode
@@ -337,10 +337,9 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         write { it[KEY_ANIMATIONS] = value }
     }
 
-    suspend fun setMotionArtworkEnabled(@Suppress("UNUSED_PARAMETER") value: Boolean) {
+    suspend fun setMotionArtworkEnabled(value: Boolean) {
         try {
-            // Canvas/motion artwork is retired; clear any legacy opt-in instead of reviving it.
-            store.commit { it[KEY_MOTION_ARTWORK] = false }
+            store.commit { it[KEY_MOTION_ARTWORK] = value }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -426,7 +425,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_UI_LONG_PRESS_SPEED] = normalized.longPressSpeed
             it[KEY_UI_VERTICAL_SWIPE_ACTION] = normalized.verticalSwipeAction.name
             it[KEY_UI_CANVAS_QUALITY] = normalized.canvasQuality.name
-            it[KEY_UI_CANVAS_SOURCE] = normalized.canvasSource.name
+            it[KEY_UI_CANVAS_SOURCE] = LevyraCanvasSource.Auto.name
             it[KEY_UI_VISUAL_PERFORMANCE] = normalized.visualPerformance.name
             it[KEY_UI_LIQUID_GLASS] = normalized.liquidGlassEnabled
             it[KEY_UI_GLASS_BLUR] = normalized.glassBlur
@@ -805,8 +804,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             userName = preferences[KEY_USER_NAME].orEmpty(),
             languageCode = normalizedLanguage,
             animationsEnabled = preferences[KEY_ANIMATIONS] ?: true,
-            // Keep existing installations static even if an older backup stored this flag.
-            motionArtworkEnabled = false,
+            motionArtworkEnabled = preferences[KEY_MOTION_ARTWORK] ?: false,
             dynamicColor = preferences[KEY_DYNAMIC_COLOR] ?: true,
             sponsorBlock = preferences[KEY_SPONSORBLOCK] ?: DEFAULT_SPONSORBLOCK_ENABLED,
             skipSilence = preferences[KEY_SKIP_SILENCE] ?: false,
@@ -845,7 +843,13 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val storedVisualMode = preferences[KEY_UI_PLAYER_VISUAL_MODE]
         val visualMode = when {
             storedVisualMode != null -> PlayerVisualMode.from(storedVisualMode)
-            preferences.contains(KEY_MOTION_ARTWORK) -> PlayerVisualMode.Artwork
+            preferences.contains(KEY_MOTION_ARTWORK) -> {
+                if (preferences[KEY_MOTION_ARTWORK] == true) {
+                    PlayerVisualMode.CanvasCard
+                } else {
+                    PlayerVisualMode.Artwork
+                }
+            }
             else -> PlayerVisualMode.Flow
         }
         val storedBackground = preferences[KEY_UI_PLAYER_BACKGROUND]

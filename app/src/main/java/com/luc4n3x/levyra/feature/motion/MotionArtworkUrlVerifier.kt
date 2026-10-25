@@ -25,24 +25,25 @@ sealed interface MotionArtworkVerificationResult {
 }
 
 internal object MotionArtworkDestinationPolicy {
-    fun isAllowedUrl(provider: String, url: HttpUrl): Boolean {
+    fun isAllowedUrl(
+        provider: String,
+        url: HttpUrl,
+        catalogEndpoint: HttpUrl? = configuredDerbisCanvasCatalogEndpoint()
+    ): Boolean {
         if (
+            provider != DerbisCanvasCatalogProvider.PROVIDER_ID ||
             url.scheme != "https" ||
             url.port != 443 ||
             url.username.isNotEmpty() ||
-            url.password.isNotEmpty()
+            url.password.isNotEmpty() ||
+            catalogEndpoint == null ||
+            !isValidDerbisCatalogEndpoint(catalogEndpoint)
         ) {
             return false
         }
-        val host = url.host.lowercase(Locale.ROOT)
-        return when (provider) {
-            "apple-motion" -> APPLE_MEDIA_HOSTS.any { allowed ->
-                host == allowed || host.endsWith(".$allowed")
-            }
-            "tidal-video-cover" -> host == TIDAL_MEDIA_HOST
-            "community-canvas" -> host in COMMUNITY_MEDIA_HOSTS
-            else -> false
-        }
+        return url.host.equals(catalogEndpoint.host, ignoreCase = true) &&
+            url.encodedPath.startsWith("/media/") &&
+            (url.encodedPath.endsWith(".mp4", true) || url.encodedPath.endsWith(".m3u8", true))
     }
 
     fun isPublicAddress(address: InetAddress): Boolean {
@@ -67,12 +68,6 @@ internal object MotionArtworkDestinationPolicy {
         }
         return true
     }
-
-    private val APPLE_MEDIA_HOSTS = setOf(
-        "itunes.apple.com",
-        "mzstatic.com"
-    )
-    private const val TIDAL_MEDIA_HOST = "resources.tidal.com"
 }
 
 class MotionArtworkUrlVerifier(context: Context) {

@@ -570,8 +570,7 @@ internal fun shouldContinueMotionPrefetch(
 internal fun shouldRefreshMotionArtworkOwnership(
     previous: LevyraInterfaceSettings,
     next: LevyraInterfaceSettings
-): Boolean = previous.canvasSource != next.canvasSource ||
-    previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly
+): Boolean = previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly
 
 internal fun resumeStartPositionMs(pendingSeekMs: Long, durationMs: Long): Long =
     pendingSeekMs.takeIf { positionMs ->
@@ -1761,7 +1760,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 userName = settings.userName,
                 languageCode = settings.languageCode,
                 animationsEnabled = settings.animationsEnabled && !adaptivePlaybackPolicy.current(videoMode = false).lowRam,
-                motionArtworkEnabled = false,
+                motionArtworkEnabled = settings.motionArtworkEnabled,
                 dynamicColor = settings.dynamicColor,
                 sponsorBlockEnabled = settings.sponsorBlock,
                 skipSilence = settings.skipSilence,
@@ -5809,25 +5808,26 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Compatibility entry point for older UI/state restorations. Motion artwork was retired in
-     * favour of stable static covers, so requests always clear the old opt-in and cancel work.
-     */
-    fun setMotionArtworkEnabled(@Suppress("UNUSED_PARAMETER") value: Boolean) {
+    fun setMotionArtworkEnabled(value: Boolean) {
         _state.update {
             it.copy(
-                motionArtworkEnabled = false,
-                motionArtwork = null,
-                motionArtworkLoading = false,
-                artistMotionArtwork = null,
-                albumMotionArtwork = null
+                motionArtworkEnabled = value,
+                motionArtwork = if (value) it.motionArtwork else null,
+                motionArtworkLoading = if (value) it.motionArtworkLoading else false,
+                artistMotionArtwork = if (value) it.artistMotionArtwork else null,
+                albumMotionArtwork = if (value) it.albumMotionArtwork else null
             )
         }
-        viewModelScope.launch { preferences.setMotionArtworkEnabled(false) }
-        motionArtworkJob?.cancel()
-        motionArtworkRequestKey = null
-        motionArtworkPrefetchJob?.cancel()
-        cancelPageMotion()
+        viewModelScope.launch { preferences.setMotionArtworkEnabled(value) }
+        if (value && _state.value.animationsEnabled) {
+            _state.value.currentTrack?.let(::refreshMotionArtworkAround)
+            refreshPageMotionArtwork()
+        } else {
+            motionArtworkJob?.cancel()
+            motionArtworkRequestKey = null
+            motionArtworkPrefetchJob?.cancel()
+            cancelPageMotion()
+        }
     }
 
     fun setDynamicColor(value: Boolean) {
@@ -6202,7 +6202,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 userName = snapshot.userName,
                 languageCode = snapshot.languageCode,
                 animationsEnabled = restoredAnimationsEnabled,
-                motionArtworkEnabled = false,
+                motionArtworkEnabled = snapshot.motionArtworkEnabled,
                 motionArtwork = null,
                 motionArtworkLoading = false,
                 dynamicColor = snapshot.dynamicColor,
@@ -9111,13 +9111,6 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private fun applySearchSnapshot(snapshot: SearchSessionSnapshot) {
         val clean = snapshot.query
         val currentState = _state.value
-        if (
-            snapshot.results.artists.isNotEmpty() &&
-            currentState.animationsEnabled &&
-            currentState.motionArtworkEnabled
-        ) {
-            motionArtworkEngine.warmArtistMotionProvider(currentState.interfaceSettings.canvasSource)
-        }
         _state.update { current ->
             val strings = LevyraStrings.forCode(current.languageCode)
             current.copy(
@@ -12336,17 +12329,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         artistMotionJob = viewModelScope.launch(Dispatchers.IO) {
-            val canvasSource = _state.value.interfaceSettings.canvasSource
             val attempts = buildList<suspend () -> MotionArtwork?> {
-                if (profile.name.isNotBlank()) {
-                    add {
-                        runCatchingPreservingCancellation {
-                            motionArtworkEngine.awaitArtist(profile.name, profile.browseId, canvasSource)
-                        }.onFailure { error ->
-                            Timber.d(error, "Artist motion video resolve failed for %s", profile.name)
-                        }.getOrNull()
-                    }
-                }
                 seeds.forEach { track ->
                     add {
                         runCatchingPreservingCancellation {
@@ -12415,7 +12398,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             var published = false
             runCatching {
                 motionArtworkEngine
-                    .resolveAppleAlbumProgressive(seed)
+                    .resolveProgressive(seed, LevyraCanvasSource.Auto)
                     .collect { artwork ->
                         published = true
                         publishForVisibleAlbum(artwork)

@@ -7,7 +7,7 @@ import org.junit.Test
 class MotionArtworkPriorityHoldTest {
 
     @Test
-    fun appleVerifiedWhileCommunityPendingIsHeldInAuto() {
+    fun secondaryVerifiedWhilePrimaryPendingIsHeldInAuto() {
         assertTrue(
             shouldHoldMotionPublication(
                 candidateProviderRank = 1,
@@ -19,7 +19,7 @@ class MotionArtworkPriorityHoldTest {
     }
 
     @Test
-    fun communityVerifiedPublishesImmediatelyEvenWithSlowerProvidersPending() {
+    fun primaryVerifiedPublishesImmediatelyEvenWithSlowerProvidersPending() {
         assertFalse(
             shouldHoldMotionPublication(
                 candidateProviderRank = 0,
@@ -75,11 +75,10 @@ class MotionArtworkPriorityHoldTest {
     }
 
     @Test
-    fun autoProviderOrderKeepsCommunityCanvasFirst() {
+    fun runtimeProviderOrderContainsOnlyTheOwnedCatalog() {
         val order = motionArtworkProviderOrder(MotionArtworkConfig().normalized().providerOrder, com.luc4n3x.levyra.domain.LevyraCanvasSource.Auto)
 
-        assertTrue(order.first() == "community-canvas")
-        assertTrue(order.indexOf("community-canvas") < order.indexOf("apple-motion"))
+        assertTrue(order == listOf(DerbisCanvasCatalogProvider.PROVIDER_ID))
     }
 
     @Test

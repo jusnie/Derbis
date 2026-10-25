@@ -11,15 +11,12 @@ enum class LevyraCanvasQuality {
     }
 }
 
+/** Kept as a one-value type so old preference/backup values migrate without a source picker. */
 enum class LevyraCanvasSource {
-    Auto,
-    Community,
-    Apple,
-    Tidal;
+    Auto;
 
     companion object {
-        fun from(value: String): LevyraCanvasSource =
-            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: Auto
+        fun from(value: String): LevyraCanvasSource = Auto
     }
 }
 
@@ -247,12 +244,6 @@ data class LevyraInterfaceSettings(
     val ivory: IvorySettings = IvorySettings()
 ) {
     fun normalized(): LevyraInterfaceSettings = copy(
-        // Animated Canvas decks are retired. Existing selections fall back to static artwork.
-        playerVisualMode = when (playerVisualMode) {
-            PlayerVisualMode.CanvasCard,
-            PlayerVisualMode.CanvasImmersive -> PlayerVisualMode.Artwork
-            else -> playerVisualMode
-        },
         doubleTapSeekSeconds = doubleTapSeekSeconds.coerceIn(5, 30),
         longPressSpeed = longPressSpeed.coerceIn(1.25f, 3f),
         glassBlur = glassBlur.coerceIn(0, 100),

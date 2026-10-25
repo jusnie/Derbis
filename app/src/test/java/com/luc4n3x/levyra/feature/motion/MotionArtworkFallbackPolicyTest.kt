@@ -21,14 +21,14 @@ class MotionArtworkFallbackPolicyTest {
         val initial = LevyraInterfaceSettings()
 
         assertTrue(shouldRefreshMotionArtworkOwnership(initial, initial.copy(motionArtworkWifiOnly = true)))
-        assertTrue(shouldRefreshMotionArtworkOwnership(initial, initial.copy(canvasSource = LevyraCanvasSource.Tidal)))
+        assertFalse(shouldRefreshMotionArtworkOwnership(initial, initial.copy(canvasSource = LevyraCanvasSource.Auto)))
         assertFalse(shouldRefreshMotionArtworkOwnership(initial, initial))
         assertFalse(shouldPublishMotionArtwork(false))
         assertTrue(shouldPublishMotionArtwork(true))
     }
 
     private fun candidate() = MotionArtworkCandidate(
-        provider = "apple-motion",
+        provider = DerbisCanvasCatalogProvider.PROVIDER_ID,
         scope = MotionArtworkScope.TRACK,
         identity = MotionTrackIdentity(
             title = "Track",

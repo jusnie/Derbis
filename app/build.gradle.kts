@@ -84,6 +84,16 @@ val canvasClientKey = if (isFdroidBuild) {
 } else {
     envOrProperty("LEVYRA_CANVAS_CLIENT_KEY", "levyraCanvasClientKey")
 }
+val derbisCanvasCatalogUrl = if (isFdroidBuild) {
+    ""
+} else {
+    envOrProperty("DERBIS_CANVAS_CATALOG_URL", "derbisCanvasCatalogUrl")
+}
+val derbisCanvasCatalogKey = if (isFdroidBuild) {
+    ""
+} else {
+    envOrProperty("DERBIS_CANVAS_CATALOG_KEY", "derbisCanvasCatalogKey")
+}
 val derbisJamRelayUrl = if (isFdroidBuild) {
     ""
 } else {
@@ -186,6 +196,8 @@ android {
         buildConfigField("String", "YOUTUBE_INNERTUBE_API_KEY", buildConfigString(youtubeInnertubeApiKey))
         buildConfigField("String", "CANVAS_RESOLVER_URL", buildConfigString(canvasResolverUrl))
         buildConfigField("String", "CANVAS_CLIENT_KEY", buildConfigString(canvasClientKey))
+        buildConfigField("String", "DERBIS_CANVAS_CATALOG_URL", buildConfigString(derbisCanvasCatalogUrl))
+        buildConfigField("String", "DERBIS_CANVAS_CATALOG_KEY", buildConfigString(derbisCanvasCatalogKey))
         buildConfigField("String", "JAM_RELAY_URL", buildConfigString(derbisJamRelayUrl))
         buildConfigField("String", "SPOTIFY_CLIENT_ID", buildConfigString(spotifyClientId))
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", buildConfigString(spotifyRedirectUri))

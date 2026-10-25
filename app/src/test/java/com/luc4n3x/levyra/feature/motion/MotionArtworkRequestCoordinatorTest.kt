@@ -41,9 +41,9 @@ class MotionArtworkRequestCoordinatorTest {
             motionArtworkRequestKey(prepared, LevyraCanvasSource.Auto),
             motionArtworkRequestKey(sameRecordingFromPlayback, LevyraCanvasSource.Auto)
         )
-        assertNotEquals(
+        assertEquals(
             motionArtworkRequestKey(prepared, LevyraCanvasSource.Auto),
-            motionArtworkRequestKey(prepared, LevyraCanvasSource.Apple)
+            motionArtworkRequestKey(prepared, LevyraCanvasSource.Auto)
         )
     }
 
@@ -65,18 +65,9 @@ class MotionArtworkRequestCoordinatorTest {
     }
 
     @Test
-    fun artistPageNeverWaitsForDedicatedNetworkLookupOnCacheMiss() {
-        LevyraCanvasSource.entries.forEach { source ->
-            assertEquals(0L, artistMotionForegroundWaitMs(source))
-        }
-    }
-
-    @Test
-    fun dedicatedArtistWarmupOnlyRunsWhenAppleIsEligible() {
-        assertTrue(shouldWarmDedicatedArtistMotion(LevyraCanvasSource.Auto))
-        assertTrue(shouldWarmDedicatedArtistMotion(LevyraCanvasSource.Apple))
-        assertFalse(shouldWarmDedicatedArtistMotion(LevyraCanvasSource.Community))
-        assertFalse(shouldWarmDedicatedArtistMotion(LevyraCanvasSource.Tidal))
+    fun catalogHasNoDedicatedArtistLookup() {
+        assertEquals(1, LevyraCanvasSource.entries.size)
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.entries.single())
     }
 
     @Test
@@ -192,7 +183,7 @@ class MotionArtworkRequestCoordinatorTest {
 
             val refreshed = mutableListOf<MotionArtwork>()
             coordinator.share("refresh-request") { emit ->
-                emit(artwork("track-refresh", "community-canvas"))
+                emit(artwork("track-refresh", "catalog-primary"))
             }.toList(refreshed)
 
             assertEquals(1, refreshed.size)
@@ -207,8 +198,8 @@ class MotionArtworkRequestCoordinatorTest {
         val coordinatorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {
             val coordinator = MotionArtworkRequestCoordinator(coordinatorScope)
-            val first = artwork("track-slow", "community-canvas")
-            val second = artwork("track-slow", "apple-motion")
+            val first = artwork("track-slow", "catalog-primary")
+            val second = artwork("track-slow", "catalog-secondary")
             val workerReady = CompletableDeferred<Unit>()
             val firstDeliveryStarted = CompletableDeferred<Unit>()
             val releaseFirstDelivery = CompletableDeferred<Unit>()
@@ -246,7 +237,7 @@ class MotionArtworkRequestCoordinatorTest {
         val coordinatorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {
             val coordinator = MotionArtworkRequestCoordinator(coordinatorScope)
-            val firstArtwork = artwork("track-replay", "community-canvas")
+            val firstArtwork = artwork("track-replay", "catalog-primary")
             val firstPublished = CompletableDeferred<Unit>()
             val workerCancelled = CompletableDeferred<Unit>()
 
@@ -344,8 +335,8 @@ class MotionArtworkRequestCoordinatorTest {
         val coordinatorScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         try {
             val coordinator = MotionArtworkRequestCoordinator(coordinatorScope)
-            val firstArtwork = artwork("track-1", "tidal-video-cover")
-            val upgradedArtwork = artwork("track-1", "apple-motion")
+            val firstArtwork = artwork("track-1", "catalog-tertiary")
+            val upgradedArtwork = artwork("track-1", "catalog-secondary")
             val firstPublished = CompletableDeferred<Unit>()
             val releaseUpgrade = CompletableDeferred<Unit>()
             var blockStarts = 0

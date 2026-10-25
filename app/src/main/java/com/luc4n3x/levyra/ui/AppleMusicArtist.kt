@@ -82,7 +82,6 @@ import com.luc4n3x.levyra.domain.AlbumHit
 import com.luc4n3x.levyra.domain.PlaylistHit
 import com.luc4n3x.levyra.domain.ArtistProfile
 import com.luc4n3x.levyra.domain.ArtistRelease
-import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.components.LevyraPressScale
 import com.luc4n3x.levyra.ui.components.levyraPressable
 import com.luc4n3x.levyra.ui.i18n.LevyraAppleMusicStrings
@@ -319,22 +318,6 @@ internal fun PrefetchAppleArtistHero(artistName: String?, storefront: String) {
     }
 }
 
-internal fun AppleArtistPage.heroMotion(): MotionArtwork? = squareMotion?.let { motion ->
-    val now = System.currentTimeMillis()
-    MotionArtwork(
-        identityKey = "apple-artist:$id",
-        provider = AppleArtistMotionProvider,
-        url = motion.videoUrl,
-        mimeType = AppleArtistMotionMime,
-        width = motion.width.takeIf { it > 0 },
-        height = motion.height.takeIf { it > 0 },
-        confidence = 100,
-        expiresAtMs = now + AppleArtistMotionTtlMs,
-        lastVerifiedAtMs = now,
-        configEpoch = 0L
-    )
-}
-
 internal fun AppleArtistPage.heroArtworkUrl(size: Int): String =
     squareMotion?.previewTemplate?.takeIf(String::isNotBlank)?.let { AppleCatalogArtwork.url(it, size, size) }
         ?: AppleCatalogArtwork.url(artworkTemplate, size, size)
@@ -523,9 +506,6 @@ internal fun appleBioText(raw: String): AnnotatedString = buildAnnotatedString {
 private const val AppleAlbumArtworkPx = 600
 private val AppleMusicArtistBubbleSize = 112.dp
 private const val AppleMusicVideoAspect = 16f / 9f
-private const val AppleArtistMotionProvider = "apple-motion"
-private const val AppleArtistMotionMime = "application/x-mpegURL"
-private const val AppleArtistMotionTtlMs = 6L * 60L * 60L * 1000L
 private val AppleMusicArtistPlaySize = 44.dp
 private val AppleMusicArtistChromeHeight = 44.dp
 private val AppleMusicArtistReleaseArtwork = 104.dp

@@ -7,55 +7,94 @@ import org.junit.Test
 import java.net.InetAddress
 
 class MotionArtworkDestinationPolicyTest {
+    private val endpoint = "https://canvas.derbis.example/v1/motion-artwork/resolve".toHttpUrl()
+
     @Test
-    fun allowsOnlyApprovedProviderMediaHosts() {
+    fun allowsOnlyOwnedHttpsMediaAtTheConfiguredCatalogOrigin() {
         assertTrue(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "tidal-video-cover",
-                "https://resources.tidal.com/videos/a/b/c/d/e/1280x1280.mp4".toHttpUrl()
-            )
-        )
-        assertTrue(
-            MotionArtworkDestinationPolicy.isAllowedUrl(
-                "apple-motion",
-                "https://video-ssl.itunes.apple.com/itunes-assets/master.m3u8".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://canvas.derbis.example/media/artist/loop.mp4".toHttpUrl(),
+                endpoint
             )
         )
         assertTrue(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "community-canvas",
-                "https://canvaz.scdn.co/upload/artist/video/example.cnvs.mp4".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://canvas.derbis.example/media/artist/loop.m3u8".toHttpUrl(),
+                endpoint
+            )
+        )
+
+        assertFalse(
+            MotionArtworkDestinationPolicy.isAllowedUrl(
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://elsewhere.example/media/loop.mp4".toHttpUrl(),
+                endpoint
             )
         )
         assertFalse(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "tidal-video-cover",
-                "https://example.com/video.mp4".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://canvas.derbis.example/not-media/loop.mp4".toHttpUrl(),
+                endpoint
             )
         )
         assertFalse(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "community-canvas",
-                "https://example.com/Song/1.mp4".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://canvas.derbis.example/media/loop.webm".toHttpUrl(),
+                endpoint
             )
         )
         assertFalse(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "apple-motion",
-                "http://video-ssl.itunes.apple.com/video.m3u8".toHttpUrl()
+                "unknown-provider",
+                "https://canvas.derbis.example/media/loop.mp4".toHttpUrl(),
+                endpoint
             )
         )
         assertFalse(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "apple-motion",
-                "https://video-ssl.itunes.apple.com:8443/video.m3u8".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "http://canvas.derbis.example/media/loop.mp4".toHttpUrl(),
+                endpoint
             )
         )
         assertFalse(
             MotionArtworkDestinationPolicy.isAllowedUrl(
-                "apple-motion",
-                "https://user:pass@video-ssl.itunes.apple.com/video.m3u8".toHttpUrl()
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://user:pass@canvas.derbis.example/media/loop.mp4".toHttpUrl(),
+                endpoint
             )
+        )
+    }
+
+    @Test
+    fun rejectsMalformedResolverEndpointsAndMediaThatDoesNotMeetResolverContract() {
+        assertFalse(isValidDerbisCatalogEndpoint("http://canvas.derbis.example/v1/motion-artwork/resolve".toHttpUrl()))
+        assertFalse(isValidDerbisCatalogEndpoint("https://canvas.derbis.example:8443/v1/motion-artwork/resolve".toHttpUrl()))
+        assertFalse(isValidDerbisCatalogEndpoint("https://canvas.derbis.example/v1/motion-artwork/resolve?debug=1".toHttpUrl()))
+        assertFalse(isValidDerbisCatalogEndpoint("https://canvas.derbis.example/v1/other".toHttpUrl()))
+
+        assertFalse(
+            MotionArtworkDestinationPolicy.isAllowedUrl(
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                "https://canvas.derbis.example/media/loop.mp4".toHttpUrl(),
+                "https://canvas.derbis.example/v1/motion-artwork/resolve?debug=1".toHttpUrl()
+            )
+        )
+        assertTrue(
+            derbisCanvasCatalogMediaUrl(
+                "https://canvas.derbis.example/media/loop.mp4",
+                endpoint
+            ) != null
+        )
+        assertFalse(
+            derbisCanvasCatalogMediaUrl(
+                "https://elsewhere.example/media/loop.mp4",
+                endpoint
+            ) != null
         )
     }
 

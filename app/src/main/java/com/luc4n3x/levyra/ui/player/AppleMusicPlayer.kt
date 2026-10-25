@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.domain.LevyraCanvasQuality
 import com.luc4n3x.levyra.domain.RepeatMode
-import com.luc4n3x.levyra.feature.motion.CommunityCanvasProvider
+import com.luc4n3x.levyra.feature.motion.DerbisCanvasCatalogProvider
 import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
 import com.luc4n3x.levyra.domain.Track
@@ -95,7 +95,7 @@ internal class AppleMusicCanvas(
             val current = artwork ?: return false
             val width = current.width
             val height = current.height
-            if (width == null || height == null) return enabled && current.provider == CommunityCanvasProvider.PROVIDER_ID
+            if (width == null || height == null) return enabled && current.provider == DerbisCanvasCatalogProvider.PROVIDER_ID
             return enabled && height > width
         }
 }

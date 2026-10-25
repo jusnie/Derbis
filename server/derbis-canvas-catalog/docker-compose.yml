@@ -1,0 +1,15 @@
+services:
+  derbis-canvas-catalog:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Generate a long random value, keep it out of source control, and match the Android build secret.
+      DERBIS_CANVAS_CATALOG_KEY: ${DERBIS_CANVAS_CATALOG_KEY:?set this in .env}
+      # Must be the externally reachable HTTPS origin served by your reverse proxy.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?set this to e.g. https://canvas.example.com}
+    volumes:
+      - ./catalog/catalog.json:/data/catalog.json:ro
+      - ./media:/data/media:ro
+    ports:
+      # Bind locally; terminate TLS and expose it through Caddy/nginx/Traefik on port 443.
+      - "127.0.0.1:8789:8789"

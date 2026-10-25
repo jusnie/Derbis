@@ -2853,6 +2853,7 @@ fun LevyraApp(
                         state.showHomeStudio || miniPlayerStudio.visible || navigationStudio.visible),
                     miniPlayerVisible = state.currentTrack != null && !state.isSamplesOpen,
                     animationsEnabled = state.animationsEnabled,
+                    motionArtworkEnabled = state.motionArtworkEnabled,
                     dynamicColor = state.dynamicColor,
                     sponsorBlock = state.sponsorBlockEnabled,
                     skipSilence = state.skipSilence,
@@ -2932,6 +2933,7 @@ fun LevyraApp(
                     onBackupSettings = viewModel::setBackupSettings,
                     onAutomationSettings = viewModel::setAutomationSettings,
                     onAnimations = viewModel::setAnimationsEnabled,
+                    onMotionArtwork = viewModel::setMotionArtworkEnabled,
                     onDynamicColor = viewModel::setDynamicColor,
                     onSponsorBlock = viewModel::setSponsorBlock,
                     onSkipSilence = viewModel::setSkipSilence,
@@ -5372,10 +5374,7 @@ private fun ArtistOverlay(
                     ?: LevyraPersonalOrbit.croppedArtworkUrl(heroArtwork, heroWidthPx, heroHeightPx.roundToInt())
             }
         }
-        val heroMotion = when {
-            awaitingAppleHero -> null
-            else -> remember(appleArtist) { appleArtist?.heroMotion() } ?: state.artistMotionArtwork
-        }
+        val heroMotion = if (awaitingAppleHero) null else state.artistMotionArtwork
         val topBarPx = with(density) { (WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + ArtistTopBarHeight).toPx() }
         val heroScroll: () -> Float = {
             if (artistListState.firstVisibleItemIndex == 0) {
@@ -19069,6 +19068,22 @@ private fun PlayerQuickActionsBar(
                     .fillMaxHeight(),
                 onClick = viewModel::openLyrics
             )
+            if (!state.isVideoMode) {
+                val canvasActive = state.motionArtworkEnabled && state.animationsEnabled
+                PlayerQuickAction(
+                    icon = Icons.Rounded.AutoAwesome,
+                    contentDescription = strings.motionArtwork,
+                    tint = if (canvasActive) activePrimary else Color.White.copy(alpha = 0.60f),
+                    active = canvasActive,
+                    toggleableState = ToggleableState(canvasActive),
+                    enabled = state.animationsEnabled,
+                    compact = compact,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    onClick = { viewModel.setMotionArtworkEnabled(!state.motionArtworkEnabled) }
+                )
+            }
             PlayerQuickAction(
                 icon = if (isDownloaded) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
                 contentDescription = when {
@@ -20602,6 +20617,7 @@ private fun SettingsOverlay(
     backEnabled: Boolean,
     miniPlayerVisible: Boolean,
     animationsEnabled: Boolean,
+    motionArtworkEnabled: Boolean,
     dynamicColor: Boolean,
     sponsorBlock: Boolean,
     skipSilence: Boolean,
@@ -20662,6 +20678,7 @@ private fun SettingsOverlay(
     onBackupSettings: (LevyraBackupSettings) -> Unit,
     onAutomationSettings: (LevyraAutomationSettings) -> Unit,
     onAnimations: (Boolean) -> Unit,
+    onMotionArtwork: (Boolean) -> Unit,
     onDynamicColor: (Boolean) -> Unit,
     onSponsorBlock: (Boolean) -> Unit,
     onSkipSilence: (Boolean) -> Unit,
@@ -21098,6 +21115,55 @@ private fun SettingsOverlay(
                                 )
                             }
                             })
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.AutoAwesome,
+                                    title = strings.motionArtwork,
+                                    subtitle = strings.motionArtworkSubtitle,
+                                    checked = motionArtworkEnabled,
+                                    onCheckedChange = onMotionArtwork
+                                )
+                            }
+                            if (motionArtworkEnabled) {
+                                item {
+                                    SettingsChoiceRow(
+                                        icon = Icons.Rounded.HighQuality,
+                                        title = strings.canvasQuality,
+                                        subtitle = strings.canvasQualitySubtitle,
+                                        options = listOf(
+                                            LevyraCanvasQuality.Auto.name to strings.canvasQualityAuto,
+                                            LevyraCanvasQuality.DataSaver.name to strings.canvasQualityDataSaver,
+                                            LevyraCanvasQuality.High.name to strings.canvasQualityHigh
+                                        ),
+                                        selected = interfaceSettings.canvasQuality.name,
+                                        onSelect = { value ->
+                                            onInterfaceSettings(
+                                                interfaceSettings.copy(canvasQuality = LevyraCanvasQuality.from(value))
+                                            )
+                                        }
+                                    )
+                                }
+                                item {
+                                    SettingsInfoCard(
+                                        icon = Icons.Rounded.VerifiedUser,
+                                        title = "Derbis Canvas Catalog",
+                                        subtitle = "Animated artwork comes only from your configured, rights-cleared Derbis catalog. If no verified match is available, Derbis keeps the static album cover."
+                                    )
+                                }
+                                item {
+                                    SettingsToggle(
+                                        icon = Icons.Rounded.Wifi,
+                                        title = strings.motionArtworkWifiOnly,
+                                        subtitle = strings.motionArtworkWifiOnlySubtitle,
+                                        checked = interfaceSettings.motionArtworkWifiOnly,
+                                        onCheckedChange = { value ->
+                                            onInterfaceSettings(
+                                                interfaceSettings.copy(motionArtworkWifiOnly = value)
+                                            )
+                                        }
+                                    )
+                                }
+                            }
                             skinSettingsItems(interfaceSettings.skin, defaults = {
                             item {
                                 SettingsToggle(
@@ -21235,6 +21301,8 @@ private fun SettingsOverlay(
                                     subtitle = strings.playerVisualModeSubtitle,
                                     options = listOf(
                                         PlayerVisualMode.Artwork.name to strings.playerVisualModeArtwork,
+                                        PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
+                                        PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
                                         PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
                                         PlayerVisualMode.TidalMusic.name to strings.playerDeckTidalMusic,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,

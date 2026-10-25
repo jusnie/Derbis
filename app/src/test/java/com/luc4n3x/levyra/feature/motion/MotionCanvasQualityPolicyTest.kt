@@ -139,34 +139,24 @@ class MotionCanvasQualityPolicyTest {
     }
 
     @Test
-    fun `auto source keeps the configured provider order`() {
-        val order = listOf("community-canvas", "apple-motion", "tidal-video-cover")
-        assertEquals(order, motionArtworkProviderOrder(order, LevyraCanvasSource.Auto))
+    fun `only the owned catalog remains in provider order`() {
+        val order = listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID)
+        assertEquals(
+            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
+            motionArtworkProviderOrder(order, LevyraCanvasSource.Auto)
+        )
     }
 
     @Test
-    fun `forced source restricts resolution to that provider`() {
-        val order = listOf("community-canvas", "apple-motion", "tidal-video-cover")
-        assertEquals(listOf("apple-motion"), motionArtworkProviderOrder(order, LevyraCanvasSource.Apple))
-        assertEquals(listOf("tidal-video-cover"), motionArtworkProviderOrder(order, LevyraCanvasSource.Tidal))
-        assertEquals(listOf("community-canvas"), motionArtworkProviderOrder(order, LevyraCanvasSource.Community))
-    }
-
-    @Test
-    fun `forced source that is not configured resolves to no provider`() {
-        assertEquals(emptyList<String>(), motionArtworkProviderOrder(listOf("community-canvas"), LevyraCanvasSource.Apple))
-    }
-
-    @Test
-    fun `cache keys are namespaced per forced source`() {
+    fun `cache keys stay stable because there is no source switch`() {
         assertEquals("abc", motionArtworkCacheKey("abc", LevyraCanvasSource.Auto))
-        assertEquals("abc#apple", motionArtworkCacheKey("abc", LevyraCanvasSource.Apple))
-        assertEquals("abc#tidal", motionArtworkCacheKey("abc", LevyraCanvasSource.Tidal))
     }
 
     @Test
-    fun `unknown stored source falls back to auto`() {
+    fun `stored legacy source values migrate to auto`() {
         assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from(""))
-        assertEquals(LevyraCanvasSource.Community, LevyraCanvasSource.from("community"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("community"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("apple"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("tidal"))
     }
 }

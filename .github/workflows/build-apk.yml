@@ -77,8 +77,12 @@ jobs:
           fi
 
       - name: Build Derbis Test APK
+        # These optional release secrets enable only the owner-operated Canvas Catalog.
+        # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
+          DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
+          DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Stage Release APK
@@ -108,6 +112,7 @@ jobs:
             - **Beat Align (beta):** local PCM BPM and beat-grid analysis; a transition only aligns when both tracks have confident local grids and a safe tempo correction is available.
             - **Spotify playlist imports:** saved playlist titles are explicitly labelled `Imported from Spotify`.
             - **Metrolist-compatible remote groundwork:** binary protobuf client protocol support has been added for a user-selected, authorized Metroserver endpoint. Public relays are not used by default.
+            - **Owned animated artwork:** when the optional `DERBIS_CANVAS_CATALOG_URL` and `DERBIS_CANVAS_CATALOG_KEY` release secrets are configured, verified rights-cleared MP4/HLS artwork may resolve only from that self-hosted catalog. A missing configuration or catalog miss keeps static album artwork.
 
             ### Fixed
             - Removed decorative rotating album sleeve and continuously spinning artwork shape.
@@ -115,7 +120,7 @@ jobs:
             - Preserved playlist-entry identities through playback resolution and crossfade handoff so Mix Studio transition settings remain attached to the right tracks.
             - Crossfade handoff protections remain in place to avoid doubled audio voices.
 
-            ### Test-build limitations
+            ### Known limitations
             - Discord Rich Presence is unavailable unless the repository has an authorized `DISCORD_SOCIAL_SDK_URL` secret.
             - Without a configured owned relay, Jam remains **Derbis Jam — LAN**.
             - The Metroserver path and Beat Align require device testing before stable release.

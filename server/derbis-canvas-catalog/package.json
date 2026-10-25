@@ -1,0 +1,14 @@
+{
+  "name": "derbis-canvas-catalog",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted, rights-cleared animated artwork catalog for Derbis",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "check": "node --check src/server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

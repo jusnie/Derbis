@@ -210,7 +210,7 @@ class LevyraPreferencesStoreTest {
         assertTrue(preferences.isOnboarded())
         assertEquals("Luca", preferences.userName())
         assertEquals(6, preferences.audioSettings().crossfadeSeconds)
-        assertEquals(PlayerVisualMode.Artwork, preferences.interfaceSettings().playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasCard, preferences.interfaceSettings().playerVisualMode)
     }
 
     @Test
@@ -475,7 +475,7 @@ class LevyraPreferencesStoreTest {
         assertEquals(customPreset.id, snapshot.audioSettings.presetId)
         assertEquals(listOf(customPreset), snapshot.audioSettings.customPresets)
         assertEquals(5, snapshot.audioSettings.crossfadeSeconds)
-        assertEquals(PlayerVisualMode.Artwork, snapshot.interfaceSettings.playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasCard, snapshot.interfaceSettings.playerVisualMode)
         assertTrue(snapshot.automationSettings.pauseOnMute)
         assertEquals("Jam", snapshot.jamDisplayName)
     }

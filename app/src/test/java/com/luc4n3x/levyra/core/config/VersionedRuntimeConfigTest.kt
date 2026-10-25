@@ -17,13 +17,13 @@ class VersionedRuntimeConfigTest {
 
     @Test
     fun updatePublishesValueAndEpochAtomically() {
-        val config = VersionedRuntimeConfig(listOf("apple-motion"))
+        val config = VersionedRuntimeConfig(listOf("catalog-secondary"))
 
-        val updated = config.update(listOf("tidal-video-cover", "apple-motion"))
+        val updated = config.update(listOf("catalog-tertiary", "catalog-secondary"))
         val snapshot = config.snapshot()
 
         assertEquals(updated, snapshot)
         assertEquals(1L, snapshot.epoch)
-        assertEquals(listOf("tidal-video-cover", "apple-motion"), snapshot.value)
+        assertEquals(listOf("catalog-tertiary", "catalog-secondary"), snapshot.value)
     }
 }

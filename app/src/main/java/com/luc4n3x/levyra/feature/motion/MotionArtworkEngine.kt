@@ -41,14 +41,9 @@ class MotionArtworkEngine(context: Context) {
     private val urlVerifier = MotionArtworkUrlVerifier(appContext)
     private val metadataResolver = ChartOfficialArtworkResolver(appContext)
     private val providerFactories: Map<String, (MotionArtworkConfig) -> MotionArtworkProvider> = mapOf(
-        "community-canvas" to { config ->
-            CommunityCanvasProvider(
-                context = appContext,
-                minimumConfidence = config.minimumConfidence
-            )
-        },
-        "apple-motion" to { _: MotionArtworkConfig -> AppleMotionArtworkProvider(appContext) },
-        "tidal-video-cover" to { config -> TidalVideoCoverProvider(appContext, config.minimumConfidence) }
+        DerbisCanvasCatalogProvider.PROVIDER_ID to { _: MotionArtworkConfig ->
+            DerbisCanvasCatalogProvider(appContext)
+        }
     )
     private val runtimeLock = Any()
     private var activeEpoch = -1L
@@ -56,26 +51,6 @@ class MotionArtworkEngine(context: Context) {
     private val lookupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val requestCoordinator = MotionArtworkRequestCoordinator(lookupScope)
     private val metadataWarmCache = MotionMetadataWarmCache()
-    private var artistProviderWarmupJob: Job? = null
-
-    private val artistMotionProvider by lazy { AppleMotionArtworkProvider(appContext) }
-
-    fun warmArtistMotionProvider(source: LevyraCanvasSource = LevyraCanvasSource.Auto) {
-        if (!networkPolicy.canResolveCurrent() || !shouldWarmDedicatedArtistMotion(source)) return
-        synchronized(runtimeLock) {
-            if (artistProviderWarmupJob != null) return
-            artistProviderWarmupJob = lookupScope.launch {
-                try {
-                    artistMotionProvider.warmup()
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Throwable) {
-                    Timber.d(error, "Apple artist motion provider warmup failed")
-                }
-            }
-        }
-    }
-
     fun close() {
         lookupScope.cancel()
     }
@@ -89,7 +64,9 @@ class MotionArtworkEngine(context: Context) {
         track: Track,
         source: LevyraCanvasSource = LevyraCanvasSource.Auto
     ): Flow<MotionArtwork> = flow {
-        if (!networkPolicy.canResolveCurrent()) return@flow
+        // A release without its own catalog is deliberately static-only: do not do metadata
+        // enrichment or touch any third-party artwork path before confirming configuration.
+        if (!isDerbisCanvasCatalogConfigured() || !networkPolicy.canResolveCurrent()) return@flow
         val runtime = MotionArtworkRuntime.snapshot()
         val lookupTrack = prepareLookupTrackWithinBudget(track)
         if (!networkPolicy.canResolveCurrent()) return@flow
@@ -103,9 +80,6 @@ class MotionArtworkEngine(context: Context) {
             }
         )
     }.flowOn(Dispatchers.IO)
-
-    fun resolveAppleAlbumProgressive(track: Track): Flow<MotionArtwork> =
-        resolveProgressive(track, LevyraCanvasSource.Apple)
 
     private suspend fun prepareLookupTrackWithinBudget(track: Track): Track {
         val remembered = metadataWarmCache.get(track) ?: track
@@ -134,133 +108,6 @@ class MotionArtworkEngine(context: Context) {
             Timber.d(error, "Motion metadata enrichment failed for %s / %s", track.title, track.artist)
             track
         }
-    }
-
-    suspend fun resolveArtist(
-        artistName: String,
-        artistBrowseId: String,
-        source: LevyraCanvasSource = LevyraCanvasSource.Auto
-    ): MotionArtwork? = resolveArtistWithin(artistName, artistBrowseId, source, artistMotionForegroundWaitMs(source))
-
-    suspend fun awaitArtist(
-        artistName: String,
-        artistBrowseId: String,
-        source: LevyraCanvasSource = LevyraCanvasSource.Auto
-    ): MotionArtwork? = resolveArtistWithin(artistName, artistBrowseId, source, ARTIST_MOTION_REQUEST_TIMEOUT_MS)
-
-    private suspend fun resolveArtistWithin(
-        artistName: String,
-        artistBrowseId: String,
-        source: LevyraCanvasSource,
-        foregroundWaitMs: Long
-    ): MotionArtwork? {
-        val clean = artistName.trim()
-        if (clean.length < 2) return null
-        if (!networkPolicy.canResolveCurrent()) return null
-        if (!shouldWarmDedicatedArtistMotion(source)) return null
-        val runtime = MotionArtworkRuntime.snapshot()
-        val config = runtime.value
-        val identityKey = motionArtworkCacheKey(
-            MotionArtworkIdentityKey.forArtist(clean, artistBrowseId),
-            LevyraCanvasSource.Apple
-        )
-        when (val cached = repository.get(identityKey, runtime.epoch)) {
-            is MotionArtworkCacheResult.Hit -> return cached.artwork
-            MotionArtworkCacheResult.Negative -> return null
-            MotionArtworkCacheResult.Miss -> Unit
-        }
-        Timber.d("Artist motion engine background warmup start artist=%s source=%s", clean, source)
-        val request = sharedProgressive("${runtime.epoch}:$identityKey") { emit ->
-            resolveArtistFresh(clean, identityKey, runtime.epoch, config)?.let { emit(it) }
-        }
-        lookupScope.launch { request.lastOrNull() }
-        if (foregroundWaitMs <= 0L) return null
-        return withTimeoutOrNull(foregroundWaitMs) { request.lastOrNull() }
-    }
-
-    private suspend fun resolveArtistFresh(
-        artistName: String,
-        identityKey: String,
-        configEpoch: Long,
-        config: MotionArtworkConfig
-    ): MotionArtwork? {
-        when (val cached = repository.get(identityKey, configEpoch)) {
-            is MotionArtworkCacheResult.Hit -> return cached.artwork
-            MotionArtworkCacheResult.Negative -> return null
-            MotionArtworkCacheResult.Miss -> Unit
-        }
-        var lookupFailed = false
-        val outcome = try {
-            withTimeoutOrNull(ARTIST_MOTION_REQUEST_TIMEOUT_MS) {
-                ArtistMotionLookup(artistMotionProvider.findArtistMotion(artistName))
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            Timber.d(error, "Artist motion lookup failed for %s", artistName)
-            null
-        }
-        if (outcome == null) {
-            lookupFailed = true
-            Timber.d("Artist motion lookup timed out after %dms for %s", ARTIST_MOTION_REQUEST_TIMEOUT_MS, artistName)
-        }
-        val candidate = outcome?.candidate
-        if (candidate == null && outcome != null) {
-            Timber.d("Artist motion provider returned conclusive miss for %s", artistName)
-        }
-
-        val verified = candidate?.takeIf { found ->
-            when (val result = urlVerifier.verify(found)) {
-                MotionArtworkVerificationResult.Verified -> {
-                    Timber.d("Artist motion verifier VERIFIED provider=%s artist=%s", found.provider, artistName)
-                    true
-                }
-                MotionArtworkVerificationResult.Invalid -> {
-                    Timber.d("Artist motion verifier INVALID provider=%s artist=%s", found.provider, artistName)
-                    false
-                }
-                is MotionArtworkVerificationResult.Failed -> {
-                    lookupFailed = true
-                    Timber.d(result.cause, "Artist motion verifier FAILED provider=%s artist=%s", found.provider, artistName)
-                    false
-                }
-            }
-        }
-
-        if (!shouldPublishMotionArtwork(networkPolicy.canResolveCurrent())) return null
-
-        if (verified == null) {
-            if (!lookupFailed) {
-                Timber.d("Artist motion saving negative cache artist=%s", artistName)
-                repository.saveNegative(
-                    identityKey = identityKey,
-                    configEpoch = configEpoch,
-                    expiresAt = System.currentTimeMillis() + config.negativeTtlMs
-                )
-            } else {
-                Timber.d("Artist motion transient failure; negative cache skipped artist=%s", artistName)
-            }
-            repository.cleanup(configEpoch)
-            return null
-        }
-
-        val now = System.currentTimeMillis()
-        val artwork = MotionArtwork(
-            identityKey = identityKey,
-            provider = verified.provider,
-            url = verified.url,
-            mimeType = verified.mimeType,
-            width = verified.width,
-            height = verified.height,
-            confidence = ARTIST_MOTION_CONFIDENCE,
-            expiresAtMs = minOf(verified.expiresAtMs, now + config.positiveTtlMs),
-            lastVerifiedAtMs = now,
-            configEpoch = configEpoch
-        )
-        repository.save(artwork)
-        repository.cleanup(configEpoch)
-        Timber.d("Artist motion resolved provider=%s artist=%s", artwork.provider, artistName)
-        return artwork
     }
 
     private fun sharedProgressive(
@@ -647,42 +494,18 @@ class MotionArtworkEngine(context: Context) {
     }
 }
 
-private class ArtistMotionLookup(val candidate: MotionArtworkCandidate?)
-
 private data class IndexedMotionProviderOutcome(
     val index: Int,
     val outcome: MotionArtworkProviderResult
 )
 
-private const val ARTIST_MOTION_CONFIDENCE = 100
-private const val ARTIST_MOTION_REQUEST_TIMEOUT_MS = 45_000L
-private const val APPLE_MOTION_PLAYER_REQUEST_TIMEOUT_MS = 25_000L
 private const val DEFAULT_MOTION_METADATA_COUNTRY = "IT"
 private const val MOTION_METADATA_FOREGROUND_BUDGET_MS = 150L
-
-internal fun artistMotionForegroundWaitMs(source: LevyraCanvasSource): Long = when (source) {
-    LevyraCanvasSource.Auto,
-    LevyraCanvasSource.Apple,
-    LevyraCanvasSource.Community,
-    LevyraCanvasSource.Tidal -> 0L
-}
-
-internal fun shouldWarmDedicatedArtistMotion(source: LevyraCanvasSource): Boolean = when (source) {
-    LevyraCanvasSource.Auto,
-    LevyraCanvasSource.Apple -> true
-    LevyraCanvasSource.Community,
-    LevyraCanvasSource.Tidal -> false
-}
 
 internal fun motionMetadataForegroundBudgetMs(track: Track): Long =
     if (track.isrc.isNotBlank() && !isUnusableMotionAlbum(track.album)) 0L else MOTION_METADATA_FOREGROUND_BUDGET_MS
 
-internal fun motionArtworkProviderTimeoutMs(providerId: String, configuredTimeoutMs: Long): Long =
-    if (providerId == "apple-motion") {
-        maxOf(configuredTimeoutMs, APPLE_MOTION_PLAYER_REQUEST_TIMEOUT_MS)
-    } else {
-        configuredTimeoutMs
-    }
+internal fun motionArtworkProviderTimeoutMs(providerId: String, configuredTimeoutMs: Long): Long = configuredTimeoutMs
 
 internal class MotionMetadataWarmCache(private val maxEntries: Int = 64) {
     private val entries = LinkedHashMap<String, Track>(16, 0.75f, true)
@@ -716,8 +539,7 @@ internal class MotionMetadataWarmCache(private val maxEntries: Int = 64) {
     ).joinToString("|") { value -> value.trim().lowercase(Locale.ROOT) }
 }
 
-internal fun motionArtworkCacheKey(identityKey: String, source: LevyraCanvasSource): String =
-    if (source == LevyraCanvasSource.Auto) identityKey else "$identityKey#${source.name.lowercase()}"
+internal fun motionArtworkCacheKey(identityKey: String, source: LevyraCanvasSource): String = identityKey
 
 internal fun motionArtworkRequestKey(track: Track, source: LevyraCanvasSource): String =
     motionArtworkCacheKey(MotionArtworkIdentityKey.create(track), source)
@@ -725,15 +547,7 @@ internal fun motionArtworkRequestKey(track: Track, source: LevyraCanvasSource): 
 internal fun motionArtworkProviderOrder(
     configuredOrder: List<String>,
     source: LevyraCanvasSource
-): List<String> {
-    val forced = when (source) {
-        LevyraCanvasSource.Auto -> return configuredOrder
-        LevyraCanvasSource.Community -> "community-canvas"
-        LevyraCanvasSource.Apple -> "apple-motion"
-        LevyraCanvasSource.Tidal -> "tidal-video-cover"
-    }
-    return configuredOrder.filter { it == forced }
-}
+): List<String> = configuredOrder.filter { it == DerbisCanvasCatalogProvider.PROVIDER_ID }
 
 internal data class MotionArtworkRankedCandidate(
     val candidate: MotionArtworkCandidate,

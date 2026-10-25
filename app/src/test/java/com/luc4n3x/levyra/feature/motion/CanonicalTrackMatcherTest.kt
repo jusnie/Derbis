@@ -94,13 +94,13 @@ class CanonicalTrackMatcherTest {
             albumId = "album"
         )
         val candidate = MotionArtworkCandidate(
-            provider = "tidal-video-cover",
+            provider = "catalog-tertiary",
             scope = MotionArtworkScope.TRACK,
             identity = reference.copy(
                 artists = listOf("Earth, Wind & Fire"),
-                trackId = "tidal-track"
+                trackId = "tertiary-track"
             ),
-            url = "https://resources.tidal.com/videos/aa/bb/cc/dd/ee/1280x1280.mp4",
+            url = "https://resources.tertiary.com/videos/aa/bb/cc/dd/ee/1280x1280.mp4",
             mimeType = "video/mp4",
             expiresAtMs = Long.MAX_VALUE
         )
@@ -109,9 +109,9 @@ class CanonicalTrackMatcherTest {
     }
 
     @Test
-    fun tidalArtistMatchingAcceptsUnsplitGroupNames() {
+    fun tertiaryArtistMatchingAcceptsUnsplitGroupNames() {
         assertTrue(
-            tidalArtistsCompatible(
+            tertiaryArtistsCompatible(
                 requested = listOf("Earth", "Wind", "Fire"),
                 returned = listOf("Earth, Wind & Fire")
             )
@@ -134,13 +134,13 @@ class CanonicalTrackMatcherTest {
         val candidate = albumCandidate("Brano", "Guest Artist", "Album")
 
         assertFalse(CanonicalTrackMatcher.match(reference, candidate).accepted)
-        assertFalse(tidalArtistsCompatible(reference.artists, candidate.identity.artists))
+        assertFalse(tertiaryArtistsCompatible(reference.artists, candidate.identity.artists))
     }
 
     @Test
     fun soloArtistDoesNotMatchLargerGroupBySharedAlias() {
         assertFalse(
-            tidalArtistsCompatible(
+            tertiaryArtistsCompatible(
                 requested = listOf("Earth"),
                 returned = listOf("Earth, Wind & Fire")
             )
@@ -256,9 +256,9 @@ class CanonicalTrackMatcherTest {
             isrc = "ITB002400001"
         )
         val candidate = MotionArtworkCandidate(
-            provider = "apple-motion",
+            provider = "catalog-secondary",
             scope = MotionArtworkScope.TRACK,
-            identity = reference.copy(trackId = "apple-track"),
+            identity = reference.copy(trackId = "secondary-track"),
             url = "https://example.test/motion.m3u8",
             mimeType = "application/x-mpegURL",
             expiresAtMs = Long.MAX_VALUE
@@ -276,7 +276,7 @@ class CanonicalTrackMatcherTest {
             isrc = "ITB002400001"
         )
         val candidate = MotionArtworkCandidate(
-            provider = "apple-motion",
+            provider = "catalog-secondary",
             scope = MotionArtworkScope.TRACK,
             identity = reference.copy(isrc = "ITB002499999"),
             url = "https://example.test/motion.m3u8",
@@ -368,10 +368,10 @@ class CanonicalTrackMatcherTest {
         upc: String = "",
         year: String = ""
     ): MotionArtworkCandidate = MotionArtworkCandidate(
-        provider = "tidal-video-cover",
+        provider = "catalog-tertiary",
         scope = MotionArtworkScope.ALBUM,
         identity = identity(title, artist, album, upc = upc, year = year),
-        url = "https://resources.tidal.com/videos/aa/bb/cc/dd/ee/1280x1280.mp4",
+        url = "https://resources.tertiary.com/videos/aa/bb/cc/dd/ee/1280x1280.mp4",
         mimeType = "video/mp4",
         width = 1280,
         height = 1280,

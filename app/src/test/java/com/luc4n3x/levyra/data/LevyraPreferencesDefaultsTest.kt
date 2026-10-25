@@ -137,12 +137,12 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun legacyCanvasBackupMigratesToStaticArtwork() {
+    fun legacyBackupPreservesCanvasPreferenceWhenVisualModeMissing() {
         val restoredWithCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
             legacyVisualMode = PlayerVisualMode.CanvasImmersive
         )
-        assertEquals(PlayerVisualMode.Artwork, restoredWithCanvas.playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasImmersive, restoredWithCanvas.playerVisualMode)
 
         val restoredWithoutCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
@@ -152,11 +152,11 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun backupRoundTripKeepsCompatibilityFieldsAndMigratesCanvasDeck() {
+    fun backupRoundTripPreservesPlayerVisualAndCanvasSettings() {
         val original = LevyraInterfaceSettings(
             releaseNotificationsEnabled = true,
             canvasQuality = LevyraCanvasQuality.High,
-            canvasSource = LevyraCanvasSource.Tidal,
+            canvasSource = LevyraCanvasSource.Auto,
             motionArtworkWifiOnly = true,
             enhanceVideoMetadata = true,
             playerVisualMode = PlayerVisualMode.CanvasCard,
@@ -168,11 +168,11 @@ class LevyraPreferencesDefaultsTest {
         )
 
         assertEquals(LevyraCanvasQuality.High, restored.canvasQuality)
-        assertEquals(LevyraCanvasSource.Tidal, restored.canvasSource)
+        assertEquals(LevyraCanvasSource.Auto, restored.canvasSource)
         assertTrue(restored.motionArtworkWifiOnly)
         assertTrue(restored.enhanceVideoMetadata)
         assertTrue(restored.releaseNotificationsEnabled)
-        assertEquals(PlayerVisualMode.Artwork, restored.playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasCard, restored.playerVisualMode)
         assertEquals(PlayerBackgroundMode.Blur, restored.playerBackground)
     }
 
@@ -244,8 +244,8 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun legacyBackupWithoutVisualModeDefaultsToArtwork() {
-        assertEquals(PlayerVisualMode.Artwork, backupInterfaceSettingsFromJson(JSONObject()).playerVisualMode)
+    fun legacyBackupWithoutVisualModeDefaultsToCanvasCard() {
+        assertEquals(PlayerVisualMode.CanvasCard, backupInterfaceSettingsFromJson(JSONObject()).playerVisualMode)
     }
 
     @Test

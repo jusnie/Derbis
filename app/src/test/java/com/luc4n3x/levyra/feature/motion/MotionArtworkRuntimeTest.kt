@@ -7,16 +7,16 @@ import org.junit.Test
 
 class MotionArtworkRuntimeTest {
     @Test
-    fun normalizedConfigurationIsBoundedAndDeduplicated() {
+    fun configurationAllowsOnlyTheOwnedCatalogProvider() {
         val normalized = MotionArtworkConfig(
-            providerOrder = listOf("apple-motion", "apple-motion", "tidal-video-cover"),
+            providerOrder = listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID, DerbisCanvasCatalogProvider.PROVIDER_ID),
             minimumConfidence = 500,
             requestTimeoutMs = 100L,
             positiveTtlMs = Long.MAX_VALUE,
             negativeTtlMs = 1L
         ).normalized()
 
-        assertEquals(listOf("apple-motion", "tidal-video-cover"), normalized.providerOrder)
+        assertEquals(listOf(DerbisCanvasCatalogProvider.PROVIDER_ID), normalized.providerOrder)
         assertEquals(100, normalized.minimumConfidence)
         assertEquals(2_500L, normalized.requestTimeoutMs)
         assertTrue(normalized.positiveTtlMs <= 7L * 24L * 60L * 60L * 1000L)
@@ -24,27 +24,26 @@ class MotionArtworkRuntimeTest {
     }
 
     @Test
-    fun autoProviderOrderPrefersSpotifyThenAppleThenTidal() {
+    fun autoResolutionUsesOnlyTheOwnedCatalog() {
         assertEquals(
-            listOf("community-canvas", "apple-motion", "tidal-video-cover"),
+            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
             MotionArtworkConfig().providerOrder
         )
         assertEquals(
-            listOf("community-canvas", "apple-motion", "tidal-video-cover"),
-            motionArtworkProviderOrder(MotionArtworkConfig().providerOrder, LevyraCanvasSource.Auto)
+            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
+            motionArtworkProviderOrder(
+                listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID),
+                LevyraCanvasSource.Auto
+            )
         )
-        assertEquals(
-            listOf("apple-motion"),
-            motionArtworkProviderOrder(MotionArtworkConfig().providerOrder, LevyraCanvasSource.Apple)
-        )
-        assertEquals(
-            listOf("tidal-video-cover"),
-            motionArtworkProviderOrder(MotionArtworkConfig().providerOrder, LevyraCanvasSource.Tidal)
-        )
-        assertEquals(
-            listOf("community-canvas"),
-            motionArtworkProviderOrder(MotionArtworkConfig().providerOrder, LevyraCanvasSource.Community)
-        )
+    }
+
+    @Test
+    fun legacyStoredSourceValuesMigrateToOwnedCatalogAutoMode() {
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("community"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("apple"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("tidal"))
+        assertEquals(LevyraCanvasSource.Auto, LevyraCanvasSource.from("anything-else"))
     }
 
     @Test
@@ -52,15 +51,10 @@ class MotionArtworkRuntimeTest {
         val initial = MotionArtworkRuntime.snapshot()
         assertTrue(initial.epoch >= MOTION_ARTWORK_CACHE_SCHEMA_EPOCH)
         try {
-            val changedOrder = initial.value.providerOrder.reversed().ifEmpty { listOf("tidal-video-cover") }
-            val changed = MotionArtworkRuntime.update(initial.value.copy(providerOrder = changedOrder))
+            val changed = MotionArtworkRuntime.update(initial.value.copy(requestTimeoutMs = 7_000L))
             val repeated = MotionArtworkRuntime.update(changed.value)
 
-            if (changed.value == initial.value) {
-                assertEquals(initial.epoch, changed.epoch)
-            } else {
-                assertEquals(initial.epoch + 1L, changed.epoch)
-            }
+            assertEquals(initial.epoch + 1L, changed.epoch)
             assertEquals(changed.epoch, repeated.epoch)
         } finally {
             MotionArtworkRuntime.update(initial.value)
