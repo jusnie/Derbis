@@ -36,7 +36,7 @@
         android:hardwareAccelerated="true"
         android:resizeableActivity="true"
         android:enableOnBackInvokedCallback="true"
-        android:theme="@style/Theme.Levyra">
+        android:theme="@style/Theme.Derbis">
 
         <receiver
             android:name="androidx.mediarouter.media.MediaTransferReceiver"
@@ -97,7 +97,7 @@
             android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.Levyra">
+            android:theme="@style/Theme.Derbis">
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
@@ -281,7 +281,7 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@style/Theme.Levyra">
+            android:theme="@style/Theme.Derbis">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>
@@ -347,7 +347,7 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@style/Theme.Levyra.Transparent" />
+            android:theme="@style/Theme.Derbis.Transparent" />
 
         <service
             android:name=".feature.ambient.LevyraAmbientDreamService"
