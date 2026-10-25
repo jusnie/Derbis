@@ -2978,6 +2978,13 @@ fun LevyraApp(
                             }
                         }
                     },
+                    onOpenVersionHistory = {
+                        openExternalUrl(
+                            toastContext,
+                            "https://github.com/jusnie/Derbis/releases",
+                            currentStrings
+                        )
+                    },
                     onCreateBackup = { createBackupLauncher.launch(levyraVaultFileName(System.currentTimeMillis())) },
                     onRestoreBackup = { restoreBackupLauncher.launch(arrayOf("application/zip", "application/octet-stream")) },
                     onBackupNow = viewModel::backupNow,
@@ -20812,6 +20819,7 @@ private fun SettingsOverlay(
     onLanguage: (String) -> Unit,
     onCheckUpdates: () -> Unit,
     onDownloadUpdate: () -> Unit,
+    onOpenVersionHistory: () -> Unit,
     onCreateBackup: () -> Unit,
     onRestoreBackup: () -> Unit,
     onBackupNow: () -> Unit,
@@ -22282,6 +22290,14 @@ private fun SettingsOverlay(
                                         onDownload = onDownloadUpdate
                                     )
                                 }
+                            }
+                            item {
+                                SettingsButton(
+                                    icon = Icons.Rounded.History,
+                                    title = "Version history",
+                                    subtitle = "See changes and fixes for every Derbis release",
+                                    onClick = onOpenVersionHistory
+                                )
                             }
                             standaloneItem { SettingsHubFooter(onExitApplication) }
                         }

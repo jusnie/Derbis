@@ -10,9 +10,14 @@ on:
         required: true
         default: "v1.0.3-test.1"
       release_name:
-        description: "Visible test release name"
+        description: "Visible release name"
         required: true
         default: "Derbis v1.0.3 Test 1"
+      prerelease:
+        description: "Publish this release as a prerelease"
+        required: true
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -94,7 +99,7 @@ jobs:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
           draft: false
-          prerelease: true
+          prerelease: ${{ inputs.prerelease }}
           body: |
             ## Derbis v1.0.3 test build
 

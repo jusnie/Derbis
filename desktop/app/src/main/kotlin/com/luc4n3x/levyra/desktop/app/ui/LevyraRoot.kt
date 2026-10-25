@@ -73,6 +73,7 @@ import com.luc4n3x.levyra.desktop.core.storage.LibraryData
 import com.luc4n3x.levyra.desktop.player.VlcNativeLocator
 import java.awt.Desktop
 import java.io.File
+import java.net.URI
 import java.nio.file.Path
 import javax.swing.JFileChooser
 import javax.swing.JOptionPane
@@ -463,6 +464,15 @@ fun LevyraRoot(model: LevyraAppModel) {
                                                 onOpenDataFolder = {
                                                     scope.launch {
                                                         openDirectory(model.paths.root.toString())
+                                                    }
+                                                },
+                                                onOpenVersionHistory = {
+                                                    runCatching {
+                                                        if (Desktop.isDesktopSupported()) {
+                                                            Desktop.getDesktop().browse(
+                                                                URI("https://github.com/jusnie/Derbis/releases")
+                                                            )
+                                                        }
                                                     }
                                                 },
                                                 onRefreshAudioOutputDevices = { createEngine ->

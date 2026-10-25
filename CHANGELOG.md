@@ -1,0 +1,59 @@
+# Derbis changelog
+
+All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **New**, **Fixed**, and **Known limitations** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
+
+## [1.0.3] — 2026-10-25
+
+### Android
+
+#### New
+- **Mix Studio** adds saved, playlist-specific transition plans, Auto Mix, editable handoff modes, durations, and a mixed-playback toggle.
+- **Beat Align (beta)** performs local BPM and beat-grid candidate analysis. It aligns only where both tracks have confident local grids and a safe tempo correction.
+- Imported playlists are visibly labelled **Imported from Spotify**.
+- Remote Jam protocol groundwork supports a user-selected, authorized Metroserver endpoint. Derbis does not silently use public relays.
+
+#### Fixed
+- Corrected Derbis Android theme resource references so release APK packaging succeeds.
+- Corrected queue row handling during release Kotlin compilation.
+- Removed decorative rotating artwork and cleared stale active lyric lines across track changes.
+- Preserved playlist-entry identities through playback resolution so Mix Studio transitions remain attached to the intended tracks.
+- Retained crossfade protections against doubled playback voices.
+
+#### Known limitations
+- Discord Rich Presence requires an authorized Discord Social SDK build configuration.
+- Without an owned remote relay, Jam remains **Derbis Jam — LAN**.
+- Beat Align is a beta feature and remains off whenever local analysis is not confident.
+
+### Windows
+
+#### New
+- First native Windows release with MSI and EXE installers.
+- Derbis icon and branding, Start-menu shortcut, per-user installation, and `derbis://` link handling.
+- Local library, search, queue, playback, lyrics, downloads, media-key support, and update groundwork.
+
+#### Fixed
+- Corrected the shared desktop source boundary for radio-library text.
+- Corrected the packaged Derbis icon resource and Settings typography import.
+- Updated desktop version metadata and the app-data folder name to Derbis.
+
+#### Known limitations
+- The Windows installers are not code-signed yet. SmartScreen may ask for confirmation; only install files downloaded from the official release page.
+
+## [3.0.2] — legacy Android release
+
+### Added
+- Derbis logo refresh, DJ crossfade controls, optional animated-artwork providers, Apple Music-style player presentation, Lite Mode, high-refresh support, endless queue, Wrapped/Receipt-style cards, and Liquid Glass design controls.
+
+> This is a legacy tag retained in the public history. Current public release numbering continues with `1.0.x`.
+
+## [1.0.1] — 2026-10-24
+
+### Fixed
+- Removed Chucker HTTP monitoring and reduced background work to address lag and ANR reports.
+- Enabled R8 minification and resource shrinking.
+- Updated Derbis branding, developer attribution, GitHub sources, AMOLED theme, and time-of-day greeting.
+
+## [1.0.0] — initial release
+
+### Added
+- Initial Derbis Android release with application ID `com.derbis.app`, AMOLED Black and White design, custom logo, and dynamic greeting.

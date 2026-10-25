@@ -60,6 +60,7 @@ fun SettingsScreen(
     onBrowseVlc: () -> Unit,
     onVerifyVlc: () -> Unit,
     onOpenDataFolder: () -> Unit,
+    onOpenVersionHistory: () -> Unit,
     onRefreshAudioOutputDevices: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -506,6 +507,14 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp)
+                )
+                OutlinedButton(onClick = onOpenVersionHistory) {
+                    Text("Version history")
+                }
+                Text(
+                    text = "See changes and fixes for every Derbis release.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
