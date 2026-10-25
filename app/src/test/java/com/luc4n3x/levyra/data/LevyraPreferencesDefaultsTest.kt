@@ -137,12 +137,12 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun legacyBackupPreservesCanvasPreferenceWhenVisualModeMissing() {
+    fun legacyCanvasBackupMigratesToStaticArtwork() {
         val restoredWithCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
             legacyVisualMode = PlayerVisualMode.CanvasImmersive
         )
-        assertEquals(PlayerVisualMode.CanvasImmersive, restoredWithCanvas.playerVisualMode)
+        assertEquals(PlayerVisualMode.Artwork, restoredWithCanvas.playerVisualMode)
 
         val restoredWithoutCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
@@ -152,7 +152,7 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun backupRoundTripPreservesPlayerVisualAndCanvasSettings() {
+    fun backupRoundTripKeepsCompatibilityFieldsAndMigratesCanvasDeck() {
         val original = LevyraInterfaceSettings(
             releaseNotificationsEnabled = true,
             canvasQuality = LevyraCanvasQuality.High,
@@ -172,7 +172,7 @@ class LevyraPreferencesDefaultsTest {
         assertTrue(restored.motionArtworkWifiOnly)
         assertTrue(restored.enhanceVideoMetadata)
         assertTrue(restored.releaseNotificationsEnabled)
-        assertEquals(PlayerVisualMode.CanvasCard, restored.playerVisualMode)
+        assertEquals(PlayerVisualMode.Artwork, restored.playerVisualMode)
         assertEquals(PlayerBackgroundMode.Blur, restored.playerBackground)
     }
 
@@ -244,8 +244,8 @@ class LevyraPreferencesDefaultsTest {
     }
 
     @Test
-    fun legacyBackupWithoutVisualModeDefaultsToCanvasCard() {
-        assertEquals(PlayerVisualMode.CanvasCard, backupInterfaceSettingsFromJson(JSONObject()).playerVisualMode)
+    fun legacyBackupWithoutVisualModeDefaultsToArtwork() {
+        assertEquals(PlayerVisualMode.Artwork, backupInterfaceSettingsFromJson(JSONObject()).playerVisualMode)
     }
 
     @Test

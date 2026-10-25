@@ -159,7 +159,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_USER_NAME] = snapshot.userName
             mutable[KEY_LANGUAGE_CODE] = normalizedLanguage
             mutable[KEY_ANIMATIONS] = snapshot.animationsEnabled
-            mutable[KEY_MOTION_ARTWORK] = snapshot.motionArtworkEnabled
+            mutable[KEY_MOTION_ARTWORK] = false
             mutable[KEY_DYNAMIC_COLOR] = snapshot.dynamicColor
             mutable[KEY_SPONSORBLOCK] = snapshot.sponsorBlock
             mutable[KEY_SKIP_SILENCE] = snapshot.skipSilence
@@ -337,9 +337,10 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         write { it[KEY_ANIMATIONS] = value }
     }
 
-    suspend fun setMotionArtworkEnabled(value: Boolean) {
+    suspend fun setMotionArtworkEnabled(@Suppress("UNUSED_PARAMETER") value: Boolean) {
         try {
-            store.commit { it[KEY_MOTION_ARTWORK] = value }
+            // Canvas/motion artwork is retired; clear any legacy opt-in instead of reviving it.
+            store.commit { it[KEY_MOTION_ARTWORK] = false }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -804,7 +805,8 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             userName = preferences[KEY_USER_NAME].orEmpty(),
             languageCode = normalizedLanguage,
             animationsEnabled = preferences[KEY_ANIMATIONS] ?: true,
-            motionArtworkEnabled = preferences[KEY_MOTION_ARTWORK] ?: false,
+            // Keep existing installations static even if an older backup stored this flag.
+            motionArtworkEnabled = false,
             dynamicColor = preferences[KEY_DYNAMIC_COLOR] ?: true,
             sponsorBlock = preferences[KEY_SPONSORBLOCK] ?: DEFAULT_SPONSORBLOCK_ENABLED,
             skipSilence = preferences[KEY_SKIP_SILENCE] ?: false,
@@ -843,13 +845,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val storedVisualMode = preferences[KEY_UI_PLAYER_VISUAL_MODE]
         val visualMode = when {
             storedVisualMode != null -> PlayerVisualMode.from(storedVisualMode)
-            preferences.contains(KEY_MOTION_ARTWORK) -> {
-                if (preferences[KEY_MOTION_ARTWORK] == true) {
-                    PlayerVisualMode.CanvasCard
-                } else {
-                    PlayerVisualMode.Artwork
-                }
-            }
+            preferences.contains(KEY_MOTION_ARTWORK) -> PlayerVisualMode.Artwork
             else -> PlayerVisualMode.Flow
         }
         val storedBackground = preferences[KEY_UI_PLAYER_BACKGROUND]

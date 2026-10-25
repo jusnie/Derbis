@@ -30,8 +30,6 @@ internal enum class PlayerDeckLayout {
 
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Flow,
-    PlayerVisualMode.CanvasCard,
-    PlayerVisualMode.CanvasImmersive,
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
@@ -81,7 +79,7 @@ internal fun resolvePlayerDeckVisualMode(
 ): PlayerVisualMode = if (layout == mode.deckLayout() || mode == PlayerVisualMode.Artwork) {
     mode
 } else {
-    PlayerVisualMode.CanvasCard
+    PlayerVisualMode.Artwork
 }
 
 @Immutable

@@ -247,6 +247,12 @@ data class LevyraInterfaceSettings(
     val ivory: IvorySettings = IvorySettings()
 ) {
     fun normalized(): LevyraInterfaceSettings = copy(
+        // Animated Canvas decks are retired. Existing selections fall back to static artwork.
+        playerVisualMode = when (playerVisualMode) {
+            PlayerVisualMode.CanvasCard,
+            PlayerVisualMode.CanvasImmersive -> PlayerVisualMode.Artwork
+            else -> playerVisualMode
+        },
         doubleTapSeekSeconds = doubleTapSeekSeconds.coerceIn(5, 30),
         longPressSpeed = longPressSpeed.coerceIn(1.25f, 3f),
         glassBlur = glassBlur.coerceIn(0, 100),

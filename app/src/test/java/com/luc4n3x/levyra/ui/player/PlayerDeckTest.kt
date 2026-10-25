@@ -19,9 +19,12 @@ import org.junit.Test
 class PlayerDeckTest {
 
     @Test
-    fun `deck order lists every visual mode exactly once`() {
-        assertEquals(PlayerVisualMode.entries.toSet(), PlayerDeckOrder.toSet())
-        assertEquals(PlayerVisualMode.entries.size, PlayerDeckOrder.size)
+    fun `deck order lists every active visual mode exactly once`() {
+        val activeModes = PlayerVisualMode.entries.filterNot {
+            it == PlayerVisualMode.CanvasCard || it == PlayerVisualMode.CanvasImmersive
+        }
+        assertEquals(activeModes.toSet(), PlayerDeckOrder.toSet())
+        assertEquals(activeModes.size, PlayerDeckOrder.size)
         assertEquals(PlayerVisualMode.Flow, PlayerDeckOrder.first())
     }
 
@@ -98,13 +101,13 @@ class PlayerDeckTest {
     }
 
     @Test
-    fun `fallback presentation never lands on the immersive exit affordance`() {
+    fun `fallback presentation always uses the static artwork deck`() {
         assertEquals(
-            PlayerVisualMode.CanvasCard,
+            PlayerVisualMode.Artwork,
             resolvePlayerDeckVisualMode(PlayerVisualMode.AppleMusic13, PlayerDeckLayout.Levyra)
         )
         assertEquals(
-            PlayerVisualMode.CanvasCard,
+            PlayerVisualMode.Artwork,
             resolvePlayerDeckVisualMode(PlayerVisualMode.Pulse, PlayerDeckLayout.Levyra)
         )
         assertEquals(
@@ -178,15 +181,21 @@ class PlayerDeckTest {
     }
 
     @Test
-    fun `flow is the default deck and stored choices stay untouched`() {
+    fun `flow is the default deck and retired Canvas fallbacks use static artwork`() {
         assertEquals(PlayerVisualMode.Flow, LevyraInterfaceSettings().playerVisualMode)
         assertEquals(PlayerVisualMode.Flow, DefaultPlayerVisualMode)
         assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("CanvasCard"))
+        assertEquals(
+            PlayerVisualMode.Artwork,
+            LevyraInterfaceSettings(playerVisualMode = PlayerVisualMode.CanvasCard).normalized().playerVisualMode
+        )
+        assertFalse(PlayerVisualMode.CanvasCard in PlayerDeckOrder)
+        assertFalse(PlayerVisualMode.CanvasImmersive in PlayerDeckOrder)
         assertEquals(PlayerVisualMode.Flow, PlayerVisualMode.from("flow"))
         assertEquals(PlayerVisualMode.Folio, PlayerVisualMode.from("Folio"))
         assertEquals(PlayerVisualMode.TidalMusic, PlayerVisualMode.from("tidal_player"))
         assertEquals(PlayerVisualMode.Flow, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Flow))
-        assertEquals(PlayerVisualMode.CanvasCard, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Levyra))
+        assertEquals(PlayerVisualMode.Artwork, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Levyra))
     }
 
     @Test
