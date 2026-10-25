@@ -15,6 +15,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - **Derbis Mix** is now a Library **Tools** feature for shaping and playing one direct Music 1 → Music 2 transition. Choose Auto, Fade, Rise, Blend, or Cut and a 3, 6, or 10 second handoff; it uses the real playback transition pipeline.
 - **Derbis Mix Custom Timeline (beta)** lets listeners select where Music 1 begins its overlap and the exact starting position in Music 2. The playback engine seeks the incoming track and performs the handoff at those positions.
 - **Tidal Music** is an original high-contrast Player Deck with a dark editorial stage, oversized rounded artwork, direct transport, and the local **TIDAL Style** palette. Selecting the deck applies that skin without connecting a TIDAL account or service.
+- **Apple Music 13** now renders the lyric line beneath its artwork word by word when verified word timestamps are available, with a smooth playback clock between player progress updates. It falls back to the current synced line when a source only supplies line timing.
 
 ### Changed
 - Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.

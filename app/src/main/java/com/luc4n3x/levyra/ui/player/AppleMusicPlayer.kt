@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -40,7 +41,9 @@ import com.luc4n3x.levyra.feature.motion.CommunityCanvasProvider
 import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
 import com.luc4n3x.levyra.domain.Track
+import com.luc4n3x.levyra.domain.LyricLine
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
+import com.luc4n3x.levyra.ui.KaraokeWordTimedText
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.PlayerControlLabels
 import com.luc4n3x.levyra.ui.components.formatSeekbarMillis
@@ -106,7 +109,8 @@ internal fun AppleMusicPlayerScene(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp, playing: Boolean,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier,
     canvas: AppleMusicCanvas? = null, video: Boolean = false,
-    activeLyricText: String? = null
+    activeLyric: LyricLine? = null,
+    lyricPositionMs: Long = 0L
 ) {
     val field by rememberSpotifyCoverTone(track, AppleMusicDesign::playerField)
     val deep by rememberSpotifyCoverTone(track, AppleMusicDesign::playerFieldDeep)
@@ -125,7 +129,10 @@ internal fun AppleMusicPlayerScene(
         if (landscape) {
             AppleMusicLandscapeDeck(track, slots, minOf(maxHeight - 34.dp, artworkCap), artwork, metadata, transport)
         } else {
-            AppleMusicPortraitDeck(track, slots, if (video) maxWidth else artworkCap, immersive, artwork, metadata, transport, activeLyricText)
+            AppleMusicPortraitDeck(
+                track, slots, if (video) maxWidth else artworkCap, immersive, artwork, metadata, transport,
+                activeLyric, lyricPositionMs
+            )
         }
     }
 }
@@ -177,7 +184,8 @@ private fun AppleMusicGrabber() {
 private fun AppleMusicPortraitDeck(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp, immersive: Boolean, artwork: @Composable (Dp) -> Unit,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit,
-    activeLyricText: String? = null
+    activeLyric: LyricLine? = null,
+    lyricPositionMs: Long = 0L
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
@@ -189,29 +197,57 @@ private fun AppleMusicPortraitDeck(
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp).clipToBounds()) { metadata() }
         if (!immersive) Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp)) { slots.engagement(track) }
         
-        // Active synchronized lyric line preview with Apple Music style soft glow
-        if (!activeLyricText.isNullOrBlank()) {
-            Text(
-                text = activeLyricText,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    letterSpacing = (-0.2).sp
-                ),
-                color = Color.White.copy(alpha = 0.95f),
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppleMusicDesign.playerSeekbarInset, vertical = 4.dp)
-            )
-        }
+        // The compact line under the artwork uses real word timing whenever the provider has it.
+        AppleMusic13InlineLyrics(
+            line = activeLyric,
+            positionMs = lyricPositionMs,
+            modifier = Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset, vertical = 4.dp)
+        )
 
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset)) { slots.progress(PlayerProgressStyle.Classic) }
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(Modifier.padding(horizontal = 16.dp)) { transport() }
         }
         Box(Modifier.fillMaxWidth().padding(bottom = AppleMusicDesign.playerActionBottom)) { AppleMusicDockRow(slots.dockActions(track)) }
+    }
+}
+
+internal fun appleMusic13UsesWordTiming(line: LyricLine?): Boolean =
+    line?.words?.any { word -> word.text.isNotBlank() && word.endMs > word.startMs } == true
+
+@Composable
+private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifier: Modifier = Modifier) {
+    val activeLine = line?.takeIf { it.text.isNotBlank() } ?: return
+    if (appleMusic13UsesWordTiming(activeLine)) {
+        Box(modifier = modifier.fillMaxWidth()) {
+            KaraokeWordTimedText(
+                lineText = activeLine.text,
+                words = activeLine.words,
+                positionProvider = { positionMs },
+                isActive = true,
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                textAlign = TextAlign.Start,
+                inactiveColor = Color.White.copy(alpha = 0.42f),
+                completedColor = Color.White.copy(alpha = 0.96f),
+                activeColor = Color.White,
+                pendingColor = Color.White.copy(alpha = 0.42f),
+                fontWeight = FontWeight.Bold
+            )
+        }
+    } else {
+        Text(
+            text = activeLine.text,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                letterSpacing = (-0.2).sp
+            ),
+            color = Color.White.copy(alpha = 0.95f),
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = modifier.fillMaxWidth()
+        )
     }
 }
 

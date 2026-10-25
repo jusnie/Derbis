@@ -4,6 +4,7 @@ import com.luc4n3x.levyra.ui.theme.*
 import com.luc4n3x.levyra.ui.PlayerAccentPair
 import com.luc4n3x.levyra.ui.theme.Nocturne78Palette
 import com.luc4n3x.levyra.ui.theme.LevyraIsNocturne
+import com.luc4n3x.levyra.ui.lyrics.rememberLyricsPlaybackClock
 
 import android.app.Activity
 import android.content.Context
@@ -265,6 +266,14 @@ private fun LevyraNowPlayingContent(
         }
     }
     val animated = state.animationsEnabled
+    // Keeps the compact Apple Music 13 lyric highlight smooth between player progress updates.
+    val appleMusicLyricsClock = rememberLyricsPlaybackClock(
+        trackKey = track?.id.orEmpty(),
+        reportedPositionMs = state.positionMs,
+        isPlaying = state.isPlaying,
+        speed = state.playbackSpeed,
+        smoothingEnabled = animated && appleMusicDeck && state.activeLyric?.words?.isNotEmpty() == true
+    )
     val reactiveAuraStyle = remember(
         state.interfaceSettings.reactiveAuraPreset,
         state.interfaceSettings.reactiveAuraIntensity
@@ -1228,7 +1237,8 @@ private fun LevyraNowPlayingContent(
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = appleMusicCanvas,
                     video = state.isVideoMode,
-                    activeLyricText = state.activeLyric?.text
+                    activeLyric = state.activeLyric,
+                    lyricPositionMs = appleMusicLyricsClock.positionMs
                 )
             } else {
                 PrismPlayerScene(track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying)

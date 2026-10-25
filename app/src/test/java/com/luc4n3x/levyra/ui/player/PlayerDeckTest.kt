@@ -3,6 +3,8 @@ package com.luc4n3x.levyra.ui.player
 import com.luc4n3x.levyra.data.backupInterfaceSettingsFromJson
 import com.luc4n3x.levyra.data.backupInterfaceSettingsToJson
 import com.luc4n3x.levyra.domain.LevyraInterfaceSettings
+import com.luc4n3x.levyra.domain.LyricLine
+import com.luc4n3x.levyra.domain.LyricWord
 import com.luc4n3x.levyra.domain.PlayerVisualMode
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.LevyraPlayerPane
@@ -221,6 +223,22 @@ class PlayerDeckTest {
         assertEquals(start / side, takeOff.minor, 0.0001f)
         assertTrue(flowCoverShape(1f).major > flowCoverShape(1f).minor)
         assertEquals(flowCoverShape(0f).major, flowCoverShape(0f).minor, 0.0001f)
+    }
+
+    @Test
+    fun `Apple Music 13 inline lyric uses word timing only when it is usable`() {
+        assertFalse(appleMusic13UsesWordTiming(null))
+        assertFalse(appleMusic13UsesWordTiming(LyricLine(0L, 1_000L, "Line")))
+        assertFalse(
+            appleMusic13UsesWordTiming(
+                LyricLine(0L, 1_000L, "Line", words = listOf(LyricWord(0L, 0L, "Line")))
+            )
+        )
+        assertTrue(
+            appleMusic13UsesWordTiming(
+                LyricLine(0L, 1_000L, "Line", words = listOf(LyricWord(0L, 700L, "Line")))
+            )
+        )
     }
 
     @Test
