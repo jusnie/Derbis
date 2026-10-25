@@ -189,7 +189,7 @@ internal fun prismMiniSettings(saved: LevyraMiniPlayerStudioSettings): LevyraMin
         buttons = if (torque) MiniButtonStyle.Outlined else MiniButtonStyle.Filled,
         colorMode = MiniColorMode.Theme,
         background = MiniBackground.Solid,
-        motion = if (liquidGlass) MiniMotion.Minimal else MiniMotion.Normal,
+        motion = if (liquidGlass) MiniMotion.Reduced else MiniMotion.Normal,
         controls = saved.activeTuning().controls,
         showClose = saved.activeTuning().showClose
     )

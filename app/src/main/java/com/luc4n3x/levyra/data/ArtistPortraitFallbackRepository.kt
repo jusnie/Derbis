@@ -4,7 +4,6 @@ import android.content.Context
 import com.luc4n3x.levyra.data.network.LevyraHttpClientFactory
 import com.luc4n3x.levyra.domain.artistIdentityKey
 import com.luc4n3x.levyra.domain.artistIdentityMatches
-import com.luc4n3x.levyra.feature.motion.TIDAL_EMBED_TOKEN
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -75,16 +74,6 @@ internal class ArtistPortraitFallbackRepository private constructor(context: Con
         requestJson(url)?.let { parseDeezerArtistPortrait(it, name) }.orEmpty()
     }
 
-    suspend fun tidalPortrait(artistName: String): String = cached("tidal", artistName) { name ->
-        val url = TIDAL_SEARCH_URL.toHttpUrl().newBuilder()
-            .addQueryParameter("query", name)
-            .addQueryParameter("limit", SEARCH_LIMIT.toString())
-            .addQueryParameter("types", "ARTISTS")
-            .addQueryParameter("countryCode", tidalCountryCode())
-            .build()
-        requestJson(url, TIDAL_EMBED_TOKEN)?.let { parseTidalArtistPortrait(it, name) }.orEmpty()
-    }
-
     private suspend fun cached(
         provider: String,
         artistName: String,
@@ -127,10 +116,6 @@ internal class ArtistPortraitFallbackRepository private constructor(context: Con
     private fun isYoutubePortrait(url: String): Boolean =
         isHttpsHost(url, "googleusercontent.com") || isHttpsHost(url, "ggpht.com")
 
-    private fun tidalCountryCode(): String =
-        Locale.getDefault().country.uppercase(Locale.ROOT)
-            .takeIf { it.length == 2 && it.all { letter -> letter in 'A'..'Z' } }
-            ?: "US"
 
     companion object {
         @Volatile
@@ -143,7 +128,6 @@ internal class ArtistPortraitFallbackRepository private constructor(context: Con
         }
 
         private const val DEEZER_ARTIST_SEARCH_URL = "https://api.deezer.com/search/artist"
-        private const val TIDAL_SEARCH_URL = "https://api.tidal.com/v1/search"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/140.0.0.0 Mobile Safari/537.36"
         private const val SEARCH_LIMIT = 5

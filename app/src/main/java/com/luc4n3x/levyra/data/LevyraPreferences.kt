@@ -1343,6 +1343,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_AUDIO_LIMITER = booleanPreferencesKey("audio_limiter_enabled")
         val KEY_AUDIO_CROSSFADE = intPreferencesKey("audio_crossfade_seconds")
         val KEY_AUDIO_DJ_SOFT = booleanPreferencesKey("audio_dj_soft")
+        val KEY_AUDIO_BEAT_SYNC = booleanPreferencesKey("audio_beat_sync_enabled")
         val KEY_AUDIO_REPLAY_GAIN = booleanPreferencesKey("audio_replay_gain")
         val KEY_AUDIO_REPLAY_GAIN_MODE = stringPreferencesKey("audio_replay_gain_mode")
         val KEY_AUDIO_REPLAY_GAIN_PREAMP = floatPreferencesKey("audio_replay_gain_preamp_db")

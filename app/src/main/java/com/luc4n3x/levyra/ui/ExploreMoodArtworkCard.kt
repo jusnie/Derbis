@@ -220,8 +220,7 @@ internal fun rememberExploreMoodArtworkUrl(zone: ExploreZone): String {
                     spotifyRepository::resolveArtistPortrait,
                     appleRepository::resolveArtistPortrait,
                     fallbackRepository::youtubePortrait,
-                    fallbackRepository::deezerPortrait,
-                    fallbackRepository::tidalPortrait
+                    fallbackRepository::deezerPortrait
                 )
             )
         }

@@ -18469,7 +18469,7 @@ private fun AddToPlaylistDialog(
                         }
                     }
                     if (visiblePlaylists.isEmpty() && playlistQuery.isNotBlank()) {
-                        Text(strings.searchNoResults, color = LevyraMuted, fontSize = 13.sp)
+                        Text(strings.formatNoSearchResults(playlistQuery), color = LevyraMuted, fontSize = 13.sp)
                     }
                 }
             }
@@ -21145,7 +21145,7 @@ private fun SettingsOverlay(
                                 }
                                 item {
                                     SettingsInfoCard(
-                                        icon = Icons.Rounded.VerifiedUser,
+                                        icon = Icons.Rounded.AutoAwesome,
                                         title = "Derbis Canvas Catalog",
                                         subtitle = "Animated artwork comes only from your configured, rights-cleared Derbis catalog. If no verified match is available, Derbis keeps the static album cover."
                                     )
@@ -23854,6 +23854,7 @@ private fun HomeHeaderCreateButton(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun HomeHeaderIconButton(
     icon: ImageVector,

@@ -448,7 +448,7 @@ private fun LevyraNowPlayingContent(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, bottom = 24.dp)
+                .padding(horizontal = 20.dp).padding(bottom = 24.dp)
                 .zIndex(20f)
         )
         val layoutMode = resolveLevyraLayoutMode(maxWidth.value, maxHeight.value)
@@ -2350,7 +2350,7 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Artwork -> Icons.Rounded.Image
     PlayerVisualMode.CanvasCard -> Icons.Rounded.AutoAwesome
     PlayerVisualMode.CanvasImmersive -> Icons.Rounded.BlurOn
-    PlayerVisualMode.AppleMusic13 -> Icons.Rounded.MusicNote
+    PlayerVisualMode.AppleMusic13 -> Icons.Rounded.Album
     PlayerVisualMode.TidalMusic -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Halo -> Icons.Rounded.Album

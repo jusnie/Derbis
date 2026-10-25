@@ -30,6 +30,7 @@ import com.luc4n3x.levyra.ui.PrismPlayDisc
 import com.luc4n3x.levyra.ui.LocalGlassBackdrop
 import com.luc4n3x.levyra.ui.glassBackdropSource
 import com.luc4n3x.levyra.ui.rememberGlassBackdropState
+import com.luc4n3x.levyra.ui.rememberGlassBlurAllowed
 import com.luc4n3x.levyra.ui.components.PlayerControlLabels
 import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
 import com.luc4n3x.levyra.ui.components.levyraGlass
