@@ -17,7 +17,7 @@ private fun lyricsActions(
 )
 
 private val lyricsActionBundles: Map<String, Map<String, String>> = mapOf(
-    "en" to lyricsActions("Change lyrics", "Automatic", "Select verses", "Copy", "Share", "Lyrics versions"),
+    "en" to lyricsActions("Change lyrics", "Automatic", "Select lines", "Copy", "Share", "Lyrics versions"),
     "it" to lyricsActions("Cambia testo", "Automatico", "Seleziona versi", "Copia", "Condividi", "Versioni del testo"),
     "es" to lyricsActions("Cambiar letra", "Automático", "Seleccionar versos", "Copiar", "Compartir", "Versiones de la letra"),
     "fr" to lyricsActions("Changer les paroles", "Automatique", "Sélectionner des lignes", "Copier", "Partager", "Versions des paroles"),

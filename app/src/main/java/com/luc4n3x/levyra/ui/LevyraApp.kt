@@ -8918,9 +8918,6 @@ private fun AppleMusic13FullscreenLyrics(
     val selectedImageShareLines = remember(lyrics, imageShareRange) {
         lyricsShareSelectedLines(imageShareRange, lyrics)
     }
-    val imageShareClipboard = LocalClipboard.current
-    val imageShareClipboardScope = rememberCoroutineScope()
-    fun selectedImageShareText(): String = selectedImageShareLines.joinToString("\n") { line -> line.text }
     fun beginImageShareSelection() {
         imageShareSelectionMode = true
         imageShareRange = activeIndex
@@ -8929,79 +8926,108 @@ private fun AppleMusic13FullscreenLyrics(
     }
 
     Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
-        AppleMusic13LyricsArtworkBackdrop(
-            track = track,
-            accentStart = accentStart,
-            accentEnd = accentEnd
-        )
+        if (imageShareSelectionMode) {
+            // A dedicated selection surface keeps image-card choices separate from live lyrics.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 62.dp)
+                    .clip(RoundedCornerShape(topStart = 42.dp, topEnd = 42.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color(0xFF0087A6),
+                            0.52f to Color(0xFF00596A),
+                            1f to Color(0xFF001317)
+                        )
+                    )
+            )
+        } else {
+            AppleMusic13LyricsArtworkBackdrop(
+                track = track,
+                accentStart = accentStart,
+                accentEnd = accentEnd
+            )
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .padding(top = if (imageShareSelectionMode) 52.dp else 0.dp)
         ) {
-
-
-            // Same compact record header as SimpMusic's lyrics body: the music remains identifiable
-            // while the lyrics get the page rather than being framed as a separate dialog.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (track != null) {
-                    AsyncImage(
-                        model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(55.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = track?.title ?: strings.lyrics,
-                        color = Color.White,
-                        style = AppleMusicTypography.titleMedium.copy(
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = track?.artist.orEmpty(),
-                        color = Color.White.copy(alpha = 0.70f),
-                        style = AppleMusicTypography.bodyMedium.copy(
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        wakeCluster()
-                        track?.let(onToggleFavorite)
-                    },
-                    enabled = track != null
+            if (imageShareSelectionMode) {
+                ImageLyricsSelectionHeader(
+                    title = strings.selectVerses,
+                    selectedCount = selectedImageShareLines.size,
+                    linesLabel = strings.linesLabel,
+                    selectedLabel = strings.shareLyricsLineSelected,
+                    onClose = {
+                        imageShareSelectionMode = false
+                        imageShareRange = null
+                    }
+                )
+            } else {
+                // Same compact record header as SimpMusic's lyrics body: the music remains identifiable
+                // while the lyrics get the page rather than being framed as a separate dialog.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = strings.favorite,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
+                    if (track != null) {
+                        AsyncImage(
+                            model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(55.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                        )
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = track?.title ?: strings.lyrics,
+                            color = Color.White,
+                            style = AppleMusicTypography.titleMedium.copy(
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = track?.artist.orEmpty(),
+                            color = Color.White.copy(alpha = 0.70f),
+                            style = AppleMusicTypography.bodyMedium.copy(
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            wakeCluster()
+                            track?.let(onToggleFavorite)
+                        },
+                        enabled = track != null
+                    ) {
+                        Icon(
+                            imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            contentDescription = strings.favorite,
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
+                        Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
+                    }
                 }
             }
 
@@ -9023,8 +9049,13 @@ private fun AppleMusic13FullscreenLyrics(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 38.dp, bottom = 34.dp),
-                    verticalArrangement = Arrangement.spacedBy(26.dp)
+                    contentPadding = PaddingValues(
+                        start = 24.dp,
+                        end = 24.dp,
+                        top = if (imageShareSelectionMode) 22.dp else 38.dp,
+                        bottom = if (imageShareSelectionMode) 104.dp else 34.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(if (imageShareSelectionMode) 16.dp else 26.dp)
                 ) {
                     if (lyrics.isEmpty()) {
                         item {
@@ -9040,9 +9071,14 @@ private fun AppleMusic13FullscreenLyrics(
                             // flow, never a second live-lyrics renderer competing with the timed view.
                             val liveLyricActive = !imageShareSelectionMode && index == activeIndex
                             val imageShareSelected = imageShareRange?.contains(index) == true && isLyricsShareSelectable(line)
+                            val imageSelectionActive = imageShareSelectionMode && imageShareSelected
                             val lyricLineBlur = if (!imageShareSelectionMode && !liveLyricActive) 2.dp else 0.dp
                             val lineColor by animateColorAsState(
-                                targetValue = if (imageShareSelected || liveLyricActive) Color.White else Color.White.copy(alpha = 0.34f),
+                                targetValue = when {
+                                    imageSelectionActive -> Color(0xFF102026)
+                                    liveLyricActive -> Color.White
+                                    else -> Color.White.copy(alpha = 0.52f)
+                                },
                                 animationSpec = tween(if (state.animationsEnabled) 180 else 0),
                                 label = "simp-lyrics-line-color"
                             )
@@ -9060,9 +9096,9 @@ private fun AppleMusic13FullscreenLyrics(
                                         transformOrigin = TransformOrigin(0f, 0.5f)
                                     }
                                     .blur(lyricLineBlur)
-                                    .clip(RoundedCornerShape(16.dp))
+                                    .clip(RoundedCornerShape(if (imageShareSelectionMode) 14.dp else 16.dp))
                                     .background(
-                                        if (imageShareSelected) Color.White.copy(alpha = 0.16f) else Color.Transparent
+                                        if (imageSelectionActive) Color.White else Color.Transparent
                                     )
                                     .clickable(enabled = state.lyricsSynced || imageShareSelectionMode) {
                                         wakeCluster()
@@ -9189,30 +9225,32 @@ private fun AppleMusic13FullscreenLyrics(
                     exit = fadeOut() + slideOutVertically { it / 2 },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .padding(bottom = 20.dp)
                 ) {
-                    LyricsShareBar(
-                        selectedCount = selectedImageShareLines.size,
-                        maxCount = LYRICS_SHARE_MAX_LINES,
-                        canContinue = selectedImageShareLines.isNotEmpty(),
-                        accent = accentEnd,
-                        onCopy = {
-                            imageShareClipboardScope.launch {
-                                imageShareClipboard.setClipEntry(
-                                    ClipEntry(ClipData.newPlainText("lyrics", selectedImageShareText()))
-                                )
-                            }
-                        },
-                        onCancel = {
-                            imageShareSelectionMode = false
-                            imageShareRange = null
-                        },
-                        onContinue = {
+                    Button(
+                        onClick = {
                             onShareLyrics(selectedImageShareLines)
                             imageShareSelectionMode = false
                             imageShareRange = null
-                        }
-                    )
+                        },
+                        enabled = selectedImageShareLines.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF102026),
+                            disabledContainerColor = Color.White.copy(alpha = 0.34f),
+                            disabledContentColor = Color(0xFF102026).copy(alpha = 0.55f)
+                        ),
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier
+                            .height(58.dp)
+                            .widthIn(min = 176.dp)
+                    ) {
+                        Text(
+                            text = strings.shareLyricsContinue,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 
@@ -9293,6 +9331,50 @@ private fun AppleMusic13FullscreenLyrics(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ImageLyricsSelectionHeader(
+    title: String,
+    selectedCount: Int,
+    linesLabel: String,
+    selectedLabel: String,
+    onClose: () -> Unit
+) {
+    val strings = LocalLevyraStrings.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowDown,
+                contentDescription = strings.close,
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "$selectedCount ${linesLabel.lowercase()} ${selectedLabel.lowercase()}",
+                color = Color.White.copy(alpha = 0.78f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.size(48.dp))
     }
 }
 

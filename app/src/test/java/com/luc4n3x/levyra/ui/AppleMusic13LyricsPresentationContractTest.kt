@@ -24,12 +24,16 @@ class AppleMusic13LyricsPresentationContractTest {
     fun `only the current synced lyric is sharp and white`() {
         assertTrue(lyricsScreen.contains("val lyricLineBlur = if (!imageShareSelectionMode && !liveLyricActive) 2.dp else 0.dp"))
         assertTrue(lyricsScreen.contains(".blur(lyricLineBlur)"))
-        assertTrue(lyricsScreen.contains("targetValue = if (imageShareSelected || liveLyricActive) Color.White else Color.White.copy(alpha = 0.34f)"))
+        assertTrue(lyricsScreen.contains("imageSelectionActive -> Color(0xFF102026)"))
+        assertTrue(lyricsScreen.contains("liveLyricActive -> Color.White"))
         assertFalse(lyricsScreen.contains("AppleMusic13WordByWordLyrics"))
     }
 
     @Test
-    fun `image lyric selection is static rather than another live lyrics renderer`() {
+    fun `image lyric selection is a dedicated static line picker`() {
+        assertTrue(lyricsScreen.contains("ImageLyricsSelectionHeader("))
+        assertTrue(lyricsScreen.contains("Color(0xFF0087A6)"))
+        assertTrue(lyricsScreen.contains("text = strings.shareLyricsContinue"))
         assertTrue(lyricsScreen.contains("val liveLyricActive = !imageShareSelectionMode && index == activeIndex"))
         assertTrue(lyricsScreen.contains("Full lines, not individual words, follow the sync clock"))
         assertFalse(lyricsScreen.contains("AppleMusic13WordByWordLyrics"))

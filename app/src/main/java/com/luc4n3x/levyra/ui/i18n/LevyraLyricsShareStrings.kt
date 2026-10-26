@@ -64,7 +64,7 @@ private fun lyricsShare(
 private val lyricsShareBundles: Map<String, Map<String, String>> = mapOf(
     "en" to lyricsShare(
         "Share lyrics",
-        "Preview",
+        "Continue",
         "Lyric card",
         "Lyric card preview",
         "Artwork",
