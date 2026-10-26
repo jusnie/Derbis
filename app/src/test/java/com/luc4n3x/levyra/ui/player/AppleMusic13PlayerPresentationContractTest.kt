@@ -9,15 +9,23 @@ import org.junit.Test
 class AppleMusic13PlayerPresentationContractTest {
 
     private val playerSource = readSource("AppleMusicPlayer.kt")
+    private val auraSource = readSource("PlayerDeckAura.kt")
     private val nowPlayingSource = readSource("LevyraNowPlaying.kt")
 
     @Test
-    fun `portrait deck uses a distinct elevated sleeve and independent action row`() {
-        assertTrue(playerSource.contains("private val AppleMusic13ArtworkCorner = 24.dp"))
-        assertTrue(playerSource.contains(".padding(top = 60.dp)"))
+    fun `portrait deck uses a static stretched cover and independent action row`() {
+        assertTrue(playerSource.contains("private fun AppleMusic13StretchedArtwork"))
+        assertTrue(playerSource.contains(".fillMaxHeight(AppleMusic13StretchedArtworkHeight)"))
         assertTrue(playerSource.contains("private fun AppleMusic13ActionDock"))
         assertFalse(playerSource.contains("AppleMusic13SourceActionDock"))
         assertFalse(playerSource.contains("SimpMusic"))
+    }
+
+    @Test
+    fun `Velvet receives the contained static sleeve presentation`() {
+        assertTrue(auraSource.contains("private fun AuraVelvetSleeve"))
+        assertTrue(auraSource.contains("VelvetSleeveWidth"))
+        assertFalse(auraSource.contains("MotionArtworkLayer("))
     }
 
     @Test

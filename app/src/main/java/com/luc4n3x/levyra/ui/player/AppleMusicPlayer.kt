@@ -51,6 +51,9 @@ import com.luc4n3x.levyra.domain.LyricLine
 import com.luc4n3x.levyra.player.PlaybackService
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
 import com.luc4n3x.levyra.ui.KaraokeWordTimedText
+import com.luc4n3x.levyra.ui.InstantArtworkPlaceholder
+import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
+import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.PlayerControlLabels
 import com.luc4n3x.levyra.ui.components.formatSeekbarMillis
@@ -133,15 +136,11 @@ internal fun AppleMusicPlayerScene(
             )
     ) {
         val landscape = maxWidth > maxHeight
-        val immersive = appleMusicCanvasImmersive(canvas, maxWidth, maxHeight, video)
-        val canvasAlpha by animateFloatAsState(if (immersive) 1f else 0f, label = "apple-player-canvas-alpha")
-        if (canvas != null && canvasAlpha > 0f) {
-            Box(Modifier.fillMaxSize().graphicsLayer { alpha = canvasAlpha }) {
-                AppleMusicCanvasBackdrop(track, canvas, playing)
-            }
-        }
+        // Album imagery is intentionally static. The Apple Music 13 portrait deck owns a
+        // full-bleed cover treatment below; only landscape/video retain a bounded media stage.
+        val immersive = false
         val artwork: @Composable (Dp) -> Unit = { size ->
-            if (video) AppleMusicPlayerVideo(track, slots, size) else AppleMusicPlayerArtwork(track, slots, size, { canvasAlpha }, showStage = !immersive)
+            if (video) AppleMusicPlayerVideo(track, slots, size) else AppleMusicPlayerArtwork(track, slots, size, { 0f }, showStage = true)
         }
         if (landscape) {
             AppleMusicLandscapeDeck(track, slots, minOf(maxHeight - 34.dp, artworkCap), artwork, metadata, transport)
@@ -217,91 +216,72 @@ private fun AppleMusicPortraitDeck(
     if (video) {
         AppleMusicVideoPortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
     } else {
-        AppleMusic13ReferencePortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
+        AppleMusic13ReferencePortraitDeck(track, slots, metadata, transport, activeLyric, lyricPositionMs)
     }
 }
 
 /**
- * Derbis' Apple Music 13-inspired portrait player.  It borrows the broad visual principles of
- * a modern editorial player—an elevated square record sleeve, spacious controls and a soft
- * colour field—while keeping Derbis actions, typography and interaction patterns original.
+ * Derbis' Apple Music 13-inspired portrait player. Its cover is a static, full-bleed scene:
+ * the image fills the upper stage without distortion and fades into the deck's own controls.
+ * This is an original Derbis treatment, not a reference-app layout.
  */
 @Composable
 private fun AppleMusic13ReferencePortraitDeck(
     track: Track,
     slots: PlayerDeckSlots,
-    artworkCap: Dp,
-    immersive: Boolean,
-    artwork: @Composable (Dp) -> Unit,
     metadata: @Composable () -> Unit,
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
     lyricPositionMs: Long
 ) {
-    val fieldTop = remember(track.id, track.accentStart) {
-        Color(track.accentStart).let { androidx.compose.ui.graphics.lerp(it, Color.Black, 0.66f) }
-    }
-    val fieldMiddle = remember(track.id, track.accentEnd) {
-        Color(track.accentEnd).let { androidx.compose.ui.graphics.lerp(it, Color.Black, 0.82f) }
-    }
-    val fieldBottom = remember(fieldMiddle) { androidx.compose.ui.graphics.lerp(fieldMiddle, Color.Black, 0.76f) }
-
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    0f to fieldTop,
-                    0.48f to fieldMiddle,
-                    1f to fieldBottom
-                )
-            )
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .background(Color.Black)
     ) {
-        val inset = if (maxWidth < 390.dp) 20.dp else 28.dp
-        val sleeveSize = minOf(
-            (maxWidth - inset * 2).coerceAtLeast(180.dp),
-            // Reserve a generous lower band for metadata, transport, output and utility actions.
-            (maxHeight - 420.dp).coerceAtLeast(180.dp),
-            maxHeight * 0.46f,
-            artworkCap
-        )
+        // Swap: Apple Music 13 now owns the stretched, full-bleed cover presentation.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(AppleMusic13StretchedArtworkHeight)
+        ) {
+            AppleMusic13StretchedArtwork(track)
+        }
+
+        // Preserve artwork gestures without putting an invisible surface over the controls.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(AppleMusic13GestureStageHeight)
+                .statusBarsPadding()
+        ) {
+            slots.gestures(track, Modifier.matchParentSize())
+        }
 
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 4.dp)
         ) {
             slots.header()
         }
 
-        if (!immersive) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 60.dp)
-                    .size(sleeveSize),
-                contentAlignment = Alignment.Center
-            ) {
-                artwork(sleeveSize)
-                slots.gestures(track, Modifier.matchParentSize())
-            }
-        }
-
-        // Keep the information and transport in one deliberately substantial lower composition.
-        // This preserves a clear hierarchy while making the player comfortable to operate one-handed.
+        val inset = if (maxWidth < 390.dp) 20.dp else 28.dp
+        // Keep the information and transport in one substantial lower composition while the
+        // artwork recedes behind it. The old bounded sleeve is now Velvet's presentation.
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = inset)
         ) {
             Box(Modifier.fillMaxWidth().clipToBounds()) { metadata() }
-            if (!immersive) {
-                Box(Modifier.padding(top = 4.dp)) { slots.engagement(track) }
-            }
+            Box(Modifier.padding(top = 4.dp)) { slots.engagement(track) }
             AppleMusic13InlineLyrics(
                 line = activeLyric,
                 positionMs = lyricPositionMs,
@@ -324,6 +304,28 @@ private fun AppleMusic13ReferencePortraitDeck(
             AppleMusic13ActionDock(slots.dockActions(track))
             Spacer(Modifier.height(AppleMusicDesign.playerActionBottom + 4.dp))
         }
+    }
+}
+
+private const val AppleMusic13StretchedArtworkHeight = 0.74f
+private const val AppleMusic13GestureStageHeight = 0.58f
+private val AppleMusic13ArtworkFade = Brush.verticalGradient(
+    0.00f to Color.Transparent,
+    0.48f to Color.Transparent,
+    0.76f to Color.Black.copy(alpha = 0.36f),
+    1.00f to Color.Black
+)
+
+@Composable
+private fun AppleMusic13StretchedArtwork(track: Track) {
+    val artworkUrl = preferredPlayerArtworkUrl(track)
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        SeamlessArtworkImage(
+            url = artworkUrl,
+            modifier = Modifier.fillMaxSize(),
+            fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+        )
+        Box(Modifier.fillMaxSize().background(AppleMusic13ArtworkFade))
     }
 }
 

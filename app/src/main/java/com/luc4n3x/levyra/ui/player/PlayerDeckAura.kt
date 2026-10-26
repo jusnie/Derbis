@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -76,14 +77,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luc4n3x.levyra.domain.LevyraCanvasQuality
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.feature.cast.CastRouteButton
-import com.luc4n3x.levyra.feature.motion.MotionArtwork
-import com.luc4n3x.levyra.ui.MotionArtworkLayer
-import com.luc4n3x.levyra.ui.MotionArtworkPresentation
-import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
 import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
+import com.luc4n3x.levyra.ui.InstantArtworkPlaceholder
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.LevyraPlayPauseGlyph
 import com.luc4n3x.levyra.ui.components.LevyraPressScale
@@ -97,13 +94,7 @@ import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraPlayerDesign
 import com.luc4n3x.levyra.ui.theme.LocalLevyraHaptics
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import com.luc4n3x.levyra.ui.theme.LocalLevyraVisualCapabilities
 
 private val AuraInk = Color.White
 private val AuraInkSoft = Color.White.copy(alpha = 0.64f)
@@ -112,24 +103,14 @@ private val AuraBadge = Color.White.copy(alpha = 0.14f)
 private val AuraGutter = 22.dp
 private val AuraBarIdle = 4.dp
 private val AuraBarActive = 9.dp
-private val AuraScrim = Brush.verticalGradient(
-    0.00f to Color.Black.copy(alpha = 0.32f),
-    0.12f to Color.Transparent,
-    0.46f to Color.Transparent,
-    0.66f to Color.Black.copy(alpha = 0.62f),
-    0.80f to Color.Black.copy(alpha = 0.88f),
-    1.00f to Color.Black
-)
+private const val VelvetSleeveWidth = 0.86f
+private val VelvetSleeveCorner = 24.dp
 
 @Composable
 internal fun PlayerAuraDeck(
     track: Track,
     slots: PlayerDeckSlots,
     artworkUrl: String,
-    motionArtwork: MotionArtwork?,
-    livingArtwork: LivingArtworkColors?,
-    motionEnabled: Boolean,
-    canvasQuality: LevyraCanvasQuality,
     isFavorite: Boolean,
     isDownloaded: Boolean,
     isPlaying: Boolean,
@@ -150,20 +131,19 @@ internal fun PlayerAuraDeck(
     modifier: Modifier = Modifier,
     headlineModifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.background(Color.Black)) {
-        MotionArtworkLayer(
-            artwork = motionArtwork,
-            enabled = motionEnabled,
-            isPlaying = isPlaying,
-            cornerRadius = 0.dp,
-            presentation = MotionArtworkPresentation.Immersive,
-            quality = canvasQuality,
-            livingArtwork = livingArtwork,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            AuraStaticArtwork(artworkUrl = artworkUrl)
-        }
-        Box(modifier = Modifier.fillMaxSize().background(AuraScrim))
+    val velvetTop = remember(track.id, track.accentStart) {
+        androidx.compose.ui.graphics.lerp(Color(track.accentStart), Color.Black, 0.72f)
+    }
+    val velvetMid = remember(track.id, track.accentEnd) {
+        androidx.compose.ui.graphics.lerp(Color(track.accentEnd), Color.Black, 0.86f)
+    }
+    // Swap: Velvet now carries the stable, rounded sleeve that previously belonged to the
+    // Apple Music 13 deck. Its background remains Velvet-owned and never animates the cover.
+    Box(
+        modifier = modifier.background(
+            Brush.verticalGradient(0f to velvetTop, 0.50f to velvetMid, 1f to Color.Black)
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -173,11 +153,20 @@ internal fun PlayerAuraDeck(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AuraGrabber(onCollapse = onCollapse)
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) {
+                val sleeveSize = minOf(maxWidth * VelvetSleeveWidth, maxHeight - 16.dp)
+                    .coerceAtLeast(152.dp)
+                AuraVelvetSleeve(
+                    artworkUrl = artworkUrl,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
+                        .size(sleeveSize)
+                )
                 slots.gestures(track, Modifier.matchParentSize())
             }
             AuraHeadline(
@@ -217,41 +206,19 @@ internal fun PlayerAuraDeck(
 }
 
 @Composable
-private fun AuraStaticArtwork(artworkUrl: String) {
-    val canBlur = LocalLevyraVisualCapabilities.current.heavyBlur &&
-        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        if (canBlur) {
-            SeamlessArtworkImage(
-                url = artworkUrl,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.72f }
-                    .blur(80.dp, BlurredEdgeTreatment.Rectangle)
-            ) {}
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.42f)))
-        }
+private fun AuraVelvetSleeve(artworkUrl: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(VelvetSleeveCorner))
+            .background(Color.Black.copy(alpha = 0.30f))
+    ) {
         SeamlessArtworkImage(
             url = artworkUrl,
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(AuraStaticArtworkHeight)
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    drawRect(brush = AuraStaticFade, blendMode = BlendMode.DstIn)
-                }
-        ) {}
+            modifier = Modifier.fillMaxSize(),
+            fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+        )
     }
 }
-
-private const val AuraStaticArtworkHeight = 0.76f
-private val AuraStaticFade = Brush.verticalGradient(
-    0.00f to Color.Black,
-    0.78f to Color.Black,
-    0.92f to Color.Black.copy(alpha = 0.45f),
-    1.00f to Color.Transparent
-)
 
 @Composable
 private fun AuraGrabber(onCollapse: () -> Unit) {
