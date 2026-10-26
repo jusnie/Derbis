@@ -3083,6 +3083,8 @@ fun LevyraApp(
                     onPrevious = viewModel::previous,
                     onTogglePlay = viewModel::togglePlay,
                     onNext = viewModel::next,
+                    onToggleFavorite = viewModel::toggleFavorite,
+                    onOpenQueue = viewModel::openQueue,
                     onOpenLyricsStudio = viewModel::openLyricsStudio,
                     onUpdateLyricsStudioSettings = viewModel::setLyricsStudioSettings,
                     onClose = viewModel::closeLyrics
@@ -7737,6 +7739,8 @@ private fun LyricsOverlay(
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
+    onToggleFavorite: (Track) -> Unit = {},
+    onOpenQueue: () -> Unit = {},
     onOpenLyricsStudio: () -> Unit = {},
     onUpdateLyricsStudioSettings: (LevyraLyricsStudioSettings) -> Unit = {},
     onClose: () -> Unit
@@ -7768,7 +7772,10 @@ private fun LyricsOverlay(
     )
     val trackLyricsOffsetMs = latencyProfiles.trackOffsetMs(track?.id)
     val lyricsOffsetMs = latencyOffsetMs + trackLyricsOffsetMs
-    val appleMusic13Lyrics = state.lyricsStudioSettings.appleMusic13LyricsEnabled
+    // Full-screen lyrics inherit the active Apple Music 13 deck automatically; the Studio toggle
+    // keeps the same renderer available from every other player style.
+    val appleMusic13Lyrics = state.lyricsStudioSettings.appleMusic13LyricsEnabled ||
+        LevyraIsAppleMusic || state.interfaceSettings.playerVisualMode == PlayerVisualMode.AppleMusic13
     var viewMode by remember(track?.id, appleMusic13Lyrics) { mutableStateOf(LyricsViewMode.CINEMA) }
     LaunchedEffect(appleMusic13Lyrics) {
         if (appleMusic13Lyrics) viewMode = LyricsViewMode.CINEMA
@@ -8070,6 +8077,33 @@ private fun LyricsOverlay(
         }
     }
 
+    if (appleMusic13Lyrics && !landscapeLayout) {
+        AppleMusic13FullscreenLyrics(
+            state = state,
+            accentStart = accentStart,
+            accentEnd = accentEnd,
+            onSeekToMs = onSeekToMs,
+            onPrevious = onPrevious,
+            onTogglePlay = onTogglePlay,
+            onNext = onNext,
+            onToggleFavorite = onToggleFavorite,
+            onOpenQueue = onOpenQueue,
+            onOpenOptions = { showLyricsOptions = true },
+            lyricsOffsetMs = lyricsOffsetMs,
+            showTranslation = showTranslation,
+            showRomanization = showRomanization,
+            calibrateMode = calibrateMode,
+            onCalibrateLine = { lineStartMs ->
+                track?.id?.let { trackId ->
+                    onSetTrackOffset(
+                        trackId,
+                        calibratedLyricsTrackOffset(state.positionMs, lineStartMs, latencyOffsetMs)
+                    )
+                }
+                calibrateMode = false
+            }
+        )
+    } else {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -8470,6 +8504,7 @@ private fun LyricsOverlay(
             )
         }
     }
+    }
 
     if (showIntelligenceDialog) {
         LyricsIntelligenceDialog(
@@ -8703,6 +8738,413 @@ private fun LyricsOverlay(
             onDismiss = { showVersions = false }
         )
     }
+}
+
+@Composable
+private fun AppleMusic13FullscreenLyrics(
+    state: LevyraUiState,
+    accentStart: Color,
+    accentEnd: Color,
+    onSeekToMs: (Long) -> Unit,
+    onPrevious: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onNext: () -> Unit,
+    onToggleFavorite: (Track) -> Unit,
+    onOpenQueue: () -> Unit,
+    onOpenOptions: () -> Unit,
+    lyricsOffsetMs: Long,
+    showTranslation: Boolean,
+    showRomanization: Boolean,
+    calibrateMode: Boolean,
+    onCalibrateLine: (Long) -> Unit
+) {
+    val strings = LocalLevyraStrings.current
+    val track = state.currentTrack
+    val lyrics = state.lyrics
+    val listState = rememberLazyListState()
+    val context = LocalContext.current
+    val clock = rememberLyricsPlaybackClock(
+        trackKey = track?.id.orEmpty(),
+        reportedPositionMs = state.positionMs,
+        isPlaying = state.isPlaying,
+        speed = state.audioSettings.playbackSpeed,
+        smoothingEnabled = state.lyricsSynced && state.animationsEnabled
+    )
+    val activeIndex = remember(lyrics, state.lyricsSynced, clock.positionMs, lyricsOffsetMs) {
+        if (state.lyricsSynced) {
+            activeLyricIndex(lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs), lyrics)
+        } else {
+            -1
+        }
+    }
+    LaunchedEffect(activeIndex, lyrics.size) {
+        if (activeIndex >= 0 && lyrics.isNotEmpty()) {
+            centerLyricsItem(
+                listState = listState,
+                index = activeIndex,
+                animate = state.animationsEnabled,
+                anchorFraction = 0.36f
+            )
+        }
+    }
+
+    var dragProgress by remember(track?.id) { mutableStateOf<Float?>(null) }
+    val progress = if (state.durationMs > 0L) {
+        (state.positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val shownProgress = dragProgress ?: progress
+    val shownPosition = (state.durationMs * shownProgress).toLong()
+    val animated = state.animationsEnabled && state.isPlaying
+
+    Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
+        AppleMusic13LyricsGlowBackdrop(
+            accentStart = accentStart,
+            accentEnd = accentEnd,
+            animate = animated
+        )
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .nestedScroll(remember { object : NestedScrollConnection {} }),
+            contentPadding = PaddingValues(
+                start = 78.dp,
+                end = 44.dp,
+                top = 145.dp,
+                bottom = 246.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(26.dp)
+        ) {
+            if (lyrics.isEmpty()) {
+                item {
+                    Text(
+                        text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
+                        color = Color.White.copy(alpha = 0.58f),
+                        style = AppleMusicTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            } else {
+                itemsIndexed(lyrics, key = { index, line -> "apple-lyrics-${line.startMs}-${line.role}-$index" }) { index, line ->
+                    val active = index == activeIndex
+                    val lineColor by animateColorAsState(
+                        targetValue = if (active) Color.White else Color.White.copy(alpha = 0.34f),
+                        animationSpec = tween(if (state.animationsEnabled) 180 else 0),
+                        label = "apple-lyrics-line-color"
+                    )
+                    val lineScale by animateFloatAsState(
+                        targetValue = if (active) 1f else 0.94f,
+                        animationSpec = tween(if (state.animationsEnabled) 180 else 0),
+                        label = "apple-lyrics-line-scale"
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                scaleX = lineScale
+                                scaleY = lineScale
+                                transformOrigin = TransformOrigin(0f, 0.5f)
+                            }
+                            .clickable(enabled = state.lyricsSynced) {
+                                if (calibrateMode) {
+                                    onCalibrateLine(line.startMs)
+                                } else {
+                                    onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
+                                }
+                            }
+                    ) {
+                        Text(
+                            text = line.text,
+                            color = lineColor,
+                            style = AppleMusicTypography.headlineLarge.copy(
+                                fontFamily = FontFamily.SansSerif,
+                                fontSize = 31.sp,
+                                lineHeight = 38.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        if (showRomanization && line.romanized.isNotBlank()) {
+                            Text(
+                                text = line.romanized,
+                                color = lineColor.copy(alpha = 0.72f),
+                                style = AppleMusicTypography.bodyLarge.copy(
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = 17.sp,
+                                    lineHeight = 22.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                modifier = Modifier.padding(top = 3.dp)
+                            )
+                        }
+                        if (showTranslation && line.translated.isNotBlank()) {
+                            Text(
+                                text = line.translated,
+                                color = lineColor.copy(alpha = 0.82f),
+                                style = AppleMusicTypography.bodyLarge.copy(
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = 18.sp,
+                                    lineHeight = 23.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                modifier = Modifier.padding(top = 5.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(start = 54.dp, end = 22.dp, top = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            if (track != null) {
+                AsyncImage(
+                    model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
+                )
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = track?.title ?: strings.lyrics,
+                    color = Color.White,
+                    style = AppleMusicTypography.titleMedium.copy(
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = track?.artist.orEmpty(),
+                    color = Color.White.copy(alpha = 0.70f),
+                    style = AppleMusicTypography.bodyMedium.copy(
+                        fontFamily = FontFamily.SansSerif,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(
+                onClick = { track?.let(onToggleFavorite) },
+                enabled = track != null
+            ) {
+                Icon(
+                    imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = strings.favorite,
+                    tint = Color.White,
+                    modifier = Modifier.size(29.dp)
+                )
+            }
+            IconButton(
+                onClick = {
+                    track?.let { active ->
+                        val activeLyric = lyrics.getOrNull(activeIndex)
+                        val body = buildString {
+                            append("${active.title} — ${active.artist}".trim(' ', '—'))
+                            activeLyric?.text?.takeIf(String::isNotBlank)?.let { lyric ->
+                                append("\n\n").append(lyric)
+                                if (showTranslation && activeLyric.translated.isNotBlank()) {
+                                    append("\n").append(activeLyric.translated)
+                                }
+                            }
+                        }
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, body)
+                                },
+                                strings.share
+                            )
+                        )
+                    }
+                },
+                enabled = track != null
+            ) {
+                Icon(Icons.Rounded.Share, contentDescription = strings.share, tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+            IconButton(onClick = onOpenOptions) {
+                Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(29.dp))
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(start = 62.dp, end = 62.dp, bottom = 18.dp)
+        ) {
+            Slider(
+                value = shownProgress,
+                onValueChange = { dragProgress = it },
+                onValueChangeFinished = {
+                    dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
+                    dragProgress = null
+                },
+                enabled = state.durationMs > 0L,
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.34f)
+                ),
+                modifier = Modifier.fillMaxWidth().height(28.dp)
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = formatSeekbarMillis(shownPosition),
+                    color = Color.White.copy(alpha = 0.78f),
+                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                )
+                Text(
+                    text = if (state.durationMs > 0L) formatSeekbarMillis(state.durationMs) else "--:--",
+                    color = Color.White.copy(alpha = 0.78f),
+                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Rounded.Shuffle, contentDescription = null, tint = Color.White.copy(alpha = 0.88f), modifier = Modifier.size(29.dp))
+                IconButton(onClick = onPrevious, modifier = Modifier.size(52.dp)) {
+                    Icon(Icons.Rounded.SkipPrevious, contentDescription = strings.previous, tint = Color.White, modifier = Modifier.size(35.dp))
+                }
+                IconButton(
+                    onClick = onTogglePlay,
+                    modifier = Modifier
+                        .size(78.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                ) {
+                    Icon(
+                        imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = if (state.isPlaying) strings.pause else strings.play,
+                        tint = Color(0xFF0A3039),
+                        modifier = Modifier.size(43.dp)
+                    )
+                }
+                IconButton(onClick = onNext, modifier = Modifier.size(52.dp)) {
+                    Icon(Icons.Rounded.SkipNext, contentDescription = strings.next, tint = Color.White, modifier = Modifier.size(35.dp))
+                }
+                Icon(Icons.Rounded.Repeat, contentDescription = null, tint = Color.White.copy(alpha = 0.88f), modifier = Modifier.size(29.dp))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 15.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onOpenOptions, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Rounded.Info, contentDescription = strings.options, tint = Color.White.copy(alpha = 0.96f), modifier = Modifier.size(25.dp))
+                }
+                IconButton(onClick = onOpenQueue, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Rounded.LibraryMusic, contentDescription = strings.queue, tint = Color.White.copy(alpha = 0.96f), modifier = Modifier.size(27.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppleMusic13LyricsGlowBackdrop(
+    accentStart: Color,
+    accentEnd: Color,
+    animate: Boolean
+) {
+    val animatedStart by animateColorAsState(
+        targetValue = accentStart,
+        animationSpec = tween(if (animate) 900 else 0),
+        label = "apple-lyrics-accent-start"
+    )
+    val animatedEnd by animateColorAsState(
+        targetValue = accentEnd,
+        animationSpec = tween(if (animate) 900 else 0),
+        label = "apple-lyrics-accent-end"
+    )
+    val transition = rememberInfiniteTransition(label = "apple-lyrics-album-glow")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (animate) 4_200 else 1, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "apple-lyrics-album-glow-phase"
+    )
+    val startAlpha = if (animate) 0.56f + phase * 0.16f else 0.54f
+    val endAlpha = if (animate) 0.38f + (1f - phase) * 0.18f else 0.42f
+    // Interpolating the two artwork accents makes each album produce its own slow color drift.
+    val topTone = lerp(animatedStart, animatedEnd, phase * 0.68f)
+    val middleTone = lerp(animatedEnd, animatedStart, (1f - phase) * 0.54f)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        topTone.copy(alpha = 0.80f),
+                        middleTone.copy(alpha = 0.60f),
+                        Color(0xFF00151B)
+                    )
+                )
+            )
+    )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = 1.18f + phase * 0.12f
+                scaleY = 1.18f + phase * 0.12f
+                translationX = (phase - 0.5f) * 86f
+                translationY = (0.5f - phase) * 66f
+            }
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(animatedStart.copy(alpha = startAlpha), Color.Transparent),
+                    radius = 1_180f
+                )
+            )
+    )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = 1.28f - phase * 0.10f
+                scaleY = 1.28f - phase * 0.10f
+                translationX = (0.5f - phase) * 96f
+                translationY = (phase - 0.5f) * 78f
+            }
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(animatedEnd.copy(alpha = endAlpha), Color.Transparent),
+                    radius = 1_000f
+                )
+            )
+    )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Black.copy(alpha = 0.06f),
+                    0.56f to Color.Transparent,
+                    1f to Color.Black.copy(alpha = 0.56f)
+                )
+            )
+    )
 }
 
 @Composable
