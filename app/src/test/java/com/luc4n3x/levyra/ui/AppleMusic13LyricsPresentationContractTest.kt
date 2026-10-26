@@ -46,6 +46,7 @@ class AppleMusic13LyricsPresentationContractTest {
         assertTrue(backdrop.contains("artwork colour field uninterrupted"))
         assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.82f)"))
         assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.42f)"))
+        assertFalse(lyricsScreen.contains("fadeTone"))
     }
 
     @Test

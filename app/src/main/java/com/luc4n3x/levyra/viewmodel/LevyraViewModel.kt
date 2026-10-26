@@ -11288,6 +11288,14 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val queuedEntryId = queueSnapshot.tracks.getOrNull(selectedIndex)?.playlistEntryId.orEmpty()
         val resolved = playable.copy(playlistEntryId = queuedEntryId.ifBlank { playable.playlistEntryId })
         if (selectedIndex >= 0) queueEngine.updateTrackAt(selectedIndex, resolved)
+        if (queueEngine.state.value.radioEnabled) {
+            // Resolving replaces the editorial seed with its playable source and advances the queue
+            // generation. Restart the tail from that stable resolved entry, otherwise an in-flight
+            // request is correctly rejected as stale and leaves Endless Listening visibly empty.
+            radioJob?.cancel()
+            beginRadioSession()
+            ensureRadioTail(force = true)
+        }
         repository.replace(resolved)
         val resumeMs = resumePositionFor(resolved)
         player.play(resolved, _state.value.isVideoMode, startPositionMs = resumeMs)

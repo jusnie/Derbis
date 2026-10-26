@@ -8909,7 +8909,6 @@ private fun AppleMusic13FullscreenLyrics(
     }
     val shownProgress = dragProgress ?: progress
     val shownPosition = (state.durationMs * shownProgress).toLong()
-    val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
     // Image sharing in this variant is intentionally a lyric-line selection action, not a
     // generic track-share shortcut. The same model limits the card to five selectable verses.
@@ -9157,22 +9156,8 @@ private fun AppleMusic13FullscreenLyrics(
                     }
                 }
 
-                // The list fades into its chrome rather than stopping abruptly under the header or
-                // controls; this is the quiet edge treatment of the upstream AppleMusicLyricsView.
-                Box(
-                    Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .height(30.dp)
-                        .background(Brush.verticalGradient(0f to fadeTone.copy(alpha = 0.88f), 1f to Color.Transparent))
-                )
-                Box(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(22.dp)
-                        .background(Brush.verticalGradient(0f to Color.Transparent, 1f to fadeTone.copy(alpha = 0.88f)))
-                )
+                // No black edge or control gradient is layered over the artwork. The lyric list
+                // meets the compact header and transport directly so cover colors stay continuous.
 
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showCluster && !imageShareSelectionMode,
