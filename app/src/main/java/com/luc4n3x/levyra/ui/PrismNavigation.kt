@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.luc4n3x.levyra.domain.LevyraTab
 import com.luc4n3x.levyra.domain.NavTuning
 import com.luc4n3x.levyra.ui.theme.*
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 
 @Composable
 internal fun PrismBottomTabs(tuning: NavTuning, selected: LevyraTab, onSelect: (LevyraTab) -> Unit, applySystemInset: Boolean) {
@@ -40,13 +42,31 @@ internal fun PrismBottomTabs(tuning: NavTuning, selected: LevyraTab, onSelect: (
         onSelect(entry.tab)
     }
     if (SkinBottomTabs(entries, selected, applySystemInset, skinModifier, skinSelect)) return
+    val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val liquidGlass = LevyraIsLiquidGlass
+    val dockModifier = if (liquidGlass) {
+        Modifier.levyraGlass(
+            shape = dockShape,
+            baseTint = Color.White,
+            fallbackColor = prismGlassColor(),
+            fallbackBorderColor = Color.White.copy(alpha = if (LevyraActivePalette.isLight) 0.32f else 0.22f),
+            intensity = LevyraGlassIntensity.Strong,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier
+    }
     Column(Modifier.fillMaxWidth()) {
         Surface(
-            modifier = Modifier.fillMaxWidth().onSizeChanged { size ->
-                measuredHeight?.value = with(density) { size.height.toDp() }
-            },
-            shape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), color = prismGlassColor(),
-            border = if (LevyraActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged { size ->
+                    measuredHeight?.value = with(density) { size.height.toDp() }
+                }
+                .then(dockModifier),
+            shape = dockShape,
+            color = if (liquidGlass) Color.Transparent else prismGlassColor(),
+            border = if (liquidGlass) null else if (LevyraActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
         ) {
             Column {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {

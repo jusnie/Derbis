@@ -104,13 +104,19 @@ internal val PrismTypography = levyraTypographyFor(LevyraFontPreset.Outfit).let 
 internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark: Boolean = true): LevyraPalette {
     val light = settings.appearance == PrismAppearance.Light ||
         settings.appearance == PrismAppearance.Automatic && !systemDark
+    // Neutral system materials must stay translucent too. A large amount of the app uses
+    // palette surfaces directly rather than a dedicated card composable; keeping these opaque
+    // is what made a selected Liquid Glass skin look like the standard dark UI.
+    val translucent = settings.translucency != PrismTranslucency.Reduced
+    fun systemMaterial(day: Long, night: Long, alpha: Float): Color =
+        prismColor(light, day, night).copy(alpha = if (translucent) alpha else 1f)
     return LevyraThemes.cosmic.copy(
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
         black = prismColor(light, 0xFFF5F8FC, 0xFF080A0F),
-        ink = prismColor(light, 0xFFFFFFFF, 0xFF10141C),
-        panel = prismColor(light, 0xFFF8FAFD, 0xFF161C27),
-        panelSoft = prismColor(light, 0xFFEAF1F8, 0xFF202A38),
+        ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.70f else 0.66f),
+        panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.76f else 0.70f),
+        panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.84f else 0.78f),
         cyan = prismColor(light, 0xFF006E99, 0xFF7DD3FC),
         blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
         violet = prismColor(light, 0xFF635BCE, 0xFFC4B5FD),

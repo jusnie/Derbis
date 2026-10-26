@@ -28,6 +28,8 @@ import com.luc4n3x.levyra.ui.components.levyraGroupedListShape
 import com.luc4n3x.levyra.ui.components.rememberLevyraAvatarPressShape
 import androidx.compose.foundation.text.BasicText
 import com.luc4n3x.levyra.ui.components.LevyraFilterPill
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.components.LevyraSectionAction
 import com.luc4n3x.levyra.ui.components.LevyraSectionHeader
 import com.luc4n3x.levyra.ui.components.LevyraSectionPlayAll
@@ -2202,7 +2204,8 @@ fun LevyraApp(
             val dockState = rememberLevyraDockState()
             val glassBlurAllowed = rememberGlassBlurAllowed()
             val dockGlass = rememberGlassBackdropState(
-                enabled = state.interfaceSettings.liquidGlassEnabled &&
+                enabled = (state.interfaceSettings.liquidGlassEnabled ||
+                    state.interfaceSettings.skin == LevyraSkin.LiquidGlass) &&
                     state.animationsEnabled &&
                     glassBlurAllowed &&
                     (!LevyraSkinManagesLayout || state.interfaceSettings.skin == LevyraSkin.LiquidGlass)
@@ -2361,12 +2364,15 @@ fun LevyraApp(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(dockState)
-                    .glassBackdropSource(dockGlass)
             ) {
-            LevyraHomeAtmosphere(
-                isLight = LevyraIsLight,
-                accent = yourSoundAccent
-            )
+                // The shared layer intentionally contains only the atmospheric backdrop. Recording
+                // foreground content here would turn a glass panel into a blurred echo of itself.
+                LevyraHomeAtmosphere(
+                    isLight = LevyraIsLight,
+                    accent = yourSoundAccent,
+                    modifier = Modifier.glassBackdropSource(dockGlass)
+                )
+                CompositionLocalProvider(LocalGlassBackdrop provides dockGlass) {
             val homeSaveableState = rememberSaveableStateHolder()
             AnimatedContent(
                 targetState = backgroundTab,
@@ -2671,6 +2677,7 @@ fun LevyraApp(
                             )
                         }
                     }
+                }
                 }
             }
 
@@ -17203,6 +17210,21 @@ private fun SearchHeader(
         label = "search-field-corner"
     )
 
+    val liquidGlassField = LevyraIsLiquidGlass
+    val fieldShape = RoundedCornerShape(fieldCorner)
+    val fieldGlassModifier = if (liquidGlassField) {
+        Modifier.levyraGlass(
+            shape = fieldShape,
+            baseTint = Color.White,
+            fallbackColor = fieldContainer.copy(alpha = 0.68f),
+            fallbackBorderColor = Color.White.copy(alpha = if (fieldFocused) 0.46f else 0.28f),
+            intensity = if (fieldFocused) LevyraGlassIntensity.Strong else LevyraGlassIntensity.Standard,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -17220,12 +17242,13 @@ private fun SearchHeader(
         )
 
         Surface(
-            color = fieldContainer,
-            border = if (LevyraIsSpotify) null else BorderStroke(if (LevyraIsPrism) 1.5.dp else 2.dp, focusRing),
-            shape = RoundedCornerShape(fieldCorner),
+            color = if (liquidGlassField) Color.Transparent else fieldContainer,
+            border = if (liquidGlassField || LevyraIsSpotify) null else BorderStroke(if (LevyraIsPrism) 1.5.dp else 2.dp, focusRing),
+            shape = fieldShape,
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = 60.dp)
+                .then(fieldGlassModifier)
         ) {
             Row(
                 modifier = Modifier
@@ -17403,6 +17426,27 @@ private fun RecentSearchesRow(
                 val isFavorite = track.id in favoriteIds
                 val isDownloaded = track.id in downloadedTrackIds
 
+                val cardShape = if (LevyraSkinManagesLayout) {
+                    RoundedCornerShape(SkinChrome.outerCorner)
+                } else {
+                    RecentSearchCardShape
+                }
+                val cardSurface = if (LevyraIsLiquidGlass) {
+                    Modifier.levyraGlass(
+                        shape = cardShape,
+                        baseTint = Color.White,
+                        fallbackColor = LevyraPanel.copy(alpha = 0.72f),
+                        fallbackBorderColor = Color.White.copy(alpha = 0.30f),
+                        intensity = LevyraGlassIntensity.Standard,
+                        artworkTint = LevyraActivePalette.cyan
+                    )
+                } else {
+                    Modifier.background(
+                        if (LevyraIsPrism && !LevyraIsTorque) Color.Transparent
+                        else if (LevyraSkinManagesLayout) LevyraPanel
+                        else scheme.secondaryContainer.copy(alpha = if (LevyraIsLight) 0.62f else 0.34f)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .levyraCarouselDepth(recentState, "recent-${track.id}", recentDepth)
@@ -17411,8 +17455,8 @@ private fun RecentSearchesRow(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(if (LevyraSkinManagesLayout) RoundedCornerShape(SkinChrome.outerCorner) else RecentSearchCardShape)
-                            .background(if (LevyraIsPrism && !LevyraIsTorque) Color.Transparent else if (LevyraSkinManagesLayout) LevyraPanel else scheme.secondaryContainer.copy(alpha = if (LevyraIsLight) 0.62f else 0.34f))
+                            .clip(cardShape)
+                            .then(cardSurface)
                             .levyraPressable(
                                 onClick = { onTrackClick(track) },
                                 onLongClick = { menuExpanded = true },
@@ -17690,11 +17734,25 @@ private fun SearchQuerySuggestionChip(
             ),
         contentAlignment = Alignment.Center
     ) {
+        val chipShape = RoundedCornerShape(corner)
         Row(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(RoundedCornerShape(corner))
-                .background(scheme.surfaceContainerHigh)
+                .clip(chipShape)
+                .then(
+                    if (LevyraIsLiquidGlass) {
+                        Modifier.levyraGlass(
+                            shape = chipShape,
+                            baseTint = Color.White,
+                            fallbackColor = scheme.surfaceContainerHigh.copy(alpha = 0.68f),
+                            fallbackBorderColor = Color.White.copy(alpha = 0.26f),
+                            intensity = LevyraGlassIntensity.Subtle,
+                            artworkTint = LevyraActivePalette.cyan
+                        )
+                    } else {
+                        Modifier.background(scheme.surfaceContainerHigh)
+                    }
+                )
                 .padding(start = 12.dp, end = 16.dp, top = 9.dp, bottom = 9.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -17739,13 +17797,29 @@ private fun SearchTasteHints(
 @Composable
 private fun DownloadsFolderCard(count: Int, onClick: () -> Unit) {
     val strings = LocalLevyraStrings.current
+    val cardShape = RoundedCornerShape(16.dp)
+    val liquidGlass = LevyraIsLiquidGlass
     Surface(
-        color = Color.White.copy(alpha = 0.045f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
-        shape = RoundedCornerShape(16.dp),
+        color = if (liquidGlass) Color.Transparent else Color.White.copy(alpha = 0.045f),
+        border = if (liquidGlass) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        shape = cardShape,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .then(
+                if (liquidGlass) {
+                    Modifier.levyraGlass(
+                        shape = cardShape,
+                        baseTint = LevyraCyan,
+                        fallbackColor = LevyraPanel.copy(alpha = 0.68f),
+                        fallbackBorderColor = Color.White.copy(alpha = 0.28f),
+                        intensity = LevyraGlassIntensity.Standard,
+                        artworkTint = LevyraActivePalette.cyan
+                    )
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Row(
             modifier = Modifier
@@ -18421,11 +18495,28 @@ private fun LibraryFilterChip(
     val background = if (selected) accent.copy(alpha = 0.18f) else CinematicGlass.copy(alpha = 0.5f)
     val borderColor = if (selected) accent.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.08f)
     val contentColor = if (selected) LevyraText else LevyraMuted
+    val chipShape = RoundedCornerShape(999.dp)
+    val liquidGlass = LevyraIsLiquidGlass
     Surface(
-        color = background,
-        border = BorderStroke(1.dp, borderColor),
-        shape = RoundedCornerShape(999.dp),
-        modifier = Modifier.pressable(onClick = onClick)
+        color = if (liquidGlass) Color.Transparent else background,
+        border = if (liquidGlass) null else BorderStroke(1.dp, borderColor),
+        shape = chipShape,
+        modifier = Modifier
+            .pressable(onClick = onClick)
+            .then(
+                if (liquidGlass) {
+                    Modifier.levyraGlass(
+                        shape = chipShape,
+                        baseTint = if (selected) accent else Color.White,
+                        fallbackColor = background,
+                        fallbackBorderColor = borderColor,
+                        intensity = if (selected) LevyraGlassIntensity.Standard else LevyraGlassIntensity.Subtle,
+                        artworkTint = LevyraActivePalette.cyan
+                    )
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp),
@@ -18504,10 +18595,24 @@ private fun LibraryHeader(
 
 @Composable
 private fun LibraryStatPill(icon: ImageVector, value: String, label: String, accent: Color) {
+    val pillShape = RoundedCornerShape(999.dp)
+    val liquidGlass = LevyraIsLiquidGlass
     Surface(
-        color = CinematicGlass.copy(alpha = 0.54f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.085f)),
-        shape = RoundedCornerShape(999.dp)
+        color = if (liquidGlass) Color.Transparent else CinematicGlass.copy(alpha = 0.54f),
+        border = if (liquidGlass) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.085f)),
+        shape = pillShape,
+        modifier = if (liquidGlass) {
+            Modifier.levyraGlass(
+                shape = pillShape,
+                baseTint = accent,
+                fallbackColor = CinematicGlass.copy(alpha = 0.54f),
+                fallbackBorderColor = Color.White.copy(alpha = 0.22f),
+                intensity = LevyraGlassIntensity.Subtle,
+                artworkTint = LevyraActivePalette.cyan
+            )
+        } else {
+            Modifier
+        }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -18843,11 +18948,28 @@ private fun LibraryEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
+    val cardShape = RoundedCornerShape(16.dp)
+    val liquidGlass = LevyraIsLiquidGlass
     Surface(
-        color = Color.White.copy(alpha = 0.03f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        color = if (liquidGlass) Color.Transparent else Color.White.copy(alpha = 0.03f),
+        border = if (liquidGlass) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)),
+        shape = cardShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (liquidGlass) {
+                    Modifier.levyraGlass(
+                        shape = cardShape,
+                        baseTint = accent,
+                        fallbackColor = LevyraPanel.copy(alpha = 0.68f),
+                        fallbackBorderColor = Color.White.copy(alpha = 0.28f),
+                        intensity = LevyraGlassIntensity.Standard,
+                        artworkTint = LevyraActivePalette.cyan
+                    )
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -23058,14 +23180,32 @@ private fun SettingsTile(
     val first = index == 0
     val last = index == count - 1
     val shape = settingsTileShape(interactionSource, first, last)
-    val tileModifier = modifier.fillMaxWidth().then(if (SkinChrome.active) Modifier.padding(vertical = 1.dp) else Modifier)
+    val liquidGlass = LevyraIsLiquidGlass
+    val tileModifier = modifier
+        .fillMaxWidth()
+        .then(if (SkinChrome.active) Modifier.padding(vertical = 1.dp) else Modifier)
+        .then(
+            if (liquidGlass) {
+                Modifier.levyraGlass(
+                    shape = shape,
+                    baseTint = Color.White,
+                    fallbackColor = color.copy(alpha = 0.72f),
+                    fallbackBorderColor = Color.White.copy(alpha = 0.28f),
+                    intensity = LevyraGlassIntensity.Standard,
+                    artworkTint = LevyraActivePalette.cyan
+                )
+            } else {
+                Modifier
+            }
+        )
+    val tileColor = if (liquidGlass) Color.Transparent else color
     when {
         checked != null && onCheckedChange != null -> Surface(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
             shape = shape,
-            color = color,
+            color = tileColor,
             interactionSource = interactionSource,
             modifier = tileModifier,
             content = content
@@ -23074,12 +23214,12 @@ private fun SettingsTile(
             onClick = onClick,
             enabled = enabled,
             shape = shape,
-            color = color,
+            color = tileColor,
             interactionSource = interactionSource,
             modifier = tileModifier,
             content = content
         )
-        else -> Surface(shape = shape, color = color, modifier = tileModifier, content = content)
+        else -> Surface(shape = shape, color = tileColor, modifier = tileModifier, content = content)
     }
 }
 
@@ -27997,11 +28137,24 @@ private fun LevyraExploreShortcutTile(
     val nocturne = LevyraIsNocturne
     val skinned = LevyraSkinManagesLayout
     val iconShape = if (skinned) SkinChrome.iconShape else entry.polygon.toShape()
+    val tileShape = exploreShortcutShape()
+    val tileSurface = if (LevyraIsLiquidGlass) {
+        Modifier.levyraGlass(
+            shape = tileShape,
+            baseTint = entry.container,
+            fallbackColor = LevyraPanel.copy(alpha = 0.72f),
+            fallbackBorderColor = Color.White.copy(alpha = 0.30f),
+            intensity = LevyraGlassIntensity.Standard,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier.background(if (skinned) LevyraPanel else lerp(colors.surfaceContainerHigh, entry.container, 0.32f))
+    }
     Row(
         modifier = modifier
             .heightIn(min = 68.dp)
-            .clip(exploreShortcutShape())
-            .background(if (skinned) LevyraPanel else lerp(colors.surfaceContainerHigh, entry.container, 0.32f))
+            .clip(tileShape)
+            .then(tileSurface)
             .levyraPressable(
                 onClick = entry.onClick,
                 onClickLabel = entry.label,
@@ -28407,6 +28560,19 @@ private fun QuickSearchChip(label: String, onClick: () -> Unit) {
         pressed = 12.dp,
         label = "search-quick-chip-corner"
     )
+    val chipShape = if (LevyraSkinManagesLayout) SkinChrome.chipShape else RoundedCornerShape(corner)
+    val chipSurface = if (LevyraIsLiquidGlass) {
+        Modifier.levyraGlass(
+            shape = chipShape,
+            baseTint = Color.White,
+            fallbackColor = LevyraPanel.copy(alpha = 0.68f),
+            fallbackBorderColor = Color.White.copy(alpha = 0.26f),
+            intensity = LevyraGlassIntensity.Subtle,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier.background(if (LevyraSkinManagesLayout) LevyraPanel else scheme.secondaryContainer)
+    }
     Box(
         modifier = Modifier
             .heightIn(min = 48.dp)
@@ -28423,8 +28589,8 @@ private fun QuickSearchChip(label: String, onClick: () -> Unit) {
             color = if (LevyraSkinManagesLayout) LevyraText else scheme.onSecondaryContainer,
             style = LevyraType.cardTitle.copy(fontWeight = if (LevyraSkinManagesLayout) FontWeight.Medium else FontWeight.Bold),
             modifier = Modifier
-                .clip(if (LevyraSkinManagesLayout) SkinChrome.chipShape else RoundedCornerShape(corner))
-                .background(if (LevyraSkinManagesLayout) LevyraPanel else scheme.secondaryContainer)
+                .clip(chipShape)
+                .then(chipSurface)
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         )
     }

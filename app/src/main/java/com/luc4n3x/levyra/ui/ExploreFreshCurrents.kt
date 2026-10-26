@@ -59,9 +59,12 @@ import com.luc4n3x.levyra.ui.components.LevyraSectionHeader
 import com.luc4n3x.levyra.ui.components.LevyraSectionShowAll
 import com.luc4n3x.levyra.ui.components.LevyraPressScale
 import com.luc4n3x.levyra.ui.components.levyraPressable
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.i18n.LevyraStrings
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.theme.LevyraIsNocturne
+import com.luc4n3x.levyra.ui.theme.LevyraIsLiquidGlass
 import com.luc4n3x.levyra.ui.theme.Nocturne78Palette
 import com.luc4n3x.levyra.ui.theme.Nocturne78Design
 import com.luc4n3x.levyra.ui.theme.LevyraCardDesign
@@ -185,12 +188,23 @@ private fun RowScope.ExploreFreshScopeSegment(
             .semantics { selected = isSelected },
         contentAlignment = Alignment.Center
     ) {
+        val scopeSurface = if (LevyraIsLiquidGlass) {
+            Modifier.levyraGlass(
+                shape = shape,
+                baseTint = if (isSelected) colors.primary else Color.White,
+                fallbackColor = container.copy(alpha = 0.70f),
+                fallbackBorderColor = Color.White.copy(alpha = 0.26f),
+                intensity = if (isSelected) LevyraGlassIntensity.Standard else LevyraGlassIntensity.Subtle
+            )
+        } else {
+            Modifier.background(container)
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(FreshScopeHeight)
                 .clip(shape)
-                .background(container),
+                .then(scopeSurface),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -502,12 +516,24 @@ private fun ExploreFreshMomentRow(
 ) {
     val strings = LocalLevyraStrings.current
     val colors = MaterialTheme.colorScheme
+    val rowColor = colors.surfaceContainerHigh.copy(alpha = if (isCurrent) 0.95f else 0.62f)
+    val rowSurface = if (LevyraIsLiquidGlass) {
+        Modifier.levyraGlass(
+            shape = groupShape,
+            baseTint = if (isCurrent) colors.primary else Color.White,
+            fallbackColor = rowColor,
+            fallbackBorderColor = Color.White.copy(alpha = if (isCurrent) 0.38f else 0.24f),
+            intensity = if (isCurrent) LevyraGlassIntensity.Standard else LevyraGlassIntensity.Subtle
+        )
+    } else {
+        Modifier.background(rowColor)
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = FreshMomentRowHeight)
             .clip(groupShape)
-            .background(colors.surfaceContainerHigh.copy(alpha = if (isCurrent) 0.95f else 0.62f))
+            .then(rowSurface)
             .semantics { selected = isCurrent }
             .levyraPressable(
                 onClick = onPlay,

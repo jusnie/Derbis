@@ -5,6 +5,8 @@ import com.luc4n3x.levyra.ui.components.levyraPressable
 import com.luc4n3x.levyra.ui.components.levyraGroupedListShape
 import com.luc4n3x.levyra.ui.components.LevyraSectionHeader
 import com.luc4n3x.levyra.ui.components.LevyraPressScale
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -142,12 +144,29 @@ private fun SearchArtistRow(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val avatarShape = rememberLevyraAvatarPressShape(pressed = pressed, animated = LocalAnimationsEnabled.current)
+    val rowShape = if (LevyraIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else levyraGroupedListShape(index, count)
+    val rowSurface = if (LevyraIsLiquidGlass) {
+        Modifier.levyraGlass(
+            shape = rowShape,
+            baseTint = Color.White,
+            fallbackColor = LevyraPanel.copy(alpha = 0.70f),
+            fallbackBorderColor = Color.White.copy(alpha = 0.28f),
+            intensity = LevyraGlassIntensity.Subtle,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier.background(
+            if (LevyraIsSpotify) Color.Transparent
+            else if (LevyraIsPrism) LevyraPanel
+            else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.62f)
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = SearchArtistRowHeight)
-            .clip(if (LevyraIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else levyraGroupedListShape(index, count))
-            .background(if (com.luc4n3x.levyra.ui.theme.LevyraIsSpotify) Color.Transparent else if (LevyraIsPrism) LevyraPanel else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.62f))
+            .clip(rowShape)
+            .then(rowSurface)
             .levyraPressable(
                 onClick = onClick,
                 role = Role.Button,
