@@ -98,8 +98,6 @@ import com.luc4n3x.levyra.ui.album.AlbumStageColors
 import com.luc4n3x.levyra.ui.album.albumContentGutter
 import com.luc4n3x.levyra.ui.album.albumStageColors
 import com.luc4n3x.levyra.ui.components.LevyraCardCaption
-import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
-import com.luc4n3x.levyra.ui.components.LevyraGlassSurface
 import com.luc4n3x.levyra.ui.components.LevyraDockProgress
 import com.luc4n3x.levyra.ui.components.LevyraRowText
 import com.luc4n3x.levyra.ui.components.levyraDockSurface
@@ -7255,25 +7253,8 @@ private fun QueueOverlay(
                             }
                         )
                     }
-                    // Keep delete and the overflow menu as two unambiguous, separate controls.
-                    // The song currently playing remains protected from direct removal.
-                    if (!isCurrent) {
-                        IconButton(
-                            onClick = {
-                                latestRemove(
-                                    QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = true)
-                                )
-                            },
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Delete,
-                                contentDescription = strings.remove,
-                                tint = Color.White.copy(alpha = 0.84f),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
+                    // Upstream SimpMusic keeps the row clean: queue actions, including remove,
+                    // live behind the one ⋮ overflow button (and swipe). No permanent tile chrome.
                     IconButton(
                         onClick = {
                             onTrackActions(
@@ -7296,58 +7277,46 @@ private fun QueueOverlay(
 
     BackHandler(enabled = selectionActive) { selectedQueueKeys = emptySet() }
 
-    val queueGlassBlurAllowed = rememberGlassBlurAllowed()
-    val queueGlass = rememberGlassBackdropState(
-        enabled = state.interfaceSettings.liquidGlassEnabled &&
-            state.animationsEnabled &&
-            queueGlassBlurAllowed
-    )
-
     val currentTrack = state.currentTrack ?: currentQueueEntry?.track
     val queueFocusTrack = upcomingEntries.firstOrNull()?.track ?: currentTrack
-    CompositionLocalProvider(LocalGlassBackdrop provides queueGlass) {
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(LevyraHorizontalSafeInsets)
+    ) {
+        // The page-level artwork wash is static for the current song. It is behind the entire
+        // source-style queue and never participates in row scrolling or playback-clock updates.
+        QueueReferenceArtworkBackdrop(
+            track = currentTrack,
+            accent = queueAccent
+        )
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(LevyraHorizontalSafeInsets)
+                .statusBarsPadding()
         ) {
-            // This source is the static queue backdrop only. The fixed rail samples it when
-            // Liquid Glass is available, so scrolling songs do not re-record a blur layer.
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                queueAccent.copy(alpha = 0.58f).compositeOver(Color(0xFF17323A)),
-                                queueAccent.copy(alpha = 0.30f).compositeOver(Color(0xFF18343A)),
-                                Color(0xFF17282E),
-                                Color(0xFF0D1518)
-                            )
-                        )
-                    )
-                    .glassBackdropSource(queueGlass)
-            )
-
-            LazyColumn(
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            contentPadding = PaddingValues(
-                start = 26.dp,
-                end = 26.dp,
-                top = 12.dp,
-                // The player is a fixed overlay. Reserve its full height so the end of the
-                // scrollable song-only list clears the time/progress and transport area.
-                bottom = if (selectionActive) 308.dp else 278.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item(contentType = "queue-grabber") {
-                Box(Modifier.fillMaxWidth().padding(vertical = 3.dp), contentAlignment = Alignment.Center) {
-                    Box(Modifier.width(42.dp).height(6.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.40f)))
-                }
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .width(42.dp)
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.40f))
+                )
             }
-            currentTrack?.let { playingTrack ->
-                item(key = "queue-current", contentType = "queue-current") {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+            ) {
+                currentTrack?.let { playingTrack ->
                     QueueReferenceCurrentTrack(
                         track = playingTrack,
                         isFavorite = playingTrack.id in state.favoriteIds,
@@ -7364,8 +7333,6 @@ private fun QueueOverlay(
                         }
                     )
                 }
-            }
-            item(contentType = "queue-controls") {
                 QueueReferenceModeControls(
                     shuffleEnabled = state.shuffleEnabled,
                     repeatMode = state.repeatMode,
@@ -7374,9 +7341,7 @@ private fun QueueOverlay(
                     onShuffle = onToggleShuffle,
                     onRepeat = onToggleRepeat
                 )
-            }
-            queueFocusTrack?.let { focus ->
-                item(contentType = "queue-up-next") {
+                queueFocusTrack?.let { focus ->
                     QueueReferenceHeading(
                         label = strings.nowPlaying,
                         title = focus.title,
@@ -7388,38 +7353,63 @@ private fun QueueOverlay(
                     )
                 }
             }
-            if (upcomingEntries.isEmpty()) {
-                item(contentType = "queue-empty") {
-                    Text(strings.queueEmpty, color = Color.White.copy(alpha = 0.72f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 24.dp))
+
+            // This is the only scrolling region. The bottom cluster is a sibling below it, exactly
+            // like SimpMusic's AppleMusicQueueView, so no song can appear or receive touches behind
+            // the runtime, transport, volume, or output controls.
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    if (upcomingEntries.isEmpty()) {
+                        item(contentType = "queue-empty") {
+                            Text(
+                                strings.queueEmpty,
+                                color = Color.White.copy(alpha = 0.72f),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(vertical = 24.dp)
+                            )
+                        }
+                    } else {
+                        itemsIndexed(
+                            upcomingEntries,
+                            key = { _, entry -> "queue-reference-${entry.key}" },
+                            contentType = { _, _ -> "queue-reference-track" }
+                        ) { index, entry ->
+                            queueTrackRow(
+                                index,
+                                entry,
+                                Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade)
+                            )
+                        }
+                    }
                 }
-            } else {
-                itemsIndexed(
-                    upcomingEntries,
-                    key = { _, entry -> "queue-reference-${entry.key}" },
-                    contentType = { _, _ -> "queue-reference-track" }
-                ) { index, entry ->
-                    queueTrackRow(index, entry, Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade))
-                }
-            }
             }
 
             QueueReferencePlaybackRail(
-            state = state,
-            onPrevious = onPrevious,
-            onTogglePlay = onTogglePlay,
-            onNext = onNext,
-            onSeek = onSeek,
-            onManageSpaces = { showQueueSpaces = true },
-            onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
-            onClose = onClose,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+                state = state,
+                onPrevious = onPrevious,
+                onTogglePlay = onTogglePlay,
+                onNext = onNext,
+                onSeek = onSeek,
+                onManageSpaces = { showQueueSpaces = true },
+                onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
+                onClose = onClose,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         AnimatedVisibility(
             visible = selectionActive,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 18.dp)
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(start = 12.dp, end = 12.dp, bottom = 18.dp)
         ) {
             QueueSelectionBar(
                 count = selectedTracks.size,
@@ -7431,7 +7421,6 @@ private fun QueueOverlay(
                 onDownload = { onDownloadSelected(selectedTracks); selectedQueueKeys = emptySet() },
                 onRemove = { onRemoveSelected(removableIndices); selectedQueueKeys = emptySet() }
             )
-            }
         }
     }
 
@@ -7496,6 +7485,49 @@ private fun QueueOverlay(
 }
 
 @Composable
+private fun QueueReferenceArtworkBackdrop(
+    track: Track?,
+    accent: Color
+) {
+    val artworkUrl = track?.let { active ->
+        active.largeThumbnailUrl.ifBlank { active.thumbnailUrl }
+    }.orEmpty()
+    val fallbackTop = remember(accent) { lerp(accent, Color(0xFF123E47), 0.36f) }
+    val fallbackBottom = remember(accent) { lerp(accent, Color(0xFF091218), 0.86f) }
+    Box(Modifier.fillMaxSize().background(fallbackBottom)) {
+        SeamlessArtworkImage(
+            url = artworkUrl,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.09f
+                    scaleY = 1.09f
+                }
+                .blur(22.dp, BlurredEdgeTreatment.Rectangle),
+            contentDescription = null,
+            fallback = {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(0f to fallbackTop, 1f to fallbackBottom))
+                )
+            }
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0x66102B34),
+                        0.46f to Color(0x73101C23),
+                        1f to Color(0xDC090F14)
+                    )
+                )
+        )
+    }
+}
+
+@Composable
 private fun QueueReferenceCurrentTrack(
     track: Track,
     isFavorite: Boolean,
@@ -7536,8 +7568,8 @@ private fun QueueReferenceModeControls(
     onRepeat: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         QueueReferenceModeButton(Icons.Rounded.Info, "Manage queues", active = false, onClick = onManageSpaces, modifier = Modifier.weight(1f))
         QueueReferenceModeButton(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", active = false, onClick = onSaveQueue, modifier = Modifier.weight(1f))
@@ -7550,13 +7582,13 @@ private fun QueueReferenceModeControls(
 private fun QueueReferenceModeButton(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .height(64.dp)
-            .clip(RoundedCornerShape(32.dp))
+            .height(40.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(if (active) Color.White.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.17f))
             .levyraPressable(onClick = onClick, pressedScale = LevyraPressScale.Control, role = Role.Button, onClickLabel = label),
         contentAlignment = Alignment.Center
     ) {
-        Icon(icon, label, tint = if (active) Color(0xFF12242A) else Color.White, modifier = Modifier.size(26.dp))
+        Icon(icon, label, tint = if (active) Color(0xFF12242A) else Color.White, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -7610,56 +7642,69 @@ private fun QueueReferencePlaybackRail(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // This is a fixed sibling of the LazyColumn: it uses a sampled Liquid Glass blur when
-    // supported, otherwise an opaque smoked fallback. Either way the runtime area is isolated
-    // from list scrolling and never permits touches to pass through to songs underneath.
-    LevyraGlassSurface(
-        modifier = modifier.fillMaxWidth().zIndex(1f),
-        shape = RectangleShape,
-        baseTint = Color(0xFF102A34),
-        fallbackColor = Color(0xFF091318),
-        fallbackBorderColor = Color.Transparent,
-        intensity = LevyraGlassIntensity.Strong
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color(0xB816303A),
-                        0.18f to Color(0xC10E2028),
-                        1f to Color(0xE9091318)
-                    )
+    // Source-style fixed bottom cluster: it is below (not above) the sole LazyColumn, so the
+    // list never leaks behind progress/time and the controls do not interfere with scrolling.
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.20f to Color(0x4210171B),
+                    1f to Color(0xB0091014)
                 )
-                .navigationBarsPadding()
-                .padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            AppleMusicSeekbar(state.positionMs, state.bufferedPositionMs, state.durationMs, onSeek)
-            Row(
-                modifier = Modifier.fillMaxWidth().height(76.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                IconButton(onClick = onPrevious, modifier = Modifier.size(58.dp)) { Icon(Icons.Rounded.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(40.dp)) }
-                IconButton(onClick = onTogglePlay, modifier = Modifier.size(78.dp)) {
-                    Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (state.isPlaying) "Pause" else "Play", tint = Color.White, modifier = Modifier.size(58.dp))
-                }
-                IconButton(onClick = onNext, modifier = Modifier.size(58.dp)) { Icon(Icons.Rounded.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(40.dp)) }
-            }
-            PlayerOutputVolume(
-                contentColor = Color.White,
-                mutedColor = Color.White.copy(alpha = 0.72f),
-                activeColor = Color.White,
-                trackColor = Color.White.copy(alpha = 0.28f),
-                condensed = true
             )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-                QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.QueueMusic, "Manage queues", onManageSpaces)
-                CastRouteButton(modifier = Modifier.size(46.dp))
-                QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", onSaveQueue)
-                QueueReferenceHeaderAction(Icons.Rounded.Close, "Close queue", onClose)
+            .navigationBarsPadding()
+            .padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        AppleMusicSeekbar(state.positionMs, state.bufferedPositionMs, state.durationMs, onSeek)
+        Row(
+            modifier = Modifier.fillMaxWidth().height(76.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            IconButton(onClick = onPrevious, modifier = Modifier.size(58.dp)) {
+                Icon(
+                    Icons.Rounded.SkipPrevious,
+                    contentDescription = "Previous",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
             }
+            IconButton(onClick = onTogglePlay, modifier = Modifier.size(78.dp)) {
+                Icon(
+                    if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (state.isPlaying) "Pause" else "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(58.dp)
+                )
+            }
+            IconButton(onClick = onNext, modifier = Modifier.size(58.dp)) {
+                Icon(
+                    Icons.Rounded.SkipNext,
+                    contentDescription = "Next",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        }
+        PlayerOutputVolume(
+            contentColor = Color.White,
+            mutedColor = Color.White.copy(alpha = 0.72f),
+            activeColor = Color.White,
+            trackColor = Color.White.copy(alpha = 0.28f),
+            condensed = true
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.QueueMusic, "Manage queues", onManageSpaces)
+            CastRouteButton(modifier = Modifier.size(46.dp))
+            QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", onSaveQueue)
+            QueueReferenceHeaderAction(Icons.Rounded.Close, "Close queue", onClose)
         }
     }
 }
