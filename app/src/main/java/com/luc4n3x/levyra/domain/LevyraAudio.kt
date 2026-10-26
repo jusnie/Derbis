@@ -23,6 +23,16 @@ enum class AudioOffloadPreference(val storageValue: String) {
     }
 }
 
+enum class Derbis360Experience(val storageValue: String) {
+    EIGHT_D("8d"),
+    SIXTEEN_D("16d");
+
+    companion object {
+        fun fromStorage(value: String?): Derbis360Experience =
+            entries.firstOrNull { it.storageValue == value?.trim()?.lowercase() } ?: EIGHT_D
+    }
+}
+
 enum class PlaybackBufferMode(val storageValue: String) {
     AUTOMATIC("automatic"),
     CUSTOM("custom");
@@ -135,6 +145,7 @@ data class LevyraAudioSettings(
     val bassBoost: Int = 0,
     val virtualizer: Int = 0,
     val eightDAudioEnabled: Boolean = false,
+    val derbis360Experience: Derbis360Experience = Derbis360Experience.EIGHT_D,
     val preampDb: Float = 0f,
     val limiterEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,

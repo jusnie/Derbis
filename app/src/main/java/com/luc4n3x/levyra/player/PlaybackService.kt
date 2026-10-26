@@ -111,6 +111,8 @@ import com.luc4n3x.levyra.feature.cast.LocalPlaybackSnapshot
 import com.luc4n3x.levyra.feature.audio.LevyraAudioOutputRepository
 import com.luc4n3x.levyra.feature.audio.LevyraAudioRouteSelectionState
 import com.luc4n3x.levyra.feature.audio.findLevyraAudioOutputDevice
+import com.luc4n3x.levyra.feature.audio.isDerbis360HeadphoneOutput
+import com.luc4n3x.levyra.feature.audio.isDerbis360HeadphoneOutputType
 import com.luc4n3x.levyra.feature.audio.queryLevyraAudioOutputState
 import com.luc4n3x.levyra.player.queue.PersistentQueueEngine
 import com.luc4n3x.levyra.player.queue.PlaybackQueueSnapshot
@@ -177,6 +179,7 @@ class PlaybackService : MediaLibraryService() {
     private var lastMemoryRecycleElapsedMs = 0L
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
+    private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
     private var currentAudioSettings = LevyraAudioSettings()
     private var activeCustomBufferProfile: PlaybackBufferProfile? = null
 
@@ -226,7 +229,6 @@ class PlaybackService : MediaLibraryService() {
     }
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
-            refreshAudioOutputProfile()
             refreshAudioRouteCenterState()
             if (addedDevices.any { it.isSink && isBluetoothOutputType(it.type) }) {
                 resumeAfterRouteReconnect()
@@ -237,7 +239,6 @@ class PlaybackService : MediaLibraryService() {
             if (routedOutputIsBluetooth && removedDevices.any { it.isSink && isBluetoothOutputType(it.type) }) {
                 lostRouteWasBluetooth = true
             }
-            refreshAudioOutputProfile()
             refreshAudioRouteCenterState()
         }
     }
@@ -538,6 +539,11 @@ class PlaybackService : MediaLibraryService() {
         parametricEqualizerProcessor.setConfiguration(parametricEnabled, normalized.activeParametricProfile)
         spatialAudioProcessor.strength = normalized.virtualizer
         eightDAudioProcessor.enabled = normalized.eightDAudioEnabled
+        eightDAudioProcessor.experience = normalized.derbis360Experience
+        transitionEightDAudioProcessor?.apply {
+            enabled = normalized.eightDAudioEnabled
+            experience = normalized.derbis360Experience
+        }
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -974,7 +980,6 @@ class PlaybackService : MediaLibraryService() {
             MediaRouter.CALLBACK_FLAG_UNFILTERED_EVENTS
         )
         registerAudioRouteVolumeReceiver()
-        refreshAudioOutputProfile()
         refreshAudioRouteCenterState()
         serviceScope.launch {
             enhancedAudioProcessor.metricsState.collect {
@@ -2396,7 +2401,12 @@ class PlaybackService : MediaLibraryService() {
         val spatial = StereoSpatialAudioProcessor().apply {
             strength = currentAudioSettings.virtualizer
         }
-        val eightD = EightDAudioProcessor().apply { enabled = currentAudioSettings.eightDAudioEnabled }
+        val eightD = EightDAudioProcessor().apply {
+            enabled = currentAudioSettings.eightDAudioEnabled
+            experience = currentAudioSettings.derbis360Experience
+            headphoneOutputAvailable = eightDAudioProcessor.headphoneOutputAvailable
+        }
+        transitionEightDAudioProcessor = eightD
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
         }
@@ -2727,6 +2737,7 @@ class PlaybackService : MediaLibraryService() {
         if (expected != null && player !== expected) return
         transitionPlayer = null
         transitionNormalization = null
+        transitionEightDAudioProcessor = null
         runCatching { player.pause() }
             .onFailure { Timber.w(it, "Queue crossfade secondary pause failed") }
         runCatching { player.clearMediaItems() }
@@ -2869,6 +2880,11 @@ class PlaybackService : MediaLibraryService() {
         if (!::audioManager.isInitialized) return
         val types = routedOutputTypes(audioManager)
         routedOutputIsBluetooth = types.any(::isBluetoothOutputType)
+        val derbis360HeadphoneOutputAvailable = LevyraAudioOutputRepository.state.value.active
+            ?.let(::isDerbis360HeadphoneOutput)
+            ?: types.any(::isDerbis360HeadphoneOutputType)
+        eightDAudioProcessor.headphoneOutputAvailable = derbis360HeadphoneOutputAvailable
+        transitionEightDAudioProcessor?.headphoneOutputAvailable = derbis360HeadphoneOutputAvailable
         equalizerProcessor.outputProfile = when {
             types.any { it == AudioDeviceInfo.TYPE_USB_DEVICE || it == AudioDeviceInfo.TYPE_USB_HEADSET || it == AudioDeviceInfo.TYPE_USB_ACCESSORY } -> LevyraEqualizerAudioProcessor.OutputProfile.USB
             types.any { it == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || it == AudioDeviceInfo.TYPE_WIRED_HEADSET || it == AudioDeviceInfo.TYPE_LINE_ANALOG } -> LevyraEqualizerAudioProcessor.OutputProfile.WIRED
@@ -2912,6 +2928,7 @@ class PlaybackService : MediaLibraryService() {
             )
         }
         LevyraAudioOutputRepository.publish(snapshot)
+        refreshAudioOutputProfile()
     }
 
     private suspend fun selectAudioOutput(routeKey: String?) {

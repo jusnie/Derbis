@@ -50,6 +50,24 @@ data class LevyraAudioOutputState(
     val selectionState: LevyraAudioRouteSelectionState = LevyraAudioRouteSelectionState.Idle
 )
 
+internal fun isDerbis360HeadphoneOutput(route: LevyraAudioOutputRoute?): Boolean {
+    if (route == null || !isDerbis360HeadphoneOutputType(route.type)) return false
+    if (!route.bluetooth) return true
+    val name = route.displayName.trim().lowercase(Locale.ROOT)
+    return name.isNotBlank() && name !in derbis360UnknownBluetoothNames &&
+        derbis360SpeakerNameMarkers.none { marker -> name.contains(marker) }
+}
+
+internal fun isDerbis360HeadphoneOutputType(type: Int): Boolean = when (type) {
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+    AudioDeviceInfo.TYPE_WIRED_HEADSET,
+    AudioDeviceInfo.TYPE_USB_HEADSET,
+    AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+    AudioDeviceInfo.TYPE_BLE_HEADSET,
+    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> true
+    else -> false
+}
+
 object LevyraAudioOutputRepository {
     private val _state = MutableStateFlow(LevyraAudioOutputState())
     val state: StateFlow<LevyraAudioOutputState> = _state.asStateFlow()
@@ -230,6 +248,12 @@ private val mediaAudioAttributes by lazy {
         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
         .build()
 }
+
+private val derbis360UnknownBluetoothNames = setOf("bluetooth", "unknown")
+private val derbis360SpeakerNameMarkers = listOf(
+    "speaker", "soundbar", "television", " tv", "receiver", "homepod", "sonos",
+    "boombox", "partybox", "car audio", "android auto", "echo", "nest audio"
+)
 
 private val bluetoothOutputTypes = setOf(
     AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,

@@ -37,6 +37,7 @@ import com.luc4n3x.levyra.domain.PlaylistCoverMode
 import com.luc4n3x.levyra.domain.isExcludableArtist
 import com.luc4n3x.levyra.domain.normalizePlaylistTagName
 import com.luc4n3x.levyra.domain.LevyraAudioSettings
+import com.luc4n3x.levyra.domain.Derbis360Experience
 import com.luc4n3x.levyra.domain.AudioOffloadPreference
 import com.luc4n3x.levyra.domain.ReplayGainMode
 import com.luc4n3x.levyra.domain.PlaybackBufferMode
@@ -1689,6 +1690,7 @@ internal fun backupAudioSettingsToJson(value: LevyraAudioSettings): JSONObject =
     .put("bassBoost", value.bassBoost)
     .put("virtualizer", value.virtualizer)
     .put("eightDAudioEnabled", value.eightDAudioEnabled)
+    .put("derbis360Experience", value.derbis360Experience.storageValue)
     .put("preampDb", value.preampDb.toDouble())
     .put("limiterEnabled", value.limiterEnabled)
     .put("crossfadeSeconds", value.crossfadeSeconds)
@@ -1768,6 +1770,7 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): LevyraAudioSettings
         bassBoost = json.optInt("bassBoost"),
         virtualizer = json.optInt("virtualizer"),
         eightDAudioEnabled = json.optBoolean("eightDAudioEnabled", false),
+        derbis360Experience = Derbis360Experience.fromStorage(json.optString("derbis360Experience")),
         preampDb = json.optDouble("preampDb", 0.0).toFloat(),
         limiterEnabled = json.optBoolean("limiterEnabled", true),
         crossfadeSeconds = json.optInt("crossfadeSeconds"),

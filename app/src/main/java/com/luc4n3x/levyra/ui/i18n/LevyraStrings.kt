@@ -601,6 +601,34 @@ class LevyraStrings private constructor(
         else -> "RESTORATION & ENHANCEMENT"
     }
     val enhancedAudioTitle: String get() = "Derbis Enhanced Audio"
+    val derbis360AvailableSubtitle: String get() = when (code) {
+        "it" -> "Elaborazione orbitale solo per cuffie. Scegli un'esperienza 8D o 16D qui sotto."
+        "es" -> "Procesamiento orbital solo para auriculares. Elige una experiencia 8D o 16D a continuación."
+        "fr" -> "Traitement orbital réservé aux écouteurs. Choisissez une expérience 8D ou 16D ci-dessous."
+        "de" -> "Kopfhörer-orientierte Orbitverarbeitung. Wähle unten ein 8D- oder 16D-Erlebnis."
+        else -> "Headphone-only orbit processing. Choose an 8D or 16D experience below."
+    }
+    val derbis360UnavailableSubtitle: String get() = when (code) {
+        "it" -> "Non disponibile con questa uscita. Collega cuffie cablate, USB o wireless supportate per usare Derbis 360."
+        "es" -> "No disponible con esta salida. Conecta auriculares con cable, USB o inalámbricos compatibles para usar Derbis 360."
+        "fr" -> "Indisponible avec cette sortie. Connectez un casque filaire, USB ou sans fil compatible pour utiliser Derbis 360."
+        "de" -> "Für diese Ausgabe nicht verfügbar. Verbinde kabelgebundene, USB- oder unterstützte kabellose Kopfhörer für Derbis 360."
+        else -> "Unavailable on this output. Connect wired, USB, or supported wireless headphones to use Derbis 360."
+    }
+    val derbis360ExperienceTitle: String get() = when (code) {
+        "it" -> "Esperienza Derbis 360"
+        "es" -> "Experiencia Derbis 360"
+        "fr" -> "Expérience Derbis 360"
+        "de" -> "Derbis-360-Erlebnis"
+        else -> "Derbis 360 experience"
+    }
+    val derbis360ExperienceSubtitle: String get() = when (code) {
+        "it" -> "L'8D offre un'orbita delicata. Il 16D aggiunge un movimento stereo più rapido e profondo."
+        "es" -> "8D ofrece una órbita suave. 16D añade un movimiento estéreo más rápido y profundo."
+        "fr" -> "Le 8D crée une orbite douce. Le 16D ajoute un mouvement stéréo plus rapide et profond."
+        "de" -> "8D bietet eine sanfte Umlaufbewegung. 16D ergänzt sie um eine schnellere, tiefere Stereobewegung."
+        else -> "8D is a gentle orbit. 16D adds a faster, deeper stereo movement."
+    }
     val enhancedAudioSubtitle: String get() = when (code) {
         "it" -> "Ripristina i dettagli persi durante la compressione lossy lasciando il flusso originale intatto quando l'elaborazione non è benefica."
         "es" -> "Restaura los detalles perdidos durante la compresión manteniendo el flujo original si no es beneficioso."

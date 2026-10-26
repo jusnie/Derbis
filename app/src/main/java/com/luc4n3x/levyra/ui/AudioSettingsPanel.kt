@@ -123,6 +123,7 @@ import com.luc4n3x.levyra.domain.AutoEqCatalog
 import com.luc4n3x.levyra.domain.AutoEqCatalogEntry
 import com.luc4n3x.levyra.domain.AutoEqImporter
 import com.luc4n3x.levyra.domain.HighQualityAudioMode
+import com.luc4n3x.levyra.domain.Derbis360Experience
 import com.luc4n3x.levyra.domain.LevyraAudioPresets
 import com.luc4n3x.levyra.domain.LevyraAudioSettings
 import com.luc4n3x.levyra.domain.PlaybackBufferMode
@@ -132,6 +133,7 @@ import com.luc4n3x.levyra.domain.ParametricEqProfile
 import com.luc4n3x.levyra.domain.AudioOffloadPreference
 import com.luc4n3x.levyra.domain.ReplayGainMode
 import com.luc4n3x.levyra.domain.Track
+import com.luc4n3x.levyra.feature.audio.isDerbis360HeadphoneOutput
 import com.luc4n3x.levyra.feature.audio.rememberLevyraAudioOutputState
 import com.luc4n3x.levyra.player.equalPowerCrossfade
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
@@ -184,7 +186,8 @@ internal fun AudioSettingsPanel(
     onBandLevel: (Int, Int) -> Unit,
     onBassBoost: (Int) -> Unit,
     onVirtualizer: (Int) -> Unit,
-    onEightDAudio: (Boolean) -> Unit,
+    onDerbis360Enabled: (Boolean) -> Unit,
+    onDerbis360Experience: (Derbis360Experience) -> Unit,
     onPreamp: (Float) -> Unit,
     onLimiter: (Boolean) -> Unit,
     onEnhancedAudio: (Boolean) -> Unit = {},
@@ -222,6 +225,7 @@ internal fun AudioSettingsPanel(
     val parametricCopy = strings.parametricEqCopy()
     val parametricProfileCopy = strings.parametricProfileCopy()
     val outputState = rememberLevyraAudioOutputState()
+    val derbis360OutputAvailable = isDerbis360HeadphoneOutput(outputState.active)
     val bufferCopy = playbackBufferCopy(strings.code)
     val blocker = remember { MutableInteractionSource() }
     val equalizerEnabled = audioSettings.equalizerEnabled
@@ -447,11 +451,53 @@ internal fun AudioSettingsPanel(
                 }
                 item {
                     AudioToggleRow(
-                        title = "8D headphone orbit",
-                        subtitle = "Slowly moves stereo sound around your head. Best with headphones; turn it off for a neutral mix.",
-                        checked = audioSettings.eightDAudioEnabled,
-                        onCheckedChange = onEightDAudio
+                        title = "Derbis 360",
+                        subtitle = if (derbis360OutputAvailable) {
+                            strings.derbis360AvailableSubtitle
+                        } else {
+                            strings.derbis360UnavailableSubtitle
+                        },
+                        checked = audioSettings.eightDAudioEnabled && derbis360OutputAvailable,
+                        enabled = derbis360OutputAvailable,
+                        onCheckedChange = onDerbis360Enabled
                     )
+                }
+                if (audioSettings.eightDAudioEnabled && derbis360OutputAvailable) {
+                    item {
+                        AudioCard {
+                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(strings.derbis360ExperienceTitle, color = LevyraText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        strings.derbis360ExperienceSubtitle,
+                                        color = LevyraMuted,
+                                        fontSize = 13.sp,
+                                        lineHeight = 18.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().selectableGroup(),
+                                    horizontalArrangement = Arrangement.spacedBy(AudioSegmentGap)
+                                ) {
+                                    AudioSegment(
+                                        label = "8D",
+                                        selected = audioSettings.derbis360Experience == Derbis360Experience.EIGHT_D,
+                                        first = true,
+                                        last = false,
+                                        onClick = { onDerbis360Experience(Derbis360Experience.EIGHT_D) }
+                                    )
+                                    AudioSegment(
+                                        label = "16D",
+                                        selected = audioSettings.derbis360Experience == Derbis360Experience.SIXTEEN_D,
+                                        first = false,
+                                        last = true,
+                                        onClick = { onDerbis360Experience(Derbis360Experience.SIXTEEN_D) }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 if (audioSettings.virtualizer > 0) {
                     item {

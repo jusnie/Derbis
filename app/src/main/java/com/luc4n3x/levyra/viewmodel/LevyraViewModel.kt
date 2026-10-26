@@ -160,6 +160,7 @@ import com.luc4n3x.levyra.domain.LevyraLanguageCatalog
 import com.luc4n3x.levyra.domain.LevyraContentLocales
 import com.luc4n3x.levyra.domain.LevyraAudioPresets
 import com.luc4n3x.levyra.domain.LevyraAudioPreset
+import com.luc4n3x.levyra.domain.Derbis360Experience
 import com.luc4n3x.levyra.domain.LevyraAudioSettings
 import com.luc4n3x.levyra.domain.PlaybackBufferSettings
 import com.luc4n3x.levyra.domain.queuePrefetchAllowed
@@ -4745,8 +4746,11 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         updateAudioSettings(settings.copy(equalizerEnabled = !settings.parametricEqualizerEnabled, virtualizer = value))
     }
 
-    fun setEightDAudioEnabled(value: Boolean) =
+    fun setDerbis360Enabled(value: Boolean) =
         updateAudioSettings(_state.value.audioSettings.copy(eightDAudioEnabled = value))
+
+    fun setDerbis360Experience(value: Derbis360Experience) =
+        updateAudioSettings(_state.value.audioSettings.copy(derbis360Experience = value))
 
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))

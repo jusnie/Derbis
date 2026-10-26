@@ -14,6 +14,7 @@ import com.luc4n3x.levyra.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.luc4n3x.levyra.domain.AlbumHit
 import com.luc4n3x.levyra.domain.HighQualityAudioMode
 import com.luc4n3x.levyra.domain.LevyraAudioQuality
+import com.luc4n3x.levyra.domain.Derbis360Experience
 import com.luc4n3x.levyra.domain.HomeSection
 import com.luc4n3x.levyra.domain.LevyraLanguageCatalog
 import com.luc4n3x.levyra.domain.LevyraPersonalOrbit
@@ -197,6 +198,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_AUDIO_BASS_BOOST] = normalizedAudio.bassBoost
             mutable[KEY_AUDIO_VIRTUALIZER] = normalizedAudio.virtualizer
             mutable[KEY_AUDIO_8D] = normalizedAudio.eightDAudioEnabled
+            mutable[KEY_AUDIO_DERBIS_360_EXPERIENCE] = normalizedAudio.derbis360Experience.storageValue
             mutable[KEY_AUDIO_PREAMP_DB] = normalizedAudio.preampDb
             mutable[KEY_AUDIO_CUSTOM_PRESETS] = customPresetsToJson(normalizedAudio.customPresets)
             mutable[KEY_AUDIO_LIMITER] = normalizedAudio.limiterEnabled
@@ -570,6 +572,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_AUDIO_BASS_BOOST] = normalized.bassBoost
             it[KEY_AUDIO_VIRTUALIZER] = normalized.virtualizer
             it[KEY_AUDIO_8D] = normalized.eightDAudioEnabled
+            it[KEY_AUDIO_DERBIS_360_EXPERIENCE] = normalized.derbis360Experience.storageValue
             it[KEY_AUDIO_PREAMP_DB] = normalized.preampDb
             it[KEY_AUDIO_CUSTOM_PRESETS] = customPresetsToJson(normalized.customPresets)
             it[KEY_AUDIO_LIMITER] = normalized.limiterEnabled
@@ -1070,6 +1073,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             bassBoost = preferences[KEY_AUDIO_BASS_BOOST] ?: (customPreset?.bassBoost ?: LevyraAudioPresets.preset(presetId).bassBoost),
             virtualizer = preferences[KEY_AUDIO_VIRTUALIZER] ?: (customPreset?.virtualizer ?: LevyraAudioPresets.preset(presetId).virtualizer),
             eightDAudioEnabled = preferences[KEY_AUDIO_8D] ?: false,
+            derbis360Experience = Derbis360Experience.fromStorage(preferences[KEY_AUDIO_DERBIS_360_EXPERIENCE]),
             preampDb = preferences[KEY_AUDIO_PREAMP_DB] ?: 0f,
             limiterEnabled = preferences[KEY_AUDIO_LIMITER] ?: true,
             crossfadeSeconds = preferences[KEY_AUDIO_CROSSFADE] ?: 0,
@@ -1338,6 +1342,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_AUDIO_BASS_BOOST = intPreferencesKey("audio_bass_boost")
         val KEY_AUDIO_VIRTUALIZER = intPreferencesKey("audio_virtualizer")
         val KEY_AUDIO_8D = booleanPreferencesKey("audio_8d_enabled")
+        val KEY_AUDIO_DERBIS_360_EXPERIENCE = stringPreferencesKey("audio_derbis_360_experience")
         val KEY_AUDIO_PREAMP_DB = floatPreferencesKey("audio_preamp_db")
         val KEY_AUDIO_CUSTOM_PRESETS = stringPreferencesKey("audio_custom_presets")
         val KEY_AUDIO_LIMITER = booleanPreferencesKey("audio_limiter_enabled")
