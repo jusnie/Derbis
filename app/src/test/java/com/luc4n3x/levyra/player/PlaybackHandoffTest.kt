@@ -2,6 +2,7 @@ package com.luc4n3x.levyra.player
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -99,6 +100,43 @@ class PlaybackHandoffTest {
     fun unrelatedPlaybackErrorsRemainFatal() {
         assertFalse(isRecoverablePlaybackErrorCode(5001))
         assertFalse(isRecoverablePlaybackErrorCode(6001))
+    }
+
+    @Test
+    fun incomingCrossfadePositionBelongsOnlyToTheLogicalQueueTrack() {
+        val progress = CrossfadeProgress(
+            active = true,
+            toQueueIdentity = "incoming",
+            incomingPositionMs = 1_250L,
+            incomingBufferedPositionMs = 4_000L
+        )
+
+        assertEquals(CrossfadeIncomingPlayback(1_250L, 4_000L), progress.incomingPlaybackFor("incoming"))
+        assertNull(progress.incomingPlaybackFor("outgoing"))
+    }
+
+    @Test
+    fun inactiveCrossfadeCannotReplaceThePrimaryPosition() {
+        val progress = CrossfadeProgress(
+            active = false,
+            toQueueIdentity = "incoming",
+            incomingPositionMs = 1_250L,
+            incomingBufferedPositionMs = 4_000L
+        )
+
+        assertNull(progress.incomingPlaybackFor("incoming"))
+    }
+
+    @Test
+    fun incomingCrossfadePositionIsSanitizedBeforePersistence() {
+        val playback = CrossfadeProgress(
+            active = true,
+            toQueueIdentity = "incoming",
+            incomingPositionMs = -50L,
+            incomingBufferedPositionMs = -1L
+        ).incomingPlaybackFor("incoming")
+
+        assertEquals(CrossfadeIncomingPlayback(0L, 0L), playback)
     }
 
     @Test

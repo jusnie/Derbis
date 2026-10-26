@@ -320,6 +320,7 @@ import com.luc4n3x.levyra.player.radioTailTargetUpcoming
 import com.luc4n3x.levyra.player.advancedPrefetchBudgetBytes
 import com.luc4n3x.levyra.player.advancedPrefetchTrackLimit
 import com.luc4n3x.levyra.player.PlaybackService
+import com.luc4n3x.levyra.player.incomingPlaybackFor
 import com.luc4n3x.levyra.player.PlaybackSleepTimerState
 import com.luc4n3x.levyra.player.PlaybackWarmup
 import com.luc4n3x.levyra.player.SponsorBlockSkipOnceTracker
@@ -1858,6 +1859,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     fetchLyrics(currentPersisted)
                 }
+                // A crossfade advances the persistent queue as soon as its incoming deck starts.
+                // Refresh compact surfaces from that same atomic selection, rather than waiting for
+                // the outgoing primary deck to reach the end of its runtime.
+                if (externalSelectionChanged && currentPersisted != null) updateWidget()
                 queueRestored.complete(Unit)
             }
         }
@@ -13258,10 +13263,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         streamRecoveryJob?.cancel()
         radioJob?.cancel()
         resumeShortcutJob?.cancel()
-        pause()
         val current = _state.value.currentTrack
+        // pause() cancels the service transition and clears its crossfade position, so capture
+        // the logical incoming deck before pausing the outgoing primary deck.
+        val currentPositionMs = current?.let(::currentQueuePlaybackPosition)
+        pause()
         val positionMs = playbackPositionForExit(
-            playerPositionMs = current?.let(player::positionForTrack),
+            playerPositionMs = currentPositionMs,
             pendingSeekMs = pendingSeekMs,
             selectedPositionMs = queueEngine.state.value.positionMs,
             isResolving = _state.value.isResolving
@@ -13441,6 +13449,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Uses the incoming deck during a logical crossfade handoff, never the outgoing primary deck. */
+    private fun currentQueuePlaybackPosition(track: Track): Long =
+        PlaybackService.crossfadeProgressFlow.value
+            .incomingPlaybackFor(playbackQueueIdentity(track))
+            ?.positionMs
+            ?: player.positionMs.coerceAtLeast(0L)
+
     private fun startTicker() {
         viewModelScope.launch {
             var lastBackgroundUiUpdateMs = 0L
@@ -13449,10 +13464,14 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             while (isActive && !exitingApplication) {
                 val snapshot = _state.value
                 val current = snapshot.currentTrack
+                val incomingCrossfadePlayback = current?.let { track ->
+                    PlaybackService.crossfadeProgressFlow.value.incomingPlaybackFor(playbackQueueIdentity(track))
+                }
                 val duration = current?.let { effectiveDuration(it) } ?: player.durationMs
 
                 val sponsorMediaKey = current?.id
                 if (
+                    incomingCrossfadePlayback == null &&
                     snapshot.sponsorBlockEnabled &&
                     sponsorSegments.isNotEmpty() &&
                     sponsorMediaKey != null &&
@@ -13464,7 +13483,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 val nowElapsed = android.os.SystemClock.elapsedRealtime()
-                if (listenSessionTrack != null && player.isPlaying && listenTickElapsedMs > 0L) {
+                if (listenSessionTrack != null && player.isPlaying && listenTickElapsedMs > 0L && incomingCrossfadePlayback == null) {
                     val delta = nowElapsed - listenTickElapsedMs
                     if (delta in 1..2_000L) listenSessionAccumulatedMs += delta
                     maybeRecordSignificantListen(duration)
@@ -13472,12 +13491,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 listenTickElapsedMs = nowElapsed
 
-                val position = if (!player.isPlaying && player.positionMs == 0L && pendingSeekMs > 0L) {
+                val position = incomingCrossfadePlayback?.positionMs ?: if (!player.isPlaying && player.positionMs == 0L && pendingSeekMs > 0L) {
                     pendingSeekMs
                 } else {
                     player.positionMs
                 }
-                val buffered = (player.bufferedPositionMs / 1_000L) * 1_000L
+                val buffered = incomingCrossfadePlayback?.bufferedPositionMs
+                    ?: (player.bufferedPositionMs / 1_000L) * 1_000L
                 val active = lyricsEngine.currentLine(position, snapshot.lyrics)
                 val playbackStateChanged = snapshot.isPlaying != player.isPlaying
                 val shouldPublishUi = snapshot.selectedTab == LevyraTab.Player ||
@@ -14068,8 +14088,8 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         networkTestJob?.cancel()
         jamStateJob?.cancel()
         if (jamControllerDelegate.isInitialized()) jamController.close()
-        _state.value.currentTrack?.takeUnless { exitingApplication || it.isLiveRadio() }?.let {
-            preferences.saveLastPlayback(it, player.positionMs)
+        _state.value.currentTrack?.takeUnless { exitingApplication || it.isLiveRadio() }?.let { track ->
+            preferences.saveLastPlayback(track, currentQueuePlaybackPosition(track))
         }
         audioSettingsPersistJob?.cancel()
         audioSettingsPersistence.flush()
@@ -14100,7 +14120,9 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         artistLoreJob?.cancel()
         radarJob?.cancel()
         radioJob?.cancel()
-        if (!exitingApplication) queueEngine.updatePosition(player.positionMs)
+        if (!exitingApplication) {
+            _state.value.currentTrack?.let(::currentQueuePlaybackPosition)?.let(queueEngine::updatePosition)
+        }
         player.release()
         replacementSearchJob?.cancel()
         homeFeedJob?.cancel()

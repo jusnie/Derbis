@@ -2104,11 +2104,6 @@ class PlaybackService : MediaLibraryService() {
             if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
 
             isQueueTransitionInProgress = true
-            _crossfadeProgressFlow.value = CrossfadeProgress(
-                active = true,
-                fromTitle = current.title,
-                toTitle = target.title
-            )
             if (plan.beatAligned) {
                 secondary.seekTo(plan.incomingStartMs)
                 secondary.setPlaybackParameters(
@@ -2118,19 +2113,11 @@ class PlaybackService : MediaLibraryService() {
                     )
                 )
             }
-            secondary.play()
-            fadePlayers(primary, secondary, plan.transitionMs, plan.curve, onProgress = { fraction ->
-                _crossfadeProgressFlow.value = CrossfadeProgress(
-                    active = true,
-                    fraction = fraction,
-                    fromTitle = current.title,
-                    toTitle = target.title
-                )
-            }) {
-                transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary) &&
-                    primary.duration - primary.currentPosition <= plan.transitionMs + SEEK_TOLERANCE_MS
-            }
 
+            // The incoming deck is now playing. Advance the persistent queue before the fade so
+            // every player surface, the queue highlight, and the saved position identify the
+            // song the listener has just started hearing—not the outgoing deck's final seconds.
+            secondary.play()
             val handedOff = queueEngine.handoffNext(
                 expectedGeneration = snapshot.generation,
                 expectedCurrentIdentity = currentIdentity,
@@ -2138,10 +2125,32 @@ class PlaybackService : MediaLibraryService() {
                 resolved = resolved
             )
             if (handedOff == null) {
-                Timber.w("Crossfade queue changed before compare-and-set handoff")
+                Timber.w("Crossfade queue changed before incoming-audio handoff")
                 return
             }
             consumePreparedQueueNextInternal(target.id.ifBlank { resolved.id })
+            _crossfadeProgressFlow.value = CrossfadeProgress(
+                active = true,
+                fromTitle = current.title,
+                toTitle = handedOff.title,
+                toQueueIdentity = targetIdentity,
+                incomingPositionMs = secondary.currentPosition.coerceAtLeast(0L),
+                incomingBufferedPositionMs = secondary.bufferedPosition.coerceAtLeast(0L)
+            )
+            fadePlayers(primary, secondary, plan.transitionMs, plan.curve, onProgress = { fraction ->
+                _crossfadeProgressFlow.value = CrossfadeProgress(
+                    active = true,
+                    fraction = fraction,
+                    fromTitle = current.title,
+                    toTitle = handedOff.title,
+                    toQueueIdentity = targetIdentity,
+                    incomingPositionMs = secondary.currentPosition.coerceAtLeast(0L),
+                    incomingBufferedPositionMs = secondary.bufferedPosition.coerceAtLeast(0L)
+                )
+            }) {
+                crossfadeHandoffStillValid(primary, secondary, targetIdentity) &&
+                    primary.currentPosition + SEEK_TOLERANCE_MS >= transitionStartMs
+            }
 
             transitionNormalization?.let { normalizationProcessor.continueFromGain(it.appliedGain) }
             val handoffPosition = secondary.currentPosition.coerceAtLeast(0L)
@@ -2311,6 +2320,19 @@ class PlaybackService : MediaLibraryService() {
         } == true
     }
 
+    private fun crossfadeHandoffStillValid(
+        primary: ExoPlayer,
+        secondary: ExoPlayer,
+        targetIdentity: String
+    ): Boolean {
+        val current = queueEngine.state.value
+        return playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
+            !sleepTimer.isEndOfTrackActive() &&
+            primary.playWhenReady &&
+            secondary.playWhenReady &&
+            primary.currentMediaItem?.mediaMetadata?.extras?.getBoolean(EXTRA_VIDEO_MODE, false) != true
+    }
+
     private fun handoffStillValid(
         primary: ExoPlayer,
         secondary: ExoPlayer,
@@ -2318,7 +2340,6 @@ class PlaybackService : MediaLibraryService() {
     ): Boolean {
         val current = queueEngine.state.value
         return playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
-            current.repeatMode != com.luc4n3x.levyra.domain.RepeatMode.One &&
             primary.playWhenReady &&
             secondary.playWhenReady &&
             primary.currentMediaItem?.mediaMetadata?.extras?.getBoolean(EXTRA_VIDEO_MODE, false) != true
@@ -2730,6 +2751,12 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        // Keep the logical incoming position if the service is torn down while both decks overlap.
+        // cancelQueueTransition() clears the progress flow, so capture it before cancelling.
+        val crossfadePositionAtDestruction = _crossfadeProgressFlow.value
+            .takeIf { it.active }
+            ?.incomingPositionMs
+            ?.coerceAtLeast(0L)
         RuntimeHooks.dsp(RuntimeSignal.DSP_RELEASED)
         queueSkipJob?.cancel()
         clearPreparedQueueNextInternal()
@@ -2753,7 +2780,11 @@ class PlaybackService : MediaLibraryService() {
         _sleepTimerStateFlow.value = PlaybackSleepTimerState.Disabled
         _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
         _remotePlaybackStateFlow.value = RemotePlaybackState()
-        if (!appExitRequested) mediaSession?.player?.let { queueEngine.updatePosition(it.currentPosition) }
+        if (!appExitRequested) {
+            val position = crossfadePositionAtDestruction
+                ?: mediaSession?.player?.currentPosition?.coerceAtLeast(0L)
+            if (position != null) queueEngine.updatePosition(position)
+        }
         releasePlaybackWakeLock()
         synchronized(premiumAudioSettingsLock) {
             if (activeService === this) activeService = null
