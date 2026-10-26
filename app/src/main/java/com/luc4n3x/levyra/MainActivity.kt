@@ -176,6 +176,9 @@ class MainActivity : ComponentActivity() {
             params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             window.attributes = params
         }
+        // The ViewModel snapshot is loaded from persistent preferences before Activity creation.
+        // Request it here as well as from Compose so an app relaunch never starts at system rate.
+        applyForceHighRefreshRate(viewModel.state.value.interfaceSettings.forceHighRefreshRate)
         LevyraPipBridge.bind(
             enter = ::enterPictureInPicture,
             update = ::updatePictureInPictureParams
@@ -220,24 +223,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(activityUiState.forceHighRefreshRate) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                        val display = window.context.display
-                        if (activityUiState.forceHighRefreshRate) {
-                            val highMode = display?.supportedModes
-                                ?.filter { it.refreshRate >= 89.0f }
-                                ?.maxByOrNull { it.refreshRate }
-                                ?: display?.supportedModes?.maxByOrNull { it.refreshRate }
-                            if (highMode != null) {
-                                val params = window.attributes
-                                params.preferredDisplayModeId = highMode.modeId
-                                window.attributes = params
-                            }
-                        } else {
-                            val params = window.attributes
-                            params.preferredDisplayModeId = 0
-                            window.attributes = params
-                        }
-                    }
+                    applyForceHighRefreshRate(activityUiState.forceHighRefreshRate)
                 }
 
                 CompositionLocalProvider(
@@ -314,6 +300,53 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Android/OEM display policy may drop a window display-mode request while this Activity
+        // is stopped. Reassert the user's persisted choice whenever the app returns to foreground.
+        applyForceHighRefreshRate(viewModel.state.value.interfaceSettings.forceHighRefreshRate)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            // At this point decorView is attached, which covers cold launches where no Display was
+            // available during onCreate.
+            applyForceHighRefreshRate(viewModel.state.value.interfaceSettings.forceHighRefreshRate)
+        }
+    }
+
+    /**
+     * Applies a per-window high-refresh request without changing the saved preference. The
+     * request is cleared only when the user has explicitly turned the setting off.
+     */
+    private fun applyForceHighRefreshRate(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        if (!enabled) {
+            // No display lookup is needed to honor an explicit user opt-out immediately.
+            updatePreferredDisplayModeId(0)
+            return
+        }
+        val display = window.decorView.display ?: return
+        val supportedModes = display.supportedModes
+        val highModeId = supportedModes
+            .asSequence()
+            .filter { it.refreshRate >= 89.0f }
+            .maxByOrNull { it.refreshRate }
+            ?.modeId
+            ?: supportedModes.maxByOrNull { it.refreshRate }?.modeId
+            ?: return
+        updatePreferredDisplayModeId(highModeId)
+    }
+
+    private fun updatePreferredDisplayModeId(modeId: Int) {
+        val params = window.attributes
+        if (params.preferredDisplayModeId != modeId) {
+            params.preferredDisplayModeId = modeId
+            window.attributes = params
         }
     }
 
