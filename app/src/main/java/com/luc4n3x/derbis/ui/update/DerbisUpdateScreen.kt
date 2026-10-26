@@ -57,7 +57,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.graphics.shapes.RoundedPolygon
 import com.luc4n3x.derbis.domain.AppUpdateInfo
 import com.luc4n3x.derbis.ui.DerbisLogoMark
 import com.luc4n3x.derbis.ui.LocalAnimationsEnabled
@@ -95,8 +94,15 @@ fun DerbisUpdateScreen(
     modifier: Modifier = Modifier
 ) {
     val copy = strings.updateReleaseCopy()
-    val notes = remember(strings.code, update.latestVersionName) {
-        strings.updateReleaseHighlights(update.latestVersionName).take(5)
+    val noteSections = remember(strings.code, update.latestVersionName, update.releaseNotes) {
+        derbisUpdateNoteSections(update.releaseNotes, update.latestVersionName).ifEmpty {
+            listOf(
+                DerbisUpdateNoteSection(
+                    title = "",
+                    entries = strings.updateReleaseHighlights(update.latestVersionName).take(5)
+                )
+            )
+        }
     }
     val meta = remember(update.publishedAtEpochMs, update.assetSizeBytes, languageCode) {
         updateMetaLine(update.publishedAtEpochMs, update.assetSizeBytes, languageCode)
@@ -164,9 +170,9 @@ fun DerbisUpdateScreen(
                 latest = update.latestVersionName,
                 copy = copy
             )
-            if (notes.isNotEmpty()) {
+            if (noteSections.any { it.entries.isNotEmpty() }) {
                 Spacer(Modifier.height(30.dp))
-                UpdateHighlights(title = copy.releaseHighlights, notes = notes)
+                UpdateHighlights(title = copy.releaseHighlights, sections = noteSections)
             }
             Spacer(Modifier.height(22.dp))
             UpdateProtectionCard(title = copy.releaseProtection, detail = copy.releaseProtectionDetail)
@@ -331,20 +337,15 @@ private fun VersionCell(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private val UpdateNotePolygons: List<RoundedPolygon> by lazy {
-    listOf(
-        MaterialShapes.Cookie4Sided,
-        MaterialShapes.Clover4Leaf,
-        MaterialShapes.Sunny,
-        MaterialShapes.Cookie6Sided,
-        MaterialShapes.Flower
-    )
+private val CommitPrefix = Regex("^([0-9a-fA-F]{7,40})\\s*(?:[—:-]\\s*)?(.+)$")
+
+private fun splitCommitPrefix(note: String): Pair<String?, String> {
+    val match = CommitPrefix.matchEntire(note.trim()) ?: return null to note
+    return match.groupValues[1] to match.groupValues[2].trim()
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun UpdateHighlights(title: String, notes: List<String>) {
+private fun UpdateHighlights(title: String, sections: List<DerbisUpdateNoteSection>) {
     Column {
         Text(
             text = title,
@@ -355,31 +356,53 @@ private fun UpdateHighlights(title: String, notes: List<String>) {
                 .padding(bottom = 12.dp)
                 .semantics { heading() }
         )
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            notes.forEachIndexed { index, note ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DerbisPanel, derbisGroupedListShape(index, notes.size))
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .background(DerbisCyan.copy(alpha = 0.16f), UpdateNotePolygons[index % UpdateNotePolygons.size].toShape()),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text((index + 1).toString(), color = DerbisCyan, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    }
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            sections.forEach { section ->
+                if (section.title.isNotBlank()) {
                     Text(
-                        text = note,
-                        color = DerbisText.copy(alpha = 0.86f),
-                        fontSize = 15.sp,
-                        lineHeight = 21.sp,
-                        modifier = Modifier.weight(1f)
+                        text = section.title,
+                        color = DerbisCyan,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.semantics { heading() }
                     )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    section.entries.forEachIndexed { index, note ->
+                        val (commit, body) = splitCommitPrefix(note)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(DerbisPanel, derbisGroupedListShape(index, section.entries.size))
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(if (commit == null) 34.dp else 68.dp)
+                                    .height(34.dp)
+                                    .background(DerbisCyan.copy(alpha = 0.16f), RoundedCornerShape(9.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = commit ?: (index + 1).toString(),
+                                    color = DerbisCyan,
+                                    fontSize = if (commit == null) 14.sp else 9.sp,
+                                    fontWeight = FontWeight.Black,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Clip
+                                )
+                            }
+                            Text(
+                                text = body,
+                                color = DerbisText.copy(alpha = 0.86f),
+                                fontSize = 15.sp,
+                                lineHeight = 21.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             }
         }

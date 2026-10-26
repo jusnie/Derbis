@@ -457,31 +457,71 @@ private fun IndeterminateTrack() {
     }
 }
 
+internal data class DerbisUpdateNoteSection(
+    val title: String,
+    val entries: List<String>
+)
+
+/** Preserves authored release-note sections so the update screen can show Fixed before New. */
+internal fun derbisUpdateNoteSections(notes: String, version: String): List<DerbisUpdateNoteSection> {
+    val versionKey = version.trim().lowercase()
+    val sections = mutableListOf<Pair<String, MutableList<String>>>()
+    val unsectioned = mutableListOf<String>()
+    var currentEntries: MutableList<String>? = null
+
+    notes.lineSequence().forEach { raw ->
+        val trimmed = raw.trim()
+        val line = normalizedUpdateNoteLine(trimmed)
+        if (line.isBlank() || line == "---" || !line.any { it.isLetterOrDigit() }) return@forEach
+        val lower = line.lowercase()
+        if (isRedundantUpdateHeading(lower, versionKey)) {
+            currentEntries = null
+            return@forEach
+        }
+        if (trimmed.startsWith('#')) {
+            val entries = mutableListOf<String>()
+            sections += line to entries
+            currentEntries = entries
+        } else {
+            (currentEntries ?: unsectioned).add(line)
+        }
+    }
+
+    val result = buildList {
+        if (unsectioned.isNotEmpty()) add(DerbisUpdateNoteSection("", unsectioned.distinct()))
+        sections.forEach { (title, entries) ->
+            val distinct = entries.distinct()
+            if (distinct.isNotEmpty()) add(DerbisUpdateNoteSection(title, distinct))
+        }
+    }
+    return result.take(3).map { section -> section.copy(entries = section.entries.take(12)) }
+}
+
+private fun normalizedUpdateNoteLine(raw: String): String = raw
+    .replace(Regex("^#{1,6}\\s*"), "")
+    .replace(Regex("^[-*•]+\\s*"), "")
+    .replace(Regex("\\*\\*([^*]+)\\*\\*")) { match -> match.groupValues[1] }
+    .replace(Regex("`([^`]+)`")) { match -> match.groupValues[1] }
+    .replace(Regex("\\[([^\\]]+)]\\(([^)]+)\\)")) { match -> match.groupValues[1] }
+    .replace("__", "")
+    .replace("**", "")
+    .trim()
+
+private fun isRedundantUpdateHeading(lower: String, versionKey: String): Boolean =
+    lower == "novità" ||
+        lower == "changelog" ||
+        lower.startsWith("derbis v$versionKey") ||
+        lower.startsWith("derbis $versionKey") ||
+        lower.startsWith("versione $versionKey")
+
 internal fun derbisUpdateNoteLines(notes: String, version: String): List<String> {
     val versionKey = version.trim().lowercase()
     return notes
         .lineSequence()
         .map { it.trim() }
-        .map { raw ->
-            raw
-                .replace(Regex("^#{1,6}\\s*"), "")
-                .replace(Regex("^[-*•]+\\s*"), "")
-                .replace(Regex("\\*\\*([^*]+)\\*\\*")) { match -> match.groupValues[1] }
-                .replace(Regex("`([^`]+)`")) { match -> match.groupValues[1] }
-                .replace(Regex("\\[([^\\]]+)]\\(([^)]+)\\)")) { match -> match.groupValues[1] }
-                .replace("__", "")
-                .replace("**", "")
-                .trim()
-        }
+        .map(::normalizedUpdateNoteLine)
         .filter { line -> line.isNotBlank() && line != "---" && line.any { it.isLetterOrDigit() } }
-        .filterNot { line ->
-            val lower = line.lowercase()
-            lower == "novità" ||
-                lower == "changelog" ||
-                lower.startsWith("derbis v$versionKey") ||
-                lower.startsWith("derbis $versionKey") ||
-                lower.startsWith("versione $versionKey")
-        }
+        .filterNot { line -> isRedundantUpdateHeading(line.lowercase(), versionKey) }
         .distinct()
         .take(12)
         .toList()

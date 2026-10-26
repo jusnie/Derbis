@@ -1,4 +1,4 @@
-name: Build Derbis Test APK
+name: Build Derbis Release APK
 
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
@@ -6,29 +6,45 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Test release tag"
+        description: "Stable Android release tag"
         required: true
-        default: "v1.0.3-test.1"
+        default: "v1.1.0"
       release_name:
         description: "Visible release name"
         required: true
-        default: "Derbis v1.0.3 Test 1"
-      prerelease:
-        description: "Publish this release as a prerelease"
+        default: "Derbis v1.1.0"
+      release_version:
+        description: "Version embedded in the Android package"
         required: true
-        type: boolean
-        default: true
+        default: "1.1.0"
+      release_version_code:
+        description: "Monotonically increasing Android versionCode"
+        required: true
+        default: "3000202"
 
 permissions:
   contents: write
 
 jobs:
   build:
-    name: Build Test APK
+    name: Build Release APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Validate stable release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ inputs.release_tag }}'
+          name='${{ inputs.release_name }}'
+          version='${{ inputs.release_version }}'
+          version_code='${{ inputs.release_version_code }}'
+          [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "release_tag must be a stable v<major>.<minor>.<patch> tag"; exit 1; }
+          [[ "${tag}" == "v${version}" ]] || { echo "release_tag must match release_version"; exit 1; }
+          [[ "${name}" == "Derbis v${version}" ]] || { echo "release_name must match release_version"; exit 1; }
+          [[ "${version_code}" =~ ^[1-9][0-9]*$ ]] || { echo "release_version_code must be a positive integer"; exit 1; }
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -66,7 +82,7 @@ jobs:
               echo "Discord SDK could not be fetched or verified; continuing without Rich Presence."
             fi
           else
-            echo "Discord SDK URL is not configured; this test APK will leave Discord Rich Presence unavailable."
+            echo "Discord SDK URL is not configured; this release APK will leave Discord Rich Presence unavailable."
           fi
 
       - name: Report optional remote Jam relay configuration
@@ -77,19 +93,21 @@ jobs:
           if [[ "${DERBIS_JAM_RELAY_URL}" =~ ^wss://.+/jam$ ]]; then
             echo "Using configured Derbis Jam relay."
           else
-            echo "No Derbis Jam relay configured; test APK will safely use Derbis Jam — LAN."
+            echo "No Derbis Jam relay configured; the release APK will safely use Derbis Jam — LAN."
           fi
 
-      - name: Build Derbis Sidecar Test APK
+      - name: Build Derbis Sidecar Release APK
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
+          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
         run: ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace
 
-      - name: Stage Sidecar Test APK
+      - name: Stage Sidecar Release APK
         run: |
           mkdir -p build-assets
           cp app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk build-assets/Derbis.apk
@@ -97,7 +115,7 @@ jobs:
       - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-Test-APK
+          name: Derbis-Release-APK
           path: build-assets/Derbis.apk
 
       - name: Create / Update GitHub Release
@@ -107,27 +125,28 @@ jobs:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
           draft: false
-          prerelease: ${{ inputs.prerelease }}
+          prerelease: false
           body: |
-            ## Derbis v1.0.3 test build
+            ## What's Fixed
+            - `d64bbb7` Selecting a previously played track now starts it from the beginning.
+            - `84b2677` Crossfade ignores stale handoff completions, preventing an older transition from replacing the active deck.
+            - `9e9300c` Apple Music 13 lyrics keep a dimmed artwork backdrop so white lyric text remains readable.
 
-            ### New
-            - **Derbis Mix Studio:** saved, playlist-specific transition plans with Auto Mix, editable handoff modes, durations, and a mixed-playback toggle.
-            - **Beat Align (beta):** local PCM BPM and beat-grid analysis; a transition only aligns when both tracks have confident local grids and a safe tempo correction is available.
-            - **Spotify playlist imports:** saved playlist titles are explicitly labelled `Imported from Spotify`.
-            - **Metrolist-compatible remote groundwork:** binary protobuf client protocol support has been added for a user-selected, authorized Metroserver endpoint. Public relays are not used by default.
-            - **Owned animated artwork:** when the optional `DERBIS_CANVAS_CATALOG_URL` and `DERBIS_CANVAS_CATALOG_KEY` release secrets are configured, verified rights-cleared MP4/HLS artwork may resolve only from that self-hosted catalog. A missing configuration or catalog miss keeps static album artwork.
+            ## What's New
+            - `e871551` Opt-in animated artwork Canvas support is available again; static artwork remains the default.
+            - `4f9640e` Liquid Glass now reaches Search, Explore, Library, Settings, the mini-player, and navigation.
+            - `5f26471` AI Slop adds a persisted setting that filters explicitly identified AI-generated music and video content.
+            - `ba79e80` Derbis Jam invite codes now use letters only and are at least six letters long.
+            - `f08377a` Signed-in Spotify users can search their eligible playlists, review tracks, and import them through Derbis matching.
+            - `e3d9cb3` Data Saver suppresses background prefetching, Canvas fetching, and mobile-data automatic downloads while retaining listener-started playback, search, and imports.
 
-            ### Fixed
-            - Removed decorative rotating album sleeve and continuously spinning artwork shape.
-            - Cleared stale active lyric lines during track changes and immediately selected the correct active line after lyric results load.
-            - Preserved playlist-entry identities through playback resolution and crossfade handoff so Mix Studio transition settings remain attached to the right tracks.
-            - Crossfade handoff protections remain in place to avoid doubled audio voices.
-
-            ### Known limitations
-            - Discord Rich Presence is unavailable unless the repository has an authorized `DISCORD_SOCIAL_SDK_URL` secret.
-            - Without a configured owned relay, Jam remains **Derbis Jam — LAN**.
-            - The Metroserver path and Beat Align require device testing before stable release.
+            ## Changed
+            - `deaaf7c` Player artwork is static by default.
+            - `f6132c0` Apple Music 13 uses full-bleed artwork while Velvet uses the contained cover treatment.
+            - `fb07fc9` Explore Samples has been removed.
+            - `f5c6583` The two-song Derbis Mix tool has been removed; Mix Studio and automatic mixing remain.
+            - `3439bf4` Full-player tap, long-press, double-tap, and vertical-swipe gestures have been removed.
+            - `9953af2` Internal Levyra identifiers have been renamed to Derbis.
           files: build-assets/Derbis.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

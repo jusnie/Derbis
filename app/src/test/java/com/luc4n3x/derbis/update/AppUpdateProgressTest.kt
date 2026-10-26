@@ -5,6 +5,7 @@ import com.luc4n3x.derbis.ui.isLaunchableUpdateTarget
 import com.luc4n3x.derbis.ui.update.formatUpdateReleaseDate
 import com.luc4n3x.derbis.ui.update.updateMetaLine
 import com.luc4n3x.derbis.ui.update.derbisUpdateNoteLines
+import com.luc4n3x.derbis.ui.update.derbisUpdateNoteSections
 import java.nio.file.Files
 import java.nio.file.Path
 import org.junit.Assert.assertEquals
@@ -140,6 +141,27 @@ class AppUpdateProgressTest {
             version = "2.4.1"
         )
         assertEquals(listOf("Faster skips", "cache recovery", "Details"), lines)
+    }
+
+    @Test
+    fun releaseNotesKeepWhatsFixedBeforeWhatsNewAndPreserveCommitIds() {
+        val sections = derbisUpdateNoteSections(
+            notes = """
+                ## Derbis v1.1.0
+                ## What's Fixed
+                - d64bbb7 — Previously played songs start from the beginning.
+                ## What's New
+                - e3d9cb3 — Data Saver reduces background network work.
+                ## Changed
+                - deaaf7c — Player artwork is static by default.
+            """.trimIndent(),
+            version = "1.1.0"
+        )
+
+        assertEquals(listOf("What's Fixed", "What's New", "Changed"), sections.map { it.title })
+        assertEquals("d64bbb7 — Previously played songs start from the beginning.", sections[0].entries.single())
+        assertEquals("e3d9cb3 — Data Saver reduces background network work.", sections[1].entries.single())
+        assertEquals("deaaf7c — Player artwork is static by default.", sections[2].entries.single())
     }
 
     @Test

@@ -1,36 +1,39 @@
 # Derbis changelog
 
-All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **New**, **Fixed**, and **Known limitations** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
+All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **What's Fixed**, **What's New**, and **Changed** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
 
-## Unreleased — phased library and Home upgrade
+## [1.1.0] — 2026-10-27
 
-### New
-- Android Home now offers **Create** actions for a local playlist and **Derbis Jam — LAN**.
-- Player Deck replaces the **Bloom** choice with **Apple Music 13**: an original Derbis layout with uncropped artwork, a neutral dark field, active lyric preview, and available stream details. Existing Bloom selections migrate to Apple Music 13.
-- Lyrics options and Lyrics Studio now include a persisted **Apple Music 13 Lyrics** renderer. When enabled, its centered, blurred-artwork, word-timed presentation exclusively replaces the Derbis lyric renderer until it is switched off.
-- Now Playing places the genuine crossfade handoff card at the bottom of the player, showing the outgoing and incoming track. Crossfade handoff now re-aligns the replacement deck before it becomes audible to reduce transition jumps.
-- **Endless listening** replaces the legacy finite, shuffled autoplay path. Starting a single song now begins a true listening session instead of turning nearby results into a queue; a small hidden rolling buffer follows the song currently playing and retries after a temporary empty response. Albums and playlists remain their exact chosen finite lists. Turning Endless listening off removes its recommendation buffer without interrupting the current track.
-- Android's Add to Playlist picker now filters local playlist destinations by name before adding a track.
-- Windows' expanded library sidebar now lets listeners search and sort their local playlists, open them directly, and collapse the library browser when they want a simpler navigation rail.
-- **Derbis Mix** is now a Library **Tools** feature for shaping and playing one direct Music 1 → Music 2 transition. Choose Auto, Fade, Rise, Blend, or Cut and a 3, 6, or 10 second handoff; it uses the real playback transition pipeline.
-- **Derbis Mix Custom Timeline (beta)** lets listeners select where Music 1 begins its overlap and the exact starting position in Music 2. The playback engine seeks the incoming track and performs the handoff at those positions.
-- **Tidal Music** is an original high-contrast Player Deck with a dark editorial stage, oversized rounded artwork, direct transport, and the local **TIDAL Style** palette. Selecting the deck applies that skin without connecting a TIDAL account or service.
-- **Apple Music 13** now renders the lyric line beneath its artwork word by word when verified word timestamps are available, with a smooth playback clock between player progress updates. It falls back to the current synced line when a source only supplies line timing.
-- Apple Music 13 now uses a neutral dark player field instead of an artwork-derived colour overlay. Audio settings add an opt-in **8D headphone orbit** switch that runs a real slow stereo panning DSP effect; it is persisted and applies automatically while enabled.
-- Audio Settings now includes a persisted **Beat Sync** master switch for verified playlist Mix Studio alignment. It is mutually exclusive with **DJ Crossfade**: enable one and the other becomes unavailable until it is turned off.
-- Home and onboarding use the transparent Derbis PNG mark directly, without the former cloud/cookie-shaped logo container. **Discover for you** now refills from successive ranked source pages while keeping seen picks out of the session and bounding consumed-card memory.
-- The former Prism skin is now **Liquid Glass**: an original translucent material system applied to its player, mini player, navigation dock, controls, and skin surfaces. Selecting it enables Liquid Glass automatically; Lite Mode and Auto/Smooth visual performance use a lower-cost opaque fallback, while the existing high-refresh option requests the fastest supported 90Hz/120Hz display mode.
-- **Animated artwork** is available again through the opt-in, self-hosted **Derbis Canvas Catalog**. A release can only resolve rights-cleared MP4/HLS media from its configured catalog origin; no catalog configuration or catalog match keeps the normal static album cover. The repository includes the deployable resolver, catalog schema, Docker/Caddy examples, and release-secret setup guide under `server/derbis-canvas-catalog/`.
+### What's Fixed
+- `be712b3` Pausing or stopping a song keeps the player cover at its full presentation size.
+- `4bd9a93` and `7ca4f79` keep Endless Listening populated for Quick Picks and allow its small foreground recommendation request on mobile data.
+- `d64bbb7` Selecting a recently played track starts it from the beginning instead of resuming an old position.
+- `84b2677` Crossfade ignores stale handoff completions so an older transition cannot replace the active deck.
+- `9e9300c` Apple Music 13 lyrics use a dimmed artwork backdrop for readable white text.
+- `c541041` Album and discovery artwork no longer fall back to words, initials, genre stickers, or decorative symbols.
+
+### What's New
+- `663f5b2` Android Home adds create actions for local playlists and Derbis Jam — LAN.
+- `8519df2`, `4d020b2`, and `50ab5ea` add the original Apple Music 13 player deck and its dedicated word-timed lyrics renderer.
+- `a704592` and `c31a2d3` introduce Endless Listening for single-song sessions while keeping albums and playlists finite.
+- `108e5cb` keeps Derbis Mix Studio's playlist-specific transition plans and custom timeline controls.
+- `72ee0a9` adds the original Tidal Music player deck and local TIDAL Style palette.
+- `a1426f9` adds the persisted Beat Sync control for verified Mix Studio alignment.
+- `0f8dcd4` and `4f9640e` make Liquid Glass an app-wide material treatment across player, navigation, Search, Explore, Library, and Settings.
+- `83d1d7e` and `e871551` add opt-in, rights-cleared Canvas artwork through the self-hosted Derbis Canvas Catalog; static covers remain the default.
+- `5f26471` adds the AI Slop setting to block explicitly identified AI-generated music and video content.
+- `ba79e80` makes Derbis Jam invite codes letters-only and at least six letters long.
+- `f08377a` lets signed-in Spotify users search eligible playlists, inspect their tracks, and import them through Derbis matching.
+- `e3d9cb3` adds Balanced Data Saver, which suppresses background network work and Canvas fetching, avoids mobile-data automatic downloads, and caps automatic video at 480p without blocking listener-started playback, search, or imports.
 
 ### Changed
-- Derbis Mix intentionally has no Beat Sync, BPM, key, or beat-grid claims. Those analysis-oriented controls remain confined to playlist Mix Studio.
-
-### Fixed
-- Now Playing no longer renders provider-style YouTube likes, estimated-dislikes, or comment-count controls beneath the track.
-- Album and discovery-category artwork now use a quiet neutral surface while unavailable and a compact loading indicator while resolving; they never substitute title/artist initials, words, or genre emoji/stickers for artwork.
-
-### Known limitations
-- This is the first safe phase of the SimpMusic-inspired rollout. Cached-playback collection refinements, additional Home/player polish, and compliant authenticated YouTube social features remain separate follow-up work; YouTube actions will not be enabled without compliant authenticated access.
+- `deaaf7c` makes static player artwork the default presentation.
+- `f6132c0` gives Apple Music 13 full-bleed artwork and Velvet a contained rounded-square cover.
+- `fb07fc9` removes Explore Samples.
+- `f5c6583` removes only the two-song Derbis Mix tool; Mix Studio and automatic mixing remain.
+- `3439bf4` removes full-player tap, long-press, double-tap, double-tap-to-seek, and vertical-swipe gestures.
+- `9953af2` completes the internal Levyra-to-Derbis rebrand.
+- `4bea410` refreshes Home and onboarding with the transparent Derbis mark and a more resilient Discover for you flow.
 
 ## [1.0.3] — 2026-10-25
 

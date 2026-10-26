@@ -1,7 +1,7 @@
 {
   "name": "derbis-web-companion",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Dependency-free static Derbis web companion",
   "scripts": {
     "build": "node -e \"console.log('Derbis static site: no bundle required')\""

@@ -24,9 +24,9 @@
 
 ## 📥 Downloads and version history
 
-Every release has a version-specific **New**, **Fixed**, and **Known limitations** record. Browse the full [GitHub Releases history](https://github.com/jusnie/Derbis/releases) or read the concise [CHANGELOG](CHANGELOG.md).
+Every release has a version-specific **What's Fixed**, **What's New**, and **Changed** record. Browse the full [GitHub Releases history](https://github.com/jusnie/Derbis/releases) or read the concise [CHANGELOG](CHANGELOG.md).
 
-- **Android (APK):** [Derbis v1.0.3](https://github.com/jusnie/Derbis/releases/tag/v1.0.3)
+- **Android (APK):** [Derbis v1.1.0](https://github.com/jusnie/Derbis/releases/tag/v1.1.0)
 - **Windows (recommended MSI):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
 - **Windows (alternative EXE):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
 

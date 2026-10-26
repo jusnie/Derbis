@@ -22,7 +22,9 @@ Derbis publishes separate Android and Windows releases so users can download the
 4. Dispatch **Build Derbis Release APK** with:
    - `release_tag`: `v<version>`
    - `release_name`: `Derbis v<version>`
-   - `prerelease`: `false`
+   - `release_version`: `<version>`
+   - `release_version_code`: the next Android versionCode
+   - the workflow always publishes as an official release (`prerelease: false`)
 5. Verify the APK, its release notes, and the GitHub Releases list.
 
 Publishing the Android release after the Windows release keeps legacy Android builds that still use GitHub's repository-wide “latest release” endpoint pointed to the APK. Newer Derbis builds select Android releases from the release list directly, so they are not affected by Windows release ordering.

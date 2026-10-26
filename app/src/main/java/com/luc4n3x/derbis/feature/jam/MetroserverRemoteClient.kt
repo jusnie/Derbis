@@ -17,7 +17,7 @@ import timber.log.Timber
 /** Direct Metroserver protocol client used by the opt-in Metrolist Clients — Remote path. */
 internal class MetroserverRemoteClient(
     endpoint: String,
-    private val clientName: String = "com.derbis.app/1.0.3"
+    private val clientName: String = "com.derbis.app/1.1.0"
 ) {
     sealed interface Event {
         data object Connected : Event
