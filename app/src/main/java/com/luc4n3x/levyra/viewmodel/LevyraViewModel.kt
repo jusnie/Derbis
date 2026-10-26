@@ -579,6 +579,9 @@ internal fun resumeStartPositionMs(pendingSeekMs: Long, durationMs: Long): Long 
         positionMs > 1500L && (durationMs <= 0L || positionMs < durationMs)
     } ?: 0L
 
+/** A tap on a track is a fresh selection, distinct from resuming the player after a pause or restore. */
+internal fun explicitTrackStartPositionMs(): Long = 0L
+
 internal fun shouldReuseFreshCurrentsRequest(
     activeRequestLanguage: String,
     requestedLanguage: String,
@@ -6331,6 +6334,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         leaveLiveRadioQueue()
         // Play all is an explicit collection, so preserve its authored order and endpoint.
         queueEngine.replace(tracks, 0, keepPlaybackModes = true, radioEnabled = tracks.size <= 1)
+        restartExplicitTrackAtBeginning()
         radioJob?.cancel()
         if (tracks.size <= 1) beginRadioSession() else radioSession.set(null)
         queueIndex = 0
@@ -9604,7 +9608,8 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         if (routeJamAction(JamAction.SelectIndex(index))) return
-        queueEngine.select(index, positionMs = 0L, rememberCurrent = true)
+        queueEngine.select(index, positionMs = explicitTrackStartPositionMs(), rememberCurrent = true)
+        restartExplicitTrackAtBeginning()
         loopCurrentQueueOnCompletion = snapshot.tracks.size > 1
         startResolve(snapshot.tracks[index])
     }
@@ -9908,6 +9913,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         // from nearby Home/search results. Explicit albums and playlists use playFrom instead.
         loopCurrentQueueOnCompletion = false
         queueEngine.replace(listOf(track), 0, keepPlaybackModes = true, radioEnabled = true)
+        restartExplicitTrackAtBeginning()
         radioJob?.cancel()
         beginRadioSession()
         // Seed the first Endless Listening page now, rather than waiting for playback prefetch.
@@ -9936,6 +9942,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val index = list.indexOfFirst { samePlayableTrack(it, track) }.coerceAtLeast(0)
         // Albums and playlists are deliberate finite collections. Do not attach radio tracks to them.
         queueEngine.replace(list, index, keepPlaybackModes = true, radioEnabled = list.size <= 1)
+        restartExplicitTrackAtBeginning()
         radioJob?.cancel()
         if (list.size <= 1) {
             beginRadioSession()
@@ -11266,8 +11273,20 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(isVideoMode = false) }
         loopCurrentQueueOnCompletion = false
         queueEngine.replace(listOf(track), 0, keepPlaybackModes = true, radioEnabled = false)
+        restartExplicitTrackAtBeginning()
         queueIndex = 0
         startResolve(track)
+    }
+
+    /**
+     * A direct row/card/queue selection must never inherit the saved cursor of the previous song.
+     * Deliberate resume paths (pause, application restore, queue-space switches and Jam sync) do
+     * not call this helper and retain their explicitly supplied position.
+     */
+    private fun restartExplicitTrackAtBeginning() {
+        val startPositionMs = explicitTrackStartPositionMs()
+        pendingSeekMs = startPositionMs
+        queueEngine.updatePosition(startPositionMs)
     }
 
     private fun resumePositionFor(track: Track): Long =
