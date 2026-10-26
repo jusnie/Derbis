@@ -9064,7 +9064,7 @@ private fun AppleMusic13FullscreenLyrics(
                         .background(Brush.verticalGradient(0f to Color.Transparent, 1f to fadeTone.copy(alpha = 0.88f)))
                 )
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = showCluster,
                     enter = fadeIn(),
                     exit = fadeOut(),
@@ -9101,7 +9101,8 @@ private fun AppleMusic13FullscreenLyrics(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, top = 6.dp, bottom = 14.dp)
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 6.dp, bottom = 14.dp)
                 ) {
                     Slider(
                         value = shownProgress,
@@ -9142,7 +9143,7 @@ private fun AppleMusic13FullscreenLyrics(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(onClick = { wakeCluster(); onPrevious() }, modifier = Modifier.size(56.dp)) {
-                            Icon(Icons.Rounded.FastRewind, contentDescription = strings.previous, tint = Color.White, modifier = Modifier.size(46.dp))
+                            Icon(Icons.Rounded.SkipPrevious, contentDescription = strings.previous, tint = Color.White, modifier = Modifier.size(46.dp))
                         }
                         IconButton(onClick = { wakeCluster(); onTogglePlay() }, modifier = Modifier.size(76.dp)) {
                             Icon(
@@ -9153,7 +9154,7 @@ private fun AppleMusic13FullscreenLyrics(
                             )
                         }
                         IconButton(onClick = { wakeCluster(); onNext() }, modifier = Modifier.size(56.dp)) {
-                            Icon(Icons.Rounded.FastForward, contentDescription = strings.next, tint = Color.White, modifier = Modifier.size(46.dp))
+                            Icon(Icons.Rounded.SkipNext, contentDescription = strings.next, tint = Color.White, modifier = Modifier.size(46.dp))
                         }
                     }
                     PlayerOutputVolume(
@@ -24458,7 +24459,7 @@ private fun HomeHeaderIconButton(
             .background(background)
             .border(Dp.Hairline, border, shape)
             .pressable(onClick = onClick)
-            .semantics { contentDescription = label },
+            .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {
         if (loading) {
