@@ -1,8 +1,13 @@
 package com.luc4n3x.levyra.ui.player
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luc4n3x.levyra.domain.LevyraCanvasQuality
 import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.feature.motion.DerbisCanvasCatalogProvider
@@ -44,6 +50,7 @@ import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
 import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.LyricLine
+import com.luc4n3x.levyra.player.PlaybackService
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
 import com.luc4n3x.levyra.ui.KaraokeWordTimedText
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
@@ -559,7 +566,13 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
 private fun AppleMusicAudioBadge(modifier: Modifier = Modifier) {
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
-    Box(modifier, contentAlignment = Alignment.Center) {
+    val crossfade by PlaybackService.crossfadeProgressFlow.collectAsStateWithLifecycle()
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        if (crossfade.active) AppleMusicCrossfadeWord()
         val displayLabel = if (label.isNotEmpty()) label else "73 kbps · 48 kHz"
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -583,6 +596,30 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+/** A compact RGB transition cue, intentionally limited to the single word requested. */
+@Composable
+private fun AppleMusicCrossfadeWord() {
+    val rainbow = rememberInfiniteTransition(label = "apple-crossfade-rgb")
+    val hue by rainbow.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_350, easing = LinearEasing)
+        ),
+        label = "apple-crossfade-hue"
+    )
+    Text(
+        text = "Crossfading",
+        color = Color.hsv(hue = hue, saturation = 0.88f, value = 1f),
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.7.sp
+        ),
+        maxLines = 1
+    )
 }
 
 internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {

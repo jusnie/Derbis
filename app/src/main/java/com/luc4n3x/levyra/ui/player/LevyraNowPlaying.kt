@@ -89,7 +89,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -142,7 +141,6 @@ import com.luc4n3x.levyra.feature.radio.isLiveRadio
 import com.luc4n3x.levyra.feature.radio.LiveRadioViewModel
 import com.luc4n3x.levyra.feature.radio.RadioStation
 import com.luc4n3x.levyra.player.LevyraPipBridge
-import com.luc4n3x.levyra.player.PlaybackService
 import com.luc4n3x.levyra.ui.LevyraLayoutMode
 import com.luc4n3x.levyra.ui.LevyraPlayerPane
 import com.luc4n3x.levyra.ui.MotionBackdropPalette
@@ -240,7 +238,6 @@ private fun LevyraNowPlayingContent(
     onOpenPlaylistDialog: ((Track) -> Unit)?
 ) {
     val strings = LocalLevyraStrings.current
-    val crossfade by PlaybackService.crossfadeProgressFlow.collectAsStateWithLifecycle()
     val track = state.currentTrack
     val liveRadio = track?.isLiveRadio() == true
     val liveRadioStrings = LevyraLiveRadioCatalog.forCode(strings.code)
@@ -441,16 +438,6 @@ private fun LevyraNowPlayingContent(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Keep the transition cue at the bottom, close to the transport controls, so it does
-        // not cover the compact track header or artwork during a real two-player crossfade.
-        CrossfadeStatusPill(
-            progress = crossfade,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp).padding(bottom = 24.dp)
-                .zIndex(20f)
-        )
         val layoutMode = resolveLevyraLayoutMode(maxWidth.value, maxHeight.value)
         val compactLandscape = isLevyraCompactLandscape(maxWidth.value, maxHeight.value)
         val playerPane = resolveNowPlayingPane(maxWidth.value, maxHeight.value, state.isVideoMode)
@@ -2385,59 +2372,6 @@ private fun PlayerGestureFeedbackPill(text: String, modifier: Modifier = Modifie
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
             )
-        }
-    }
-}
-
-
-
-private fun crossfadeTrackHandoffLabel(progress: com.luc4n3x.levyra.player.CrossfadeProgress): String = when {
-    progress.fromTitle.isNotBlank() && progress.toTitle.isNotBlank() ->
-        "${progress.fromTitle}  →  ${progress.toTitle}"
-    progress.toTitle.isNotBlank() -> progress.toTitle
-    progress.fromTitle.isNotBlank() -> progress.fromTitle
-    else -> progress.label
-}
-
-@Composable
-private fun CrossfadeStatusPill(progress: com.luc4n3x.levyra.player.CrossfadeProgress, modifier: Modifier = Modifier) {
-    AnimatedVisibility(
-        visible = progress.active,
-        modifier = modifier,
-        enter = fadeIn(animationSpec = tween(140)),
-        exit = fadeOut(animationSpec = tween(180))
-    ) {
-        Surface(
-            color = Color.Black.copy(alpha = 0.82f),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)),
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Column(
-                modifier = Modifier.widthIn(min = 196.dp, max = 300.dp).padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Text(
-                    text = "Crossfading",
-                    color = LevyraCyan,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.7.sp
-                )
-                Text(
-                    text = crossfadeTrackHandoffLabel(progress),
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                LinearProgressIndicator(
-                    progress = { progress.fraction.coerceIn(0f, 1f) },
-                    color = LevyraCyan,
-                    trackColor = Color.White.copy(alpha = 0.16f),
-                    modifier = Modifier.fillMaxWidth().height(3.dp)
-                )
-            }
         }
     }
 }
