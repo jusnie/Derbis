@@ -257,8 +257,6 @@ android {
         }
         create("sidecarRelease") {
             initWith(getByName("release"))
-            applicationIdSuffix = ".test"
-            versionNameSuffix = "-test"
             matchingFallbacks += listOf("release")
         }
         create("prDiagnostics") {
