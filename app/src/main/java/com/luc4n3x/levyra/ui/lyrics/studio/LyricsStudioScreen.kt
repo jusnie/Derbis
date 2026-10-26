@@ -108,6 +108,7 @@ import com.luc4n3x.levyra.domain.LyricsTextSize
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.KaraokeWordTimedText
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
+import com.luc4n3x.levyra.ui.lyrics.buildTimedLyricText
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.theme.LevyraCyan
 import com.luc4n3x.levyra.ui.theme.LevyraInk
@@ -1036,49 +1037,286 @@ private fun LyricsStudioLivePreview(
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(230.dp)
-                .clip(RoundedCornerShape(26.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(26.dp))
-        ) {
-            StudioPreviewBackground(
-                mode = settings.backgroundMode,
-                track = currentTrack,
-                accent = accentColor
+        if (settings.appleMusic13LyricsEnabled) {
+            AppleMusic13StudioLivePreview(
+                currentTrack = currentTrack,
+                previewLines = previewLines,
+                activeIndex = activeIndex,
+                playbackPositionMs = activePos,
+                animationsEnabled = animationsEnabled
             )
-
-            Column(
+        } else {
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = when (settings.alignment) {
-                    LyricsAlignment.START -> Alignment.Start
-                    LyricsAlignment.CENTER -> Alignment.CenterHorizontally
-                    LyricsAlignment.END -> Alignment.End
-                }
+                    .fillMaxWidth()
+                    .height(230.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(26.dp))
             ) {
-                val displayIndices = (activeIndex - 1..activeIndex + 1)
-                    .map { it.coerceIn(0, previewLines.lastIndex) }
-                    .distinct()
+                StudioPreviewBackground(
+                    mode = settings.backgroundMode,
+                    track = currentTrack,
+                    accent = accentColor
+                )
 
-                displayIndices.forEach { idx ->
-                    StudioPreviewLyricsLine(
-                        line = previewLines[idx],
-                        playbackPositionMs = activePos,
-                        isLineActive = idx == activeIndex,
-                        distance = kotlin.math.abs(idx - activeIndex),
-                        settings = settings,
-                        accentColor = accentColor,
-                        fontFamily = fontFamily,
-                        baseFontSize = baseFontSize,
-                        lineHeight = lineHeight,
-                        glowShadow = glowShadow,
-                        animationsEnabled = animationsEnabled
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = when (settings.alignment) {
+                        LyricsAlignment.START -> Alignment.Start
+                        LyricsAlignment.CENTER -> Alignment.CenterHorizontally
+                        LyricsAlignment.END -> Alignment.End
+                    }
+                ) {
+                    val displayIndices = (activeIndex - 1..activeIndex + 1)
+                        .map { it.coerceIn(0, previewLines.lastIndex) }
+                        .distinct()
+
+                    displayIndices.forEach { idx ->
+                        StudioPreviewLyricsLine(
+                            line = previewLines[idx],
+                            playbackPositionMs = activePos,
+                            isLineActive = idx == activeIndex,
+                            distance = kotlin.math.abs(idx - activeIndex),
+                            settings = settings,
+                            accentColor = accentColor,
+                            fontFamily = fontFamily,
+                            baseFontSize = baseFontSize,
+                            lineHeight = lineHeight,
+                            glowShadow = glowShadow,
+                            animationsEnabled = animationsEnabled
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** A compact, faithful studio preview of the dedicated Apple Music 13 lyrics surface. */
+@Composable
+private fun AppleMusic13StudioLivePreview(
+    currentTrack: Track?,
+    previewLines: List<LyricLine>,
+    activeIndex: Int,
+    playbackPositionMs: Long,
+    animationsEnabled: Boolean
+) {
+    val accentStart = currentTrack?.let { Color(it.accentStart) } ?: LevyraCyan
+    val accentEnd = currentTrack?.let { Color(it.accentEnd) } ?: LevyraViolet
+    val shape = RoundedCornerShape(26.dp)
+    val visibleIndices = (activeIndex - 1..activeIndex + 1)
+        .map { it.coerceIn(0, previewLines.lastIndex) }
+        .distinct()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(230.dp)
+            .clip(shape)
+            .border(1.dp, Color.White.copy(alpha = 0.14f), shape)
+    ) {
+        // This intentionally uses the same direct album-color ambience as the full screen view,
+        // instead of the Studio's generic blurred-artwork card.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            accentStart.copy(alpha = 0.86f),
+                            accentEnd.copy(alpha = 0.62f),
+                            Color(0xFF00151B)
+                        )
+                    )
+                )
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(accentStart.copy(alpha = 0.50f), Color.Transparent),
+                        radius = 560f
+                    )
+                )
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Black.copy(alpha = 0.02f),
+                        0.56f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.56f)
+                    )
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 14.dp, top = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val artworkUrl = currentTrack?.largeThumbnailUrl?.ifBlank { currentTrack.thumbnailUrl }.orEmpty()
+            if (artworkUrl.isNotBlank()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current).data(artworkUrl).build(),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp).clip(RoundedCornerShape(5.dp))
+                )
+            } else {
+                Box(
+                    Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Brush.linearGradient(listOf(accentStart, accentEnd)))
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = currentTrack?.title ?: "Now Playing",
+                    color = Color.White,
+                    fontFamily = FontFamily.SansSerif,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = currentTrack?.artist.orEmpty(),
+                    color = Color.White.copy(alpha = 0.68f),
+                    fontFamily = FontFamily.SansSerif,
+                    fontSize = 8.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text("•••", color = Color.White.copy(alpha = 0.92f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 20.dp, top = 37.dp, bottom = 35.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            visibleIndices.forEach { index ->
+                AppleMusic13StudioPreviewLine(
+                    line = previewLines[index],
+                    playbackPositionMs = playbackPositionMs,
+                    isLineActive = index == activeIndex,
+                    accent = accentEnd,
+                    animationsEnabled = animationsEnabled
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 28.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Box(Modifier.fillMaxWidth().height(2.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.35f))) {
+                Box(Modifier.fillMaxWidth(0.42f).height(2.dp).background(Color.White))
+            }
+            Text(
+                text = "‹      ●      ›",
+                color = Color.White.copy(alpha = 0.94f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppleMusic13StudioPreviewLine(
+    line: LyricLine,
+    playbackPositionMs: Long,
+    isLineActive: Boolean,
+    accent: Color,
+    animationsEnabled: Boolean
+) {
+    val lineAlpha by animateFloatAsState(
+        targetValue = if (isLineActive) 1f else 0.34f,
+        animationSpec = LevyraMotion.spec(animationsEnabled, tween(160)),
+        label = "apple-studio-preview-line-alpha"
+    )
+    val lineScale by animateFloatAsState(
+        targetValue = if (isLineActive) 1f else 0.94f,
+        animationSpec = LevyraMotion.spec(animationsEnabled, tween(160)),
+        label = "apple-studio-preview-line-scale"
+    )
+    val textStyle = TextStyle(
+        color = Color.White,
+        fontFamily = FontFamily.SansSerif,
+        fontSize = 20.sp,
+        lineHeight = 24.sp,
+        fontWeight = FontWeight.Bold
+    )
+    val timedText = remember(line.text, line.words) { buildTimedLyricText(line.text, line.words) }
+
+    FlowRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                alpha = lineAlpha
+                scaleX = lineScale
+                scaleY = lineScale
+            },
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        if (!isLineActive || timedText.words.isEmpty()) {
+            Text(line.text, style = textStyle)
+        } else {
+            var consumedCharacters = 0
+            timedText.words.forEach { word ->
+                val end = (word.startIndex + word.length).coerceAtMost(timedText.text.length)
+                val segment = timedText.text.substring(consumedCharacters.coerceAtMost(end), end)
+                consumedCharacters = end
+                if (segment.isNotEmpty()) {
+                    val currentWord = playbackPositionMs in word.startMs until word.endMs
+                    val completedWord = playbackPositionMs >= word.endMs
+                    val wordColor by animateColorAsState(
+                        targetValue = when {
+                            currentWord -> Color.White
+                            completedWord -> Color.White.copy(alpha = 0.92f)
+                            else -> Color.White.copy(alpha = 0.38f)
+                        },
+                        animationSpec = LevyraMotion.spec(animationsEnabled, tween(115)),
+                        label = "apple-studio-preview-word"
+                    )
+                    Text(
+                        text = segment,
+                        color = wordColor,
+                        style = textStyle.copy(
+                            shadow = if (currentWord) Shadow(
+                                color = accent.copy(alpha = 0.84f),
+                                blurRadius = 18f,
+                                offset = Offset.Zero
+                            ) else null
+                        )
                     )
                 }
+            }
+            if (consumedCharacters < timedText.text.length) {
+                Text(
+                    text = timedText.text.substring(consumedCharacters),
+                    color = Color.White.copy(alpha = 0.38f),
+                    style = textStyle
+                )
             }
         }
     }
