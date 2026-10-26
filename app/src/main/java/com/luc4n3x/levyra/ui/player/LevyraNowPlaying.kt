@@ -776,7 +776,6 @@ private fun LevyraNowPlayingContent(
                         swipeOffset = swipeOffset,
                         artScale = artScale,
                         artOffset = artOffset,
-                        glowColor = if (!nocturne && (deckLayout == PlayerDeckLayout.Levyra || deckLayout == PlayerDeckLayout.Sleeve || deckLayout == PlayerDeckLayout.Pulse || deckLayout == PlayerDeckLayout.Halo)) primary else Color.Transparent,
                         modifier = Modifier
                             .fillMaxSize()
                             .playerLyricsFlipFace(

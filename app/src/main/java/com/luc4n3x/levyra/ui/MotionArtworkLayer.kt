@@ -65,7 +65,6 @@ import com.luc4n3x.levyra.domain.LevyraCanvasQuality
 import com.luc4n3x.levyra.ui.theme.LocalLevyraVisualCapabilities
 import com.luc4n3x.levyra.ui.theme.nonNegativeCornerRadius
 import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
-import com.luc4n3x.levyra.ui.artwork.LivingArtworkLayer
 import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.feature.motion.MotionArtworkNetworkPolicy
 import com.luc4n3x.levyra.feature.motion.MotionCanvasConditions
@@ -99,6 +98,13 @@ internal fun motionArtworkMaxZoom(presentation: MotionArtworkPresentation): Floa
     MotionArtworkPresentation.Cinematic -> MotionArtworkCinematicMaxZoom
 }
 
+/**
+ * Album covers are intentionally static. The Canvas video and the palette-driven living-artwork
+ * overlay were removed so every surface presents the supplied cover without a moving image or
+ * coloured ink treatment.
+ */
+private val staticArtworkOnly = true
+
 @Suppress("ComplexMethod", "CognitiveComplexMethod")
 @Composable
 internal fun MotionArtworkLayer(
@@ -116,6 +122,13 @@ internal fun MotionArtworkLayer(
     onDynamicBackdropPalette: (MotionBackdropPalette?) -> Unit = {},
     staticArtwork: @Composable () -> Unit
 ) {
+    if (staticArtworkOnly) {
+        // Clear a palette that may have been supplied by a prior Canvas frame before drawing the cover.
+        LaunchedEffect(onDynamicBackdropPalette) { onDynamicBackdropPalette(null) }
+        Box(modifier = modifier) { staticArtwork() }
+        return
+    }
+
     val lifecycleActive = rememberMotionArtworkLifecycleActive()
     val decorativeMotion = LocalLevyraVisualCapabilities.current.decorativeMotion
     val environment = rememberMotionArtworkEnvironment(enabled && lifecycleActive)
@@ -282,21 +295,6 @@ internal fun MotionArtworkLayer(
             modifier = Modifier.fillMaxSize(),
             content = staticArtwork
         )
-        if (livingArtwork != null) {
-            LivingArtworkLayer(
-                colors = livingArtwork,
-                active = livingArtworkActive(
-                    enabled = enabled && decorativeMotion,
-                    lifecycleActive = lifecycleActive,
-                    localAllowed = environment.localAllowed,
-                    isPlaying = layerActive,
-                    realCanvasReady = motionVisible
-                ),
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(nonNegativeCornerRadius(cornerRadius)))
-            )
-        }
         visibleBridge?.let { frame ->
             Image(
                 bitmap = frame.image,

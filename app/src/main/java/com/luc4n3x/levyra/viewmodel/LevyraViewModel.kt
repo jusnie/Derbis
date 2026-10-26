@@ -1762,7 +1762,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 userName = settings.userName,
                 languageCode = settings.languageCode,
                 animationsEnabled = settings.animationsEnabled && !adaptivePlaybackPolicy.current(videoMode = false).lowRam,
-                motionArtworkEnabled = settings.motionArtworkEnabled,
+                motionArtworkEnabled = false,
                 dynamicColor = settings.dynamicColor,
                 sponsorBlockEnabled = settings.sponsorBlock,
                 skipSilence = settings.skipSilence,
@@ -5721,25 +5721,22 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setMotionArtworkEnabled(value: Boolean) {
+        // Canvas video and the palette-driven artwork treatment were removed in favour of a
+        // consistently static album cover. Keep old callers and stored preferences safely off.
         _state.update {
             it.copy(
-                motionArtworkEnabled = value,
-                motionArtwork = if (value) it.motionArtwork else null,
-                motionArtworkLoading = if (value) it.motionArtworkLoading else false,
-                artistMotionArtwork = if (value) it.artistMotionArtwork else null,
-                albumMotionArtwork = if (value) it.albumMotionArtwork else null
+                motionArtworkEnabled = false,
+                motionArtwork = null,
+                motionArtworkLoading = false,
+                artistMotionArtwork = null,
+                albumMotionArtwork = null
             )
         }
-        viewModelScope.launch { preferences.setMotionArtworkEnabled(value) }
-        if (value && _state.value.animationsEnabled) {
-            _state.value.currentTrack?.let(::refreshMotionArtworkAround)
-            refreshPageMotionArtwork()
-        } else {
-            motionArtworkJob?.cancel()
-            motionArtworkRequestKey = null
-            motionArtworkPrefetchJob?.cancel()
-            cancelPageMotion()
-        }
+        viewModelScope.launch { preferences.setMotionArtworkEnabled(false) }
+        motionArtworkJob?.cancel()
+        motionArtworkRequestKey = null
+        motionArtworkPrefetchJob?.cancel()
+        cancelPageMotion()
     }
 
     fun setDynamicColor(value: Boolean) {
@@ -6114,7 +6111,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 userName = snapshot.userName,
                 languageCode = snapshot.languageCode,
                 animationsEnabled = restoredAnimationsEnabled,
-                motionArtworkEnabled = snapshot.motionArtworkEnabled,
+                motionArtworkEnabled = false,
                 motionArtwork = null,
                 motionArtworkLoading = false,
                 dynamicColor = snapshot.dynamicColor,
@@ -6154,9 +6151,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
                 fallbackPositionMs = 0L
             )
         }
-        if (snapshot.motionArtworkEnabled && restoredAnimationsEnabled) {
-            _state.value.currentTrack?.let(::refreshMotionArtworkAround)
-        }
+        preferences.setMotionArtworkEnabled(false)
         withContext(Dispatchers.IO) {
             if (snapshot.interfaceSettings.releaseNotificationsEnabled && followed.isNotEmpty()) {
                 followed.forEach { followedArtistsStore.clearKnownReleases(it.key) }

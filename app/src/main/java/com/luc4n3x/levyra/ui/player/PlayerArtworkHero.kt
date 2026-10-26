@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,10 +44,6 @@ import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraPlayerDesign
 import com.luc4n3x.levyra.ui.theme.nonNegativeCornerRadius
 
-private const val ArtworkGlowPlaying = 0.42f
-private const val ArtworkGlowPaused = 0.18f
-private const val ArtworkGlowReach = 0.86f
-private const val ArtworkGlowDrop = 0.10f
 private const val ArtworkLandingMs = 260
 
 @Composable
@@ -67,7 +62,6 @@ internal fun PlayerArtworkHero(
     swipeOffset: () -> Float,
     artScale: Float,
     artOffset: Dp,
-    glowColor: Color,
     modifier: Modifier = Modifier,
     dynamicBackdropEnabled: Boolean = false,
     onDynamicBackdropPalette: (MotionBackdropPalette?) -> Unit = {}
@@ -76,11 +70,6 @@ internal fun PlayerArtworkHero(
         targetValue = if (isPlaying) 28.dp else 12.dp,
         animationSpec = LevyraPlayerDesign.motion(animationsEnabled, LevyraPlayerDesign.emphasizedTween(420)),
         label = "player-artwork-hero-shadow"
-    )
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isPlaying) ArtworkGlowPlaying else ArtworkGlowPaused,
-        animationSpec = LevyraPlayerDesign.motion(animationsEnabled, LevyraPlayerDesign.emphasizedTween(520)),
-        label = "player-artwork-hero-glow"
     )
     val landing by rememberArtworkLanding(morphActive(), animationsEnabled)
     val landedShadow = lerp(PlayerMorphFlightShadow, artworkShadow, landing)
@@ -111,23 +100,6 @@ internal fun PlayerArtworkHero(
                 translationX = swipeOffset()
                 translationY = artOffset.toPx()
                 alpha = if (morphActive()) 0f else 1f
-            }
-            .drawBehind {
-                if (glowColor.alpha <= 0f) return@drawBehind
-                val radius = size.minDimension * ArtworkGlowReach
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            glowColor.copy(alpha = glowAlpha * landing),
-                            glowColor.copy(alpha = glowAlpha * landing * 0.32f),
-                            Color.Transparent
-                        ),
-                        center = center.copy(y = center.y + size.height * ArtworkGlowDrop),
-                        radius = radius
-                    ),
-                    radius = radius,
-                    center = center.copy(y = center.y + size.height * ArtworkGlowDrop)
-                )
             },
         contentAlignment = Alignment.Center
     ) {
@@ -138,7 +110,7 @@ internal fun PlayerArtworkHero(
                     elevation = landedShadow,
                     shape = artworkShape,
                     clip = false,
-                    ambientColor = glowColor.copy(alpha = 0.42f),
+                    ambientColor = Color.Black.copy(alpha = 0.46f),
                     spotColor = Color.Black.copy(alpha = 0.80f)
                 )
                 .clip(artworkShape)
