@@ -9489,19 +9489,8 @@ private fun AppleMusic13LyricsArtworkBackdrop(
                 )
             }
         )
-        // A restrained static scrim gives controls and inactive lyrics reliable contrast without
-        // obscuring the current album's color palette or adding another continuously drawn effect.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.30f),
-                        0.44f to Color.Black.copy(alpha = 0.42f),
-                        1f to Color.Black.copy(alpha = 0.82f)
-                    )
-                )
-        )
+        // Keep the artwork colour field uninterrupted. The lyrics and controls sit directly over
+        // the blurred cover rather than under a separate black gradient layer.
     }
 }
 

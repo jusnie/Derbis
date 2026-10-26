@@ -37,6 +37,18 @@ class AppleMusic13LyricsPresentationContractTest {
     }
 
     @Test
+    fun `artwork backdrop has no black gradient scrim`() {
+        val backdropStart = source.indexOf("private fun AppleMusic13LyricsArtworkBackdrop(")
+        val backdropEnd = source.indexOf("\n@Composable\nprivate fun LyricsShareBar(", backdropStart)
+        assertTrue(backdropStart >= 0 && backdropEnd > backdropStart)
+        val backdrop = source.substring(backdropStart, backdropEnd)
+
+        assertTrue(backdrop.contains("artwork colour field uninterrupted"))
+        assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.82f)"))
+        assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.42f)"))
+    }
+
+    @Test
     fun `image lyric selection is a dedicated static line picker`() {
         assertTrue(lyricsScreen.contains("ImageLyricsSelectionHeader("))
         assertTrue(lyricsScreen.contains("Color(0xFF0087A6)"))
