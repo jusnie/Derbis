@@ -30,6 +30,13 @@ class AppleMusic13LyricsPresentationContractTest {
     }
 
     @Test
+    fun `focus mode retains a compact seek strip and timing action`() {
+        assertTrue(lyricsScreen.contains("visible = !showCluster && !imageShareSelectionMode"))
+        assertTrue(lyricsScreen.contains("formatSeekbarMillis(state.durationMs)"))
+        assertTrue(lyricsScreen.contains("offset(y = (-56).dp)"))
+    }
+
+    @Test
     fun `image lyric selection is a dedicated static line picker`() {
         assertTrue(lyricsScreen.contains("ImageLyricsSelectionHeader("))
         assertTrue(lyricsScreen.contains("Color(0xFF0087A6)"))

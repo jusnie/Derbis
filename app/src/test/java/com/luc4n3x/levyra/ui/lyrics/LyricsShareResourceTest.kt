@@ -77,9 +77,14 @@ class LyricsShareResourceTest {
         assertFalse(released.any())
     }
 
-    private val first = LyricsSharePreviewKey(LyricsShareCardContent("T", "A", listOf("one")), LyricsShareCardStyle.ARTWORK)
+    private val first = LyricsSharePreviewKey(
+        LyricsShareCardContent("T", "A", listOf("one")),
+        LyricsShareCardStyle.ARTWORK,
+        0xFF148A98.toInt() to 0xFF148A98.toInt()
+    )
     private val otherStyle = first.copy(style = LyricsShareCardStyle.MINIMAL)
     private val otherText = first.copy(content = first.content.copy(lyrics = listOf("translated")))
+    private val otherBackground = first.copy(accents = 0xFF8B434C.toInt() to 0xFF8B434C.toInt())
 
     @Test
     fun readyPreviewIsOnlyShownForItsOwnKey() {
@@ -87,6 +92,7 @@ class LyricsShareResourceTest {
         assertEquals("card", state.readyFor(first))
         assertNull(state.readyFor(otherStyle))
         assertNull(state.readyFor(otherText))
+        assertNull(state.readyFor(otherBackground))
     }
 
     @Test

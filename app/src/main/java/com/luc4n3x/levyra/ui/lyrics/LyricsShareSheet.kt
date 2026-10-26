@@ -8,8 +8,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,20 +15,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -54,22 +56,19 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luc4n3x.levyra.ui.i18n.LevyraStrings
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.theme.LevyraCyan
 import com.luc4n3x.levyra.ui.theme.LevyraMuted
-import com.luc4n3x.levyra.ui.theme.LevyraOnAccent
-import com.luc4n3x.levyra.ui.theme.LevyraPink
-import com.luc4n3x.levyra.ui.theme.LevyraText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 private const val PREVIEW_ASPECT = 4f / 5f
 private val PREVIEW_MAX_HEIGHT = 420.dp
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LyricsShareSheet(
     snapshot: LyricsShareSnapshot,
@@ -81,7 +80,8 @@ internal fun LyricsShareSheet(
         initialValue = SheetValue.Hidden,
         enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
     )
-    var style by rememberSaveable { mutableStateOf(LyricsShareCardStyle.ARTWORK) }
+    val style = LyricsShareCardStyle.GRADIENT
+    var selectedBackgroundIndex by rememberSaveable { mutableIntStateOf(0) }
     var mode by remember(snapshot) { mutableStateOf(LyricsShareTextMode.ORIGINAL) }
     val artwork = remember(snapshot) { LyricsShareResource<Bitmap>(Bitmap::recycle) }
     var accents by remember(snapshot) { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -93,7 +93,11 @@ internal fun LyricsShareSheet(
     var saved by remember(snapshot) { mutableStateOf(false) }
     var exportFailed by remember(snapshot) { mutableStateOf(false) }
     val content = remember(snapshot, mode) { lyricsShareCardContent(snapshot, mode) }
-    val previewKey = remember(content, style) { LyricsSharePreviewKey(content, style) }
+    val selectedBackground = ReferenceShareBackgrounds[selectedBackgroundIndex.coerceIn(ReferenceShareBackgrounds.indices)]
+    val cardAccents = accents?.let { referenceShareAccents(selectedBackground, it) }
+    val previewKey = remember(content, style, cardAccents) {
+        LyricsSharePreviewKey(content, style, cardAccents ?: (0 to 0))
+    }
     val preview = previewState.readyFor(previewKey)?.takeUnless(Bitmap::isRecycled)
     val previewFailed = previewState.failedFor(previewKey)
 
@@ -113,9 +117,9 @@ internal fun LyricsShareSheet(
         }
     }
 
-    LaunchedEffect(previewKey, accents) {
+    LaunchedEffect(previewKey, cardAccents) {
         previewState = null
-        val resolvedAccents = accents ?: return@LaunchedEffect
+        val resolvedAccents = cardAccents ?: return@LaunchedEffect
         var rendered: Bitmap? = null
         try {
             withContext(Dispatchers.Default) {
@@ -143,7 +147,7 @@ internal fun LyricsShareSheet(
 
     LaunchedEffect(exportRequest) {
         if (exportRequest == 0) return@LaunchedEffect
-        val resolvedAccents = accents ?: return@LaunchedEffect
+        val resolvedAccents = cardAccents ?: return@LaunchedEffect
         exporting = true
         exportFailed = false
         try {
@@ -162,7 +166,7 @@ internal fun LyricsShareSheet(
 
     LaunchedEffect(saveRequest) {
         if (saveRequest == 0) return@LaunchedEffect
-        val resolvedAccents = accents ?: return@LaunchedEffect
+        val resolvedAccents = cardAccents ?: return@LaunchedEffect
         saving = true
         saved = false
         try {
@@ -180,113 +184,167 @@ internal fun LyricsShareSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        containerColor = Color(0xFF00313A),
+        contentColor = Color.White,
+        dragHandle = null
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Text(
-                text = strings.shareLyricsPreviewTitle,
-                color = LevyraText,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black
-            )
-            SharePreview(
-                preview = preview,
-                failed = previewFailed,
-                description = strings.shareLyricsPreviewDescription,
-                failedText = strings.shareLyricsFailed
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                LyricsShareCardStyle.entries.forEach { option ->
-                    ShareOptionChip(
-                        label = styleLabel(strings, option),
-                        selected = style == option,
-                        onClick = { style = option }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                    Icon(
+                        imageVector = Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = strings.close,
+                        tint = Color.White,
+                        modifier = Modifier.size(30.dp)
                     )
                 }
+                Text(
+                    text = strings.shareLyrics,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                Box(Modifier.size(48.dp))
             }
-            if (snapshot.availableModes.size > 1) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    snapshot.availableModes.forEach { option ->
-                        ShareOptionChip(
-                            label = modeLabel(strings, option),
-                            selected = mode == option,
-                            onClick = { mode = option }
-                        )
-                    }
+
+            Surface(
+                color = Color.White.copy(alpha = 0.06f),
+                shape = RoundedCornerShape(26.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                SharePreview(
+                    preview = preview,
+                    failed = previewFailed,
+                    description = strings.shareLyricsPreviewDescription,
+                    failedText = strings.shareLyricsFailed,
+                    modifier = Modifier.padding(14.dp)
+                )
+            }
+
+            Text(
+                text = "Background",
+                color = Color.White.copy(alpha = 0.76f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ReferenceShareBackgrounds.forEachIndexed { index, color ->
+                    Surface(
+                        color = Color(color),
+                        shape = CircleShape,
+                        border = if (index == selectedBackgroundIndex) {
+                            BorderStroke(3.dp, Color.White)
+                        } else {
+                            BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .selectable(
+                                selected = index == selectedBackgroundIndex,
+                                role = Role.RadioButton,
+                                onClick = { selectedBackgroundIndex = index }
+                            )
+                    ) {}
                 }
             }
             if (exportFailed) {
                 Text(
                     text = strings.shareLyricsFailed,
-                    color = LevyraPink,
+                    color = Color(0xFFFFA6AE),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Button(
-                onClick = { exportRequest += 1 },
-                enabled = accents != null && !exporting && content.lyrics.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LevyraCyan,
-                    contentColor = LevyraOnAccent
-                ),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (exporting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = LevyraOnAccent
+                Button(
+                    onClick = { saveRequest += 1 },
+                    enabled = cardAccents != null && !saving && content.lyrics.isNotEmpty(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White,
+                        disabledContainerColor = Color.Transparent,
+                        disabledContentColor = Color.White.copy(alpha = 0.42f)
+                    ),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.70f)),
+                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 54.dp)
+                ) {
+                    if (saving) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                    } else {
+                        Icon(
+                            imageVector = if (saved) Icons.Rounded.Check else Icons.Rounded.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        text = if (saved) strings.saved else strings.save,
+                        modifier = Modifier.padding(start = 8.dp),
+                        fontWeight = FontWeight.Bold
                     )
-                } else {
-                    Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
-                Text(
-                    text = if (exporting) strings.shareLyricsPreparing else strings.shareLyricsShareImage,
-                    modifier = Modifier.padding(start = 8.dp),
-                    fontWeight = FontWeight.Black
-                )
-            }
-            Button(
-                onClick = { saveRequest += 1 },
-                enabled = accents != null && !saving && content.lyrics.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (saved) LevyraCyan.copy(alpha = 0.72f) else Color.Transparent,
-                    contentColor = if (saved) LevyraOnAccent else LevyraCyan
-                ),
-                border = BorderStroke(1.dp, LevyraCyan.copy(alpha = 0.65f)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-            ) {
-                when {
-                    saving -> CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = LevyraCyan)
-                    saved -> Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                    else -> Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Button(
+                    onClick = { exportRequest += 1 },
+                    enabled = cardAccents != null && !exporting && content.lyrics.isNotEmpty(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF102026),
+                        disabledContainerColor = Color.White.copy(alpha = 0.35f),
+                        disabledContentColor = Color(0xFF102026).copy(alpha = 0.56f)
+                    ),
+                    shape = RoundedCornerShape(28.dp),
+                    modifier = Modifier.weight(1f).heightIn(min = 54.dp)
+                ) {
+                    if (exporting) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF102026))
+                    } else {
+                        Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        text = strings.share,
+                        modifier = Modifier.padding(start = 8.dp),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                Text(
-                    text = when { saving -> strings.shareLyricsPreparing; saved -> strings.saved; else -> strings.save },
-                    modifier = Modifier.padding(start = 8.dp),
-                    fontWeight = FontWeight.Black
-                )
             }
         }
     }
+}
+
+private val ReferenceShareBackgrounds = listOf(
+    0xFF148A98.toInt(),
+    0xFF202126.toInt(),
+    0xFF427866.toInt(),
+    0xFF8B434C.toInt(),
+    0xFFBBB4A5.toInt()
+)
+
+private fun referenceShareAccents(background: Int, fallback: Pair<Int, Int>): Pair<Int, Int> {
+    val start = LyricsShareCardColors.background(background, fallback.first)
+    return start to start
 }
 
 @Composable
@@ -294,10 +352,11 @@ private fun SharePreview(
     preview: Bitmap?,
     failed: Boolean,
     description: String,
-    failedText: String
+    failedText: String,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -338,54 +397,10 @@ private fun SharePreviewImage(bitmap: Bitmap, description: String) {
     )
 }
 
-@Composable
-private fun ShareOptionChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        color = if (selected) LevyraCyan.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.06f),
-        border = BorderStroke(
-            width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) LevyraCyan else Color.White.copy(alpha = 0.12f)
-        ),
-        shape = RoundedCornerShape(50),
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .heightIn(min = 48.dp)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                color = if (selected) LevyraText else LevyraMuted,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Black
-            )
-        }
-    }
-}
 
 private fun startChooser(context: android.content.Context, intent: Intent, title: String): Boolean = try {
     context.startActivity(Intent.createChooser(intent, title))
     true
 } catch (_: ActivityNotFoundException) {
     false
-}
-
-private fun styleLabel(strings: LevyraStrings, style: LyricsShareCardStyle): String = when (style) {
-    LyricsShareCardStyle.ARTWORK -> strings.shareLyricsStyleArtwork
-    LyricsShareCardStyle.GRADIENT -> strings.shareLyricsStyleGradient
-    LyricsShareCardStyle.MINIMAL -> strings.shareLyricsStyleMinimal
-}
-
-private fun modeLabel(strings: LevyraStrings, mode: LyricsShareTextMode): String = when (mode) {
-    LyricsShareTextMode.ORIGINAL -> strings.shareLyricsTextOriginal
-    LyricsShareTextMode.TRANSLATION -> strings.shareLyricsTextTranslation
-    LyricsShareTextMode.ROMANIZATION -> strings.lyricsRomanization
 }

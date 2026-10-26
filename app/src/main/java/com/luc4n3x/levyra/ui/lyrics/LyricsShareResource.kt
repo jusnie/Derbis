@@ -49,7 +49,8 @@ internal class LyricsShareResource<T : Any>(private val release: (T) -> Unit) {
 
 internal data class LyricsSharePreviewKey(
     val content: LyricsShareCardContent,
-    val style: LyricsShareCardStyle
+    val style: LyricsShareCardStyle,
+    val accents: Pair<Int, Int>
 )
 
 internal sealed interface LyricsSharePreviewState<out T> {

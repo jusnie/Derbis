@@ -9252,6 +9252,62 @@ private fun AppleMusic13FullscreenLyrics(
                         )
                     }
                 }
+
+                // After the listener is idle, retain a quiet progress strip and a single timing
+                // control instead of leaving a completely blank lyric page. A tap still restores
+                // the complete transport and action rail above.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !showCluster && !imageShareSelectionMode,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 32.dp, end = 32.dp, bottom = 22.dp)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Slider(
+                                value = shownProgress,
+                                onValueChange = { dragProgress = it },
+                                onValueChangeFinished = {
+                                    dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
+                                    dragProgress = null
+                                },
+                                enabled = state.durationMs > 0L,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.White,
+                                    activeTrackColor = Color.White,
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.30f)
+                                ),
+                                modifier = Modifier.fillMaxWidth().height(24.dp)
+                            )
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(
+                                    text = formatSeekbarMillis(shownPosition),
+                                    color = Color.White.copy(alpha = 0.76f),
+                                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                                )
+                                Text(
+                                    text = if (state.durationMs > 0L) formatSeekbarMillis(state.durationMs) else "--:--",
+                                    color = Color.White.copy(alpha = 0.76f),
+                                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                                )
+                            }
+                        }
+                        if (state.lyricsSynced) {
+                            AppleMusic13LyricsFloatingButton(
+                                icon = Icons.Rounded.Timer,
+                                label = lyricsSyncCopy(strings.code).title,
+                                onClick = onOpenOptions,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(y = (-56).dp)
+                            )
+                        }
+                    }
+                }
             }
 
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
@@ -9382,10 +9438,11 @@ private fun ImageLyricsSelectionHeader(
 private fun AppleMusic13LyricsFloatingButton(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(38.dp)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.24f))
