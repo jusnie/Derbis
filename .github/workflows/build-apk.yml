@@ -80,19 +80,19 @@ jobs:
             echo "No Derbis Jam relay configured; test APK will safely use Derbis Jam — LAN."
           fi
 
-      - name: Build Derbis Debug Test APK
+      - name: Build Derbis Test Release APK
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :app:assembleTestRelease --no-daemon --stacktrace
 
-      - name: Stage Debug Test APK
+      - name: Stage Test Release APK
         run: |
           mkdir -p build-assets
-          cp app/build/outputs/apk/debug/app-debug.apk build-assets/Derbis-360-test.apk
+          cp app/build/outputs/apk/testRelease/app-testRelease.apk build-assets/Derbis-360-test.apk
 
       - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4

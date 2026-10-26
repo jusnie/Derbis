@@ -217,7 +217,7 @@ android {
     sourceSets.getByName("debug").kotlin.directories.add("src/noDiagnostics/java")
     sourceSets.getByName("release").kotlin.directories.add("src/noDiagnostics/java")
     sourceSets.configureEach {
-        if (name == "benchmark" || name == "nonMinifiedRelease") {
+        if (name == "benchmark" || name == "nonMinifiedRelease" || name == "testRelease") {
             kotlin.directories.add("src/noDiagnostics/java")
         }
     }
@@ -254,6 +254,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        create("testRelease") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".test"
+            versionNameSuffix = "-test"
+            matchingFallbacks += listOf("release")
         }
         create("prDiagnostics") {
             initWith(getByName("release"))
