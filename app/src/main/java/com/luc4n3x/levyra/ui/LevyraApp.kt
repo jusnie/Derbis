@@ -440,6 +440,7 @@ import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
@@ -8235,10 +8236,10 @@ private fun LyricsOverlay(
             onTogglePlay = onTogglePlay,
             onNext = onNext,
             onToggleFavorite = onToggleFavorite,
-            onShareLyrics = { activeLine ->
-                val shareLine = activeLine?.takeIf(::isLyricsShareSelectable)
-                    ?: visibleLyrics.firstOrNull(::isLyricsShareSelectable)
-                shareSnapshot = lyricsShareSnapshot(track, listOfNotNull(shareLine))
+            onShareLyrics = { selectedLines ->
+                // The Apple Music 13 image action deliberately enters line selection first;
+                // this opens the existing image-card flow only with the listener's chosen verses.
+                shareSnapshot = lyricsShareSnapshot(track, selectedLines)
             },
             onOpenQueue = onOpenQueue,
             onOpenOptions = { showLyricsOptions = true },
@@ -8909,7 +8910,7 @@ private fun AppleMusic13FullscreenLyrics(
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
     onToggleFavorite: (Track) -> Unit,
-    onShareLyrics: (LyricLine?) -> Unit,
+    onShareLyrics: (List<LyricLine>) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit,
     lyricsOffsetMs: Long,
@@ -8989,6 +8990,23 @@ private fun AppleMusic13FullscreenLyrics(
     val shownPosition = (state.durationMs * shownProgress).toLong()
     val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
+    // Image sharing in this variant is intentionally a lyric-line selection action, not a
+    // generic track-share shortcut. The same model limits the card to five selectable verses.
+    var imageShareSelectionMode by rememberSaveable(track?.id) { mutableStateOf(false) }
+    var imageShareRange by remember(track?.id, lyrics) { mutableStateOf<IntRange?>(null) }
+    val selectedImageShareLines = remember(lyrics, imageShareRange) {
+        lyricsShareSelectedLines(imageShareRange, lyrics)
+    }
+    val imageShareClipboard = LocalClipboard.current
+    val imageShareClipboardScope = rememberCoroutineScope()
+    fun selectedImageShareText(): String = selectedImageShareLines.joinToString("\n") { line -> line.text }
+    fun beginImageShareSelection() {
+        imageShareSelectionMode = true
+        imageShareRange = activeIndex
+            .takeIf { index -> lyrics.getOrNull(index)?.let(::isLyricsShareSelectable) == true }
+            ?.let { index -> toggleLyricsShareSelection(null, index, lyrics) }
+    }
+
     Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
         AppleMusic13LyricsArtworkBackdrop(
             track = track,
@@ -9059,15 +9077,6 @@ private fun AppleMusic13FullscreenLyrics(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                IconButton(
-                    onClick = {
-                        wakeCluster()
-                        onShareLyrics(lyrics.getOrNull(activeIndex))
-                    },
-                    enabled = track != null && lyrics.any(::isLyricsShareSelectable)
-                ) {
-                    Icon(Icons.Rounded.Share, contentDescription = strings.share, tint = Color.White, modifier = Modifier.size(23.dp))
-                }
                 IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
                     Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
                 }
@@ -9105,8 +9114,9 @@ private fun AppleMusic13FullscreenLyrics(
                     } else {
                         itemsIndexed(lyrics, key = { index, line -> "apple-lyrics-${line.startMs}-${line.role}-$index" }) { index, line ->
                             val active = index == activeIndex
+                            val imageShareSelected = imageShareRange?.contains(index) == true && isLyricsShareSelectable(line)
                             val lineColor by animateColorAsState(
-                                targetValue = if (active) Color.White else Color.White.copy(alpha = 0.34f),
+                                targetValue = if (imageShareSelected || active) Color.White else Color.White.copy(alpha = 0.34f),
                                 animationSpec = tween(if (state.animationsEnabled) 180 else 0),
                                 label = "simp-lyrics-line-color"
                             )
@@ -9123,14 +9133,23 @@ private fun AppleMusic13FullscreenLyrics(
                                         scaleY = lineScale
                                         transformOrigin = TransformOrigin(0f, 0.5f)
                                     }
-                                    .clickable(enabled = state.lyricsSynced) {
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (imageShareSelected) Color.White.copy(alpha = 0.16f) else Color.Transparent
+                                    )
+                                    .clickable(enabled = state.lyricsSynced || imageShareSelectionMode) {
                                         wakeCluster()
-                                        if (calibrateMode) {
-                                            onCalibrateLine(line.startMs)
-                                        } else {
-                                            onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
+                                        when {
+                                            imageShareSelectionMode -> {
+                                                if (isLyricsShareSelectable(line)) {
+                                                    imageShareRange = toggleLyricsShareSelection(imageShareRange, index, lyrics)
+                                                }
+                                            }
+                                            calibrateMode -> onCalibrateLine(line.startMs)
+                                            else -> onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
                                         }
                                     }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
                                 if (state.lyricsSynced && line.words.isNotEmpty()) {
                                     AppleMusic13WordByWordLyrics(
@@ -9202,7 +9221,7 @@ private fun AppleMusic13FullscreenLyrics(
                 )
 
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = showCluster,
+                    visible = showCluster && !imageShareSelectionMode,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomEnd)
@@ -9212,6 +9231,25 @@ private fun AppleMusic13FullscreenLyrics(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         horizontalAlignment = Alignment.End
                     ) {
+                        if (track != null && lyrics.any(::isLyricsShareSelectable)) {
+                            AppleMusic13LyricsFloatingButton(
+                                icon = Icons.Rounded.Image,
+                                label = if (imageShareSelectionMode) {
+                                    "${selectedImageShareLines.size}/$LYRICS_SHARE_MAX_LINES ${strings.linesLabel}"
+                                } else {
+                                    strings.shareLyrics
+                                },
+                                onClick = {
+                                    wakeCluster()
+                                    if (imageShareSelectionMode) {
+                                        imageShareSelectionMode = false
+                                        imageShareRange = null
+                                    } else {
+                                        beginImageShareSelection()
+                                    }
+                                }
+                            )
+                        }
                         if (state.lyricsSynced) {
                             AppleMusic13LyricsFloatingButton(
                                 icon = Icons.Rounded.Timer,
@@ -9226,12 +9264,44 @@ private fun AppleMusic13FullscreenLyrics(
                         )
                     }
                 }
+
+                AnimatedVisibility(
+                    visible = imageShareSelectionMode,
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut() + slideOutVertically { it / 2 },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                ) {
+                    LyricsShareBar(
+                        selectedCount = selectedImageShareLines.size,
+                        maxCount = LYRICS_SHARE_MAX_LINES,
+                        canContinue = selectedImageShareLines.isNotEmpty(),
+                        accent = accentEnd,
+                        onCopy = {
+                            imageShareClipboardScope.launch {
+                                imageShareClipboard.setClipEntry(
+                                    ClipEntry(ClipData.newPlainText("lyrics", selectedImageShareText()))
+                                )
+                            }
+                        },
+                        onCancel = {
+                            imageShareSelectionMode = false
+                            imageShareRange = null
+                        },
+                        onContinue = {
+                            onShareLyrics(selectedImageShareLines)
+                            imageShareSelectionMode = false
+                            imageShareRange = null
+                        }
+                    )
+                }
             }
 
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
             // grow into the freed room instead of leaving an empty control-shaped band behind.
             AnimatedVisibility(
-                visible = showCluster,
+                visible = showCluster && !imageShareSelectionMode,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
