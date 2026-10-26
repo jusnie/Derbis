@@ -85,13 +85,12 @@ class SpotifyPlaylistBrowser(
     suspend fun library(offset: Int = 0): SpotifyPlaylistPage {
         require(offset >= 0) { "Spotify playlist library offset must not be negative" }
         val token = accessToken()
+        // Keep Spotify's ordinary library representation rather than a sparse field projection.
+        // Playlist metadata is small, and this keeps the reader compatible with Spotify's
+        // evolving optional playlist fields.
         val url = "$API_BASE/me/playlists".toHttpUrl().newBuilder()
             .addQueryParameter("limit", LIBRARY_PAGE_SIZE.toString())
             .addQueryParameter("offset", offset.toString())
-            .addQueryParameter(
-                "fields",
-                "items(id,name,description,owner(display_name),images(url),items(total),external_urls(spotify)),total,offset,limit,next"
-            )
             .build()
         return parseSpotifyPlaylistLibraryPage(
             json = getJson(url.toString(), token),
