@@ -4174,105 +4174,8 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         refreshQueuePrefetch()
     }
 
-    fun toggleVideoMode() {
-        val snapshot = _state.value
-        val track = snapshot.currentTrack ?: return
-        if (track.isLiveRadio()) return
-        if (snapshot.isResolving) return
-        val sourceMode = snapshot.isVideoMode
-        val targetMode = !sourceMode
-        if (targetMode) audioModeOrigin = track
-        val positionMs = player.positionMs.coerceAtLeast(0L)
-        val shouldPlay = player.isPlaying || snapshot.isPlaying
-        val transitionId = ++streamTransitionId
-        streamRecoveryJob?.cancel()
-        modeSwitchJob?.cancel()
-        player.selectVideoSubtitle(null)
-        _state.update {
-            it.copy(
-                pendingVideoMode = targetMode,
-                selectedVideoSubtitleId = null,
-                isResolving = true,
-                playerError = null
-            )
-        }
-        modeSwitchJob = viewModelScope.launch {
-            try {
-                val selectedSource = if (targetMode) {
-                    preferredVideoPlaybackTrack(track)?.withPreservedAudioIdentity(track)
-                } else {
-                    audioModeSource(track)
-                }
-                val baseTrack = selectedSource?.forModeResolution()
-                    ?: throw IllegalStateException("Nessuna sorgente YouTube riproducibile per ${track.title}")
-                val resolved = withContext(Dispatchers.IO) {
-                    resolver.cached(baseTrack, targetMode) ?: providerRouter.resolve(baseTrack, targetMode)
-                }
-                if (!isActive || transitionId != streamTransitionId) return@launch
-                val currentIndex = queueEngine.state.value.currentIndex
-                if (currentIndex >= 0) queueEngine.updateTrackAt(currentIndex, resolved)
-                repository.replace(resolved)
-                player.replaceSource(
-                    track = resolved,
-                    positionMs = positionMs,
-                    videoMode = targetMode,
-                    playWhenReady = shouldPlay
-                )
-                queueEngine.updatePosition(positionMs)
-                _state.update {
-                    it.copy(
-                        currentTrack = resolved,
-                        isVideoMode = targetMode,
-                        pendingVideoMode = null,
-                        selectedVideoSubtitleId = null,
-                        isResolving = false,
-                        isPlaying = shouldPlay,
-                        positionMs = positionMs,
-                        bufferedPositionMs = positionMs,
-                        durationMs = resolved.durationMs.takeIf { duration -> duration > 0L } ?: it.durationMs,
-                        motionArtwork = if (targetMode) null else it.motionArtwork,
-                        motionArtworkLoading = if (targetMode) false else it.motionArtworkLoading,
-                        playerError = null
-                    )
-                }
-                if (targetMode) {
-                    motionArtworkJob?.cancel()
-                    motionArtworkPrefetchJob?.cancel()
-                    motionArtworkRequestKey = null
-                } else {
-                    refreshMotionArtworkAround(resolved)
-                }
-                refreshVideoQualityState(resolved)
-                prefetchAlternateMode(resolved, targetMode)
-                refreshQueuePrefetch()
-                if (_state.value.selectedTab == LevyraTab.Player) {
-                    refreshYoutubeEngagement(resolved)
-                }
-                updateWidget()
-            } catch (error: Throwable) {
-                if (error is CancellationException) throw error
-                if (transitionId != streamTransitionId) return@launch
-                _state.update {
-                    it.copy(
-                        isVideoMode = sourceMode,
-                        pendingVideoMode = null,
-                        isResolving = false,
-                        isPlaying = player.isPlaying || snapshot.isPlaying,
-                        motionArtwork = if (sourceMode) null else it.motionArtwork,
-                        motionArtworkLoading = if (sourceMode) false else it.motionArtworkLoading,
-                        playerError = cleanPlaybackError(error)
-                    )
-                }
-                if (sourceMode) {
-                    motionArtworkJob?.cancel()
-                    motionArtworkPrefetchJob?.cancel()
-                    motionArtworkRequestKey = null
-                } else {
-                    refreshMotionArtworkAround(track)
-                }
-            }
-        }
-    }
+    /** Video mode is retired; retained as a harmless compatibility hook for old call sites. */
+    fun toggleVideoMode() = Unit
 
     fun selectVideoSubtitle(trackId: String?) {
         val snapshot = _state.value
@@ -10002,6 +9905,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         leaveLiveRadioQueue()
+        _state.update { current -> current.withExplicitPlaybackMode(videoMode = false) }
         // A single-song action starts a listening session, not an implicit finite queue assembled
         // from nearby Home/search results. Explicit albums and playlists use playFrom instead.
         loopCurrentQueueOnCompletion = false
@@ -10025,6 +9929,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         }
         if (mixStudioPlaylistId != null) mixStudioStore.activateForQueue(mixStudioPlaylistId, list)
         else mixStudioStore.clearActiveQueue()
+        _state.update { current -> current.withExplicitPlaybackMode(videoMode = false) }
         leaveLiveRadioQueue()
         loopCurrentQueueOnCompletion = loopOnCompletion
         val index = list.indexOfFirst { samePlayableTrack(it, track) }.coerceAtLeast(0)
@@ -10172,11 +10077,9 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         refreshOpenPlaylist(playlistId)
     }
 
-    fun playVideoFrom(list: List<Track>, track: Track, loopOnCompletion: Boolean = false) {
-        if (list.isEmpty()) return
-        _state.update { current -> current.withExplicitPlaybackMode(videoMode = true) }
-        playFrom(list, track, loopOnCompletion)
-    }
+    /** Legacy video-entry routes now start the same music as audio-only playback. */
+    fun playVideoFrom(list: List<Track>, track: Track, loopOnCompletion: Boolean = false) =
+        playAudioFrom(list, track, loopOnCompletion)
 
     fun beginSamplesPlayback() {
         _state.update { current ->

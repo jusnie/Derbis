@@ -87,7 +87,7 @@ internal fun AppleMusicGenreScreen(
             }
             AppleCatalogItemKind.Video -> AppleCatalogTracks.track(
                 item.title, item.subtitle, artworkUrl = item.artworkTemplate, durationMs = item.durationMs
-            )?.let { track -> exploreViewModel.playVideoFrom(listOf(track), track) }
+            )?.let { track -> exploreViewModel.playFrom(listOf(track), track) }
             else -> Unit
         }
     }

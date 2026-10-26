@@ -87,7 +87,6 @@ private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: LevyraSt
 
 private fun MutableList<SettingsSearchEntry>.playerEntries(strings: LevyraStrings, categories: SettingsSearchCategories) {
     val automation = strings.automationCopy()
-    entry("player.video_quality", strings.videoQuality, strings.videoQualitySubtitle, "video quality resolution 1080p 720p", categories.player)
     entry("player.visual_mode", strings.playerVisualMode, strings.playerVisualModeSubtitle, "canvas artwork immersive", categories.player)
     entry("player.background", strings.playerBackground, strings.playerBackgroundSubtitle, "background blur", categories.player)
     entry("player.haptics", strings.hapticFeedback, strings.hapticFeedbackSubtitle, "haptic vibration", categories.player)

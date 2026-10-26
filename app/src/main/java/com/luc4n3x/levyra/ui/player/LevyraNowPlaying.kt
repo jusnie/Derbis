@@ -140,7 +140,6 @@ import com.luc4n3x.levyra.feature.cast.CastRouteButton
 import com.luc4n3x.levyra.feature.radio.isLiveRadio
 import com.luc4n3x.levyra.feature.radio.LiveRadioViewModel
 import com.luc4n3x.levyra.feature.radio.RadioStation
-import com.luc4n3x.levyra.player.LevyraPipBridge
 import com.luc4n3x.levyra.ui.LevyraLayoutMode
 import com.luc4n3x.levyra.ui.LevyraPlayerPane
 import com.luc4n3x.levyra.ui.MotionBackdropPalette
@@ -198,7 +197,6 @@ fun LevyraNowPlaying(
     collapseActions: PlayerCollapseActions,
     modifier: Modifier = Modifier,
     motionSuspended: Boolean = false,
-    modeSwitchContent: (@Composable () -> Unit)? = null,
     videoSurfaceContent: (@Composable (Track, Modifier) -> Unit)? = null,
     gestureLayerContent: (@Composable (Track, PlayerGestureConfig, PlayerGestureMediaActions, PlayerGestureUiActions, androidx.compose.runtime.MutableState<PlayerVideoTransform>?, Modifier) -> Unit)? = null,
     engagementContent: (@Composable (Track) -> Unit)? = null,
@@ -213,7 +211,7 @@ fun LevyraNowPlaying(
     AppleMusicPlayerStyleScope(appleMusic13) {
         LevyraNowPlayingContent(
             viewModel, state, morphAnchors, morphActive, collapseActions, modifier, motionSuspended,
-            modeSwitchContent, videoSurfaceContent, gestureLayerContent, engagementContent,
+            videoSurfaceContent, gestureLayerContent, engagementContent,
             similarSongsContent, errorContent, playlistDialogContent, onOpenPlaylistDialog
         )
     }
@@ -228,7 +226,6 @@ private fun LevyraNowPlayingContent(
     collapseActions: PlayerCollapseActions,
     modifier: Modifier,
     motionSuspended: Boolean,
-    modeSwitchContent: (@Composable () -> Unit)?,
     videoSurfaceContent: (@Composable (Track, Modifier) -> Unit)?,
     gestureLayerContent: (@Composable (Track, PlayerGestureConfig, PlayerGestureMediaActions, PlayerGestureUiActions, androidx.compose.runtime.MutableState<PlayerVideoTransform>?, Modifier) -> Unit)?,
     engagementContent: (@Composable (Track) -> Unit)?,
@@ -593,121 +590,19 @@ private fun LevyraNowPlayingContent(
             )
         }
         val headerCenter: @Composable () -> Unit = {
-            if (track != null && (track.videoUrl.isNotBlank() || track.counterpartVideoId.isNotBlank())) {
-                modeSwitchContent?.invoke()
-            } else {
-                PlayerSourceEyebrow(
-                    label = strings.playingFrom,
-                    source = track?.source ?: "DERBIS",
-                    surfaces = surfaces
-                )
-            }
+            // Music-only playback: metadata for an optional video counterpart must never replace
+            // the normal player identity with a song/video switch.
+            PlayerSourceEyebrow(
+                label = strings.playingFrom,
+                source = track?.source ?: "DERBIS",
+                surfaces = surfaces
+            )
         }
         val headerTrailing: @Composable () -> Unit = {
             if (!state.isVideoMode && !liveRadio) {
                 CastRouteButton(modifier = Modifier.size(headerButtonSize))
             }
-            if (state.isVideoMode) {
-                if (track?.videoSubtitleTracks?.isNotEmpty() == true) {
-                    var subtitleMenuExpanded by remember(track.id) { mutableStateOf(false) }
-                    Box {
-                        PlayerGlassIconButton(
-                            icon = Icons.Rounded.Subtitles,
-                            contentDescription = strings.subtitlesLabel,
-                            size = headerButtonSize,
-                            iconSize = 19.dp,
-                            tint = if (state.selectedVideoSubtitleId != null) surfaces.activeContent else surfaces.contentMuted,
-                            fill = headerButtonFill,
-                            borderTop = headerButtonBorder,
-                            borderBottom = headerButtonBorder,
-                            onClick = { subtitleMenuExpanded = true }
-                        )
-                        DropdownMenu(
-                            expanded = subtitleMenuExpanded,
-                            onDismissRequest = { subtitleMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(strings.subtitlesOff) },
-                                leadingIcon = {
-                                    if (state.selectedVideoSubtitleId == null) {
-                                        Icon(Icons.Rounded.Check, contentDescription = null)
-                                    }
-                                },
-                                onClick = {
-                                    subtitleMenuExpanded = false
-                                    viewModel.selectVideoSubtitle(null)
-                                }
-                            )
-                            track.videoSubtitleTracks.forEach { subtitle ->
-                                DropdownMenuItem(
-                                    text = { Text(subtitle.label.ifBlank { subtitle.languageCode }) },
-                                    leadingIcon = {
-                                        if (state.selectedVideoSubtitleId == subtitle.id) {
-                                            Icon(Icons.Rounded.Check, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = {
-                                        subtitleMenuExpanded = false
-                                        viewModel.selectVideoSubtitle(subtitle.id)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                if (state.videoQuality.available) {
-                    var qualityMenuExpanded by remember(track?.id) { mutableStateOf(false) }
-                    Box {
-                        PlayerGlassIconButton(
-                            icon = Icons.Rounded.HighQuality,
-                            contentDescription = strings.videoQuality,
-                            size = headerButtonSize,
-                            iconSize = 19.dp,
-                            tint = surfaces.contentMuted,
-                            fill = headerButtonFill,
-                            borderTop = headerButtonBorder,
-                            borderBottom = headerButtonBorder,
-                            onClick = { if (!state.videoQuality.switching) qualityMenuExpanded = true }
-                        )
-                        DropdownMenu(
-                            expanded = qualityMenuExpanded,
-                            onDismissRequest = { qualityMenuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(strings.videoQualityAuto) },
-                                onClick = {
-                                    qualityMenuExpanded = false
-                                    viewModel.selectVideoQuality(null)
-                                }
-                            )
-                            state.videoQuality.ladder.forEach { rung ->
-                                DropdownMenuItem(
-                                    text = { Text(rung.label) },
-                                    leadingIcon = {
-                                        if (state.videoQuality.activeLabel == rung.label) {
-                                            Icon(Icons.Rounded.Check, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = {
-                                        qualityMenuExpanded = false
-                                        viewModel.selectVideoQuality(rung.label)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                PlayerGlassIconButton(
-                    icon = Icons.Rounded.PictureInPictureAlt,
-                    contentDescription = strings.pictureInPicture,
-                    size = headerButtonSize,
-                    iconSize = 19.dp,
-                    fill = headerButtonFill,
-                    borderTop = headerButtonBorder,
-                    borderBottom = headerButtonBorder,
-                    onClick = { LevyraPipBridge.enter() }
-                )
-            }
+
             if (track != null) {
                 PlayerGlassIconButton(
                     icon = Icons.Rounded.MoreHoriz,

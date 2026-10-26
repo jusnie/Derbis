@@ -244,7 +244,9 @@ internal fun HomeStudioOverlay(
                     Text(text = copy.featuredHint, style = MaterialTheme.typography.bodySmall, color = LevyraMuted)
                 }
             }
-            val shownOrder = workingOrder.filterNot { LevyraSkinManagesLayout && it == HomeSectionId.Discovery }
+            val shownOrder = workingOrder.filterNot {
+                it == HomeSectionId.MusicVideos || (LevyraSkinManagesLayout && it == HomeSectionId.Discovery)
+            }
             items(shownOrder, key = { "section-${it.storageId}" }, contentType = { "studio-section-row" }) { id ->
                 val isDragging = dragging == id
                 val visible = !layout.isHidden(id) && homeSectionGloballyEnabled(id, interfaceSettings)

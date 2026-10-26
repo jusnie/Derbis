@@ -65,7 +65,6 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
-import com.luc4n3x.levyra.ui.components.LevyraIonicons
 import com.luc4n3x.levyra.ui.support.SupportLevyraSettingsLink
 import com.luc4n3x.levyra.ui.components.PlaybackDiagnosticsDialog
 import com.luc4n3x.levyra.ui.player.PlayerVideoTransform
@@ -520,7 +519,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
@@ -573,9 +571,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.ui.semantics.setProgress
 import androidx.core.view.WindowCompat
-import androidx.media3.common.Player
-import androidx.media3.common.VideoSize
-import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -619,9 +614,7 @@ import com.luc4n3x.levyra.data.filterSearchSongsExcludingTopResult
 import com.luc4n3x.levyra.data.findVerifiedTopResultArtist
 import com.luc4n3x.levyra.data.deduplicateSearchSongs
 import com.luc4n3x.levyra.data.selectSearchTopResultTracks
-import com.luc4n3x.levyra.player.LevyraPipBridge
 import com.luc4n3x.levyra.player.NativeAudioIntegration
-import com.luc4n3x.levyra.player.PlaybackService
 import com.luc4n3x.levyra.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.luc4n3x.levyra.domain.ADVANCED_QUEUE_PREFETCH_OPTIONS
 import com.luc4n3x.levyra.domain.AppUpdateInfo
@@ -674,7 +667,6 @@ import com.luc4n3x.levyra.domain.LyricSectionType
 import com.luc4n3x.levyra.domain.LyricVocalRole
 import com.luc4n3x.levyra.domain.LyricsProviderOrdering
 import com.luc4n3x.levyra.domain.LyricsTranslationState
-import com.luc4n3x.levyra.domain.VideoQualityTarget
 import com.luc4n3x.levyra.domain.PulseArtist
 import com.luc4n3x.levyra.domain.ExploreCatalog
 import com.luc4n3x.levyra.domain.ExploreZone
@@ -1916,18 +1908,6 @@ fun LevyraApp(
     }
     val currentStrings = LevyraStrings.forCode(state.languageCode)
     val layoutDirection = if (LevyraLanguageCatalog.isRtl(currentStrings.code)) LayoutDirection.Rtl else LayoutDirection.Ltr
-    LaunchedEffect(state.isVideoMode, state.isPlaying) {
-        val currentPipState = LevyraPipBridge.current()
-        LevyraPipBridge.updatePlayback(
-            videoMode = state.isVideoMode,
-            playing = state.isPlaying,
-            aspectRatio = currentPipState.aspectRatio
-        )
-    }
-    if (isInPictureInPicture) {
-        LevyraPictureInPictureSurface(state)
-        return
-    }
     val toastContext = LocalContext.current
     val downloadLocationScope = rememberCoroutineScope()
     LaunchedEffect(viewModel) {
@@ -2886,9 +2866,7 @@ fun LevyraApp(
                     networkTesting = state.networkTesting,
                     networkTestOutcome = state.networkTestOutcome,
                     networkErrors = state.networkErrors,
-                    videoQualityTarget = state.videoQualityTarget,
                     lyricsProviderOrdering = state.lyricsProviderOrdering,
-                    onVideoQualityTarget = viewModel::setDefaultVideoQuality,
                     onLyricsProviderOrdering = viewModel::setLyricsProviderOrdering,
                     onNetworkSettings = viewModel::updateNetworkSettings,
                     onTestNetwork = viewModel::testNetworkConfiguration,
@@ -10822,25 +10800,6 @@ private fun HomeScreen(
                 }
             }
 
-            if (showDeferredHomeSections && homeVideoTracks.isNotEmpty()) {
-                item(key = "home-music-videos", contentType = HOME_HORIZONTAL_ROW_CONTENT_TYPE) {
-                    HomeSectionLead(compactHome) {
-                        HomeMusicVideoShelf(
-                            title = strings.homeVideoShelfTitle,
-                            tracks = homeVideoTracks,
-                            playback = HomeVideoShelfPlayback(
-                                currentId = state.currentTrack?.id?.takeIf { state.isVideoMode },
-                                isPlaying = state.isPlaying,
-                                isResolving = state.isResolving
-                            ),
-                            actions = HomeVideoShelfActions(
-                                onPlay = { track -> viewModel.playVideoFrom(homeVideoTracks, track) },
-                                onToggleCurrent = viewModel::togglePlay
-                            )
-                        )
-                    }
-                }
-            }
             if (
                 showDeferredHomeSections && state.interfaceSettings.showNewReleases &&
                 state.releaseRadar.isNotEmpty()
@@ -11991,7 +11950,7 @@ private fun LazyListScope.studioHomeSections(
                 HomeSectionId.AlbumsForYou -> homeStudioSectionAlbumsForYou(c)
                 HomeSectionId.TrendingArtists -> homeStudioSectionTrendingArtists(c)
                 HomeSectionId.NewReleases -> homeStudioSectionNewReleases(c)
-                HomeSectionId.MusicVideos -> homeStudioSectionMusicVideos(c)
+                HomeSectionId.MusicVideos -> Unit // Music-only platform: suppress legacy video section.
                 HomeSectionId.ReleaseRadar -> homeStudioSectionReleaseRadar(c)
                 HomeSectionId.SimilarArtists -> homeStudioSectionSimilarArtists(c)
                 HomeSectionId.MoreSections -> homeStudioSectionMoreSections(c)
@@ -12475,30 +12434,6 @@ private fun LazyListScope.homeStudioSectionNewReleases(c: StudioHomeContext) {
                             currentId = state.currentTrack?.id,
                             animationsEnabled = homeAnimationsEnabled,
                             onPlay = { viewModel.playFrom(newReleases.tracks, it) }
-                        )
-                    }
-                }
-            }
-    }
-}
-
-private fun LazyListScope.homeStudioSectionMusicVideos(c: StudioHomeContext) {
-    with(c) {
-            if (showDeferredHomeSections && homeVideoTracks.isNotEmpty()) {
-                item(key = "home-music-videos", contentType = HOME_HORIZONTAL_ROW_CONTENT_TYPE) {
-                    HomeSectionLead(compactHome) {
-                        HomeMusicVideoShelf(
-                            title = strings.homeVideoShelfTitle,
-                            tracks = homeVideoTracks,
-                            playback = HomeVideoShelfPlayback(
-                                currentId = state.currentTrack?.id?.takeIf { state.isVideoMode },
-                                isPlaying = state.isPlaying,
-                                isResolving = state.isResolving
-                            ),
-                            actions = HomeVideoShelfActions(
-                                onPlay = { track -> viewModel.playVideoFrom(homeVideoTracks, track) },
-                                onToggleCurrent = viewModel::togglePlay
-                            )
                         )
                     }
                 }
@@ -19564,98 +19499,6 @@ private fun PlayerCanvasFusionScrim(
 }
 
 @Composable
-private fun PlayerModeSwitch(
-    isVideoMode: Boolean,
-    onSong: () -> Unit,
-    onVideo: () -> Unit
-) {
-    val strings = LocalLevyraStrings.current
-    val animationsEnabled = LocalAnimationsEnabled.current
-    val springSpec = if (animationsEnabled) LevyraPlayerDesign.expressiveSpring<Dp>() else snap()
-    val indicatorOffset by animateDpAsState(
-        targetValue = if (isVideoMode) PlayerModeCollapsedWidth else 0.dp,
-        animationSpec = springSpec,
-        label = "player-mode-indicator"
-    )
-    Box(
-        modifier = Modifier
-            .selectableGroup()
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.26f))
-            .padding(PlayerModeInset)
-    ) {
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(indicatorOffset.roundToPx(), 0) }
-                .size(PlayerModeExpandedWidth, PlayerModeSegmentHeight)
-                .clip(CircleShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.White.copy(alpha = 0.26f), Color.White.copy(alpha = 0.16f))
-                    )
-                )
-        )
-        Row {
-            PlayerModeSwitchIconTab(
-                icon = LevyraIonicons.AudioMode,
-                label = strings.song,
-                selected = !isVideoMode,
-                animationsEnabled = animationsEnabled,
-                onClick = onSong
-            )
-            PlayerModeSwitchIconTab(
-                icon = LevyraIonicons.VideoMode,
-                label = strings.video,
-                selected = isVideoMode,
-                animationsEnabled = animationsEnabled,
-                onClick = onVideo
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlayerModeSwitchIconTab(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    animationsEnabled: Boolean,
-    onClick: () -> Unit
-) {
-    val tint by animateColorAsState(
-        targetValue = if (selected) Color.White else Color.White.copy(alpha = 0.5f),
-        animationSpec = if (animationsEnabled) LevyraPlayerDesign.standardTween(200) else snap(),
-        label = "player-mode-tab-tint"
-    )
-    val width by animateDpAsState(
-        targetValue = if (selected) PlayerModeExpandedWidth else PlayerModeCollapsedWidth,
-        animationSpec = if (animationsEnabled) LevyraPlayerDesign.expressiveSpring() else snap(),
-        label = "player-mode-tab-width"
-    )
-    Row(
-        modifier = Modifier
-            .size(width, PlayerModeSegmentHeight)
-            .clip(CircleShape)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .semantics { contentDescription = label },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(18.dp)
-        )
-    }
-}
-
-private val PlayerModeExpandedWidth = 60.dp
-private val PlayerModeCollapsedWidth = 44.dp
-private val PlayerModeSegmentHeight = 34.dp
-private val PlayerModeInset = 3.dp
-
-@Composable
 private fun LevyraControlPulseHandle(
     expanded: Boolean,
     compact: Boolean,
@@ -20646,21 +20489,6 @@ private fun PlayerScreen(
         morphActive = morphActive,
         collapseActions = collapseActions,
         motionSuspended = motionSuspended,
-        modeSwitchContent = {
-            if (track != null && (track.videoUrl.isNotBlank() || track.counterpartVideoId.isNotBlank())) {
-                PlayerModeSwitch(
-                    isVideoMode = state.pendingVideoMode ?: state.isVideoMode,
-                    onSong = viewModel::toggleVideoMode,
-                    onVideo = viewModel::toggleVideoMode
-                )
-            }
-        },
-        videoSurfaceContent = { activeTrack, modifier ->
-            LevyraVideoSurface(
-                state = state,
-                modifier = modifier
-            )
-        },
         gestureLayerContent = { activeTrack, config, mediaActions, uiActions, videoTransform, modifier ->
             PlayerGestureLayer(
                 config = config,
@@ -21357,11 +21185,9 @@ private fun SettingsOverlay(
     networkTesting: Boolean,
     networkTestOutcome: LevyraNetworkTestOutcome?,
     networkErrors: List<LevyraNetworkSettingsError>,
-    videoQualityTarget: VideoQualityTarget,
     lyricsProviderOrdering: LyricsProviderOrdering,
     onNetworkSettings: (LevyraNetworkSettings, String?) -> Unit,
     onTestNetwork: (LevyraNetworkSettings, String?) -> Unit,
-    onVideoQualityTarget: (VideoQualityTarget) -> Unit,
     onLyricsProviderOrdering: (LyricsProviderOrdering) -> Unit,
     onOpenJam: () -> Unit,
     onOpenThemeStudio: () -> Unit,
@@ -21982,26 +21808,6 @@ private fun SettingsOverlay(
                         }
                         "player" -> {
                             standaloneItem { SettingsSectionLabel(strings.mobilePlayerSection) }
-                            item {
-                                SettingsChoiceRow(
-                                    icon = Icons.Rounded.HighQuality,
-                                    title = strings.videoQuality,
-                                    subtitle = if (videoQualityTarget == VideoQualityTarget.AUTO) {
-                                        strings.videoQualityAutoSubtitle
-                                    } else {
-                                        strings.videoQualitySubtitle
-                                    },
-                                    options = VideoQualityTarget.entries.map { target ->
-                                        target.storageValue to if (target == VideoQualityTarget.AUTO) {
-                                            strings.videoQualityAuto
-                                        } else {
-                                            target.storageValue
-                                        }
-                                    },
-                                    selected = videoQualityTarget.storageValue,
-                                    onSelect = { value -> onVideoQualityTarget(VideoQualityTarget.fromStorage(value)) }
-                                )
-                            }
                             skinSettingsItems(interfaceSettings.skin, defaults = {
                             item {
                                 SettingsChoiceRow(
@@ -28770,108 +28576,6 @@ private fun ChartLoadingSkeleton() {
                 repeat(4) { LoadingLine(height = 56.dp, radius = 16.dp) }
             }
         }
-    }
-}
-
-@Composable
-private fun LevyraPictureInPictureSurface(state: LevyraUiState) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
-        LevyraVideoSurface(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            pictureInPicture = true
-        )
-    }
-}
-
-@Composable
-private fun LevyraVideoSurface(
-    state: LevyraUiState,
-    modifier: Modifier,
-    pictureInPicture: Boolean = false
-) {
-    val player = PlaybackService.activePlayer
-    var aspectRatio by remember(player, state.currentTrack?.id) {
-        mutableFloatStateOf(
-            player?.videoSize?.let { size ->
-                if (size.width > 0 && size.height > 0) size.width.toFloat() / size.height.toFloat() else 16f / 9f
-            } ?: 16f / 9f
-        )
-    }
-    DisposableEffect(player) {
-        val listener = object : Player.Listener {
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                if (videoSize.width > 0 && videoSize.height > 0) {
-                    aspectRatio = (videoSize.width.toFloat() / videoSize.height.toFloat()).coerceIn(0.42f, 2.39f)
-                }
-            }
-        }
-        player?.addListener(listener)
-        onDispose { player?.removeListener(listener) }
-    }
-    LaunchedEffect(state.isVideoMode, state.isPlaying, aspectRatio) {
-        LevyraPipBridge.updatePlayback(
-            videoMode = state.isVideoMode,
-            playing = state.isPlaying,
-            aspectRatio = aspectRatio
-        )
-    }
-    Box(
-        modifier = modifier.background(Color.Black),
-        contentAlignment = Alignment.Center
-    ) {
-        if (player != null) {
-            AndroidView(
-                    factory = { context ->
-                        (android.view.LayoutInflater.from(context).inflate(
-                            R.layout.levyra_video_player_view_zoomable,
-                            null,
-                            false
-                        ) as androidx.media3.ui.PlayerView).apply {
-                            keepScreenOn = true
-                            this.player = player
-                        }
-                    },
-                    update = { view ->
-                        val active = PlaybackService.activePlayer
-                        if (view.player !== active) view.player = active
-                        view.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        view.keepScreenOn = state.isPlaying
-                    },
-                    onRelease = { view ->
-                        view.player = null
-                        view.keepScreenOn = false
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-        } else if (!pictureInPicture) {
-            VideoLoadingSkeleton()
-        }
-    }
-}
-
-@Composable
-private fun VideoLoadingSkeleton() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .levyraShimmer()
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        LevyraCyan.copy(alpha = 0.12f),
-                        Color.White.copy(alpha = 0.05f)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(color = LevyraCyan, strokeWidth = 3.dp)
     }
 }
 
