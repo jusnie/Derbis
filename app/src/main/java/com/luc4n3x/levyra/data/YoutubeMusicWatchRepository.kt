@@ -60,6 +60,17 @@ data class YoutubeMusicWatchPlaylist(
     val shuffled: Boolean = false
 )
 
+/** A follow-up /next endpoint advertised by YouTube Music's automix radio preview. */
+internal data class YoutubeMusicWatchQueueEndpoint(
+    val videoId: String = "",
+    val playlistId: String = "",
+    val playlistSetVideoId: String = "",
+    val params: String = "",
+    val index: Int? = null
+) {
+    fun isUsable(): Boolean = videoId.isNotBlank() || playlistId.isNotBlank()
+}
+
 internal fun isNonMusicVideoType(videoType: String): Boolean =
     videoType.uppercase(Locale.ROOT).contains("PODCAST")
 
@@ -240,23 +251,72 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
     }
 
     /**
-     * Reads exactly one YouTube Music /next radio page.  The caller owns the returned cursor and
-     * decides when to request the next page, so an Endless queue cannot skip over a continuation.
+     * Reads exactly one YouTube Music /next radio page. A newly opened RDAMVM queue can contain
+     * only the seed plus an automix preview. The preview supplies a second watch endpoint which
+     * holds the real radio rows and its continuation; follow that one endpoint before returning.
      */
     suspend fun getRadioPage(
         videoId: String = "",
         radioId: String,
         languageCode: String = LevyraLanguageCatalog.deviceDefault(),
         continuation: String = ""
-    ): YoutubeMusicWatchPlaylist = getWatchPlaylistAdvanced(
-        videoId = videoId,
-        playlistId = radioId,
-        languageCode = languageCode,
-        limit = 100,
-        radio = true,
-        requestedContinuation = continuation,
-        followContinuations = false
-    )
+    ): YoutubeMusicWatchPlaylist = withContext(Dispatchers.IO) {
+        val requested = YoutubeMusicWatchQueueEndpoint(
+            videoId = videoId.trim(),
+            playlistId = radioId.trim().removePrefix("VL")
+        )
+        require(requested.isUsable())
+        val requestedContinuation = continuation.trim()
+        val initialRoot = post(
+            endpoint = "next",
+            payload = radioQueueRequestBody(requested),
+            languageCode = languageCode,
+            mobile = false,
+            continuation = requestedContinuation
+        )
+        val initial = YoutubeMusicWatchParser.parseWatchPlaylist(initialRoot)
+            .copy(radio = true, shuffled = false)
+        // Continuations already address the actual radio endpoint. Opening previews is an initial
+        // RDAMVM-only concern, never a pagination concern.
+        if (requestedContinuation.isNotBlank()) {
+            return@withContext initial.copy(
+                playlistId = initial.playlistId.ifBlank { requested.playlistId }
+            )
+        }
+
+        val automixEndpoint = YoutubeMusicWatchParser.extractAutomixQueueEndpoint(initialRoot)
+            ?.takeIf(YoutubeMusicWatchQueueEndpoint::isUsable)
+            ?: return@withContext initial.copy(playlistId = initial.playlistId.ifBlank { requested.playlistId })
+        val automixRoot = runCatching {
+            post(
+                endpoint = "next",
+                payload = radioQueueRequestBody(automixEndpoint),
+                languageCode = languageCode,
+                mobile = false
+            )
+        }.getOrNull() ?: return@withContext initial.copy(playlistId = initial.playlistId.ifBlank { requested.playlistId })
+        val radio = YoutubeMusicWatchParser.parseWatchPlaylist(automixRoot)
+        radio.copy(
+            tracks = (initial.tracks + radio.tracks).distinctBy(YoutubeMusicWatchTrack::videoId),
+            playlistId = radio.playlistId.ifBlank { automixEndpoint.playlistId.ifBlank { requested.playlistId } },
+            lyricsBrowseId = radio.lyricsBrowseId.ifBlank { initial.lyricsBrowseId },
+            relatedBrowseId = radio.relatedBrowseId.ifBlank { initial.relatedBrowseId },
+            radio = true,
+            shuffled = false
+        )
+    }
+
+    private fun radioQueueRequestBody(endpoint: YoutubeMusicWatchQueueEndpoint): JSONObject = JSONObject()
+        .put("enablePersistentPlaylistPanel", true)
+        .put("isAudioOnly", true)
+        .put("tunerSettingValue", "AUTOMIX_SETTING_NORMAL")
+        .apply {
+            endpoint.videoId.takeIf(String::isNotBlank)?.let { put("videoId", it) }
+            endpoint.playlistId.takeIf(String::isNotBlank)?.let { put("playlistId", it) }
+            endpoint.playlistSetVideoId.takeIf(String::isNotBlank)?.let { put("playlistSetVideoId", it) }
+            endpoint.params.takeIf(String::isNotBlank)?.let { put("params", it) }
+            endpoint.index?.let { put("index", it) }
+        }
 
     suspend fun getSongRelated(
         browseId: String,
@@ -321,6 +381,7 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
         val url = "https://music.youtube.com/youtubei/v1/$endpoint?key=$apiKey&prettyPrint=false$continuationQuery"
         val body = JSONObject(payload.toString())
             .put("context", JSONObject().put("client", clientPayload(languageCode, mobile)).put("user", JSONObject()))
+            .apply { continuation.takeIf(String::isNotBlank)?.let { put("continuation", it) } }
             .toString()
             .toRequestBody(JSON_MEDIA_TYPE)
         val requestBuilder = innertubeRequestBuilder(url, body, mobile)
@@ -451,6 +512,33 @@ internal object YoutubeMusicWatchParser {
             relatedBrowseId = browseIds["MUSIC_PAGE_TYPE_TRACK_RELATED"].orEmpty(),
             continuation = findContinuation(root)
         )
+    }
+
+    /**
+     * Extracts the watch endpoint behind an automix preview. Its playlist-panel rows are the
+     * initial seed, not the recommendation page; the endpoint is the provider's own handoff to
+     * the real song-radio queue.
+     */
+    internal fun extractAutomixQueueEndpoint(root: JSONObject): YoutubeMusicWatchQueueEndpoint? {
+        val previews = mutableListOf<JSONObject>()
+        collectObjectsByKey(root, "automixPreviewVideoRenderer", previews)
+        return previews.asSequence().mapNotNull { preview ->
+            val endpoint = preview
+                .optJSONObject("content")
+                ?.optJSONObject("automixPlaylistVideoRenderer")
+                ?.optJSONObject("navigationEndpoint")
+                ?: return@mapNotNull null
+            val watch = endpoint.optJSONObject("watchPlaylistEndpoint")
+                ?: endpoint.optJSONObject("watchEndpoint")
+                ?: return@mapNotNull null
+            YoutubeMusicWatchQueueEndpoint(
+                videoId = watch.optString("videoId").trim(),
+                playlistId = watch.optString("playlistId").trim(),
+                playlistSetVideoId = watch.optString("playlistSetVideoId").trim(),
+                params = watch.optString("params").trim(),
+                index = watch.optInt("index", -1).takeIf { it >= 0 }
+            ).takeIf(YoutubeMusicWatchQueueEndpoint::isUsable)
+        }.firstOrNull()
     }
 
     fun parseRelated(root: JSONObject): List<YoutubeMusicRelatedSection> {

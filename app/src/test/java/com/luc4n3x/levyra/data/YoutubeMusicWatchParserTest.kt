@@ -163,6 +163,48 @@ class YoutubeMusicWatchParserTest {
     }
 
     @Test
+    fun radioAutomixPreviewExposesTheFollowUpWatchQueueEndpoint() {
+        val root = JSONObject(
+            """
+            {
+              "playlist": {
+                "playlistPanelRenderer": {
+                  "contents": [
+                    {
+                      "automixPreviewVideoRenderer": {
+                        "content": {
+                          "automixPlaylistVideoRenderer": {
+                            "navigationEndpoint": {
+                              "watchPlaylistEndpoint": {
+                                "videoId": "radio_seed",
+                                "playlistId": "RDAUTO_RADIO",
+                                "playlistSetVideoId": "set_42",
+                                "params": "wAEB",
+                                "index": 3
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+            """.trimIndent()
+        )
+
+        val endpoint = YoutubeMusicWatchParser.extractAutomixQueueEndpoint(root)
+
+        assertNotNull(endpoint)
+        assertEquals("radio_seed", endpoint?.videoId)
+        assertEquals("RDAUTO_RADIO", endpoint?.playlistId)
+        assertEquals("set_42", endpoint?.playlistSetVideoId)
+        assertEquals("wAEB", endpoint?.params)
+        assertEquals(3, endpoint?.index)
+    }
+
+    @Test
     fun relatedParserKeepsMixedSectionsAndTypedItems() {
         val root = JSONObject(
             """

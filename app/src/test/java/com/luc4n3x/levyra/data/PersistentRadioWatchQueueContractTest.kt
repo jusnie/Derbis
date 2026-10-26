@@ -21,13 +21,14 @@ class PersistentRadioWatchQueueContractTest {
     }
 
     @Test
-    fun `radio page preserves its returned continuation without prefetching another page`() {
+    fun `radio page follows the provider automix handoff and preserves its returned continuation`() {
         val watchRepository = source("YoutubeMusicWatchRepository.kt")
         val radioPage = functionBody(watchRepository, "suspend fun getRadioPage(")
 
-        assertTrue(radioPage.contains("radio = true"))
-        assertTrue(radioPage.contains("followContinuations = false"))
-        assertTrue(watchRepository.contains("post(\"next\", requestBody"))
+        assertTrue(radioPage.contains("endpoint = \"next\""))
+        assertTrue(radioPage.contains("extractAutomixQueueEndpoint(initialRoot)"))
+        assertTrue(radioPage.contains("continuation = requestedContinuation"))
+        assertTrue(watchRepository.contains("fun extractAutomixQueueEndpoint(root: JSONObject)"))
     }
 
     private fun functionBody(source: String, signature: String): String {
