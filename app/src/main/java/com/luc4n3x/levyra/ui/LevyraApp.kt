@@ -7145,8 +7145,9 @@ private fun QueueOverlay(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (rowSelected) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+                    // Queue songs are intentionally a flat list: no card outline, rounded shell,
+                    // or individual tile chrome. Selection uses a quiet full-width wash instead.
+                    .background(if (rowSelected) Color.White.copy(alpha = 0.11f) else Color.Transparent)
                     .levyraPressable(
                         onClick = {
                             if (selectionActive) selectedQueueKeys = if (rowSelected) selectedQueueKeys - entry.key else selectedQueueKeys + entry.key
@@ -9216,6 +9217,11 @@ private fun AppleMusic13LyricsFloatingButton(
  * karaoke fill across characters. A word changes as soon as its timestamp is reached, then
  * eases its color, scale, and album-tinted halo into the following word without a dead beat.
  */
+private data class AppleMusic13WordProgress(
+    val activeIndex: Int,
+    val completedIndex: Int
+)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppleMusic13WordByWordLyrics(
@@ -9230,8 +9236,25 @@ private fun AppleMusic13WordByWordLyrics(
         wordHighlightTimings(line)
     }
     val timedText = remember(line.text, highlightWords) { buildTimedLyricText(line.text, highlightWords) }
-    // Only the active line observes the playback clock. Inactive lines stay cheap and subdued.
-    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    // The playback clock itself updates at display rate, but lyrics need to change only when a
+    // word starts or ends.  derivedStateOf observes that clock and exposes the compact pair below;
+    // equal progress values are not propagated, so FlowRow is not rebuilt every frame.
+    val wordProgress by remember(isActive, highlightWords, positionProvider) {
+        derivedStateOf {
+            if (!isActive) {
+                AppleMusic13WordProgress(activeIndex = -1, completedIndex = -1)
+            } else {
+                val position = positionProvider()
+                var activeWord = -1
+                var completedWord = -1
+                highlightWords.forEachIndexed { index, word ->
+                    if (position >= word.endMs) completedWord = index
+                    if (position in word.startMs until word.endMs) activeWord = index
+                }
+                AppleMusic13WordProgress(activeIndex = activeWord, completedIndex = completedWord)
+            }
+        }
+    }
     val wordStyle = AppleMusicTypography.headlineLarge.copy(
         fontFamily = FontFamily.SansSerif,
         fontSize = 31.sp,
@@ -9253,13 +9276,13 @@ private fun AppleMusic13WordByWordLyrics(
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         var consumedCharacters = 0
-        timedText.words.forEach { timedWord ->
+        timedText.words.forEachIndexed { wordIndex, timedWord ->
             val wordEnd = (timedWord.startIndex + timedWord.length).coerceAtMost(timedText.text.length)
             val segment = timedText.text.substring(consumedCharacters.coerceAtMost(wordEnd), wordEnd)
             consumedCharacters = wordEnd
             if (segment.isNotEmpty()) {
-                val currentWord = isActive && playbackPosition in timedWord.startMs until timedWord.endMs
-                val completedWord = isActive && playbackPosition >= timedWord.endMs
+                val currentWord = wordIndex == wordProgress.activeIndex
+                val completedWord = wordIndex <= wordProgress.completedIndex
                 val targetColor = when {
                     !isActive -> inactiveColor
                     currentWord -> Color.White
@@ -9317,51 +9340,41 @@ private fun AppleMusic13LyricsArtworkBackdrop(
     val artworkUrl = track?.let { active ->
         active.largeThumbnailUrl.ifBlank { active.thumbnailUrl }
     }.orEmpty()
-    val darkStart = remember(accentStart) { lerp(accentStart, Color.Black, 0.56f) }
-    val darkEnd = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.82f) }
+    val fallbackTop = remember(accentStart) { lerp(accentStart, Color.Black, 0.62f) }
+    val fallbackBottom = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.88f) }
 
-    Box(Modifier.fillMaxSize().background(darkEnd)) {
-        // One static RenderEffect-backed artwork layer replaces the previous continuously moving
-        // radial gradients.  It is substantially cheaper to render while actually making the page
-        // feel attached to the song that is playing.
+    Box(Modifier.fillMaxSize().background(fallbackBottom)) {
+        // This layer never observes the playback clock. A moderate fixed blur keeps the artwork
+        // recognisable while avoiding the expensive animated blur/gradient stack that made lyrics
+        // feel sluggish on lower-powered devices.
         SeamlessArtworkImage(
             url = artworkUrl,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = 1.10f
-                    scaleY = 1.10f
+                    scaleX = 1.08f
+                    scaleY = 1.08f
                 }
-                .blur(30.dp, BlurredEdgeTreatment.Rectangle),
+                .blur(22.dp, BlurredEdgeTreatment.Rectangle),
             contentDescription = null,
             fallback = {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(0f to darkStart, 1f to darkEnd))
+                        .background(Brush.verticalGradient(0f to fallbackTop, 1f to fallbackBottom))
                 )
             }
         )
-        // Keep lyric contrast stable over bright covers, without animating or reblurring on every
-        // playback tick.  The middle remains translucent so the artwork stays recognisable.
+        // A restrained static scrim gives controls and inactive lyrics reliable contrast without
+        // obscuring the current album's color palette or adding another continuously drawn effect.
         Box(
             Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.50f),
-                        0.42f to Color.Black.copy(alpha = 0.42f),
-                        1f to Color.Black.copy(alpha = 0.78f)
-                    )
-                )
-        )
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(darkStart.copy(alpha = 0.24f), Color.Transparent),
-                        radius = 1_050f
+                        0f to Color.Black.copy(alpha = 0.30f),
+                        0.44f to Color.Black.copy(alpha = 0.42f),
+                        1f to Color.Black.copy(alpha = 0.82f)
                     )
                 )
         )
