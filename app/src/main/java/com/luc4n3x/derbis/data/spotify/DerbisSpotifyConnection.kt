@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -62,6 +64,7 @@ object DerbisSpotifyConnection {
     )
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val httpClient = OkHttpClient()
+    private val tokenMutex = Mutex()
     private val _state = MutableStateFlow(SpotifyConnectionState())
     val state: StateFlow<SpotifyConnectionState> = _state.asStateFlow()
 
@@ -150,6 +153,46 @@ object DerbisSpotifyConnection {
         _state.value = SpotifyConnectionState()
     }
 
+    /**
+     * Returns a currently valid user token for an official Spotify Web API request. The token is
+     * never exposed to Compose or persisted in plaintext; an expired token is refreshed while
+     * holding a mutex so concurrent playlist requests cannot race a refresh.
+     */
+    suspend fun accessToken(context: Context): String? = withContext(Dispatchers.IO) {
+        initialize(context)
+        if (!isConfigured()) return@withContext null
+        val appContext = context.applicationContext
+        val store = SpotifySecureStore(appContext)
+        tokenMutex.withLock {
+            val current = store.loadToken() ?: return@withLock null
+            if (current.expiresAtMs > System.currentTimeMillis()) return@withLock current.accessToken
+            runCatching { refreshToken(current) }
+                .onSuccess { refreshed ->
+                    store.saveToken(refreshed)
+                    _state.value = SpotifyConnectionState(SpotifyConnectionStatus.Connected, refreshed.displayName)
+                }
+                .onFailure { error ->
+                    Timber.w(error, "Spotify token refresh failed")
+                    store.clear()
+                    _state.value = SpotifyConnectionState(
+                        SpotifyConnectionStatus.Error,
+                        detail = "Spotify sign-in expired. Connect your account again to search playlists."
+                    )
+                }
+                .getOrNull()
+                ?.accessToken
+        }
+    }
+
+    /** Invalidates an access token rejected by Spotify before any playlist data is retained. */
+    fun invalidateAccess(context: Context) {
+        SpotifySecureStore(context.applicationContext).clear()
+        _state.value = SpotifyConnectionState(
+            SpotifyConnectionStatus.Error,
+            detail = "Spotify sign-in was no longer accepted. Connect your account again."
+        )
+    }
+
     private suspend fun exchangeCode(code: String, verifier: String): SpotifyToken = withContext(Dispatchers.IO) {
         val body = FormBody.Builder()
             .add("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
@@ -173,6 +216,27 @@ object DerbisSpotifyConnection {
             refreshToken = refreshToken,
             expiresAtMs = System.currentTimeMillis() + expiresInSeconds * 1_000L - TOKEN_SKEW_MS,
             displayName = profile
+        )
+    }
+
+    private suspend fun refreshToken(current: SpotifyToken): SpotifyToken = withContext(Dispatchers.IO) {
+        val body = FormBody.Builder()
+            .add("client_id", BuildConfig.SPOTIFY_CLIENT_ID)
+            .add("grant_type", "refresh_token")
+            .add("refresh_token", current.refreshToken)
+            .build()
+        val tokenJson = httpClient.newCall(Request.Builder().url(TOKEN_URL).post(body).build()).execute().use { response ->
+            if (!response.isSuccessful) error("Spotify token refresh failed (${response.code})")
+            JSONObject(response.body.string())
+        }
+        val accessToken = tokenJson.optString("access_token").trim()
+        if (accessToken.isBlank()) error("Spotify did not return a refreshed access token")
+        val refreshToken = tokenJson.optString("refresh_token").trim().ifBlank { current.refreshToken }
+        val expiresInSeconds = tokenJson.optLong("expires_in", 3_600L).coerceAtLeast(60L)
+        current.copy(
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            expiresAtMs = System.currentTimeMillis() + expiresInSeconds * 1_000L - TOKEN_SKEW_MS
         )
     }
 

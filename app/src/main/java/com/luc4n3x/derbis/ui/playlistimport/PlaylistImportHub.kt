@@ -144,6 +144,7 @@ fun PlaylistImportHub(
     ) {
         BackHandler {
             when {
+                state.spotifyBrowse.visible -> controller.closeSpotifyBrowse()
                 state.focusedPosition != null -> controller.closeEntry()
                 else -> controller.close()
             }
@@ -160,7 +161,7 @@ fun PlaylistImportHub(
                 )
         ) {
             AnimatedContent(
-                targetState = state.step.screen(),
+                targetState = if (state.spotifyBrowse.visible) ImportScreen.SPOTIFY else state.step.screen(),
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
                 label = "playlist-import-step"
             ) { screen ->
@@ -168,6 +169,7 @@ fun PlaylistImportHub(
                     ImportScreen.INPUT -> ImportInputScreen(state, copy, controller) {
                         filePicker.launch(PLAYLIST_FILE_TYPES)
                     }
+                    ImportScreen.SPOTIFY -> SpotifyPlaylistBrowseScreen(state.spotifyBrowse, controller)
                     ImportScreen.WORKING -> ImportProgressScreen(state, copy, controller)
                     ImportScreen.INCOMPLETE -> ImportIncompleteScreen(state, copy, controller) {
                         filePicker.launch(PLAYLIST_FILE_TYPES)
@@ -183,7 +185,7 @@ fun PlaylistImportHub(
     }
 }
 
-private enum class ImportScreen { INPUT, WORKING, INCOMPLETE, REVIEW, SUMMARY, FAILED }
+private enum class ImportScreen { INPUT, SPOTIFY, WORKING, INCOMPLETE, REVIEW, SUMMARY, FAILED }
 
 private fun PlaylistImportStep.screen(): ImportScreen = when (this) {
     PlaylistImportStep.INPUT -> ImportScreen.INPUT
@@ -278,6 +280,7 @@ private fun ImportInputScreen(
                 )
             )
             DetectionLine(state, copy)
+            SpotifySearchEntryPoint(controller)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = { readClipboard(context)?.let(controller::updateInput) },

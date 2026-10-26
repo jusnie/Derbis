@@ -970,7 +970,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 override fun playlistsChanged() = loadPlaylists()
 
                 override fun openPlaylist(playlistId: String) = this@DerbisViewModel.openPlaylist(playlistId)
-            }
+            },
+            spotifyPlaylistBrowser = com.luc4n3x.derbis.data.spotify.SpotifyPlaylistBrowser(appContext)
         )
     }
     private val deArrowRepository = lazy { DeArrowRepository(DeArrowApi()) }
