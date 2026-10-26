@@ -408,14 +408,10 @@ private fun LevyraNowPlayingContent(
         }
     }
 
-    val artworkRestsFullBleed = nocturne || state.isPlaying ||
-        state.interfaceSettings.playerVisualMode == PlayerVisualMode.Artwork ||
-        state.interfaceSettings.playerVisualMode == PlayerVisualMode.Folio ||
-        state.interfaceSettings.playerVisualMode == PlayerVisualMode.Flow ||
-        state.interfaceSettings.playerVisualMode == PlayerVisualMode.TidalMusic ||
-        state.interfaceSettings.playerVisualMode == PlayerVisualMode.Pulse
-    val artRestScale = if (artworkRestsFullBleed) 1f else LevyraPlayerDesign.ArtworkPausedScale
-    val artRestOffset = if (artworkRestsFullBleed) 0.dp else 4.dp
+    // Pausing must never shrink or drop the album artwork. Playback state changes only the
+    // transport glyph and animated media layers; the player artwork retains its full geometry.
+    val artRestScale = 1f
+    val artRestOffset = 0.dp
     SideEffect {
         morphAnchors.updateFullRest(artRestScale, with(density) { artRestOffset.toPx() })
     }
