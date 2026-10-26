@@ -1704,9 +1704,16 @@ private fun LevyraNowPlayingContent(
 
         val captionWriters = creditWriters?.takeIf { it.first == track?.id }?.second.orEmpty()
         AnimatedVisibility(
-            visible = captionWriters.isNotEmpty() && !liveRadio && !appleMusicImmersive &&
-                !state.isVideoMode && playerPane != LevyraPlayerPane.SideBySide &&
-                deckLayout != PlayerDeckLayout.Aura && deckLayout != PlayerDeckLayout.Pulse,
+            // Apple Music 13 keeps the upper artwork area clean; credits remain available from
+            // the player actions instead of floating as a written-by overlay.
+            visible = captionWriters.isNotEmpty() &&
+                !liveRadio &&
+                !appleMusicPlayer &&
+                !appleMusicImmersive &&
+                !state.isVideoMode &&
+                playerPane != LevyraPlayerPane.SideBySide &&
+                deckLayout != PlayerDeckLayout.Aura &&
+                deckLayout != PlayerDeckLayout.Pulse,
             enter = fadeIn(tween(if (animated) CreditsCaptionRevealMs else 0)),
             exit = fadeOut(tween(if (animated) CreditsCaptionRevealMs / 2 else 0)),
             modifier = Modifier
