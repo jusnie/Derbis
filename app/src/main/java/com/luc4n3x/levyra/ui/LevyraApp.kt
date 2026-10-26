@@ -8856,16 +8856,28 @@ private fun AppleMusic13FullscreenLyrics(
                                 }
                             }
                     ) {
-                        Text(
-                            text = line.text,
-                            color = lineColor,
-                            style = AppleMusicTypography.headlineLarge.copy(
-                                fontFamily = FontFamily.SansSerif,
-                                fontSize = 31.sp,
-                                lineHeight = 38.sp,
-                                fontWeight = FontWeight.Bold
+                        if (state.lyricsSynced && line.words.isNotEmpty()) {
+                            AppleMusic13LiquidKaraokeText(
+                                line = line,
+                                positionProvider = {
+                                    lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs)
+                                },
+                                isActive = active,
+                                inactiveColor = lineColor,
+                                glowColor = accentEnd
                             )
-                        )
+                        } else {
+                            Text(
+                                text = line.text,
+                                color = lineColor,
+                                style = AppleMusicTypography.headlineLarge.copy(
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = 31.sp,
+                                    lineHeight = 38.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
                         if (showRomanization && line.romanized.isNotBlank()) {
                             Text(
                                 text = line.romanized,
@@ -9056,6 +9068,48 @@ private fun AppleMusic13FullscreenLyrics(
             }
         }
     }
+}
+
+/**
+ * Apple Music 13's karaoke treatment keeps the active word on the real playback clock.
+ * KaraokeWordTimedText reveals the completed glyphs and the current glyph as one continuous
+ * eased fill, so the glow flows straight into the following word instead of blinking or waiting.
+ */
+@Composable
+private fun AppleMusic13LiquidKaraokeText(
+    line: com.luc4n3x.levyra.domain.LyricLine,
+    positionProvider: () -> Long,
+    isActive: Boolean,
+    inactiveColor: Color,
+    glowColor: Color
+) {
+    val textStyle = AppleMusicTypography.headlineLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        fontSize = 31.sp,
+        lineHeight = 38.sp,
+        fontWeight = FontWeight.Bold
+    )
+    // The soft album-tinted halo travels with the same continuous glyph fill as the word timing.
+    KaraokeWordTimedText(
+        lineText = line.text,
+        words = line.words,
+        positionProvider = positionProvider,
+        isActive = isActive,
+        fontSize = textStyle.fontSize,
+        lineHeight = textStyle.lineHeight,
+        textAlign = TextAlign.Start,
+        inactiveColor = inactiveColor,
+        completedColor = Color.White,
+        activeColor = Color.White,
+        pendingColor = Color.White.copy(alpha = 0.38f),
+        fontWeight = textStyle.fontWeight ?: FontWeight.Bold,
+        fontFamily = textStyle.fontFamily,
+        shadow = Shadow(
+            color = lerp(Color.White, glowColor, 0.58f).copy(alpha = 0.82f),
+            blurRadius = 24f,
+            offset = Offset.Zero
+        )
+    )
 }
 
 @Composable
