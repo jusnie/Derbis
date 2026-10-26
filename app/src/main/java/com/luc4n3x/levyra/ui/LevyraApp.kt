@@ -3160,12 +3160,6 @@ fun LevyraApp(
                     onToggleShuffle = viewModel::toggleShuffle,
                     onToggleRepeat = viewModel::toggleRepeat,
                     onToggleFavorite = viewModel::toggleFavorite,
-                    onSwitchQueueSpace = viewModel::switchQueueSpace,
-                    onCreateQueueSpace = { name -> viewModel.createQueueSpace(name) },
-                    onRenameQueueSpace = viewModel::renameQueueSpace,
-                    onDuplicateQueueSpace = viewModel::duplicateQueueSpace,
-                    onClearQueueSpace = viewModel::clearQueueSpace,
-                    onDeleteQueueSpace = viewModel::deleteQueueSpace,
                     onRemove = { target ->
                         viewModel.removeFromQueue(target.track, target.spaceId)
                     },
@@ -3557,15 +3551,6 @@ fun LevyraApp(
                 )
             }
 
-            if (state.pendingQueueAddTracks.isNotEmpty()) {
-                QueueSpaceDestinationDialog(
-                    spaces = state.queueSpaces,
-                    activeSpaceId = state.activeQueueSpaceId,
-                    onDismiss = viewModel::dismissQueueDestinationPicker,
-                    onSelect = viewModel::addPendingTrackToQueueSpace
-                )
-            }
-
             trackActionTarget?.let { target ->
                 val download = remember(state.downloads, target.id) {
                     state.downloads.firstOrNull { it.trackId == target.id }
@@ -3590,12 +3575,7 @@ fun LevyraApp(
                         queueRemovalTarget = null
                     },
                     onPlayNext = { viewModel.playNext(target) },
-                    onAddToQueue = {
-                        viewModel.addTracksToQueueSpace(state.activeQueueSpaceId, listOf(target))
-                    },
-                    queueSpaces = state.queueSpaces,
-                    activeQueueSpaceId = state.activeQueueSpaceId,
-                    onAddToQueueSpace = { spaceId -> viewModel.addTracksToQueueSpace(spaceId, listOf(target)) },
+                    onAddToQueue = { viewModel.addTracksToQueue(listOf(target)) },
                     onAddToPlaylist = { trackActionPlaylistTarget = target },
                     onRemoveFromQueue = queueRemovalTarget?.takeIf { it.removable }?.let { removal ->
                         {
@@ -7049,12 +7029,6 @@ private fun QueueOverlay(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onToggleFavorite: (Track) -> Unit,
-    onSwitchQueueSpace: (String) -> Unit,
-    onCreateQueueSpace: (String) -> Unit,
-    onRenameQueueSpace: (String, String) -> Unit,
-    onDuplicateQueueSpace: (String) -> Unit,
-    onClearQueueSpace: (String) -> Unit,
-    onDeleteQueueSpace: (String) -> Unit,
     onRemove: (QueueRemovalTarget) -> Unit,
     onRemoveSelected: (List<Int>) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -7074,7 +7048,6 @@ private fun QueueOverlay(
     val queueAccent = rememberNowPlayingAccent(state.currentTrack, LevyraCyan)
     var selectedQueueKeys by rememberSaveable(stateSaver = queueSelectionSaver) { mutableStateOf(emptySet<String>()) }
     var addToPlaylistTracks by remember { mutableStateOf(emptyList<Track>()) }
-    var showQueueSpaces by rememberSaveable { mutableStateOf(false) }
     var queueEntries by remember(state.activeQueueSpaceId) { mutableStateOf(buildQueueEntries(state.queue)) }
 
     val currentEntries = remember(state.queue, queueEntries) {
@@ -7335,7 +7308,6 @@ private fun QueueOverlay(
                     QueueReferenceCurrentTrack(
                         track = playingTrack,
                         isFavorite = playingTrack.id in state.favoriteIds,
-                        onManageSpaces = { showQueueSpaces = true },
                         onToggleFavorite = { onToggleFavorite(playingTrack) },
                         onMore = {
                             onTrackActions(
@@ -7351,7 +7323,6 @@ private fun QueueOverlay(
                 QueueReferenceModeControls(
                     shuffleEnabled = state.shuffleEnabled,
                     repeatMode = state.repeatMode,
-                    onManageSpaces = { showQueueSpaces = true },
                     onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
                     onShuffle = onToggleShuffle,
                     onRepeat = onToggleRepeat
@@ -7411,7 +7382,6 @@ private fun QueueOverlay(
                 onTogglePlay = onTogglePlay,
                 onNext = onNext,
                 onSeek = onSeek,
-                onManageSpaces = { showQueueSpaces = true },
                 onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
                 onClose = onClose,
                 modifier = Modifier.fillMaxWidth()
@@ -7437,28 +7407,6 @@ private fun QueueOverlay(
                 onDownload = { onDownloadSelected(selectedTracks); selectedQueueKeys = emptySet() },
                 onRemove = { onRemoveSelected(removableIndices); selectedQueueKeys = emptySet() }
             )
-        }
-    }
-
-    if (showQueueSpaces) {
-        ModalBottomSheet(onDismissRequest = { showQueueSpaces = false }) {
-            Box(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                QueueSpacesPanel(
-                    spaces = state.queueSpaces,
-                    activeSpaceId = state.activeQueueSpaceId,
-                    switching = state.queueSwitching,
-                    accent = queueAccent,
-                    onSwitch = { id -> onSwitchQueueSpace(id); showQueueSpaces = false },
-                    onCreate = onCreateQueueSpace,
-                    onRename = onRenameQueueSpace,
-                    onDuplicate = onDuplicateQueueSpace,
-                    onClear = onClearQueueSpace,
-                    onDelete = onDeleteQueueSpace,
-                    playlistLoadingSpaceId = state.queuePlaylistLoadingSpaceId,
-                    onSaveAsPlaylist = onPrepareQueuePlaylist
-                )
-            }
-            Spacer(Modifier.navigationBarsPadding().height(12.dp))
         }
     }
 
@@ -7547,7 +7495,6 @@ private fun QueueReferenceArtworkBackdrop(
 private fun QueueReferenceCurrentTrack(
     track: Track,
     isFavorite: Boolean,
-    onManageSpaces: () -> Unit,
     onToggleFavorite: () -> Unit,
     onMore: () -> Unit
 ) {
@@ -7561,7 +7508,6 @@ private fun QueueReferenceCurrentTrack(
             Text(track.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(track.artist, color = Color.White.copy(alpha = 0.70f), fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        QueueReferenceHeaderAction(Icons.Rounded.AddCircleOutline, "Manage queue spaces", onManageSpaces)
         QueueReferenceHeaderAction(if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder, "Favorite", onToggleFavorite)
         QueueReferenceHeaderAction(Icons.Rounded.MoreVert, "More", onMore)
     }
@@ -7578,7 +7524,6 @@ private fun QueueReferenceHeaderAction(icon: ImageVector, label: String, onClick
 private fun QueueReferenceModeControls(
     shuffleEnabled: Boolean,
     repeatMode: PlaybackRepeatMode,
-    onManageSpaces: () -> Unit,
     onSaveQueue: () -> Unit,
     onShuffle: () -> Unit,
     onRepeat: () -> Unit
@@ -7587,7 +7532,6 @@ private fun QueueReferenceModeControls(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        QueueReferenceModeButton(Icons.Rounded.Info, "Manage queues", active = false, onClick = onManageSpaces, modifier = Modifier.weight(1f))
         QueueReferenceModeButton(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", active = false, onClick = onSaveQueue, modifier = Modifier.weight(1f))
         QueueReferenceModeButton(Icons.Rounded.Shuffle, "Shuffle", active = shuffleEnabled, onClick = onShuffle, modifier = Modifier.weight(1f))
         QueueReferenceModeButton(if (repeatMode == PlaybackRepeatMode.One) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat, "Repeat", active = repeatMode != PlaybackRepeatMode.Off, onClick = onRepeat, modifier = Modifier.weight(1f))
@@ -7653,7 +7597,6 @@ private fun QueueReferencePlaybackRail(
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
     onSeek: (Float) -> Unit,
-    onManageSpaces: () -> Unit,
     onSaveQueue: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -7717,7 +7660,6 @@ private fun QueueReferencePlaybackRail(
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.QueueMusic, "Manage queues", onManageSpaces)
             CastRouteButton(modifier = Modifier.size(46.dp))
             QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", onSaveQueue)
             QueueReferenceHeaderAction(Icons.Rounded.Close, "Close queue", onClose)
@@ -10791,7 +10733,7 @@ private fun HomeScreen(
                             currentId = state.currentTrack?.id,
                             isPlaying = state.isPlaying,
                             isResolving = state.isResolving,
-                            onPlay = { track -> viewModel.playFrom(quickPicks.tracks, track) },
+                            onPlay = { track -> viewModel.play(track) },
                             onPlayAll = { viewModel.playAll(quickPicks.tracks) },
                             onTrackActions = onTrackActions
                         )
@@ -11374,6 +11316,7 @@ private fun StudioHomeScreen(
                 )
             }
         val skinHomeActions = AppleMusicHomeActions(
+                play = homeContext.viewModel::play,
                 playFrom = { tracks, track -> homeContext.viewModel.playFrom(tracks, track) },
                 playAll = { tracks -> homeContext.viewModel.playAll(tracks) },
                 openAlbum = homeContext.viewModel::openAlbum,
@@ -12303,7 +12246,7 @@ private fun LazyListScope.homeStudioSectionQuickPicks(c: StudioHomeContext) {
                             currentId = state.currentTrack?.id,
                             isPlaying = state.isPlaying,
                             actionsLabel = strings.songOptions,
-                            onPlay = { track -> viewModel.playFrom(quickPicks.tracks, track) },
+                            onPlay = { track -> viewModel.play(track) },
                             onPlayAll = { viewModel.playAll(quickPicks.tracks) },
                             onActions = onTrackActions,
                             modifier = studioItemModifier()
@@ -12320,7 +12263,7 @@ private fun LazyListScope.homeStudioSectionQuickPicks(c: StudioHomeContext) {
                                 currentId = state.currentTrack?.id,
                                 isPlaying = state.isPlaying,
                                 isResolving = state.isResolving,
-                                onPlay = { track -> viewModel.playFrom(quickPicks.tracks, track) },
+                                onPlay = { track -> viewModel.play(track) },
                                 onPlayAll = { viewModel.playAll(quickPicks.tracks) },
                                 onTrackActions = onTrackActions
                             )

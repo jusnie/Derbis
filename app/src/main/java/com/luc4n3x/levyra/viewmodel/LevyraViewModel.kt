@@ -336,8 +336,6 @@ import com.luc4n3x.levyra.data.locallibrary.LocalScanMode
 import com.luc4n3x.levyra.data.locallibrary.buildLocalLibraryCatalog
 import com.luc4n3x.levyra.data.locallibrary.toLocalTrack
 import com.luc4n3x.levyra.player.queue.QueueSpaceSummary
-import com.luc4n3x.levyra.player.queue.shouldPromptForQueueDestination
-import com.luc4n3x.levyra.player.queue.mergePendingQueueDestinationTracks
 import com.luc4n3x.levyra.player.queue.PlaybackQueueSnapshot
 import com.luc4n3x.levyra.player.queue.RadioSession
 import com.luc4n3x.levyra.player.queue.radioMixContext
@@ -6807,17 +6805,8 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun addToQueue(track: Track) {
         if (routeJamAction(JamAction.AddTrack(toJamTrack(track)))) return
-        if (shouldPromptForQueueDestination(_state.value.queueSpaces)) {
-            _state.update { current ->
-                current.copy(
-                    pendingQueueAddTracks = mergePendingQueueDestinationTracks(
-                        current.pendingQueueAddTracks,
-                        listOf(track)
-                    )
-                )
-            }
-            return
-        }
+        // Queue folders are no longer an interaction path: additions always belong to the active
+        // Now Playing queue, including for users who still have legacy saved queue spaces.
         addToQueueLocal(track)
     }
 

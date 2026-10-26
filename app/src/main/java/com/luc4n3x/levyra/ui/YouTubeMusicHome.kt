@@ -395,7 +395,7 @@ private fun dailyDiscoveryBlock(data: AppleMusicHomeData, copy: YouTubeMusicSkin
                         YouTubeMusicDiscoveryCard("daily-${track.id}", track.title, track.artist, "", "", track)
                     }
                 },
-                onOpen = { track -> actions.playFrom(tracks, track) },
+                onOpen = actions.play,
                 onLongClick = actions.onTrackActions
             )
         }

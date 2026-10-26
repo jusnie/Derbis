@@ -201,6 +201,8 @@ class HomeViewModel internal constructor(
     fun removeSpeedDialPin(key: String) = root.removeSpeedDialPin(key)
     fun reorderSpeedDial(orderedKeys: List<String>) = root.reorderSpeedDial(orderedKeys)
     fun openYoutubeCommentsFor(track: Track) = root.openYoutubeCommentsFor(track)
+    /** Starts an individual discovery song as its own Endless Listening seed. */
+    fun play(track: Track) = root.play(track)
     fun playAll(tracks: List<Track>) = root.playAll(tracks)
     fun playLiveRadio(station: RadioStation) = root.playLiveRadio(station)
     internal val favoriteRadioStations = root.favoriteRadioStations
@@ -307,6 +309,8 @@ class SearchViewModel(root: LevyraViewModel) : LevyraScreenViewModel(root, ::sea
 }
 
 class ExploreViewModel(root: LevyraViewModel) : LevyraScreenViewModel(root, ::exploreProjection) {
+    /** Starts an individual discovery song as its own Endless Listening seed. */
+    fun play(track: Track) = root.play(track)
     fun playVideoFrom(list: List<Track>, track: Track) = root.playVideoFrom(list, track)
     fun consumeExploreOpenRequest() = root.consumeExploreOpenRequest()
     private var mixPresentationJob: Job? = null

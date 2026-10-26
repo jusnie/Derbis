@@ -40,6 +40,7 @@ import com.luc4n3x.levyra.viewmodel.AppleMusicEditorialViewModel
 internal class AppleMusicHomeCollection(val id: String, val title: String, val tracks: List<Track>)
 
 internal class AppleMusicHomeActions(
+    val play: (Track) -> Unit,
     val playFrom: (List<Track>, Track) -> Unit,
     val playAll: (List<Track>) -> Unit,
     val openAlbum: (AlbumHit) -> Unit,
@@ -309,7 +310,17 @@ private fun appleMusicLevyraBlocks(
     songsBlock(TOP50_KEY, data.chartsTitle, data.charts, data, actions, copy.explicit, openCharts, limit = 20),
     soundtrackBlock(data.soundtrack),
     songsBlock("derbis-orbit", strings.personalOrbitTitle, data.personalTracks.takeIf { data.showPersonal }.orEmpty(), data, actions, copy.explicit),
-    data.quickPicks?.let { section -> songsBlock("derbis-quick-picks", section.title.ifBlank { strings.quickPicks }, section.tracks, data, actions, copy.explicit) },
+    data.quickPicks?.let { section ->
+        songsBlock(
+            "derbis-quick-picks",
+            section.title.ifBlank { strings.quickPicks },
+            section.tracks,
+            data,
+            actions,
+            copy.explicit,
+            startRadioFromSelection = true
+        )
+    },
     cardsBlock("derbis-albums", strings.albumsForYou, data.albums.takeIf { data.showAlbums }.orEmpty().map { album ->
         AppleMusicCardModel("album-${album.title}-${album.artist}", album.title, album.artist, album.thumbnailUrl, album.explicit) { actions.openAlbum(album) }
     }, copy.explicit),
@@ -335,13 +346,23 @@ private fun songsBlock(
     actions: AppleMusicHomeActions,
     explicitLabel: String,
     onSeeAll: (() -> Unit)? = null,
-    limit: Int = tracks.size
+    limit: Int = tracks.size,
+    startRadioFromSelection: Boolean = false
 ): AppleHomeBlock? {
     if (tracks.isEmpty()) return null
     return key to @Composable {
         Column {
             AppleMusicSectionHeader(title, onSeeAll)
-            AppleMusicSongColumns(tracks.take(limit), 4, data.currentId, explicitLabel, { track -> actions.playFrom(tracks, track) }, actions.onTrackActions)
+            AppleMusicSongColumns(
+                tracks.take(limit),
+                4,
+                data.currentId,
+                explicitLabel,
+                { track ->
+                    if (startRadioFromSelection) actions.play(track) else actions.playFrom(tracks, track)
+                },
+                actions.onTrackActions
+            )
         }
     }
 }

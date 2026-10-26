@@ -174,6 +174,7 @@ internal fun youTubeMusicExploreActions(
     onTrackActions: (Track) -> Unit
 ): YouTubeMusicHomeActions = YouTubeMusicHomeActions(
     home = AppleMusicHomeActions(
+        play = viewModel::play,
         playFrom = { tracks, track -> viewModel.playFrom(tracks, track) },
         playAll = viewModel::playAll,
         openAlbum = viewModel::openAlbum,
