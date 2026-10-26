@@ -98,6 +98,8 @@ import com.luc4n3x.levyra.ui.album.AlbumStageColors
 import com.luc4n3x.levyra.ui.album.albumContentGutter
 import com.luc4n3x.levyra.ui.album.albumStageColors
 import com.luc4n3x.levyra.ui.components.LevyraCardCaption
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.LevyraGlassSurface
 import com.luc4n3x.levyra.ui.components.LevyraDockProgress
 import com.luc4n3x.levyra.ui.components.LevyraRowText
 import com.luc4n3x.levyra.ui.components.levyraDockSurface
@@ -7147,7 +7149,7 @@ private fun QueueOverlay(
                     .fillMaxWidth()
                     // Queue songs are intentionally a flat list: no card outline, rounded shell,
                     // or individual tile chrome. Selection uses a quiet full-width wash instead.
-                    .background(if (rowSelected) Color.White.copy(alpha = 0.11f) else Color.Transparent)
+                    .then(if (rowSelected) Modifier.background(Color.White.copy(alpha = 0.11f)) else Modifier)
                     .levyraPressable(
                         onClick = {
                             if (selectionActive) selectedQueueKeys = if (rowSelected) selectedQueueKeys - entry.key else selectedQueueKeys + entry.key
@@ -7253,11 +7255,39 @@ private fun QueueOverlay(
                             }
                         )
                     }
+                    // Keep delete and the overflow menu as two unambiguous, separate controls.
+                    // The song currently playing remains protected from direct removal.
+                    if (!isCurrent) {
+                        IconButton(
+                            onClick = {
+                                latestRemove(
+                                    QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = true)
+                                )
+                            },
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = strings.remove,
+                                tint = Color.White.copy(alpha = 0.84f),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
                     IconButton(
-                        onClick = { onTrackActions(QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = !isCurrent)) },
+                        onClick = {
+                            onTrackActions(
+                                QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = !isCurrent)
+                            )
+                        },
                         modifier = reorderModifier.size(42.dp)
                     ) {
-                        Icon(Icons.Rounded.MoreVert, strings.options, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(25.dp))
+                        Icon(
+                            Icons.Rounded.MoreVert,
+                            contentDescription = strings.options,
+                            tint = Color.White.copy(alpha = 0.96f),
+                            modifier = Modifier.size(25.dp)
+                        )
                     }
                 }
             }
@@ -7266,26 +7296,49 @@ private fun QueueOverlay(
 
     BackHandler(enabled = selectionActive) { selectedQueueKeys = emptySet() }
 
+    val queueGlassBlurAllowed = rememberGlassBlurAllowed()
+    val queueGlass = rememberGlassBackdropState(
+        enabled = state.interfaceSettings.liquidGlassEnabled &&
+            state.animationsEnabled &&
+            queueGlassBlurAllowed
+    )
+
     val currentTrack = state.currentTrack ?: currentQueueEntry?.track
     val queueFocusTrack = upcomingEntries.firstOrNull()?.track ?: currentTrack
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        queueAccent.copy(alpha = 0.58f).compositeOver(Color(0xFF17323A)),
-                        queueAccent.copy(alpha = 0.30f).compositeOver(Color(0xFF18343A)),
-                        Color(0xFF17282E),
-                        Color(0xFF0D1518)
+    CompositionLocalProvider(LocalGlassBackdrop provides queueGlass) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(LevyraHorizontalSafeInsets)
+        ) {
+            // This source is the static queue backdrop only. The fixed rail samples it when
+            // Liquid Glass is available, so scrolling songs do not re-record a blur layer.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                queueAccent.copy(alpha = 0.58f).compositeOver(Color(0xFF17323A)),
+                                queueAccent.copy(alpha = 0.30f).compositeOver(Color(0xFF18343A)),
+                                Color(0xFF17282E),
+                                Color(0xFF0D1518)
+                            )
+                        )
                     )
-                )
+                    .glassBackdropSource(queueGlass)
             )
-            .windowInsetsPadding(LevyraHorizontalSafeInsets)
-    ) {
-        LazyColumn(
+
+            LazyColumn(
             modifier = Modifier.fillMaxSize().statusBarsPadding(),
-            contentPadding = PaddingValues(start = 26.dp, end = 26.dp, top = 12.dp, bottom = if (selectionActive) 252.dp else 226.dp),
+            contentPadding = PaddingValues(
+                start = 26.dp,
+                end = 26.dp,
+                top = 12.dp,
+                // The player is a fixed overlay. Reserve its full height so the end of the
+                // scrollable song-only list clears the time/progress and transport area.
+                bottom = if (selectionActive) 308.dp else 278.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item(contentType = "queue-grabber") {
@@ -7348,9 +7401,9 @@ private fun QueueOverlay(
                     queueTrackRow(index, entry, Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade))
                 }
             }
-        }
+            }
 
-        QueueReferencePlaybackRail(
+            QueueReferencePlaybackRail(
             state = state,
             onPrevious = onPrevious,
             onTogglePlay = onTogglePlay,
@@ -7378,6 +7431,7 @@ private fun QueueOverlay(
                 onDownload = { onDownloadSelected(selectedTracks); selectedQueueKeys = emptySet() },
                 onRemove = { onRemoveSelected(removableIndices); selectedQueueKeys = emptySet() }
             )
+            }
         }
     }
 
@@ -7556,13 +7610,29 @@ private fun QueueReferencePlaybackRail(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        color = Color(0xE8121B1F),
-        contentColor = Color.White,
-        modifier = modifier.fillMaxWidth()
+    // This is a fixed sibling of the LazyColumn: it uses a sampled Liquid Glass blur when
+    // supported, otherwise an opaque smoked fallback. Either way the runtime area is isolated
+    // from list scrolling and never permits touches to pass through to songs underneath.
+    LevyraGlassSurface(
+        modifier = modifier.fillMaxWidth().zIndex(1f),
+        shape = RectangleShape,
+        baseTint = Color(0xFF102A34),
+        fallbackColor = Color(0xFF091318),
+        fallbackBorderColor = Color.Transparent,
+        intensity = LevyraGlassIntensity.Strong
     ) {
         Column(
-            modifier = Modifier.navigationBarsPadding().padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0xB816303A),
+                        0.18f to Color(0xC10E2028),
+                        1f to Color(0xE9091318)
+                    )
+                )
+                .navigationBarsPadding()
+                .padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             AppleMusicSeekbar(state.positionMs, state.bufferedPositionMs, state.durationMs, onSeek)
@@ -8105,6 +8175,11 @@ private fun LyricsOverlay(
             onTogglePlay = onTogglePlay,
             onNext = onNext,
             onToggleFavorite = onToggleFavorite,
+            onShareLyrics = { activeLine ->
+                val shareLine = activeLine?.takeIf(::isLyricsShareSelectable)
+                    ?: visibleLyrics.firstOrNull(::isLyricsShareSelectable)
+                shareSnapshot = lyricsShareSnapshot(track, listOfNotNull(shareLine))
+            },
             onOpenQueue = onOpenQueue,
             onOpenOptions = { showLyricsOptions = true },
             lyricsOffsetMs = lyricsOffsetMs,
@@ -8774,6 +8849,7 @@ private fun AppleMusic13FullscreenLyrics(
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
     onToggleFavorite: (Track) -> Unit,
+    onShareLyrics: (LyricLine?) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit,
     lyricsOffsetMs: Long,
@@ -8786,7 +8862,6 @@ private fun AppleMusic13FullscreenLyrics(
     val track = state.currentTrack
     val lyrics = state.lyrics
     val listState = rememberLazyListState()
-    val context = LocalContext.current
     val clock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
@@ -8927,29 +9002,9 @@ private fun AppleMusic13FullscreenLyrics(
                 IconButton(
                     onClick = {
                         wakeCluster()
-                        track?.let { active ->
-                            val activeLyric = lyrics.getOrNull(activeIndex)
-                            val body = buildString {
-                                append("${active.title} — ${active.artist}".trim(' ', '—'))
-                                activeLyric?.text?.takeIf(String::isNotBlank)?.let { lyric ->
-                                    append("\n\n").append(lyric)
-                                    if (showTranslation && activeLyric.translated.isNotBlank()) {
-                                        append("\n").append(activeLyric.translated)
-                                    }
-                                }
-                            }
-                            context.startActivity(
-                                Intent.createChooser(
-                                    Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, body)
-                                    },
-                                    strings.share
-                                )
-                            )
-                        }
+                        onShareLyrics(lyrics.getOrNull(activeIndex))
                     },
-                    enabled = track != null
+                    enabled = track != null && lyrics.any(::isLyricsShareSelectable)
                 ) {
                     Icon(Icons.Rounded.Share, contentDescription = strings.share, tint = Color.White, modifier = Modifier.size(23.dp))
                 }
@@ -21687,8 +21742,8 @@ private fun SettingsOverlay(
                             item {
                                 SettingsToggle(
                                     icon = Icons.Rounded.Refresh,
-                                    title = "Force High Refresh Rate",
-                                    subtitle = "Request the fastest supported 90Hz / 120Hz mode for smooth scrolling; unsupported displays keep their normal rate.",
+                                    title = "Liquid Glass 90Hz / 120Hz",
+                                    subtitle = "Keep Liquid Glass and scrolling at the fastest supported 90Hz / 120Hz mode. It stays on after reopening until you turn it off.",
                                     checked = interfaceSettings.forceHighRefreshRate,
                                     onCheckedChange = { value ->
                                         onInterfaceSettings(interfaceSettings.copy(forceHighRefreshRate = value))
