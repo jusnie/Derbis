@@ -280,6 +280,7 @@ import com.luc4n3x.derbis.feature.jam.JamPlayerBridge
 import com.luc4n3x.derbis.feature.jam.JamRole
 import com.luc4n3x.derbis.feature.jam.JamSessionState
 import com.luc4n3x.derbis.feature.jam.JamTrack
+import com.luc4n3x.derbis.feature.jam.JamTransportMode
 import com.luc4n3x.derbis.feature.jam.JamUiState
 import com.luc4n3x.derbis.feature.recognition.RecognitionCatalogMatcher
 import com.luc4n3x.derbis.feature.recognition.RecognitionErrorKind
@@ -3622,9 +3623,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) { preferences.setJamDisplayName(trimmed) }
     }
 
-    fun createJam(permission: JamGuestPermission, approvalRequired: Boolean = true) {
+    fun createJam(
+        transportMode: JamTransportMode,
+        permission: JamGuestPermission,
+        approvalRequired: Boolean = true
+    ) {
         viewModelScope.launch {
-            jamController.createJam(jamDisplayNameOrDefault(), permission, approvalRequired)
+            jamController.createJam(
+                displayName = jamDisplayNameOrDefault(),
+                guestPermission = permission,
+                approvalRequired = approvalRequired,
+                transportMode = transportMode
+            )
         }
     }
 

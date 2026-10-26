@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 data class JamUiState(
     val role: JamRole? = null,
     val connection: JamConnectionState = JamConnectionState.Idle,
+    val transportMode: JamTransportMode? = null,
     val code: String = "",
     val deepLink: String = "",
     val session: JamSessionState? = null,
@@ -27,6 +28,7 @@ data class JamUiState(
 ) {
     val isActive: Boolean get() = role != null
     val isHost: Boolean get() = role == JamRole.Host
+    val isServerJam: Boolean get() = transportMode == JamTransportMode.Server
     val locked: Boolean get() = session?.locked == true
     val requireApproval: Boolean get() = session?.requireApproval == true
     val canControlPlayback: Boolean get() = isHost || permission.canControlPlayback
@@ -98,12 +100,17 @@ class JamController(
     suspend fun createJam(
         displayName: String,
         guestPermission: JamGuestPermission,
-        approvalRequired: Boolean = true
+        approvalRequired: Boolean = true,
+        transportMode: JamTransportMode = JamTransportMode.Lan
     ) {
         mutex.withLock {
             releaseLocked()
-            _state.value = JamUiState(role = JamRole.Host, connection = JamConnectionState.Connecting)
-            val transport = transports.host()
+            _state.value = JamUiState(
+                role = JamRole.Host,
+                connection = JamConnectionState.Connecting,
+                transportMode = transportMode
+            )
+            val transport = transports.host(transportMode)
             hostTransport = transport
             val code = transport.start(JamSessionCode.newSecret())
             if (code == null) {
@@ -124,6 +131,7 @@ class JamController(
             _state.value = JamUiState(
                 role = JamRole.Host,
                 connection = JamConnectionState.Connected,
+                transportMode = transportMode,
                 code = code.formatted(),
                 deepLink = code.deepLink(),
                 session = buildHostState(),
@@ -147,7 +155,12 @@ class JamController(
             joinedCode = code
             joinedName = JamProtocol.sanitizeName(displayName)
             joinedIdentity = JamIdentity.sanitize(guestIdentity)
-            _state.value = JamUiState(role = JamRole.Guest, connection = JamConnectionState.Connecting)
+            val transportMode = if (DerbisJamRelay.isRemoteCode(code)) JamTransportMode.Server else JamTransportMode.Lan
+            _state.value = JamUiState(
+                role = JamRole.Guest,
+                connection = JamConnectionState.Connecting,
+                transportMode = transportMode
+            )
             val transport = transports.guest()
             guestTransport = transport
             observeGuest(transport)

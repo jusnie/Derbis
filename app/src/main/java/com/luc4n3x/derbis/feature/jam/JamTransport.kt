@@ -56,5 +56,8 @@ interface JamGuestTransport {
 interface JamTransportFactory {
     fun host(): JamHostTransport
 
+    /** The default preserves custom/test factories while allowing production to honor the selected room type. */
+    fun host(mode: JamTransportMode): JamHostTransport = host()
+
     fun guest(): JamGuestTransport
 }

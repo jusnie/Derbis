@@ -21337,16 +21337,16 @@ private fun SettingsOverlay(
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 val remoteJamConfigured = com.luc4n3x.derbis.feature.jam.DerbisJamRelay.isConfigured
                                 Text(
-                                    if (remoteJamConfigured) "Listen together from any distance" else strings.jamSubtitle,
+                                    if (remoteJamConfigured) "Choose LAN Jam or Server Jam for each room" else strings.jamSubtitle,
                                     color = DerbisMuted,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     if (remoteJamConfigured) {
-                                        "Remote rooms are enabled. Each listener streams from their own available source."
+                                        "Server Jam is available through the Derbis Jam relay; LAN Jam remains available for the same Wi-Fi network. Each listener streams from their own available source."
                                     } else {
-                                        "Remote rooms will be enabled once the Derbis Jam relay is configured for this build."
+                                        "LAN Jam is available on the same Wi-Fi network. Server Jam is enabled only when this build is configured with the Derbis Jam relay."
                                     },
                                     color = DerbisMuted,
                                     fontSize = 12.sp,

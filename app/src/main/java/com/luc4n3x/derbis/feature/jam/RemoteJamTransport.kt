@@ -435,9 +435,16 @@ internal class RemoteJamGuestTransport : JamGuestTransport {
     }
 }
 
-/** Uses remote rooms whenever a relay URL is injected, while retaining LAN Jam as a safe fallback. */
+/** Hosts honor the listener's LAN or Server choice; guests still select from the room code. */
 internal object DerbisJamTransportFactory : JamTransportFactory {
-    override fun host(): JamHostTransport = if (DerbisJamRelay.isConfigured) RemoteJamHostTransport() else LanJamHostTransport()
+    override fun host(): JamHostTransport = host(
+        if (DerbisJamRelay.isConfigured) JamTransportMode.Server else JamTransportMode.Lan
+    )
+
+    override fun host(mode: JamTransportMode): JamHostTransport = when (mode) {
+        JamTransportMode.Lan -> LanJamHostTransport()
+        JamTransportMode.Server -> RemoteJamHostTransport()
+    }
 
     override fun guest(): JamGuestTransport = AdaptiveJamGuestTransport()
 }

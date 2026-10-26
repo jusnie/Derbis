@@ -76,6 +76,7 @@ import com.luc4n3x.derbis.feature.jam.JamPendingParticipant
 import com.luc4n3x.derbis.feature.jam.JamSessionState
 import com.luc4n3x.derbis.feature.jam.JamSessionCode
 import com.luc4n3x.derbis.feature.jam.JamTrack
+import com.luc4n3x.derbis.feature.jam.JamTransportMode
 import com.luc4n3x.derbis.feature.jam.JamUiState
 import com.luc4n3x.derbis.ui.i18n.DerbisStrings
 import com.luc4n3x.derbis.ui.i18n.LocalDerbisStrings
@@ -91,7 +92,7 @@ internal fun DerbisJamOverlay(
     jam: JamUiState,
     displayName: String,
     onDisplayNameChange: (String) -> Unit,
-    onCreate: (JamGuestPermission, Boolean) -> Unit,
+    onCreate: (JamTransportMode, JamGuestPermission, Boolean) -> Unit,
     onJoin: (String) -> Unit,
     onLeave: () -> Unit,
     onEnd: () -> Unit,
@@ -109,8 +110,10 @@ internal fun DerbisJamOverlay(
     val strings = LocalDerbisStrings.current
     val remoteJamConfigured = remember { DerbisJamRelay.isConfigured }
     var joinCode by rememberSaveable { mutableStateOf("") }
+    var pendingTransportModeId by rememberSaveable { mutableStateOf(JamTransportMode.Lan.id) }
     var pendingPermissionId by rememberSaveable { mutableStateOf(JamGuestPermission.AddSongs.id) }
     var pendingApproval by rememberSaveable { mutableStateOf(true) }
+    val selectedTransportMode = JamTransportMode.fromId(pendingTransportModeId)
     val selectedPermission = JamGuestPermission.fromId(pendingPermissionId)
     val session = jam.session
     val participants = session?.participants.orEmpty()
@@ -145,7 +148,11 @@ internal fun DerbisJamOverlay(
             item(contentType = "jam-header") {
                 JamHeader(
                     title = strings.jamTitle,
-                    subtitle = if (remoteJamConfigured) "Listen together from any distance" else strings.jamSubtitle,
+                    subtitle = if (remoteJamConfigured) {
+                        "Choose LAN Jam or Server Jam when you create a room."
+                    } else {
+                        strings.jamSubtitle
+                    },
                     onClose = onClose
                 )
             }
@@ -176,6 +183,12 @@ internal fun DerbisJamOverlay(
                 item(contentType = "jam-create") {
                     JamCard {
                         JamCardTitle(strings.jamCreate)
+                        JamConnectionModePicker(
+                            selected = selectedTransportMode,
+                            serverAvailable = remoteJamConfigured,
+                            onSelect = { pendingTransportModeId = it.id }
+                        )
+                        JamCardTitle(strings.jamPermissions)
                         JamPermissionPicker(
                             selected = selectedPermission,
                             strings = strings,
@@ -188,8 +201,8 @@ internal fun DerbisJamOverlay(
                             onCheckedChange = { pendingApproval = it }
                         )
                         JamPrimaryButton(
-                            label = strings.jamCreate,
-                            onClick = { onCreate(selectedPermission, pendingApproval) }
+                            label = "Create ${jamTransportLabel(selectedTransportMode)}",
+                            onClick = { onCreate(selectedTransportMode, selectedPermission, pendingApproval) }
                         )
                     }
                 }
@@ -218,9 +231,9 @@ internal fun DerbisJamOverlay(
                         )
                         Text(
                             if (remoteJamConfigured) {
-                                "Remote Jam is active. Everyone plays from their own available music source."
+                                "Paste a LAN Jam or Server Jam code. Derbis detects the room type automatically; everyone plays from their own available music source."
                             } else {
-                                "Remote Jam will be available when this build is connected to the Derbis Jam relay."
+                                "Paste a LAN Jam code. Server Jam is unavailable until this build is connected to the Derbis Jam relay."
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall
@@ -447,6 +460,9 @@ private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () 
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
+                jam.transportMode?.let { transportMode ->
+                    JamBadge(label = jamTransportLabel(transportMode))
+                }
                 if (jam.isHost && jam.locked) {
                     JamBadge(label = strings.jamLocked, icon = Icons.Rounded.Lock)
                 }
@@ -746,6 +762,66 @@ private fun JamEmptyRow(text: String) {
 }
 
 @Composable
+private fun JamConnectionModePicker(
+    selected: JamTransportMode,
+    serverAvailable: Boolean,
+    onSelect: (JamTransportMode) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.selectableGroup()
+    ) {
+        JamTransportMode.entries.forEach { mode ->
+            val active = mode == selected
+            val enabled = mode != JamTransportMode.Server || serverAvailable
+            Surface(
+                enabled = enabled,
+                color = when {
+                    active -> MaterialTheme.colorScheme.primaryContainer
+                    enabled -> MaterialTheme.colorScheme.surfaceContainer
+                    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.52f)
+                },
+                contentColor = when {
+                    active -> MaterialTheme.colorScheme.onPrimaryContainer
+                    enabled -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
+                },
+                shape = if (active) MaterialShapes.Cookie4Sided.toShape() else MaterialTheme.shapes.large,
+                onClick = { onSelect(mode) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 72.dp)
+                    .semantics {
+                        this.role = Role.RadioButton
+                        this.selected = active
+                    }
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            jamTransportLabel(mode),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (active) {
+                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    Text(
+                        jamTransportDescription(mode, serverAvailable),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun JamPermissionPicker(
     selected: JamGuestPermission,
     strings: DerbisStrings,
@@ -960,6 +1036,20 @@ private fun jamPermissionLabel(permission: JamGuestPermission, strings: DerbisSt
     JamGuestPermission.HostOnly -> strings.jamPermissionHostOnly
     JamGuestPermission.AddSongs -> strings.jamPermissionAddSongs
     JamGuestPermission.Collaborative -> strings.jamPermissionCollaborative
+}
+
+private fun jamTransportLabel(mode: JamTransportMode): String = when (mode) {
+    JamTransportMode.Lan -> "LAN Jam"
+    JamTransportMode.Server -> "Server Jam"
+}
+
+private fun jamTransportDescription(mode: JamTransportMode, serverAvailable: Boolean): String = when (mode) {
+    JamTransportMode.Lan -> "For people connected to the same Wi-Fi network."
+    JamTransportMode.Server -> if (serverAvailable) {
+        "Hosted through the Derbis Jam server so friends can join from anywhere."
+    } else {
+        "Unavailable because this build has no Derbis Jam server configured."
+    }
 }
 
 private fun jamConnectionText(state: JamConnectionState, strings: DerbisStrings): String = when (state) {

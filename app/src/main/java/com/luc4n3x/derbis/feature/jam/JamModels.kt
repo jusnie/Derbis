@@ -5,6 +5,17 @@ enum class JamRole {
     Guest
 }
 
+/** The host chooses whether a room stays on the local network or uses the configured relay. */
+enum class JamTransportMode(val id: String) {
+    Lan("lan"),
+    Server("server");
+
+    companion object {
+        fun fromId(value: String?): JamTransportMode =
+            entries.firstOrNull { it.id.equals(value?.trim(), ignoreCase = true) } ?: Lan
+    }
+}
+
 enum class JamGuestPermission(val id: String) {
     HostOnly("host_only"),
     AddSongs("add_songs"),

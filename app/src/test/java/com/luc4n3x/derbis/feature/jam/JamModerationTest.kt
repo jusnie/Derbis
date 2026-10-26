@@ -18,12 +18,14 @@ class JamModerationTest {
     private val scope = CoroutineScope(Dispatchers.Unconfined)
     private val host = FakeHostTransport()
     private val guest = FakeGuestTransport()
+    private var selectedHostTransport: JamTransportMode? = null
     private val bridge = FakeBridge()
     private val controller = JamController(
         scope = scope,
         bridge = bridge,
         transports = object : JamTransportFactory {
             override fun host(): JamHostTransport = host
+            override fun host(mode: JamTransportMode): JamHostTransport = host.also { selectedHostTransport = mode }
             override fun guest(): JamGuestTransport = guest
         },
         elapsedMs = { 1_000L },
@@ -34,6 +36,19 @@ class JamModerationTest {
     fun tearDown() {
         controller.close()
         scope.cancel()
+    }
+
+    @Test
+    fun hostCanExplicitlyChooseLanOrServerJam() = runBlocking {
+        createHostSession(approvalRequired = true, transportMode = JamTransportMode.Lan)
+        assertEquals(JamTransportMode.Lan, selectedHostTransport)
+        assertEquals(JamTransportMode.Lan, controller.state.value.transportMode)
+
+        controller.endJam()
+
+        createHostSession(approvalRequired = true, transportMode = JamTransportMode.Server)
+        assertEquals(JamTransportMode.Server, selectedHostTransport)
+        assertEquals(JamTransportMode.Server, controller.state.value.transportMode)
     }
 
     @Test
@@ -263,9 +278,15 @@ class JamModerationTest {
 
     private suspend fun createHostSession(
         approvalRequired: Boolean,
-        permission: JamGuestPermission = JamGuestPermission.AddSongs
+        permission: JamGuestPermission = JamGuestPermission.AddSongs,
+        transportMode: JamTransportMode = JamTransportMode.Lan
     ) {
-        controller.createJam("Host", permission, approvalRequired)
+        controller.createJam(
+            displayName = "Host",
+            guestPermission = permission,
+            approvalRequired = approvalRequired,
+            transportMode = transportMode
+        )
         assertEquals(JamRole.Host, controller.state.value.role)
     }
 
