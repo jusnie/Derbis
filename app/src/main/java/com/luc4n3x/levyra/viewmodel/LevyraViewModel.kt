@@ -403,7 +403,8 @@ import java.util.concurrent.atomic.AtomicReference
 private const val ARTIST_PROFILE_UNAVAILABLE_ERROR = "artist_profile_unavailable"
 private const val ARTIST_INITIAL_BIOGRAPHY_WAIT_MS = 250L
 private const val RADIO_TAIL_MAX_APPEND_ROUNDS = 3
-private const val RADIO_MIX_LIMIT = 15
+// Matches the 24-track endless tail: three engine append rounds can retain a scrollable queue.
+private const val RADIO_MIX_LIMIT = 30
 private const val RADIO_START_TRACKS = 20
 private const val RADIO_START_FETCH = 30
 private const val EXPLORE_SHORTS_FEED_LIMIT = 24

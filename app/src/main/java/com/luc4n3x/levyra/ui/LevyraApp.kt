@@ -7134,12 +7134,10 @@ private fun QueueOverlay(
             state = dismissState,
             enableDismissFromStartToEnd = false,
             enableDismissFromEndToStart = !isCurrent && !selectionActive,
-            backgroundContent = {
-                Box(
-                    Modifier.fillMaxSize().background(LevyraPink.copy(alpha = 0.28f)).padding(horizontal = 22.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) { Icon(Icons.Rounded.Delete, strings.remove, tint = Color.White) }
-            },
+            // A transparent foreground must not reveal a permanent dismiss backdrop. The upstream
+            // queue is a flat text-and-artwork list; removal remains available through swipe/menu
+            // without leaving a colored card or trash glyph visible at rest.
+            backgroundContent = { Box(Modifier.fillMaxSize()) },
             modifier = rowModifier.fillMaxWidth()
         ) {
             Row(
