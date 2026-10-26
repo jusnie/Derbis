@@ -8857,14 +8857,15 @@ private fun AppleMusic13FullscreenLyrics(
                             }
                     ) {
                         if (state.lyricsSynced && line.words.isNotEmpty()) {
-                            AppleMusic13LiquidKaraokeText(
+                            AppleMusic13WordByWordLyrics(
                                 line = line,
                                 positionProvider = {
                                     lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs)
                                 },
                                 isActive = active,
                                 inactiveColor = lineColor,
-                                glowColor = accentEnd
+                                glowColor = accentEnd,
+                                animationsEnabled = state.animationsEnabled
                             )
                         } else {
                             Text(
@@ -9071,45 +9072,97 @@ private fun AppleMusic13FullscreenLyrics(
 }
 
 /**
- * Apple Music 13's karaoke treatment keeps the active word on the real playback clock.
- * KaraokeWordTimedText reveals the completed glyphs and the current glyph as one continuous
- * eased fill, so the glow flows straight into the following word instead of blinking or waiting.
+ * Apple Music 13 treats every timed word as a distinct lyric state rather than sweeping a
+ * karaoke fill across characters. A word changes as soon as its timestamp is reached, then
+ * eases its color, scale, and album-tinted halo into the following word without a dead beat.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AppleMusic13LiquidKaraokeText(
+private fun AppleMusic13WordByWordLyrics(
     line: com.luc4n3x.levyra.domain.LyricLine,
     positionProvider: () -> Long,
     isActive: Boolean,
     inactiveColor: Color,
-    glowColor: Color
+    glowColor: Color,
+    animationsEnabled: Boolean
 ) {
-    val textStyle = AppleMusicTypography.headlineLarge.copy(
+    val timedText = remember(line.text, line.words) { buildTimedLyricText(line.text, line.words) }
+    // Only the active line observes the playback clock. Inactive lines stay cheap and subdued.
+    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    val wordStyle = AppleMusicTypography.headlineLarge.copy(
         fontFamily = FontFamily.SansSerif,
         fontSize = 31.sp,
         lineHeight = 38.sp,
         fontWeight = FontWeight.Bold
     )
-    // The soft album-tinted halo travels with the same continuous glyph fill as the word timing.
-    KaraokeWordTimedText(
-        lineText = line.text,
-        words = line.words,
-        positionProvider = positionProvider,
-        isActive = isActive,
-        fontSize = textStyle.fontSize,
-        lineHeight = textStyle.lineHeight,
-        textAlign = TextAlign.Start,
-        inactiveColor = inactiveColor,
-        completedColor = Color.White,
-        activeColor = Color.White,
-        pendingColor = Color.White.copy(alpha = 0.38f),
-        fontWeight = textStyle.fontWeight ?: FontWeight.Bold,
-        fontFamily = textStyle.fontFamily,
-        shadow = Shadow(
-            color = lerp(Color.White, glowColor, 0.58f).copy(alpha = 0.82f),
-            blurRadius = 24f,
-            offset = Offset.Zero
-        )
+    val wordTransition = tween<Color>(
+        durationMillis = if (animationsEnabled) 115 else 0,
+        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
     )
+    val scaleTransition = tween<Float>(
+        durationMillis = if (animationsEnabled) 115 else 0,
+        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
+    )
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        var consumedCharacters = 0
+        timedText.words.forEach { timedWord ->
+            val wordEnd = (timedWord.startIndex + timedWord.length).coerceAtMost(timedText.text.length)
+            val segment = timedText.text.substring(consumedCharacters.coerceAtMost(wordEnd), wordEnd)
+            consumedCharacters = wordEnd
+            if (segment.isNotEmpty()) {
+                val currentWord = isActive && playbackPosition in timedWord.startMs until timedWord.endMs
+                val completedWord = isActive && playbackPosition >= timedWord.endMs
+                val targetColor = when {
+                    !isActive -> inactiveColor
+                    currentWord -> Color.White
+                    completedWord -> Color.White.copy(alpha = 0.92f)
+                    else -> Color.White.copy(alpha = 0.38f)
+                }
+                val wordColor by animateColorAsState(
+                    targetValue = targetColor,
+                    animationSpec = wordTransition,
+                    label = "apple-word-color"
+                )
+                val wordScale by animateFloatAsState(
+                    targetValue = if (currentWord) 1.045f else 1f,
+                    animationSpec = scaleTransition,
+                    label = "apple-word-scale"
+                )
+                Text(
+                    text = segment,
+                    color = wordColor,
+                    style = wordStyle.copy(
+                        shadow = if (currentWord) {
+                            Shadow(
+                                color = lerp(Color.White, glowColor, 0.58f).copy(alpha = 0.84f),
+                                blurRadius = 24f,
+                                offset = Offset.Zero
+                            )
+                        } else {
+                            null
+                        }
+                    ),
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = wordScale
+                        scaleY = wordScale
+                        transformOrigin = TransformOrigin(0f, 0.5f)
+                    }
+                )
+            }
+        }
+        if (consumedCharacters < timedText.text.length) {
+            Text(
+                text = timedText.text.substring(consumedCharacters),
+                color = if (isActive) Color.White.copy(alpha = 0.38f) else inactiveColor,
+                style = wordStyle
+            )
+        }
+    }
 }
 
 @Composable
