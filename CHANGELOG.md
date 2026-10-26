@@ -10,6 +10,8 @@ All notable, user-visible changes are documented here. Each published Android an
 - `d64bbb7` Selecting a recently played track starts it from the beginning instead of resuming an old position.
 - `84b2677` Crossfade ignores stale handoff completions so an older transition cannot replace the active deck.
 - `9e9300c` Apple Music 13 lyrics use a dimmed artwork backdrop for readable white text.
+- `a4faca1` Android 1.1.0 packages now retain their correct version metadata so the in-app updater can recognize them as newer.
+- `3fb1c86` Spotify library loading reads the complete signed-in library response so eligible playlists are not mistaken for an empty library.
 - `c541041` Album and discovery artwork no longer fall back to words, initials, genre stickers, or decorative symbols.
 
 ### What's New
@@ -24,7 +26,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - `5f26471` adds the AI Slop setting to block explicitly identified AI-generated music and video content.
 - `ba79e80` makes Derbis Jam invite codes letters-only and at least six letters long.
 - `7e0be74` lets Jam hosts choose LAN Jam for the same Wi-Fi network or Server Jam through the configured Derbis relay; guests paste the code and Derbis detects the room type automatically.
-- `f08377a` lets signed-in Spotify users search eligible playlists, inspect their tracks, and import them through Derbis matching.
+- `c9095f7` lets signed-in Spotify users list their Spotify library, inspect accessible tracks, and import them through Derbis matching.
 - `e3d9cb3` adds Balanced Data Saver, which suppresses background network work and Canvas fetching, avoids mobile-data automatic downloads, and caps automatic video at 480p without blocking listener-started playback, search, or imports.
 
 ### Changed

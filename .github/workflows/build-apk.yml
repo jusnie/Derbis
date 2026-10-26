@@ -151,6 +151,8 @@ jobs:
             - `d64bbb7` Selecting a previously played track now starts it from the beginning.
             - `84b2677` Crossfade ignores stale handoff completions, preventing an older transition from replacing the active deck.
             - `9e9300c` Apple Music 13 lyrics keep a dimmed artwork backdrop so white lyric text remains readable.
+            - `a4faca1` Android 1.1.0 packages retain correct version metadata so the in-app updater recognizes them as newer.
+            - `3fb1c86` Spotify library loading reads the complete signed-in library response so eligible playlists are not mistaken for empty.
 
             ## What's New
             - `e871551` Opt-in animated artwork Canvas support is available again; static artwork remains the default.
