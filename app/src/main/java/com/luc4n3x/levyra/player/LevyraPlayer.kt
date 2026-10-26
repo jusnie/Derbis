@@ -242,6 +242,7 @@ class LevyraPlayer(context: Context) {
                         ignoreEndedFromManualStop = false
                         return
                     }
+                    if (PlaybackService.isQueueTransitionCompletionSuppressed) return
                     onCompletion?.invoke()
                 }
 

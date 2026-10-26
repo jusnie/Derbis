@@ -35,3 +35,13 @@ internal data class CrossfadeIncomingPlayback(
     val positionMs: Long,
     val bufferedPositionMs: Long
 )
+
+/**
+ * A primary deck can report its old item as ended just after the incoming deck has become the
+ * logical queue item. Keep that stale callback from advancing the queue a second time.
+ */
+internal fun shouldSuppressCrossfadeCompletion(
+    transitionInProgress: Boolean,
+    nowElapsedMs: Long,
+    completionGuardUntilElapsedMs: Long
+): Boolean = transitionInProgress || nowElapsedMs < completionGuardUntilElapsedMs

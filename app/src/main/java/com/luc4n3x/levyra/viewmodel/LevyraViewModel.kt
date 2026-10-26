@@ -4139,7 +4139,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private fun onTrackCompleted() {
         val snapshot = _state.value
         val current = snapshot.currentTrack ?: return
-        if (PlaybackService.isQueueTransitionInProgress) return
+        if (PlaybackService.isQueueTransitionCompletionSuppressed) return
         if (snapshot.isResolving || playJob?.isActive == true) return
         if (current.isLiveRadio()) {
             recoverLiveRadioStream(

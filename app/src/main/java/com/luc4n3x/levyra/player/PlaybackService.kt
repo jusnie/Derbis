@@ -312,6 +312,8 @@ class PlaybackService : MediaLibraryService() {
         private const val RECOVERY_CONNECTIVITY_WAIT_MS = 15_000L
         private const val RECOVERY_CONNECTIVITY_POLL_MS = 5_000L
         private const val PRIMARY_HANDOFF_FADE_MS = 240L
+        // Allows the Media3 STATE_ENDED callback for the outgoing deck to drain after a handoff.
+        private const val CROSSFADE_COMPLETION_GUARD_MS = 2_000L
         private const val PRIMARY_HANDOFF_SYNC_TOLERANCE_MS = 250L
         private const val PRIMARY_HANDOFF_SYNC_LEAD_MS = 120L
         private const val TRANSITION_STEP_MS = 50L
@@ -467,6 +469,30 @@ class PlaybackService : MediaLibraryService() {
         @Volatile
         var isQueueTransitionInProgress: Boolean = false
             private set
+
+        @Volatile
+        private var crossfadeCompletionGuardUntilElapsedMs: Long = 0L
+
+        /**
+         * Covers the short asynchronous tail after an incoming deck has been handed off. Without
+         * it, the outgoing primary deck's delayed STATE_ENDED callback can start another queue
+         * advance and interrupt the song that is already audible.
+         */
+        val isQueueTransitionCompletionSuppressed: Boolean
+            get() = shouldSuppressCrossfadeCompletion(
+                transitionInProgress = isQueueTransitionInProgress,
+                nowElapsedMs = SystemClock.elapsedRealtime(),
+                completionGuardUntilElapsedMs = crossfadeCompletionGuardUntilElapsedMs
+            )
+
+        private fun armCrossfadeCompletionGuard() {
+            crossfadeCompletionGuardUntilElapsedMs =
+                SystemClock.elapsedRealtime() + CROSSFADE_COMPLETION_GUARD_MS
+        }
+
+        private fun clearCrossfadeCompletionGuard() {
+            crossfadeCompletionGuardUntilElapsedMs = 0L
+        }
 
         fun applyPremiumAudioSettings(
             settings: LevyraAudioSettings,
@@ -1082,7 +1108,7 @@ class PlaybackService : MediaLibraryService() {
                     pausePlaybackForSleepTimer()
                     return
                 }
-                if (LevyraWidgetBridge.onNext == null && !isQueueTransitionInProgress) {
+                if (LevyraWidgetBridge.onNext == null && !isQueueTransitionCompletionSuppressed) {
                     skipQueue(forward = true, respectRepeatOne = true, autoAdvance = true)
                 }
             }
@@ -2088,6 +2114,7 @@ class PlaybackService : MediaLibraryService() {
         val currentIdentity = playbackQueueIdentity(current)
         val targetIdentity = playbackQueueIdentity(target)
         var secondary: ExoPlayer? = null
+        var handoffCommitted = false
         try {
             val resolved = awaitPreparedQueueTrackForTransition(currentIdentity, targetIdentity)
                 ?: withContext(Dispatchers.IO) { resolveQueueTrack(target) }
@@ -2133,6 +2160,7 @@ class PlaybackService : MediaLibraryService() {
                 Timber.w("Crossfade queue changed before incoming-audio handoff")
                 return
             }
+            handoffCommitted = true
             consumePreparedQueueNextInternal(target.id.ifBlank { resolved.id })
             _crossfadeProgressFlow.value = CrossfadeProgress(
                 active = true,
@@ -2196,6 +2224,9 @@ class PlaybackService : MediaLibraryService() {
         } catch (error: Exception) {
             Timber.w(error, "Queue crossfade failed")
         } finally {
+            // STATE_ENDED is delivered asynchronously. Keep both the service and UI controller
+            // from interpreting the outgoing deck's late callback as a second queue advance.
+            if (handoffCommitted) armCrossfadeCompletionGuard()
             isQueueTransitionInProgress = false
             _crossfadeProgressFlow.value = CrossfadeProgress()
             primary.volume = 1f
@@ -2640,6 +2671,7 @@ class PlaybackService : MediaLibraryService() {
     private fun cancelQueueTransition() {
         queueTransitionJob?.cancel()
         queueTransitionJob = null
+        clearCrossfadeCompletionGuard()
         isQueueTransitionInProgress = false
         _crossfadeProgressFlow.value = CrossfadeProgress()
         activePlayer?.volume = 1f
