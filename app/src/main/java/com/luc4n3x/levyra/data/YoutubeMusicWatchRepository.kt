@@ -272,7 +272,8 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
             payload = radioQueueRequestBody(requested),
             languageCode = languageCode,
             mobile = false,
-            continuation = requestedContinuation
+            continuation = requestedContinuation,
+            continuationInQuery = false
         )
         val initial = YoutubeMusicWatchParser.parseWatchPlaylist(initialRoot)
             .copy(radio = true, shuffled = false)
@@ -306,10 +307,8 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
         )
     }
 
+    /** Mirrors the provider's watch endpoint fields without adding a browse/automix mode. */
     private fun radioQueueRequestBody(endpoint: YoutubeMusicWatchQueueEndpoint): JSONObject = JSONObject()
-        .put("enablePersistentPlaylistPanel", true)
-        .put("isAudioOnly", true)
-        .put("tunerSettingValue", "AUTOMIX_SETTING_NORMAL")
         .apply {
             endpoint.videoId.takeIf(String::isNotBlank)?.let { put("videoId", it) }
             endpoint.playlistId.takeIf(String::isNotBlank)?.let { put("playlistId", it) }
@@ -371,10 +370,11 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
         payload: JSONObject,
         languageCode: String,
         mobile: Boolean,
-        continuation: String = ""
+        continuation: String = "",
+        continuationInQuery: Boolean = true
     ): JSONObject {
         check(apiKey.isNotBlank())
-        val continuationQuery = continuation.takeIf { it.isNotBlank() }?.let {
+        val continuationQuery = continuation.takeIf { continuationInQuery && it.isNotBlank() }?.let {
             val encoded = URLEncoder.encode(it, StandardCharsets.UTF_8.name())
             "&ctoken=$encoded&continuation=$encoded"
         }.orEmpty()

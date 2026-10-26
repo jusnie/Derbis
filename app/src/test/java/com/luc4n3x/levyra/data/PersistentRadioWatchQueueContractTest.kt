@@ -16,6 +16,8 @@ class PersistentRadioWatchQueueContractTest {
 
         assertTrue(radioPage.contains("watchRepository.getRadioPage("))
         assertTrue(continuationPage.contains("watchRepository.getRadioPage("))
+        assertTrue(radioPage.contains("radioId = requestedRadioId"))
+        assertTrue(continuationPage.contains("radioId = cleanRadioId"))
         assertFalse(radioPage.contains("requestMusicBrowseRoot("))
         assertFalse(continuationPage.contains("requestMusicBrowseRoot("))
     }

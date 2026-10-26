@@ -1742,7 +1742,9 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
         tracks.forEach { memory[it.id] = it }
         tracks.takeIf { it.isNotEmpty() }?.let {
             YoutubeMusicRadioPage(
-                radioId = page.playlistId.takeIf(String::isNotBlank) ?: requestedRadioId,
+                // Keep the public radio identity stable. The automix handoff may use a transient
+                // internal playlist id, but its continuation is resumed against this RDAMVM id.
+                radioId = requestedRadioId,
                 tracks = it,
                 continuation = page.continuation
             )
@@ -1768,7 +1770,8 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
         tracks.forEach { memory[it.id] = it }
         tracks.takeIf { it.isNotEmpty() }?.let {
             YoutubeMusicRadioPage(
-                radioId = page.playlistId.takeIf(String::isNotBlank) ?: cleanRadioId,
+                // Continue against the session's original RDAMVM id, just like the initial page.
+                radioId = cleanRadioId,
                 tracks = it,
                 continuation = page.continuation
             )
