@@ -43,12 +43,14 @@ fun Modifier.playerAxisDragGestures(
     enabled: Boolean,
     rightToLeft: Boolean,
     edgeZonesEnabled: Boolean,
+    verticalEnabled: Boolean = true,
     onEvent: (PlayerDragEvent) -> Unit
-): Modifier = this.pointerInput(key, enabled, rightToLeft, edgeZonesEnabled) {
+): Modifier = this.pointerInput(key, enabled, rightToLeft, edgeZonesEnabled, verticalEnabled) {
     if (!enabled) return@pointerInput
     val session = PlayerDragSession(
         rightToLeft = rightToLeft,
         edgeZonesEnabled = edgeZonesEnabled,
+        verticalEnabled = verticalEnabled,
         minFlingDistancePx = playerSwipeMinFlingDistance.toPx(),
         onEvent = onEvent
     )
@@ -76,6 +78,7 @@ fun Modifier.playerAxisDragGestures(
 private class PlayerDragSession(
     private val rightToLeft: Boolean,
     private val edgeZonesEnabled: Boolean,
+    private val verticalEnabled: Boolean,
     private val minFlingDistancePx: Float,
     private val onEvent: (PlayerDragEvent) -> Unit
 ) {
@@ -111,7 +114,7 @@ private class PlayerDragSession(
         val velocity = velocityTracker.calculateVelocity()
         when (axis) {
             PlayerDragAxis.Horizontal -> settleHorizontal(velocity.x, widthPx)
-            PlayerDragAxis.Vertical -> settleVertical(velocity.y, heightPx)
+            PlayerDragAxis.Vertical -> if (verticalEnabled) settleVertical(velocity.y, heightPx)
             PlayerDragAxis.Undecided -> Unit
         }
         resetMotion()
@@ -130,7 +133,7 @@ private class PlayerDragSession(
     private fun resolveAxisIfNeeded() {
         if (axis != PlayerDragAxis.Undecided) return
         axis = resolvePlayerDragAxis(totalX, totalY)
-        if (axis == PlayerDragAxis.Vertical) {
+        if (axis == PlayerDragAxis.Vertical && verticalEnabled) {
             onEvent(PlayerDragEvent.VerticalStart(zone))
         }
     }
@@ -138,7 +141,7 @@ private class PlayerDragSession(
     private fun dispatchDrag(dragAmount: Offset, widthPx: Float, heightPx: Float) {
         when (axis) {
             PlayerDragAxis.Horizontal -> dispatchHorizontalDrag(dragAmount.x, widthPx)
-            PlayerDragAxis.Vertical -> dispatchVerticalDrag(dragAmount.y, heightPx)
+            PlayerDragAxis.Vertical -> if (verticalEnabled) dispatchVerticalDrag(dragAmount.y, heightPx)
             PlayerDragAxis.Undecided -> Unit
         }
     }

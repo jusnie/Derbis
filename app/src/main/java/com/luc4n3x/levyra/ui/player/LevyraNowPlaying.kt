@@ -659,7 +659,7 @@ private fun LevyraNowPlayingContent(
         val stageGestureBlock: @Composable (Track, Modifier) -> Unit = { activeTrack, gestureModifier ->
             val videoGesturesEnabled = state.isVideoMode && activeTrack.videoUrl.isNotBlank()
             val gesturesAllowed = !liveRadio &&
-                (state.interfaceSettings.playerGesturesEnabled || videoGesturesEnabled) &&
+                (state.interfaceSettings.swipeTrackChangeEnabled || videoGesturesEnabled) &&
                 !videoFullscreen &&
                 lyricsFlip.playerSettled
             Box(modifier = gestureModifier) {

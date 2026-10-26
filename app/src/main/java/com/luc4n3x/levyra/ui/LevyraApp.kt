@@ -162,9 +162,6 @@ import com.luc4n3x.levyra.domain.PlayerVisualMode
 import com.luc4n3x.levyra.domain.PlayerBackgroundMode
 import com.luc4n3x.levyra.domain.ReactiveAuraPreset
 import com.luc4n3x.levyra.domain.PlayerColorMode
-import com.luc4n3x.levyra.domain.PlayerDoubleTapAction
-import com.luc4n3x.levyra.domain.PlayerLongPressAction
-import com.luc4n3x.levyra.domain.PlayerVerticalSwipeAction
 import com.luc4n3x.levyra.domain.ResonanceCommentSnippet
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.CloudOff
@@ -190,11 +187,9 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import android.app.Activity
 import android.content.ClipData
-import android.media.AudioManager
 import android.content.Context
 import android.content.Intent
 import com.luc4n3x.levyra.update.AppUpdateContract
@@ -821,7 +816,6 @@ import com.luc4n3x.levyra.domain.LevyraAmbientSettings
 import com.luc4n3x.levyra.domain.LevyraAutomationSettings
 import com.luc4n3x.levyra.domain.LevyraInterfaceSettings
 import com.luc4n3x.levyra.ui.player.PlayerDragEvent
-import com.luc4n3x.levyra.ui.player.PlayerGestureZone
 import com.luc4n3x.levyra.ui.player.PlayerMorphAnchors
 import com.luc4n3x.levyra.ui.player.PlayerMorphLanding
 import com.luc4n3x.levyra.ui.player.flowLandingShape
@@ -840,10 +834,8 @@ import com.luc4n3x.levyra.ui.player.playerPredictiveBackExpansion
 import com.luc4n3x.levyra.ui.player.playerMorphAnchor
 import com.luc4n3x.levyra.ui.player.playerMorphContainer
 import com.luc4n3x.levyra.ui.player.playerMorphFraction
-import com.luc4n3x.levyra.ui.player.playerSeekDeltaMs
 import com.luc4n3x.levyra.ui.player.playerSurfaceAlpha
 import com.luc4n3x.levyra.ui.player.playerSwipeContentAlpha
-import com.luc4n3x.levyra.ui.player.playerTapSide
 import com.luc4n3x.levyra.ui.player.rememberPlayerMorphAnchors
 import com.luc4n3x.levyra.ui.player.PlayerSwipeMotion
 import com.luc4n3x.levyra.ui.player.rememberPlayerSwipeMotion
@@ -2566,7 +2558,7 @@ fun LevyraApp(
                                             else -> state.playerError ?: state.liveRadioNowPlaying
                                         },
                                         animated = state.animationsEnabled,
-                                        gesturesEnabled = state.interfaceSettings.playerGesturesEnabled,
+                                        gesturesEnabled = true,
                                         swipeTrackChangeEnabled = state.interfaceSettings.swipeTrackChangeEnabled,
                                         stepDirection = miniStepDirection
                                     )
@@ -20538,8 +20530,6 @@ private fun PlayerInlineLyricsSection(
     }
 }
 
-private const val PLAYER_LONG_PRESS_SPEED_MS = 320L
-private const val PLAYER_LONG_PRESS_ARTWORK_MS = 900L
 
 internal data class MiniPlayerModel(
     val track: Track,
@@ -20646,42 +20636,6 @@ private fun PlayerScreen(
     )
 }
 
-private fun applyBrightnessDrag(
-    activity: Activity?,
-    deltaPx: Float,
-    heightPx: Float,
-    label: String,
-    onFeedback: (String) -> Unit
-) {
-    val window = activity?.window ?: return
-    val attributes = window.attributes
-    val current = attributes.screenBrightness.takeIf { it >= 0f } ?: 0.5f
-    val updated = (current - deltaPx / heightPx.coerceAtLeast(1f)).coerceIn(0.05f, 1f)
-    attributes.screenBrightness = updated
-    window.attributes = attributes
-    onFeedback("$label ${(updated * 100f).roundToInt()}%")
-}
-
-private fun applyVolumeDrag(
-    audioManager: AudioManager?,
-    deltaPx: Float,
-    heightPx: Float,
-    accumulator: Float,
-    label: String,
-    onFeedback: (String) -> Unit
-): Float {
-    val manager = audioManager ?: return 0f
-    val maximum = manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-    val pending = accumulator + -deltaPx / heightPx.coerceAtLeast(1f) * maximum
-    val steps = pending.roundToInt()
-    if (steps == 0) return pending
-    val current = manager.getStreamVolume(AudioManager.STREAM_MUSIC)
-    val updated = (current + steps).coerceIn(0, maximum)
-    manager.setStreamVolume(AudioManager.STREAM_MUSIC, updated, 0)
-    onFeedback("$label ${((updated.toFloat() / maximum.toFloat()) * 100f).roundToInt()}%")
-    return pending - steps.toFloat()
-}
-
 @Composable
 private fun PlayerGestureLayer(
     config: PlayerGestureConfig,
@@ -20690,8 +20644,6 @@ private fun PlayerGestureLayer(
     videoTransform: MutableState<PlayerVideoTransform>? = null,
     modifier: Modifier = Modifier
 ) {
-    val currentPlaybackSpeed by rememberUpdatedState(config.playbackSpeed)
-    val volumeAccumulator = remember(config.trackId) { mutableFloatStateOf(0f) }
     val environment = config.environment
     val zoomModifier = if (videoTransform == null) {
         modifier
@@ -20700,178 +20652,38 @@ private fun PlayerGestureLayer(
             key = config.trackId,
             enabled = true,
             transform = videoTransform,
-            onTakeOver = {
-                cancelPlayerGesture(mediaActions, uiActions, volumeAccumulator)
-            },
+            onTakeOver = { mediaActions.swipeSettled(false) },
             onTransform = { zoomChange, pan, sizePx ->
                 videoTransform.value = videoTransform.value
                     .applyPlayerVideoGesture(zoomChange, pan, sizePx)
             }
         )
     }
-    val inputModifier = if (config.settings.playerGesturesEnabled) {
-        zoomModifier
-            .pointerInput(
-                config.trackId,
-                config.settings.doubleTapAction,
-                config.settings.doubleTapSeekSeconds,
-                config.settings.longPressAction,
-                config.settings.longPressSpeed,
-                environment.rightToLeft,
-                uiActions.artworkPreview != null
-            ) {
-                detectTapGestures(
-                    onPress = {
-                        val command = playerLongPressCommand(config.settings.longPressAction)
-                        if (command != PlayerGestureCommand.None) {
-                            val originalSpeed = currentPlaybackSpeed
-                            val openArtworkPreview = uiActions.artworkPreview
-                            coroutineScope {
-                                var boosted = false
-                                val actionJob = launch {
-                                    delay(PLAYER_LONG_PRESS_SPEED_MS)
-                                    if (command == PlayerGestureCommand.TemporarySpeed) {
-                                        boosted = true
-                                        mediaActions.temporarySpeed(config.settings.longPressSpeed)
-                                        uiActions.haptic()
-                                        uiActions.feedback(
-                                            "${String.format(Locale.US, "%.1f", config.settings.longPressSpeed)}×"
-                                        )
-                                        if (openArtworkPreview != null) {
-                                            delay(PLAYER_LONG_PRESS_ARTWORK_MS - PLAYER_LONG_PRESS_SPEED_MS)
-                                            mediaActions.temporarySpeed(originalSpeed)
-                                            boosted = false
-                                            uiActions.haptic()
-                                            openArtworkPreview()
-                                        }
-                                    } else {
-                                        performPlayerGestureCommand(
-                                            command = command,
-                                            config = config,
-                                            mediaActions = mediaActions,
-                                            uiActions = uiActions
-                                        )
-                                    }
-                                }
-                                try {
-                                    tryAwaitRelease()
-                                } finally {
-                                    actionJob.cancel()
-                                    if (boosted) mediaActions.temporarySpeed(originalSpeed)
-                                }
-                            }
-                        }
-                    },
-                    onDoubleTap = { offset ->
-                        val width = size.width.coerceAtLeast(1).toFloat()
-                        val side = playerTapSide(offset.x / width)
-                        performPlayerGestureCommand(
-                            command = playerDoubleTapCommand(config.settings.doubleTapAction, side),
-                            config = config,
-                            mediaActions = mediaActions,
-                            uiActions = uiActions
-                        )
-                    }
-                )
-            }
-            .playerAxisDragGestures(
-                key = "${config.trackId}:${config.settings.swipeTrackChangeEnabled}:${config.settings.verticalSwipeAction}",
-                enabled = true,
-                rightToLeft = environment.rightToLeft,
-                edgeZonesEnabled = config.settings.verticalSwipeAction != PlayerVerticalSwipeAction.Disabled
-            ) { event ->
-                handlePlayerGestureEvent(
-                    event = event,
-                    config = config,
-                    mediaActions = mediaActions,
-                    uiActions = uiActions,
-                    volumeAccumulator = volumeAccumulator
-                )
-            }
-    } else {
-        zoomModifier
+    // Tap, long-press, and vertical swipe shortcuts were retired. Horizontal track switching is
+    // retained as its own explicit setting, while video pinch/drag transforms remain independent.
+    val inputModifier = zoomModifier.playerAxisDragGestures(
+        key = "${config.trackId}:${config.settings.swipeTrackChangeEnabled}",
+        enabled = config.settings.swipeTrackChangeEnabled,
+        rightToLeft = environment.rightToLeft,
+        edgeZonesEnabled = false,
+        verticalEnabled = false
+    ) { event ->
+        handlePlayerHorizontalGesture(event, mediaActions)
     }
-    Box(
-        modifier = inputModifier
-    )
+    Box(modifier = inputModifier)
 }
 
-private fun performPlayerGestureCommand(
-    command: PlayerGestureCommand,
-    config: PlayerGestureConfig,
-    mediaActions: PlayerGestureMediaActions,
-    uiActions: PlayerGestureUiActions
-) {
-    when (command) {
-        PlayerGestureCommand.SeekLeading -> mediaActions.seekBy(
-            playerSeekDeltaMs(
-                PlayerTapSide.Leading,
-                config.settings.doubleTapSeekSeconds,
-                config.environment.rightToLeft
-            )
-        )
-        PlayerGestureCommand.SeekTrailing -> mediaActions.seekBy(
-            playerSeekDeltaMs(
-                PlayerTapSide.Trailing,
-                config.settings.doubleTapSeekSeconds,
-                config.environment.rightToLeft
-            )
-        )
-        PlayerGestureCommand.TogglePlayback -> {
-            mediaActions.togglePlay()
-            uiActions.haptic()
-        }
-        PlayerGestureCommand.ToggleFavorite -> {
-            uiActions.toggleFavorite()
-            uiActions.haptic()
-        }
-        PlayerGestureCommand.OpenQueue -> {
-            uiActions.openQueue()
-            uiActions.haptic()
-        }
-        PlayerGestureCommand.OpenLyrics -> {
-            uiActions.openLyrics()
-            uiActions.haptic()
-        }
-        PlayerGestureCommand.TemporarySpeed,
-        PlayerGestureCommand.None -> Unit
-    }
-}
-
-private fun handlePlayerGestureEvent(
+private fun handlePlayerHorizontalGesture(
     event: PlayerDragEvent,
-    config: PlayerGestureConfig,
-    mediaActions: PlayerGestureMediaActions,
-    uiActions: PlayerGestureUiActions,
-    volumeAccumulator: MutableState<Float>
+    mediaActions: PlayerGestureMediaActions
 ) {
     when (event) {
-        is PlayerDragEvent.HorizontalOffset -> if (config.settings.swipeTrackChangeEnabled) {
-            mediaActions.swipeOffset(event.offsetPx)
-        }
-        is PlayerDragEvent.HorizontalSettled -> if (config.settings.swipeTrackChangeEnabled) {
-            settlePlayerHorizontalGesture(event, mediaActions)
-        } else {
-            mediaActions.swipeSettled(false)
-        }
-        is PlayerDragEvent.VerticalStart -> startPlayerVerticalGesture(event, uiActions)
-        is PlayerDragEvent.VerticalDrag -> handlePlayerVerticalDrag(
-            event,
-            config.environment,
-            config.settings.verticalSwipeAction,
-            uiActions,
-            volumeAccumulator
-        )
-        is PlayerDragEvent.VerticalSettled -> settlePlayerVerticalGesture(
-            event,
-            uiActions,
-            volumeAccumulator
-        )
-        PlayerDragEvent.Cancelled -> cancelPlayerGesture(
-            mediaActions,
-            uiActions,
-            volumeAccumulator
-        )
+        is PlayerDragEvent.HorizontalOffset -> mediaActions.swipeOffset(event.offsetPx)
+        is PlayerDragEvent.HorizontalSettled -> settlePlayerHorizontalGesture(event, mediaActions)
+        PlayerDragEvent.Cancelled -> mediaActions.swipeSettled(false)
+        is PlayerDragEvent.VerticalStart,
+        is PlayerDragEvent.VerticalDrag,
+        is PlayerDragEvent.VerticalSettled -> Unit
     }
 }
 
@@ -20885,72 +20697,6 @@ private fun settlePlayerHorizontalGesture(
         PlayerSwipeResult.Settle -> Unit
     }
     mediaActions.swipeSettled(event.result != PlayerSwipeResult.Settle)
-}
-
-private fun startPlayerVerticalGesture(
-    event: PlayerDragEvent.VerticalStart,
-    uiActions: PlayerGestureUiActions
-) {
-    if (event.zone == PlayerGestureZone.Center) uiActions.collapse.dragStart()
-}
-
-private fun handlePlayerVerticalDrag(
-    event: PlayerDragEvent.VerticalDrag,
-    environment: PlayerGestureEnvironment,
-    action: PlayerVerticalSwipeAction,
-    uiActions: PlayerGestureUiActions,
-    volumeAccumulator: MutableState<Float>
-) {
-    when (event.zone) {
-        PlayerGestureZone.BrightnessEdge -> if (action == PlayerVerticalSwipeAction.Volume) {
-            volumeAccumulator.value = applyVolumeDrag(
-                audioManager = environment.audioManager,
-                deltaPx = event.deltaPx,
-                heightPx = event.heightPx,
-                accumulator = volumeAccumulator.value,
-                label = environment.volumeLabel,
-                onFeedback = uiActions.feedback
-            )
-        } else {
-            applyBrightnessDrag(
-                activity = environment.activity,
-                deltaPx = event.deltaPx,
-                heightPx = event.heightPx,
-                label = environment.brightnessLabel,
-                onFeedback = uiActions.feedback
-            )
-        }
-        PlayerGestureZone.VolumeEdge -> volumeAccumulator.value = applyVolumeDrag(
-            audioManager = environment.audioManager,
-            deltaPx = event.deltaPx,
-            heightPx = event.heightPx,
-            accumulator = volumeAccumulator.value,
-            label = environment.volumeLabel,
-            onFeedback = uiActions.feedback
-        )
-        PlayerGestureZone.Center -> uiActions.collapse.drag(event.deltaPx)
-    }
-}
-
-private fun settlePlayerVerticalGesture(
-    event: PlayerDragEvent.VerticalSettled,
-    uiActions: PlayerGestureUiActions,
-    volumeAccumulator: MutableState<Float>
-) {
-    volumeAccumulator.value = 0f
-    if (event.zone == PlayerGestureZone.Center) {
-        uiActions.collapse.dragEnd(event.velocityPx)
-    }
-}
-
-private fun cancelPlayerGesture(
-    mediaActions: PlayerGestureMediaActions,
-    uiActions: PlayerGestureUiActions,
-    volumeAccumulator: MutableState<Float>
-) {
-    volumeAccumulator.value = 0f
-    mediaActions.swipeSettled(false)
-    uiActions.collapse.dragEnd(0f)
 }
 
 @Composable
@@ -21388,7 +21134,7 @@ private fun SettingsOverlay(
             SettingsCategoryMeta("skins", com.luc4n3x.levyra.ui.i18n.LevyraSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, LevyraViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, LevyraViolet, SettingsHubGroup.Appearance),
-            SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.advancedGestures} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, LevyraPink, SettingsHubGroup.Listening),
+            SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.playerGestureHorizontalSwipe} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, LevyraPink, SettingsHubGroup.Listening),
             SettingsCategoryMeta("audio", strings.audioEngine, strings.audioEngineSubtitle, Icons.Rounded.GraphicEq, LevyraPink, SettingsHubGroup.Listening),
             SettingsCategoryMeta("lyrics", categoryTitle(strings.lyricsAnalysisSection), strings.lyricsAnalysisCompact, Icons.Rounded.Insights, LevyraPink, SettingsHubGroup.Listening),
             SettingsCategoryMeta("jam", categoryTitle(strings.jamTitle), strings.jamSubtitle, Icons.Rounded.Groups, LevyraPink, SettingsHubGroup.Listening),
@@ -21983,106 +21729,14 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsToggle(
-                                    icon = Icons.Rounded.Speed,
-                                    title = strings.advancedGestures,
-                                    subtitle = strings.advancedGesturesSubtitle,
-                                    checked = interfaceSettings.playerGesturesEnabled,
-                                    onCheckedChange = { onInterfaceSettings(interfaceSettings.copy(playerGesturesEnabled = it)) }
+                                    icon = Icons.Rounded.Swipe,
+                                    title = strings.playerGestureHorizontalSwipe,
+                                    subtitle = strings.playerGestureHorizontalSwipeSubtitle,
+                                    checked = interfaceSettings.swipeTrackChangeEnabled,
+                                    onCheckedChange = {
+                                        onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
+                                    }
                                 )
-                            }
-                            if (interfaceSettings.playerGesturesEnabled) {
-                                item {
-                                    SettingsToggle(
-                                        icon = Icons.Rounded.Swipe,
-                                        title = strings.playerGestureHorizontalSwipe,
-                                        subtitle = strings.playerGestureHorizontalSwipeSubtitle,
-                                        checked = interfaceSettings.swipeTrackChangeEnabled,
-                                        onCheckedChange = {
-                                            onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
-                                        }
-                                    )
-                                }
-                                item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.TouchApp,
-                                        title = strings.playerGestureDoubleTapAction,
-                                        subtitle = strings.playerGestureDoubleTapActionSubtitle,
-                                        options = listOf(
-                                            PlayerDoubleTapAction.Seek.name to strings.gestureActionSeek,
-                                            PlayerDoubleTapAction.PlayPause.name to strings.gestureActionPlayPause,
-                                            PlayerDoubleTapAction.Favorite.name to strings.gestureActionFavorite,
-                                            PlayerDoubleTapAction.Disabled.name to strings.gestureActionDisabled
-                                        ),
-                                        selected = interfaceSettings.doubleTapAction.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(doubleTapAction = PlayerDoubleTapAction.from(value))
-                                            )
-                                        }
-                                    )
-                                }
-                                if (interfaceSettings.doubleTapAction == PlayerDoubleTapAction.Seek) item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.SkipNext,
-                                        title = strings.doubleTapSeek,
-                                        subtitle = strings.doubleTapSeekSubtitle,
-                                        options = listOf("5" to "5 s", "10" to "10 s", "15" to "15 s", "30" to "30 s"),
-                                        selected = interfaceSettings.doubleTapSeekSeconds.toString(),
-                                        onSelect = { value ->
-                                            onInterfaceSettings(interfaceSettings.copy(doubleTapSeekSeconds = value.toInt()))
-                                        }
-                                    )
-                                }
-                                item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.TouchApp,
-                                        title = strings.playerGestureLongPressAction,
-                                        subtitle = strings.playerGestureLongPressActionSubtitle,
-                                        options = listOf(
-                                            PlayerLongPressAction.Speed.name to strings.gestureActionSpeed,
-                                            PlayerLongPressAction.Favorite.name to strings.gestureActionFavorite,
-                                            PlayerLongPressAction.Queue.name to strings.gestureActionQueue,
-                                            PlayerLongPressAction.Lyrics.name to strings.gestureActionLyrics,
-                                            PlayerLongPressAction.Disabled.name to strings.gestureActionDisabled
-                                        ),
-                                        selected = interfaceSettings.longPressAction.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(longPressAction = PlayerLongPressAction.from(value))
-                                            )
-                                        }
-                                    )
-                                }
-                                if (interfaceSettings.longPressAction == PlayerLongPressAction.Speed) item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.Speed,
-                                        title = strings.longPress,
-                                        subtitle = strings.longPressSubtitle,
-                                        options = listOf("1.5" to "1.5×", "2.0" to "2×", "2.5" to "2.5×", "3.0" to "3×"),
-                                        selected = String.format(Locale.US, "%.1f", interfaceSettings.longPressSpeed),
-                                        onSelect = { value ->
-                                            onInterfaceSettings(interfaceSettings.copy(longPressSpeed = value.toFloat()))
-                                        }
-                                    )
-                                }
-                                item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.SwipeVertical,
-                                        title = strings.playerGestureVerticalSwipe,
-                                        subtitle = strings.playerGestureVerticalSwipeSubtitle,
-                                        options = listOf(
-                                            PlayerVerticalSwipeAction.BrightnessAndVolume.name to strings.gestureActionBrightnessVolume,
-                                            PlayerVerticalSwipeAction.Volume.name to strings.gestureActionVolume,
-                                            PlayerVerticalSwipeAction.Disabled.name to strings.gestureActionDisabled
-                                        ),
-                                        selected = interfaceSettings.verticalSwipeAction.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(verticalSwipeAction = PlayerVerticalSwipeAction.from(value))
-                                            )
-                                        }
-                                    )
-                                }
                             }
                             standaloneItem { SettingsSectionLabel(strings.ambientSettingsTitle) }
                             item {
