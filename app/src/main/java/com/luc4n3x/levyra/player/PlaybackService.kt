@@ -312,7 +312,6 @@ class PlaybackService : MediaLibraryService() {
         private const val RECOVERY_CONNECTIVITY_POLL_MS = 5_000L
         private const val PRIMARY_HANDOFF_FADE_MS = 240L
         private const val PRIMARY_HANDOFF_SYNC_TOLERANCE_MS = 250L
-        private const val PRIMARY_HANDOFF_ALIGNMENT_TOLERANCE_MS = 80L
         private const val PRIMARY_HANDOFF_SYNC_LEAD_MS = 120L
         private const val TRANSITION_STEP_MS = 50L
         private const val SEEK_TOLERANCE_MS = 1_500L
@@ -2169,13 +2168,10 @@ class PlaybackService : MediaLibraryService() {
             // Re-align before muting the audible incoming deck so the listener never hears a jump.
             if (!synchronizePrimaryHandoff(primary, secondary, targetIdentity)) return
 
-            // Keep the incoming deck audible while the original output is positioned exactly.
-            // Previously we paused secondary and exposed primary in the same turn as a seek,
-            // which made decoder/network jitter audible as a cut or a jump between songs.
-            val exactPosition = secondary.currentPosition.coerceAtLeast(handoffPosition)
-            primary.volume = 0f
-            primary.seekTo(exactPosition)
-            if (!awaitPrimaryHandoffAlignment(primary, secondary, targetIdentity)) return
+            // The primary is already prepared, playing muted, and synchronized to the
+            // incoming deck above. Do not seek it again here: a final seek could leave the
+            // secondary as the only audible deck and then release it during a rebuffer. Blend
+            // the two warmed outputs directly so playback cannot stop in the middle of a song.
             fadePlayers(
                 outgoing = secondary,
                 incoming = primary,
@@ -2268,9 +2264,17 @@ class PlaybackService : MediaLibraryService() {
         secondary: ExoPlayer,
         targetIdentity: String
     ): Boolean {
-        repeat(3) {
+        // The secondary deck is already audible. Keep it alive while the muted primary retries
+        // synchronization instead of giving up after a few attempts and cutting playback short.
+        while (true) {
             if (!handoffStillValid(primary, secondary, targetIdentity)) return false
-            if (!awaitHandoffSecondaryReady(primary, secondary, targetIdentity)) return@repeat
+            if (primary.playerError != null || secondary.playerError != null || secondary.playbackState == Player.STATE_ENDED) {
+                return false
+            }
+            if (!awaitHandoffSecondaryReady(primary, secondary, targetIdentity)) {
+                delay(20L)
+                continue
+            }
             if (!crossfadeHandoffNeedsResync(
                     primary.currentPosition,
                     secondary.currentPosition,
@@ -2279,40 +2283,9 @@ class PlaybackService : MediaLibraryService() {
             ) return true
 
             if (resyncPrimaryHandoff(primary, secondary, targetIdentity)) return true
-        }
-        return primary.playbackState == Player.STATE_READY &&
-            handoffStillValid(primary, secondary, targetIdentity) &&
-            !crossfadeHandoffNeedsResync(
-                primary.currentPosition,
-                secondary.currentPosition,
-                PRIMARY_HANDOFF_SYNC_TOLERANCE_MS
-            )
-    }
-
-    /** Wait for an exact muted primary seek before gently switching output decks. */
-    private suspend fun awaitPrimaryHandoffAlignment(
-        primary: ExoPlayer,
-        secondary: ExoPlayer,
-        targetIdentity: String
-    ): Boolean = withTimeoutOrNull(PRIMARY_HANDOFF_SYNC_TIMEOUT_MS) {
-        while (true) {
-            if (!handoffStillValid(primary, secondary, targetIdentity)) return@withTimeoutOrNull false
-            if (primary.playerError != null || secondary.playerError != null || secondary.playbackState == Player.STATE_ENDED) {
-                return@withTimeoutOrNull false
-            }
-            if (
-                primary.playbackState == Player.STATE_READY &&
-                !crossfadeHandoffNeedsResync(
-                    primary.currentPosition,
-                    secondary.currentPosition,
-                    PRIMARY_HANDOFF_ALIGNMENT_TOLERANCE_MS
-                )
-            ) {
-                return@withTimeoutOrNull true
-            }
             delay(20L)
         }
-    } == true
+    }
 
     private suspend fun awaitHandoffSecondaryReady(
         primary: ExoPlayer,
