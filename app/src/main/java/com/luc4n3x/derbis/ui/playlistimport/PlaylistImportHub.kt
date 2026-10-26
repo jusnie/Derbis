@@ -280,7 +280,7 @@ private fun ImportInputScreen(
                 )
             )
             DetectionLine(state, copy)
-            SpotifySearchEntryPoint(controller)
+            SpotifyLibraryEntryPoint(controller)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(
                     onClick = { readClipboard(context)?.let(controller::updateInput) },

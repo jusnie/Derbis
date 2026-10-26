@@ -29,8 +29,8 @@ data class SpotifyPlaylistSearchResult(
     val spotifyUrl: String
 )
 
-/** A page of public playlist metadata returned by Spotify search. */
-data class SpotifyPlaylistSearchPage(
+/** A page of playlist metadata returned by Spotify for the signed-in listener. */
+data class SpotifyPlaylistPage(
     val playlists: List<SpotifyPlaylistSearchResult>,
     val total: Int?,
     val nextOffset: Int?
@@ -79,26 +79,24 @@ class SpotifyPlaylistBrowser(
     private val client: OkHttpClient = DerbisHttpClientFactory.media(context.applicationContext)
 ) {
     /**
-     * Searches Spotify's public playlist metadata catalog. Track items are fetched separately
-     * because Spotify limits those to playlists the signed-in listener owns or collaborates on.
+     * Lists the signed-in listener's Spotify library. Spotify returns playlists the listener
+     * owns or follows; opening one fetches track items only when Spotify grants item access.
      */
-    suspend fun search(query: String, offset: Int = 0): SpotifyPlaylistSearchPage {
-        val clean = query.trim()
-        if (clean.length < MIN_QUERY_LENGTH) return SpotifyPlaylistSearchPage(emptyList(), null, null)
-        require(offset >= 0) { "Spotify playlist search offset must not be negative" }
+    suspend fun library(offset: Int = 0): SpotifyPlaylistPage {
+        require(offset >= 0) { "Spotify playlist library offset must not be negative" }
         val token = accessToken()
-        val url = "$API_BASE/search".toHttpUrl().newBuilder()
-            .addQueryParameter("q", clean)
-            .addQueryParameter("type", "playlist")
-            // Spotify's current search API caps each page at ten playlist results.
-            .addQueryParameter("limit", SEARCH_LIMIT.toString())
+        val url = "$API_BASE/me/playlists".toHttpUrl().newBuilder()
+            .addQueryParameter("limit", LIBRARY_PAGE_SIZE.toString())
             .addQueryParameter("offset", offset.toString())
-            .addQueryParameter("market", "from_token")
+            .addQueryParameter(
+                "fields",
+                "items(id,name,description,owner(display_name),images(url),items(total),external_urls(spotify)),total,offset,limit,next"
+            )
             .build()
-        return parseSpotifyPlaylistSearchPage(
+        return parseSpotifyPlaylistLibraryPage(
             json = getJson(url.toString(), token),
             requestedOffset = offset,
-            requestedLimit = SEARCH_LIMIT
+            requestedLimit = LIBRARY_PAGE_SIZE
         )
     }
 
@@ -223,29 +221,24 @@ class SpotifyPlaylistBrowser(
 
     private companion object {
         const val API_BASE = "https://api.spotify.com/v1"
-        const val MIN_QUERY_LENGTH = 2
-        const val SEARCH_LIMIT = 10
+        const val LIBRARY_PAGE_SIZE = 50
         const val ITEM_PAGE_SIZE = 50
         const val MAX_IMPORT_TRACKS = 10_000
         val SPOTIFY_ID = Regex("^[A-Za-z0-9]{22}$")
     }
 }
 
-internal fun parseSpotifyPlaylistSearch(json: JSONObject): List<SpotifyPlaylistSearchResult> =
-    parseSpotifyPlaylistSearchPage(json).playlists
-
-internal fun parseSpotifyPlaylistSearchPage(
+internal fun parseSpotifyPlaylistLibraryPage(
     json: JSONObject,
     requestedOffset: Int = 0,
-    requestedLimit: Int = 10
-): SpotifyPlaylistSearchPage {
-    val playlists = json.optJSONObject("playlists") ?: return SpotifyPlaylistSearchPage(emptyList(), null, null)
-    val responseOffset = playlists.optInt("offset", requestedOffset).coerceAtLeast(0)
-    val responseLimit = playlists.optInt("limit", requestedLimit).takeIf { it > 0 } ?: requestedLimit
-    val hasNext = !playlists.optString("next").isNullOrBlank()
-    return SpotifyPlaylistSearchPage(
-        playlists = playlists.optJSONArray("items").spotifyPlaylistResults(),
-        total = playlists.optInt("total", -1).takeIf { it >= 0 },
+    requestedLimit: Int = 50
+): SpotifyPlaylistPage {
+    val responseOffset = json.optInt("offset", requestedOffset).coerceAtLeast(0)
+    val responseLimit = json.optInt("limit", requestedLimit).takeIf { it > 0 } ?: requestedLimit
+    val hasNext = !json.optString("next").isNullOrBlank()
+    return SpotifyPlaylistPage(
+        playlists = json.optJSONArray("items").spotifyPlaylistResults(),
+        total = json.optInt("total", -1).takeIf { it >= 0 },
         nextOffset = if (hasNext) responseOffset + responseLimit else null
     )
 }

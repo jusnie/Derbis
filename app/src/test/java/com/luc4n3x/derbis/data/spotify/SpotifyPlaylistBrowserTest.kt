@@ -10,74 +10,75 @@ import org.junit.Test
 class SpotifyPlaylistBrowserTest {
 
     @Test
-    fun searchResultsUsePlaylistMetadataAndArtwork() {
-        val results = parseSpotifyPlaylistSearch(
+    fun signedInLibraryUsesPlaylistMetadataAndArtwork() {
+        val page = parseSpotifyPlaylistLibraryPage(
             JSONObject(
                 """
                 {
-                  "playlists": {
-                    "items": [
-                      {
-                        "id": "37i9dQZF1DXcBWIGoYBM5M",
-                        "name": "Today's Top Hits",
-                        "description": "Big songs right now",
-                        "owner": { "display_name": "Spotify" },
-                        "images": [{ "url": "https://image.example/top.jpg" }],
-                        "items": { "total": 50 },
-                        "external_urls": { "spotify": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" }
-                      }
-                    ]
-                  }
+                  "offset": 0,
+                  "limit": 50,
+                  "total": 1,
+                  "next": null,
+                  "items": [
+                    {
+                      "id": "37i9dQZF1DXcBWIGoYBM5M",
+                      "name": "Today's Top Hits",
+                      "description": "Big songs right now",
+                      "owner": { "display_name": "Spotify" },
+                      "images": [{ "url": "https://image.example/top.jpg" }],
+                      "items": { "total": 50 },
+                      "external_urls": { "spotify": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" }
+                    }
+                  ]
                 }
                 """.trimIndent()
             )
         )
 
-        assertEquals(1, results.size)
-        assertEquals("37i9dQZF1DXcBWIGoYBM5M", results.single().id)
-        assertEquals("Today's Top Hits", results.single().title)
-        assertEquals("Spotify", results.single().owner)
-        assertEquals(50, results.single().trackCount)
-        assertEquals("https://image.example/top.jpg", results.single().artworkUrl)
+        assertEquals(1, page.playlists.size)
+        assertEquals("37i9dQZF1DXcBWIGoYBM5M", page.playlists.single().id)
+        assertEquals("Today's Top Hits", page.playlists.single().title)
+        assertEquals("Spotify", page.playlists.single().owner)
+        assertEquals(50, page.playlists.single().trackCount)
+        assertEquals("https://image.example/top.jpg", page.playlists.single().artworkUrl)
+        assertNull(page.nextOffset)
     }
 
     @Test
-    fun publicPlaylistSearchUsesSpotifyPaginationWithoutOwnerFiltering() {
-        val page = parseSpotifyPlaylistSearchPage(
+    fun signedInLibraryUsesSpotifyPaginationForFollowedOrOwnedPlaylists() {
+        val page = parseSpotifyPlaylistLibraryPage(
             json = JSONObject(
                 """
                 {
-                  "playlists": {
-                    "offset": 20,
-                    "limit": 10,
-                    "total": 37,
-                    "next": "https://api.spotify.com/v1/search?type=playlist&offset=30",
-                    "items": [
-                      {
-                        "id": "37i9dQZF1DXcBWIGoYBM5M",
-                        "name": "A public playlist",
-                        "owner": { "display_name": "Someone else" },
-                        "images": []
-                      }
-                    ]
-                  }
+                  "offset": 50,
+                  "limit": 50,
+                  "total": 137,
+                  "next": "https://api.spotify.com/v1/me/playlists?offset=100&limit=50",
+                  "items": [
+                    {
+                      "id": "37i9dQZF1DXcBWIGoYBM5M",
+                      "name": "A library playlist",
+                      "owner": { "display_name": "Someone else" },
+                      "images": []
+                    }
+                  ]
                 }
                 """.trimIndent()
             ),
-            requestedOffset = 20,
-            requestedLimit = 10
+            requestedOffset = 50,
+            requestedLimit = 50
         )
 
         assertEquals(1, page.playlists.size)
         assertEquals("Someone else", page.playlists.single().owner)
-        assertEquals(37, page.total)
-        assertEquals(30, page.nextOffset)
+        assertEquals(137, page.total)
+        assertEquals(100, page.nextOffset)
     }
 
     @Test
-    fun publicPlaylistSearchStopsWhenSpotifyDoesNotProvideAnotherPage() {
-        val page = parseSpotifyPlaylistSearchPage(
-            JSONObject("""{ "playlists": { "offset": 0, "limit": 10, "total": 1, "next": null, "items": [] } }""")
+    fun signedInLibraryStopsWhenSpotifyDoesNotProvideAnotherPage() {
+        val page = parseSpotifyPlaylistLibraryPage(
+            JSONObject("""{ "offset": 0, "limit": 50, "total": 1, "next": null, "items": [] }""")
         )
 
         assertNull(page.nextOffset)

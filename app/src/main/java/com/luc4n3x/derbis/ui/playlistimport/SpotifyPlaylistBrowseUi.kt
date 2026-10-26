@@ -22,15 +22,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.LibraryMusic
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,7 +57,7 @@ import com.luc4n3x.derbis.viewmodel.PlaylistImportController
 import com.luc4n3x.derbis.viewmodel.SpotifyPlaylistBrowseUiState
 
 @Composable
-internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
+internal fun SpotifyLibraryEntryPoint(controller: PlaylistImportController) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val connection by DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
     LaunchedEffect(context) { DerbisSpotifyConnection.initialize(context) }
@@ -79,10 +76,10 @@ internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Search Spotify playlists", color = DerbisText, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Text("Your Spotify playlists", color = DerbisText, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                     Text(
-                        if (connection.isConnected) "Browse public Spotify playlists, then open songs you can access."
-                        else "Connect Spotify to browse public playlists from its catalog.",
+                        if (connection.isConnected) "Browse your Spotify library, then view and import available playlists."
+                        else "Connect Spotify to view playlists in your Spotify library.",
                         color = DerbisMuted,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
@@ -94,7 +91,7 @@ internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
                     onClick = controller::openSpotifyBrowse,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     shape = ImportRowShape
-                ) { Text("Search Spotify") }
+                ) { Text("View my playlists") }
             } else {
                 Button(
                     onClick = {
@@ -117,7 +114,7 @@ internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
                 }
             }
             Text(
-                "Public playlist results can appear here. Spotify only permits song lists and import for playlists you own or collaborate on. You can still paste a playlist link for Spotify or another supported service below.",
+                "Derbis lists the playlists in your Spotify library. Spotify only permits song lists and import when it grants your account access; you can still paste a playlist link for Spotify or another supported service below.",
                 color = DerbisMuted.copy(alpha = 0.82f),
                 fontSize = 11.sp,
                 lineHeight = 16.sp
@@ -132,12 +129,12 @@ internal fun SpotifyPlaylistBrowseScreen(state: SpotifyPlaylistBrowseUiState, co
     if (state.selectedPlaylist != null) {
         SpotifyPlaylistDetailScreen(state, detail, controller)
     } else {
-        SpotifyPlaylistSearchScreen(state, controller)
+        SpotifyPlaylistLibraryScreen(state, controller)
     }
 }
 
 @Composable
-private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, controller: PlaylistImportController) {
+private fun SpotifyPlaylistLibraryScreen(state: SpotifyPlaylistBrowseUiState, controller: PlaylistImportController) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -148,66 +145,46 @@ private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, con
                 .align(Alignment.TopCenter)
                 .padding(horizontal = 20.dp)
         ) {
-            ImportTopBar("Search Spotify playlists", controller::closeSpotifyBrowse, "Back to playlist import")
+            ImportTopBar("Your Spotify playlists", controller::closeSpotifyBrowse, "Back to playlist import")
             Text(
-                "Search Spotify’s public playlist catalog. Anyone’s playlist can appear in the results; Spotify only permits song previews and import for playlists you own or collaborate on.",
+                "These are playlists in your signed-in Spotify library. Open one to view its songs and import it through Derbis matching when Spotify provides track access.",
                 color = DerbisMuted,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
                 modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = controller::updateSpotifySearchQuery,
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    label = { Text("Playlist, curator, or mood") },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    colors = spotifySearchFieldColors()
-                )
-                Button(
-                    onClick = controller::searchSpotifyPlaylists,
-                    enabled = state.query.trim().length >= 2 && !state.searching,
-                    modifier = Modifier.heightIn(min = 52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = DerbisCyan, contentColor = DerbisOnAccent),
-                    shape = ImportRowShape
-                ) { Text("Search") }
-            }
             if (state.error.isNotBlank()) SpotifyBrowseError(state.error)
-            if (state.searching) {
+            if (state.loadingLibrary) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = DerbisCyan, strokeWidth = 2.dp)
-                    Text("Searching Spotify…", color = DerbisMuted, fontSize = 13.sp)
+                    Text("Loading your Spotify playlists…", color = DerbisMuted, fontSize = 13.sp)
                 }
             } else if (state.results.isEmpty()) {
                 Text(
-                    "Search for a playlist to see results here.",
+                    "No Spotify playlists were found in your library.",
                     color = DerbisMuted,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
             } else {
                 val resultCount = state.results.size
-                val countLabel = state.totalResults?.let { total ->
-                    " · $resultCount of $total public playlists"
-                }.orEmpty()
+                val countLabel = state.totalResults?.let { total -> " · $resultCount of $total" }.orEmpty()
                 Text(
-                    "Spotify results$countLabel",
+                    "Your Spotify playlists$countLabel",
                     color = DerbisText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 20.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                 )
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     items(state.results, key = SpotifyPlaylistSearchResult::id) { playlist ->
                         SpotifyPlaylistSearchRow(playlist, onClick = { controller.openSpotifyPlaylist(playlist.id) })
                     }
-                    if (state.nextSearchOffset != null) {
+                    if (state.nextLibraryOffset != null) {
                         item {
                             Button(
                                 onClick = controller::loadMoreSpotifyPlaylists,
@@ -224,7 +201,7 @@ private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, con
                                     )
                                     Spacer(Modifier.size(9.dp))
                                 }
-                                Text(if (state.loadingMore) "Loading public playlists…" else "Load more public playlists")
+                                Text(if (state.loadingMore) "Loading playlists…" else "Load more playlists")
                             }
                         }
                     }
@@ -385,17 +362,6 @@ private fun SpotifyBrowseError(message: String) {
         Text(message, color = DerbisMuted, fontSize = 13.sp, lineHeight = 19.sp)
     }
 }
-
-@Composable
-private fun spotifySearchFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedTextColor = DerbisText,
-    unfocusedTextColor = DerbisText,
-    focusedBorderColor = DerbisCyan.copy(alpha = 0.7f),
-    unfocusedBorderColor = Color.White.copy(alpha = 0.12f),
-    focusedContainerColor = DerbisPanel.copy(alpha = 0.6f),
-    unfocusedContainerColor = DerbisPanel.copy(alpha = 0.45f),
-    cursorColor = DerbisCyan
-)
 
 private fun spotifyDuration(durationMs: Long): String {
     val seconds = (durationMs / 1_000L).coerceAtLeast(0L)
