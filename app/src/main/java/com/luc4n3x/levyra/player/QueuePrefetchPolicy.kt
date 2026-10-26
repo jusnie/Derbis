@@ -70,6 +70,10 @@ internal fun advancedPrefetchNetworkAllowed(
 
 /** A rolling user-visible buffer keeps Endless Listening scrollable while fresh picks refill it. */
 internal const val RADIO_TAIL_MIN_UPCOMING = 24
+/** Recommendation pagination triggered by reaching the end of the visible Endless Listening list. */
+internal const val ENDLESS_SCROLL_APPEND_BATCH = 12
+/** Bounds only the synchronous count probe; it never bounds the persisted/endless queue itself. */
+internal const val ENDLESS_SCROLL_LOOKAHEAD = 512
 private const val RADIO_TAIL_FETCH_HEADROOM = 6
 private const val RADIO_TAIL_MAX_FETCH = 30
 

@@ -315,6 +315,8 @@ import com.luc4n3x.levyra.player.LevyraMediaCache
 import com.luc4n3x.levyra.player.LevyraPlayer
 import com.luc4n3x.levyra.player.advancedPrefetchAllowed
 import com.luc4n3x.levyra.player.advancedPrefetchNetworkAllowed
+import com.luc4n3x.levyra.player.ENDLESS_SCROLL_APPEND_BATCH
+import com.luc4n3x.levyra.player.ENDLESS_SCROLL_LOOKAHEAD
 import com.luc4n3x.levyra.player.radioTailFetchLimit
 import com.luc4n3x.levyra.player.radioTailTargetUpcoming
 import com.luc4n3x.levyra.player.advancedPrefetchBudgetBytes
@@ -7037,6 +7039,20 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Called when the Endless Listening list reaches its tail: append a fresh 12-song page. */
+    fun loadMoreEndlessRecommendations() {
+        if (jamController.rejectGuestLocalMutation()) return
+        val snapshot = queueEngine.state.value
+        if (!snapshot.radioEnabled || snapshot.currentTrack?.isLiveRadio() == true) return
+        val visibleUpcoming = queueEngine.upcoming(ENDLESS_SCROLL_LOOKAHEAD).size
+        ensureRadioTail(
+            force = true,
+            targetUpcomingOverride = (visibleUpcoming + ENDLESS_SCROLL_APPEND_BATCH)
+                .coerceAtLeast(radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks)),
+            minimumAdditions = ENDLESS_SCROLL_APPEND_BATCH
+        )
+    }
+
     fun startSongRadio() {
         if (_state.value.currentTrack?.isLiveRadio() == true) return
         if (jamController.rejectGuestLocalMutation()) return
@@ -12733,32 +12749,49 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val seed: Track,
         val anchor: Track,
         val generation: Long,
-        val session: RadioSession?
+        val session: RadioSession?,
+        val targetUpcoming: Int,
+        val minimumAdditions: Int
     )
 
     private fun ensureRadioTail(
         force: Boolean,
         playWhenReady: Boolean = false,
-        insertAfterCurrent: Boolean = false
+        insertAfterCurrent: Boolean = false,
+        targetUpcomingOverride: Int? = null,
+        minimumAdditions: Int = 0
     ) {
-        val request = radioTailRequest(force) ?: return
+        val request = radioTailRequest(force, targetUpcomingOverride, minimumAdditions) ?: return
         radioJob = viewModelScope.launch(Dispatchers.IO) {
             appendRadioTail(request, playWhenReady, insertAfterCurrent)
         }
     }
 
-    private fun radioTailRequest(force: Boolean): RadioTailRequest? {
+    private fun radioTailRequest(
+        force: Boolean,
+        targetUpcomingOverride: Int? = null,
+        minimumAdditions: Int = 0
+    ): RadioTailRequest? {
         val snapshot = queueEngine.state.value
         val anchor = snapshot.currentTrack ?: return null
         if (anchor.isLiveRadio()) return null
         if (!snapshot.radioEnabled) return null
-        val targetUpcoming = radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks)
+        val targetUpcoming = targetUpcomingOverride
+            ?.coerceAtLeast(radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks))
+            ?: radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks)
         if (!force && queueEngine.upcoming(targetUpcoming).size >= targetUpcoming) return null
         if (radioJob?.isActive == true) return null
         if (isLocalPlaybackTrack(anchor) || !lyricsNetworkProfile().connected) return null
         val session = radioSession.get()?.takeIf { it.isActiveFor(snapshot) }
         val seed = radioSeedFor(session, snapshot) ?: return null
-        return RadioTailRequest(seed = seed, anchor = anchor, generation = snapshot.generation, session = session)
+        return RadioTailRequest(
+            seed = seed,
+            anchor = anchor,
+            generation = snapshot.generation,
+            session = session,
+            targetUpcoming = targetUpcoming,
+            minimumAdditions = minimumAdditions.coerceAtLeast(0)
+        )
     }
 
     private suspend fun appendRadioTail(
@@ -12766,9 +12799,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         playWhenReady: Boolean,
         insertAfterCurrent: Boolean = false
     ) {
-        val targetUpcoming = radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks)
+        val targetUpcoming = request.targetUpcoming
         val tailFetchLimit = radioTailFetchLimit(targetUpcoming, queueEngine.upcoming(targetUpcoming).size)
-        val fetchLimit = if (insertAfterCurrent) maxOf(tailFetchLimit, RADIO_START_FETCH) else tailFetchLimit
+        val fetchLimit = if (insertAfterCurrent) {
+            maxOf(tailFetchLimit, RADIO_START_FETCH)
+        } else {
+            maxOf(tailFetchLimit, request.minimumAdditions)
+        }
         val fetchedRadioTracks = fetchRadioTracks(request, fetchLimit)
         rememberRelatedCandidates(request.seed, fetchedRadioTracks)
         val current = currentRadioSnapshot(request) ?: return

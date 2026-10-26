@@ -55,6 +55,8 @@ class AdvancedQueuePrefetchPolicyTest {
         assertEquals(RADIO_TAIL_MIN_UPCOMING, radioTailTargetUpcoming(0))
         assertEquals(RADIO_TAIL_MIN_UPCOMING, radioTailTargetUpcoming(5))
         assertEquals(RADIO_TAIL_MIN_UPCOMING, radioTailTargetUpcoming(15))
+        assertEquals(12, ENDLESS_SCROLL_APPEND_BATCH)
+        assertEquals(512, ENDLESS_SCROLL_LOOKAHEAD)
         assertEquals(21, radioTailFetchLimit(targetUpcoming = 15, currentUpcoming = 0))
         assertEquals(6, radioTailFetchLimit(targetUpcoming = 3, currentUpcoming = 3))
         assertEquals(30, radioTailFetchLimit(targetUpcoming = 40, currentUpcoming = 0))

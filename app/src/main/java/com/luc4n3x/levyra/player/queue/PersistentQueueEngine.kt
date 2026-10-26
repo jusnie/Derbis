@@ -1298,9 +1298,9 @@ class PersistentQueueEngine internal constructor(
     )
 
     companion object {
-        private const val RADIO_BATCH_SIZE = 10
+        private const val RADIO_BATCH_SIZE = 12
         private const val RADIO_HISTORY_RESERVE = 16
-        private const val MAX_RADIO_QUEUE_SIZE = 1000
+        private const val MAX_RADIO_QUEUE_SIZE = 10_000
         @Volatile
         private var instance: PersistentQueueEngine? = null
 

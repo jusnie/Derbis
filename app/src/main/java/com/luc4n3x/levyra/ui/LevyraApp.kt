@@ -3172,6 +3172,7 @@ fun LevyraApp(
                     onMove = viewModel::moveQueueItem,
                     onUndo = viewModel::undoQueueRemoval,
                     onToggleRadio = viewModel::toggleEndlessListening,
+                    onLoadMoreEndless = viewModel::loadMoreEndlessRecommendations,
                     onPrepareQueuePlaylist = viewModel::prepareQueueSpacePlaylist,
                     onDismissQueuePlaylist = viewModel::dismissQueuePlaylistDraft,
                     onTrackActions = { target ->
@@ -7058,6 +7059,7 @@ private fun QueueOverlay(
     onMove: (Int, Int) -> Unit,
     onUndo: () -> Unit,
     onToggleRadio: () -> Unit,
+    onLoadMoreEndless: () -> Unit,
     onPrepareQueuePlaylist: (String) -> Unit,
     onDismissQueuePlaylist: () -> Unit,
     onTrackActions: (QueueRemovalTarget) -> Unit,
@@ -7275,6 +7277,20 @@ private fun QueueOverlay(
 
     BackHandler(enabled = selectionActive) { selectedQueueKeys = emptySet() }
 
+    val queueListState = rememberLazyListState()
+    val reachedEndlessQueueTail by remember(queueListState) {
+        derivedStateOf {
+            val layout = queueListState.layoutInfo
+            val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
+            layout.totalItemsCount > 0 && lastVisible >= layout.totalItemsCount - 3
+        }
+    }
+    LaunchedEffect(state.radioEnabled, reachedEndlessQueueTail) {
+        if (state.radioEnabled && reachedEndlessQueueTail && upcomingEntries.isNotEmpty()) {
+            onLoadMoreEndless()
+        }
+    }
+
     val currentTrack = state.currentTrack ?: currentQueueEntry?.track
     val queueFocusTrack = upcomingEntries.firstOrNull()?.track ?: currentTrack
     Box(
@@ -7357,6 +7373,7 @@ private fun QueueOverlay(
             // the runtime, transport, volume, or output controls.
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(
+                    state = queueListState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
