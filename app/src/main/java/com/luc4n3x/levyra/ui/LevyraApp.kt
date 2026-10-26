@@ -8156,6 +8156,7 @@ private fun LyricsOverlay(
             onPrevious = onPrevious,
             onTogglePlay = onTogglePlay,
             onNext = onNext,
+            onToggleFavorite = onToggleFavorite,
             onShareLyrics = { selectedLines ->
                 // The Apple Music 13 image action deliberately enters line selection first;
                 // this opens the existing image-card flow only with the listener's chosen verses.
@@ -8829,6 +8830,7 @@ private fun AppleMusic13FullscreenLyrics(
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
+    onToggleFavorite: (Track) -> Unit,
     onShareLyrics: (List<LyricLine>) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit,
@@ -8907,8 +8909,6 @@ private fun AppleMusic13FullscreenLyrics(
     }
     val shownProgress = dragProgress ?: progress
     val shownPosition = (state.durationMs * shownProgress).toLong()
-    // Full-screen lyrics are a reading surface. Playback controls remain on the player screen.
-    val showPlaybackChrome = false
     val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
     // Image sharing in this variant is intentionally a lyric-line selection action, not a
@@ -8942,6 +8942,68 @@ private fun AppleMusic13FullscreenLyrics(
                 .navigationBarsPadding()
         ) {
 
+
+            // Same compact record header as SimpMusic's lyrics body: the music remains identifiable
+            // while the lyrics get the page rather than being framed as a separate dialog.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (track != null) {
+                    AsyncImage(
+                        model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                    )
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = track?.title ?: strings.lyrics,
+                        color = Color.White,
+                        style = AppleMusicTypography.titleMedium.copy(
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = track?.artist.orEmpty(),
+                        color = Color.White.copy(alpha = 0.70f),
+                        style = AppleMusicTypography.bodyMedium.copy(
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        wakeCluster()
+                        track?.let(onToggleFavorite)
+                    },
+                    enabled = track != null
+                ) {
+                    Icon(
+                        imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        contentDescription = strings.favorite,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
+                }
+            }
 
             Box(
                 modifier = Modifier
@@ -8978,6 +9040,7 @@ private fun AppleMusic13FullscreenLyrics(
                             // flow, never a second live-lyrics renderer competing with the timed view.
                             val liveLyricActive = !imageShareSelectionMode && index == activeIndex
                             val imageShareSelected = imageShareRange?.contains(index) == true && isLyricsShareSelectable(line)
+                            val lyricLineBlur = if (!imageShareSelectionMode && !liveLyricActive) 2.dp else 0.dp
                             val lineColor by animateColorAsState(
                                 targetValue = if (imageShareSelected || liveLyricActive) Color.White else Color.White.copy(alpha = 0.34f),
                                 animationSpec = tween(if (state.animationsEnabled) 180 else 0),
@@ -8996,6 +9059,7 @@ private fun AppleMusic13FullscreenLyrics(
                                         scaleY = lineScale
                                         transformOrigin = TransformOrigin(0f, 0.5f)
                                     }
+                                    .blur(lyricLineBlur)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
                                         if (imageShareSelected) Color.White.copy(alpha = 0.16f) else Color.Transparent
@@ -9014,27 +9078,18 @@ private fun AppleMusic13FullscreenLyrics(
                                     }
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
-                                if (!imageShareSelectionMode && state.lyricsSynced && line.words.isNotEmpty()) {
-                                    AppleMusic13WordByWordLyrics(
-                                        line = line,
-                                        positionProvider = lyricPositionProvider,
-                                        isActive = liveLyricActive,
-                                        inactiveColor = lineColor,
-                                        glowColor = accentEnd,
-                                        animationsEnabled = state.animationsEnabled
+                                // Full lines, not individual words, follow the sync clock: the current
+                                // line is bright white while surrounding lyrics stay monochrome and blurred.
+                                Text(
+                                    text = line.text,
+                                    color = lineColor,
+                                    style = AppleMusicTypography.headlineLarge.copy(
+                                        fontFamily = FontFamily.SansSerif,
+                                        fontSize = 31.sp,
+                                        lineHeight = 38.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
-                                } else {
-                                    Text(
-                                        text = line.text,
-                                        color = lineColor,
-                                        style = AppleMusicTypography.headlineLarge.copy(
-                                            fontFamily = FontFamily.SansSerif,
-                                            fontSize = 31.sp,
-                                            lineHeight = 38.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    )
-                                }
+                                )
                                 if (showRomanization && line.romanized.isNotBlank()) {
                                     Text(
                                         text = line.romanized,
@@ -9164,7 +9219,7 @@ private fun AppleMusic13FullscreenLyrics(
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
             // grow into the freed room instead of leaving an empty control-shaped band behind.
             AnimatedVisibility(
-                visible = showPlaybackChrome && showCluster && !imageShareSelectionMode,
+                visible = showCluster && !imageShareSelectionMode,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
@@ -9260,124 +9315,6 @@ private fun AppleMusic13LyricsFloatingButton(
     }
 }
 
-/**
- * Apple Music 13 treats every timed word as a distinct lyric state rather than sweeping a
- * karaoke fill across characters. A word changes as soon as its timestamp is reached, then
- * eases its color, scale, and album-tinted halo into the following word without a dead beat.
- */
-private data class AppleMusic13WordProgress(
-    val activeIndex: Int,
-    val completedIndex: Int
-)
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AppleMusic13WordByWordLyrics(
-    line: com.luc4n3x.levyra.domain.LyricLine,
-    positionProvider: () -> Long,
-    isActive: Boolean,
-    inactiveColor: Color,
-    glowColor: Color,
-    animationsEnabled: Boolean
-) {
-    val highlightWords = remember(line.text, line.startMs, line.endMs, line.words) {
-        wordHighlightTimings(line)
-    }
-    val timedText = remember(line.text, highlightWords) { buildTimedLyricText(line.text, highlightWords) }
-    // The playback clock itself updates at display rate, but lyrics need to change only when a
-    // word starts or ends.  derivedStateOf observes that clock and exposes the compact pair below;
-    // equal progress values are not propagated, so FlowRow is not rebuilt every frame.
-    val wordProgress by remember(isActive, highlightWords, positionProvider) {
-        derivedStateOf {
-            if (!isActive) {
-                AppleMusic13WordProgress(activeIndex = -1, completedIndex = -1)
-            } else {
-                val position = positionProvider()
-                var activeWord = -1
-                var completedWord = -1
-                highlightWords.forEachIndexed { index, word ->
-                    if (position >= word.endMs) completedWord = index
-                    if (position in word.startMs until word.endMs) activeWord = index
-                }
-                AppleMusic13WordProgress(activeIndex = activeWord, completedIndex = completedWord)
-            }
-        }
-    }
-    val wordStyle = AppleMusicTypography.headlineLarge.copy(
-        fontFamily = FontFamily.SansSerif,
-        fontSize = 31.sp,
-        lineHeight = 38.sp,
-        fontWeight = FontWeight.Bold
-    )
-    val wordTransition = tween<Color>(
-        durationMillis = if (animationsEnabled) 115 else 0,
-        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
-    )
-    val scaleTransition = tween<Float>(
-        durationMillis = if (animationsEnabled) 115 else 0,
-        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
-    )
-
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(0.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        var consumedCharacters = 0
-        timedText.words.forEachIndexed { wordIndex, timedWord ->
-            val wordEnd = (timedWord.startIndex + timedWord.length).coerceAtMost(timedText.text.length)
-            val segment = timedText.text.substring(consumedCharacters.coerceAtMost(wordEnd), wordEnd)
-            consumedCharacters = wordEnd
-            if (segment.isNotEmpty()) {
-                val currentWord = wordIndex == wordProgress.activeIndex
-                val completedWord = wordIndex <= wordProgress.completedIndex
-                val targetColor = when {
-                    !isActive -> inactiveColor
-                    currentWord -> Color.White
-                    completedWord -> Color.White.copy(alpha = 0.92f)
-                    else -> Color.White.copy(alpha = 0.38f)
-                }
-                val wordColor by animateColorAsState(
-                    targetValue = targetColor,
-                    animationSpec = wordTransition,
-                    label = "apple-word-color"
-                )
-                val wordScale by animateFloatAsState(
-                    targetValue = if (currentWord) 1.045f else 1f,
-                    animationSpec = scaleTransition,
-                    label = "apple-word-scale"
-                )
-                Text(
-                    text = segment,
-                    color = wordColor,
-                    style = wordStyle.copy(
-                        shadow = if (currentWord) {
-                            Shadow(
-                                color = lerp(Color.White, glowColor, 0.58f).copy(alpha = 0.84f),
-                                blurRadius = 24f,
-                                offset = Offset.Zero
-                            )
-                        } else {
-                            null
-                        }
-                    ),
-                    modifier = Modifier.graphicsLayer {
-                        scaleX = wordScale
-                        scaleY = wordScale
-                        transformOrigin = TransformOrigin(0f, 0.5f)
-                    }
-                )
-            }
-        }
-        if (consumedCharacters < timedText.text.length) {
-            Text(
-                text = timedText.text.substring(consumedCharacters),
-                color = if (isActive) Color.White.copy(alpha = 0.38f) else inactiveColor,
-                style = wordStyle
-            )
-        }
-    }
-}
 
 @Composable
 private fun AppleMusic13LyricsArtworkBackdrop(
