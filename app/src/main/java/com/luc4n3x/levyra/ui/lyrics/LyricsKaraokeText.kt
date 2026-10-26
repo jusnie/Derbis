@@ -1,9 +1,51 @@
 package com.luc4n3x.levyra.ui.lyrics
 
+import com.luc4n3x.levyra.domain.LyricLine
 import com.luc4n3x.levyra.domain.LyricWord
 
 fun buildTimedLyricText(lineText: String, words: List<LyricWord>): TimedLyricText =
     alignTimedLyricText(lineText, words) ?: buildTimedLyricText(words)
+
+/**
+ * Supplies a stable word timeline even when a lyrics provider only supplies line timings.
+ * Provider word timestamps always win; the fallback simply distributes the line duration by
+ * readable token length so every renderer can still advance a visible word state.
+ */
+fun wordHighlightTimings(line: LyricLine): List<LyricWord> {
+    val providerWords = line.words.filter { word ->
+        word.text.isNotBlank() && word.endMs > word.startMs
+    }
+    if (providerWords.isNotEmpty()) return providerWords
+    if (line.isInstrumental || line.text.isBlank()) return emptyList()
+
+    val tokens = WORD_TOKEN.findAll(line.text).map { it.value }.toList()
+    if (tokens.isEmpty()) return emptyList()
+
+    val startMs = line.startMs
+    val durationMs = (line.endMs - line.startMs)
+        .takeIf { it > 0L }
+        ?: (tokens.size * ESTIMATED_WORD_DURATION_MS).toLong()
+    val boundedDurationMs = durationMs.coerceAtLeast(tokens.size.toLong())
+    val weights = tokens.map { token ->
+        token.count { character -> character.isLetterOrDigit() }.coerceAtLeast(1)
+    }
+    val totalWeight = weights.sum().coerceAtLeast(1)
+    var accumulatedWeight = 0
+
+    return tokens.mapIndexed { index, token ->
+        val wordStart = startMs + (boundedDurationMs * accumulatedWeight / totalWeight)
+        accumulatedWeight += weights[index]
+        val calculatedEnd = startMs + (boundedDurationMs * accumulatedWeight / totalWeight)
+        LyricWord(
+            startMs = wordStart,
+            endMs = if (index == tokens.lastIndex) startMs + boundedDurationMs else calculatedEnd.coerceAtLeast(wordStart + 1L),
+            text = token
+        )
+    }
+}
+
+private val WORD_TOKEN = Regex("\\S+")
+private const val ESTIMATED_WORD_DURATION_MS = 450
 
 fun buildTimedLyricText(words: List<LyricWord>): TimedLyricText {
     val sourceSpacing = words.any { word ->

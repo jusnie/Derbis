@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.domain.LevyraLyricsStudioSettings
 import com.luc4n3x.levyra.domain.LyricLine
+import com.luc4n3x.levyra.domain.LyricWord
 import com.luc4n3x.levyra.domain.LyricVocalRole
 import com.luc4n3x.levyra.domain.LyricsActiveColorMode
 import com.luc4n3x.levyra.domain.LyricsAlignment
@@ -81,6 +82,7 @@ import com.luc4n3x.levyra.ui.lyrics.adaptiveLyricFontSizeSp
 import com.luc4n3x.levyra.ui.lyrics.lyricLineScaleSafeWidthPx
 import com.luc4n3x.levyra.ui.lyrics.lyricsInstrumentalDotIntensity
 import com.luc4n3x.levyra.ui.lyrics.lyricsInstrumentalProgress
+import com.luc4n3x.levyra.ui.lyrics.wordHighlightTimings
 import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraTypeRhythm
 import com.luc4n3x.levyra.ui.theme.levyraFontFamilyFor
@@ -207,6 +209,10 @@ internal fun KaraokeLyricLine(
         shadow = lyricGlowShadow(studioSettings.glowEffect, activeTextColor).takeIf { isPrimaryActive }
     )
     val cinemaPrimary = cinema && isPrimaryActive
+    // A line-only source should not silently disable word updates in the standard overlay.
+    val highlightWords = remember(line.text, line.startMs, line.endMs, line.words) {
+        wordHighlightTimings(line)
+    }
 
     Column(
         modifier = Modifier
@@ -244,7 +250,8 @@ internal fun KaraokeLyricLine(
         }
         LyricLineMainText(
             line = line,
-            wordTimed = lyricUsesWordTiming(line, synced, studioSettings.progressiveKaraokeEnabled),
+            wordTimed = lyricUsesWordTiming(highlightWords, synced, studioSettings.progressiveKaraokeEnabled),
+            words = highlightWords,
             positionProvider = positionProvider,
             isActive = isActive,
             typography = typography,
@@ -307,6 +314,7 @@ private fun LyricLineSectionLabel(label: String?, locale: Locale, color: Color, 
 private fun LyricLineMainText(
     line: LyricLine,
     wordTimed: Boolean,
+    words: List<LyricWord>,
     positionProvider: () -> Long,
     isActive: Boolean,
     typography: LyricLineTypography,
@@ -315,7 +323,7 @@ private fun LyricLineMainText(
     if (wordTimed) {
         KaraokeWordTimedText(
             lineText = line.text,
-            words = line.words,
+            words = words,
             positionProvider = positionProvider,
             isActive = isActive,
             fontSize = typography.fontSize,
@@ -463,8 +471,8 @@ private fun lyricPendingWordColor(spotify: Boolean, compact: Boolean): Color =
 
 private fun lyricLineGap(compact: Boolean): Dp = if (compact) 2.dp else 4.dp
 
-private fun lyricUsesWordTiming(line: LyricLine, synced: Boolean, progressive: Boolean): Boolean =
-    line.words.isNotEmpty() && synced && progressive
+private fun lyricUsesWordTiming(words: List<LyricWord>, synced: Boolean, progressive: Boolean): Boolean =
+    words.isNotEmpty() && synced && progressive
 
 private fun lyricLineAlignment(role: LyricVocalRole, alignment: LyricsAlignment): Alignment.Horizontal = when (role) {
     LyricVocalRole.DUET_RIGHT -> Alignment.End

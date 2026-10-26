@@ -109,6 +109,7 @@ import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.KaraokeWordTimedText
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
 import com.luc4n3x.levyra.ui.lyrics.buildTimedLyricText
+import com.luc4n3x.levyra.ui.lyrics.wordHighlightTimings
 import com.luc4n3x.levyra.ui.i18n.LocalLevyraStrings
 import com.luc4n3x.levyra.ui.theme.LevyraCyan
 import com.luc4n3x.levyra.ui.theme.LevyraInk
@@ -1265,7 +1266,10 @@ private fun AppleMusic13StudioPreviewLine(
         lineHeight = 24.sp,
         fontWeight = FontWeight.Bold
     )
-    val timedText = remember(line.text, line.words) { buildTimedLyricText(line.text, line.words) }
+    val highlightWords = remember(line.text, line.startMs, line.endMs, line.words) {
+        wordHighlightTimings(line)
+    }
+    val timedText = remember(line.text, highlightWords) { buildTimedLyricText(line.text, highlightWords) }
 
     FlowRow(
         modifier = Modifier
@@ -1425,6 +1429,9 @@ private fun StudioPreviewLyricsLine(
     val textColor = if (isLineActive) accentColor else Color.White
     val resolvedWeight = if (isLineActive) settings.fontWeight.weight else FontWeight.Medium
     val activeShadow = if (isLineActive) glowShadow else null
+    val highlightWords = remember(line.text, line.startMs, line.endMs, line.words) {
+        wordHighlightTimings(line)
+    }
 
     Box(
         modifier = Modifier
@@ -1440,6 +1447,7 @@ private fun StudioPreviewLyricsLine(
     ) {
         StudioPreviewLineText(
             line = line,
+            words = highlightWords,
             playbackPositionMs = playbackPositionMs,
             progressiveKaraokeEnabled = settings.progressiveKaraokeEnabled,
             isLineActive = isLineActive,
@@ -1457,6 +1465,7 @@ private fun StudioPreviewLyricsLine(
 @Composable
 private fun StudioPreviewLineText(
     line: LyricLine,
+    words: List<com.luc4n3x.levyra.domain.LyricWord>,
     playbackPositionMs: Long,
     progressiveKaraokeEnabled: Boolean,
     isLineActive: Boolean,
@@ -1468,10 +1477,10 @@ private fun StudioPreviewLineText(
     textAlign: TextAlign,
     glowShadow: Shadow?
 ) {
-    if (progressiveKaraokeEnabled && line.words.isNotEmpty()) {
+    if (progressiveKaraokeEnabled && words.isNotEmpty()) {
         KaraokeWordTimedText(
             lineText = line.text,
-            words = line.words,
+            words = words,
             positionProvider = { playbackPositionMs },
             isActive = isLineActive,
             fontSize = baseFontSize.sp,

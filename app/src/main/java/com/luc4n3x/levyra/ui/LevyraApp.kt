@@ -121,7 +121,6 @@ import com.luc4n3x.levyra.ui.lyrics.lyricsShareSelectedLines
 import com.luc4n3x.levyra.ui.lyrics.lyricsShareSnapshot
 import com.luc4n3x.levyra.ui.lyrics.toggleLyricsShareSelection
 import com.luc4n3x.levyra.ui.lyrics.rememberLyricsAudioOutputRoute
-import com.luc4n3x.levyra.ui.lyrics.KARAOKE_VISUAL_LEAD_MS
 import com.luc4n3x.levyra.ui.lyrics.LYRICS_INSTRUMENTAL_DOT_COUNT
 import com.luc4n3x.levyra.ui.lyrics.LyricsInstrumentalGap
 import com.luc4n3x.levyra.ui.lyrics.LyricsPlaybackClock
@@ -138,7 +137,7 @@ import com.luc4n3x.levyra.ui.i18n.homeVideoShelfTitle
 import com.luc4n3x.levyra.ui.i18n.homeStudioCopy
 import com.luc4n3x.levyra.ui.lyrics.lyricLineScaleSafeWidthPx
 import com.luc4n3x.levyra.ui.lyrics.buildTimedLyricText
-import com.luc4n3x.levyra.ui.lyrics.karaokeCharacterProgress
+import com.luc4n3x.levyra.ui.lyrics.wordHighlightTimings
 import com.luc4n3x.levyra.ui.lyrics.lyricsOffsetPosition
 import com.luc4n3x.levyra.ui.lyrics.lyricsInstrumentalDotIntensity
 import com.luc4n3x.levyra.ui.lyrics.lyricsInstrumentalGaps
@@ -539,7 +538,6 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -577,7 +575,6 @@ import androidx.core.view.WindowCompat
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -585,7 +582,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -9086,7 +9082,10 @@ private fun AppleMusic13WordByWordLyrics(
     glowColor: Color,
     animationsEnabled: Boolean
 ) {
-    val timedText = remember(line.text, line.words) { buildTimedLyricText(line.text, line.words) }
+    val highlightWords = remember(line.text, line.startMs, line.endMs, line.words) {
+        wordHighlightTimings(line)
+    }
+    val timedText = remember(line.text, highlightWords) { buildTimedLyricText(line.text, highlightWords) }
     // Only the active line observes the playback clock. Inactive lines stay cheap and subdued.
     val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
     val wordStyle = AppleMusicTypography.headlineLarge.copy(
@@ -9554,6 +9553,12 @@ private fun LyricsControlChip(
     }
 }
 
+/**
+ * Renders timed lyrics as discrete word states.  A word becomes active at its own timestamp,
+ * then eases into the completed state as the next word takes the glow.  This is deliberately
+ * not a character-sweep karaoke fill, so it remains legible in every non-Apple lyric overlay.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun KaraokeWordTimedText(
     lineText: String,
@@ -9572,65 +9577,90 @@ internal fun KaraokeWordTimedText(
     shadow: Shadow? = null
 ) {
     val timedText = remember(lineText, words) { buildTimedLyricText(lineText, words) }
-    val karaokeEasing = remember { CubicBezierEasing(0.18f, 0f, 0.20f, 1f) }
-    val clipPath = remember { Path() }
-    val contentAlignment = when (textAlign) {
-        TextAlign.Center -> Alignment.Center
-        TextAlign.End, TextAlign.Right -> Alignment.CenterEnd
-        else -> Alignment.CenterStart
-    }
-    var textLayoutResult by remember(timedText.text, fontSize, lineHeight, textAlign, fontWeight, fontFamily) {
-        mutableStateOf<TextLayoutResult?>(null)
+    // Inactive rows do not observe the clock and keep their normal inactive color.
+    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    val wordTransition = tween<Color>(
+        durationMillis = 115,
+        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
+    )
+    val scaleTransition = tween<Float>(
+        durationMillis = 115,
+        easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
+    )
+    val arrangement = when (textAlign) {
+        TextAlign.Center -> Arrangement.Center
+        TextAlign.End, TextAlign.Right -> Arrangement.End
+        else -> Arrangement.Start
     }
 
-    Box(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = contentAlignment
+        horizontalArrangement = arrangement,
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        Box(modifier = Modifier.wrapContentWidth()) {
+        if (timedText.words.isEmpty()) {
             Text(
-                text = timedText.text,
-                color = if (isActive) pendingColor else inactiveColor,
+                text = lineText,
+                color = if (isActive) completedColor else inactiveColor,
                 fontFamily = fontFamily,
                 fontSize = fontSize,
                 lineHeight = lineHeight,
                 fontWeight = fontWeight,
                 textAlign = textAlign,
-                onTextLayout = { textLayoutResult = it },
-                modifier = Modifier.wrapContentWidth()
+                style = TextStyle(shadow = shadow)
             )
-            if (isActive) {
+            return@FlowRow
+        }
+
+        var consumedCharacters = 0
+        timedText.words.forEach { word ->
+            val end = (word.startIndex + word.length).coerceAtMost(timedText.text.length)
+            val segment = timedText.text.substring(consumedCharacters.coerceAtMost(end), end)
+            consumedCharacters = end
+            if (segment.isNotEmpty()) {
+                val currentWord = playbackPosition in word.startMs until word.endMs
+                val completedWord = playbackPosition >= word.endMs
+                val targetColor = when {
+                    !isActive -> inactiveColor
+                    currentWord -> activeColor
+                    completedWord -> completedColor
+                    else -> pendingColor
+                }
+                val wordColor by animateColorAsState(
+                    targetValue = targetColor,
+                    animationSpec = wordTransition,
+                    label = "lyrics-word-color"
+                )
+                val wordScale by animateFloatAsState(
+                    targetValue = if (currentWord) 1.028f else 1f,
+                    animationSpec = scaleTransition,
+                    label = "lyrics-word-scale"
+                )
                 Text(
-                    text = timedText.text,
-                    color = if (activeColor == completedColor) completedColor else activeColor,
+                    text = segment,
+                    color = wordColor,
                     fontFamily = fontFamily,
                     fontSize = fontSize,
                     lineHeight = lineHeight,
                     fontWeight = fontWeight,
-                    textAlign = textAlign,
-                    style = TextStyle(shadow = shadow),
-                    modifier = Modifier
-                        .matchParentSize()
-                        .drawWithContent {
-                            val layoutResult = textLayoutResult ?: return@drawWithContent
-                            val characterProgress = karaokeCharacterProgress(
-                                timedText = timedText,
-                                positionMs = positionProvider() + KARAOKE_VISUAL_LEAD_MS,
-                                easing = karaokeEasing
-                            )
-                            if (characterProgress <= 0f) return@drawWithContent
-                            val path = buildKaraokeGlyphPath(
-                                path = clipPath,
-                                layoutResult = layoutResult,
-                                textLength = timedText.text.length,
-                                characterProgress = characterProgress
-                            )
-                            clipPath(path) {
-                                this@drawWithContent.drawContent()
-                            }
-                        }
+                    style = TextStyle(shadow = if (currentWord) shadow else null),
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = wordScale
+                        scaleY = wordScale
+                        transformOrigin = TransformOrigin(0f, 0.5f)
+                    }
                 )
             }
+        }
+        if (consumedCharacters < timedText.text.length) {
+            Text(
+                text = timedText.text.substring(consumedCharacters),
+                color = if (isActive) pendingColor else inactiveColor,
+                fontFamily = fontFamily,
+                fontSize = fontSize,
+                lineHeight = lineHeight,
+                fontWeight = fontWeight
+            )
         }
     }
 }
@@ -9639,66 +9669,6 @@ private const val INLINE_LYRICS_AUTOSCROLL_RESUME_MS = 3_500L
 internal const val LYRICS_HORIZONTAL_GUTTER_DP = 48
 internal const val LYRICS_ACTIVE_LINE_SCALE = 1.025f
 internal const val LYRICS_COMPACT_ACTIVE_LINE_SCALE = 1.018f
-
-private fun buildKaraokeGlyphPath(
-    path: Path,
-    layoutResult: TextLayoutResult,
-    textLength: Int,
-    characterProgress: Float
-): Path {
-    path.reset()
-    if (textLength == 0 || characterProgress <= 0f) return path
-    val boundedProgress = characterProgress.coerceIn(0f, textLength.toFloat())
-    val completedCharacters = boundedProgress.toInt().coerceIn(0, textLength)
-
-    val activeLine = if (completedCharacters < textLength) {
-        layoutResult.getLineForOffset(completedCharacters)
-    } else {
-        layoutResult.lineCount - 1
-    }
-
-    for (line in 0 until activeLine) {
-        val left = layoutResult.getLineLeft(line)
-        val right = layoutResult.getLineRight(line)
-        val top = layoutResult.getLineTop(line)
-        val bottom = layoutResult.getLineBottom(line)
-        path.addRectangle(left, top, right, bottom)
-    }
-
-    val top = layoutResult.getLineTop(activeLine)
-    val bottom = layoutResult.getLineBottom(activeLine)
-    val isRtl = layoutResult.getParagraphDirection(layoutResult.getLineStart(activeLine)) == ResolvedTextDirection.Rtl
-    val startX = if (isRtl) layoutResult.getLineRight(activeLine) else layoutResult.getLineLeft(activeLine)
-
-    if (completedCharacters >= textLength) {
-        val endX = if (isRtl) layoutResult.getLineLeft(activeLine) else layoutResult.getLineRight(activeLine)
-        path.addRectangle(minOf(startX, endX), top, maxOf(startX, endX), bottom)
-    } else {
-        val fraction = boundedProgress - completedCharacters
-        val charStart = layoutResult.getHorizontalPosition(completedCharacters, usePrimaryDirection = true)
-        val nextOffset = (completedCharacters + 1).coerceAtMost(textLength)
-        val charEnd = if (
-            nextOffset < textLength && layoutResult.getLineForOffset(nextOffset) != activeLine
-        ) {
-            if (isRtl) layoutResult.getLineLeft(activeLine) else layoutResult.getLineRight(activeLine)
-        } else {
-            layoutResult.getHorizontalPosition(nextOffset, usePrimaryDirection = true)
-        }
-        val currentX = charStart + (charEnd - charStart) * fraction
-        path.addRectangle(minOf(startX, currentX), top, maxOf(startX, currentX), bottom)
-    }
-    return path
-}
-
-private fun Path.addRectangle(left: Float, top: Float, right: Float, bottom: Float) {
-    if (right <= left || bottom <= top) return
-    moveTo(left, top)
-    lineTo(right, top)
-    lineTo(right, bottom)
-    lineTo(left, bottom)
-    close()
-}
-
 
 @Composable
 private fun LyricsIntelligenceDialog(
