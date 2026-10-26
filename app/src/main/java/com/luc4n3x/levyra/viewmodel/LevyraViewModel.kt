@@ -12428,7 +12428,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private fun prefetchNextTracks(playable: Track) {
         prefetchJob?.cancel()
         PlaybackService.clearPreparedQueueNextIfStale()
-        if (isLocalPlaybackTrack(playable) || !lyricsNetworkProfile().connected) return
+        if (isLocalPlaybackTrack(playable)) return
+        // Keep bandwidth-heavy prefetch governed by the lyrics/data-saver policy, but still let
+        // the explicitly enabled Endless queue request its small foreground recommendation page.
+        if (!lyricsNetworkProfile().connected) {
+            ensureRadioTail(force = false)
+            return
+        }
         if (!queuePrefetchAllowed(_state.value.audioSettings)) {
             ensureRadioTail(force = false)
             return
@@ -12710,7 +12716,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             ?: radioTailTargetUpcoming(_state.value.audioSettings.advancedQueuePrefetchTracks)
         if (!force && queueEngine.upcoming(targetUpcoming).size >= targetUpcoming) return null
         if (radioJob?.isActive == true) return null
-        if (isLocalPlaybackTrack(anchor) || !lyricsNetworkProfile().connected) return null
+        // Endless Listening is an explicit foreground action. Unlike lyrics/background prefetch,
+        // it must not silently disappear on a metered or Android Data Saver connection while the
+        // listener can already stream the selected song.
+        if (isLocalPlaybackTrack(anchor) || !hasInternetCapableNetwork()) return null
         val session = radioSession.get()?.takeIf { it.isActiveFor(snapshot) } ?: return null
         return RadioTailRequest(
             // The YouTube Music radio remains rooted at the resolved session seed. The currently
