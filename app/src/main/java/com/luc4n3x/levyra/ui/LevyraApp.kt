@@ -8814,10 +8814,9 @@ private fun LyricsOverlay(
 }
 
 /**
- * SimpMusic-derived lyrics surface.  Its compact header, immersive scrolling page, fading lyric
- * edges, floating utilities and auto-hiding bottom cluster follow SimpMusic's AppleMusicLyricsView
- * at upstream revision 068d744 (GPL-3.0).  Levyra keeps its own seek, calibration, sharing and
- * discrete word-by-word renderer — no character sweep is introduced here.
+ * Derbis' full-screen Apple Music 13 lyrics surface. It keeps Derbis' own seek, calibration,
+ * sharing and discrete word-timed renderer while prioritising a compact header, a readable
+ * scrolling lyric page and auto-hiding utilities.
  */
 @Composable
 private fun AppleMusic13FullscreenLyrics(
@@ -9438,6 +9437,9 @@ private fun AppleMusic13LyricsFloatingButton(
 }
 
 
+// Kept deliberately below half opacity so high-key album art never washes out white lyrics.
+private const val AppleMusic13LyricsArtworkOpacity = 0.34f
+
 @Composable
 private fun AppleMusic13LyricsArtworkBackdrop(
     track: Track?,
@@ -9451,14 +9453,15 @@ private fun AppleMusic13LyricsArtworkBackdrop(
     val fallbackBottom = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.88f) }
 
     Box(Modifier.fillMaxSize().background(fallbackBottom)) {
-        // This layer never observes the playback clock. A moderate fixed blur keeps the artwork
-        // recognisable while avoiding the expensive animated blur/gradient stack that made lyrics
-        // feel sluggish on lower-powered devices.
+        // The image is deliberately dimmed as one uniform static layer. This preserves legibility
+        // for white active lyrics on very bright album covers without restoring the old dark
+        // gradient bands or introducing a moving/palette-based overlay.
         SeamlessArtworkImage(
             url = artworkUrl,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
+                    alpha = AppleMusic13LyricsArtworkOpacity
                     scaleX = 1.08f
                     scaleY = 1.08f
                 }
@@ -9472,8 +9475,8 @@ private fun AppleMusic13LyricsArtworkBackdrop(
                 )
             }
         )
-        // Keep the artwork colour field uninterrupted. The lyrics and controls sit directly over
-        // the blurred cover rather than under a separate black gradient layer.
+        // The dark fallback stays behind the low-opacity artwork. There is intentionally no
+        // foreground black-gradient band, so the lyric viewport remains an even contrast field.
     }
 }
 

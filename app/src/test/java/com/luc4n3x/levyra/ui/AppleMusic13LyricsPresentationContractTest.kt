@@ -37,13 +37,15 @@ class AppleMusic13LyricsPresentationContractTest {
     }
 
     @Test
-    fun `artwork backdrop has no black gradient scrim`() {
+    fun `artwork backdrop uniformly dims bright covers without black gradient bands`() {
         val backdropStart = source.indexOf("private fun AppleMusic13LyricsArtworkBackdrop(")
         val backdropEnd = source.indexOf("\n@Composable\nprivate fun LyricsShareBar(", backdropStart)
         assertTrue(backdropStart >= 0 && backdropEnd > backdropStart)
         val backdrop = source.substring(backdropStart, backdropEnd)
 
-        assertTrue(backdrop.contains("artwork colour field uninterrupted"))
+        assertTrue(source.contains("private const val AppleMusic13LyricsArtworkOpacity = 0.34f"))
+        assertTrue(backdrop.contains("alpha = AppleMusic13LyricsArtworkOpacity"))
+        assertTrue(backdrop.contains("uniform static layer"))
         assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.82f)"))
         assertFalse(backdrop.contains("Color.Black.copy(alpha = 0.42f)"))
         assertFalse(lyricsScreen.contains("fadeTone"))
