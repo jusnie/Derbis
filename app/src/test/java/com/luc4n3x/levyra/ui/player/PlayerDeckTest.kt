@@ -78,6 +78,15 @@ class PlayerDeckTest {
     }
 
     @Test
+    fun `Velvet and Apple Music 13 resolve to different player layouts`() {
+        assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
+        assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
+        assertFalse(PlayerVisualMode.CanvasImmersive.deckLayout() == PlayerVisualMode.AppleMusic13.deckLayout())
+        assertFalse(PlayerVisualMode.CanvasImmersive.usesAppleMusicPlayerStyle())
+        assertTrue(PlayerVisualMode.AppleMusic13.usesAppleMusicPlayerStyle())
+    }
+
+    @Test
     fun `velvet keeps its static play pause in song and video across orientations`() {
         assertTrue(PlayerVisualMode.CanvasImmersive.usesAuraPlayPause())
         listOf(false, true).forEach { video ->

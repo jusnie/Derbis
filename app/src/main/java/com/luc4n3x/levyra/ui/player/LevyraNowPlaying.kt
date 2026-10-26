@@ -209,9 +209,10 @@ fun LevyraNowPlaying(
     playlistDialogContent: (@Composable () -> Unit)? = null,
     onOpenPlaylistDialog: ((Track) -> Unit)? = null
 ) {
-    val velvet = !LevyraSkinManagesLayout && state.interfaceSettings.playerVisualMode == PlayerVisualMode.CanvasImmersive
-    val appleMusic13 = !LevyraSkinManagesLayout && state.interfaceSettings.playerVisualMode == PlayerVisualMode.AppleMusic13
-    AppleMusicPlayerStyleScope(velvet || appleMusic13) {
+    // Apple Music 13 is its own deck. Velvet remains the Canvas/Aura deck and must not
+    // enter this scope, otherwise the two choices resolve to the same Apple Music scene.
+    val appleMusic13 = !LevyraSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle()
+    AppleMusicPlayerStyleScope(appleMusic13) {
         LevyraNowPlayingContent(
             viewModel, state, morphAnchors, morphActive, collapseActions, modifier, motionSuspended,
             modeSwitchContent, videoSurfaceContent, gestureLayerContent, engagementContent,
@@ -254,10 +255,9 @@ private fun LevyraNowPlayingContent(
     // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
     val selectedVisualMode = if (LevyraIsPrism && !LevyraIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
-    val velvetAppleMusic = appleMusicPalette != null
-    val appleMusicDeck = !LevyraSkinManagesLayout && selectedVisualMode == PlayerVisualMode.AppleMusic13
-    val appleMusicPlayer = LevyraIsAppleMusic || velvetAppleMusic || appleMusicDeck
-    val visualMode = if (velvetAppleMusic) PlayerVisualMode.Artwork else selectedVisualMode
+    val appleMusicDeck = !LevyraSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
+    val appleMusicPlayer = LevyraIsAppleMusic || appleMusicDeck
+    val visualMode = selectedVisualMode
     val backgroundMode = state.interfaceSettings.playerBackground.let { selected ->
         if (nocturne || selected == PlayerBackgroundMode.Dark && state.interfaceSettings.pureBlack) {
             PlayerBackgroundMode.PureBlack
@@ -414,7 +414,7 @@ private fun LevyraNowPlayingContent(
         }
     }
 
-    val artworkRestsFullBleed = nocturne || velvetAppleMusic || state.isPlaying ||
+    val artworkRestsFullBleed = nocturne || state.isPlaying ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Artwork ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Folio ||
         state.interfaceSettings.playerVisualMode == PlayerVisualMode.Flow ||
@@ -461,7 +461,7 @@ private fun LevyraNowPlayingContent(
             !liveRadio &&
             !state.isVideoMode &&
             playerPane != LevyraPlayerPane.SideBySide
-        val deckLayout = if (LevyraSkinManagesLayout || velvetAppleMusic) PlayerDeckLayout.Levyra else resolvePlayerDeckLayout(
+        val deckLayout = if (LevyraSkinManagesLayout) PlayerDeckLayout.Levyra else resolvePlayerDeckLayout(
             mode = visualMode,
             isVideoMode = state.isVideoMode,
             isLiveRadio = liveRadio,
@@ -1224,7 +1224,7 @@ private fun LevyraNowPlayingContent(
             .widthIn(max = detailMaxWidth)
             .align(Alignment.TopCenter)
 
-        if (((LevyraIsPrism && !LevyraIsTidal) || velvetAppleMusic) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != LevyraPlayerPane.SideBySide || appleMusicPlayer)) {
+        if (((LevyraIsPrism && !LevyraIsTidal) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != LevyraPlayerPane.SideBySide || appleMusicPlayer)) {
             if (LevyraIsYouTubeMusic) {
                 YouTubeMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,

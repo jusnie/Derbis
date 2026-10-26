@@ -55,6 +55,10 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
 internal fun PlayerVisualMode.usesAuraPlayPause(): Boolean =
     deckLayout() == PlayerDeckLayout.Aura
 
+/** Only the Apple Music 13 deck supplies the Apple Music palette and scene. */
+internal fun PlayerVisualMode.usesAppleMusicPlayerStyle(): Boolean =
+    this == PlayerVisualMode.AppleMusic13
+
 internal fun PlayerDeckLayout.showsLyricsFace(): Boolean =
     this != PlayerDeckLayout.Aura && this != PlayerDeckLayout.Pulse
 
