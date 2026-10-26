@@ -105,7 +105,27 @@ jobs:
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
-        run: ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace
+        run: |
+          ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace \
+            -PderbisVersionName="${DERBIS_VERSION_NAME}" \
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}"
+
+      - name: Verify Sidecar Release APK identity
+        env:
+          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk='app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk'
+          [[ -s "${apk}" ]] || { echo "Release APK was not produced"; exit 1; }
+          badging="$("${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "${apk}")"
+          printf '%s\n' "${badging}"
+          expected="package: name='com.derbis.app' versionCode='${DERBIS_VERSION_CODE}' versionName='${DERBIS_VERSION_NAME}'"
+          grep -F -- "${expected}" <<< "${badging}" >/dev/null || {
+            echo "Built APK identity does not match the requested stable release metadata" >&2
+            exit 1
+          }
 
       - name: Stage Sidecar Release APK
         run: |
@@ -138,7 +158,7 @@ jobs:
             - `5f26471` AI Slop adds a persisted setting that filters explicitly identified AI-generated music and video content.
             - `ba79e80` Derbis Jam invite codes now use letters only and are at least six letters long.
             - `7e0be74` Jam hosts can explicitly choose LAN Jam for the same Wi-Fi network or Server Jam through the configured Derbis relay.
-            - `f08377a` Signed-in Spotify users can search their eligible playlists, review tracks, and import them through Derbis matching.
+            - `c9095f7` Signed-in Spotify users can list their Spotify library, view accessible tracks, and import them through Derbis matching.
             - `e3d9cb3` Data Saver suppresses background prefetching, Canvas fetching, and mobile-data automatic downloads while retaining listener-started playback, search, and imports.
 
             ## Changed
@@ -149,5 +169,6 @@ jobs:
             - `3439bf4` Full-player tap, long-press, double-tap, and vertical-swipe gestures have been removed.
             - `9953af2` Internal Levyra identifiers have been renamed to Derbis.
           files: build-assets/Derbis.apk
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
