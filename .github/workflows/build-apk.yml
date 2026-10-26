@@ -1,4 +1,4 @@
-name: Build Derbis Release APK
+name: Build Derbis Test APK
 
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Release APK
+    name: Build Test APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -80,25 +80,25 @@ jobs:
             echo "No Derbis Jam relay configured; test APK will safely use Derbis Jam — LAN."
           fi
 
-      - name: Build Derbis Test APK
+      - name: Build Derbis Debug Test APK
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Stage Release APK
+      - name: Stage Debug Test APK
         run: |
           mkdir -p build-assets
-          find app/build/outputs/apk/release/ -type f -name "*.apk" -exec cp {} build-assets/Derbis.apk \;
+          cp app/build/outputs/apk/debug/app-debug.apk build-assets/Derbis-360-test.apk
 
       - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-APK
-          path: build-assets/Derbis.apk
+          name: Derbis-Test-APK
+          path: build-assets/Derbis-360-test.apk
 
       - name: Create / Update GitHub Release
         if: github.ref == 'refs/heads/main'
@@ -128,6 +128,6 @@ jobs:
             - Discord Rich Presence is unavailable unless the repository has an authorized `DISCORD_SOCIAL_SDK_URL` secret.
             - Without a configured owned relay, Jam remains **Derbis Jam — LAN**.
             - The Metroserver path and Beat Align require device testing before stable release.
-          files: build-assets/Derbis.apk
+          files: build-assets/Derbis-360-test.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
