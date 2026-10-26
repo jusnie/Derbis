@@ -913,8 +913,12 @@ class PersistentQueueEngine internal constructor(
         return indices.mapNotNull(current.tracks::getOrNull)
     }
 
-    fun appendRadioTracks(tracks: List<Track>): PlaybackQueueSnapshot =
-        addRadioTracks(tracks, afterCurrent = false, batchSize = RADIO_BATCH_SIZE)
+    /** Adds one recommendation page as a single structural queue mutation. */
+    fun appendRadioTracks(
+        tracks: List<Track>,
+        batchSize: Int = RADIO_BATCH_SIZE
+    ): PlaybackQueueSnapshot =
+        addRadioTracks(tracks, afterCurrent = false, batchSize = batchSize.coerceAtLeast(1))
 
     fun insertRadioTracksAfterCurrent(tracks: List<Track>, batchSize: Int = RADIO_BATCH_SIZE): PlaybackQueueSnapshot =
         addRadioTracks(tracks, afterCurrent = true, batchSize = batchSize.coerceAtLeast(1))

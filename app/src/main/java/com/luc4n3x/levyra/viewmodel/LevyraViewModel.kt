@@ -75,6 +75,7 @@ import com.luc4n3x.levyra.data.SponsorBlockRepository
 import com.luc4n3x.levyra.data.SpeedDialStore
 import com.luc4n3x.levyra.data.TrackPayloadCodec
 import com.luc4n3x.levyra.data.YoutubeMusicRepository
+import com.luc4n3x.levyra.data.YoutubeMusicRadioPage
 import com.luc4n3x.levyra.data.YoutubeMusicWatchTrack
 import com.luc4n3x.levyra.data.YoutubeShortsRepository
 import com.luc4n3x.levyra.data.YoutubeShortsCache
@@ -341,7 +342,6 @@ import com.luc4n3x.levyra.player.queue.PlaybackQueueSnapshot
 import com.luc4n3x.levyra.player.queue.RadioSession
 import com.luc4n3x.levyra.player.queue.radioMixContext
 import com.luc4n3x.levyra.player.queue.radioRecentlyPlayed
-import com.luc4n3x.levyra.player.queue.radioSeedFor
 import com.luc4n3x.levyra.player.queue.QueuePlaylistExport
 import com.luc4n3x.levyra.player.queue.playbackQueueIdentity
 import com.luc4n3x.levyra.player.queue.prepareQueuePlaylistExport
@@ -403,8 +403,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 private const val ARTIST_PROFILE_UNAVAILABLE_ERROR = "artist_profile_unavailable"
 private const val ARTIST_INITIAL_BIOGRAPHY_WAIT_MS = 250L
-private const val RADIO_TAIL_MAX_APPEND_ROUNDS = 3
-// Matches the 24-track endless tail: three engine append rounds can retain a scrollable queue.
+// A complete provider page is mixed into the persistent Endless Listening tail.
 private const val RADIO_MIX_LIMIT = 30
 private const val RADIO_START_TRACKS = 20
 private const val RADIO_START_FETCH = 30
@@ -11289,12 +11288,19 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         val resolved = playable.copy(playlistEntryId = queuedEntryId.ifBlank { playable.playlistEntryId })
         if (selectedIndex >= 0) queueEngine.updateTrackAt(selectedIndex, resolved)
         if (queueEngine.state.value.radioEnabled) {
-            // Resolving replaces the editorial seed with its playable source and advances the queue
-            // generation. Restart the tail from that stable resolved entry, otherwise an in-flight
-            // request is correctly rejected as stale and leaves Endless Listening visibly empty.
-            radioJob?.cancel()
-            beginRadioSession()
-            ensureRadioTail(force = true)
+            val activeSession = radioSession.get()?.takeIf { it.isActiveFor(queueEngine.state.value) }
+            val needsResolvedSeed = activeSession == null || activeSession.radioId.isBlank()
+            if (needsResolvedSeed) {
+                // Resolving replaces the editorial seed with its playable source. Restart the
+                // initial request from this stable entry even if the safe fallback appended while
+                // resolution was underway; established radio sessions retain their continuation
+                // across subsequent track changes.
+                radioJob?.cancel()
+                beginRadioSession()
+                ensureRadioTail(force = true)
+            } else {
+                ensureRadioTail(force = false)
+            }
         }
         repository.replace(resolved)
         val resumeMs = resumePositionFor(resolved)
@@ -12658,13 +12664,23 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         dataSaverOn = dataSaverOn
     )
 
+    /**
+     * One guarded append against a particular persistent radio session.  The session reference is
+     * the fence: navigating into another queue or starting another song radio cannot append an
+     * old provider page into the new listener queue.
+     */
     private data class RadioTailRequest(
-        val seed: Track,
-        val anchor: Track,
-        val generation: Long,
-        val session: RadioSession?,
+        val radioSeed: Track,
+        val fallbackSeed: Track,
+        val session: RadioSession,
         val targetUpcoming: Int,
         val minimumAdditions: Int
+    )
+
+    private data class RadioTailPage(
+        val tracks: List<Track>,
+        val radioId: String = "",
+        val continuation: String = ""
     )
 
     private fun ensureRadioTail(
@@ -12695,12 +12711,12 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         if (!force && queueEngine.upcoming(targetUpcoming).size >= targetUpcoming) return null
         if (radioJob?.isActive == true) return null
         if (isLocalPlaybackTrack(anchor) || !lyricsNetworkProfile().connected) return null
-        val session = radioSession.get()?.takeIf { it.isActiveFor(snapshot) }
-        val seed = radioSeedFor(session, snapshot) ?: return null
+        val session = radioSession.get()?.takeIf { it.isActiveFor(snapshot) } ?: return null
         return RadioTailRequest(
-            seed = seed,
-            anchor = anchor,
-            generation = snapshot.generation,
+            // The YouTube Music radio remains rooted at the resolved session seed. The currently
+            // heard song is retained only for the safe, stateless fallback path.
+            radioSeed = session.seed,
+            fallbackSeed = anchor,
             session = session,
             targetUpcoming = targetUpcoming,
             minimumAdditions = minimumAdditions.coerceAtLeast(0)
@@ -12719,22 +12735,56 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             maxOf(tailFetchLimit, request.minimumAdditions)
         }
-        val fetchedRadioTracks = fetchRadioTracks(request, fetchLimit)
-        rememberRelatedCandidates(request.seed, fetchedRadioTracks)
+        val page = fetchRadioPage(request, fetchLimit)
+        rememberRelatedCandidates(request.radioSeed, page.tracks)
         val current = currentRadioSnapshot(request) ?: return
-        val mixedRadioTracks = mixRadioTracks(request, current, fetchedRadioTracks, insertAfterCurrent)
+        val mixedRadioTracks = mixRadioTracks(request, current, page, insertAfterCurrent)
+        // The queue engine performs each append as one structural mutation. Advance the saved
+        // continuation only after that mutation has accepted this page for the same session.
         appendMixedRadioTracks(mixedRadioTracks, targetUpcoming, insertAfterCurrent)
-        updateRadioSession(request, fetchedRadioTracks, mixedRadioTracks)
+        updateRadioSession(request, page, mixedRadioTracks)
         continueAfterRadioAppend(mixedRadioTracks, playWhenReady)
     }
 
-    private suspend fun fetchRadioTracks(request: RadioTailRequest, fetchLimit: Int): List<Track> =
-        try {
+    private suspend fun fetchRadioPage(request: RadioTailRequest, fetchLimit: Int): RadioTailPage {
+        val session = request.session
+        val persistentPage = try {
+            when {
+                session.radioId.isNotBlank() && session.continuation.isNotBlank() -> {
+                    repository.radioContinuationPage(
+                        radioId = session.radioId,
+                        continuation = session.continuation,
+                        languageCode = _state.value.languageCode
+                    )
+                }
+                session.radioId.isBlank() -> {
+                    repository.radioPage(
+                        seed = request.radioSeed,
+                        languageCode = _state.value.languageCode
+                    )
+                }
+                // A radio response with no next token has completed. Do not rebuild its first
+                // page: let the existing, non-destructive fallback supply more listening instead.
+                else -> null
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+        persistentPage
+            ?.takeIf { it.tracks.isNotEmpty() }
+            ?.toRadioTailPage()
+            ?.let { return it }
+
+        // The old recommendation assembly remains a failure fallback only. It never clears the
+        // listener's queue and it never overwrites a working RDAMVM continuation.
+        val fallbackTracks = try {
             repository.radio(
-                seed = request.seed,
+                seed = request.fallbackSeed,
                 languageCode = _state.value.languageCode,
                 limit = fetchLimit,
-                excludeIds = request.session?.addedIds.orEmpty(),
+                excludeIds = session.addedIds,
                 diversify = true
             )
         } catch (cancelled: CancellationException) {
@@ -12742,23 +12792,31 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         } catch (_: Exception) {
             emptyList()
         }
+        return RadioTailPage(tracks = fallbackTracks)
+    }
+
+    private fun YoutubeMusicRadioPage.toRadioTailPage(): RadioTailPage = RadioTailPage(
+        tracks = tracks,
+        radioId = radioId,
+        continuation = continuation
+    )
 
     private fun currentRadioSnapshot(request: RadioTailRequest): PlaybackQueueSnapshot? {
         val current = queueEngine.state.value
         return current.takeIf {
             it.radioEnabled &&
-                isSameRadioSeed(it.currentTrack, request.anchor) &&
-                it.generation == request.generation
+                request.session.isActiveFor(it) &&
+                radioSession.get() === request.session
         }
     }
 
     private fun mixRadioTracks(
         request: RadioTailRequest,
         current: PlaybackQueueSnapshot,
-        fetchedRadioTracks: List<Track>,
+        page: RadioTailPage,
         insertAfterCurrent: Boolean
     ): List<Track> {
-        val radioTracks = _state.value.artistExclusions.filterTracks(fetchedRadioTracks)
+        val radioTracks = _state.value.artistExclusions.filterTracks(page.tracks)
         val bonusScores = smartOrbitPool.bonusScores
         val orderedRadioTracks = smartRankingProfile(bonusScores)?.let { signals ->
             ListeningSignalRanker.rank(
@@ -12770,11 +12828,17 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         } ?: radioTracks
         return RadioMixer.mix(
             candidates = orderedRadioTracks,
-            seed = request.seed,
+            seed = request.radioSeed,
             queued = current.tracks,
             recentContext = radioMixContext(current, insertAfterCurrent),
             recentlyPlayed = radioRecentlyPlayed(current),
-            limit = if (insertAfterCurrent) RADIO_START_TRACKS else RADIO_MIX_LIMIT
+            // Preserve every unique track in a real provider page before advancing its cursor.
+            // The smaller caps only apply to the legacy fallback path.
+            limit = if (page.radioId.isNotBlank()) radioTracks.size else if (insertAfterCurrent) {
+                RADIO_START_TRACKS
+            } else {
+                RADIO_MIX_LIMIT
+            }
         )
     }
 
@@ -12785,7 +12849,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         if (tracks.isEmpty()) return
         if (insertAfterCurrent) {
-            queueEngine.insertRadioTracksAfterCurrent(tracks, RADIO_START_TRACKS)
+            queueEngine.insertRadioTracksAfterCurrent(tracks, tracks.size.coerceAtLeast(1))
         } else {
             appendRadioTracksUntil(tracks, targetUpcoming)
         }
@@ -12793,13 +12857,20 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun updateRadioSession(
         request: RadioTailRequest,
-        fetchedRadioTracks: List<Track>,
+        page: RadioTailPage,
         mixedRadioTracks: List<Track>
     ) {
-        val session = request.session?.takeIf { fetchedRadioTracks.isNotEmpty() } ?: return
+        val session = request.session
         val queuedIds = queueEngine.state.value.tracks.mapTo(HashSet(), Track::id)
         val added = mixedRadioTracks.map(Track::id).filter { it in queuedIds && it !in session.addedIds }
-        radioSession.compareAndSet(session, session.recordAdded(added))
+        val updated = if (page.radioId.isNotBlank()) {
+            // Preserve the provider cursor even if mixer filtering had nothing new to append;
+            // otherwise the next tail request would repeat this same page forever.
+            session.recordPage(page.radioId, page.continuation, added)
+        } else {
+            session.recordAdded(added)
+        }
+        if (updated != session) radioSession.compareAndSet(session, updated)
     }
 
     private suspend fun continueAfterRadioAppend(tracks: List<Track>, playWhenReady: Boolean) {
@@ -12816,12 +12887,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun appendRadioTracksUntil(tracks: List<Track>, targetUpcoming: Int) {
-        repeat(RADIO_TAIL_MAX_APPEND_ROUNDS) {
-            val before = queueEngine.upcoming(targetUpcoming).size
-            queueEngine.appendRadioTracks(tracks)
-            val after = queueEngine.upcoming(targetUpcoming).size
-            if (after <= before || after >= targetUpcoming) return
-        }
+        if (queueEngine.upcoming(targetUpcoming).size >= targetUpcoming) return
+        // A provider page reaches the queue in one engine mutation, keeping player state and the
+        // visible queue aligned before its continuation cursor is committed to RadioSession.
+        queueEngine.appendRadioTracks(tracks, batchSize = tracks.size.coerceAtLeast(1))
     }
 
     private fun rankingSignalProfile(): com.luc4n3x.levyra.domain.ListeningSignalProfile? {
@@ -12962,9 +13031,6 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             bonusScores = smartOrbitPool.bonusScores
         )
     }
-
-    private fun isSameRadioSeed(current: Track?, seed: Track): Boolean =
-        current?.let { playbackQueueIdentity(it) } == playbackQueueIdentity(seed)
 
     private fun prefetchTop(tracks: List<Track>, count: Int = 8, respectHomeScroll: Boolean = false) {
         val plan = adaptivePlaybackPolicy.current(videoMode = false)

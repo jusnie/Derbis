@@ -65,6 +65,25 @@ class RadioSessionTest {
     }
 
     @Test
+    fun providerPageAtomicallyAdvancesTheOwnedRadioCursor() {
+        val initial = RadioSession(spaceId = "a", seed = track("seed"))
+        val firstPage = initial.recordPage(
+            radioId = "RDAMVMseed",
+            continuation = "NEXT_A",
+            added = listOf("r1", "r2")
+        )
+        val nextPage = firstPage.recordPage(
+            radioId = "RDAMVMseed",
+            continuation = "NEXT_B",
+            added = listOf("r3")
+        )
+
+        assertEquals("RDAMVMseed", nextPage.radioId)
+        assertEquals("NEXT_B", nextPage.continuation)
+        assertEquals(setOf("r1", "r2", "r3"), nextPage.addedIds)
+    }
+
+    @Test
     fun addedIdsStayBounded() {
         var session = RadioSession(spaceId = "a", seed = track("seed"))
         repeat(40) { batch -> session = session.recordAdded((0 until 5).map { "r${batch}_$it" }) }

@@ -87,6 +87,13 @@ data class YoutubeMusicPlaylistDetail(
     val continuation: String = ""
 )
 
+/** One independently fetched page of an Endless Listening radio session. */
+data class YoutubeMusicRadioPage(
+    val radioId: String,
+    val tracks: List<Track>,
+    val continuation: String = ""
+)
+
 private data class ScoredAlbumRecommendation(
     val album: AlbumHit,
     val score: Int
@@ -1710,6 +1717,51 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
         val result = header.copy(tracks = tracks.values.take(boundedLimit), continuation = continuation)
         result.tracks.forEach { memory[it.id] = it }
         result
+    }
+
+    /**
+     * Opens a stable YouTube Music radio for a resolved song.  Endless Listening owns the returned
+     * radio id and continuation rather than rebuilding a random finite queue around a home shelf.
+     */
+    suspend fun radioPage(
+        seed: Track,
+        languageCode: String = LevyraLanguageCatalog.deviceDefault()
+    ): YoutubeMusicRadioPage? = withContext(Dispatchers.IO) {
+        val videoId = resolveVideoId(seed)
+        if (videoId.isBlank()) return@withContext null
+        val radioId = "RDAMVM$videoId"
+        // Fetch exactly one complete provider page. Reusing playlist() here would follow a
+        // continuation before returning, save the later cursor, and silently skip the tracks
+        // between the initial provider page and that later cursor.
+        val root = requestMusicBrowseRoot(languageCode, "VL$radioId") ?: return@withContext null
+        val tracks = parsePlaylistTrackRenderers(playlistShelfRenderers(root), radioId)
+        tracks.forEach { memory[it.id] = it }
+        tracks.takeIf { it.isNotEmpty() }?.let {
+            YoutubeMusicRadioPage(
+                radioId = radioId,
+                tracks = it,
+                continuation = findPlaylistContinuation(root)
+            )
+        }
+    }
+
+    /** Fetches the next page for an existing Endless Listening radio session. */
+    suspend fun radioContinuationPage(
+        radioId: String,
+        continuation: String,
+        languageCode: String = LevyraLanguageCatalog.deviceDefault()
+    ): YoutubeMusicRadioPage? = withContext(Dispatchers.IO) {
+        val cleanRadioId = radioId.trim().removePrefix("VL")
+        val token = continuation.trim()
+        if (cleanRadioId.isBlank() || token.isBlank()) return@withContext null
+        val root = requestMusicBrowseRoot(languageCode, "", continuation = token) ?: return@withContext null
+        val tracks = parsePlaylistTrackRenderers(playlistShelfRenderers(root), cleanRadioId)
+        tracks.forEach { memory[it.id] = it }
+        YoutubeMusicRadioPage(
+            radioId = cleanRadioId,
+            tracks = tracks,
+            continuation = findPlaylistContinuation(root)
+        )
     }
 
     suspend fun playlistForImport(

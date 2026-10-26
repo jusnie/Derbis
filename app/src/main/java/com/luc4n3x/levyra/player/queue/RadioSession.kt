@@ -8,6 +8,8 @@ internal const val RADIO_MIX_CONTEXT_TRACKS = 10
 internal data class RadioSession(
     val spaceId: String,
     val seed: Track,
+    val radioId: String = "",
+    val continuation: String = "",
     val addedIds: Set<String> = emptySet()
 ) {
     /**
@@ -28,6 +30,16 @@ internal data class RadioSession(
             merged
         }
         return copy(addedIds = bounded)
+    }
+
+    /** Retains the owned radio continuation while bounding the duplicate filter for future pages. */
+    fun recordPage(radioId: String, continuation: String, added: Collection<String>): RadioSession {
+        val updatedIds = recordAdded(added).addedIds
+        return copy(
+            radioId = radioId.ifBlank { this.radioId },
+            continuation = if (radioId.isBlank()) this.continuation else continuation,
+            addedIds = updatedIds
+        )
     }
 }
 
