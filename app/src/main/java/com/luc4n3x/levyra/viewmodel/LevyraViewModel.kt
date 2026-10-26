@@ -9916,6 +9916,9 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         queueEngine.replace(listOf(track), 0, keepPlaybackModes = true, radioEnabled = true)
         radioJob?.cancel()
         beginRadioSession()
+        // Seed the first Endless Listening page now, rather than waiting for playback prefetch.
+        // This keeps the queue populated while the selected song starts resolving.
+        ensureRadioTail(force = true)
         queueIndex = 0
         startResolve(track)
     }
@@ -9940,7 +9943,13 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         // Albums and playlists are deliberate finite collections. Do not attach radio tracks to them.
         queueEngine.replace(list, index, keepPlaybackModes = true, radioEnabled = list.size <= 1)
         radioJob?.cancel()
-        if (list.size <= 1) beginRadioSession() else radioSession.set(null)
+        if (list.size <= 1) {
+            beginRadioSession()
+            // Single-track playback is an Endless Listening seed: fetch its first page immediately.
+            ensureRadioTail(force = true)
+        } else {
+            radioSession.set(null)
+        }
         queueIndex = index
         startResolve(list.getOrElse(index) { track })
     }
