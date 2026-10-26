@@ -3,6 +3,7 @@ package com.luc4n3x.derbis.data.spotify
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -38,6 +39,48 @@ class SpotifyPlaylistBrowserTest {
         assertEquals("Spotify", results.single().owner)
         assertEquals(50, results.single().trackCount)
         assertEquals("https://image.example/top.jpg", results.single().artworkUrl)
+    }
+
+    @Test
+    fun publicPlaylistSearchUsesSpotifyPaginationWithoutOwnerFiltering() {
+        val page = parseSpotifyPlaylistSearchPage(
+            json = JSONObject(
+                """
+                {
+                  "playlists": {
+                    "offset": 20,
+                    "limit": 10,
+                    "total": 37,
+                    "next": "https://api.spotify.com/v1/search?type=playlist&offset=30",
+                    "items": [
+                      {
+                        "id": "37i9dQZF1DXcBWIGoYBM5M",
+                        "name": "A public playlist",
+                        "owner": { "display_name": "Someone else" },
+                        "images": []
+                      }
+                    ]
+                  }
+                }
+                """.trimIndent()
+            ),
+            requestedOffset = 20,
+            requestedLimit = 10
+        )
+
+        assertEquals(1, page.playlists.size)
+        assertEquals("Someone else", page.playlists.single().owner)
+        assertEquals(37, page.total)
+        assertEquals(30, page.nextOffset)
+    }
+
+    @Test
+    fun publicPlaylistSearchStopsWhenSpotifyDoesNotProvideAnotherPage() {
+        val page = parseSpotifyPlaylistSearchPage(
+            JSONObject("""{ "playlists": { "offset": 0, "limit": 10, "total": 1, "next": null, "items": [] } }""")
+        )
+
+        assertNull(page.nextOffset)
     }
 
     @Test

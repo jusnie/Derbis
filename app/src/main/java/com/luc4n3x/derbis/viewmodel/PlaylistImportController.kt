@@ -90,7 +90,10 @@ data class SpotifyPlaylistBrowseUiState(
     val visible: Boolean = false,
     val query: String = "",
     val searching: Boolean = false,
+    val loadingMore: Boolean = false,
     val results: List<SpotifyPlaylistSearchResult> = emptyList(),
+    val totalResults: Int? = null,
+    val nextSearchOffset: Int? = null,
     val selectedPlaylist: SpotifyPlaylistSearchResult? = null,
     val selected: SpotifyPlaylistDetail? = null,
     val loadingPlaylist: Boolean = false,
@@ -239,6 +242,8 @@ class PlaylistImportController(
         _state.update { current ->
             current.copy(spotifyBrowse = current.spotifyBrowse.copy(
                 visible = false,
+                searching = false,
+                loadingMore = false,
                 selectedPlaylist = null,
                 selected = null,
                 loadingPlaylist = false,
@@ -251,6 +256,8 @@ class PlaylistImportController(
         spotifyBrowseJob?.cancel()
         _state.update { current ->
             current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                searching = false,
+                loadingMore = false,
                 selectedPlaylist = null,
                 selected = null,
                 loadingPlaylist = false,
@@ -261,8 +268,17 @@ class PlaylistImportController(
 
     fun updateSpotifySearchQuery(query: String) {
         if (_state.value.busy) return
+        spotifyBrowseJob?.cancel()
         _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(query = query.take(SPOTIFY_QUERY_MAX), error = ""))
+            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                query = query.take(SPOTIFY_QUERY_MAX),
+                searching = false,
+                loadingMore = false,
+                results = emptyList(),
+                totalResults = null,
+                nextSearchOffset = null,
+                error = ""
+            ))
         }
     }
 
@@ -279,19 +295,72 @@ class PlaylistImportController(
         }
         spotifyBrowseJob?.cancel()
         _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(searching = true, error = "", selected = null, selectedPlaylist = null))
+            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                searching = true,
+                loadingMore = false,
+                results = emptyList(),
+                totalResults = null,
+                nextSearchOffset = null,
+                error = "",
+                selected = null,
+                selectedPlaylist = null
+            ))
         }
         spotifyBrowseJob = scope.launch {
             try {
-                val results = withContext(ioDispatcher) { browser.search(query) }
+                val page = withContext(ioDispatcher) { browser.search(query) }
                 _state.update { current ->
                     if (current.spotifyBrowse.query.trim() != query) current
-                    else current.copy(spotifyBrowse = current.spotifyBrowse.copy(searching = false, results = results))
+                    else current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                        searching = false,
+                        results = page.playlists,
+                        totalResults = page.total,
+                        nextSearchOffset = page.nextOffset
+                    ))
                 }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
                 spotifyBrowseFailure(error.spotifyBrowseMessage())
+            }
+        }
+    }
+
+    fun loadMoreSpotifyPlaylists() {
+        if (_state.value.busy) return
+        val browser = spotifyPlaylistBrowser ?: return
+        val browse = _state.value.spotifyBrowse
+        val query = browse.query.trim()
+        val offset = browse.nextSearchOffset ?: return
+        if (browse.searching || browse.loadingMore || query.length < SPOTIFY_QUERY_MIN) return
+        spotifyBrowseJob?.cancel()
+        _state.update { current ->
+            current.copy(spotifyBrowse = current.spotifyBrowse.copy(loadingMore = true, error = ""))
+        }
+        spotifyBrowseJob = scope.launch {
+            try {
+                val page = withContext(ioDispatcher) { browser.search(query, offset) }
+                _state.update { current ->
+                    val currentBrowse = current.spotifyBrowse
+                    if (currentBrowse.query.trim() != query || currentBrowse.nextSearchOffset != offset) current
+                    else current.copy(spotifyBrowse = currentBrowse.copy(
+                        loadingMore = false,
+                        results = (currentBrowse.results + page.playlists).distinctBy(SpotifyPlaylistSearchResult::id),
+                        totalResults = page.total ?: currentBrowse.totalResults,
+                        nextSearchOffset = page.nextOffset
+                    ))
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _state.update { current ->
+                    val currentBrowse = current.spotifyBrowse
+                    if (currentBrowse.query.trim() != query || currentBrowse.nextSearchOffset != offset) current
+                    else current.copy(spotifyBrowse = currentBrowse.copy(
+                        loadingMore = false,
+                        error = error.spotifyBrowseMessage()
+                    ))
+                }
             }
         }
     }
@@ -306,6 +375,8 @@ class PlaylistImportController(
         spotifyBrowseJob?.cancel()
         _state.update { current ->
             current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                searching = false,
+                loadingMore = false,
                 selectedPlaylist = playlist,
                 selected = null,
                 loadingPlaylist = true,
@@ -728,7 +799,12 @@ class PlaylistImportController(
 
     private fun spotifyBrowseFailure(message: String) {
         _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(searching = false, loadingPlaylist = false, error = message))
+            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
+                searching = false,
+                loadingMore = false,
+                loadingPlaylist = false,
+                error = message
+            ))
         }
     }
 

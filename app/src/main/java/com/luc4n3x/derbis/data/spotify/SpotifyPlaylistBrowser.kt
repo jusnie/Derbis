@@ -29,6 +29,13 @@ data class SpotifyPlaylistSearchResult(
     val spotifyUrl: String
 )
 
+/** A page of public playlist metadata returned by Spotify search. */
+data class SpotifyPlaylistSearchPage(
+    val playlists: List<SpotifyPlaylistSearchResult>,
+    val total: Int?,
+    val nextOffset: Int?
+)
+
 /** Metadata for one Spotify track, used only for the signed-in user's playlist preview/import. */
 data class SpotifyPlaylistTrackPreview(
     val title: String,
@@ -71,18 +78,28 @@ class SpotifyPlaylistBrowser(
     private val context: Context,
     private val client: OkHttpClient = DerbisHttpClientFactory.media(context.applicationContext)
 ) {
-    suspend fun search(query: String): List<SpotifyPlaylistSearchResult> {
+    /**
+     * Searches Spotify's public playlist metadata catalog. Track items are fetched separately
+     * because Spotify limits those to playlists the signed-in listener owns or collaborates on.
+     */
+    suspend fun search(query: String, offset: Int = 0): SpotifyPlaylistSearchPage {
         val clean = query.trim()
-        if (clean.length < MIN_QUERY_LENGTH) return emptyList()
+        if (clean.length < MIN_QUERY_LENGTH) return SpotifyPlaylistSearchPage(emptyList(), null, null)
+        require(offset >= 0) { "Spotify playlist search offset must not be negative" }
         val token = accessToken()
         val url = "$API_BASE/search".toHttpUrl().newBuilder()
             .addQueryParameter("q", clean)
             .addQueryParameter("type", "playlist")
-            // Spotify's current search API caps a page at ten results.
+            // Spotify's current search API caps each page at ten playlist results.
             .addQueryParameter("limit", SEARCH_LIMIT.toString())
+            .addQueryParameter("offset", offset.toString())
             .addQueryParameter("market", "from_token")
             .build()
-        return parseSpotifyPlaylistSearch(getJson(url.toString(), token))
+        return parseSpotifyPlaylistSearchPage(
+            json = getJson(url.toString(), token),
+            requestedOffset = offset,
+            requestedLimit = SEARCH_LIMIT
+        )
     }
 
     /**
@@ -215,7 +232,23 @@ class SpotifyPlaylistBrowser(
 }
 
 internal fun parseSpotifyPlaylistSearch(json: JSONObject): List<SpotifyPlaylistSearchResult> =
-    json.optJSONObject("playlists")?.optJSONArray("items").spotifyPlaylistResults()
+    parseSpotifyPlaylistSearchPage(json).playlists
+
+internal fun parseSpotifyPlaylistSearchPage(
+    json: JSONObject,
+    requestedOffset: Int = 0,
+    requestedLimit: Int = 10
+): SpotifyPlaylistSearchPage {
+    val playlists = json.optJSONObject("playlists") ?: return SpotifyPlaylistSearchPage(emptyList(), null, null)
+    val responseOffset = playlists.optInt("offset", requestedOffset).coerceAtLeast(0)
+    val responseLimit = playlists.optInt("limit", requestedLimit).takeIf { it > 0 } ?: requestedLimit
+    val hasNext = !playlists.optString("next").isNullOrBlank()
+    return SpotifyPlaylistSearchPage(
+        playlists = playlists.optJSONArray("items").spotifyPlaylistResults(),
+        total = playlists.optInt("total", -1).takeIf { it >= 0 },
+        nextOffset = if (hasNext) responseOffset + responseLimit else null
+    )
+}
 
 internal fun parseSpotifyPlaylistHeader(json: JSONObject, fallbackId: String = ""): SpotifyPlaylistSearchResult {
     val result = json.toSpotifyPlaylistResult()

@@ -81,8 +81,8 @@ internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Search Spotify playlists", color = DerbisText, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                     Text(
-                        if (connection.isConnected) "Browse Spotify, view available songs, then import."
-                        else "Connect Spotify to browse playlists from its catalog.",
+                        if (connection.isConnected) "Browse public Spotify playlists, then open songs you can access."
+                        else "Connect Spotify to browse public playlists from its catalog.",
                         color = DerbisMuted,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
@@ -117,7 +117,7 @@ internal fun SpotifySearchEntryPoint(controller: PlaylistImportController) {
                 }
             }
             Text(
-                "Spotify permits song lists here only for playlists you own or collaborate on. You can still paste a playlist link for Spotify or another supported service below.",
+                "Public playlist results can appear here. Spotify only permits song lists and import for playlists you own or collaborate on. You can still paste a playlist link for Spotify or another supported service below.",
                 color = DerbisMuted.copy(alpha = 0.82f),
                 fontSize = 11.sp,
                 lineHeight = 16.sp
@@ -150,7 +150,7 @@ private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, con
         ) {
             ImportTopBar("Search Spotify playlists", controller::closeSpotifyBrowse, "Back to playlist import")
             Text(
-                "Search Spotify’s playlist catalog. Song previews and import are available for playlists you own or collaborate on.",
+                "Search Spotify’s public playlist catalog. Anyone’s playlist can appear in the results; Spotify only permits song previews and import for playlists you own or collaborate on.",
                 color = DerbisMuted,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
@@ -192,8 +192,12 @@ private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, con
                     modifier = Modifier.padding(vertical = 24.dp)
                 )
             } else {
+                val resultCount = state.results.size
+                val countLabel = state.totalResults?.let { total ->
+                    " · $resultCount of $total public playlists"
+                }.orEmpty()
                 Text(
-                    "Spotify results",
+                    "Spotify results$countLabel",
                     color = DerbisText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -202,6 +206,27 @@ private fun SpotifyPlaylistSearchScreen(state: SpotifyPlaylistBrowseUiState, con
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     items(state.results, key = SpotifyPlaylistSearchResult::id) { playlist ->
                         SpotifyPlaylistSearchRow(playlist, onClick = { controller.openSpotifyPlaylist(playlist.id) })
+                    }
+                    if (state.nextSearchOffset != null) {
+                        item {
+                            Button(
+                                onClick = controller::loadMoreSpotifyPlaylists,
+                                enabled = !state.loadingMore,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).padding(top = 14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = DerbisCyan, contentColor = DerbisOnAccent),
+                                shape = ImportRowShape
+                            ) {
+                                if (state.loadingMore) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = DerbisOnAccent,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.size(9.dp))
+                                }
+                                Text(if (state.loadingMore) "Loading public playlists…" else "Load more public playlists")
+                            }
+                        }
                     }
                     item { Spacer(Modifier.size(24.dp)) }
                 }
