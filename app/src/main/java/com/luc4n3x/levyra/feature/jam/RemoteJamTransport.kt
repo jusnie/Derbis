@@ -30,7 +30,10 @@ import timber.log.Timber
 internal object DerbisJamRelay {
     private const val REMOTE_ADDRESS = "10.254.254.254"
     private const val REMOTE_PORT = 54_443
-    private const val CONNECT_TIMEOUT_MS = 8_000L
+    // Render's free service can need roughly a minute to wake after an idle spin-down.
+    // Only creating a room needs that longer budget; guests normally join an already-warm relay.
+    private const val HOST_CONNECT_TIMEOUT_MS = 75_000L
+    private const val GUEST_CONNECT_TIMEOUT_MS = 15_000L
     private const val APPROVAL_TIMEOUT_MS = 120_000L
     private const val EVENT_BUFFER = 64
 
@@ -46,7 +49,7 @@ internal object DerbisJamRelay {
         code.hostAddress == REMOTE_ADDRESS && code.port == REMOTE_PORT
 
     fun client(): OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+        .connectTimeout(GUEST_CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .pingInterval(25, TimeUnit.SECONDS)
         .build()
@@ -77,7 +80,8 @@ internal object DerbisJamRelay {
 
     fun parse(raw: String): JSONObject? = runCatching { JSONObject(raw) }.getOrNull()
 
-    const val CONNECT_TIMEOUT: Long = CONNECT_TIMEOUT_MS
+    const val HOST_CONNECT_TIMEOUT: Long = HOST_CONNECT_TIMEOUT_MS
+    const val GUEST_CONNECT_TIMEOUT: Long = GUEST_CONNECT_TIMEOUT_MS
     const val APPROVAL_TIMEOUT: Long = APPROVAL_TIMEOUT_MS
     const val BUFFER: Int = EVENT_BUFFER
 }
@@ -114,7 +118,7 @@ internal class RemoteJamHostTransport : JamHostTransport {
         val httpClient = DerbisJamRelay.client()
         client = httpClient
         socket = httpClient.newWebSocket(request, listener())
-        val accepted = withTimeoutOrNull(DerbisJamRelay.CONNECT_TIMEOUT) { opened.await() } == true
+        val accepted = withTimeoutOrNull(DerbisJamRelay.HOST_CONNECT_TIMEOUT) { opened.await() } == true
         if (!accepted) {
             stop()
             return null
@@ -321,7 +325,7 @@ internal class RemoteJamGuestTransport : JamGuestTransport {
         val httpClient = DerbisJamRelay.client()
         client = httpClient
         socket = httpClient.newWebSocket(request, guestListener(code.secret, name, guestId))
-        val connected = withTimeoutOrNull(DerbisJamRelay.CONNECT_TIMEOUT) { waiting.await() } == true
+        val connected = withTimeoutOrNull(DerbisJamRelay.GUEST_CONNECT_TIMEOUT) { waiting.await() } == true
         if (!connected) stop()
         return connected
     }
