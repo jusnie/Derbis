@@ -8793,12 +8793,21 @@ private fun AppleMusic13FullscreenLyrics(
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = state.lyricsSynced && state.animationsEnabled
     )
-    val activeIndex = remember(lyrics, state.lyricsSynced, clock.positionMs, lyricsOffsetMs) {
-        if (state.lyricsSynced) {
-            activeLyricIndex(lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs), lyrics)
-        } else {
-            -1
+    // The playback clock advances every frame for word timing.  Deriving this index means the
+    // surrounding header/list only recompose when the active LINE changes, not at display refresh
+    // rate; the active line still receives the smooth clock inside its own word renderer.
+    val latestLyricsOffsetMs by rememberUpdatedState(lyricsOffsetMs)
+    val activeIndex by remember(lyrics, state.lyricsSynced, clock) {
+        derivedStateOf {
+            if (state.lyricsSynced) {
+                activeLyricIndex(lyricsOffsetPosition(clock.positionMs, latestLyricsOffsetMs), lyrics)
+            } else {
+                -1
+            }
         }
+    }
+    val lyricPositionProvider: () -> Long = remember(clock) {
+        { lyricsOffsetPosition(clock.positionMs, latestLyricsOffsetMs) }
     }
     LaunchedEffect(activeIndex, lyrics.size) {
         if (activeIndex >= 0 && lyrics.isNotEmpty()) {
@@ -8842,14 +8851,13 @@ private fun AppleMusic13FullscreenLyrics(
     }
     val shownProgress = dragProgress ?: progress
     val shownPosition = (state.durationMs * shownProgress).toLong()
-    val animated = state.animationsEnabled && state.isPlaying
     val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
     Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
-        AppleMusic13LyricsGlowBackdrop(
+        AppleMusic13LyricsArtworkBackdrop(
+            track = track,
             accentStart = accentStart,
-            accentEnd = accentEnd,
-            animate = animated
+            accentEnd = accentEnd
         )
 
         Column(
@@ -9011,9 +9019,7 @@ private fun AppleMusic13FullscreenLyrics(
                                 if (state.lyricsSynced && line.words.isNotEmpty()) {
                                     AppleMusic13WordByWordLyrics(
                                         line = line,
-                                        positionProvider = {
-                                            lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs)
-                                        },
+                                        positionProvider = lyricPositionProvider,
                                         isActive = active,
                                         inactiveColor = lineColor,
                                         glowColor = accentEnd,
@@ -9303,92 +9309,63 @@ private fun AppleMusic13WordByWordLyrics(
 }
 
 @Composable
-private fun AppleMusic13LyricsGlowBackdrop(
+private fun AppleMusic13LyricsArtworkBackdrop(
+    track: Track?,
     accentStart: Color,
-    accentEnd: Color,
-    animate: Boolean
+    accentEnd: Color
 ) {
-    val animatedStart by animateColorAsState(
-        targetValue = accentStart,
-        animationSpec = tween(if (animate) 900 else 0),
-        label = "apple-lyrics-accent-start"
-    )
-    val animatedEnd by animateColorAsState(
-        targetValue = accentEnd,
-        animationSpec = tween(if (animate) 900 else 0),
-        label = "apple-lyrics-accent-end"
-    )
-    val transition = rememberInfiniteTransition(label = "apple-lyrics-album-glow")
-    val phase by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = if (animate) 4_200 else 1, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "apple-lyrics-album-glow-phase"
-    )
-    val startAlpha = if (animate) 0.56f + phase * 0.16f else 0.54f
-    val endAlpha = if (animate) 0.38f + (1f - phase) * 0.18f else 0.42f
-    // Interpolating the two artwork accents makes each album produce its own slow color drift.
-    val topTone = lerp(animatedStart, animatedEnd, phase * 0.68f)
-    val middleTone = lerp(animatedEnd, animatedStart, (1f - phase) * 0.54f)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        topTone.copy(alpha = 0.80f),
-                        middleTone.copy(alpha = 0.60f),
-                        Color(0xFF00151B)
+    val artworkUrl = track?.let { active ->
+        active.largeThumbnailUrl.ifBlank { active.thumbnailUrl }
+    }.orEmpty()
+    val darkStart = remember(accentStart) { lerp(accentStart, Color.Black, 0.56f) }
+    val darkEnd = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.82f) }
+
+    Box(Modifier.fillMaxSize().background(darkEnd)) {
+        // One static RenderEffect-backed artwork layer replaces the previous continuously moving
+        // radial gradients.  It is substantially cheaper to render while actually making the page
+        // feel attached to the song that is playing.
+        SeamlessArtworkImage(
+            url = artworkUrl,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.10f
+                    scaleY = 1.10f
+                }
+                .blur(30.dp, BlurredEdgeTreatment.Rectangle),
+            contentDescription = null,
+            fallback = {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(0f to darkStart, 1f to darkEnd))
+                )
+            }
+        )
+        // Keep lyric contrast stable over bright covers, without animating or reblurring on every
+        // playback tick.  The middle remains translucent so the artwork stays recognisable.
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Black.copy(alpha = 0.50f),
+                        0.42f to Color.Black.copy(alpha = 0.42f),
+                        1f to Color.Black.copy(alpha = 0.78f)
                     )
                 )
-            )
-    )
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = 1.18f + phase * 0.12f
-                scaleY = 1.18f + phase * 0.12f
-                translationX = (phase - 0.5f) * 86f
-                translationY = (0.5f - phase) * 66f
-            }
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(animatedStart.copy(alpha = startAlpha), Color.Transparent),
-                    radius = 1_180f
+        )
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(darkStart.copy(alpha = 0.24f), Color.Transparent),
+                        radius = 1_050f
+                    )
                 )
-            )
-    )
-    Box(
-        Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = 1.28f - phase * 0.10f
-                scaleY = 1.28f - phase * 0.10f
-                translationX = (0.5f - phase) * 96f
-                translationY = (phase - 0.5f) * 78f
-            }
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(animatedEnd.copy(alpha = endAlpha), Color.Transparent),
-                    radius = 1_000f
-                )
-            )
-    )
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = 0.06f),
-                    0.56f to Color.Transparent,
-                    1f to Color.Black.copy(alpha = 0.56f)
-                )
-            )
-    )
+        )
+    }
 }
 
 @Composable
