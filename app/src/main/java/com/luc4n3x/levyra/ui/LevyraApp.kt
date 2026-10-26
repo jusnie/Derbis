@@ -8742,6 +8742,12 @@ private fun LyricsOverlay(
     }
 }
 
+/**
+ * SimpMusic-derived lyrics surface.  Its compact header, immersive scrolling page, fading lyric
+ * edges, floating utilities and auto-hiding bottom cluster follow SimpMusic's AppleMusicLyricsView
+ * at upstream revision 068d744 (GPL-3.0).  Levyra keeps its own seek, calibration, sharing and
+ * discrete word-by-word renderer — no character sweep is introduced here.
+ */
 @Composable
 private fun AppleMusic13FullscreenLyrics(
     state: LevyraUiState,
@@ -8790,6 +8796,29 @@ private fun AppleMusic13FullscreenLyrics(
         }
     }
 
+    // SimpMusic lets the lyrics reclaim the player controls' space after a short idle period.
+    // Any tap, lyric seek or scroll brings the cluster back and resets the same timer.
+    var showCluster by rememberSaveable(track?.id) { mutableStateOf(true) }
+    var interactionTick by remember(track?.id) { mutableIntStateOf(0) }
+    LaunchedEffect(showCluster, interactionTick) {
+        if (showCluster) {
+            delay(8_000L)
+            showCluster = false
+        }
+    }
+    val wakeCluster: () -> Unit = {
+        showCluster = true
+        interactionTick++
+    }
+    val scrollWakesCluster = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y != 0f) wakeCluster()
+                return Offset.Zero
+            }
+        }
+    }
+
     var dragProgress by remember(track?.id) { mutableStateOf<Float?>(null) }
     val progress = if (state.durationMs > 0L) {
         (state.positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
@@ -8799,6 +8828,7 @@ private fun AppleMusic13FullscreenLyrics(
     val shownProgress = dragProgress ?: progress
     val shownPosition = (state.durationMs * shownProgress).toLong()
     val animated = state.animationsEnabled && state.isPlaying
+    val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
     Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
         AppleMusic13LyricsGlowBackdrop(
@@ -8807,269 +8837,355 @@ private fun AppleMusic13FullscreenLyrics(
             animate = animated
         )
 
-        LazyColumn(
-            state = listState,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .nestedScroll(remember { object : NestedScrollConnection {} }),
-            contentPadding = PaddingValues(
-                start = 78.dp,
-                end = 44.dp,
-                top = 145.dp,
-                bottom = 246.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(26.dp)
+                .navigationBarsPadding()
         ) {
-            if (lyrics.isEmpty()) {
-                item {
-                    Text(
-                        text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
-                        color = Color.White.copy(alpha = 0.58f),
-                        style = AppleMusicTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            // Same compact record header as SimpMusic's lyrics body: the music remains identifiable
+            // while the lyrics get the page rather than being framed as a separate dialog.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (track != null) {
+                    AsyncImage(
+                        model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(55.dp)
+                            .clip(RoundedCornerShape(4.dp))
                     )
                 }
-            } else {
-                itemsIndexed(lyrics, key = { index, line -> "apple-lyrics-${line.startMs}-${line.role}-$index" }) { index, line ->
-                    val active = index == activeIndex
-                    val lineColor by animateColorAsState(
-                        targetValue = if (active) Color.White else Color.White.copy(alpha = 0.34f),
-                        animationSpec = tween(if (state.animationsEnabled) 180 else 0),
-                        label = "apple-lyrics-line-color"
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = track?.title ?: strings.lyrics,
+                        color = Color.White,
+                        style = AppleMusicTypography.titleMedium.copy(
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    val lineScale by animateFloatAsState(
-                        targetValue = if (active) 1f else 0.94f,
-                        animationSpec = tween(if (state.animationsEnabled) 180 else 0),
-                        label = "apple-lyrics-line-scale"
+                    Text(
+                        text = track?.artist.orEmpty(),
+                        color = Color.White.copy(alpha = 0.70f),
+                        style = AppleMusicTypography.bodyMedium.copy(
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                scaleX = lineScale
-                                scaleY = lineScale
-                                transformOrigin = TransformOrigin(0f, 0.5f)
-                            }
-                            .clickable(enabled = state.lyricsSynced) {
-                                if (calibrateMode) {
-                                    onCalibrateLine(line.startMs)
-                                } else {
-                                    onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
+                }
+                IconButton(
+                    onClick = {
+                        wakeCluster()
+                        track?.let(onToggleFavorite)
+                    },
+                    enabled = track != null
+                ) {
+                    Icon(
+                        imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        contentDescription = strings.favorite,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                IconButton(
+                    onClick = {
+                        wakeCluster()
+                        track?.let { active ->
+                            val activeLyric = lyrics.getOrNull(activeIndex)
+                            val body = buildString {
+                                append("${active.title} — ${active.artist}".trim(' ', '—'))
+                                activeLyric?.text?.takeIf(String::isNotBlank)?.let { lyric ->
+                                    append("\n\n").append(lyric)
+                                    if (showTranslation && activeLyric.translated.isNotBlank()) {
+                                        append("\n").append(activeLyric.translated)
+                                    }
                                 }
                             }
-                    ) {
-                        if (state.lyricsSynced && line.words.isNotEmpty()) {
-                            AppleMusic13WordByWordLyrics(
-                                line = line,
-                                positionProvider = {
-                                    lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs)
-                                },
-                                isActive = active,
-                                inactiveColor = lineColor,
-                                glowColor = accentEnd,
-                                animationsEnabled = state.animationsEnabled
-                            )
-                        } else {
-                            Text(
-                                text = line.text,
-                                color = lineColor,
-                                style = AppleMusicTypography.headlineLarge.copy(
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontSize = 31.sp,
-                                    lineHeight = 38.sp,
-                                    fontWeight = FontWeight.Bold
+                            context.startActivity(
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_TEXT, body)
+                                    },
+                                    strings.share
                                 )
                             )
                         }
-                        if (showRomanization && line.romanized.isNotBlank()) {
-                            Text(
-                                text = line.romanized,
-                                color = lineColor.copy(alpha = 0.72f),
-                                style = AppleMusicTypography.bodyLarge.copy(
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontSize = 17.sp,
-                                    lineHeight = 22.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                modifier = Modifier.padding(top = 3.dp)
-                            )
-                        }
-                        if (showTranslation && line.translated.isNotBlank()) {
-                            Text(
-                                text = line.translated,
-                                color = lineColor.copy(alpha = 0.82f),
-                                style = AppleMusicTypography.bodyLarge.copy(
-                                    fontFamily = FontFamily.SansSerif,
-                                    fontSize = 18.sp,
-                                    lineHeight = 23.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                modifier = Modifier.padding(top = 5.dp)
-                            )
-                        }
-                    }
+                    },
+                    enabled = track != null
+                ) {
+                    Icon(Icons.Rounded.Share, contentDescription = strings.share, tint = Color.White, modifier = Modifier.size(23.dp))
+                }
+                IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
                 }
             }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(start = 54.dp, end = 22.dp, top = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (track != null) {
-                AsyncImage(
-                    model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = track?.title ?: strings.lyrics,
-                    color = Color.White,
-                    style = AppleMusicTypography.titleMedium.copy(
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = track?.artist.orEmpty(),
-                    color = Color.White.copy(alpha = 0.70f),
-                    style = AppleMusicTypography.bodyMedium.copy(
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            IconButton(
-                onClick = { track?.let(onToggleFavorite) },
-                enabled = track != null
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .nestedScroll(scrollWakesCluster)
+                    // Lyric lines themselves consume taps to seek.  This page-level gesture remains
+                    // for the gutters and whitespace, precisely as in SimpMusic's lyrics body.
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        showCluster = !showCluster
+                        interactionTick++
+                    }
             ) {
-                Icon(
-                    imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                    contentDescription = strings.favorite,
-                    tint = Color.White,
-                    modifier = Modifier.size(29.dp)
-                )
-            }
-            IconButton(
-                onClick = {
-                    track?.let { active ->
-                        val activeLyric = lyrics.getOrNull(activeIndex)
-                        val body = buildString {
-                            append("${active.title} — ${active.artist}".trim(' ', '—'))
-                            activeLyric?.text?.takeIf(String::isNotBlank)?.let { lyric ->
-                                append("\n\n").append(lyric)
-                                if (showTranslation && activeLyric.translated.isNotBlank()) {
-                                    append("\n").append(activeLyric.translated)
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 38.dp, bottom = 34.dp),
+                    verticalArrangement = Arrangement.spacedBy(26.dp)
+                ) {
+                    if (lyrics.isEmpty()) {
+                        item {
+                            Text(
+                                text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
+                                color = Color.White.copy(alpha = 0.58f),
+                                style = AppleMusicTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    } else {
+                        itemsIndexed(lyrics, key = { index, line -> "apple-lyrics-${line.startMs}-${line.role}-$index" }) { index, line ->
+                            val active = index == activeIndex
+                            val lineColor by animateColorAsState(
+                                targetValue = if (active) Color.White else Color.White.copy(alpha = 0.34f),
+                                animationSpec = tween(if (state.animationsEnabled) 180 else 0),
+                                label = "simp-lyrics-line-color"
+                            )
+                            val lineScale by animateFloatAsState(
+                                targetValue = if (active) 1f else 0.94f,
+                                animationSpec = tween(if (state.animationsEnabled) 180 else 0),
+                                label = "simp-lyrics-line-scale"
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        scaleX = lineScale
+                                        scaleY = lineScale
+                                        transformOrigin = TransformOrigin(0f, 0.5f)
+                                    }
+                                    .clickable(enabled = state.lyricsSynced) {
+                                        wakeCluster()
+                                        if (calibrateMode) {
+                                            onCalibrateLine(line.startMs)
+                                        } else {
+                                            onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
+                                        }
+                                    }
+                            ) {
+                                if (state.lyricsSynced && line.words.isNotEmpty()) {
+                                    AppleMusic13WordByWordLyrics(
+                                        line = line,
+                                        positionProvider = {
+                                            lyricsOffsetPosition(clock.positionMs, lyricsOffsetMs)
+                                        },
+                                        isActive = active,
+                                        inactiveColor = lineColor,
+                                        glowColor = accentEnd,
+                                        animationsEnabled = state.animationsEnabled
+                                    )
+                                } else {
+                                    Text(
+                                        text = line.text,
+                                        color = lineColor,
+                                        style = AppleMusicTypography.headlineLarge.copy(
+                                            fontFamily = FontFamily.SansSerif,
+                                            fontSize = 31.sp,
+                                            lineHeight = 38.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                                if (showRomanization && line.romanized.isNotBlank()) {
+                                    Text(
+                                        text = line.romanized,
+                                        color = lineColor.copy(alpha = 0.72f),
+                                        style = AppleMusicTypography.bodyLarge.copy(
+                                            fontFamily = FontFamily.SansSerif,
+                                            fontSize = 17.sp,
+                                            lineHeight = 22.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        modifier = Modifier.padding(top = 3.dp)
+                                    )
+                                }
+                                if (showTranslation && line.translated.isNotBlank()) {
+                                    Text(
+                                        text = line.translated,
+                                        color = lineColor.copy(alpha = 0.82f),
+                                        style = AppleMusicTypography.bodyLarge.copy(
+                                            fontFamily = FontFamily.SansSerif,
+                                            fontSize = 18.sp,
+                                            lineHeight = 23.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        modifier = Modifier.padding(top = 5.dp)
+                                    )
                                 }
                             }
                         }
-                        context.startActivity(
-                            Intent.createChooser(
-                                Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, body)
-                                },
-                                strings.share
+                    }
+                }
+
+                // The list fades into its chrome rather than stopping abruptly under the header or
+                // controls; this is the quiet edge treatment of the upstream AppleMusicLyricsView.
+                Box(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(30.dp)
+                        .background(Brush.verticalGradient(0f to fadeTone.copy(alpha = 0.88f), 1f to Color.Transparent))
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(22.dp)
+                        .background(Brush.verticalGradient(0f to Color.Transparent, 1f to fadeTone.copy(alpha = 0.88f)))
+                )
+
+                AnimatedVisibility(
+                    visible = showCluster,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(end = 20.dp, bottom = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        if (state.lyricsSynced) {
+                            AppleMusic13LyricsFloatingButton(
+                                icon = Icons.Rounded.Timer,
+                                label = lyricsSyncCopy(strings.code).title,
+                                onClick = { wakeCluster(); onOpenOptions() }
                             )
+                        }
+                        AppleMusic13LyricsFloatingButton(
+                            icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                            label = strings.queue,
+                            onClick = { wakeCluster(); onOpenQueue() }
                         )
                     }
-                },
-                enabled = track != null
-            ) {
-                Icon(Icons.Rounded.Share, contentDescription = strings.share, tint = Color.White, modifier = Modifier.size(28.dp))
-            }
-            IconButton(onClick = onOpenOptions) {
-                Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(29.dp))
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(start = 62.dp, end = 62.dp, bottom = 18.dp)
-        ) {
-            Slider(
-                value = shownProgress,
-                onValueChange = { dragProgress = it },
-                onValueChangeFinished = {
-                    dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
-                    dragProgress = null
-                },
-                enabled = state.durationMs > 0L,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.34f)
-                ),
-                modifier = Modifier.fillMaxWidth().height(28.dp)
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text = formatSeekbarMillis(shownPosition),
-                    color = Color.White.copy(alpha = 0.78f),
-                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
-                )
-                Text(
-                    text = if (state.durationMs > 0L) formatSeekbarMillis(state.durationMs) else "--:--",
-                    color = Color.White.copy(alpha = 0.78f),
-                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Rounded.Shuffle, contentDescription = null, tint = Color.White.copy(alpha = 0.88f), modifier = Modifier.size(29.dp))
-                IconButton(onClick = onPrevious, modifier = Modifier.size(52.dp)) {
-                    Icon(Icons.Rounded.SkipPrevious, contentDescription = strings.previous, tint = Color.White, modifier = Modifier.size(35.dp))
                 }
-                IconButton(
-                    onClick = onTogglePlay,
+            }
+
+            // expand/shrink deliberately changes the lyric viewport, which is what lets the list
+            // grow into the freed room instead of leaving an empty control-shaped band behind.
+            AnimatedVisibility(
+                visible = showCluster,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
                     modifier = Modifier
-                        .size(78.dp)
-                        .clip(CircleShape)
-                        .background(Color.White)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, top = 6.dp, bottom = 14.dp)
                 ) {
-                    Icon(
-                        imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (state.isPlaying) strings.pause else strings.play,
-                        tint = Color(0xFF0A3039),
-                        modifier = Modifier.size(43.dp)
+                    Slider(
+                        value = shownProgress,
+                        onValueChange = {
+                            dragProgress = it
+                            wakeCluster()
+                        },
+                        onValueChangeFinished = {
+                            dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
+                            dragProgress = null
+                            wakeCluster()
+                        },
+                        enabled = state.durationMs > 0L,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.White,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.34f)
+                        ),
+                        modifier = Modifier.fillMaxWidth().height(28.dp)
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            text = formatSeekbarMillis(shownPosition),
+                            color = Color.White.copy(alpha = 0.78f),
+                            style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                        )
+                        Text(
+                            text = if (state.durationMs > 0L) "-" + formatSeekbarMillis((state.durationMs - shownPosition).coerceAtLeast(0L)) else "--:--",
+                            color = Color.White.copy(alpha = 0.78f),
+                            style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(58.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { wakeCluster(); onPrevious() }, modifier = Modifier.size(56.dp)) {
+                            Icon(Icons.Rounded.FastRewind, contentDescription = strings.previous, tint = Color.White, modifier = Modifier.size(46.dp))
+                        }
+                        IconButton(onClick = { wakeCluster(); onTogglePlay() }, modifier = Modifier.size(76.dp)) {
+                            Icon(
+                                imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = if (state.isPlaying) strings.pause else strings.play,
+                                tint = Color.White,
+                                modifier = Modifier.size(62.dp)
+                            )
+                        }
+                        IconButton(onClick = { wakeCluster(); onNext() }, modifier = Modifier.size(56.dp)) {
+                            Icon(Icons.Rounded.FastForward, contentDescription = strings.next, tint = Color.White, modifier = Modifier.size(46.dp))
+                        }
+                    }
+                    PlayerOutputVolume(
+                        contentColor = Color.White,
+                        mutedColor = Color.White.copy(alpha = 0.68f),
+                        activeColor = Color.White,
+                        trackColor = Color.White.copy(alpha = 0.24f),
+                        condensed = true,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                IconButton(onClick = onNext, modifier = Modifier.size(52.dp)) {
-                    Icon(Icons.Rounded.SkipNext, contentDescription = strings.next, tint = Color.White, modifier = Modifier.size(35.dp))
-                }
-                Icon(Icons.Rounded.Repeat, contentDescription = null, tint = Color.White.copy(alpha = 0.88f), modifier = Modifier.size(29.dp))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 15.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onOpenOptions, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Rounded.Info, contentDescription = strings.options, tint = Color.White.copy(alpha = 0.96f), modifier = Modifier.size(25.dp))
-                }
-                IconButton(onClick = onOpenQueue, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Rounded.LibraryMusic, contentDescription = strings.queue, tint = Color.White.copy(alpha = 0.96f), modifier = Modifier.size(27.dp))
-                }
             }
         }
+    }
+}
+
+@Composable
+private fun AppleMusic13LyricsFloatingButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.24f))
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -24342,7 +24458,7 @@ private fun HomeHeaderIconButton(
             .background(background)
             .border(Dp.Hairline, border, shape)
             .pressable(onClick = onClick)
-            .semantics { this.contentDescription = contentDescription },
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) {
         if (loading) {

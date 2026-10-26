@@ -46,8 +46,6 @@ import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.feature.motion.DerbisCanvasCatalogProvider
 import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
-import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
-import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.LyricLine
 import com.luc4n3x.levyra.player.PlaybackService
@@ -228,9 +226,10 @@ private fun AppleMusicPortraitDeck(
 }
 
 /**
- * Portrait Apple Music 13 follows the supplied reference: a cropped cover band on top, the
- * artwork's blurred adaptive field behind it, then airy metadata, slim progress, transport,
- * volume and a compact output/action strip. This is intentionally separate from Velvet/Aura.
+ * SimpMusic-derived Apple Music 13 portrait composition.  The visual structure is adapted from
+ * `NowPlayingContentAppleMusic.kt` and `AppleMusicShared.kt` at upstream revision 068d744
+ * (GPL-3.0): full-width square artwork, an artwork-colour field, and a compact bottom cluster.
+ * It intentionally retains Levyra's own state, actions and discrete word lyric renderer.
  */
 @Composable
 private fun AppleMusic13ReferencePortraitDeck(
@@ -244,121 +243,216 @@ private fun AppleMusic13ReferencePortraitDeck(
     activeLyric: LyricLine?,
     lyricPositionMs: Long
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        val coverHeight = (maxWidth / 1.62f).coerceIn(154.dp, 272.dp)
-        val topBreathingRoom = (maxHeight * 0.055f).coerceIn(20.dp, 46.dp)
-        Column(Modifier.fillMaxSize()) {
-            Spacer(Modifier.height(topBreathingRoom))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(coverHeight)
-                    .clip(RoundedCornerShape(2.dp))
-            ) {
-                SeamlessArtworkImage(
-                    url = preferredPlayerArtworkUrl(track),
-                    modifier = Modifier.fillMaxSize(),
-                    contentDescription = null,
-                    fallback = {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            artwork(minOf(coverHeight, artworkCap))
-                        }
-                    }
-                )
-                slots.gestures(track, Modifier.matchParentSize())
-            }
+    val artworkStart = remember(track.id, track.accentStart) {
+        Color(track.accentStart).let { accent -> androidx.compose.ui.graphics.lerp(accent, Color.Black, 0.62f) }
+    }
+    val artworkEnd = remember(track.id, track.accentEnd) {
+        Color(track.accentEnd).let { accent -> androidx.compose.ui.graphics.lerp(accent, Color.Black, 0.78f) }
+    }
+    val deepField = remember(artworkEnd) { androidx.compose.ui.graphics.lerp(artworkEnd, Color.Black, 0.68f) }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to artworkStart,
+                    0.52f to artworkEnd,
+                    1f to deepField
+                )
+            )
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        // SimpMusic's current player renders an un-cropped square sleeve at the page's top instead
+        // of turning it into a shallow 16:10 banner.  The artwork is capped only for short windows.
+        val sleeveSize = minOf(maxWidth, maxHeight * 0.54f, artworkCap)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .size(sleeveSize)
+        ) {
+            artwork(sleeveSize)
+            // The cover hands over softly to the artwork-colour field, avoiding the hard horizontal
+            // seam that made the previous banner deck look detached from its controls.
+            Box(
+                Modifier
+                    .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.08f),
-                            1f to Color.Black.copy(alpha = 0.30f)
+                            0f to Color.Transparent,
+                            0.70f to Color.Transparent,
+                            1f to artworkEnd
                         )
                     )
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Spacer(Modifier.height(12.dp))
-                Box(Modifier.fillMaxWidth().clipToBounds()) { metadata() }
-                AppleMusic13PageDots()
-                AppleMusic13InlineLyrics(
-                    line = activeLyric,
-                    positionMs = lyricPositionMs,
-                    modifier = Modifier.padding(top = 2.dp)
+            )
+            slots.gestures(track, Modifier.matchParentSize())
+        }
+
+        // A shallow dark wash keeps the header legible on light covers, just as the SimpMusic source
+        // holds the status/header band above the sleeve.  It remains behind the actual clickable UI.
+        Box(
+            Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(104.dp)
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Black.copy(alpha = 0.46f),
+                        1f to Color.Transparent
+                    )
                 )
-                Box(Modifier.padding(top = 2.dp)) { slots.progress(PlayerProgressStyle.Classic) }
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Box(Modifier.padding(horizontal = 8.dp)) { transport() }
-                }
-                PlayerOutputVolume(
-                    contentColor = Color.White,
-                    mutedColor = Color.White.copy(alpha = 0.72f),
-                    activeColor = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.26f),
-                    condensed = true,
-                    modifier = Modifier.padding(horizontal = 2.dp)
-                )
-                AppleMusic13ActionStrip(slots.dockActions(track))
-                Spacer(Modifier.height(2.dp))
+        )
+        Column(Modifier.align(Alignment.TopCenter)) {
+            AppleMusicGrabber()
+            Box(Modifier.padding(horizontal = 4.dp)) { slots.header() }
+        }
+
+        // The controls are one bottom-aligned cluster rather than a second free-floating page.  This
+        // makes the title, current lyric and seekbar read as a single composition with the sleeve.
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = AppleMusicDesign.playerMetadataInset)
+        ) {
+            Box(Modifier.fillMaxWidth().clipToBounds()) { metadata() }
+            if (!immersive) {
+                Box(Modifier.padding(top = 2.dp)) { slots.engagement(track) }
             }
+            AppleMusic13InlineLyrics(
+                line = activeLyric,
+                positionMs = lyricPositionMs,
+                modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+            )
+            Box(Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset - AppleMusicDesign.playerMetadataInset)) {
+                slots.progress(PlayerProgressStyle.Classic)
+            }
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Box(Modifier.padding(horizontal = 8.dp)) { transport() }
+            }
+            PlayerOutputVolume(
+                contentColor = Color.White,
+                mutedColor = Color.White.copy(alpha = 0.68f),
+                activeColor = Color.White,
+                trackColor = Color.White.copy(alpha = 0.24f),
+                condensed = true,
+                modifier = Modifier.padding(horizontal = 2.dp)
+            )
+            AppleMusic13SourceActionDock(slots.dockActions(track))
+            Spacer(Modifier.height(AppleMusicDesign.playerActionBottom))
         }
     }
 }
 
+/**
+ * Levyra-compatible rendering of SimpMusic's AppleMusicActionRow.  Existing dock actions still own
+ * their original callbacks and semantics; the row merely gives Lyrics and Queue the outside buttons
+ * and places all other available actions in the shared centre capsule.
+ */
 @Composable
-private fun AppleMusic13PageDots() {
+private fun AppleMusic13SourceActionDock(actions: List<PlayerDockAction>) {
+    val enabledActions = actions.take(4)
+    if (enabledActions.isEmpty()) return
+    val lyrics = enabledActions.firstOrNull { it.key == "lyrics" }
+    val queue = enabledActions.firstOrNull { it.key == "queue" }
+    val outer = listOfNotNull(lyrics, queue).distinctBy { it.key }
+    val middle = enabledActions.filterNot { action -> outer.any { it.key == action.key } }
+
+    // A very small action set still gets the same visual language rather than an empty capsule.
+    if (outer.size < 2 || middle.isEmpty()) {
+        AppleMusicDockRow(enabledActions)
+        return
+    }
+
     Row(
-        modifier = Modifier.padding(top = 3.dp, bottom = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        repeat(3) { index ->
-            Box(
-                Modifier
-                    .size(if (index == 0) 7.dp else 5.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = if (index == 0) 0.92f else 0.42f))
+        AppleMusic13SourceOuterAction(outer.first())
+        Row(
+            modifier = Modifier
+                .height(42.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.13f)),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            middle.forEachIndexed { index, action ->
+                if (index > 0) {
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(Color.White.copy(alpha = 0.20f))
+                    )
+                }
+                AppleMusic13SourceCapsuleAction(action)
+            }
+        }
+        AppleMusic13SourceOuterAction(outer.last())
+    }
+}
+
+@Composable
+private fun AppleMusic13SourceOuterAction(action: PlayerDockAction) {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .clip(CircleShape)
+            .background(if (action.active) Color.White.copy(alpha = 0.88f) else Color.Transparent)
+            .clickable(enabled = action.enabled && !action.busy, role = Role.Button, onClick = action.onClick)
+            .semantics {
+                contentDescription = action.label
+                action.stateDescription?.let { stateDescription = it }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        if (action.busy) {
+            LevyraLoadingIndicator(
+                color = if (action.active) Color.Black else Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        } else {
+            Icon(
+                action.icon,
+                contentDescription = null,
+                tint = when {
+                    !action.enabled -> Color.White.copy(alpha = 0.40f)
+                    action.active -> Color.Black.copy(alpha = 0.82f)
+                    else -> Color.White.copy(alpha = 0.92f)
+                },
+                modifier = Modifier.size(22.dp)
             )
         }
     }
 }
 
 @Composable
-private fun AppleMusic13ActionStrip(actions: List<PlayerDockAction>) {
-    val shown = actions.filter { it.key == "lyrics" || it.key == "queue" || it.key == "visual-mode" }.take(3)
-    if (shown.isEmpty()) return
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+private fun AppleMusic13SourceCapsuleAction(action: PlayerDockAction) {
+    Box(
+        modifier = Modifier
+            .width(58.dp)
+            .fillMaxHeight()
+            .background(if (action.active) Color.White.copy(alpha = 0.13f) else Color.Transparent)
+            .clickable(enabled = action.enabled && !action.busy, role = Role.Button, onClick = action.onClick)
+            .semantics {
+                contentDescription = action.label
+                action.stateDescription?.let { stateDescription = it }
+            },
+        contentAlignment = Alignment.Center
     ) {
-        shown.forEachIndexed { index, action ->
-            Box(
-                modifier = Modifier
-                    .size(width = 58.dp, height = 48.dp)
-                    .clip(if (index == 1) RoundedCornerShape(24.dp) else RoundedCornerShape(16.dp))
-                    .background(if (index == 1 || action.active) Color.White.copy(alpha = 0.18f) else Color.Transparent)
-                    .clickable(enabled = action.enabled && !action.busy, role = Role.Button, onClick = action.onClick)
-                    .semantics {
-                        contentDescription = action.label
-                        action.stateDescription?.let { stateDescription = it }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (action.busy) {
-                    LevyraLoadingIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                } else {
-                    Icon(
-                        action.icon,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = if (action.enabled) 0.94f else 0.40f),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+        if (action.busy) {
+            LevyraLoadingIndicator(color = Color.White, modifier = Modifier.size(19.dp))
+        } else {
+            Icon(
+                action.icon,
+                contentDescription = null,
+                tint = if (action.enabled) Color.White.copy(alpha = 0.88f) else Color.White.copy(alpha = 0.40f),
+                modifier = Modifier.size(21.dp)
+            )
         }
     }
 }
