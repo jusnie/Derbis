@@ -137,6 +137,7 @@ jobs:
             - `4f9640e` Liquid Glass now reaches Search, Explore, Library, Settings, the mini-player, and navigation.
             - `5f26471` AI Slop adds a persisted setting that filters explicitly identified AI-generated music and video content.
             - `ba79e80` Derbis Jam invite codes now use letters only and are at least six letters long.
+            - `7e0be74` Jam hosts can explicitly choose LAN Jam for the same Wi-Fi network or Server Jam through the configured Derbis relay.
             - `f08377a` Signed-in Spotify users can search their eligible playlists, review tracks, and import them through Derbis matching.
             - `e3d9cb3` Data Saver suppresses background prefetching, Canvas fetching, and mobile-data automatic downloads while retaining listener-started playback, search, and imports.
 

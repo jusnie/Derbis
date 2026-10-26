@@ -23,6 +23,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - `83d1d7e` and `e871551` add opt-in, rights-cleared Canvas artwork through the self-hosted Derbis Canvas Catalog; static covers remain the default.
 - `5f26471` adds the AI Slop setting to block explicitly identified AI-generated music and video content.
 - `ba79e80` makes Derbis Jam invite codes letters-only and at least six letters long.
+- `7e0be74` lets Jam hosts choose LAN Jam for the same Wi-Fi network or Server Jam through the configured Derbis relay; guests paste the code and Derbis detects the room type automatically.
 - `f08377a` lets signed-in Spotify users search eligible playlists, inspect their tracks, and import them through Derbis matching.
 - `e3d9cb3` adds Balanced Data Saver, which suppresses background network work and Canvas fetching, avoids mobile-data automatic downloads, and caps automatic video at 480p without blocking listener-started playback, search, or imports.
 
