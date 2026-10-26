@@ -1729,24 +1729,29 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
     ): YoutubeMusicRadioPage? = withContext(Dispatchers.IO) {
         val videoId = resolveVideoId(seed)
         if (videoId.isBlank()) return@withContext null
-        val radioId = "RDAMVM$videoId"
-        // Fetch exactly one complete provider page. Reusing playlist() here would follow a
-        // continuation before returning, save the later cursor, and silently skip the tracks
-        // between the initial provider page and that later cursor.
-        val root = requestMusicBrowseRoot(languageCode, "VL$radioId") ?: return@withContext null
-        val tracks = parsePlaylistTrackRenderers(playlistShelfRenderers(root), radioId)
+        val requestedRadioId = "RDAMVM$videoId"
+        // A song radio is a /next watch queue, not a normal /browse playlist. The old browse
+        // route can yield a valid-looking shell with no playlist-panel rows, which is why Endless
+        // Listening could remain visibly empty even though the selected track was playable.
+        val page = watchRepository.getRadioPage(
+            videoId = videoId,
+            radioId = requestedRadioId,
+            languageCode = languageCode
+        )
+        val tracks = page.tracks.map { watchTrackToTrack(it, seed, "radio ${seed.artist} ${seed.title}".trim()) }
         tracks.forEach { memory[it.id] = it }
         tracks.takeIf { it.isNotEmpty() }?.let {
             YoutubeMusicRadioPage(
-                radioId = radioId,
+                radioId = page.playlistId.takeIf(String::isNotBlank) ?: requestedRadioId,
                 tracks = it,
-                continuation = findPlaylistContinuation(root)
+                continuation = page.continuation
             )
         }
     }
 
     /** Fetches the next page for an existing Endless Listening radio session. */
     suspend fun radioContinuationPage(
+        seed: Track,
         radioId: String,
         continuation: String,
         languageCode: String = LevyraLanguageCatalog.deviceDefault()
@@ -1754,14 +1759,20 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
         val cleanRadioId = radioId.trim().removePrefix("VL")
         val token = continuation.trim()
         if (cleanRadioId.isBlank() || token.isBlank()) return@withContext null
-        val root = requestMusicBrowseRoot(languageCode, "", continuation = token) ?: return@withContext null
-        val tracks = parsePlaylistTrackRenderers(playlistShelfRenderers(root), cleanRadioId)
-        tracks.forEach { memory[it.id] = it }
-        YoutubeMusicRadioPage(
+        val page = watchRepository.getRadioPage(
             radioId = cleanRadioId,
-            tracks = tracks,
-            continuation = findPlaylistContinuation(root)
+            languageCode = languageCode,
+            continuation = token
         )
+        val tracks = page.tracks.map { watchTrackToTrack(it, seed, "radio ${seed.artist} ${seed.title}".trim()) }
+        tracks.forEach { memory[it.id] = it }
+        tracks.takeIf { it.isNotEmpty() }?.let {
+            YoutubeMusicRadioPage(
+                radioId = page.playlistId.takeIf(String::isNotBlank) ?: cleanRadioId,
+                tracks = it,
+                continuation = page.continuation
+            )
+        }
     }
 
     suspend fun playlistForImport(

@@ -12752,6 +12752,7 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
             when {
                 session.radioId.isNotBlank() && session.continuation.isNotBlank() -> {
                     repository.radioContinuationPage(
+                        seed = request.radioSeed,
                         radioId = session.radioId,
                         continuation = session.continuation,
                         languageCode = _state.value.languageCode

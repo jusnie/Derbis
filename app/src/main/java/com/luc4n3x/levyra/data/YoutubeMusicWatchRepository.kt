@@ -133,10 +133,13 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
         languageCode: String = LevyraLanguageCatalog.deviceDefault(),
         limit: Int = 25,
         radio: Boolean = false,
-        shuffle: Boolean = false
+        shuffle: Boolean = false,
+        requestedContinuation: String = "",
+        followContinuations: Boolean = true
     ): YoutubeMusicWatchPlaylist = withContext(Dispatchers.IO) {
         val cleanVideoId = videoId.trim()
         val cleanPlaylistId = playlistId.trim().removePrefix("VL")
+        val cleanRequestedContinuation = requestedContinuation.trim()
         require(cleanVideoId.isNotBlank() || cleanPlaylistId.isNotBlank())
         require(!(radio && shuffle))
         val boundedLimit = limit.coerceIn(1, 100)
@@ -169,13 +172,17 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
             radio.toString(),
             shuffle.toString()
         ).joinToString("|")
-        val cachedPlaylist = cached(watchCache, cacheKey, WATCH_CACHE_TTL_MS)
+        // A continuation is a one-time cursor. Never serve it from the initial-page cache or
+        // follow another cursor while a caller is trying to own exact radio pages.
+        val cacheEligible = cleanRequestedContinuation.isBlank() && followContinuations
+        val cachedPlaylist = cacheKey.takeIf { cacheEligible }
+            ?.let { cached(watchCache, it, WATCH_CACHE_TTL_MS) }
         if (cachedPlaylist != null && (cachedPlaylist.tracks.size >= boundedLimit || cachedPlaylist.continuation.isBlank())) {
             return@withContext cachedPlaylist.copy(tracks = cachedPlaylist.tracks.take(boundedLimit))
         }
 
         val parsedInitial = cachedPlaylist ?: YoutubeMusicWatchParser.parseWatchPlaylist(
-            post("next", requestBody, languageCode, mobile = false)
+            post("next", requestBody, languageCode, mobile = false, continuation = cleanRequestedContinuation)
         ).copy(radio = radio, shuffled = shuffle)
         val shortPairingLookup = cleanVideoId.isNotBlank() &&
             cleanPlaylistId.isBlank() &&
@@ -198,7 +205,10 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
         var continuation = parsed.continuation
         var requests = 0
 
-        while (tracks.size < boundedLimit && continuation.isNotBlank() && requests < MAX_CONTINUATION_REQUESTS) {
+        while (
+            followContinuations && tracks.size < boundedLimit &&
+                continuation.isNotBlank() && requests < MAX_CONTINUATION_REQUESTS
+        ) {
             val response = runCatching {
                 post("next", requestBody, languageCode, mobile = false, continuation = continuation)
             }.getOrNull() ?: break
@@ -225,9 +235,28 @@ class YoutubeMusicWatchRepository(private val context: Context? = null) {
             radio = radio,
             shuffled = shuffle
         )
-        putCached(watchCache, cacheKey, fullResult, WATCH_CACHE_MAX_ENTRIES)
+        if (cacheEligible) putCached(watchCache, cacheKey, fullResult, WATCH_CACHE_MAX_ENTRIES)
         fullResult.copy(tracks = fullResult.tracks.take(boundedLimit))
     }
+
+    /**
+     * Reads exactly one YouTube Music /next radio page.  The caller owns the returned cursor and
+     * decides when to request the next page, so an Endless queue cannot skip over a continuation.
+     */
+    suspend fun getRadioPage(
+        videoId: String = "",
+        radioId: String,
+        languageCode: String = LevyraLanguageCatalog.deviceDefault(),
+        continuation: String = ""
+    ): YoutubeMusicWatchPlaylist = getWatchPlaylistAdvanced(
+        videoId = videoId,
+        playlistId = radioId,
+        languageCode = languageCode,
+        limit = 100,
+        radio = true,
+        requestedContinuation = continuation,
+        followContinuations = false
+    )
 
     suspend fun getSongRelated(
         browseId: String,
