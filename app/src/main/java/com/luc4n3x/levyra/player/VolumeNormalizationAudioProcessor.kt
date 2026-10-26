@@ -13,7 +13,9 @@ import kotlin.math.roundToInt
 
 /*
  * Originally inspired by Metrolist's GPL-3.0 volume normalization processor.
- * Rewritten around attenuation-only YouTube loudness metadata and a gated BS.1770-4 fallback estimate.
+ * Rewritten around fixed, attenuation-only source metadata. It intentionally does not alter gain
+ * from a live loudness estimate while music is playing: that kind of mid-song correction causes
+ * audible volume pumping when an arrangement moves between quiet and loud passages.
  */
 @UnstableApi
 open class VolumeNormalizationAudioProcessor : AudioProcessor {
@@ -120,7 +122,10 @@ open class VolumeNormalizationAudioProcessor : AudioProcessor {
 
         val active = request
         synchronizeRequest(active)
-        val measuring = active.fixedGain == null
+        // A live estimate can change as a song changes arrangement, which sounds like the
+        // player repeatedly turning itself down and back up. Untagged sources retain their
+        // stream-start/handoff gain; trusted metadata and ReplayGain remain supported.
+        val measuring = false
         val endGain = plannedGain(active, frames)
         processFrames(inputBuffer, output, frames, currentGain, endGain, measuring)
         currentGain = endGain
@@ -151,19 +156,15 @@ open class VolumeNormalizationAudioProcessor : AudioProcessor {
     }
 
     private fun plannedGain(active: LoudnessRequest, frames: Int): Float {
-        val fixedGain = active.fixedGain
-        val measuredGain = if (fixedGain == null && meter.measuredBlocks >= MIN_MEASURED_BLOCKS) {
-            attenuationForMeasuredLoudness(meter.integratedLoudnessLufs())
-        } else {
-            null
-        }
-        val target = fixedGain ?: measuredGain ?: generationStartGain
-        val rateDbPerSecond = when {
-            measuredGain == null -> TRANSITION_RATE_DB_PER_SECOND
-            target < currentGain -> CUT_RATE_DB_PER_SECOND
-            else -> RELEASE_RATE_DB_PER_SECOND
-        }
-        return slewGain(currentGain, target, rateDbPerSecond * frames / inputAudioFormat.sampleRate)
+        // Never derive a new target from the currently playing programme. Doing so gives a
+        // quiet verse and a loud chorus different gains in the same track. The only changes are
+        // explicit source metadata/replay-gain updates or a crossfade handoff seed.
+        val target = active.fixedGain ?: generationStartGain
+        return slewGain(
+            currentGain = currentGain,
+            targetGain = target,
+            maxStepDb = TRANSITION_RATE_DB_PER_SECOND * frames / inputAudioFormat.sampleRate
+        )
     }
 
     private fun processFrames(
@@ -293,10 +294,7 @@ open class VolumeNormalizationAudioProcessor : AudioProcessor {
         private const val NORMALIZATION_MIN_GAIN = 0.25f
         private const val REPLAY_GAIN_MIN = 0.003981072f
         private const val MAX_GAIN = 4f
-        private const val MIN_MEASURED_BLOCKS = 20
         private const val TRANSITION_RATE_DB_PER_SECOND = 60f
-        private const val CUT_RATE_DB_PER_SECOND = 3f
-        private const val RELEASE_RATE_DB_PER_SECOND = 1f
         private const val UNSYNCED_GENERATION = -1
         private const val PCM_24_MIN = -8_388_608
         private const val PCM_24_MAX = 8_388_607
@@ -336,11 +334,11 @@ open class VolumeNormalizationAudioProcessor : AudioProcessor {
 
         private fun Float?.orZero(): Float = this ?: 0f
 
-        private fun slewGain(current: Float, target: Float, maxStepDb: Float): Float {
-            val currentDb = 20.0 * log10(current.toDouble())
-            val targetDb = 20.0 * log10(target.toDouble())
+        private fun slewGain(currentGain: Float, targetGain: Float, maxStepDb: Float): Float {
+            val currentDb = 20.0 * log10(currentGain.toDouble())
+            val targetDb = 20.0 * log10(targetGain.toDouble())
             val delta = targetDb - currentDb
-            if (abs(delta) <= maxStepDb) return target
+            if (abs(delta) <= maxStepDb) return targetGain
             val nextDb = currentDb + if (delta > 0) maxStepDb else -maxStepDb
             return 10.0.pow(nextDb / 20.0).toFloat()
         }

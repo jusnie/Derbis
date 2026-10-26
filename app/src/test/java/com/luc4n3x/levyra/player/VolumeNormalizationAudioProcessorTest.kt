@@ -36,16 +36,19 @@ class VolumeNormalizationAudioProcessorTest {
     }
 
     @Test
-    fun untaggedProgrammeWaitsForEvidenceThenSettlesOnStreamingReference() {
+    fun untaggedProgrammeKeepsAStableGainAcrossQuietAndLoudPassages() {
         val processor = processor()
         processor.setYoutubeLoudness(null, null)
         val tone = Tone()
 
-        tone.feed(processor, amplitudeDbfs = -6.0, seconds = 2.0)
+        tone.feed(processor, amplitudeDbfs = -6.0, seconds = 12.0)
         assertEquals(1f, processor.appliedGain, 0f)
 
-        tone.feed(processor, amplitudeDbfs = -6.0, seconds = 10.0)
-        assertEquals(10.0.pow(-8.0 / 20.0).toFloat(), processor.appliedGain, 0.01f)
+        tone.feed(processor, amplitudeDbfs = -28.0, seconds = 12.0)
+        assertEquals(1f, processor.appliedGain, 0f)
+
+        tone.feed(processor, amplitudeDbfs = -1.0, seconds = 12.0)
+        assertEquals(1f, processor.appliedGain, 0f)
     }
 
     @Test
@@ -59,14 +62,14 @@ class VolumeNormalizationAudioProcessorTest {
     }
 
     @Test
-    fun untaggedFullScaleProgrammeNeverExceedsInputPeak() {
+    fun untaggedFullScaleProgrammeDoesNotReceiveAUnexpectedMidTrackAttenuation() {
         val processor = processor()
         processor.setYoutubeLoudness(null, null)
 
         val peaks = Tone().feed(processor, amplitudeDbfs = -0.5, seconds = 8.0)
 
-        assertTrue(peaks.output <= peaks.input)
-        assertTrue(processor.appliedGain < 0.5f)
+        assertEquals(peaks.input, peaks.output)
+        assertEquals(1f, processor.appliedGain, 0f)
     }
 
     @Test
