@@ -943,6 +943,14 @@ private fun LevyraNowPlayingContent(
                             CircleShape
                         )
                 )
+            } else if (appleMusicPlayer) {
+                AppleMusicSeekbar(
+                    positionMs = state.positionMs,
+                    bufferedMs = state.bufferedPositionMs,
+                    durationMs = state.durationMs,
+                    onSeek = viewModel::seekTo
+                )
+                errorContent?.invoke()
             } else {
                 PlayerProgress(
                     positionMs = state.positionMs,
@@ -973,6 +981,19 @@ private fun LevyraNowPlayingContent(
                     strings = strings,
                     onStop = viewModel::closePlayer,
                     onToggle = viewModel::togglePlay
+                )
+            } else if (appleMusicPlayer) {
+                AppleMusicTransport(
+                    playing = state.isPlaying,
+                    resolving = state.isResolving,
+                    shuffle = state.shuffleEnabled,
+                    repeat = state.repeatMode,
+                    labels = playerControlLabels,
+                    onShuffle = viewModel::toggleShuffle,
+                    onPrevious = viewModel::previous,
+                    onToggle = viewModel::togglePlay,
+                    onNext = viewModel::next,
+                    onRepeat = viewModel::toggleRepeat
                 )
             } else {
                 PlayerTransportBar(
