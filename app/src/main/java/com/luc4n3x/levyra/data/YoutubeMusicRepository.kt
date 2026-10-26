@@ -3151,16 +3151,21 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
     ): List<Track> = withContext(Dispatchers.IO) {
         val boundedLimit = maxOf(limit.coerceIn(1, 30), MIN_CONTINUOUS_RADIO_CANDIDATES)
         val videoId = resolveVideoId(seed)
-        if (videoId.isBlank()) return@withContext emptyList()
         val query = "radio ${seed.artist} ${seed.title}".trim()
         val candidates = RadioCandidateAccumulator(
             seedVideoId = videoId,
             excludedIds = excludeIds,
             keepLowQuality = isLowQualityRadioCandidate(seed.title, seed.artist)
         )
-        val watch = loadRadioWatch(videoId, languageCode, boundedLimit, excludeIds.size)
-        watch?.tracks?.forEach { candidates.add(watchTrackToTrack(it, seed, query)) }
-        appendRelatedRadioCandidates(watch, seed, query, languageCode, boundedLimit, diversify, candidates)
+
+        // Home/Quick Pick entries can begin as editorial metadata and gain their YouTube identity
+        // only when playback resolves.  Do not leave Endless Listening empty in that interval:
+        // use the title/artist radio search below until a watch playlist is available.
+        if (videoId.isNotBlank()) {
+            val watch = loadRadioWatch(videoId, languageCode, boundedLimit, excludeIds.size)
+            watch?.tracks?.forEach { candidates.add(watchTrackToTrack(it, seed, query)) }
+            appendRelatedRadioCandidates(watch, seed, query, languageCode, boundedLimit, diversify, candidates)
+        }
         appendSearchRadioCandidates(seed, languageCode, boundedLimit, diversify, candidates)
         val resultLimit = if (diversify) MAX_DIVERSE_RADIO_CANDIDATES else boundedLimit
         candidates.take(resultLimit).also { items -> items.forEach { memory[it.id] = it } }
