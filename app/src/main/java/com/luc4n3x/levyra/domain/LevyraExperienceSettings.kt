@@ -231,6 +231,8 @@ data class LevyraInterfaceSettings(
     val glassRefraction: Boolean = true,
     val motionArtworkWifiOnly: Boolean = false,
     val enhanceVideoMetadata: Boolean = false,
+    /** Hides tracks and videos explicitly identified as AI-generated. */
+    val blockAiContent: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
     val playerVisualMode: PlayerVisualMode = PlayerVisualMode.Flow,

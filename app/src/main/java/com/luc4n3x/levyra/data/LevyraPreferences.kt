@@ -254,6 +254,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_ENHANCE_VIDEO_METADATA] = normalizedInterface.enhanceVideoMetadata
+            mutable[KEY_UI_BLOCK_AI_CONTENT] = normalizedInterface.blockAiContent
             mutable[KEY_UI_PURE_BLACK] = normalizedInterface.pureBlack
             mutable[KEY_UI_SKIN] = normalizedInterface.skin.name
             mutable[KEY_PRISM_APPEARANCE] = normalizedInterface.prism.appearance.name
@@ -436,6 +437,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
+            it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
             it[KEY_UI_PURE_BLACK] = normalized.pureBlack
             it[KEY_UI_SKIN] = normalized.skin.name
             it[KEY_PRISM_APPEARANCE] = normalized.prism.appearance.name
@@ -891,6 +893,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
+            blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
             pureBlack = preferences[KEY_UI_PURE_BLACK] ?: false,
             skin = com.luc4n3x.levyra.domain.LevyraSkin.from(preferences[KEY_UI_SKIN].orEmpty()),
             prism = com.luc4n3x.levyra.domain.PrismSettings.from(
@@ -1408,6 +1411,7 @@ class LevyraPreferences internal constructor(private val store: LevyraPreference
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")
+        val KEY_UI_BLOCK_AI_CONTENT = booleanPreferencesKey("ui_block_ai_content")
         val KEY_UI_PLAYER_VISUAL_MODE = stringPreferencesKey("ui_player_visual_mode")
         val KEY_UI_PLAYER_BACKGROUND = stringPreferencesKey("ui_player_background")
         val KEY_UI_REACTIVE_AURA_PRESET = stringPreferencesKey("ui_reactive_aura_preset")

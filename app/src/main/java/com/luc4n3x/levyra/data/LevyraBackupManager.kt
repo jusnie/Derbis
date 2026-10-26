@@ -1826,6 +1826,7 @@ internal fun backupInterfaceSettingsToJson(value: LevyraInterfaceSettings): JSON
     .put("glassRefraction", value.glassRefraction)
     .put("motionArtworkWifiOnly", value.motionArtworkWifiOnly)
     .put("enhanceVideoMetadata", value.enhanceVideoMetadata)
+    .put("blockAiContent", value.blockAiContent)
     .put("pureBlack", value.pureBlack)
     .put("skin", value.skin.name)
     .put("prismAppearance", value.prism.appearance.name)
@@ -1887,6 +1888,7 @@ internal fun backupInterfaceSettingsFromJson(
         glassRefraction = json.optBoolean("glassRefraction", true),
         motionArtworkWifiOnly = json.optBoolean("motionArtworkWifiOnly", false),
         enhanceVideoMetadata = json.optBoolean("enhanceVideoMetadata", false),
+        blockAiContent = json.optBoolean("blockAiContent", false),
         pureBlack = json.optBoolean("pureBlack", false),
         skin = com.luc4n3x.levyra.domain.LevyraSkin.from(json.optString("skin")),
         prism = com.luc4n3x.levyra.domain.PrismSettings.from(

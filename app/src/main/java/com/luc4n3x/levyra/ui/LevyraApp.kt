@@ -377,6 +377,7 @@ import androidx.compose.material.icons.rounded.SlowMotionVideo
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -791,6 +792,7 @@ import com.luc4n3x.levyra.viewmodel.HomeRenderSnapshot
 import com.luc4n3x.levyra.viewmodel.buildHomeRenderSnapshot
 import com.luc4n3x.levyra.viewmodel.HomeViewModel
 import com.luc4n3x.levyra.viewmodel.LevyraScreenViewModelFactory
+import com.luc4n3x.levyra.viewmodel.withAiContentBlocked
 import com.luc4n3x.levyra.ui.discovery.discoverySection
 import com.luc4n3x.levyra.ui.discovery.DiscoveryHomeHost
 import com.luc4n3x.levyra.ui.discovery.LocalHomeDiscovery
@@ -1898,7 +1900,8 @@ fun LevyraApp(
     val youtubeMusicState by youtubeMusicViewModel.state.collectAsStateWithLifecycle()
     var showYoutubeMusic by rememberSaveable { mutableStateOf(false) }
 
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val rawState by viewModel.state.collectAsStateWithLifecycle()
+    val state = remember(rawState, rawState.interfaceSettings.blockAiContent) { rawState.withAiContentBlocked() }
     val miniPlayerStudio by viewModel.miniPlayerStudio.collectAsStateWithLifecycle()
     val customThemes by viewModel.customThemes.collectAsStateWithLifecycle()
     val navigationStudio by viewModel.navigationStudio.collectAsStateWithLifecycle()
@@ -21708,6 +21711,17 @@ private fun SettingsOverlay(
                                     subtitle = strings.motionArtworkSubtitle,
                                     checked = motionArtworkEnabled,
                                     onCheckedChange = onMotionArtwork
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.Block,
+                                    title = "AI Slop",
+                                    subtitle = "Block music, videos, and recommendations explicitly marked as AI-generated.",
+                                    checked = interfaceSettings.blockAiContent,
+                                    onCheckedChange = { enabled ->
+                                        onInterfaceSettings(interfaceSettings.copy(blockAiContent = enabled))
+                                    }
                                 )
                             }
                             item {

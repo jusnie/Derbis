@@ -216,6 +216,7 @@ import com.luc4n3x.levyra.domain.MixLabCandidate
 import com.luc4n3x.levyra.domain.OfflineDownloadTask
 import com.luc4n3x.levyra.domain.Playlist
 import com.luc4n3x.levyra.domain.RepeatMode
+import com.luc4n3x.levyra.domain.AiContentFilter
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.YoutubeMusicVideoType
 import com.luc4n3x.levyra.domain.VideoQualityLadder
@@ -5762,6 +5763,25 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         )
         LevyraTypographyController.apply(normalized.fontPreset)
         _state.update { it.copy(interfaceSettings = normalized) }
+        if (!previous.blockAiContent && normalized.blockAiContent &&
+            _state.value.currentTrack?.let(AiContentFilter::blocks) == true
+        ) {
+            pendingResumeJob?.cancel()
+            pendingResumeJob = null
+            player.pause()
+            _state.update {
+                it.copy(
+                    currentTrack = null,
+                    isPlaying = false,
+                    isResolving = false,
+                    positionMs = 0L,
+                    bufferedPositionMs = 0L,
+                    durationMs = 0L,
+                    playerError = "AI-generated content is blocked by AI Slop."
+                )
+            }
+            updateWidget()
+        }
         localLibrarySortFlow.value = normalized.librarySort to normalized.librarySortDirection
         syncReleaseNotificationSetting(previous, normalized)
         if (previous.showResonance && !normalized.showResonance) {
@@ -10229,6 +10249,10 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun startResolve(track: Track, autoRetryWhenOffline: Boolean = false, startPaused: Boolean = false) {
+        if (_state.value.interfaceSettings.blockAiContent && AiContentFilter.blocks(track)) {
+            _state.update { current -> current.copy(playerError = "AI-generated content is blocked by AI Slop.") }
+            return
+        }
         pendingResumeJob?.cancel()
         pendingResumeJob = null
         streamTransitionId++
@@ -13148,6 +13172,11 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
     private fun resumeCurrentPlayback() {
         val queue = queueEngine.state.value
         val current = playbackTrackAfterQueueSync(_state.value.currentTrack, queue.currentTrack) ?: return
+        if (_state.value.interfaceSettings.blockAiContent && AiContentFilter.blocks(current)) {
+            player.pause()
+            _state.update { it.copy(isPlaying = false, playerError = "AI-generated content is blocked by AI Slop.") }
+            return
+        }
         if (current.streamUrl.isBlank()) {
             pendingSeekMs = queue.positionMs
             startResolve(current)
