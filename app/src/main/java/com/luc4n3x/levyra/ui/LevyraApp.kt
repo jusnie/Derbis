@@ -9186,7 +9186,7 @@ private fun AppleMusic13FullscreenLyrics(
                     }
                 }
 
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = imageShareSelectionMode,
                     enter = fadeIn() + slideInVertically { it / 2 },
                     exit = fadeOut() + slideOutVertically { it / 2 },
