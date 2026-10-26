@@ -76,10 +76,13 @@ class AdaptivePlaybackPolicy(context: Context) {
         val lowRam = activityManager.isLowRamDevice || memoryInfo.lowMemory
         val manufacturer = "${Build.MANUFACTURER} ${Build.BRAND}".lowercase(Locale.ROOT)
         val aggressiveOem = isAggressiveOem(manufacturer)
+        // Starting after only 100–300 ms made normal network jitter audible as repeated cuts.
+        // Keep automatic mode responsive, but require a real audio cushion before starting or
+        // resuming. The values match the balanced player profile while retaining lower-RAM caps.
         return when {
-            lowRam -> PlaybackBufferProfile(6_000, 12_000, 100, 250, 0)
-            aggressiveOem -> PlaybackBufferProfile(10_000, 20_000, 100, 300, 2_000)
-            else -> PlaybackBufferProfile(12_000, 24_000, 100, 300, 4_000)
+            lowRam -> PlaybackBufferProfile(8_000, 16_000, 750, 1_500, 0)
+            aggressiveOem -> PlaybackBufferProfile(12_000, 24_000, 1_000, 2_000, 2_000)
+            else -> PlaybackBufferProfile(12_000, 24_000, 1_000, 2_000, 4_000)
         }
     }
 
@@ -125,7 +128,8 @@ internal fun playbackBufferProfile(
 internal fun stabilityBufferProfile(profile: PlaybackBufferProfile, customProfile: Boolean): PlaybackBufferProfile =
     if (customProfile) profile else AdaptiveStabilityLoadControl.stableProfileOf(profile)
 
+/** A second deck needs enough decoded audio to remain seamless through a crossfade. */
 internal fun transitionPlaybackBufferMs(playbackBufferMs: Int): Int =
-    playbackBufferMs.coerceAtMost(2_000)
+    playbackBufferMs.coerceIn(750, 2_000)
 
 private fun Float.secondsToMs(): Int = (this * 1_000f).roundToInt()

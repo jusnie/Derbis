@@ -35,8 +35,8 @@ class PlaybackBufferPolicyTest {
     }
 
     @Test
-    fun transitionStartupBufferIsCappedWithoutChangingSmallerValues() {
-        assertEquals(100, transitionPlaybackBufferMs(100))
+    fun transitionStartupBufferHasAStabilityFloorAndCeiling() {
+        assertEquals(750, transitionPlaybackBufferMs(100))
         assertEquals(1_500, transitionPlaybackBufferMs(1_500))
         assertEquals(2_000, transitionPlaybackBufferMs(2_000))
         assertEquals(2_000, transitionPlaybackBufferMs(10_000))
