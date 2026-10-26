@@ -47,17 +47,16 @@ class ExploreLayoutTest {
     }
 
     @Test
-    fun samplesLiveOnlyBehindTheirShortcut() {
+    fun exploreRowsDoNotExposeRemovedSamplesContent() {
         val rows = buildExploreRows(zones = zones(4), isFreshLoading = false, hasFreshTracks = true)
 
-        assertNull(ExploreShortcut.Samples.anchor)
         assertTrue(rows.none { row -> row.key.contains("samples") })
+        assertEquals(setOf(ExploreShortcut.NewReleases, ExploreShortcut.Moods), ExploreShortcut.entries.toSet())
     }
 
     @Test
     fun newReleasesShortcutTargetsAnExistingCatalogZone() {
         assertEquals(ExploreCatalog.NEW_RELEASES_ZONE_ID, ExploreShortcut.NewReleases.zoneId)
-        assertNull(ExploreShortcut.Samples.zoneId)
         assertNull(ExploreShortcut.Moods.zoneId)
     }
 
@@ -122,43 +121,6 @@ class ExploreLayoutTest {
         assertEquals(-1, exploreAnchorIndex(rows, ExploreAnchor.Moods))
         assertTrue(rows.contains(ExploreRow.Shortcuts))
         assertNotNull(rows.firstOrNull { it is ExploreRow.Header && it.anchor == ExploreAnchor.Fresh })
-    }
-
-    @Test
-    fun samplesKeepSourceOrderAndDropArtworklessEntries() {
-        val videos = listOf(
-            track("a"),
-            track("b", thumbnailUrl = "", largeThumbnailUrl = ""),
-            track("c", thumbnailUrl = ""),
-            track("a")
-        )
-
-        assertEquals(listOf("a", "c"), exploreSampleTracks(videos).map { it.id })
-    }
-
-    @Test
-    fun samplesRejectOrdinaryMusicVideos() {
-        val ordinary = track("ordinary").copy(
-            source = "YouTube Music",
-            videoUrl = "https://www.youtube.com/watch?v=abcdefghijk",
-            videoType = ""
-        )
-
-        assertTrue(exploreSampleTracks(listOf(ordinary)).isEmpty())
-    }
-
-    @Test
-    fun samplesDefaultToPreviewBoundAndKeepTheImmersiveFeedBounded() {
-        val videos = List(ExploreImmersiveSampleLimit + 4) { index -> track("id-$index") }
-
-        assertEquals(ExploreSampleLimit, exploreSampleTracks(videos).size)
-        assertEquals(
-            ExploreImmersiveSampleLimit,
-            exploreSampleTracks(videos, limit = ExploreImmersiveSampleLimit).size
-        )
-        assertEquals(3, exploreSampleTracks(videos, limit = 3).size)
-        assertTrue(exploreSampleTracks(videos, limit = 0).isEmpty())
-        assertTrue(exploreSampleTracks(videos, limit = -1).isEmpty())
     }
 
     @Test

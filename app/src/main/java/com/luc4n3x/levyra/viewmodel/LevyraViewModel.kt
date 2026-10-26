@@ -10896,20 +10896,6 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         warmExploreDiscoveryArtwork()
         ensureFreshCurrentsLoaded()
         ensureOfficialNewReleasesLoaded()
-        ensureMusicVideosLoaded()
-    }
-
-    fun ensureExploreSamples() {
-        ensureMusicVideosLoaded()
-    }
-
-    fun refreshExploreSamples() {
-        musicVideosLoadedLanguage = ""
-        musicVideosLoadedProfileSignature = ""
-        musicVideosRetryLanguage = ""
-        musicVideosRetryAfterMs = 0L
-        musicVideosFailureCount = 0
-        ensureMusicVideosLoaded(force = true)
     }
 
     fun selectExploreZone(zone: ExploreZone) {

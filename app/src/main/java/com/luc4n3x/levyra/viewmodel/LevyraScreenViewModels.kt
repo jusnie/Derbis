@@ -325,12 +325,7 @@ class ExploreViewModel(root: LevyraViewModel) : LevyraScreenViewModel(root, ::ex
     fun playAll(tracks: List<Track>) = root.playAll(tracks)
     fun openPlaylistHit(playlist: PlaylistHit) = root.openPlaylistHit(playlist)
     fun openAlbum(album: AlbumHit) = root.openAlbum(album)
-    fun ensureSamples() = root.ensureExploreSamples()
-    fun refreshSamples() = root.refreshExploreSamples()
-    fun beginSamplesPlayback() = root.beginSamplesPlayback()
-    fun endSamplesPlayback() = root.endSamplesPlayback()
     fun playFrom(list: List<Track>, track: Track, loopOnCompletion: Boolean = false) = root.playFrom(list, track, loopOnCompletion)
-    fun playSample(list: List<Track>, track: Track) = root.playSample(list, track)
     fun playLiveRadio(station: RadioStation) = root.playLiveRadio(station)
     fun selectExploreZone(zone: ExploreZone) = root.selectExploreZone(zone)
     fun selectExploreCategory(category: ExploreCategory) = root.selectExploreCategory(category)
@@ -1380,7 +1375,6 @@ internal data class ExploreProjection(
     val exploreWorldFreshTracks: List<Track>,
     val exploreNewReleases: List<AlbumHit>,
     val exploreVideos: List<Track>,
-    val exploreSamples: List<Track>,
     val exploreZoneId: String?,
     val exploreCategoryParams: String?,
     val exploreCategories: List<ExploreCategory>,
@@ -1394,9 +1388,6 @@ internal data class ExploreProjection(
     val isPlaying: Boolean,
     val isResolving: Boolean,
     val isVideoMode: Boolean,
-    val isSamplesLoading: Boolean,
-    val samplesLoadFailed: Boolean,
-    val isSamplesOpen: Boolean,
     val playlists: List<Playlist>,
     val mixFamiliarity: Float,
     val mixLoading: Boolean,
@@ -1411,7 +1402,6 @@ internal fun exploreProjection(state: LevyraUiState): ExploreProjection = Explor
     exploreWorldFreshTracks = state.exploreWorldFreshTracks,
     exploreNewReleases = state.exploreNewReleases,
     exploreVideos = state.exploreVideos,
-    exploreSamples = state.exploreSamples,
     exploreZoneId = state.exploreZoneId,
     exploreCategoryParams = state.exploreCategoryParams,
     exploreCategories = state.exploreCategories,
@@ -1425,9 +1415,6 @@ internal fun exploreProjection(state: LevyraUiState): ExploreProjection = Explor
     isPlaying = state.isPlaying,
     isResolving = state.isResolving,
     isVideoMode = state.isVideoMode,
-    isSamplesLoading = state.isSamplesLoading,
-    samplesLoadFailed = state.samplesLoadFailed,
-    isSamplesOpen = state.isSamplesOpen,
     playlists = state.playlists,
     mixFamiliarity = state.mixFamiliarity,
     mixLoading = state.mixLoading,

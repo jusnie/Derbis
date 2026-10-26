@@ -5,10 +5,7 @@ import com.luc4n3x.levyra.domain.ExploreCategory
 import com.luc4n3x.levyra.domain.ExploreZone
 import com.luc4n3x.levyra.domain.LevyraPersonalOrbit
 import com.luc4n3x.levyra.domain.Track
-import com.luc4n3x.levyra.data.isYoutubeShortTrack
 
-internal const val ExploreSampleLimit = 10
-internal const val ExploreImmersiveSampleLimit = 24
 internal const val ExploreSpotlightLimit = 5
 internal const val ExploreMomentRowsPerPage = 4
 internal const val ExploreMomentPageLimit = 4
@@ -57,7 +54,6 @@ internal enum class ExploreAnchor {
 
 internal enum class ExploreShortcut(val anchor: ExploreAnchor?, val zoneId: String?) {
     NewReleases(ExploreAnchor.Fresh, ExploreCatalog.NEW_RELEASES_ZONE_ID),
-    Samples(null, null),
     Moods(ExploreAnchor.Moods, null)
 }
 
@@ -139,16 +135,6 @@ internal fun exploreAvailableAnchors(rows: List<ExploreRow>): Set<ExploreAnchor>
         .filterIsInstance<ExploreRow.Header>()
         .map { row -> row.anchor }
         .toSet()
-
-internal fun exploreSampleTracks(videos: List<Track>, limit: Int = ExploreSampleLimit): List<Track> {
-    if (limit <= 0) return emptyList()
-    return videos.asSequence()
-        .filter(::isYoutubeShortTrack)
-        .filter { track -> track.thumbnailUrl.isNotBlank() || track.largeThumbnailUrl.isNotBlank() }
-        .distinctBy { track -> track.id }
-        .take(limit)
-        .toList()
-}
 
 internal fun buildExploreCategorySections(categories: List<ExploreCategory>): List<ExploreCategorySection> {
     val validCategories = LinkedHashMap<String, ExploreCategory>()

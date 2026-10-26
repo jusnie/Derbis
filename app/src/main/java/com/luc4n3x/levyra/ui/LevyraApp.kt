@@ -2524,7 +2524,7 @@ fun LevyraApp(
                     if (!state.showSettings && !LevyraIsSpotify) BottomTabsScrim()
                     val dockCompaction = dockState.animatedCompaction(state.animationsEnabled)
                     val compactionProvider: () -> Float = { dockCompaction.value }
-                    val miniPlayerVisible = state.currentTrack != null && !state.isSamplesOpen
+                    val miniPlayerVisible = state.currentTrack != null
                     val dockLink = rememberConnectedDockLink(
                         navigation = navigationStudio.settings,
                         attached = miniPlayerVisible && !dockSideBySide && !state.showSettings,
@@ -2840,7 +2840,7 @@ fun LevyraApp(
                     onExitApplication = onExitApplication,
                     backEnabled = !playerVisible && !(state.showJam || state.showThemeStudio || state.showLyricsStudio ||
                         state.showHomeStudio || miniPlayerStudio.visible || navigationStudio.visible),
-                    miniPlayerVisible = state.currentTrack != null && !state.isSamplesOpen,
+                    miniPlayerVisible = state.currentTrack != null,
                     animationsEnabled = state.animationsEnabled,
                     dynamicColor = state.dynamicColor,
                     sponsorBlock = state.sponsorBlockEnabled,
@@ -27369,7 +27369,6 @@ private fun ExploreScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     var addToPlaylistTarget by remember { mutableStateOf<Track?>(null) }
-    var samplesStartIndex by rememberSaveable { mutableStateOf<Int?>(null) }
     var exploreDestination by rememberSaveable { mutableStateOf<String?>(null) }
     var exploreMoodReturn by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(state.exploreOpenRequest) {
@@ -27397,9 +27396,6 @@ private fun ExploreScreen(
     val freshRegionLabel = remember(state.languageCode) {
         ChartsCatalog.defaultRegionForLanguage(state.languageCode).label
     }
-    val samples = remember(state.exploreSamples) {
-        exploreSampleTracks(state.exploreSamples, ExploreImmersiveSampleLimit)
-    }
     val freshSection = remember(freshScopes, freshFeed, momentPages, freshRegionLabel) {
         ExploreFreshSection(freshScopes, freshFeed, momentPages, freshRegionLabel)
     }
@@ -27422,20 +27418,8 @@ private fun ExploreScreen(
 
     val onShortcut: (ExploreShortcut) -> Unit = { shortcut ->
         when (shortcut) {
-            ExploreShortcut.Samples -> {
-                exploreDestination = null
-                samplesStartIndex = 0
-                viewModel.beginSamplesPlayback()
-                if (samples.isEmpty()) viewModel.ensureSamples()
-            }
-            ExploreShortcut.NewReleases -> {
-                samplesStartIndex = null
-                exploreDestination = ExploreNewReleasesDestination
-            }
-            ExploreShortcut.Moods -> {
-                samplesStartIndex = null
-                exploreDestination = ExploreMoodsDestination
-            }
+            ExploreShortcut.NewReleases -> exploreDestination = ExploreNewReleasesDestination
+            ExploreShortcut.Moods -> exploreDestination = ExploreMoodsDestination
         }
     }
     val onPlayFresh: (() -> Unit)? = freshTracks.firstOrNull()?.let { first ->
@@ -27476,7 +27460,7 @@ private fun ExploreScreen(
         )
     }
     val exploreBottomInset = tabBarBottomContentInset(
-        miniPlayerVisible = state.currentTrack != null && !state.isSamplesOpen,
+        miniPlayerVisible = state.currentTrack != null,
         animationsEnabled = state.animationsEnabled
     )
     Box(
@@ -27488,7 +27472,6 @@ private fun ExploreScreen(
             YouTubeMusicExploreScreen(
                 viewModel, listState, state.currentTrack?.id, exploreBottomInset, availableAnchors, onShortcut, onOpenJam, onLiveRadioOpenChange,
                 onOpenMood = { title, params ->
-                    samplesStartIndex = null
                     exploreMoodReturn = null
                     exploreDestination = exploreCategoryDestination(ExploreCategory(title, params))
                 }
@@ -27517,7 +27500,6 @@ private fun ExploreScreen(
                     onOpenJam = onOpenJam,
                     onOpenRadio = { onLiveRadioOpenChange(true) },
                     onOpenMoods = {
-                        samplesStartIndex = null
                         exploreMoodReturn = null
                         exploreDestination = ExploreMoodsDestination
                     },
@@ -27537,15 +27519,12 @@ private fun ExploreScreen(
             viewModel = viewModel,
             strings = strings,
             zones = zones,
-            samples = samples,
             backEnabled = backEnabled,
             liveRadioOpen = liveRadioOpen,
             addToPlaylistTarget = addToPlaylistTarget,
-            samplesStartIndex = samplesStartIndex,
             exploreDestination = exploreDestination,
             exploreMoodReturn = exploreMoodReturn,
             onAddToPlaylistTargetChange = { addToPlaylistTarget = it },
-            onSamplesStartIndexChange = { samplesStartIndex = it },
             onDestinationChange = { exploreDestination = it },
             onMoodReturnChange = { exploreMoodReturn = it },
             onLiveRadioOpenChange = onLiveRadioOpenChange
@@ -27755,15 +27734,12 @@ private fun ExploreOverlays(
     viewModel: ExploreViewModel,
     strings: LevyraStrings,
     zones: List<ExploreZone>,
-    samples: List<Track>,
     backEnabled: Boolean,
     liveRadioOpen: Boolean,
     addToPlaylistTarget: Track?,
-    samplesStartIndex: Int?,
     exploreDestination: String?,
     exploreMoodReturn: String?,
     onAddToPlaylistTargetChange: (Track?) -> Unit,
-    onSamplesStartIndexChange: (Int?) -> Unit,
     onDestinationChange: (String?) -> Unit,
     onMoodReturnChange: (String?) -> Unit,
     onLiveRadioOpenChange: (Boolean) -> Unit
@@ -27829,30 +27805,6 @@ private fun ExploreOverlays(
         )
     }
 
-    samplesStartIndex?.let { initialPage ->
-            ExploreSamplesScreen(
-                samples = samples,
-                initialPage = initialPage,
-                currentTrack = state.currentTrack,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                isVideoMode = state.isVideoMode,
-                isLoading = state.isSamplesLoading,
-                loadFailed = state.samplesLoadFailed,
-                playbackError = state.playerError,
-                favoriteIds = state.favoriteIds,
-                strings = strings,
-                backEnabled = backEnabled,
-                onPlaySample = viewModel::playSample,
-                onTogglePlay = viewModel::togglePlay,
-                onToggleFavorite = viewModel::toggleFavorite,
-                onRequestFeed = viewModel::refreshSamples,
-                onDismiss = {
-                    viewModel.endSamplesPlayback()
-                    onSamplesStartIndexChange(null)
-                }
-            )
-        }
 
     if (liveRadioOpen) {
         LiveRadioScreen(
@@ -28061,7 +28013,6 @@ internal fun ExplorePrimaryShortcuts(
         if (ExploreAnchor.Fresh in availableAnchors) {
             add(ExploreShortcutEntry("releases", Icons.Rounded.AutoAwesome, strings.exploreNewReleases, MaterialShapes.Sunny, colors.primaryContainer, colors.onPrimaryContainer) { onSelect(ExploreShortcut.NewReleases) })
         }
-        add(ExploreShortcutEntry("samples", Icons.Rounded.PlayArrow, strings.exploreSamples, MaterialShapes.Cookie4Sided, colors.tertiaryContainer, colors.onTertiaryContainer) { onSelect(ExploreShortcut.Samples) })
         if (ExploreAnchor.Moods in availableAnchors) {
             add(ExploreShortcutEntry("moods", Icons.Rounded.Mood, strings.exploreMoods, MaterialShapes.Clover4Leaf, colors.secondaryContainer, colors.onSecondaryContainer) { onSelect(ExploreShortcut.Moods) })
         }
