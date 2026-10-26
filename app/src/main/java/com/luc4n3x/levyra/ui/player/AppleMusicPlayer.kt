@@ -258,17 +258,6 @@ private fun AppleMusic13ReferencePortraitDeck(
                         }
                     }
                 )
-                // A light bottom fade makes the source artwork flow naturally into its ambience.
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0.62f to Color.Transparent,
-                                1f to Color.Black.copy(alpha = 0.20f)
-                            )
-                        )
-                )
                 slots.gestures(track, Modifier.matchParentSize())
             }
 
