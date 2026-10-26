@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render and verify Levyra's fdroiddata metadata before a GitLab push."""
+"""Render and verify Derbis's fdroiddata metadata before a GitLab push."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROPERTIES = ROOT / "gradle.properties"
-DEFAULT_TEMPLATE = ROOT / "fdroid" / "metadata" / "com.luc4n3x.levyra.yml.in"
-APP_ID = "com.luc4n3x.levyra"
+DEFAULT_TEMPLATE = ROOT / "fdroid" / "metadata" / "com.luc4n3x.derbis.yml.in"
+APP_ID = "com.luc4n3x.derbis"
 VERSION_PATTERN = re.compile(r"^[0-9]+(?:\.[0-9]+){0,3}(?:[-+][0-9A-Za-z.-]+)?$")
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 
@@ -48,17 +48,17 @@ def expected_version_code(version: str) -> int:
 
 def release_values(properties_path: Path) -> tuple[str, int]:
     properties = read_properties(properties_path)
-    version = properties.get("levyraVersionName", "")
-    version_code_text = properties.get("levyraVersionCode", "")
+    version = properties.get("derbisVersionName", "")
+    version_code_text = properties.get("derbisVersionCode", "")
     if not VERSION_PATTERN.fullmatch(version):
-        raise MetadataError(f"Invalid levyraVersionName: {version!r}")
+        raise MetadataError(f"Invalid derbisVersionName: {version!r}")
     if not version_code_text.isdigit() or int(version_code_text) <= 0:
-        raise MetadataError(f"Invalid levyraVersionCode: {version_code_text!r}")
+        raise MetadataError(f"Invalid derbisVersionCode: {version_code_text!r}")
     version_code = int(version_code_text)
     expected = expected_version_code(version)
     if version_code != expected:
         raise MetadataError(
-            f"levyraVersionCode {version_code} does not match {version} (expected {expected})"
+            f"derbisVersionCode {version_code} does not match {version} (expected {expected})"
         )
     return version, version_code
 
@@ -87,7 +87,7 @@ def validate_rendered_metadata(text: str, version: str, version_code: int, commi
         f"CurrentVersion: {version}\n",
         f"CurrentVersionCode: {version_code}\n",
         '    prebuild: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"\n',
-        "      - levyraFdroidBuild=true\n",
+        "      - derbisFdroidBuild=true\n",
         "AllowedAPKSigningKeys: \n",
         "UpdateCheckData: \n",
     )
@@ -95,7 +95,7 @@ def validate_rendered_metadata(text: str, version: str, version_code: int, commi
     if missing:
         raise MetadataError("Missing required F-Droid metadata: " + ", ".join(missing))
     if text.count("Builds:\n") != 1 or text.count("  - versionName:") != 1:
-        raise MetadataError("The submission must contain exactly one Levyra build")
+        raise MetadataError("The submission must contain exactly one Derbis build")
     if "\r" in text:
         raise MetadataError("F-Droid metadata must use LF line endings")
 
@@ -166,7 +166,7 @@ def main() -> int:
         rendered = render_metadata(args.properties, args.template, args.commit)
         if args.check:
             if not check_metadata(rendered, args.check):
-                print("F-Droid metadata differs from the canonical Levyra output.", file=sys.stderr)
+                print("F-Droid metadata differs from the canonical Derbis output.", file=sys.stderr)
                 return 1
             print(f"F-Droid metadata is canonical: {args.check}")
         elif args.output:

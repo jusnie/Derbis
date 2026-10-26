@@ -13,13 +13,13 @@ fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
-TOOL_ROOT="$REPO_ROOT/.levyra-tools"
+TOOL_ROOT="$REPO_ROOT/.derbis-tools"
 HEADROOM_PREFIX="$TOOL_ROOT/headroom"
 HEADROOM_VERSION="v0.3.0"
 CODEBURN_VERSION="0.9.24"
 HEADROOM_INSTALLER_URL="https://raw.githubusercontent.com/anthonybo/headroom/$HEADROOM_VERSION/install.sh"
 
-echo "Levyra AI usage tooling setup"
+echo "Derbis AI usage tooling setup"
 echo "Repository: $REPO_ROOT"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -49,5 +49,5 @@ fi
 
 echo
 echo "Setup complete."
-echo "Headroom is project-local under .levyra-tools/ and is wired by the tracked Claude statusLine configuration."
-echo "CodeBurn stays uninstalled globally and is invoked through scripts/codeburn-levyra.sh."
+echo "Headroom is project-local under .derbis-tools/ and is wired by the tracked Claude statusLine configuration."
+echo "CodeBurn stays uninstalled globally and is invoked through scripts/codeburn-derbis.sh."

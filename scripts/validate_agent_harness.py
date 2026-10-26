@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's non-optional cross-runtime agent harness contract."""
+"""Validate Derbis's non-optional cross-runtime agent harness contract."""
 
 from __future__ import annotations
 
@@ -112,7 +112,7 @@ def main() -> int:
         errors,
     )
     require_terms(
-        ".agents/rules/levyra-workspace.md",
+        ".agents/rules/derbis-workspace.md",
         ("ALWAYS_ON_AGENT_GUARDS.md", "Non-optional harness contract", "Always On"),
         errors,
     )

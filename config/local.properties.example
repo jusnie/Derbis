@@ -1,7 +1,7 @@
 # =============================================================================
-# Levyra — Local Configuration & GitHub Actions Secrets Reference
+# Derbis — Local Configuration & GitHub Actions Secrets Reference
 # =============================================================================
-# This file documents the configuration required to build and maintain Levyra.
+# This file documents the configuration required to build and maintain Derbis.
 #
 # Local development:
 #   Copy this file to the repository root as "local.properties" and complete the LOCAL CONFIGURATION
@@ -26,10 +26,10 @@ youtubeInnertubeApiKey=
 
 # Android Release Signing
 # -----------------------------------------------------------------------------
-levyraStoreFile=app/levyra-release.jks
-levyraStorePassword=
-levyraKeyAlias=
-levyraKeyPassword=
+derbisStoreFile=app/derbis-release.jks
+derbisStorePassword=
+derbisKeyAlias=
+derbisKeyPassword=
 
 
 # =============================================================================
@@ -46,13 +46,13 @@ levyraKeyPassword=
 
 # Editorial Catalog
 # -----------------------------------------------------------------------------
-# LEVYRA_EDITORIAL_SP_DC=
-# LEVYRA_EDITORIAL_YTM_COOKIE=
+# DERBIS_EDITORIAL_SP_DC=
+# DERBIS_EDITORIAL_YTM_COOKIE=
 
 
 # Android Release Signing
 # -----------------------------------------------------------------------------
-# LEVYRA_KEYSTORE_BASE64=
-# LEVYRA_KEYSTORE_PASSWORD=
-# LEVYRA_KEY_ALIAS=
-# LEVYRA_KEY_PASSWORD=
+# DERBIS_KEYSTORE_BASE64=
+# DERBIS_KEYSTORE_PASSWORD=
+# DERBIS_KEY_ALIAS=
+# DERBIS_KEY_PASSWORD=

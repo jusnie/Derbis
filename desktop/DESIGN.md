@@ -1,8 +1,8 @@
-# Levyra Desktop Design System
+# Derbis Desktop Design System
 
 ## Product character
 
-Levyra Desktop is a premium, dark-first music application. The interface must feel native to a desktop music player: dense enough for large libraries, calm enough for long listening sessions, and visually led by artwork rather than decorative chrome.
+Derbis Desktop is a premium, dark-first music application. The interface must feel native to a desktop music player: dense enough for large libraries, calm enough for long listening sessions, and visually led by artwork rather than decorative chrome.
 
 The design language combines the content-first darkness, compact hierarchy, pill controls, and artwork emphasis documented in the Spotify DESIGN.md with the precise surface ladder, restrained borders, and desktop-focused navigation patterns documented in the Raycast DESIGN.md.
 
@@ -52,8 +52,8 @@ The design language combines the content-first darkness, compact hierarchy, pill
 - Secondary text: `#A7B0BE`
 - Hairline: `#202734`
 - Strong outline: `#303949`
-- Levyra cyan: `#27D9F5`
-- Levyra violet: `#8B7CFF`
+- Derbis cyan: `#27D9F5`
+- Derbis violet: `#8B7CFF`
 - Discovery mint: `#50E3B3`
 - Error: `#FF7485`
 

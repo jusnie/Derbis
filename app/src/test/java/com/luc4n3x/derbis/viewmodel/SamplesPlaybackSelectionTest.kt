@@ -1,0 +1,86 @@
+package com.luc4n3x.derbis.viewmodel
+
+import com.luc4n3x.derbis.data.YOUTUBE_SHORTS_SOURCE
+import com.luc4n3x.derbis.domain.Track
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+class SamplesPlaybackSelectionTest {
+    @Test
+    fun shortsWithIdenticalMetadataRemainDifferentPlaybackSelections() {
+        val first = track("shortvideo1", YOUTUBE_SHORTS_SOURCE, "https://www.youtube.com/shorts/shortvideo1", "SHORTS")
+        val second = track("shortvideo2", YOUTUBE_SHORTS_SOURCE, "https://www.youtube.com/shorts/shortvideo2", "SHORTS")
+
+        assertEquals(second, selectYoutubeShortSample(listOf(first, second), second))
+        assertFalse(sameYoutubeShortSample(first, second))
+    }
+
+    @Test
+    fun rejectedNonShortDoesNotCaptureBeforeFollowingValidShort() {
+        val ordinaryVideo = track(
+            id = "ordinary001",
+            source = "YouTube Music",
+            videoUrl = "https://www.youtube.com/watch?v=ordinary001",
+            videoType = ""
+        )
+        val validShort = track(
+            id = "shortvideo1",
+            source = YOUTUBE_SHORTS_SOURCE,
+            videoUrl = "https://www.youtube.com/shorts/shortvideo1",
+            videoType = "SHORTS"
+        )
+        var capturedSelection: Track? = null
+
+        fun attemptPlayback(items: List<Track>, requested: Track) {
+            if (capturedSelection == null) {
+                capturedSelection = selectYoutubeShortSample(items, requested)
+            }
+        }
+
+        attemptPlayback(listOf(ordinaryVideo), ordinaryVideo)
+        assertNull(capturedSelection)
+
+        attemptPlayback(listOf(validShort), validShort)
+        assertEquals(validShort, capturedSelection)
+    }
+
+    @Test
+    fun officialYoutubeMusicVideoIsNotPlayableAsAShort() {
+        val musicVideo = track(
+            id = "musicvideo1",
+            source = "YouTube Music",
+            videoUrl = "https://www.youtube.com/watch?v=musicvideo1",
+            videoType = "MUSIC_VIDEO_TYPE_OMV"
+        )
+
+        assertNull(selectYoutubeShortSample(listOf(musicVideo), musicVideo))
+    }
+
+    private fun track(
+        id: String,
+        source: String,
+        videoUrl: String,
+        videoType: String
+    ): Track = Track(
+        id = id,
+        title = "Title",
+        artist = "Artist",
+        album = "Album",
+        durationMs = 60_000L,
+        streamUrl = "",
+        videoUrl = videoUrl,
+        thumbnailUrl = "https://derbis.test/$id.jpg",
+        largeThumbnailUrl = "https://derbis.test/${id}-large.jpg",
+        source = source,
+        moodTags = emptySet(),
+        energy = 50,
+        vocal = 50,
+        replayScore = 70,
+        cacheScore = 70,
+        accentStart = 0xFF00E5FF.toInt(),
+        accentEnd = 0xFF2979FF.toInt(),
+        videoType = videoType
+    )
+}

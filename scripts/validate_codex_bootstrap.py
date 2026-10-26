@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's deterministic Codex bootstrap contract."""
+"""Validate Derbis's deterministic Codex bootstrap contract."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ EXPECTED_WHEEL_SHA256 = "d192998a9abcd8afa1474f2a1637e260a9ab48fdd0080b6b690632b
 REQUIRED_FILES = (
     f"{CODEX_ROOT}/config.toml",
     f"{CODEX_ROOT}/hooks.json",
-    ".agents/skills/levyra-codex-bootstrap/SKILL.md",
+    ".agents/skills/derbis-codex-bootstrap/SKILL.md",
     "scripts/codex_jcodemunch.py",
     "scripts/ensure-codex-tooling.ps1",
     "scripts/ensure-codex-tooling.sh",
@@ -84,7 +84,7 @@ def main() -> int:
         if "os.execv" not in runtime:
             errors.append("MCP launcher must hand stdio directly to the verified server")
 
-    skill_path = ROOT / ".agents/skills/levyra-codex-bootstrap/SKILL.md"
+    skill_path = ROOT / ".agents/skills/derbis-codex-bootstrap/SKILL.md"
     if skill_path.is_file():
         skill = skill_path.read_text(encoding="utf-8")
         for required in (

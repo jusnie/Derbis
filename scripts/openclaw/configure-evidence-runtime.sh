@@ -53,6 +53,6 @@ configure_agent() {
   openclaw config set "agents.list[$index].tools.exec.mode" '"allowlist"' --strict-json
 }
 
-configure_agent levyra-reviewer
-configure_agent levyra-ci
+configure_agent derbis-reviewer
+configure_agent derbis-ci
 openclaw config validate

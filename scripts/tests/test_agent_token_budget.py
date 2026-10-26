@@ -15,9 +15,9 @@ class AgentTokenBudgetTest(unittest.TestCase):
 
     def test_service_skill_bodies_stay_compact(self) -> None:
         limits = {
-            ".agents/skills/levyra-mode/SKILL.md": 4096,
-            ".agents/skills/levyra-humanizer/SKILL.md": 4096,
-            ".agents/skills/levyra-context-efficiency/SKILL.md": 6144,
+            ".agents/skills/derbis-mode/SKILL.md": 4096,
+            ".agents/skills/derbis-humanizer/SKILL.md": 4096,
+            ".agents/skills/derbis-context-efficiency/SKILL.md": 6144,
             ".agents/claude/hooks/user-prompt-submit.sh": 3072,
         }
         for relative_path, max_bytes in limits.items():
@@ -44,59 +44,59 @@ class AgentTokenBudgetTest(unittest.TestCase):
         cases = {
             "Modifica il README": (),
             "Analyze this function": (),
-            "Implementa una piccola modifica Compose": ("levyra-compose",),
+            "Implementa una piccola modifica Compose": ("derbis-compose",),
         }
         for prompt, expected in cases.items():
             with self.subTest(prompt=prompt):
                 selected = self.selected(prompt)
                 self.assertEqual(expected, selected)
-                self.assertNotIn("levyra-context-efficiency", selected)
-                self.assertNotIn("levyra-mode", selected)
+                self.assertNotIn("derbis-context-efficiency", selected)
+                self.assertNotIn("derbis-mode", selected)
 
     def test_owner_execution_cues_do_not_consume_skill_budget(self) -> None:
-        self.assertEqual(("levyra-player",), self.selected("VAI sistema il playback crash"))
+        self.assertEqual(("derbis-player",), self.selected("VAI sistema il playback crash"))
         cases = {
-            "Ok intervieni sul player": ("levyra-player",),
+            "Ok intervieni sul player": ("derbis-player",),
             "Dai vai col fix": (),
-            "Ora procedi con la PR": ("levyra-pr-review",),
+            "Ora procedi con la PR": ("derbis-pr-review",),
             "Adesso intervieni": (),
         }
         for prompt, expected in cases.items():
             with self.subTest(prompt=prompt):
                 selected = self.selected(prompt)
                 self.assertEqual(expected, selected)
-                self.assertNotIn("levyra-mode", selected)
+                self.assertNotIn("derbis-mode", selected)
 
     def test_owner_execution_cues_are_core_contract_behavior(self) -> None:
         contract = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
         self.assertIn("Explicit owner execution cues", contract)
-        self.assertIn("not a reason to load `levyra-mode`", contract)
+        self.assertIn("not a reason to load `derbis-mode`", contract)
         self.assertIn("maximum of two skill bodies active for the current phase", contract)
 
     def test_context_efficiency_is_core_not_an_automatic_skill(self) -> None:
         expected = {
-            "Build and validate the release APK": ("levyra-release-check",),
+            "Build and validate the release APK": ("derbis-release-check",),
             "Inspect repository logs for a crash": (),
-            "Review CodeRabbit findings on this PR": ("levyra-pr-review",),
+            "Review CodeRabbit findings on this PR": ("derbis-pr-review",),
         }
         for prompt, routed in expected.items():
             with self.subTest(prompt=prompt):
                 selected = self.selected(prompt)
                 self.assertEqual(routed, selected)
-                self.assertNotIn("levyra-context-efficiency", selected)
+                self.assertNotIn("derbis-context-efficiency", selected)
 
         contract = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-        self.assertIn("replace automatic loading of `levyra-context-efficiency`", contract)
+        self.assertIn("replace automatic loading of `derbis-context-efficiency`", contract)
 
     def test_implementation_phase_defers_terminal_skills(self) -> None:
         selected = self.selected("VAI fix playback crash, test release APK, review and open PR")
-        self.assertEqual(("levyra-player",), selected)
+        self.assertEqual(("derbis-player",), selected)
         for deferred in (
-            "levyra-pr-review",
-            "levyra-release-check",
-            "levyra-humanizer",
-            "levyra-mode",
-            "levyra-context-efficiency",
+            "derbis-pr-review",
+            "derbis-release-check",
+            "derbis-humanizer",
+            "derbis-mode",
+            "derbis-context-efficiency",
         ):
             with self.subTest(skill=deferred):
                 self.assertNotIn(deferred, selected)

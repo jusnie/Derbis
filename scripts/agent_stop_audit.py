@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Single stop-time completion audit for Levyra agent runtimes."""
+"""Single stop-time completion audit for Derbis agent runtimes."""
 
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def main() -> int:
         state["next_action"] = "report the exact BLOCKED prerequisite and leave the affected acceptance gate open"
         checkpoint._save(state)
         _context(
-            "A required Levyra gate is BLOCKED by an unavailable tool/runtime prerequisite. "
+            "A required Derbis gate is BLOCKED by an unavailable tool/runtime prerequisite. "
             "Do not claim completion. End the turn only after the remaining possible checks and final diff review, "
             "report the blocked prerequisite exactly, and preserve the durable checkpoint for resume."
         )
@@ -64,7 +64,7 @@ def main() -> int:
         state["status"] = "ACTIVE"
         state["next_action"] = failures[0]
         checkpoint._save(state)
-        print(json.dumps({"decision": "block", "reason": "Levyra completion audit is still open:\n- " + "\n- ".join(failures)}))
+        print(json.dumps({"decision": "block", "reason": "Derbis completion audit is still open:\n- " + "\n- ".join(failures)}))
         return 0
 
     session["completed_generation"] = generation
@@ -82,7 +82,7 @@ def main() -> int:
             "Claude context-hygiene checkpoint reached at a verified completed-task boundary. "
             "If the next owner request is unrelated, prefer `/clear` before starting it. "
             "Do not clear an ACTIVE/BLOCKED task. Project hooks cannot execute slash commands, so never claim `/clear` ran unless it actually did; "
-            "SessionStart(clear) will reload Levyra guards and any open durable checkpoint."
+            "SessionStart(clear) will reload Derbis guards and any open durable checkpoint."
         )
     return 0
 

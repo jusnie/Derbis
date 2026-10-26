@@ -45,7 +45,7 @@ class FdroidMetadataTest(unittest.TestCase):
         malformed = rendered.replace("Binaries: \n", "Binaries:\n")
 
         with tempfile.TemporaryDirectory() as directory:
-            candidate = Path(directory) / "com.luc4n3x.levyra.yml"
+            candidate = Path(directory) / "com.luc4n3x.derbis.yml"
             metadata.write_exact_text(candidate, malformed)
             with redirect_stderr(io.StringIO()):
                 self.assertFalse(metadata.check_metadata(rendered, candidate))
@@ -59,7 +59,7 @@ class FdroidMetadataTest(unittest.TestCase):
             self.COMMIT,
         )
         with tempfile.TemporaryDirectory() as directory:
-            candidate = Path(directory) / "com.luc4n3x.levyra.yml"
+            candidate = Path(directory) / "com.luc4n3x.derbis.yml"
             with candidate.open("w", encoding="utf-8", newline="") as destination:
                 destination.write(rendered.replace("\n", "\r\n"))
             self.assertTrue(metadata.check_metadata(rendered, candidate))
@@ -68,7 +68,7 @@ class FdroidMetadataTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             properties = Path(directory) / "gradle.properties"
             properties.write_text(
-                "levyraVersionName=2.3.20\nlevyraVersionCode=2031900\n",
+                "derbisVersionName=2.3.20\nderbisVersionCode=2031900\n",
                 encoding="utf-8",
             )
             with self.assertRaises(metadata.MetadataError):

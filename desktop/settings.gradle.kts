@@ -15,9 +15,9 @@ dependencyResolutionManagement {
     }
 }
 
-includeBuild("../third_party/LevyraExtractor") {
+includeBuild("../third_party/DerbisExtractor") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:LevyraExtractor")).using(project(":"))
+        substitute(module("com.github.LUC4N3X:DerbisExtractor")).using(project(":"))
     }
 }
 

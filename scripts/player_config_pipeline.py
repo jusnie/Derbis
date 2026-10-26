@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Source-agnostic YouTube player-configuration pipeline for Levyra.
+"""Source-agnostic YouTube player-configuration pipeline for Derbis.
 
 The pipeline turns independent upstream registries into one internal
 representation, validates every candidate, compares the sources and selects a

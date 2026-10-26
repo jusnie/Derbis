@@ -72,7 +72,7 @@ function Set-WindowsFailOpenGuard {
     }
 }
 
-Write-Output 'Levyra claude-mem setup'
+Write-Output 'Derbis claude-mem setup'
 Write-Output "Package: $claudeMemPackage"
 
 if (-not (Test-Command 'npx')) {
@@ -138,7 +138,7 @@ if ($healthy) {
     Write-Output '[ok] claude-mem is installed and healthy.'
 }
 else {
-    Write-Warning 'claude-mem remains unhealthy. Levyra agents must continue without memory instead of blocking work.'
+    Write-Warning 'claude-mem remains unhealthy. Derbis agents must continue without memory instead of blocking work.'
 }
 
 if ($failed.Count -gt 0) {

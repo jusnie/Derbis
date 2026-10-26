@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Levyra multi-source YouTube player-config synchronization.
+"""Derbis multi-source YouTube player-config synchronization.
 
 Fetches the Zemer and Faraday registries independently, validates and normalizes
 both, compares them per player, selects a trusted configuration, and publishes it
@@ -61,7 +61,7 @@ PLAYER_CONFIGS_ASSET = "player_configs.json"
 PLAYER_DATES_ASSET = "player_dates.json"
 PLAYER_META_ASSET = "player_configs.meta.json"
 
-USER_AGENT = "Levyra/2.3.20 player-config-sync"
+USER_AGENT = "Derbis/2.3.20 player-config-sync"
 FETCH_ATTEMPTS = 3
 FETCH_RETRY_DELAY_SECONDS = 2.0
 
@@ -512,7 +512,7 @@ def run_pipeline(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Synchronize Levyra YouTube player configurations.")
+    parser = argparse.ArgumentParser(description="Synchronize Derbis YouTube player configurations.")
     parser.add_argument("--assets-dir", default="app/src/main/assets")
     parser.add_argument("--report", default="")
     parser.add_argument("--summary", default="")

@@ -24,7 +24,7 @@ skills-lock.json
 /.codex/
 
 # Project-local AI usage tooling binaries and caches
-/.levyra-tools/
+/.derbis-tools/
 
 # Local build diagnostics
 /[Bb]uild log.txt

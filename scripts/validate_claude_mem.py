@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's pinned claude-mem integration contract."""
+"""Validate Derbis's pinned claude-mem integration contract."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ MODEL = "claude-haiku-4-5-20251001"
 
 REQUIRED_FILES = (
     "docs/ai/CLAUDE_MEM.md",
-    ".agents/skills/levyra-context-efficiency/SKILL.md",
+    ".agents/skills/derbis-context-efficiency/SKILL.md",
     "scripts/setup-claude-mem.ps1",
     "scripts/setup-claude-mem.sh",
     "scripts/setup-ai.ps1",
@@ -108,7 +108,7 @@ def main() -> int:
 
     for relative_path in (
         "docs/ai/CLAUDE_MEM.md",
-        ".agents/skills/levyra-context-efficiency/SKILL.md",
+        ".agents/skills/derbis-context-efficiency/SKILL.md",
     ):
         require_terms(errors, relative_path, REQUIRED_MEMORY_TERMS)
 
@@ -119,7 +119,7 @@ def main() -> int:
             "[switch] $ClaudeMem",
             "setup-claude-mem.ps1",
             "validate_claude_mem.py",
-            "Continuing Levyra AI setup without persistent memory.",
+            "Continuing Derbis AI setup without persistent memory.",
         ),
     )
     require_terms(
@@ -129,13 +129,13 @@ def main() -> int:
             "--claude-mem",
             "setup-claude-mem.sh",
             "validate_claude_mem.py",
-            "continuing Levyra AI setup without persistent memory.",
+            "continuing Derbis AI setup without persistent memory.",
         ),
     )
 
-    skill_path = ROOT / ".agents/skills/levyra-context-efficiency/SKILL.md"
+    skill_path = ROOT / ".agents/skills/derbis-context-efficiency/SKILL.md"
     if skill_path.is_file():
-        skill = read(".agents/skills/levyra-context-efficiency/SKILL.md")
+        skill = read(".agents/skills/derbis-context-efficiency/SKILL.md")
         for term in (
             "Fail open",
             "Repository configuration alone cannot make ChatGPT reach a",
@@ -145,7 +145,7 @@ def main() -> int:
         ):
             if term not in skill:
                 errors.append(
-                    f".agents/skills/levyra-context-efficiency/SKILL.md: missing memory safety contract {term!r}"
+                    f".agents/skills/derbis-context-efficiency/SKILL.md: missing memory safety contract {term!r}"
                 )
 
     doc_path = ROOT / "docs/ai/CLAUDE_MEM.md"

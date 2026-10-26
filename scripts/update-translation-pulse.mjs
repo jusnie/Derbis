@@ -5,7 +5,7 @@ const RESOURCE_ROOT = 'app/src/main/res'
 const BASE_STRINGS = join(RESOURCE_ROOT, 'values', 'strings.xml')
 const LOCALE_CONFIG = join(RESOURCE_ROOT, 'xml', 'locales_config.xml')
 const ASSET_DIR = 'docs/assets'
-const STRING_CATALOG_DIR = 'app/src/main/java/com/luc4n3x/levyra/ui/i18n'
+const STRING_CATALOG_DIR = 'app/src/main/java/com/luc4n3x/derbis/ui/i18n'
 
 const escapeXml = value => String(value)
   .replaceAll('&', '&amp;')
@@ -201,7 +201,7 @@ const makePulse = ({ languages, globalPercent, catalogCount, isDark, mobile }) =
   const theme = getTheme(isDark)
   const groups = groupRows(languages)
   const roundedPercent = Math.round(globalPercent)
-  const aria = `Levyra localization coverage: ${roundedPercent}% across ${languages.length} languages`
+  const aria = `Derbis localization coverage: ${roundedPercent}% across ${languages.length} languages`
   const description = languages.map(language => `${language.name}: ${Math.round(language.percent)}%`).join(', ')
 
   if (mobile) {
@@ -295,10 +295,10 @@ const updateTranslationPulse = async () => {
   const coverage = await collectRepositoryCoverage()
   await mkdir(ASSET_DIR, { recursive: true })
   await Promise.all([
-    writeFile(ASSET_DIR + '/levyra-translation-pulse.svg', makePulse({ ...coverage, isDark: true, mobile: false }), 'utf8'),
-    writeFile(ASSET_DIR + '/levyra-translation-pulse-light.svg', makePulse({ ...coverage, isDark: false, mobile: false }), 'utf8'),
-    writeFile(ASSET_DIR + '/levyra-translation-pulse-mobile.svg', makePulse({ ...coverage, isDark: true, mobile: true }), 'utf8'),
-    writeFile(ASSET_DIR + '/levyra-translation-pulse-mobile-light.svg', makePulse({ ...coverage, isDark: false, mobile: true }), 'utf8')
+    writeFile(ASSET_DIR + '/derbis-translation-pulse.svg', makePulse({ ...coverage, isDark: true, mobile: false }), 'utf8'),
+    writeFile(ASSET_DIR + '/derbis-translation-pulse-light.svg', makePulse({ ...coverage, isDark: false, mobile: false }), 'utf8'),
+    writeFile(ASSET_DIR + '/derbis-translation-pulse-mobile.svg', makePulse({ ...coverage, isDark: true, mobile: true }), 'utf8'),
+    writeFile(ASSET_DIR + '/derbis-translation-pulse-mobile-light.svg', makePulse({ ...coverage, isDark: false, mobile: true }), 'utf8')
   ])
 }
 

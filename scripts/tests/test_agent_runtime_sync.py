@@ -16,7 +16,7 @@ MODULE_PATH = ROOT / "scripts" / "sync_agent_runtime.py"
 
 
 def load_runtime_module():
-    spec = importlib.util.spec_from_file_location("levyra_sync_agent_runtime", MODULE_PATH)
+    spec = importlib.util.spec_from_file_location("derbis_sync_agent_runtime", MODULE_PATH)
     if spec is None or spec.loader is None:
         raise RuntimeError("unable to load sync_agent_runtime.py")
     module = importlib.util.module_from_spec(spec)
@@ -37,11 +37,11 @@ class AgentRuntimeSyncTest(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.canonical = self.root / ".agents"
         self.runtime = self.root / ".claude"
-        self.skill = self.canonical / "skills" / "levyra-example" / "SKILL.md"
+        self.skill = self.canonical / "skills" / "derbis-example" / "SKILL.md"
         self.settings = self.canonical / "claude" / "settings.json"
         self.skill.parent.mkdir(parents=True)
         self.settings.parent.mkdir(parents=True)
-        self.skill.write_text("---\nname: levyra-example\n---\n", encoding="utf-8")
+        self.skill.write_text("---\nname: derbis-example\n---\n", encoding="utf-8")
         self.settings.write_text('{"example": true}\n', encoding="utf-8")
 
         self.module.ROOT = self.root
@@ -83,7 +83,7 @@ class AgentRuntimeSyncTest(unittest.TestCase):
         for mapping in mappings:
             if mapping.target_relative == Path("rules"):
                 mapping.source.mkdir(parents=True)
-                (mapping.source / "levyra.rules").write_text("rules-v1\n", encoding="utf-8")
+                (mapping.source / "derbis.rules").write_text("rules-v1\n", encoding="utf-8")
             else:
                 mapping.source.parent.mkdir(parents=True, exist_ok=True)
                 mapping.source.write_text("config\n", encoding="utf-8")
@@ -96,7 +96,7 @@ class AgentRuntimeSyncTest(unittest.TestCase):
         local.write_text("local\n", encoding="utf-8")
 
         self.module.sync_runtime("codex", quiet=True)
-        projected = runtime / "rules" / "levyra.rules"
+        projected = runtime / "rules" / "derbis.rules"
         self.assertEqual(projected.read_text(encoding="utf-8"), "rules-v1\n")
         self.assertEqual(self.module.check_runtime("codex"), [])
         projected.write_text("stale\n", encoding="utf-8")
@@ -118,7 +118,7 @@ class AgentRuntimeSyncTest(unittest.TestCase):
         self.module.sync_runtime("claude", quiet=True)
 
         self.assertEqual(
-            (self.runtime / "skills" / "levyra-example" / "SKILL.md").read_text(encoding="utf-8"),
+            (self.runtime / "skills" / "derbis-example" / "SKILL.md").read_text(encoding="utf-8"),
             self.skill.read_text(encoding="utf-8"),
         )
         self.assertEqual(
@@ -217,7 +217,7 @@ class AgentRuntimeSyncTest(unittest.TestCase):
         with self.assertRaises(self.module.ProjectionError):
             self.module.sync_runtime("claude", quiet=True)
 
-        self.assertFalse((outside / "levyra-example" / "SKILL.md").exists())
+        self.assertFalse((outside / "derbis-example" / "SKILL.md").exists())
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unavailable")
     def test_symlinked_runtime_root_is_rejected(self) -> None:

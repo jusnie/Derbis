@@ -27,7 +27,7 @@ class MemoryGuardContractTest(unittest.TestCase):
 
     def test_player_skill_preserves_memory_stability(self) -> None:
         text = (
-            ROOT / ".agents" / "skills" / "levyra-player" / "SKILL.md"
+            ROOT / ".agents" / "skills" / "derbis-player" / "SKILL.md"
         ).read_text(encoding="utf-8")
 
         for term in (
@@ -36,7 +36,7 @@ class MemoryGuardContractTest(unittest.TestCase):
             "Regex",
             "ByteBuffer",
             "bounded plateau",
-            "levyra-android-performance",
+            "derbis-android-performance",
             "native heap",
             "PSS/RSS",
         ):

@@ -11,9 +11,9 @@ from pathlib import Path
 from scripts.ai_quality_gate import find_bash
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKER = ROOT / "scripts" / "openclaw" / "levyra-worker"
-EVIDENCE = ROOT / "scripts" / "openclaw" / "levyra-evidence"
-SETUP = ROOT / "scripts" / "setup-openclaw-levyra-pr-only.sh"
+WORKER = ROOT / "scripts" / "openclaw" / "derbis-worker"
+EVIDENCE = ROOT / "scripts" / "openclaw" / "derbis-evidence"
+SETUP = ROOT / "scripts" / "setup-openclaw-derbis-pr-only.sh"
 
 
 class OpenClawPrOnlyPolicyTest(unittest.TestCase):
@@ -28,20 +28,20 @@ class OpenClawPrOnlyPolicyTest(unittest.TestCase):
         self.repo.mkdir()
         self.bin_dir.mkdir()
 
-        shutil.copy2(WORKER, self.bin_dir / "levyra-worker")
-        shutil.copy2(EVIDENCE, self.bin_dir / "levyra-evidence")
-        os.chmod(self.bin_dir / "levyra-worker", 0o700)
-        os.chmod(self.bin_dir / "levyra-evidence", 0o700)
+        shutil.copy2(WORKER, self.bin_dir / "derbis-worker")
+        shutil.copy2(EVIDENCE, self.bin_dir / "derbis-evidence")
+        os.chmod(self.bin_dir / "derbis-worker", 0o700)
+        os.chmod(self.bin_dir / "derbis-evidence", 0o700)
 
         self.run_git("init", "-b", "main")
-        self.run_git("config", "user.name", "Levyra Test")
-        self.run_git("config", "user.email", "levyra@example.invalid")
+        self.run_git("config", "user.name", "Derbis Test")
+        self.run_git("config", "user.email", "derbis@example.invalid")
         (self.repo / "sample.txt").write_text("one\n", encoding="utf-8")
         self.run_git("add", "sample.txt")
         self.run_git("commit", "-m", "initial")
 
         self.env = os.environ.copy()
-        self.env["LEVYRA_REPO"] = str(self.repo)
+        self.env["DERBIS_REPO"] = str(self.repo)
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -56,9 +56,9 @@ class OpenClawPrOnlyPolicyTest(unittest.TestCase):
 
     def run_worker(self, *args: str) -> subprocess.CompletedProcess[str]:
         cmd = (
-            [self.bash, str(self.bin_dir / "levyra-worker"), *args]
+            [self.bash, str(self.bin_dir / "derbis-worker"), *args]
             if sys.platform == "win32"
-            else [str(self.bin_dir / "levyra-worker"), *args]
+            else [str(self.bin_dir / "derbis-worker"), *args]
         )
         return subprocess.run(
             cmd,
@@ -69,9 +69,9 @@ class OpenClawPrOnlyPolicyTest(unittest.TestCase):
 
     def run_evidence(self, *args: str) -> subprocess.CompletedProcess[str]:
         cmd = (
-            [self.bash, str(self.bin_dir / "levyra-evidence"), *args]
+            [self.bash, str(self.bin_dir / "derbis-evidence"), *args]
             if sys.platform == "win32"
-            else [str(self.bin_dir / "levyra-evidence"), *args]
+            else [str(self.bin_dir / "derbis-evidence"), *args]
         )
         return subprocess.run(
             cmd,
@@ -116,12 +116,12 @@ class OpenClawPrOnlyPolicyTest(unittest.TestCase):
         for term in (
             'tools.exec.mode',
             "allowlist",
-            "/usr/local/bin/levyra-worker",
-            "/usr/local/bin/levyra-release-main",
+            "/usr/local/bin/derbis-worker",
+            "/usr/local/bin/derbis-release-main",
             "ensure_allowlist_pattern \"$PRIMARY_AGENT\" \"$PRIMARY_WORKER\"",
-            "ensure_allowlist_pattern levyra-reviewer \"$REVIEW_EVIDENCE\"",
-            "ensure_allowlist_pattern levyra-ci \"$CI_EVIDENCE\"",
-            "Levyra PR-only publication policy",
+            "ensure_allowlist_pattern derbis-reviewer \"$REVIEW_EVIDENCE\"",
+            "ensure_allowlist_pattern derbis-ci \"$CI_EVIDENCE\"",
+            "Derbis PR-only publication policy",
             "branch + Pull Request only",
         ):
             self.assertIn(term, setup)
@@ -138,28 +138,28 @@ class OpenClawPrOnlyPolicyTest(unittest.TestCase):
         self.assertIn("tools.exec.mode '\"allowlist\"'", primary_block)
         self.assertIn("tools.exec.mode '\"auto\"'", evidence_block)
         self.assertNotIn("tools.exec.mode '\"allowlist\"'", evidence_block)
-        self.assertIn("ensure_allowlist_pattern levyra-reviewer", setup)
-        self.assertIn("ensure_allowlist_pattern levyra-ci", setup)
+        self.assertIn("ensure_allowlist_pattern derbis-reviewer", setup)
+        self.assertIn("ensure_allowlist_pattern derbis-ci", setup)
 
     def test_spawned_evidence_agents_receive_absolute_role_paths(self) -> None:
         setup = SETUP.read_text(encoding="utf-8")
 
         for term in (
             "upsert_policy()",
-            "Levyra specialist evidence paths",
+            "Derbis specialist evidence paths",
             "require the absolute wrapper \\`$REVIEW_EVIDENCE\\`",
             "require the absolute wrapper \\`$CI_EVIDENCE\\`",
             "spawnedCwd",
-            "do not invoke \\`./bin/levyra-evidence\\`",
+            "do not invoke \\`./bin/derbis-evidence\\`",
         ):
             self.assertIn(term, setup)
 
         self.assertIn(
-            'upsert_policy "$REVIEW_WORKSPACE/AGENTS.md" "## Levyra evidence command policy"',
+            'upsert_policy "$REVIEW_WORKSPACE/AGENTS.md" "## Derbis evidence command policy"',
             setup,
         )
         self.assertIn(
-            'upsert_policy "$CI_WORKSPACE/AGENTS.md" "## Levyra evidence command policy"',
+            'upsert_policy "$CI_WORKSPACE/AGENTS.md" "## Derbis evidence command policy"',
             setup,
         )
 

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_NAME = ".levyra-runtime-manifest.json"
+MANIFEST_NAME = ".derbis-runtime-manifest.json"
 MANIFEST_SCHEMA_VERSION = 1
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 

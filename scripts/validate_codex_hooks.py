@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's canonical Codex lifecycle hook contract."""
+"""Validate Derbis's canonical Codex lifecycle hook contract."""
 
 from __future__ import annotations
 

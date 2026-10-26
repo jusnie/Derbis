@@ -5,15 +5,15 @@ plugins {
 
 kotlin {
     sourceSets.named("main") {
-        kotlin.srcDir(rootProject.file("../third_party/LevyraNexus/src/main/kotlin"))
+        kotlin.srcDir(rootProject.file("../third_party/DerbisNexus/src/main/kotlin"))
     }
     sourceSets.named("test") {
-        kotlin.srcDir(rootProject.file("../third_party/LevyraNexus/src/test/kotlin"))
+        kotlin.srcDir(rootProject.file("../third_party/DerbisNexus/src/test/kotlin"))
     }
 }
 
 dependencies {
-    api(libs.levyra.extractor)
+    api(libs.derbis.extractor)
     api(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.serialization.json)
     api(libs.okhttp)

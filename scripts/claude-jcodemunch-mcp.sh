@@ -6,7 +6,7 @@ RUNTIME="$ROOT/scripts/codex_jcodemunch.py"
 SYNC="$ROOT/scripts/sync_agent_runtime.py"
 
 if [[ ! -f "$RUNTIME" ]]; then
-  printf 'Levyra jCodeMunch launcher: missing %s\n' "$RUNTIME" >&2
+  printf 'Derbis jCodeMunch launcher: missing %s\n' "$RUNTIME" >&2
   exit 1
 fi
 
@@ -22,5 +22,5 @@ for candidate in python3 python py; do
   fi
 done
 
-printf 'Levyra jCodeMunch launcher: Python is unavailable.\n' >&2
+printf 'Derbis jCodeMunch launcher: Python is unavailable.\n' >&2
 exit 1

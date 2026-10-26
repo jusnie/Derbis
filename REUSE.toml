@@ -27,7 +27,7 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
-  "app/src/main/java/com/luc4n3x/levyra/ui/components/LevyraIonicons.kt",
+  "app/src/main/java/com/luc4n3x/derbis/ui/components/DerbisIonicons.kt",
   "app/src/main/assets/licenses/ionicons.txt",
 ]
 precedence = "override"
@@ -39,18 +39,18 @@ SPDX-License-Identifier = "MIT"
 
 [[annotations]]
 path = [
-  "levyra-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java",
-  "levyra-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java",
-  "levyra-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java",
-  "levyra-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java",
-  "levyra-native-audio/src/main/cpp/ffmpeg/ffmpeg_jni.cc",
+  "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java",
+  "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java",
+  "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java",
+  "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegLibrary.java",
+  "derbis-native-audio/src/main/cpp/ffmpeg/ffmpeg_jni.cc",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2016 The Android Open Source Project"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = "levyra-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/package-info.java"
+path = "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/package-info.java"
 precedence = "override"
 SPDX-FileCopyrightText = "2019 The Android Open Source Project"
 SPDX-License-Identifier = "Apache-2.0"

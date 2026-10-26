@@ -62,11 +62,11 @@ fun isReleaseTaskRequested(): Boolean =
             }
         )
 
-val isFdroidBuild = providers.gradleProperty("levyraFdroidBuild")
+val isFdroidBuild = providers.gradleProperty("derbisFdroidBuild")
     .map(String::toBoolean)
     .getOrElse(false)
 // Public InnerTube client identifier, not a private developer credential. Keep this
-// aligned with LevyraExtractor's Android client so F-Droid can rebuild from source.
+// aligned with DerbisExtractor's Android client so F-Droid can rebuild from source.
 val publicYoutubeInnertubeApiKey = "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w"
 val youtubeInnertubeApiKey = if (isFdroidBuild) {
     publicYoutubeInnertubeApiKey
@@ -77,12 +77,12 @@ val youtubeInnertubeApiKey = if (isFdroidBuild) {
 val canvasResolverUrl = if (isFdroidBuild) {
     ""
 } else {
-    envOrProperty("LEVYRA_CANVAS_RESOLVER_URL", "levyraCanvasResolverUrl")
+    envOrProperty("DERBIS_CANVAS_RESOLVER_URL", "derbisCanvasResolverUrl")
 }
 val canvasClientKey = if (isFdroidBuild) {
     ""
 } else {
-    envOrProperty("LEVYRA_CANVAS_CLIENT_KEY", "levyraCanvasClientKey")
+    envOrProperty("DERBIS_CANVAS_CLIENT_KEY", "derbisCanvasClientKey")
 }
 val derbisCanvasCatalogUrl = if (isFdroidBuild) {
     ""
@@ -111,10 +111,10 @@ val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
 val discordSocialSdkAvailable = !isFdroidBuild && discordSocialSdkAar.isFile
 val discordApplicationId = if (isFdroidBuild) "" else envOrProperty("DISCORD_APPLICATION_ID", "discordApplicationId")
     .ifBlank { "1563840846372012102" }
-val releaseStoreFilePath = envOrProperty("LEVYRA_KEYSTORE_FILE", "levyraStoreFile").ifBlank { "app/derbis-release.jks" }
-val releaseStorePassword = envOrProperty("LEVYRA_KEYSTORE_PASSWORD", "levyraStorePassword").ifBlank { "derbis123" }
-val releaseKeyAlias = envOrProperty("LEVYRA_KEY_ALIAS", "levyraKeyAlias").ifBlank { "derbis" }
-val releaseKeyPassword = envOrProperty("LEVYRA_KEY_PASSWORD", "levyraKeyPassword").ifBlank { "derbis123" }
+val releaseStoreFilePath = envOrProperty("DERBIS_KEYSTORE_FILE", "derbisStoreFile").ifBlank { "app/derbis-release.jks" }
+val releaseStorePassword = envOrProperty("DERBIS_KEYSTORE_PASSWORD", "derbisStorePassword").ifBlank { "derbis123" }
+val releaseKeyAlias = envOrProperty("DERBIS_KEY_ALIAS", "derbisKeyAlias").ifBlank { "derbis" }
+val releaseKeyPassword = envOrProperty("DERBIS_KEY_PASSWORD", "derbisKeyPassword").ifBlank { "derbis123" }
 val releaseStoreFile = rootProject.file(releaseStoreFilePath)
 val releaseSigningAvailable = releaseStoreFile.isFile && releaseStorePassword.isNotBlank() && releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
 
@@ -127,11 +127,11 @@ if (isReleaseTaskRequested() && !isFdroidBuild && youtubeInnertubeApiKey.isBlank
 }
 
 if (isPrDiagnosticsArtifactTaskRequested() && canvasResolverUrl.isBlank()) {
-    throw GradleException("Missing LEVYRA_CANVAS_RESOLVER_URL. Configure LEVYRA_CANVAS_RESOLVER_URL as a GitHub Actions secret or in local.properties as levyraCanvasResolverUrl.")
+    throw GradleException("Missing DERBIS_CANVAS_RESOLVER_URL. Configure DERBIS_CANVAS_RESOLVER_URL as a GitHub Actions secret or in local.properties as derbisCanvasResolverUrl.")
 }
 
 if (isPrDiagnosticsArtifactTaskRequested() && canvasClientKey.isBlank()) {
-    throw GradleException("Missing LEVYRA_CANVAS_CLIENT_KEY. Configure LEVYRA_CANVAS_CLIENT_KEY as a GitHub Actions secret or in local.properties as levyraCanvasClientKey.")
+    throw GradleException("Missing DERBIS_CANVAS_CLIENT_KEY. Configure DERBIS_CANVAS_CLIENT_KEY as a GitHub Actions secret or in local.properties as derbisCanvasClientKey.")
 }
 
 fun normalizedVersionName(value: String): String {
@@ -178,7 +178,7 @@ val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
     ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_201)
 
 android {
-    namespace = "com.luc4n3x.levyra"
+    namespace = "com.luc4n3x.derbis"
     compileSdk = 37
 
     defaultConfig {
@@ -266,7 +266,7 @@ android {
             isDebuggable = false
             matchingFallbacks += listOf("release")
             buildConfigField("boolean", "INTERNAL_DIAGNOSTICS", "true")
-            buildConfigField("String", "INTERNAL_DIAGNOSTICS_MARKER", "\"LEVYRA_PR_DIAGNOSTICS_V1\"")
+            buildConfigField("String", "INTERNAL_DIAGNOSTICS_MARKER", "\"DERBIS_PR_DIAGNOSTICS_V1\"")
             buildConfigField(
                 "String",
                 "INTERNAL_DIAGNOSTICS_COMMIT",
@@ -370,7 +370,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.text.googlefonts)
     implementation(libs.androidx.media3.exoplayer)
-    if (!isFdroidBuild) implementation(project(":levyra-native-audio"))
+    if (!isFdroidBuild) implementation(project(":derbis-native-audio"))
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.androidx.media3.session)

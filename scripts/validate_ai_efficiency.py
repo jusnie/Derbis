@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's repository-local RTK, plugin, and AI security setup."""
+"""Validate Derbis's repository-local RTK, plugin, and AI security setup."""
 
 from __future__ import annotations
 
@@ -21,9 +21,9 @@ REQUIRED_FILES = (
     "CLAUDE.md",
     ".rtk/filters.toml",
     ".agents/README.md",
-    ".agents/rules/levyra-workspace.md",
-    ".agents/skills/levyra-context-efficiency/SKILL.md",
-    ".agents/skills/levyra-security-review/SKILL.md",
+    ".agents/rules/derbis-workspace.md",
+    ".agents/skills/derbis-context-efficiency/SKILL.md",
+    ".agents/skills/derbis-security-review/SKILL.md",
     f"{CLAUDE_ROOT}/CLAUDE.md",
     f"{CLAUDE_ROOT}/settings.json",
     f"{CLAUDE_ROOT}/hooks/user-prompt-submit.sh",
@@ -54,13 +54,13 @@ FORBIDDEN_PATHS = (
     f"{CODEX_ROOT}/ollama.config.toml",
     f"{CODEX_ROOT}/llamacpp.config.toml",
 )
-EXPECTED_SKILL_NAME = "levyra-context-efficiency"
+EXPECTED_SKILL_NAME = "derbis-context-efficiency"
 EXPECTED_PLUGINS = ("superpowers@openai-curated",)
 EXPECTED_FILTERS = (
-    "levyra-agent-config",
-    "levyra-coderabbit",
-    "levyra-adb-logcat",
-    "levyra-agent-tests",
+    "derbis-agent-config",
+    "derbis-coderabbit",
+    "derbis-adb-logcat",
+    "derbis-agent-tests",
 )
 FORBIDDEN_GRADLE_MARKERS = ("BUILD SUCCESSFUL", "BUILD FAILED")
 
@@ -138,14 +138,14 @@ def validate_filters(errors: list[str]) -> None:
             if any(marker in value for value in parsed_strings):
                 fail(errors, f"RTK filter {filter_name!r} must not encode Gradle marker {marker!r}")
 
-    setup_filter = filters.get("levyra-agent-tests")
+    setup_filter = filters.get("derbis-agent-tests")
     if isinstance(setup_filter, dict):
         pattern = setup_filter.get("match_command")
         if isinstance(pattern, str):
             try:
                 matcher = re.compile(pattern)
             except re.error as exc:
-                fail(errors, f"levyra-agent-tests match_command is invalid regex: {exc}")
+                fail(errors, f"derbis-agent-tests match_command is invalid regex: {exc}")
             else:
                 for command in (
                     r".\scripts\setup-ai.ps1 -DryRun",
@@ -154,16 +154,16 @@ def validate_filters(errors: list[str]) -> None:
                     "bash ./scripts/setup-ai.sh --dry-run",
                 ):
                     if matcher.search(command) is None:
-                        fail(errors, f"levyra-agent-tests does not match documented command: {command}")
+                        fail(errors, f"derbis-agent-tests does not match documented command: {command}")
 
-    adb_logcat_filter = filters.get("levyra-adb-logcat")
+    adb_logcat_filter = filters.get("derbis-adb-logcat")
     if isinstance(adb_logcat_filter, dict):
         pattern = adb_logcat_filter.get("match_command")
         if isinstance(pattern, str):
             try:
                 matcher = re.compile(pattern)
             except re.error as exc:
-                fail(errors, f"levyra-adb-logcat match_command is invalid regex: {exc}")
+                fail(errors, f"derbis-adb-logcat match_command is invalid regex: {exc}")
             else:
                 for command in (
                     "adb logcat -d -t 400",
@@ -172,13 +172,13 @@ def validate_filters(errors: list[str]) -> None:
                     "adb.exe -s R5CY735RFMV logcat -d -t 400",
                 ):
                     if matcher.search(command) is None:
-                        fail(errors, f"levyra-adb-logcat does not match supported command: {command}")
+                        fail(errors, f"derbis-adb-logcat does not match supported command: {command}")
                 if matcher.search("adb shell getprop sys.boot_completed") is not None:
-                    fail(errors, "levyra-adb-logcat must not capture unrelated adb shell commands")
+                    fail(errors, "derbis-adb-logcat must not capture unrelated adb shell commands")
         if adb_logcat_filter.get("tail_lines") != 240:
-            fail(errors, "levyra-adb-logcat must keep the newest 240 lines with tail_lines = 240")
+            fail(errors, "derbis-adb-logcat must keep the newest 240 lines with tail_lines = 240")
         if "max_lines" in adb_logcat_filter:
-            fail(errors, "levyra-adb-logcat must not use max_lines because that keeps the oldest logcat lines")
+            fail(errors, "derbis-adb-logcat must not use max_lines because that keeps the oldest logcat lines")
 
 
 def main() -> int:
@@ -198,7 +198,7 @@ def main() -> int:
         ("@AGENTS.md", "Claude Code reads this file natively", "Keep this bridge short"),
     )
 
-    skill_path = ROOT / ".agents/skills/levyra-context-efficiency/SKILL.md"
+    skill_path = ROOT / ".agents/skills/derbis-context-efficiency/SKILL.md"
     if skill_path.is_file():
         skill = skill_path.read_text(encoding="utf-8")
         if not skill.startswith("---\n"):
@@ -277,7 +277,7 @@ def main() -> int:
         errors,
         f"{CLAUDE_ROOT}/CLAUDE.md",
         "canonical Claude instructions",
-        ("cross-runtime source of truth", "Mandatory skill load", "levyra-context-efficiency"),
+        ("cross-runtime source of truth", "Mandatory skill load", "derbis-context-efficiency"),
     )
     require_terms(
         errors,
@@ -316,7 +316,7 @@ def main() -> int:
     )
 
     for relative_path, label in (
-        (".agents/rules/levyra-workspace.md", "shared workspace quality gate"),
+        (".agents/rules/derbis-workspace.md", "shared workspace quality gate"),
         (f"{CLAUDE_ROOT}/rules/testing-release.md", "Claude quality gate"),
         ("docs/ai/OPENCLAW.md", "OpenClaw quality gate"),
         ("docs/ai/WORKFLOW.md", "shared AI workflow quality gate"),
@@ -351,8 +351,8 @@ def main() -> int:
         "RTK documentation",
         (
             "instruction-based Codex setup",
-            "levyra-context-efficiency",
-            "levyra-security-review",
+            "derbis-context-efficiency",
+            "derbis-security-review",
             ".rtk/filters.toml",
             "docs/ai/CODEX_SECURITY.md",
             "Codex Security",
@@ -368,7 +368,7 @@ def main() -> int:
     )
     require_terms(
         errors,
-        ".agents/skills/levyra-security-review/SKILL.md",
+        ".agents/skills/derbis-security-review/SKILL.md",
         "security review skill",
         ("Threat model", "Identification", "Validation", "Remediation", "Revalidation", "Codex Security"),
     )
@@ -378,8 +378,8 @@ def main() -> int:
         "agent inventory",
         (
             "instruction-based Codex setup",
-            "levyra-context-efficiency",
-            "levyra-security-review",
+            "derbis-context-efficiency",
+            "derbis-security-review",
             "Codex Security",
             "Claude Code",
             "ChatGPT Project",
@@ -391,20 +391,20 @@ def main() -> int:
         errors,
         f"{CLAUDE_ROOT}/rules/security.md",
         "Claude security rule",
-        ("levyra-security-review", "Threat model", "Validation", "Revalidation", "docs/ai/CODEX_SECURITY.md"),
+        ("derbis-security-review", "Threat model", "Validation", "Revalidation", "docs/ai/CODEX_SECURITY.md"),
     )
     require_terms(
         errors,
         f"{CLAUDE_ROOT}/hooks/user-prompt-submit.sh",
         "Claude security hook",
-        ("levyra-security-review", "threat model", "trust boundary", "supply.?chain"),
+        ("derbis-security-review", "threat model", "trust boundary", "supply.?chain"),
     )
     require_terms(
         errors,
         f"{CLAUDE_ROOT}/rules/context-efficiency.md",
         "Claude context-efficiency rule",
         (
-            "levyra-context-efficiency",
+            "derbis-context-efficiency",
             ".rtk/filters.toml",
             "Rerun the exact command raw",
             "rtk adb logcat -d -t 400",

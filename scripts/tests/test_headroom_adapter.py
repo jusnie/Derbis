@@ -11,7 +11,7 @@ from scripts import headroom_adapter
 
 class HeadroomAdapterTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.orig_env_enabled = os.environ.pop("LEVYRA_HEADROOM_ENABLED", None)
+        self.orig_env_enabled = os.environ.pop("DERBIS_HEADROOM_ENABLED", None)
         self.temp_dir = tempfile.TemporaryDirectory()
         self.mock_config = Path(self.temp_dir.name) / "headroom.json"
         self.patcher = patch.object(headroom_adapter, "HEADROOM_CONFIG_PATH", self.mock_config)
@@ -21,9 +21,9 @@ class HeadroomAdapterTest(unittest.TestCase):
         self.patcher.stop()
         self.temp_dir.cleanup()
         if self.orig_env_enabled is not None:
-            os.environ["LEVYRA_HEADROOM_ENABLED"] = self.orig_env_enabled
+            os.environ["DERBIS_HEADROOM_ENABLED"] = self.orig_env_enabled
         else:
-            os.environ.pop("LEVYRA_HEADROOM_ENABLED", None)
+            os.environ.pop("DERBIS_HEADROOM_ENABLED", None)
 
     def test_probe_headroom_status_shape(self) -> None:
         status = headroom_adapter.probe_headroom_status()

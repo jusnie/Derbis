@@ -4,9 +4,9 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ORCHESTRATOR = ROOT / ".agents" / "skills" / "levyra-openclaw-orchestrator" / "SKILL.md"
-REVIEW = ROOT / ".agents" / "skills" / "levyra-pr-review" / "SKILL.md"
-CI = ROOT / ".agents" / "skills" / "levyra-ci-workflows" / "SKILL.md"
+ORCHESTRATOR = ROOT / ".agents" / "skills" / "derbis-openclaw-orchestrator" / "SKILL.md"
+REVIEW = ROOT / ".agents" / "skills" / "derbis-pr-review" / "SKILL.md"
+CI = ROOT / ".agents" / "skills" / "derbis-ci-workflows" / "SKILL.md"
 
 
 class OpenClawEvidenceContractsTest(unittest.TestCase):

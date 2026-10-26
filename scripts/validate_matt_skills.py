@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's Matt Pocock real-engineering integration."""
+"""Validate Derbis's Matt Pocock real-engineering integration."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ CLAUDE_ROOT = ".agents/claude"
 
 REQUIRED_FILES = (
     "AGENTS.md",
-    ".agents/skills/levyra-real-engineering/SKILL.md",
-    ".agents/rules/levyra-workspace.md",
+    ".agents/skills/derbis-real-engineering/SKILL.md",
+    ".agents/rules/derbis-workspace.md",
     f"{CLAUDE_ROOT}/settings.json",
     f"{CLAUDE_ROOT}/hooks/user-prompt-submit.sh",
     "scripts/sync_agent_runtime.py",
@@ -63,17 +63,17 @@ def main() -> int:
     if (ROOT / CLAUDE_ROOT / "skills").exists():
         errors.append("Claude must not keep a second tracked skill tree under .agents/claude/skills")
 
-    canonical_path = ROOT / ".agents/skills/levyra-real-engineering/SKILL.md"
+    canonical_path = ROOT / ".agents/skills/derbis-real-engineering/SKILL.md"
     if canonical_path.is_file():
-        canonical = text(".agents/skills/levyra-real-engineering/SKILL.md")
-        if "name: levyra-real-engineering" not in canonical:
+        canonical = text(".agents/skills/derbis-real-engineering/SKILL.md")
+        if "name: derbis-real-engineering" not in canonical:
             errors.append("canonical real-engineering skill has the wrong name")
         for stage in EXPECTED_STAGES:
             if stage not in canonical:
                 errors.append(f"canonical real-engineering skill is missing stage: {stage}")
         for required in (
             "tiny obvious edits",
-            "Levyra wins",
+            "Derbis wins",
             "fresh context",
             "owner did not approve",
             "scripts/ai_quality_gate.py --profile fast",
@@ -90,7 +90,7 @@ def main() -> int:
         "AGENTS.md",
         (
             "## Automatic skill routing",
-            "levyra-real-engineering",
+            "derbis-real-engineering",
             "docs/ai/MATT_POCOCK_SKILLS.md",
         ),
     )
@@ -136,14 +136,14 @@ def main() -> int:
                 errors.append(f"{relative_path} is missing focused skill: {stage}")
 
     for relative_path in (
-        ".agents/rules/levyra-workspace.md",
+        ".agents/rules/derbis-workspace.md",
         f"{CLAUDE_ROOT}/hooks/user-prompt-submit.sh",
         "docs/ai/CHATGPT_PROJECT_INSTRUCTIONS.md",
         "docs/ai/ANTIGRAVITY.md",
     ):
         path = ROOT / relative_path
-        if path.is_file() and "levyra-real-engineering" not in text(relative_path):
-            errors.append(f"{relative_path} does not route through levyra-real-engineering")
+        if path.is_file() and "derbis-real-engineering" not in text(relative_path):
+            errors.append(f"{relative_path} does not route through derbis-real-engineering")
 
     if errors:
         print("Matt skills integration validation failed:", file=sys.stderr)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Levyra's cross-runtime quality gate before commit, push, and CI."""
+"""Run Derbis's cross-runtime quality gate before commit, push, and CI."""
 
 from __future__ import annotations
 
@@ -165,7 +165,7 @@ def classify_changes(paths: Iterable[str]) -> ChangeKinds:
         or any(path.startswith("app/") for path in normalized),
         desktop=any(path.startswith("desktop/") for path in normalized),
         extractor=root_gradle_changed
-        or any(path.startswith("third_party/LevyraExtractor/") for path in normalized),
+        or any(path.startswith("third_party/DerbisExtractor/") for path in normalized),
     )
 
 
@@ -409,7 +409,7 @@ def build_commands(
                     ),
                     GateCommand(
                         "Run Android release lint",
-                        (wrapper, "--no-daemon", ":app:lintRelease", "-PlevyraFdroidBuild=true"),
+                        (wrapper, "--no-daemon", ":app:lintRelease", "-PderbisFdroidBuild=true"),
                         timeout_seconds=3600,
                     ),
                     GateCommand(
@@ -419,7 +419,7 @@ def build_commands(
                             "--no-daemon",
                             "--no-configuration-cache",
                             ":app:assembleRelease",
-                            "-PlevyraFdroidBuild=true",
+                            "-PderbisFdroidBuild=true",
                         ),
                         timeout_seconds=3600,
                     ),
@@ -432,7 +432,7 @@ def build_commands(
                     (
                         gradle_wrapper(),
                         "-p",
-                        "third_party/LevyraExtractor",
+                        "third_party/DerbisExtractor",
                         "--no-daemon",
                         ":extractor:test",
                     ),
@@ -517,7 +517,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"AI quality gate could not start: {exc}", file=sys.stderr)
         return 1
 
-    print("Levyra AI Quality Gate")
+    print("Derbis AI Quality Gate")
     print(f"Profile: {args.profile}")
     print(f"Base: {base_ref} ({base_commit[:12]})")
     print(f"Changed files: {len(changed)}")

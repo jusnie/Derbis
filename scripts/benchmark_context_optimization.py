@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Levyra RTK Enhanced — Comprehensive Context Optimization Benchmark.
+"""Derbis RTK Enhanced — Comprehensive Context Optimization Benchmark.
 
-Runs reproducible benchmarks across synthetic and realistic Levyra scenarios to measure:
+Runs reproducible benchmarks across synthetic and realistic Derbis scenarios to measure:
 - Heuristic lexical token estimate reduction (not model/billed tokens)
 - Total wrapper end-to-end execution time and startup latency
 - Critical diagnostic information preservation (compiler errors, stack traces, tasks, diffs)
@@ -26,7 +26,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.headroom_adapter import is_headroom_enabled, probe_headroom_status
-from scripts.levyra_context_optimizer import (
+from scripts.derbis_context_optimizer import (
     ContextCache,
     estimate_tokens,
     optimize_context,
@@ -53,8 +53,8 @@ def build_scenarios() -> list[Scenario]:
 	at androidx.compose.runtime.snapshots.SnapshotKt.readObserver(Snapshot.kt:2250)
 	at androidx.compose.runtime.snapshots.SnapshotKt.readable(Snapshot.kt:2241)
 	at androidx.compose.runtime.ParcelableSnapshotMutableState.getValue(SnapshotState.kt:161)
-	at com.luc4n3x.levyra.ui.player.PlayerDeckSheetKt$PlayerDeckSheet$1.invoke(PlayerDeckSheet.kt:142)
-	at com.luc4n3x.levyra.ui.player.PlayerDeckSheetKt$PlayerDeckSheet$1.invoke(PlayerDeckSheet.kt:140)
+	at com.luc4n3x.derbis.ui.player.PlayerDeckSheetKt$PlayerDeckSheet$1.invoke(PlayerDeckSheet.kt:142)
+	at com.luc4n3x.derbis.ui.player.PlayerDeckSheetKt$PlayerDeckSheet$1.invoke(PlayerDeckSheet.kt:140)
 	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:118)
 	at androidx.compose.runtime.internal.ComposableLambdaImpl.invoke(ComposableLambda.jvm.kt:35)
 	at androidx.compose.runtime.Recomposer$runRecomposeAndApplyChanges$2.invoke(Recomposer.kt:534)
@@ -65,9 +65,9 @@ def build_scenarios() -> list[Scenario]:
 	at androidx.compose.runtime.Recomposer.runRecomposeAndApplyChanges(Recomposer.kt:472)
 	at androidx.compose.ui.platform.AndroidUiDispatcher.performFrameProjects(AndroidUiDispatcher.android.kt:111)
 Caused by: java.lang.IllegalArgumentException: MutableState mutation occurred on worker thread DefaultDispatcher-worker-1
-	at com.luc4n3x.levyra.ui.artwork.ArtworkPaletteState.updatePalette(ArtworkPaletteState.kt:88)
-	at com.luc4n3x.levyra.ui.artwork.ArtworkPaletteState.access$updatePalette(ArtworkPaletteState.kt:24)
-	at com.luc4n3x.levyra.ui.artwork.ArtworkPaletteState$syncWithTrack$1.invokeSuspend(ArtworkPaletteState.kt:104)
+	at com.luc4n3x.derbis.ui.artwork.ArtworkPaletteState.updatePalette(ArtworkPaletteState.kt:88)
+	at com.luc4n3x.derbis.ui.artwork.ArtworkPaletteState.access$updatePalette(ArtworkPaletteState.kt:24)
+	at com.luc4n3x.derbis.ui.artwork.ArtworkPaletteState$syncWithTrack$1.invokeSuspend(ArtworkPaletteState.kt:104)
 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:108)
 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:584)
@@ -77,9 +77,9 @@ Caused by: java.lang.IllegalArgumentException: MutableState mutation occurred on
 """,
             critical_markers=[
                 "IllegalStateException: Reading a state that was created after the snapshot",
-                "com.luc4n3x.levyra.ui.player.PlayerDeckSheetKt",
+                "com.luc4n3x.derbis.ui.player.PlayerDeckSheetKt",
                 "Caused by: java.lang.IllegalArgumentException: MutableState mutation occurred on worker thread",
-                "com.luc4n3x.levyra.ui.artwork.ArtworkPaletteState.updatePalette",
+                "com.luc4n3x.derbis.ui.artwork.ArtworkPaletteState.updatePalette",
             ],
         ),
         Scenario(
@@ -146,8 +146,8 @@ BUILD SUCCESSFUL in 14s
 > Task :app:mergeDebugResources UP-TO-DATE
 > Task :app:processDebugManifest UP-TO-DATE
 > Task :app:compileDebugKotlin
-e: /home/runner/work/Levyra/Levyra/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt: (112, 28): Unresolved reference: prismState
-e: /home/runner/work/Levyra/Levyra/app/src/main/java/com/luc4n3x/levyra/ui/artwork/ArtworkPaletteState.kt: (45, 9): Type mismatch: inferred type is Boolean but Int was expected
+e: /home/runner/work/Derbis/Derbis/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt: (112, 28): Unresolved reference: prismState
+e: /home/runner/work/Derbis/Derbis/app/src/main/java/com/luc4n3x/derbis/ui/artwork/ArtworkPaletteState.kt: (45, 9): Type mismatch: inferred type is Boolean but Int was expected
 > Task :app:compileDebugKotlin FAILED
 
 FAILURE: Build failed with an exception.
@@ -180,12 +180,12 @@ BUILD FAILED in 4s
             category="unit_test",
             raw_payload="""> Task :app:testDebugUnitTest
 
-com.luc4n3x.levyra.domain.PlaybackSpeedTest > speedClamping_clampsToSupportedRange FAILED
+com.luc4n3x.derbis.domain.PlaybackSpeedTest > speedClamping_clampsToSupportedRange FAILED
     java.lang.AssertionError: expected:<2.0> but was:<3.5>
         at org.junit.Assert.fail(Assert.java:89)
         at org.junit.Assert.failNotEquals(Assert.java:835)
         at org.junit.Assert.assertEquals(Assert.java:577)
-        at com.luc4n3x.levyra.domain.PlaybackSpeedTest.speedClamping_clampsToSupportedRange(PlaybackSpeedTest.kt:34)
+        at com.luc4n3x.derbis.domain.PlaybackSpeedTest.speedClamping_clampsToSupportedRange(PlaybackSpeedTest.kt:34)
         at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
         at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
         at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
@@ -209,17 +209,17 @@ com.luc4n3x.levyra.domain.PlaybackSpeedTest > speedClamping_clampsToSupportedRan
         at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.runTestClass(JUnitTestClassExecutor.java:112)
         at org.gradle.api.internal.tasks.testing.junit.JUnitTestClassExecutor.execute(JUnitTestClassExecutor.java:58)
 
-com.luc4n3x.levyra.domain.ThemeSettingsTest > defaultTheme_isMaterial3Expressive FAILED
+com.luc4n3x.derbis.domain.ThemeSettingsTest > defaultTheme_isMaterial3Expressive FAILED
     org.junit.ComparisonFailure: expected:<[Expressive]> but was:<[Classic]>
         at org.junit.Assert.assertEquals(Assert.java:117)
-        at com.luc4n3x.levyra.domain.ThemeSettingsTest.defaultTheme_isMaterial3Expressive(ThemeSettingsTest.kt:22)
+        at com.luc4n3x.derbis.domain.ThemeSettingsTest.defaultTheme_isMaterial3Expressive(ThemeSettingsTest.kt:22)
 
 108 tests completed, 2 failed
 """,
             critical_markers=[
                 "PlaybackSpeedTest > speedClamping_clampsToSupportedRange FAILED",
                 "java.lang.AssertionError: expected:<2.0> but was:<3.5>",
-                "com.luc4n3x.levyra.domain.PlaybackSpeedTest.speedClamping_clampsToSupportedRange",
+                "com.luc4n3x.derbis.domain.PlaybackSpeedTest.speedClamping_clampsToSupportedRange",
                 "ThemeSettingsTest > defaultTheme_isMaterial3Expressive FAILED",
                 "org.junit.ComparisonFailure: expected:<[Expressive]> but was:<[Classic]>",
                 "108 tests completed, 2 failed",
@@ -229,10 +229,10 @@ com.luc4n3x.levyra.domain.ThemeSettingsTest > defaultTheme_isMaterial3Expressive
             id=5,
             name="Git Diff Analysis (Source + Huge Generated File)",
             category="git_diff",
-            raw_payload="""diff --git a/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt b/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt
+            raw_payload="""diff --git a/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt b/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt
 index e3b194a..d881902 100644
---- a/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt
-+++ b/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt
+--- a/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt
++++ b/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt
 @@ -42,6 +42,8 @@ fun PlayerDeckSheet(
      viewModel: PlayerViewModel = hiltViewModel(),
  ) {
@@ -244,29 +244,29 @@ index 1122334..5566778 100644
 --- a/app/src/main/baseline-prof.txt
 +++ b/app/src/main/baseline-prof.txt
 @@ -1,50 +1,50 @@
-+Lcom/luc4n3x/levyra/data/model/Song;-><init>(Ljava/lang/String;Ljava/lang/String;)V
-+Lcom/luc4n3x/levyra/data/model/Song;->getId()Ljava/lang/String;
-+Lcom/luc4n3x/levyra/data/model/Song;->getTitle()Ljava/lang/String;
-+Lcom/luc4n3x/levyra/data/model/Artist;-><init>(Ljava/lang/String;Ljava/lang/String;)V
-+Lcom/luc4n3x/levyra/data/model/Artist;->getId()Ljava/lang/String;
-+Lcom/luc4n3x/levyra/data/model/Album;-><init>(Ljava/lang/String;Ljava/lang/String;)V
-+Lcom/luc4n3x/levyra/data/model/Playlist;-><init>(Ljava/lang/String;Ljava/lang/String;)V
-+Lcom/luc4n3x/levyra/ui/theme/ColorKt;->getLevyraPrimary()J
-+Lcom/luc4n3x/levyra/ui/theme/ColorKt;->getLevyraSecondary()J
-+Lcom/luc4n3x/levyra/ui/theme/ColorKt;->getLevyraTertiary()J
-+Lcom/luc4n3x/levyra/ui/theme/TypeKt;->getTypography()Landroidx/compose/material3/Typography;
-+Lcom/luc4n3x/levyra/ui/HomeStudioKt;->HomeStudioScreen(Lcom/luc4n3x/levyra/ui/HomeViewModel;)V
-+Lcom/luc4n3x/levyra/ui/player/PlayerDeckSheetKt;->PlayerDeckSheet(Lcom/luc4n3x/levyra/ui/player/PlayerViewModel;)V
-+Lcom/luc4n3x/levyra/ui/player/PlayerDeckSheetKt;->PlaybackControls(Lcom/luc4n3x/levyra/domain/model/PlaybackState;)V
-+Lcom/luc4n3x/levyra/domain/model/PlaybackState;->isPlaying()Z
-+Lcom/luc4n3x/levyra/domain/model/PlaybackState;->getPosition()J
-+Lcom/luc4n3x/levyra/domain/model/PlaybackState;->getDuration()J
-+Lcom/luc4n3x/levyra/service/PlaybackService;->onStartCommand(Landroid/content/Intent;II)I
-+Lcom/luc4n3x/levyra/service/PlaybackService;->onCreate()V
-+Lcom/luc4n3x/levyra/service/PlaybackService;->onDestroy()V
++Lcom/luc4n3x/derbis/data/model/Song;-><init>(Ljava/lang/String;Ljava/lang/String;)V
++Lcom/luc4n3x/derbis/data/model/Song;->getId()Ljava/lang/String;
++Lcom/luc4n3x/derbis/data/model/Song;->getTitle()Ljava/lang/String;
++Lcom/luc4n3x/derbis/data/model/Artist;-><init>(Ljava/lang/String;Ljava/lang/String;)V
++Lcom/luc4n3x/derbis/data/model/Artist;->getId()Ljava/lang/String;
++Lcom/luc4n3x/derbis/data/model/Album;-><init>(Ljava/lang/String;Ljava/lang/String;)V
++Lcom/luc4n3x/derbis/data/model/Playlist;-><init>(Ljava/lang/String;Ljava/lang/String;)V
++Lcom/luc4n3x/derbis/ui/theme/ColorKt;->getDerbisPrimary()J
++Lcom/luc4n3x/derbis/ui/theme/ColorKt;->getDerbisSecondary()J
++Lcom/luc4n3x/derbis/ui/theme/ColorKt;->getDerbisTertiary()J
++Lcom/luc4n3x/derbis/ui/theme/TypeKt;->getTypography()Landroidx/compose/material3/Typography;
++Lcom/luc4n3x/derbis/ui/HomeStudioKt;->HomeStudioScreen(Lcom/luc4n3x/derbis/ui/HomeViewModel;)V
++Lcom/luc4n3x/derbis/ui/player/PlayerDeckSheetKt;->PlayerDeckSheet(Lcom/luc4n3x/derbis/ui/player/PlayerViewModel;)V
++Lcom/luc4n3x/derbis/ui/player/PlayerDeckSheetKt;->PlaybackControls(Lcom/luc4n3x/derbis/domain/model/PlaybackState;)V
++Lcom/luc4n3x/derbis/domain/model/PlaybackState;->isPlaying()Z
++Lcom/luc4n3x/derbis/domain/model/PlaybackState;->getPosition()J
++Lcom/luc4n3x/derbis/domain/model/PlaybackState;->getDuration()J
++Lcom/luc4n3x/derbis/service/PlaybackService;->onStartCommand(Landroid/content/Intent;II)I
++Lcom/luc4n3x/derbis/service/PlaybackService;->onCreate()V
++Lcom/luc4n3x/derbis/service/PlaybackService;->onDestroy()V
 """,
             critical_markers=[
-                "diff --git a/app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt",
+                "diff --git a/app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt",
                 "+    val prismEnabled by viewModel.prismEnabled.collectAsStateWithLifecycle()",
                 "+    val prismMode by viewModel.prismMode.collectAsStateWithLifecycle()",
                 "diff --git a/app/src/main/baseline-prof.txt",
@@ -277,12 +277,12 @@ index 1122334..5566778 100644
             id=6,
             name="Multi-File Search / Diagnostic Churn",
             category="generic",
-            raw_payload="""app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt:42:    val prismEnabled by viewModel.prismEnabled
-app/src/main/java/com/luc4n3x/levyra/ui/player/PlayerDeckSheet.kt:43:    val prismMode by viewModel.prismMode
-app/src/main/java/com/luc4n3x/levyra/ui/theme/SkinSelector.kt:18:    val prismTheme = rememberPrismTheme()
-app/src/main/java/com/luc4n3x/levyra/ui/theme/SkinSelector.kt:19:    val skinStrings = rememberSkinStrings()
-app/src/main/java/com/luc4n3x/levyra/ui/theme/PrismSettingsPanel.kt:55:    Text(text = "Prism Spectrum")
-app/src/main/java/com/luc4n3x/levyra/domain/PrismSettings.kt:12:    data class PrismSettings(val enabled: Boolean)
+            raw_payload="""app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt:42:    val prismEnabled by viewModel.prismEnabled
+app/src/main/java/com/luc4n3x/derbis/ui/player/PlayerDeckSheet.kt:43:    val prismMode by viewModel.prismMode
+app/src/main/java/com/luc4n3x/derbis/ui/theme/SkinSelector.kt:18:    val prismTheme = rememberPrismTheme()
+app/src/main/java/com/luc4n3x/derbis/ui/theme/SkinSelector.kt:19:    val skinStrings = rememberSkinStrings()
+app/src/main/java/com/luc4n3x/derbis/ui/theme/PrismSettingsPanel.kt:55:    Text(text = "Prism Spectrum")
+app/src/main/java/com/luc4n3x/derbis/domain/PrismSettings.kt:12:    data class PrismSettings(val enabled: Boolean)
 """,
             critical_markers=[
                 "PlayerDeckSheet.kt:42",
@@ -296,7 +296,7 @@ app/src/main/java/com/luc4n3x/levyra/domain/PrismSettings.kt:12:    data class P
             name="Android Logcat Diagnostics",
             category="android_logcat",
             raw_payload="""--------- beginning of main
-10-20 14:10:02.112  1245  1245 D LevyraPlayer: Prepared track 'Orbit of Sound' id=89214
+10-20 14:10:02.112  1245  1245 D DerbisPlayer: Prepared track 'Orbit of Sound' id=89214
 10-20 14:10:02.115  1245  1245 I AudioEngine: Initializing Oboe OpenSL ES stream 48000Hz stereo
 10-20 14:10:02.120  1245  1245 D Media3: ExoPlayer state changed to STATE_READY
 10-20 14:10:02.400  1245  1245 I Choreographer: Skipped 48 frames!  The application may be doing too much work on its main thread.
@@ -305,16 +305,16 @@ app/src/main/java/com/luc4n3x/levyra/domain/PrismSettings.kt:12:    data class P
 10-20 14:10:02.420   800   800 W SurfaceFlinger: Timed out waiting for vsync event
 10-20 14:10:02.422   800   800 W GraphicBuffer: allocate failed
 10-20 14:10:02.430  1245  1245 E AndroidRuntime: FATAL EXCEPTION: main
-10-20 14:10:02.430  1245  1245 E AndroidRuntime: Process: com.luc4n3x.levyra, PID: 1245
+10-20 14:10:02.430  1245  1245 E AndroidRuntime: Process: com.luc4n3x.derbis, PID: 1245
 10-20 14:10:02.430  1245  1245 E AndroidRuntime: java.lang.NullPointerException: PlayerController.play called with null queue
-10-20 14:10:02.430  1245  1245 E AndroidRuntime: 	at com.luc4n3x.levyra.ui.player.PlayerViewModel.play(PlayerViewModel.kt:89)
-10-20 14:10:02.430  1245  1245 E AndroidRuntime: 	at com.luc4n3x.levyra.ui.player.PlayerDeckSheetKt$PlaybackControls$1.invoke(PlayerDeckSheet.kt:214)
+10-20 14:10:02.430  1245  1245 E AndroidRuntime: 	at com.luc4n3x.derbis.ui.player.PlayerViewModel.play(PlayerViewModel.kt:89)
+10-20 14:10:02.430  1245  1245 E AndroidRuntime: 	at com.luc4n3x.derbis.ui.player.PlayerDeckSheetKt$PlaybackControls$1.invoke(PlayerDeckSheet.kt:214)
 """,
             critical_markers=[
-                "LevyraPlayer: Prepared track",
+                "DerbisPlayer: Prepared track",
                 "AudioEngine: Initializing Oboe",
                 "FATAL EXCEPTION: main",
-                "Process: com.luc4n3x.levyra",
+                "Process: com.luc4n3x.derbis",
                 "NullPointerException: PlayerController.play called with null queue",
                 "PlayerViewModel.play(PlayerViewModel.kt:89)",
             ],
@@ -323,9 +323,9 @@ app/src/main/java/com/luc4n3x/levyra/domain/PrismSettings.kt:12:    data class P
             id=8,
             name="Deep Nested Exception Stacktrace (Root Cause)",
             category="stack_trace",
-            raw_payload="""com.luc4n3x.levyra.media.AudioPipelineException: Failed to initialize native audio decoder pipeline
-	at com.luc4n3x.levyra.media.NativeAudioEngine.init(NativeAudioEngine.kt:48)
-	at com.luc4n3x.levyra.service.PlaybackService.onCreate(PlaybackService.kt:72)
+            raw_payload="""com.luc4n3x.derbis.media.AudioPipelineException: Failed to initialize native audio decoder pipeline
+	at com.luc4n3x.derbis.media.NativeAudioEngine.init(NativeAudioEngine.kt:48)
+	at com.luc4n3x.derbis.service.PlaybackService.onCreate(PlaybackService.kt:72)
 	at android.app.ActivityThread.handleCreateService(ActivityThread.java:4450)
 	at android.app.ActivityThread.-$$Nest$mhandleCreateService(Unknown Source:0)
 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2140)
@@ -340,7 +340,7 @@ Caused by: com.google.android.exoplayer2.mediacodec.MediaCodecAudioRendererExcep
 	at com.google.android.exoplayer2.mediacodec.MediaCodecRenderer.maybeInitCodecWithFallback(MediaCodecRenderer.java:1020)
 	at com.google.android.exoplayer2.mediacodec.MediaCodecRenderer.onInputFormatChanged(MediaCodecRenderer.java:1400)
 	at com.google.android.exoplayer2.audio.MediaCodecAudioRenderer.onInputFormatChanged(MediaCodecAudioRenderer.java:450)
-	at com.luc4n3x.levyra.media.LevyraAudioRenderer.onInputFormatChanged(LevyraAudioRenderer.kt:33)
+	at com.luc4n3x.derbis.media.DerbisAudioRenderer.onInputFormatChanged(DerbisAudioRenderer.kt:33)
 Caused by: java.lang.NoSuchMethodError: No virtual method configure(Landroid/media/MediaFormat;Landroid/view/Surface;Landroid/media/MediaCrypto;I)V in class Landroid/media/MediaCodec;
 	at com.google.android.exoplayer2.mediacodec.AsynchronousMediaCodecAdapter.initialize(AsynchronousMediaCodecAdapter.java:85)
 	at com.google.android.exoplayer2.mediacodec.DefaultMediaCodecAdapterFactory.createAdapter(DefaultMediaCodecAdapterFactory.java:90)
@@ -349,15 +349,15 @@ Caused by: java.lang.UnsatisfiedLinkError: dlopen failed: library "libvlc.so" no
 	at java.lang.Runtime.loadLibrary0(Runtime.java:1003)
 	at java.lang.System.loadLibrary(System.java:1661)
 	at org.videolan.libvlc.LibVLC.<clinit>(LibVLC.java:54)
-	at com.luc4n3x.levyra.desktop.DesktopAudioEngine.<init>(DesktopAudioEngine.kt:29)
+	at com.luc4n3x.derbis.desktop.DesktopAudioEngine.<init>(DesktopAudioEngine.kt:29)
 """,
             critical_markers=[
                 "AudioPipelineException: Failed to initialize native audio decoder pipeline",
-                "com.luc4n3x.levyra.media.NativeAudioEngine.init",
+                "com.luc4n3x.derbis.media.NativeAudioEngine.init",
                 "Caused by: com.google.android.exoplayer2.mediacodec.MediaCodecAudioRendererException",
                 "Caused by: java.lang.NoSuchMethodError: No virtual method configure",
                 "Caused by: java.lang.UnsatisfiedLinkError: dlopen failed: library \"libvlc.so\" not found",
-                "com.luc4n3x.levyra.desktop.DesktopAudioEngine",
+                "com.luc4n3x.derbis.desktop.DesktopAudioEngine",
             ],
         ),
     ]
@@ -378,7 +378,7 @@ def run_benchmark(verbose: bool = True) -> dict[str, Any]:
 
     if verbose:
         print("=" * 90)
-        print("LEVYRA RTK ENHANCED — CONTEXT OPTIMIZATION BENCHMARK REPORT")
+        print("DERBIS RTK ENHANCED — CONTEXT OPTIMIZATION BENCHMARK REPORT")
         print("=" * 90)
         print(f"{'ID':<3} {'Scenario Name':<34} {'Orig Tok':<9} {'Opt Tok':<9} {'Reduct':<8} {'Time (ms)':<10} {'Markers':<8} {'CCR'}")
         print("-" * 90)
@@ -430,7 +430,7 @@ def run_benchmark(verbose: bool = True) -> dict[str, Any]:
     overall_reduction = ((total_orig_tokens - total_opt_tokens) / total_orig_tokens * 100.0) if total_orig_tokens else 0.0
 
     # -----------------------------------------------------------------------
-    # Section 2: Real Levyra Repository Output Benchmark & Wrapper Latency
+    # Section 2: Real Derbis Repository Output Benchmark & Wrapper Latency
     # -----------------------------------------------------------------------
     if verbose:
         print("-" * 90)
@@ -495,7 +495,7 @@ def run_benchmark(verbose: bool = True) -> dict[str, Any]:
 def generate_markdown_report(benchmark_data: dict[str, Any]) -> str:
     """Generate Markdown benchmark report for PR description and documentation."""
     lines = [
-        "### Benchmark: Levyra RTK Enhanced Context Optimization",
+        "### Benchmark: Derbis RTK Enhanced Context Optimization",
         "",
         "| ID | Scenario | Orig Tokens | Opt Tokens | Reduction | Overhead | Preserved Info | CCR Lossless |",
         "|---|---|---|---|---|---|---|---|",
@@ -515,14 +515,14 @@ def generate_markdown_report(benchmark_data: dict[str, Any]) -> str:
     lines.append("")
     lines.append("- **Coding Quality & Safety**: 100% of compiler errors (`e: ...`), stack traces, task failures, and code hunks are preserved.")
     lines.append("- **Process Exit Codes**: Exit codes (0, 1, 2, 127) are strictly propagated to ensure failed builds/tests are never masked.")
-    lines.append("- **Reversible CCR Cache**: Full uncompressed output is cached by SHA256 in `.levyra-tools/context-cache/` (bounded to 150 entries / 25 MB).")
+    lines.append("- **Reversible CCR Cache**: Full uncompressed output is cached by SHA256 in `.derbis-tools/context-cache/` (bounded to 150 entries / 25 MB).")
     lines.append("- **Stateful Safety**: Non-repeatable or mutating commands are never re-executed to retrieve raw logs; logs are read directly from cache.")
     lines.append("- **Measurement note**: Token counts use a lexical heuristic, not model-specific tokenization. Coding quality was not measured; benchmarks check wrapper behavior and selected diagnostic markers.")
     return "\n".join(lines)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Levyra RTK Enhanced Context Optimization Benchmark")
+    parser = argparse.ArgumentParser(description="Derbis RTK Enhanced Context Optimization Benchmark")
     parser.add_argument("--report", action="store_true", help="Print markdown formatted report")
     args = parser.parse_args(argv)
 

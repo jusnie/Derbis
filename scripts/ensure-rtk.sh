@@ -32,12 +32,12 @@ say() {
 }
 
 if rtk_ready; then
-  say "[ok] Levyra RTK is ready."
+  say "[ok] Derbis RTK is ready."
   exit 0
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
-  echo "[warn] Levyra RTK is unavailable and Cargo is not installed; continuing without RTK." >&2
+  echo "[warn] Derbis RTK is unavailable and Cargo is not installed; continuing without RTK." >&2
   exit 1
 fi
 
@@ -46,7 +46,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
-say "[run] Installing the owner-authorized pinned RTK build for Levyra."
+say "[run] Installing the owner-authorized pinned RTK build for Derbis."
 if ! cargo install --git https://github.com/rtk-ai/rtk --rev "$RTK_GIT_REVISION" --force; then
   echo "[warn] RTK installation failed; continuing without RTK." >&2
   exit 1
@@ -57,4 +57,4 @@ if ! rtk_ready; then
   exit 1
 fi
 
-say "[ok] Levyra RTK installed and verified."
+say "[ok] Derbis RTK installed and verified."

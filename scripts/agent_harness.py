@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Always-on runtime guard for Levyra coding agents."""
+"""Always-on runtime guard for Derbis coding agents."""
 
 from __future__ import annotations
 
@@ -17,8 +17,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 STATE_ROOT = Path(
     os.environ.get(
-        "LEVYRA_AGENT_HARNESS_STATE_DIR",
-        str(Path(tempfile.gettempdir()) / "levyra-agent-harness"),
+        "DERBIS_AGENT_HARNESS_STATE_DIR",
+        str(Path(tempfile.gettempdir()) / "derbis-agent-harness"),
     )
 )
 PROTECTED_NAMES = {"local.properties", ".env"}
@@ -222,7 +222,7 @@ def _current_context(path: Path, data: dict[str, Any], state: dict[str, Any]) ->
 def _reanchor(state: dict[str, Any]) -> str:
     edited = ", ".join(state.get("edited_paths", [])) or "none"
     return (
-        "Levyra re-anchor after compaction/resume:\n"
+        "Derbis re-anchor after compaction/resume:\n"
         f"- owner request: {state.get('latest_prompt') or 'not recorded'}\n"
         f"- edited paths: {edited}\n"
         f"- edit generation: {state.get('edit_generation', 0)}\n"
@@ -273,7 +273,7 @@ def user_prompt(data: dict[str, Any]) -> int:
     _save(data, state)
     _context_output(
         "UserPromptSubmit",
-        "Levyra guards active: scoped instructions, current-file freshness, evidence gates, final-diff review, and compact/resume re-anchoring. For structural work prefer jCodeMunch, then available LSP/AST, then bounded native search.",
+        "Derbis guards active: scoped instructions, current-file freshness, evidence gates, final-diff review, and compact/resume re-anchoring. For structural work prefer jCodeMunch, then available LSP/AST, then bounded native search.",
     )
     return 0
 
@@ -285,7 +285,7 @@ def pre_tool(data: dict[str, Any]) -> int:
     targets = _targets(data)
     for path in targets:
         if _protected(path):
-            _deny("PreToolUse", f"Protected Levyra local/secret file may not be injected or mutated: {_relative(path)}")
+            _deny("PreToolUse", f"Protected Derbis local/secret file may not be injected or mutated: {_relative(path)}")
             return 0
     if tool == "Write":
         for path in targets:
@@ -436,7 +436,7 @@ def stop(data: dict[str, Any]) -> int:
         if rc != 0:
             failures.append(f"remove newly added AI-narration comments: {output or 'checker failed'}")
     if failures:
-        print(json.dumps({"decision": "block", "reason": "Levyra completion audit is still open:\n- " + "\n- ".join(failures)}))
+        print(json.dumps({"decision": "block", "reason": "Derbis completion audit is still open:\n- " + "\n- ".join(failures)}))
         return 0
     state["completed_generation"] = generation
     state["task_complete"] = True
@@ -452,7 +452,7 @@ def session_start(data: dict[str, Any]) -> int:
         _save(data, state)
         _context_output("SessionStart", _reanchor(state))
     else:
-        _context_output("SessionStart", "Levyra always-on guards active.")
+        _context_output("SessionStart", "Derbis always-on guards active.")
     return 0
 
 

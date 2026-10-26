@@ -22,21 +22,21 @@ def resolve_input(preferred_path, fallback_rel_path):
     return preferred_path
 
 LOGO_SRC_PATH = resolve_input(
-    os.environ.get("LEVYRA_LOGO_PATH", r"C:/Users/Luca Drogo/.gemini/antigravity/brain/56548c8c-b7bc-4dce-809e-6e9d455ced20/.user_uploaded/media_1790506287135.png"),
-    os.path.join("app", "src", "main", "res", "drawable", "levyra_logo.png")
+    os.environ.get("DERBIS_LOGO_PATH", r"C:/Users/Luca Drogo/.gemini/antigravity/brain/56548c8c-b7bc-4dce-809e-6e9d455ced20/.user_uploaded/media_1790506287135.png"),
+    os.path.join("app", "src", "main", "res", "drawable", "derbis_logo.png")
 )
 SCREEN_HOME_PATH = resolve_input(
-    os.environ.get("LEVYRA_SCREEN_HOME", r"C:\Users\Luca Drogo\Desktop\screenshots\Screenshot_20260926_171253_LEVYRA.jpg"),
+    os.environ.get("DERBIS_SCREEN_HOME", r"C:\Users\Luca Drogo\Desktop\screenshots\Screenshot_20260926_171253_DERBIS.jpg"),
     os.path.join("docs", "assets", "showcase", "cards", "01_home.webp")
 )
 SCREEN_PLAYER_PATH = resolve_input(
-    os.environ.get("LEVYRA_SCREEN_PLAYER", r"C:\Users\Luca Drogo\Desktop\screenshots\Screenshot_20260926_193948_LEVYRA.jpg"),
+    os.environ.get("DERBIS_SCREEN_PLAYER", r"C:\Users\Luca Drogo\Desktop\screenshots\Screenshot_20260926_193948_DERBIS.jpg"),
     os.path.join("docs", "assets", "showcase", "cards", "03_lyrics.webp")
 )
 
 def find_preferred_dark_bg():
     paths = [
-        os.environ.get("LEVYRA_BG_DARK", ""),
+        os.environ.get("DERBIS_BG_DARK", ""),
         r"C:\Users\Luca Drogo\.gemini\antigravity\brain\56548c8c-b7bc-4dce-809e-6e9d455ced20\musical_concert_stage_bg_1790508925612.jpg",
         r"C:\Users\Luca Drogo\.gemini\antigravity\brain\56548c8c-b7bc-4dce-809e-6e9d455ced20\minimal_concert_stage_1790508945319.jpg",
     ]
@@ -46,12 +46,12 @@ def find_preferred_dark_bg():
     return ""
 
 BG_DARK_CONCERT = find_preferred_dark_bg()
-BG_LIGHT_CONCERT = os.environ.get("LEVYRA_BG_LIGHT", r"C:\Users\Luca Drogo\.gemini\antigravity\brain\56548c8c-b7bc-4dce-809e-6e9d455ced20\light_concert_stage_1790508968511.jpg")
+BG_LIGHT_CONCERT = os.environ.get("DERBIS_BG_LIGHT", r"C:\Users\Luca Drogo\.gemini\antigravity\brain\56548c8c-b7bc-4dce-809e-6e9d455ced20\light_concert_stage_1790508968511.jpg")
 
-OUTPUT_DARK_PATH = os.path.join(ASSETS_DIR, "levyra-github-banner.webp")
-OUTPUT_LIGHT_PATH = os.path.join(ASSETS_DIR, "levyra-github-banner-light.webp")
+OUTPUT_DARK_PATH = os.path.join(ASSETS_DIR, "derbis-github-banner.webp")
+OUTPUT_LIGHT_PATH = os.path.join(ASSETS_DIR, "derbis-github-banner-light.webp")
 
-DESKTOP_DIR = os.environ.get("LEVYRA_DESKTOP_DIR", os.path.join(os.path.expanduser("~"), "Desktop"))
+DESKTOP_DIR = os.environ.get("DERBIS_DESKTOP_DIR", os.path.join(os.path.expanduser("~"), "Desktop"))
 
 # Official GitHub Octocat vector assets (256x256 rendered directly from GitHub official SVG path)
 GITHUB_WHITE_B64 = (
@@ -596,14 +596,14 @@ def generate_light_unified_banner():
 
 def main():
     """Main banner generator entry point."""
-    print("Generating official Levyra banners with musical concert stage aesthetic...")
+    print("Generating official Derbis banners with musical concert stage aesthetic...")
     generate_dark_unified_banner()
     generate_light_unified_banner()
 
     # Copy to Desktop
     if os.path.exists(DESKTOP_DIR):
-        shutil.copyfile(OUTPUT_DARK_PATH, os.path.join(DESKTOP_DIR, "levyra-github-banner.webp"))
-        shutil.copyfile(OUTPUT_LIGHT_PATH, os.path.join(DESKTOP_DIR, "levyra-github-banner-light.webp"))
+        shutil.copyfile(OUTPUT_DARK_PATH, os.path.join(DESKTOP_DIR, "derbis-github-banner.webp"))
+        shutil.copyfile(OUTPUT_LIGHT_PATH, os.path.join(DESKTOP_DIR, "derbis-github-banner-light.webp"))
         print(f"Copied both banners to Desktop: {DESKTOP_DIR}")
 
     print("All tasks completed successfully!")

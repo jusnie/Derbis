@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bootstrap and launch Levyra's pinned jCodeMunch MCP runtime."""
+"""Bootstrap and launch Derbis's pinned jCodeMunch MCP runtime."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def cache_root() -> Path:
         base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
     else:
         base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    return base / "Levyra" / "codex-tools" / "jcodemunch" / JCODEMUNCH_VERSION
+    return base / "Derbis" / "codex-tools" / "jcodemunch" / JCODEMUNCH_VERSION
 
 
 def venv_dir() -> Path:
@@ -117,7 +117,7 @@ def serve() -> int:
     try:
         binary = ensure_installed(quiet=True)
     except Exception as exc:  # fail closed for this optional MCP only; Codex itself stays usable.
-        print(f"Levyra jCodeMunch bootstrap failed: {exc}", file=sys.stderr)
+        print(f"Derbis jCodeMunch bootstrap failed: {exc}", file=sys.stderr)
         return 1
 
     if os.name == "nt":
@@ -147,7 +147,7 @@ def main() -> int:
             index_repository(quiet=args.quiet)
     except Exception as exc:
         if not args.quiet:
-            print(f"Levyra jCodeMunch bootstrap failed: {exc}", file=sys.stderr)
+            print(f"Derbis jCodeMunch bootstrap failed: {exc}", file=sys.stderr)
         return 1
     return 0
 

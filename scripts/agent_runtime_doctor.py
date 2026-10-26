@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, cross-platform readiness report for Levyra's coding toolchain."""
+"""Read-only, cross-platform readiness report for Derbis's coding toolchain."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ REQUIRED_FILES = {
     "claude_hooks": ".agents/claude/settings.json",
     "codex_hooks": ".agents/codex/hooks.json",
     "context_filters": ".rtk/filters.toml",
-    "context_optimizer": "scripts/levyra_context_optimizer.py",
+    "context_optimizer": "scripts/derbis_context_optimizer.py",
     "agent_harness": "scripts/agent_harness.py",
     "quality_gate": "scripts/ai_quality_gate.py",
 }
@@ -54,7 +54,7 @@ def inspect_readiness(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Levyra agent readiness (read-only)")
+    parser = argparse.ArgumentParser(description="Derbis agent readiness (read-only)")
     parser.add_argument("--json", action="store_true", help="Print machine-readable status")
     parser.add_argument("--strict", action="store_true", help="Fail on missing required contracts")
     args = parser.parse_args(argv)
@@ -63,7 +63,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(report, indent=2, sort_keys=True))
     else:
         state = "PASS" if report["repository_ready"] else "INCOMPLETE"
-        print("Levyra Agent Toolchain Readiness")
+        print("Derbis Agent Toolchain Readiness")
         print(f"Repository contracts: {state}")
         for name, available in report["optional_executables"].items():
             status = "detected" if available else "not detected (optional)"

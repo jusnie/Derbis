@@ -45,7 +45,7 @@ void clear_locked() {
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeStart(
+Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeStart(
     JNIEnv*, jobject, jlong application_id
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -54,7 +54,7 @@ Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeStart(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
+Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     JNIEnv* env,
     jobject,
     jstring title,
@@ -91,7 +91,7 @@ Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeClear(
+Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeClear(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -100,7 +100,7 @@ Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeClear(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_levyra_feature_discord_DerbisDiscordRichPresence_nativeStop(
+Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeStop(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::mutex> lock(g_mutex);

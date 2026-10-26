@@ -12,9 +12,9 @@ plugins {
 }
 
 project(":app").pluginManager.withPlugin("com.android.application") {
-    project(":app").dependencies.add("implementation", "com.github.LUC4N3X:LevyraNexus:1.0.0")
+    project(":app").dependencies.add("implementation", "com.github.LUC4N3X:DerbisNexus:1.0.0")
     project(":app").dependencies.add(
         "implementation",
-        project(":app").dependencies.project(":levyra-recognition")
+        project(":app").dependencies.project(":derbis-recognition")
     )
 }

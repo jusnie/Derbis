@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail early when Levyra drifts from its reviewed F-Droid behavior."""
+"""Fail early when Derbis drifts from its reviewed F-Droid behavior."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ FDROID_RUNTIME_DEPENDENCIES = {
     "okhttp": "com.squareup.okhttp3:okhttp",
     "okhttp.brotli": "com.squareup.okhttp3:okhttp-brotli",
     "okhttp.dnsoverhttps": "com.squareup.okhttp3:okhttp-dnsoverhttps",
-    "newpipe.extractor": "com.github.LUC4N3X:LevyraExtractor",
+    "newpipe.extractor": "com.github.LUC4N3X:DerbisExtractor",
     "androidx.room.runtime": "androidx.room:room-runtime",
     "androidx.room.ktx": "androidx.room:room-ktx",
     "androidx.datastore.preferences": "androidx.datastore:datastore-preferences",
@@ -201,7 +201,7 @@ def collect_violations(
             )
 
     prompt_path = (
-        "app/src/main/java/com/luc4n3x/levyra/ui/support/"
+        "app/src/main/java/com/luc4n3x/derbis/ui/support/"
         "OpenSourceSupportPrompt.kt"
     )
     prompt = read(prompt_path)
@@ -214,7 +214,7 @@ def collect_violations(
     )
 
     announcement_path = (
-        "app/src/main/java/com/luc4n3x/levyra/ui/support/"
+        "app/src/main/java/com/luc4n3x/derbis/ui/support/"
         "RemoteAnnouncementRepository.kt"
     )
     announcements = read(announcement_path)
@@ -226,7 +226,7 @@ def collect_violations(
         "repository entry points must remain gated for F-Droid",
     )
 
-    preferences_path = "app/src/main/java/com/luc4n3x/levyra/data/LevyraPreferences.kt"
+    preferences_path = "app/src/main/java/com/luc4n3x/derbis/data/DerbisPreferences.kt"
     preferences = read(preferences_path)
     require(
         preferences_path,
@@ -236,13 +236,13 @@ def collect_violations(
     )
 
     exporter_path = (
-        "app/src/main/java/com/luc4n3x/levyra/player/offline/"
+        "app/src/main/java/com/luc4n3x/derbis/player/offline/"
         "OfflineAudioExporter.kt"
     )
     exporter = read(exporter_path)
     for forbidden, reason in (
         ("MediaStore.Downloads", "offline audio must not silently fall back to Downloads"),
-        ("Environment.DIRECTORY_DOWNLOADS", "offline audio must stay under Music/Levyra"),
+        ("Environment.DIRECTORY_DOWNLOADS", "offline audio must stay under Music/Derbis"),
         ("saveScopedDownloadFile", "the Downloads fallback must not return"),
         ("downloadsDestinationLabel", "the Downloads destination must not return"),
     ):
@@ -250,12 +250,12 @@ def collect_violations(
     for required, reason in (
         ("isMp4AudioExportUrl(track.streamUrl)", "provided streams must be checked as MP4/M4A"),
         ("if (!downloaded.container.supportsEmbeddedMetadata)", "non-M4A downloads must fail"),
-        ("LevyraM4aTagWriter.write", "M4A metadata must be embedded"),
+        ("DerbisM4aTagWriter.write", "M4A metadata must be embedded"),
         ("MediaStore.Audio.Media.EXTERNAL_CONTENT_URI", "audio must be registered in MediaStore.Audio"),
     ):
         require(exporter_path, exporter, required, reason)
 
-    resolver_path = "app/src/main/java/com/luc4n3x/levyra/data/PlaybackResolver.kt"
+    resolver_path = "app/src/main/java/com/luc4n3x/derbis/data/PlaybackResolver.kt"
     resolver = read(resolver_path)
     require(
         resolver_path,
@@ -271,7 +271,7 @@ def collect_violations(
     )
 
     viewmodel_path = (
-        "app/src/main/java/com/luc4n3x/levyra/viewmodel/LevyraViewModel.kt"
+        "app/src/main/java/com/luc4n3x/derbis/viewmodel/DerbisViewModel.kt"
     )
     viewmodel = read(viewmodel_path)
     for forbidden in (
@@ -284,7 +284,7 @@ def collect_violations(
             viewmodel_path,
             viewmodel,
             forbidden,
-            "user-visible runtime text and errors must use LevyraStrings",
+            "user-visible runtime text and errors must use DerbisStrings",
         )
     for required in (
         "strings.formatOfflineExportSaved(",
@@ -299,7 +299,7 @@ def collect_violations(
             "the reviewed localization path must remain in use",
         )
 
-    editorial_path = "app/src/main/java/com/luc4n3x/levyra/data/EditorialChartsRepository.kt"
+    editorial_path = "app/src/main/java/com/luc4n3x/derbis/data/EditorialChartsRepository.kt"
     editorial = read(editorial_path)
     for marker in (
         '"https://raw.githubusercontent.com/jusnie/Derbis/editorial-data/catalog/editorial.json"',
@@ -371,12 +371,12 @@ def collect_violations(
             )
 
     required_tests = (
-        "app/src/test/java/com/luc4n3x/levyra/data/LevyraPreferencesDefaultsTest.kt",
-        "app/src/test/java/com/luc4n3x/levyra/data/PlaybackResolverOfflineExportTest.kt",
-        "app/src/test/java/com/luc4n3x/levyra/player/offline/OfflineAudioExporterTest.kt",
-        "app/src/test/java/com/luc4n3x/levyra/player/offline/tagging/LevyraM4aTagWriterTest.kt",
-        "app/src/test/java/com/luc4n3x/levyra/ui/i18n/LevyraStringsTest.kt",
-        "app/src/test/java/com/luc4n3x/levyra/ui/support/RemoteAnnouncementRepositoryTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/data/DerbisPreferencesDefaultsTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/data/PlaybackResolverOfflineExportTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/player/offline/OfflineAudioExporterTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/player/offline/tagging/DerbisM4aTagWriterTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/ui/i18n/DerbisStringsTest.kt",
+        "app/src/test/java/com/luc4n3x/derbis/ui/support/RemoteAnnouncementRepositoryTest.kt",
     )
     for required_test in required_tests:
         read(required_test)
@@ -385,11 +385,11 @@ def collect_violations(
     workflow_requirements = {
         ".github/workflows/pr-check.yml": (
             validator_command,
-            "LevyraPreferencesDefaultsTest",
+            "DerbisPreferencesDefaultsTest",
             "PlaybackResolverOfflineExportTest",
             "OfflineAudioExporterTest",
-            "LevyraM4aTagWriterTest",
-            "LevyraStringsTest",
+            "DerbisM4aTagWriterTest",
+            "DerbisStringsTest",
             "RemoteAnnouncementRepositoryTest",
         ),
         ".github/workflows/fdroid-metadata-preflight.yml": (validator_command,),

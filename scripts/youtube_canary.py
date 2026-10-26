@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Levyra YouTube protocol canary.
+"""Derbis YouTube protocol canary.
 
 The canary records only sanitized protocol metadata. It never persists API keys,
 visitor data, cookies, media URLs, or signed query parameters.
@@ -31,15 +31,15 @@ USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 )
-LEVYRA_WEB_PLAYER_USER_AGENT = (
+DERBIS_WEB_PLAYER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
 )
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
-# Mirrors the clients Levyra's playback compatibility policy actually uses. ANDROID_VR stays out
-# because the shipped policy disables it; the canary must not imply support Levyra does not ship.
-LEVYRA_CLIENT_MATRIX: tuple[dict[str, Any], ...] = (
+# Mirrors the clients Derbis's playback compatibility policy actually uses. ANDROID_VR stays out
+# because the shipped policy disables it; the canary must not imply support Derbis does not ship.
+DERBIS_CLIENT_MATRIX: tuple[dict[str, Any], ...] = (
     {
         "name": "VISIONOS",
         "client": {
@@ -103,7 +103,7 @@ LEVYRA_CLIENT_MATRIX: tuple[dict[str, Any], ...] = (
     {
         "name": "WEB_REMIX",
         "client": {"clientName": "WEB_REMIX", "clientVersion": "1.20260804.16.00"},
-        "user_agent": LEVYRA_WEB_PLAYER_USER_AGENT,
+        "user_agent": DERBIS_WEB_PLAYER_USER_AGENT,
         "requires_po_token": True,
         "client_header_name": "67",
         "player_enabled": True,
@@ -111,7 +111,7 @@ LEVYRA_CLIENT_MATRIX: tuple[dict[str, Any], ...] = (
     {
         "name": "WEB",
         "client": {"clientName": "WEB", "clientVersion": ""},
-        "user_agent": LEVYRA_WEB_PLAYER_USER_AGENT,
+        "user_agent": DERBIS_WEB_PLAYER_USER_AGENT,
         "requires_po_token": True,
         "client_header_name": "1",
         "player_enabled": True,
@@ -119,7 +119,7 @@ LEVYRA_CLIENT_MATRIX: tuple[dict[str, Any], ...] = (
     {
         "name": "WEB_EMBEDDED_PLAYER",
         "client": {"clientName": "WEB_EMBEDDED_PLAYER", "clientVersion": "1.20260423.01.00"},
-        "user_agent": LEVYRA_WEB_PLAYER_USER_AGENT,
+        "user_agent": DERBIS_WEB_PLAYER_USER_AGENT,
         "requires_po_token": False,
         "client_header_name": "56",
         "player_enabled": False,
@@ -469,7 +469,7 @@ def _player_api_request(
     hl: str,
     gl: str,
     client: dict[str, Any] | None = None,
-    user_agent: str = LEVYRA_WEB_PLAYER_USER_AGENT,
+    user_agent: str = DERBIS_WEB_PLAYER_USER_AGENT,
     client_header_name: str = "1",
 ) -> dict[str, Any]:
     if not innertube_query_value or not client_version:
@@ -534,7 +534,7 @@ def _is_playable_summary(summary: dict[str, Any]) -> bool:
 def _primary_fallback_clients() -> list[dict[str, Any]]:
     return [
         entry
-        for entry in LEVYRA_CLIENT_MATRIX
+        for entry in DERBIS_CLIENT_MATRIX
         if entry.get("player_enabled") and not entry.get("requires_po_token")
     ]
 
@@ -559,7 +559,7 @@ def _sentinel_player(
                 visitor_data=visitor_data,
                 hl=hl,
                 gl=gl,
-                user_agent=LEVYRA_WEB_PLAYER_USER_AGENT,
+                user_agent=DERBIS_WEB_PLAYER_USER_AGENT,
             )
         )
     except CanaryError as error:
@@ -578,7 +578,7 @@ def _sentinel_player(
                     hl=hl,
                     gl=gl,
                     client=client,
-                    user_agent=str(entry.get("user_agent") or LEVYRA_WEB_PLAYER_USER_AGENT),
+                    user_agent=str(entry.get("user_agent") or DERBIS_WEB_PLAYER_USER_AGENT),
                     client_header_name=str(entry.get("client_header_name") or "1"),
                 )
             )
@@ -729,7 +729,7 @@ def _media_network_count(url: str) -> int:
 
 def _classify_delivery(summary: dict[str, Any]) -> str:
     """Where playback for one client currently stands. The canary is a sensor: it reports what the
-    protocol offers an unauthenticated prober, never what Levyra can reach with its own tokens."""
+    protocol offers an unauthenticated prober, never what Derbis can reach with its own tokens."""
     status = str(summary.get("playability_status") or "")
     reason = str(summary.get("playability_reason") or "").lower()
     if status in ("LOGIN_REQUIRED", "AGE_VERIFICATION_REQUIRED") or "bot" in reason or "sign in" in reason:
@@ -776,7 +776,7 @@ def _probe_client(
             hl=hl,
             gl=gl,
             client=client,
-            user_agent=str(entry.get("user_agent") or LEVYRA_WEB_PLAYER_USER_AGENT),
+            user_agent=str(entry.get("user_agent") or DERBIS_WEB_PLAYER_USER_AGENT),
             client_header_name=str(entry.get("client_header_name") or "1"),
         )
     except CanaryError as error:
@@ -826,7 +826,7 @@ def _probe_client_matrix(
             hl=hl,
             gl=gl,
         )
-        for entry in LEVYRA_CLIENT_MATRIX
+        for entry in DERBIS_CLIENT_MATRIX
     ]
 
 
@@ -1186,7 +1186,7 @@ def _probe_capability_check(
 
 def _matrix_requires_po_token(client_result: dict[str, Any]) -> bool:
     name = str(client_result.get("client") or "")
-    for entry in LEVYRA_CLIENT_MATRIX:
+    for entry in DERBIS_CLIENT_MATRIX:
         if str(entry.get("name") or "") == name:
             return bool(entry.get("requires_po_token", False))
     return False
@@ -1219,7 +1219,7 @@ def _fetch_upstream(repo: str, branch: str) -> dict[str, Any]:
     try:
         response = _bounded_request(
             endpoint,
-            headers={"Accept": "application/vnd.github+json", "User-Agent": "Levyra-YouTube-Canary"},
+            headers={"Accept": "application/vnd.github+json", "User-Agent": "Derbis-YouTube-Canary"},
             max_bytes=GITHUB_JSON_MAX_BYTES,
         )
         if response.status < 200 or response.status >= 300:
@@ -1620,7 +1620,7 @@ def _render_cipher_coverage(observation: dict[str, Any]) -> list[str]:
 
 def _render_report(observation: dict[str, Any], decision: dict[str, Any]) -> str:
     lines = [
-        "# Levyra YouTube Canary",
+        "# Derbis YouTube Canary",
         "",
         f"- Decision: **{decision['decision']}**",
         f"- Severity: **{decision['severity']}**",
@@ -1780,7 +1780,7 @@ def command_incident(args: argparse.Namespace) -> int:
     destination = Path(args.destination)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
-        "<!-- Auto-generated by Levyra YouTube Canary. Contains sanitized metadata only. -->\n\n"
+        "<!-- Auto-generated by Derbis YouTube Canary. Contains sanitized metadata only. -->\n\n"
         + report,
         encoding="utf-8",
     )

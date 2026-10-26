@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's repository-local agent configuration."""
+"""Validate Derbis's repository-local agent configuration."""
 
 from __future__ import annotations
 
@@ -27,11 +27,11 @@ REQUIRED_FILES = (
     "docs/project/ROADMAP.md",
     "docs/project/TASKS.md",
     ".agents/README.md",
-    ".agents/rules/levyra-workspace.md",
-    ".agents/skills/levyra-design-taste/SKILL.md",
-    ".agents/skills/levyra-android-performance/SKILL.md",
-    ".agents/skills/levyra-r8-proguard/SKILL.md",
-    ".agents/skills/levyra-android-intent-security/SKILL.md",
+    ".agents/rules/derbis-workspace.md",
+    ".agents/skills/derbis-design-taste/SKILL.md",
+    ".agents/skills/derbis-android-performance/SKILL.md",
+    ".agents/skills/derbis-r8-proguard/SKILL.md",
+    ".agents/skills/derbis-android-intent-security/SKILL.md",
     f"{CLAUDE_ROOT}/CLAUDE.md",
     f"{CLAUDE_ROOT}/settings.json",
     f"{CLAUDE_ROOT}/hooks/user-prompt-submit.sh",
@@ -53,7 +53,7 @@ FORBIDDEN_DUPLICATE_FILES = ("SPEC.md", "ROADMAP.md", "TASKS.md")
 REFERENCE_FILES = (
     "AGENTS.md",
     ".agents/README.md",
-    ".agents/rules/levyra-workspace.md",
+    ".agents/rules/derbis-workspace.md",
     "docs/AGENTS.md",
     "docs/ai/README.md",
     "docs/ai/WORKFLOW.md",
@@ -61,7 +61,7 @@ REFERENCE_FILES = (
     "docs/ai/OPENCLAW.md",
     "docs/ai/CHATGPT_PROJECT_INSTRUCTIONS.md",
 )
-ANTIGRAVITY_RULE_PATH = ".agents/rules/levyra-workspace.md"
+ANTIGRAVITY_RULE_PATH = ".agents/rules/derbis-workspace.md"
 ANTIGRAVITY_RULE_ROOT_REFERENCE = "@../../AGENTS.md"
 ANTIGRAVITY_SKILLS_PATH = ".agents/skills/"
 CLAUDE_INSTRUCTIONS_PATH = f"{CLAUDE_ROOT}/CLAUDE.md"
@@ -70,21 +70,21 @@ CHATGPT_INSTRUCTIONS_PATH = "docs/ai/CHATGPT_PROJECT_INSTRUCTIONS.md"
 GUARDRAILS_PATH = "docs/ai/AI_ENGINEERING_GUARDRAILS.md"
 
 AUTOMATIC_ROUTED_SKILLS = (
-    "levyra-real-engineering",
-    "levyra-compose",
-    "levyra-design-taste",
-    "levyra-android-performance",
-    "levyra-r8-proguard",
-    "levyra-android-intent-security",
-    "levyra-ci-workflows",
-    "levyra-context-efficiency",
-    "levyra-pr-review",
-    "levyra-release-check",
+    "derbis-real-engineering",
+    "derbis-compose",
+    "derbis-design-taste",
+    "derbis-android-performance",
+    "derbis-r8-proguard",
+    "derbis-android-intent-security",
+    "derbis-ci-workflows",
+    "derbis-context-efficiency",
+    "derbis-pr-review",
+    "derbis-release-check",
 )
 
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-SKILL_REFERENCE_RE = re.compile(r"`(levyra-[a-z0-9-]+)`")
-DOCUMENTED_AGENT_IDS = {"levyra-ci", "levyra-reviewer", "levyra-worker"}
+SKILL_REFERENCE_RE = re.compile(r"`(derbis-[a-z0-9-]+)`")
+DOCUMENTED_AGENT_IDS = {"derbis-ci", "derbis-reviewer", "derbis-worker"}
 
 
 def read_text(relative_path: str) -> str:
@@ -209,7 +209,7 @@ def main() -> int:
             errors,
             ANTIGRAVITY_RULE_PATH,
             antigravity_rule,
-            ("AI_ENGINEERING_GUARDRAILS.md", "levyra-context-efficiency"),
+            ("AI_ENGINEERING_GUARDRAILS.md", "derbis-context-efficiency"),
             "Antigravity shared guardrail/context route",
         )
 
@@ -235,13 +235,13 @@ def main() -> int:
             codex_instructions,
             (
                 "Always-on context budget",
-                "levyra-context-efficiency",
+                "derbis-context-efficiency",
                 "AI_ENGINEERING_GUARDRAILS.md",
                 "Do not add explanatory source-code comments",
                 ".agents/claude/",
                 ".agents/codex/",
                 ".github/pull_request_template.md",
-                "levyra-humanizer",
+                "derbis-humanizer",
             ),
             "Codex context/code-quality/runtime-source contract",
         )
@@ -261,7 +261,7 @@ def main() -> int:
                 "code-review",
                 ".agents/claude/rules/",
                 ".github/pull_request_template.md",
-                "levyra-humanizer",
+                "derbis-humanizer",
             ),
             "ChatGPT shared guardrail/review/canonical-rule route",
         )
@@ -286,11 +286,11 @@ def main() -> int:
             (
                 "Immediate context budget",
                 "AI_ENGINEERING_GUARDRAILS.md",
-                "levyra-context-efficiency",
+                "derbis-context-efficiency",
                 "/code-review",
                 "Do not add explanatory source-code comments",
                 ".github/pull_request_template.md",
-                "levyra-humanizer",
+                "derbis-humanizer",
             ),
             "Claude immediate context/review contract",
         )
@@ -305,24 +305,24 @@ def main() -> int:
             errors,
             CLAUDE_ROUTER_PATH,
             claude_router,
-            ("Levyra context budget", "code-review", "levyra-humanizer"),
+            ("Derbis context budget", "code-review", "derbis-humanizer"),
             "Claude hook context/review reminder",
         )
 
     for relative_path, terms, label in (
         (
             "scripts/agent_skill_router.py",
-            ("levyra-humanizer", "pull request description"),
+            ("derbis-humanizer", "pull request description"),
             "shared PR-description skill route",
         ),
         (
             ".github/pull_request_template.md",
-            ("complete Levyra", "## Summary", "## Changes", "## Testing", "## Risk and compatibility", "## Checklist"),
+            ("complete Derbis", "## Summary", "## Changes", "## Testing", "## Risk and compatibility", "## Checklist"),
             "mandatory PR-description schema",
         ),
         (
             "docs/ai/WORKFLOW.md",
-            (".github/pull_request_template.md", "levyra-humanizer", "leave unperformed"),
+            (".github/pull_request_template.md", "derbis-humanizer", "leave unperformed"),
             "shared PR publication prose contract",
         ),
     ):

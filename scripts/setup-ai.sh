@@ -85,7 +85,7 @@ run_step() {
   "$@"
 }
 
-echo "Levyra AI efficiency setup"
+echo "Derbis AI efficiency setup"
 echo "Repository: $REPO_ROOT"
 
 if [[ "$INSTALL_CLAUDE_MEM" -eq 1 ]]; then
@@ -94,7 +94,7 @@ if [[ "$INSTALL_CLAUDE_MEM" -eq 1 ]]; then
     claude_mem_args+=(--dry-run)
   fi
   if ! "$SCRIPT_DIR/setup-claude-mem.sh" "${claude_mem_args[@]}"; then
-    echo "[warn] claude-mem setup did not complete; continuing Levyra AI setup without persistent memory." >&2
+    echo "[warn] claude-mem setup did not complete; continuing Derbis AI setup without persistent memory." >&2
   fi
 fi
 
@@ -196,7 +196,7 @@ elif has_command py; then
 fi
 
 if [[ -z "$PYTHON_COMMAND" ]]; then
-  echo "[blocked] Python is required to materialize and verify Levyra agent runtime configuration." >&2
+  echo "[blocked] Python is required to materialize and verify Derbis agent runtime configuration." >&2
   exit 1
 fi
 
@@ -206,7 +206,7 @@ elif [[ "$DISABLE_HEADROOM" -eq 1 ]]; then
   run_step "Disable optional Headroom integration" "$PYTHON_COMMAND" scripts/headroom_adapter.py disable
 fi
 
-run_step "Verify Levyra Context Optimizer" "$PYTHON_COMMAND" scripts/levyra_context_optimizer.py stats
+run_step "Verify Derbis Context Optimizer" "$PYTHON_COMMAND" scripts/derbis_context_optimizer.py stats
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] Refresh Claude Code and Codex native runtime projections: (cd '$REPO_ROOT' && $PYTHON_COMMAND scripts/sync_agent_runtime.py --runtime all --quiet)"
@@ -234,9 +234,9 @@ echo
 echo "Setup complete."
 echo "The tracked source of truth is .agents/. Native .claude/ and .codex/ directories are generated locally, ignored by Git, and refreshed from .agents."
 echo "Restart each detected coding agent or start a new conversation so newly projected settings, hooks, rules, and skills are loaded."
-echo "Claude Code discovers Levyra skills from the generated .claude/skills projection of canonical .agents/skills."
+echo "Claude Code discovers Derbis skills from the generated .claude/skills projection of canonical .agents/skills."
 echo "Codex discovers canonical .agents/skills directly; its generated .codex projection supplies project config and hooks."
 echo "Use --claude-mem once when you explicitly want the pinned claude-mem integration for detected Claude Code, Codex CLI, and Antigravity runtimes."
 echo "ChatGPT uses claude-mem only when a compatible MCP app is connected; see docs/ai/CLAUDE_MEM.md."
-echo "Antigravity and ChatGPT use the repository-native levyra-real-engineering adapter; see docs/ai/MATT_POCOCK_SKILLS.md."
+echo "Antigravity and ChatGPT use the repository-native derbis-real-engineering adapter; see docs/ai/MATT_POCOCK_SKILLS.md."
 echo 'Use `rtk gain` and `rtk discover --all --since 7` to measure real command-output savings.'

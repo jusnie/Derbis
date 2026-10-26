@@ -92,7 +92,7 @@ else {
         & $pythonCommand $jCodeMunchRuntime ensure --quiet
     }
     if (-not $SkipIndex) {
-        Invoke-FailOpen 'Refresh Levyra jCodeMunch index' {
+        Invoke-FailOpen 'Refresh Derbis jCodeMunch index' {
             & $pythonCommand $jCodeMunchRuntime index --quiet
         }
     }
@@ -148,5 +148,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Step '[ok] Levyra Codex tooling is ready.'
+Write-Step '[ok] Derbis Codex tooling is ready.'
 exit 0

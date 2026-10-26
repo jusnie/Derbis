@@ -22,20 +22,20 @@ dependencyResolutionManagement {
     }
 }
 
-includeBuild("third_party/LevyraExtractor") {
+includeBuild("third_party/DerbisExtractor") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:LevyraExtractor")).using(project(":"))
+        substitute(module("com.github.LUC4N3X:DerbisExtractor")).using(project(":"))
     }
 }
 
-includeBuild("third_party/LevyraNexus") {
+includeBuild("third_party/DerbisNexus") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:LevyraNexus")).using(project(":"))
+        substitute(module("com.github.LUC4N3X:DerbisNexus")).using(project(":"))
     }
 }
 
 rootProject.name = "Derbis"
 include(":app")
 include(":baselineprofile")
-include(":levyra-recognition")
-include(":levyra-native-audio")
+include(":derbis-recognition")
+include(":derbis-native-audio")

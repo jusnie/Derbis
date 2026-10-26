@@ -1,9 +1,9 @@
-# Levyra Claude Code
+# Derbis Claude Code
 
 @AGENTS.md
 
 Claude Code reads this file natively at project startup. The imported
-`AGENTS.md` is the cross-runtime Levyra contract and must be applied before
+`AGENTS.md` is the cross-runtime Derbis contract and must be applied before
 repository work.
 
 Claude-specific settings, hooks, agents, and path rules live under

@@ -8,10 +8,10 @@
         android:shortcutShortLabel="@string/shortcut_search">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.luc4n3x.levyra.MainActivity"
+            android:targetClass="com.luc4n3x.derbis.MainActivity"
             android:targetPackage="com.derbis.app.debug">
             <extra
-                android:name="levyra.shortcut"
+                android:name="derbis.shortcut"
                 android:value="search" />
         </intent>
     </shortcut>
@@ -23,10 +23,10 @@
         android:shortcutShortLabel="@string/shortcut_library">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.luc4n3x.levyra.MainActivity"
+            android:targetClass="com.luc4n3x.derbis.MainActivity"
             android:targetPackage="com.derbis.app.debug">
             <extra
-                android:name="levyra.shortcut"
+                android:name="derbis.shortcut"
                 android:value="library" />
         </intent>
     </shortcut>
@@ -38,10 +38,10 @@
         android:shortcutShortLabel="@string/shortcut_recognition">
         <intent
             android:action="android.intent.action.VIEW"
-            android:targetClass="com.luc4n3x.levyra.MainActivity"
+            android:targetClass="com.luc4n3x.derbis.MainActivity"
             android:targetPackage="com.derbis.app.debug">
             <extra
-                android:name="levyra.shortcut"
+                android:name="derbis.shortcut"
                 android:value="recognition" />
         </intent>
     </shortcut>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's canonical Claude Code bootstrap and context-loading contract."""
+"""Validate Derbis's canonical Claude Code bootstrap and context-loading contract."""
 
 from __future__ import annotations
 
@@ -164,7 +164,7 @@ def main() -> int:
     )
 
     require_terms(
-        f"{CLAUDE_ROOT}/agents/levyra-android-developer.md",
+        f"{CLAUDE_ROOT}/agents/derbis-android-developer.md",
         ("tools: Read, Grep, Glob, Edit, Write, Bash, Skill", "model: inherit", "effort: high", "Project instructions are already loaded automatically"),
         errors,
     )
@@ -177,11 +177,11 @@ def main() -> int:
             "Mandatory skill load",
             "Root AGENTS.md remains canonical",
             "EVIDENCE_GATED_COMPLETION.md",
-            "levyra-project-manager",
-            "levyra-desktop",
-            "levyra-engineering",
-            "levyra-openclaw-orchestrator",
-            "Levyra hard contract (re-anchored on every prompt)",
+            "derbis-project-manager",
+            "derbis-desktop",
+            "derbis-engineering",
+            "derbis-openclaw-orchestrator",
+            "Derbis hard contract (re-anchored on every prompt)",
             "root CLAUDE.md natively imports AGENTS.md",
             "smallest coherent root-cause fix",
         ),

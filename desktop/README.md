@@ -1,8 +1,8 @@
-# Levyra Desktop
+# Derbis Desktop
 
-Levyra's desktop client for Windows, written in Kotlin with Compose Multiplatform.
+Derbis's desktop client for Windows, written in Kotlin with Compose Multiplatform.
 
-It shares the Android project's YouTube extractor (`third_party/LevyraExtractor`), reuses the same localization catalog, and plays audio through libvlc.
+It shares the Android project's YouTube extractor (`third_party/DerbisExtractor`), reuses the same localization catalog, and plays audio through libvlc.
 
 ## Features
 
@@ -22,16 +22,16 @@ It shares the Android project's YouTube extractor (`third_party/LevyraExtractor`
 - System-wide media keys on Windows, so playback stays controllable from the tray or the background
 - Full desktop player with a close action and direct offline-download control
 - Separate resizable mini player that can stay always on top
-- Single-instance protection: opening Levyra again brings the existing window to the foreground
-- `levyra://` protocol support and direct opening of YouTube and YouTube Music links
+- Single-instance protection: opening Derbis again brings the existing window to the foreground
+- `derbis://` protocol support and direct opening of YouTube and YouTube Music links
 - Automatic Windows update checks with SHA-256 verification
 - Local crash reports that can be copied directly from the error dialog
 - Artwork-derived accent color, light and dark themes, and a coordinated Windows title bar
-- Official Levyra icon in the window, tray, sidebar, and installer
+- Official Derbis icon in the window, tray, sidebar, and installer
 
 ## First Launch
 
-When no completed profile exists, Levyra displays the initial setup before opening Home:
+When no completed profile exists, Derbis displays the initial setup before opening Home:
 
 1. choose the app language;
 2. enter the display name used in the app;
@@ -53,7 +53,7 @@ Each section displays its own count and allows users to play, add to the queue, 
 
 ## Offline Downloads
 
-The download action is available from every track-row menu and directly from the player. Downloads are stored in `%APPDATA%\Levyra\offline` and tracked in `downloads.json`.
+The download action is available from every track-row menu and directly from the player. Downloads are stored in `%APPDATA%\Derbis\offline` and tracked in `downloads.json`.
 
 The download engine:
 
@@ -79,21 +79,21 @@ The mini player is a separate always-on-top window. It shares the main player's 
 - opening the main window;
 - Space, Left Arrow, Right Arrow, and Esc shortcuts.
 
-Levyra keeps only one active instance. A second launch does not initialize the Library, downloads, or player again. Instead, it sends a local request to the already-running instance and brings it to the foreground.
+Derbis keeps only one active instance. A second launch does not initialize the Library, downloads, or player again. Instead, it sends a local request to the already-running instance and brings it to the foreground.
 
 ## Deep Links
 
-On Windows, Levyra registers the user-level `levyra://` protocol without requiring administrator privileges.
+On Windows, Derbis registers the user-level `derbis://` protocol without requiring administrator privileges.
 
 Examples:
 
 ```text
-levyra://open?url=https%3A%2F%2Fmusic.youtube.com%2Fplaylist%3Flist%3D...
-levyra://search?q=artist
-levyra://watch?v=VIDEO_ID
+derbis://open?url=https%3A%2F%2Fmusic.youtube.com%2Fplaylist%3Flist%3D...
+derbis://search?q=artist
+derbis://watch?v=VIDEO_ID
 ```
 
-Direct YouTube, YouTube Music, and `youtu.be` URLs are also accepted. When Levyra is already running, the link is forwarded to the existing instance.
+Direct YouTube, YouTube Music, and `youtu.be` URLs are also accepted. When Derbis is already running, the link is forwarded to the existing instance.
 
 ## Windows Updates
 
@@ -103,10 +103,10 @@ The Windows version is changed only in:
 
 ```properties
 # desktop/version.properties
-levyraDesktopVersion=1.1.0
+derbisDesktopVersion=1.1.0
 ```
 
-The Android `levyraVersionName` value in the root `gradle.properties` file does not control, trigger, or publish the Desktop build.
+The Android `derbisVersionName` value in the root `gradle.properties` file does not control, trigger, or publish the Desktop build.
 
 Windows releases use independent tags:
 
@@ -116,14 +116,14 @@ desktop-v1.0.1
 desktop-v1.1.0
 ```
 
-The app checks only releases whose tag starts with `desktop-v`. When a newer version is available, Levyra:
+The app checks only releases whose tag starts with `desktop-v`. When a newer version is available, Derbis:
 
 1. displays a translated update notification;
 2. downloads the correct Windows MSI;
 3. verifies the `.sha256` file published with the installer;
 4. closes the app;
 5. installs the new version over the existing installation;
-6. reopens Levyra.
+6. reopens Derbis.
 
 The stable `upgradeUuid` identifies every Windows version as the same installed application.
 
@@ -208,26 +208,26 @@ cd desktop
 ./gradlew packageReleaseExe
 ```
 
-Artifacts are generated in `app/build/compose/binaries/main-release/`. The workflow automatically reads `levyraDesktopVersion` from `desktop/version.properties`.
+Artifacts are generated in `app/build/compose/binaries/main-release/`. The workflow automatically reads `derbisDesktopVersion` from `desktop/version.properties`.
 
 After a merge into `main`, the MSI, EXE, portable ZIP, and SHA-256 checksums are published to the independent `desktop-v<version>` release. Android `v<version>` releases remain separate and are never modified by the Desktop workflow. Pull requests generate only temporary workflow artifacts.
 
 ## VLC Runtime
 
-When playback starts, Levyra looks for libvlc in this order:
+When playback starts, Derbis looks for libvlc in this order:
 
 1. the directory selected in Settings (`vlcDirectory`);
 2. the `vlc` directory bundled with the application;
-3. the `LEVYRA_VLC_PATH` and `VLC_HOME` environment variables;
+3. the `DERBIS_VLC_PATH` and `VLC_HOME` environment variables;
 4. standard installations under `Program Files\VideoLAN\VLC`.
 
-To distribute Levyra without requiring users to install VLC, copy `libvlc.dll`, `libvlccore.dll`, and the `plugins` directory from a 64-bit VLC installation into `desktop/app/resources/windows-x64/vlc/` before packaging.
+To distribute Derbis without requiring users to install VLC, copy `libvlc.dll`, `libvlccore.dll`, and the `plugins` directory from a 64-bit VLC installation into `desktop/app/resources/windows-x64/vlc/` before packaging.
 
 For online YouTube playback, the extractor still resolves the signed audio URL, but VLC reads it through a tokenized loopback session bound to `127.0.0.1`. The player bridge fetches the upstream stream in bounded byte ranges and forwards seek/range responses without buffering the whole track. Local files, offline downloads, and non-YouTube URLs bypass the bridge.
 
 ## Local Data
 
-Preferences, Library data, downloads, and artwork cache are stored in `%APPDATA%\Levyra` on Windows:
+Preferences, Library data, downloads, and artwork cache are stored in `%APPDATA%\Derbis` on Windows:
 
 | Path | Contents |
 |---|---|
@@ -260,16 +260,16 @@ Preferences, Library data, downloads, and artwork cache are stored in `%APPDATA%
 | `←` | previous track in the mini player |
 | `Esc` | close the mini player |
 
-The hardware media keys (play/pause, next, previous, stop) are registered system wide on Windows while `globalMediaKeys` is enabled, so playback stays controllable when Levyra is in the tray or behind another window. Windows assigns each media key to a single process: if another player already owns them, Levyra keeps working with its in-window shortcuts.
+The hardware media keys (play/pause, next, previous, stop) are registered system wide on Windows while `globalMediaKeys` is enabled, so playback stays controllable when Derbis is in the tray or behind another window. Windows assigns each media key to a single process: if another player already owns them, Derbis keeps working with its in-window shortcuts.
 
 The complete list is also shown in Settings, under the keyboard shortcuts section.
 
 ## Technical References
 
-The Desktop lifecycle hardening used the GPL-3.0 SimpMusic project as an architectural reference, especially for single-instance handling, the mini player, crash handling, deep links, and desktop packaging patterns. Levyra's implementation was rewritten and adapted to its own state model, libvlc player, and persistence system.
+The Desktop lifecycle hardening used the GPL-3.0 SimpMusic project as an architectural reference, especially for single-instance handling, the mini player, crash handling, deep links, and desktop packaging patterns. Derbis's implementation was rewritten and adapted to its own state model, libvlc player, and persistence system.
 
 ## Design Constraints
 
-The interface preserves the official Levyra icon, localized onboarding, country menus with real flags and native country names, RTL layout for Arabic and Hebrew, the integrated Library, and a closable player.
+The interface preserves the official Derbis icon, localized onboarding, country menus with real flags and native country names, RTL layout for Arabic and Hebrew, the integrated Library, and a closable player.
 
 It does not introduce manual country-code fields. Every string shared with the Android APK keeps coming from the shared localization catalog; the Desktop module only owns the labels for features that exist on Windows alone (sleep timer, playback speed, global media keys, keyboard shortcuts), so no shared text can drift between the two clients.

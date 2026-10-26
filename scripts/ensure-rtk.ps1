@@ -40,12 +40,12 @@ function Write-Step {
 }
 
 if (Test-RtkReady) {
-    Write-Step '[ok] Levyra RTK is ready.'
+    Write-Step '[ok] Derbis RTK is ready.'
     exit 0
 }
 
 if (-not (Test-Command 'cargo')) {
-    Write-Warning 'Levyra RTK is unavailable and Cargo is not installed; continuing without RTK.'
+    Write-Warning 'Derbis RTK is unavailable and Cargo is not installed; continuing without RTK.'
     exit 1
 }
 
@@ -54,7 +54,7 @@ if ($DryRun) {
     exit 0
 }
 
-Write-Step '[run] Installing the owner-authorized pinned RTK build for Levyra.'
+Write-Step '[run] Installing the owner-authorized pinned RTK build for Derbis.'
 $global:LASTEXITCODE = 0
 & cargo install --git https://github.com/rtk-ai/rtk --rev $rtkGitRevision --force
 if ($LASTEXITCODE -ne 0) {
@@ -67,5 +67,5 @@ if (-not (Test-RtkReady)) {
     exit 1
 }
 
-Write-Step '[ok] Levyra RTK installed and verified.'
+Write-Step '[ok] Derbis RTK installed and verified.'
 exit 0

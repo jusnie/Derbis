@@ -36,7 +36,7 @@ run_cmem() {
   fi
 
   if [[ "$allow_failure" -eq 1 ]]; then
-    echo "[warn] $label failed; continuing so claude-mem cannot block Levyra setup." >&2
+    echo "[warn] $label failed; continuing so claude-mem cannot block Derbis setup." >&2
     return 1
   fi
 
@@ -44,7 +44,7 @@ run_cmem() {
   return 1
 }
 
-echo "Levyra claude-mem setup"
+echo "Derbis claude-mem setup"
 echo "Package: $CLAUDE_MEM_PACKAGE"
 
 if ! has_command npx; then
@@ -108,7 +108,7 @@ echo
 if [[ "$healthy" -eq 1 ]]; then
   echo "[ok] claude-mem is installed and healthy."
 else
-  echo "[warn] claude-mem remains unhealthy. Levyra agents must continue without memory instead of blocking work." >&2
+  echo "[warn] claude-mem remains unhealthy. Derbis agents must continue without memory instead of blocking work." >&2
 fi
 
 if [[ "${#failed[@]}" -gt 0 ]]; then

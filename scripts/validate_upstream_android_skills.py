@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Levyra's external Kotlin and Material 3 skill integration."""
+"""Validate Derbis's external Kotlin and Material 3 skill integration."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ REQUIRED = (
     "AGENTS.md",
     "app/AGENTS.md",
     ".agents/claude/settings.json",
-    ".agents/skills/levyra-compose/SKILL.md",
-    ".agents/skills/levyra-design-taste/SKILL.md",
+    ".agents/skills/derbis-compose/SKILL.md",
+    ".agents/skills/derbis-design-taste/SKILL.md",
     "docs/ai/UPSTREAM_ANDROID_SKILLS.md",
     "scripts/agent_skill_router.py",
     "scripts/setup-ai.ps1",

@@ -7,7 +7,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$toolRoot = Join-Path $repoRoot '.levyra-tools'
+$toolRoot = Join-Path $repoRoot '.derbis-tools'
 $headroomPrefix = Join-Path $toolRoot 'headroom'
 $headroomExe = Join-Path $headroomPrefix 'headroom.exe'
 $headroomVersion = 'v0.3.0'
@@ -34,7 +34,7 @@ function Test-HeadroomBinary {
     }
 }
 
-Write-Output 'Levyra AI usage tooling setup'
+Write-Output 'Derbis AI usage tooling setup'
 Write-Output "Repository: $repoRoot"
 
 if ($DryRun) {
@@ -44,7 +44,7 @@ elseif (Test-HeadroomBinary) {
     Write-Output "[ok] Headroom $headroomVersion already installed: $headroomExe"
 }
 else {
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("levyra-headroom-" + [guid]::NewGuid().ToString('N'))
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("derbis-headroom-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
     try {
         $installerPath = Join-Path $tempDir 'install.ps1'
@@ -94,5 +94,5 @@ else {
 
 Write-Output ''
 Write-Output 'Setup complete.'
-Write-Output 'Headroom is project-local under .levyra-tools/ and is wired by the tracked Claude statusLine configuration.'
-Write-Output 'CodeBurn stays uninstalled globally and is invoked through scripts/codeburn-levyra.ps1.'
+Write-Output 'Headroom is project-local under .derbis-tools/ and is wired by the tracked Claude statusLine configuration.'
+Write-Output 'CodeBurn stays uninstalled globally and is invoked through scripts/codeburn-derbis.ps1.'

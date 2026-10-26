@@ -3,9 +3,9 @@
     <style name="Theme.Derbis.Base" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
-        <item name="android:windowBackground">@color/levyra_black</item>
-        <item name="android:navigationBarColor">@color/levyra_black</item>
-        <item name="android:statusBarColor">@color/levyra_black</item>
+        <item name="android:windowBackground">@color/derbis_black</item>
+        <item name="android:navigationBarColor">@color/derbis_black</item>
+        <item name="android:statusBarColor">@color/derbis_black</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 

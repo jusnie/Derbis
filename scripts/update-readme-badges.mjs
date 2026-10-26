@@ -6,7 +6,7 @@ if (!repository) throw new Error('GITHUB_REPOSITORY is required')
 
 const headers = {
   Accept: 'application/vnd.github+json',
-  'User-Agent': 'Levyra-README-Badge-Updater',
+  'User-Agent': 'Derbis-README-Badge-Updater',
   'X-GitHub-Api-Version': '2022-11-28'
 }
 if (token) headers.Authorization = `Bearer ${token}`
@@ -17,7 +17,7 @@ const requestJson = async url => {
   return response.json()
 }
 
-const apptekaPackage = 'com.luc4n3x.levyra'
+const apptekaPackage = 'com.luc4n3x.derbis'
 const apptekaInfoUrl = 'https://appteka.store/api/1/app/info'
 
 const fetchApptekaDownloads = async () => {
@@ -28,7 +28,7 @@ const fetchApptekaDownloads = async () => {
   const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Levyra-README-Badge-Updater'
+      'User-Agent': 'Derbis-README-Badge-Updater'
     },
     signal: AbortSignal.timeout(15000)
   })
@@ -52,7 +52,7 @@ const fetchApptekaDownloads = async () => {
 
 const readPreviousDownloads = async () => {
   try {
-    const svg = await readFile('docs/assets/levyra-downloads.svg', 'utf8')
+    const svg = await readFile('docs/assets/derbis-downloads.svg', 'utf8')
     const prefix = '<title>DOWNLOADS '
     const startIndex = svg.indexOf(prefix)
     if (startIndex < 0) return null
@@ -135,20 +135,20 @@ const starsValue = new Intl.NumberFormat('en-US').format(repositoryData.stargaze
 
 await mkdir('docs/assets', { recursive: true })
 await Promise.all([
-  writeFile('docs/assets/levyra-release.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7' }), 'utf8'),
-  writeFile('docs/assets/levyra-downloads.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981' }), 'utf8'),
-  writeFile('docs/assets/levyra-license.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8' }), 'utf8'),
-  writeFile('docs/assets/levyra-stars.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24' }), 'utf8'),
-  writeFile('docs/assets/levyra-release-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED' }), 'utf8'),
-  writeFile('docs/assets/levyra-downloads-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669' }), 'utf8'),
-  writeFile('docs/assets/levyra-license-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7' }), 'utf8'),
-  writeFile('docs/assets/levyra-stars-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706' }), 'utf8'),
-  writeFile('docs/assets/levyra-release-mobile.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-downloads-mobile.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-license-mobile.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-stars-mobile.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-release-mobile-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-downloads-mobile-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-license-mobile-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7', mobile: true }), 'utf8'),
-  writeFile('docs/assets/levyra-stars-mobile-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706', mobile: true }), 'utf8')
+  writeFile('docs/assets/derbis-release.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7' }), 'utf8'),
+  writeFile('docs/assets/derbis-downloads.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981' }), 'utf8'),
+  writeFile('docs/assets/derbis-license.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8' }), 'utf8'),
+  writeFile('docs/assets/derbis-stars.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24' }), 'utf8'),
+  writeFile('docs/assets/derbis-release-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED' }), 'utf8'),
+  writeFile('docs/assets/derbis-downloads-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669' }), 'utf8'),
+  writeFile('docs/assets/derbis-license-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7' }), 'utf8'),
+  writeFile('docs/assets/derbis-stars-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706' }), 'utf8'),
+  writeFile('docs/assets/derbis-release-mobile.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-downloads-mobile.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-license-mobile.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-stars-mobile.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-release-mobile-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-downloads-mobile-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-license-mobile-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-stars-mobile-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706', mobile: true }), 'utf8')
 ])

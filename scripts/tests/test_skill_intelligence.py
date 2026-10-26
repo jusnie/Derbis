@@ -57,7 +57,7 @@ class SkillIntelligenceTest(unittest.TestCase):
 
     def test_real_engineering_has_failure_and_retraction_discipline(self) -> None:
         text = (
-            ROOT / ".agents" / "skills" / "levyra-real-engineering" / "SKILL.md"
+            ROOT / ".agents" / "skills" / "derbis-real-engineering" / "SKILL.md"
         ).read_text(encoding="utf-8")
 
         for term in (
@@ -76,7 +76,7 @@ class SkillIntelligenceTest(unittest.TestCase):
 
     def test_security_review_has_finding_states_and_evidence_hygiene(self) -> None:
         text = (
-            ROOT / ".agents" / "skills" / "levyra-security-review" / "SKILL.md"
+            ROOT / ".agents" / "skills" / "derbis-security-review" / "SKILL.md"
         ).read_text(encoding="utf-8")
 
         for term in (
@@ -95,7 +95,7 @@ class SkillIntelligenceTest(unittest.TestCase):
 
     def test_pr_review_revalidates_findings_and_ci_failures(self) -> None:
         text = (
-            ROOT / ".agents" / "skills" / "levyra-pr-review" / "SKILL.md"
+            ROOT / ".agents" / "skills" / "derbis-pr-review" / "SKILL.md"
         ).read_text(encoding="utf-8")
 
         for term in (
@@ -109,7 +109,7 @@ class SkillIntelligenceTest(unittest.TestCase):
             "FLAKY",
             "Do not repeatedly rerun the same failing check to manufacture a green status",
             "docs/ai/SKILL_INTELLIGENCE.md",
-            "Load `levyra-security-review` only when the diff or finding is actually security-sensitive",
+            "Load `derbis-security-review` only when the diff or finding is actually security-sensitive",
         ):
             with self.subTest(term=term):
                 self.assertIn(term, text)

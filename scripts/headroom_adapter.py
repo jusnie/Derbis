@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Levyra RTK Enhanced — Optional Headroom Integration Adapter.
+"""Derbis RTK Enhanced — Optional Headroom Integration Adapter.
 
 Provides non-invasive, opt-in integration with Headroom (headroomlabs-ai/headroom)
 for structural syntax-aware diffs (difftastic), code metrics (scc), and Model
@@ -21,9 +21,9 @@ from pathlib import Path
 from typing import Any, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
-# Local configuration lives in .levyra-tools/ (gitignored) so toggling
+# Local configuration lives in .derbis-tools/ (gitignored) so toggling
 # Headroom does not dirty the shared Git working tree.
-LOCAL_CONFIG_DIR = ROOT / ".levyra-tools"
+LOCAL_CONFIG_DIR = ROOT / ".derbis-tools"
 HEADROOM_CONFIG_PATH = LOCAL_CONFIG_DIR / "headroom.json"
 
 
@@ -59,7 +59,7 @@ def get_headroom_executable() -> str | None:
 
 def is_headroom_enabled() -> bool:
     """Check if repository configuration or environment enables Headroom."""
-    if os.environ.get("LEVYRA_HEADROOM_ENABLED") in ("1", "true", "True", "yes"):
+    if os.environ.get("DERBIS_HEADROOM_ENABLED") in ("1", "true", "True", "yes"):
         return True
 
     if HEADROOM_CONFIG_PATH.is_file():
@@ -78,7 +78,7 @@ def set_headroom_enabled(enabled: bool) -> None:
     config = {
         "enabled": enabled,
         "updated_at": os.environ.get("SOURCE_DATE_EPOCH", ""),
-        "description": "Levyra RTK Enhanced local optional Headroom configuration (gitignored)",
+        "description": "Derbis RTK Enhanced local optional Headroom configuration (gitignored)",
     }
     HEADROOM_CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
@@ -215,7 +215,7 @@ def get_mcp_config() -> dict[str, Any]:
                 "command": exe,
                 "args": ["mcp", "serve"],
                 "env": {
-                    "LEVYRA_INTEGRATION": "1",
+                    "DERBIS_INTEGRATION": "1",
                 },
             }
         }
@@ -223,7 +223,7 @@ def get_mcp_config() -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Levyra RTK Enhanced Headroom Adapter")
+    parser = argparse.ArgumentParser(description="Derbis RTK Enhanced Headroom Adapter")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("status", help="Probe Headroom status and capabilities")
@@ -236,12 +236,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "enable":
         set_headroom_enabled(True)
-        print("Levyra Headroom integration enabled (saved in .levyra-tools/headroom.json).")
+        print("Derbis Headroom integration enabled (saved in .derbis-tools/headroom.json).")
         return 0
 
     elif args.command == "disable":
         set_headroom_enabled(False)
-        print("Levyra Headroom integration disabled.")
+        print("Derbis Headroom integration disabled.")
         return 0
 
     elif args.command == "mcp-config":
@@ -250,7 +250,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     elif args.command in ("doctor", "status") or args.command is None:
         status = probe_headroom_status()
-        print("Levyra Headroom Integration Status")
+        print("Derbis Headroom Integration Status")
         print("==================================")
         print(f"Installed:      {'Yes' if status.available else 'No'}")
         print(f"Version:        {status.version or 'N/A'}")

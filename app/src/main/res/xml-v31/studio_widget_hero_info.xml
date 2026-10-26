@@ -11,5 +11,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/widget_studio_hero_desc"
-    android:configure="com.luc4n3x.levyra.widget.studio.WidgetStudioActivity"
+    android:configure="com.luc4n3x.derbis.widget.studio.WidgetStudioActivity"
     android:widgetFeatures="reconfigurable|configuration_optional" />

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Merge and normalize community canvas catalogs into Levyra's mirrored schema."""
+"""Merge and normalize community canvas catalogs into Derbis's mirrored schema."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ ARTIST_SEPARATOR_PATTERN = re.compile(
 )
 APOSTROPHES = {"’", "'", "`", "´"}
 BRACKETS = set("()[]{}")
-USER_AGENT = "Levyra-community-canvas-mirror/2.0 (+https://github.com/jusnie/Derbis)"
+USER_AGENT = "Derbis-community-canvas-mirror/2.0 (+https://github.com/jusnie/Derbis)"
 MAX_PAYLOAD_BYTES = 256 * 1024 * 1024
 DEFAULT_COMPAT_MAX_BYTES = 900 * 1024
 DEFAULT_COMPAT_MIN_ENTRIES = 100
@@ -608,7 +608,7 @@ def main() -> int:
 
     if blocked_hosts:
         print(
-            "Community canvas sync failed: a configured source published media on hosts Levyra "
+            "Community canvas sync failed: a configured source published media on hosts Derbis "
             "does not allow: " + ", ".join(blocked_hosts),
             file=sys.stderr,
         )

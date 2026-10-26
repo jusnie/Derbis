@@ -55,7 +55,7 @@ if [[ -z "$PYTHON" ]]; then
 else
   fail_open "Ensure pinned jCodeMunch" "$PYTHON" "$ROOT/scripts/codex_jcodemunch.py" ensure --quiet || true
   if [[ "$SKIP_INDEX" -eq 0 ]]; then
-    fail_open "Refresh Levyra jCodeMunch index" "$PYTHON" "$ROOT/scripts/codex_jcodemunch.py" index --quiet || true
+    fail_open "Refresh Derbis jCodeMunch index" "$PYTHON" "$ROOT/scripts/codex_jcodemunch.py" index --quiet || true
   fi
 fi
 
@@ -99,4 +99,4 @@ if [[ ${#FAILURES[@]} -gt 0 ]]; then
   exit 1
 fi
 
-log '[ok] Levyra Codex tooling is ready.'
+log '[ok] Derbis Codex tooling is ready.'

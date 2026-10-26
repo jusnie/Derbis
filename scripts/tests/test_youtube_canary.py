@@ -157,8 +157,8 @@ class YoutubeCanaryTest(unittest.TestCase):
             canary._classify_delivery({"playability_status": "OK", "has_streaming_data": False}),
         )
 
-    def test_client_matrix_matches_levyra_policy_and_excludes_android_vr(self):
-        names = [entry["name"] for entry in canary.LEVYRA_CLIENT_MATRIX]
+    def test_client_matrix_matches_derbis_policy_and_excludes_android_vr(self):
+        names = [entry["name"] for entry in canary.DERBIS_CLIENT_MATRIX]
 
         self.assertEqual(sorted(names), sorted(set(names)))
         self.assertNotIn("ANDROID_VR", names)
@@ -524,7 +524,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         self.assertNotIn("ANDROID", called)
         self.assertNotIn("WEB_EMBEDDED_PLAYER", called)
         self.assertNotIn("WEB_REMIX", called)
-        names = [entry["name"] for entry in canary.LEVYRA_CLIENT_MATRIX]
+        names = [entry["name"] for entry in canary.DERBIS_CLIENT_MATRIX]
         self.assertIn("ANDROID", names)
         self.assertIn("WEB_EMBEDDED_PLAYER", names)
 
@@ -540,7 +540,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         }
         self.assertEqual(
             expected,
-            {entry["name"]: entry["client_header_name"] for entry in canary.LEVYRA_CLIENT_MATRIX},
+            {entry["name"]: entry["client_header_name"] for entry in canary.DERBIS_CLIENT_MATRIX},
         )
 
         (_, _), calls = self._run_sentinel(lambda name: {"playabilityStatus": {"status": "UNPLAYABLE"}})
@@ -598,7 +598,7 @@ class YoutubeCanaryTest(unittest.TestCase):
                 hl=kwargs.get("hl", "en"),
                 gl=kwargs.get("gl", "US"),
                 client=kwargs.get("client"),
-                user_agent=kwargs.get("user_agent", canary.LEVYRA_WEB_PLAYER_USER_AGENT),
+                user_agent=kwargs.get("user_agent", canary.DERBIS_WEB_PLAYER_USER_AGENT),
                 client_header_name=kwargs.get("client_header_name", "1"),
             )
         finally:
@@ -608,19 +608,19 @@ class YoutubeCanaryTest(unittest.TestCase):
     def test_web_player_user_agent_mirrors_youtube_web_client_identity(self):
         source = (
             Path(__file__).resolve().parents[2]
-            / "app/src/main/java/com/luc4n3x/levyra/data/YoutubeWebClientIdentity.kt"
+            / "app/src/main/java/com/luc4n3x/derbis/data/YoutubeWebClientIdentity.kt"
         ).read_text(encoding="utf-8")
         match = re.search(r'const\s+val\s+USER_AGENT\s*=\s*"([^"]+)"', source)
         self.assertIsNotNone(match)
         expected_ua = match.group(1)
-        self.assertEqual(expected_ua, canary.LEVYRA_WEB_PLAYER_USER_AGENT)
-        self.assertIn("Chrome/142.0.0.0", canary.LEVYRA_WEB_PLAYER_USER_AGENT)
+        self.assertEqual(expected_ua, canary.DERBIS_WEB_PLAYER_USER_AGENT)
+        self.assertIn("Chrome/142.0.0.0", canary.DERBIS_WEB_PLAYER_USER_AGENT)
         for name in ("WEB", "WEB_REMIX", "WEB_EMBEDDED_PLAYER"):
-            entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == name)
+            entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == name)
             self.assertEqual(expected_ua, entry["user_agent"], name)
 
     def test_player_api_request_visionos_omits_browser_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "VISIONOS")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "VISIONOS")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -634,7 +634,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         self.assertNotIn("Referer", captured["headers"])
 
     def test_player_api_request_ios_omits_browser_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "IOS")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "IOS")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -648,7 +648,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         self.assertNotIn("Referer", captured["headers"])
 
     def test_player_api_request_android_music_omits_browser_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "ANDROID_MUSIC")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "ANDROID_MUSIC")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -662,7 +662,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         self.assertNotIn("Referer", captured["headers"])
 
     def test_player_api_request_android_omits_browser_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "ANDROID")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "ANDROID")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -677,7 +677,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         self.assertFalse(entry["player_enabled"])
 
     def test_player_api_request_web_sends_youtube_browser_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "WEB")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "WEB")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -686,12 +686,12 @@ class YoutubeCanaryTest(unittest.TestCase):
             client_header_name=entry["client_header_name"],
         )
         self.assertEqual("1", captured["headers"]["X-YouTube-Client-Name"])
-        self.assertEqual(canary.LEVYRA_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
+        self.assertEqual(canary.DERBIS_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
         self.assertEqual("https://www.youtube.com", captured["headers"]["Origin"])
         self.assertEqual("https://www.youtube.com/watch?v=dQw4w9WgXcQ", captured["headers"]["Referer"])
 
     def test_player_api_request_web_remix_sends_music_navigation_headers(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "WEB_REMIX")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "WEB_REMIX")
         captured = self._capture_player_api_request(
             video_id="dQw4w9WgXcQ",
             client=entry["client"],
@@ -700,14 +700,14 @@ class YoutubeCanaryTest(unittest.TestCase):
             client_header_name=entry["client_header_name"],
         )
         self.assertEqual("67", captured["headers"]["X-YouTube-Client-Name"])
-        self.assertEqual(canary.LEVYRA_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
+        self.assertEqual(canary.DERBIS_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
         self.assertEqual("https://music.youtube.com", captured["headers"]["Origin"])
         self.assertEqual("https://music.youtube.com/watch?v=dQw4w9WgXcQ", captured["headers"]["Referer"])
 
     def test_player_api_request_web_embedded_diagnostic_matrix_behavior(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "WEB_EMBEDDED_PLAYER")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "WEB_EMBEDDED_PLAYER")
         self.assertEqual("56", entry["client_header_name"])
-        self.assertEqual(canary.LEVYRA_WEB_PLAYER_USER_AGENT, entry["user_agent"])
+        self.assertEqual(canary.DERBIS_WEB_PLAYER_USER_AGENT, entry["user_agent"])
         self.assertFalse(entry["player_enabled"])
         self.assertNotIn(entry, canary._primary_fallback_clients())
 
@@ -719,7 +719,7 @@ class YoutubeCanaryTest(unittest.TestCase):
             client_header_name=entry["client_header_name"],
         )
         self.assertEqual("56", captured["headers"]["X-YouTube-Client-Name"])
-        self.assertEqual(canary.LEVYRA_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
+        self.assertEqual(canary.DERBIS_WEB_PLAYER_USER_AGENT, captured["headers"]["User-Agent"])
         self.assertEqual("https://www.youtube.com", captured["headers"]["Origin"])
         self.assertEqual("https://www.youtube.com/embed/dQw4w9WgXcQ", captured["headers"]["Referer"])
 
@@ -736,14 +736,14 @@ class YoutubeCanaryTest(unittest.TestCase):
                 return bool(capabilities["player"])
             return bool(override.get("enabled", True))
 
-        for entry in canary.LEVYRA_CLIENT_MATRIX:
+        for entry in canary.DERBIS_CLIENT_MATRIX:
             self.assertEqual(player_enabled(entry["name"]), entry["player_enabled"], entry["name"])
 
     def test_visionos_matrix_entry_mirrors_the_shipped_app_identity(self):
-        entry = next(item for item in canary.LEVYRA_CLIENT_MATRIX if item["name"] == "VISIONOS")
+        entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "VISIONOS")
         resolver = (
             Path(__file__).resolve().parents[2]
-            / "app/src/main/java/com/luc4n3x/levyra/data/PlaybackResolver.kt"
+            / "app/src/main/java/com/luc4n3x/derbis/data/PlaybackResolver.kt"
         ).read_text(encoding="utf-8")
         self.assertIn(f'.put("deviceModel", "{entry["client"]["deviceModel"]}")', resolver)
         self.assertIn(f'.put("osVersion", "{entry["client"]["osVersion"]}")', resolver)
@@ -781,7 +781,7 @@ class YoutubeCanaryTest(unittest.TestCase):
     def test_required_sentinels_expect_adaptive_video(self):
         root = Path(__file__).resolve().parents[2]
         config = json.loads(
-            (root / "third_party/LevyraExtractor/canary/config.json").read_text(encoding="utf-8")
+            (root / "third_party/DerbisExtractor/canary/config.json").read_text(encoding="utf-8")
         )
         required = [item for item in config["sentinels"] if item.get("required", True)]
         self.assertTrue(required)
@@ -835,8 +835,8 @@ class YoutubeCanaryTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         workflow = (root / ".github/workflows/nightly-extractor-check.yml").read_text(encoding="utf-8")
         self.assertIn("openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675", workflow)
-        self.assertIn("LEVYRA_CANARY_OPENROUTER_API_KEY", workflow)
-        self.assertNotIn("LEVYRA_CANARY_OPENAI_API_KEY", workflow)
+        self.assertIn("DERBIS_CANARY_OPENROUTER_API_KEY", workflow)
+        self.assertNotIn("DERBIS_CANARY_OPENAI_API_KEY", workflow)
         self.assertIn("responses-api-endpoint: https://openrouter.ai/api/v1/responses", workflow)
         self.assertIn("model: openrouter/free", workflow)
         self.assertIn("draft: always-true", workflow)
@@ -848,7 +848,7 @@ class YoutubeCanaryTest(unittest.TestCase):
     def test_repository_canary_requires_multiple_semantic_sentinels(self):
         root = Path(__file__).resolve().parents[2]
         config = json.loads(
-            (root / "third_party/LevyraExtractor/canary/config.json").read_text(encoding="utf-8")
+            (root / "third_party/DerbisExtractor/canary/config.json").read_text(encoding="utf-8")
         )
         required = [item for item in config["sentinels"] if item.get("required", True)]
         self.assertGreaterEqual(len(required), 2)
@@ -965,7 +965,7 @@ class YoutubeCanaryCapabilityCheckTest(unittest.TestCase):
         config_path = (
             Path(__file__).resolve().parents[2]
             / "third_party"
-            / "LevyraExtractor"
+            / "DerbisExtractor"
             / "canary"
             / "config.json"
         )
@@ -979,7 +979,7 @@ class YoutubeCanaryCapabilityCheckTest(unittest.TestCase):
     def test_client_matrix_po_token_flags_match_the_shipped_playback_profiles(self):
         flags = {
             str(entry["name"]): bool(entry.get("requires_po_token", False))
-            for entry in canary.LEVYRA_CLIENT_MATRIX
+            for entry in canary.DERBIS_CLIENT_MATRIX
         }
         self.assertEqual(
             {

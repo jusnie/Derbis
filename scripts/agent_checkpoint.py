@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Durable, non-repository task checkpoint and retry guard for Levyra agents."""
+"""Durable, non-repository task checkpoint and retry guard for Derbis agents."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 
 from scripts import agent_harness as harness
 
-CHECKPOINT_ROOT = Path(os.environ.get("LEVYRA_AGENT_CHECKPOINT_DIR", "")) if os.environ.get("LEVYRA_AGENT_CHECKPOINT_DIR") else None
+CHECKPOINT_ROOT = Path(os.environ.get("DERBIS_AGENT_CHECKPOINT_DIR", "")) if os.environ.get("DERBIS_AGENT_CHECKPOINT_DIR") else None
 SHELL_TOOLS = {"bash", "shell", "exec_command", "powershell", "command"}
 BROAD_INSTALL_RE = re.compile(
     r"(?:apt(?:-get)?\s+(?:dist-)?upgrade|dnf\s+upgrade|yum\s+update|pacman\s+-Syu|"
@@ -81,12 +81,12 @@ def _run(argv: list[str]) -> tuple[int, str]:
 def _checkpoint_root() -> Path:
     if CHECKPOINT_ROOT is not None:
         return CHECKPOINT_ROOT
-    rc, value = _run(["git", "rev-parse", "--git-path", "levyra-agent-state"])
+    rc, value = _run(["git", "rev-parse", "--git-path", "derbis-agent-state"])
     if rc == 0 and value:
         path = Path(value.splitlines()[-1].strip())
         return path if path.is_absolute() else ROOT / path
     repo_key = hashlib.sha256(str(ROOT.resolve()).encode()).hexdigest()[:16]
-    return Path(tempfile.gettempdir()) / "levyra-agent-checkpoint" / repo_key
+    return Path(tempfile.gettempdir()) / "derbis-agent-checkpoint" / repo_key
 
 
 def _branch_key() -> str:
@@ -227,7 +227,7 @@ def _deny(reason: str) -> None:
 def _summary(state: dict[str, Any]) -> str:
     paths = ", ".join(state.get("edited_paths", [])) or "none"
     return (
-        "Levyra durable task checkpoint:\n"
+        "Derbis durable task checkpoint:\n"
         f"- status: {state.get('status', 'ACTIVE')}\n"
         f"- goal: {state.get('goal') or 'not recorded'}\n"
         f"- edited paths: {paths}\n"
@@ -327,7 +327,7 @@ def pre_tool(data: dict[str, Any]) -> int:
         return 0
     command = _command(data)
     if BROAD_INSTALL_RE.search(command):
-        _deny("Levyra permits installing a required useful tool, not broad package/system upgrades. Install only the specific dependency needed for the active task.")
+        _deny("Derbis permits installing a required useful tool, not broad package/system upgrades. Install only the specific dependency needed for the active task.")
         return 0
     state = _sync(data, _load())
     generation = int(state.get("edit_generation", 0))
@@ -428,7 +428,7 @@ def stop(data: dict[str, Any]) -> int:
         if due:
             _context(
                 "Stop",
-                "Claude context-hygiene checkpoint reached: the current task is at a safe completed boundary. If the next owner request is unrelated, prefer `/clear` before starting it, then let SessionStart reload Levyra guards. Do not clear an open task, an unresolved BLOCKED task, or unpublished evidence that has not been durably checkpointed. Command hooks cannot execute slash commands, so never pretend `/clear` ran when it did not.",
+                "Claude context-hygiene checkpoint reached: the current task is at a safe completed boundary. If the next owner request is unrelated, prefer `/clear` before starting it, then let SessionStart reload Derbis guards. Do not clear an open task, an unresolved BLOCKED task, or unpublished evidence that has not been durably checkpointed. Command hooks cannot execute slash commands, so never pretend `/clear` ran when it did not.",
             )
     else:
         state["status"] = "ACTIVE"

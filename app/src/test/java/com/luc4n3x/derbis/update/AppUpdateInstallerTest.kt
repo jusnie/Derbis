@@ -1,0 +1,103 @@
+package com.luc4n3x.derbis.update
+
+import java.net.InetAddress
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
+
+class AppUpdateInstallerTest {
+    @Test
+    fun `official release asset URL is accepted`() {
+        val url = "https://github.com/jusnie/Derbis/releases/download/v1.0.0/derbis-release.apk"
+
+        assertNotNull(validateDerbisUpdateUrl(url, initial = true))
+    }
+
+    @Test
+    fun `initial update URL rejects unsafe or unrelated sources`() {
+        assertNull(validateDerbisUpdateUrl("http://github.com/jusnie/Derbis/releases/download/v1.0.0/app.apk", true))
+        assertNull(validateDerbisUpdateUrl("https://user:pass@github.com/jusnie/Derbis/releases/download/v1.0.0/app.apk", true))
+        assertNull(validateDerbisUpdateUrl("https://github.com:8443/jusnie/Derbis/releases/download/v1.0.0/app.apk", true))
+        assertNull(validateDerbisUpdateUrl("https://github.com/other/project/releases/download/v1/app.apk", true))
+        assertNull(validateDerbisUpdateUrl("https://example.com/jusnie/Derbis/releases/download/v1.0.0/app.apk", true))
+        assertNull(validateDerbisUpdateUrl("https://github.com/jusnie/Derbis/releases/download/../../../other/app.apk", true))
+    }
+
+    @Test
+    fun `redirects stay on GitHub managed hosts`() {
+        assertNotNull(validateDerbisUpdateUrl("https://release-assets.githubusercontent.com/github-production-release-asset/file.apk", false))
+        assertNotNull(validateDerbisUpdateUrl("https://github.com/jusnie/Derbis/releases/download/v1.0.0/app.apk", false))
+        assertNull(validateDerbisUpdateUrl("https://example.com/app.apk", false))
+        assertNull(validateDerbisUpdateUrl("https://release-assets.githubusercontent.com:8443/file.apk", false))
+        assertNull(validateDerbisUpdateUrl("https://user:pass@release-assets.githubusercontent.com/file.apk", false))
+        assertNull(validateDerbisUpdateUrl("https://release-assets.githubusercontent.com/file.apk#frag", false))
+        assertNull(validateDerbisUpdateUrl("http://release-assets.githubusercontent.com/file.apk", false))
+        assertNull(validateDerbisUpdateUrl("https://evil.githubusercontent.com.attacker.test/file.apk", false))
+    }
+
+    @Test
+    fun `APK response types are constrained`() {
+        assertTrue(updateApkContentTypeAccepted("application/vnd.android.package-archive"))
+        assertTrue(updateApkContentTypeAccepted("application/octet-stream"))
+        assertTrue(updateApkContentTypeAccepted(null))
+        assertFalse(updateApkContentTypeAccepted("text/html"))
+        assertFalse(updateApkContentTypeAccepted("application/zip"))
+    }
+
+    @Test
+    fun `internal install handoff only matches the private update URI`() {
+        assertTrue(AppUpdateContract.matches("android.intent.action.VIEW", AppUpdateContract.INSTALL_URI))
+        assertFalse(AppUpdateContract.matches("android.intent.action.SEND", AppUpdateContract.INSTALL_URI))
+        assertFalse(AppUpdateContract.matches("android.intent.action.VIEW", "derbis://updates/install"))
+        assertFalse(AppUpdateContract.matches("android.intent.action.VIEW", "https://github.com/jusnie/Derbis"))
+    }
+
+    @Test
+    fun `private and special destinations are rejected`() {
+        assertFalse(isPublicUpdateAddress(InetAddress.getByName("10.0.0.1")))
+        assertFalse(isPublicUpdateAddress(InetAddress.getByName("100.64.0.1")))
+        assertFalse(isPublicUpdateAddress(InetAddress.getByName("203.0.113.1")))
+        assertFalse(isPublicUpdateAddress(InetAddress.getByName("fc00::1")))
+        assertTrue(isPublicUpdateAddress(InetAddress.getByName("8.8.8.8")))
+        assertTrue(isPublicUpdateAddress(InetAddress.getByName("2606:4700:4700::1111")))
+    }
+
+    @Test
+    fun `cancelling update work interrupts a blocking call`() = runBlocking {
+        val enteredCall = CountDownLatch(1)
+        val cancelledCall = CountDownLatch(1)
+        val worker = async(Dispatchers.IO) {
+            val watcher = CoroutineScope(currentCoroutineContext())
+                .launchUpdateCallCancellationWatcher(cancelledCall::countDown)
+            try {
+                enteredCall.countDown()
+                check(cancelledCall.await(2, TimeUnit.SECONDS)) {
+                    "Blocking update call was not interrupted"
+                }
+            } finally {
+                watcher.cancel()
+            }
+        }
+
+        assertTrue(enteredCall.await(2, TimeUnit.SECONDS))
+        worker.cancel()
+        try {
+            worker.await()
+            fail("Cancelled update work must not complete successfully")
+        } catch (_: CancellationException) {
+            // Expected.
+        }
+        assertTrue(cancelledCall.await(2, TimeUnit.SECONDS))
+    }
+}

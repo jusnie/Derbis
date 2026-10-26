@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageEnhance
 
 SCREENSHOT_DIR = os.environ.get(
-    "LEVYRA_SCREENSHOT_DIR",
+    "DERBIS_SCREENSHOT_DIR",
     r"C:\Users\Luca Drogo\Desktop\screenshots" if os.path.exists(r"C:\Users\Luca Drogo\Desktop\screenshots")
     else os.path.join("docs", "screenshots")
 )
@@ -20,7 +20,7 @@ def resolve_screenshot_path(filename):
         os.path.join(SCREENSHOT_DIR, filename),
         os.path.join(r"C:\Users\Luca Drogo\Desktop\screenshots", filename),
         os.path.join(r"C:\Users\Luca Drogo\Downloads", filename),
-        os.path.join(r"C:\Users\Luca Drogo\Pictures\levyra\screenshots", filename),
+        os.path.join(r"C:\Users\Luca Drogo\Pictures\derbis\screenshots", filename),
         os.path.join(r"C:\Users\Luca Drogo\Desktop\Nuova cartella", filename),
         os.path.join(r"C:\Users\Luca Drogo\Downloads\Nuova cartella", filename),
         os.path.join("docs", "screenshots", filename),
@@ -136,36 +136,36 @@ M3_EXPRESSIVE_SCHEMES = [
 ]
 
 M3_HERO_SPECS = [
-    ("Screenshot_20260926_171253_LEVYRA.jpg", "ZERO ADS • NATIVE PLAY", "Pure listening.",
+    ("Screenshot_20260926_171253_DERBIS.jpg", "ZERO ADS • NATIVE PLAY", "Pure listening.",
      "Zero ads, zero accounts.\nStream and store locally on your device.",
      (95, 60, 165), ["01_home.webp"]),
-    ("Screenshot_20260926_193948_LEVYRA.jpg", "OFFLINE STORAGE", "Download & keep.",
+    ("Screenshot_20260926_193948_DERBIS.jpg", "OFFLINE STORAGE", "Download & keep.",
      "Clean M4A files in device storage.\nFull metadata, artwork, and lyrics.",
      (130, 60, 180), ["02_stay_with_the_song.webp"]),
 ]
 
 M3_MARKETING_COPY = {
-    "Screenshot_20260926_171253_LEVYRA.jpg": "Ad-free music, stored locally.",
-    "Screenshot_20260926_193948_LEVYRA.jpg": "Offline files with artwork and lyrics.",
+    "Screenshot_20260926_171253_DERBIS.jpg": "Ad-free music, stored locally.",
+    "Screenshot_20260926_193948_DERBIS.jpg": "Offline files with artwork and lyrics.",
     "screen-lyrics.jpg": "Synced lyrics, Romanization, translation.",
-    "Screenshot_20261012_193118_LEVYRA.jpg": "Four player styles. One fluid experience.",
-    "Screenshot_20261010_132210_LEVYRA.jpg": "Fresh releases, mixes, and global charts.",
-    "Screenshot_20261010_132217_LEVYRA.jpg": "Stations shaped by your listening.",
-    "Screenshot_20261010_132249_LEVYRA.jpg": "Moods, genres, and music worldwide.",
-    "Screenshot_20261010_190726_LEVYRA.jpg": "Parametric EQ and bit-perfect output.",
-    "Screenshot_20260926_194706_LEVYRA.jpg": "Artwork, credits, and complete tracklists.",
-    "Screenshot_20261013_111815_LEVYRA.jpg": "Search, suggestions, and instant matches.",
-    "Screenshot_20261010_132136_LEVYRA.jpg": "Collections shaped around your taste.",
-    "Screenshot_20260927_131943_LEVYRA.jpg": "See when and how you listen.",
-    "Screenshot_20261012_193022_LEVYRA.jpg": "Your most-played music, always close.",
-    "Screenshot_20261020_142741_LEVYRA.jpg": "Listening insights that stay on-device.",
-    "Screenshot_20261010_144048_LEVYRA.jpg": "Essential sets for every artist.",
-    "Screenshot_20261010_140700_LEVYRA.jpg": "Design, audio, gestures, and local backups.",
-    "Screenshot_20261015_205614_LEVYRA.jpg": "Theme, home, player, and audio in one place.",
-    "Screenshot_20261010_144144_LEVYRA.jpg": "New singles and albums, every week.",
-    "Screenshot_20261010_143646_LEVYRA.jpg": "Discography, biography, and top tracks.",
-    "Screenshot_20261011_202032_LEVYRA.jpg": "Daily charts from every country.",
-    "Screenshot_20261011_133434_LEVYRA.jpg": "Share the queue over local Wi-Fi.",
+    "Screenshot_20261012_193118_DERBIS.jpg": "Four player styles. One fluid experience.",
+    "Screenshot_20261010_132210_DERBIS.jpg": "Fresh releases, mixes, and global charts.",
+    "Screenshot_20261010_132217_DERBIS.jpg": "Stations shaped by your listening.",
+    "Screenshot_20261010_132249_DERBIS.jpg": "Moods, genres, and music worldwide.",
+    "Screenshot_20261010_190726_DERBIS.jpg": "Parametric EQ and bit-perfect output.",
+    "Screenshot_20260926_194706_DERBIS.jpg": "Artwork, credits, and complete tracklists.",
+    "Screenshot_20261013_111815_DERBIS.jpg": "Search, suggestions, and instant matches.",
+    "Screenshot_20261010_132136_DERBIS.jpg": "Collections shaped around your taste.",
+    "Screenshot_20260927_131943_DERBIS.jpg": "See when and how you listen.",
+    "Screenshot_20261012_193022_DERBIS.jpg": "Your most-played music, always close.",
+    "Screenshot_20261020_142741_DERBIS.jpg": "Listening insights that stay on-device.",
+    "Screenshot_20261010_144048_DERBIS.jpg": "Essential sets for every artist.",
+    "Screenshot_20261010_140700_DERBIS.jpg": "Design, audio, gestures, and local backups.",
+    "Screenshot_20261015_205614_DERBIS.jpg": "Theme, home, player, and audio in one place.",
+    "Screenshot_20261010_144144_DERBIS.jpg": "New singles and albums, every week.",
+    "Screenshot_20261010_143646_DERBIS.jpg": "Discography, biography, and top tracks.",
+    "Screenshot_20261011_202032_DERBIS.jpg": "Daily charts from every country.",
+    "Screenshot_20261011_133434_DERBIS.jpg": "Share the queue over local Wi-Fi.",
 }
 
 M3_PAIR_PLACEMENTS = [
@@ -381,96 +381,96 @@ M3_SHOWCASE_SPECS = [
      (160, 45, 140), ["03_now_playing.webp"]),
 
     # Card 04: Player Decks
-    ("Screenshot_20261012_193118_LEVYRA.jpg", "PLAYER DECKS", "Your listening deck.",
+    ("Screenshot_20261012_193118_DERBIS.jpg", "PLAYER DECKS", "Your listening deck.",
      "Fluid bottom sheets, gesture controls,\nand adaptive cover-art styling.",
      (110, 50, 185), ["04_player_deck.webp"]),
 
     # Card 05: Explore & Fresh Currents
-    ("Screenshot_20261010_132210_LEVYRA.jpg", "DYNAMIC DISCOVERY", "Fresh currents.",
+    ("Screenshot_20261010_132210_DERBIS.jpg", "DYNAMIC DISCOVERY", "Fresh currents.",
      "Handpicked artist spotlights, community mixes,\nand global trending charts.",
      (120, 50, 180), ["05_explore_stage.webp", "05_explore.webp"]),
 
-    # Card 06: Levyra Mix
-    ("Screenshot_20261010_132217_LEVYRA.jpg", "LEVYRA MIX", "Built for your taste.",
+    # Card 06: Derbis Mix
+    ("Screenshot_20261010_132217_DERBIS.jpg", "DERBIS MIX", "Built for your taste.",
      "Algorithmic discovery stations powered by\nyour local listening history.",
-     (115, 45, 195), ["06_levyra_mix_stage.webp", "06_levyra_mix.webp"]),
+     (115, 45, 195), ["06_derbis_mix_stage.webp", "06_derbis_mix.webp"]),
 
     # Card 07: Genres & Moods
-    ("Screenshot_20261010_132249_LEVYRA.jpg", "EXPLORE MOODS", "Every genre.",
+    ("Screenshot_20261010_132249_DERBIS.jpg", "EXPLORE MOODS", "Every genre.",
      "Dive into curated categories, moods,\nand regional musical traditions.",
      (140, 60, 175), ["07_genres.webp"]),
 
     # Card 08: Audio Architecture & Equalizer
-    ("Screenshot_20261010_190726_LEVYRA.jpg", "AUDIO ARCHITECTURE", "Acoustic precision.",
+    ("Screenshot_20261010_190726_DERBIS.jpg", "AUDIO ARCHITECTURE", "Acoustic precision.",
      "10-band parametric equalizer, bass boost,\nand bit-perfect output.",
      (110, 50, 180), ["08_audio_tuning.webp"]),
 
     # Card 09: Album Details
-    ("Screenshot_20260926_194706_LEVYRA.jpg", "DISCOGRAPHY", "Open the album.",
+    ("Screenshot_20260926_194706_DERBIS.jpg", "DISCOGRAPHY", "Open the album.",
      "High-resolution artwork, release info,\nand complete tracklists.",
      (130, 60, 170), ["09_album.webp"]),
 
     # Card 10: Instant Search
-    ("Screenshot_20261013_111815_LEVYRA.jpg", "INSTANT MATCH", "Find it instantly.",
+    ("Screenshot_20261013_111815_DERBIS.jpg", "INSTANT MATCH", "Find it instantly.",
      "Recent searches, suggestions, and\ninstant matching across your music.",
      (110, 50, 185), ["10_search.webp"]),
 
     # Card 11: Collections
-    ("Screenshot_20261010_132136_LEVYRA.jpg", "CURATED PLAYLISTS", "Curated for you.",
+    ("Screenshot_20261010_132136_DERBIS.jpg", "CURATED PLAYLISTS", "Curated for you.",
      "Handpicked collections and gems\nrevolving around what you love.",
      (145, 45, 160), ["11_collections.webp"]),
 
     # Card 12: Listening Rhythm & Heatmaps
-    ("Screenshot_20260927_131943_LEVYRA.jpg", "LISTENING CADENCE", "Your rhythm.",
+    ("Screenshot_20260927_131943_DERBIS.jpg", "LISTENING CADENCE", "Your rhythm.",
      "Activity heatmaps, peak hours, and\nyour personal listening cadence.",
      (130, 65, 170), ["12_listening_rhythm.webp"]),
 
     # Card 13: Your Orbit
-    ("Screenshot_20261012_193022_LEVYRA.jpg", "TOP ROTATION", "In your orbit.",
+    ("Screenshot_20261012_193022_DERBIS.jpg", "TOP ROTATION", "In your orbit.",
      "The songs and artists that always return\nto your daily rotation.",
      (105, 45, 195), ["13_your_orbit.webp"]),
 
     # Card 14: Private Listening Stats
-    ("Screenshot_20261020_142741_LEVYRA.jpg", "ON-DEVICE STATS", "Keep it personal.",
+    ("Screenshot_20261020_142741_DERBIS.jpg", "ON-DEVICE STATS", "Keep it personal.",
      "Private listening stats and charts,\ncomputed strictly on your device.",
      (110, 55, 180), ["14_listening_pulse.webp"]),
 
     # Card 15: Artist Playlists
-    ("Screenshot_20261010_144048_LEVYRA.jpg", "ESSENTIAL SETS", "Artist playlists.",
+    ("Screenshot_20261010_144048_DERBIS.jpg", "ESSENTIAL SETS", "Artist playlists.",
      "Curated sets, tours, and the\nessential catalog of every artist.",
      (100, 50, 190), ["15_artist_playlists.webp"]),
 
     # Card 16: Settings
-    ("Screenshot_20261015_205614_LEVYRA.jpg", "SETTINGS STUDIO", "Make Levyra yours.",
+    ("Screenshot_20261015_205614_DERBIS.jpg", "SETTINGS STUDIO", "Make Derbis yours.",
      "Theme, home, player, and audio—\nall tuned from one place.",
      (115, 55, 180), ["16_settings_vault.webp"]),
 
     # Card 17: New Releases
-    ("Screenshot_20261010_144144_LEVYRA.jpg", "NEW MUSIC", "Fresh off the stage.",
+    ("Screenshot_20261010_144144_DERBIS.jpg", "NEW MUSIC", "Fresh off the stage.",
      "New singles and albums updated\nevery week directly from artists.",
      (140, 50, 165), ["17_new_releases.webp"]),
 
     # Card 18: Artist Profile & Discography
-    ("Screenshot_20261010_143646_LEVYRA.jpg", "ARTIST PROFILE", "Meet the artist.",
+    ("Screenshot_20261010_143646_DERBIS.jpg", "ARTIST PROFILE", "Meet the artist.",
      "Full discography, singles, biographies,\nand top tracks in one tap.",
      (110, 50, 185), ["18_artist_profile.webp", "18_fresh_currents.webp"]),
 
     # Card 19: Top 50 Global Charts
-    ("Screenshot_20261011_202032_LEVYRA.jpg", "GLOBAL CHARTS", "Top 50 charts.",
+    ("Screenshot_20261011_202032_DERBIS.jpg", "GLOBAL CHARTS", "Top 50 charts.",
      "Explore daily country charts,\nviral hits, and top tracks worldwide.",
      (120, 50, 180), ["19_top_50.webp"]),
 
-    # Card 20: Levyra Jam Collaborative Session
-    ("Screenshot_20261011_133434_LEVYRA.jpg", "LEVYRA JAM", "Listen together.",
+    # Card 20: Derbis Jam Collaborative Session
+    ("Screenshot_20261011_133434_DERBIS.jpg", "DERBIS JAM", "Listen together.",
      "Real-time collaborative sessions on local Wi-Fi.\nShare queues, add tracks, and host together.",
-     (105, 50, 190), ["20_soundstage.webp", "20_levyra_jam.webp"]),
+     (105, 50, 190), ["20_soundstage.webp", "20_derbis_jam.webp"]),
 ]
 
 def generate_hero_panoramic_showcase():
     hero_w, hero_h = 2139, 850
-    background_path = os.path.join(OUT_SHOWCASE_DIR, "levyra_dance_monochrome_bg.webp")
+    background_path = os.path.join(OUT_SHOWCASE_DIR, "derbis_dance_monochrome_bg.webp")
     if not os.path.exists(background_path):
-        raise FileNotFoundError("Missing monochrome Levyra dance background")
+        raise FileNotFoundError("Missing monochrome Derbis dance background")
     with Image.open(background_path) as background_source:
         background = background_source.convert("RGBA")
         scaled_h = round(background.height * hero_w / background.width)
@@ -506,9 +506,9 @@ def generate_hero_panoramic_showcase():
     hero.alpha_composite(tonal_glow)
     draw = ImageDraw.Draw(hero)
 
-    logo_path = resolve_screenshot_path("Logo LEVYRA DeepSound in Neon Ribbon.png")
+    logo_path = resolve_screenshot_path("Logo DERBIS DeepSound in Neon Ribbon.png")
     if not logo_path:
-        raise FileNotFoundError("Missing Levyra logo asset")
+        raise FileNotFoundError("Missing Derbis logo asset")
     with Image.open(logo_path) as logo_source:
         logo = logo_source.convert("RGBA")
         alpha_bbox = logo.getchannel("A").getbbox()
@@ -531,7 +531,7 @@ def generate_hero_panoramic_showcase():
             fill=(240, 240, 242, 242),
         )
 
-    out_path = os.path.join(OUT_SHOWCASE_DIR, "00_levyra_hero_dance_studio.webp")
+    out_path = os.path.join(OUT_SHOWCASE_DIR, "00_derbis_hero_dance_studio.webp")
     hero.convert("RGB").save(out_path, "WEBP", quality=95, method=6)
     print(f"Generated Monochrome Editorial Hero at ({hero_w}, {hero_h}): {out_path}")
 
@@ -583,26 +583,26 @@ README_CARD_THEMES = [
 ]
 
 README_CARD_SPECS = [
-    ("01_pure_listening", "RADIO", "Pure\nlistening.", "Radio that starts with your sound.", "Screenshot_20261016_223653_LEVYRA.jpg"),
-    ("02_stay_with_the_song", "NOW PLAYING", "Stay with\nthe song.", "Immersive playback, no visual noise.", "Screenshot_20261016_135636_LEVYRA.jpg"),
+    ("01_pure_listening", "RADIO", "Pure\nlistening.", "Radio that starts with your sound.", "Screenshot_20261016_223653_DERBIS.jpg"),
+    ("02_stay_with_the_song", "NOW PLAYING", "Stay with\nthe song.", "Immersive playback, no visual noise.", "Screenshot_20261016_135636_DERBIS.jpg"),
     ("03_sing_along", "SYNCED LYRICS", "Sing\nalong.", "Translation and timing in one flow.", "screen-lyrics.jpg"),
-    ("04_open_the_album", "OFFLINE", "Open the\nwhole album.", "Keep the music you come back to.", "Screenshot_20260926_194706_LEVYRA.jpg"),
-    ("05_fresh_currents", "DISCOVERY", "Fresh\ncurrents.", "New releases without the scroll fatigue.", "Screenshot_20261010_132210_LEVYRA.jpg"),
-    ("06_built_for_your_taste", "LEVYRA MIX", "Built for\nyour taste.", "A mix shaped around the moment.", "Screenshot_20261015_144159_LEVYRA.jpg"),
-    ("07_every_genre", "MOODS", "Every\ngenre.", "Move by mood, place or energy.", "Screenshot_20261015_140910_LEVYRA.jpg"),
-    ("08_acoustic_precision", "AUDIO", "Acoustic\nprecision.", "Tune the sound, keep the soul.", "Screenshot_20261010_190726_LEVYRA.jpg"),
-    ("09_keep_it_personal", "LIBRARY", "Keep it\npersonal.", "Your collection stays yours.", "Screenshot_20261020_142741_LEVYRA.jpg"),
-    ("10_curated_for_you", "COLLECTIONS", "Curated\nfor you.", "Quick picks, ready when you are.", "Screenshot_20261017_143917_LEVYRA.jpg"),
-    ("11_your_rhythm", "INSIGHTS", "Your\nrhythm.", "See the pattern behind the plays.", "Screenshot_20260927_131943_LEVYRA.jpg"),
-    ("12_in_your_orbit", "HOME", "In your\norbit.", "Artists and albums close at hand.", "Screenshot_20261010_132103_LEVYRA.jpg"),
-    ("13_tailor_every_detail", "SETTINGS", "Make Levyra\nyours.", "Theme, home, player and audio—in one place.", "Screenshot_20261015_205614_LEVYRA.jpg"),
-    ("14_fresh_off_the_stage", "NEW RELEASES", "Fresh off\nthe stage.", "The newest music, without the clutter.", "Screenshot_20261010_144144_LEVYRA.jpg"),
-    ("15_meet_the_artist", "ARTISTS", "Meet the\nartist.", "From the profile straight into the music.", "Screenshot_20261010_143646_LEVYRA.jpg"),
-    ("16_listen_together", "LEVYRA JAM", "Listen\ntogether.", "One room. One queue. Everyone in.", "Screenshot_20261011_133434_LEVYRA.jpg"),
-    ("17_daylight_expressive", "LIGHT THEME", "Bask in\nthe light.", "Every curve and color tuned for daylight.", "Screenshot_20261017_133945_LEVYRA.jpg"),
-    ("18_midnight_obsidian", "DARK THEME", "Into the\ndark.", "Deep contrast for midnight listening.", "Screenshot_20261017_134057_LEVYRA.jpg"),
-    ("19_top_charts", "CHARTS", "Pulse of\nthe charts.", "What the world is playing right now.", "Screenshot_20261017_123908_LEVYRA.jpg"),
-    ("20_your_year_in_music", "YEAR IN MUSIC", "Your year\nin sound.", "A story of your year, made on this device.", "Screenshot_20261016_223757_LEVYRA.jpg"),
+    ("04_open_the_album", "OFFLINE", "Open the\nwhole album.", "Keep the music you come back to.", "Screenshot_20260926_194706_DERBIS.jpg"),
+    ("05_fresh_currents", "DISCOVERY", "Fresh\ncurrents.", "New releases without the scroll fatigue.", "Screenshot_20261010_132210_DERBIS.jpg"),
+    ("06_built_for_your_taste", "DERBIS MIX", "Built for\nyour taste.", "A mix shaped around the moment.", "Screenshot_20261015_144159_DERBIS.jpg"),
+    ("07_every_genre", "MOODS", "Every\ngenre.", "Move by mood, place or energy.", "Screenshot_20261015_140910_DERBIS.jpg"),
+    ("08_acoustic_precision", "AUDIO", "Acoustic\nprecision.", "Tune the sound, keep the soul.", "Screenshot_20261010_190726_DERBIS.jpg"),
+    ("09_keep_it_personal", "LIBRARY", "Keep it\npersonal.", "Your collection stays yours.", "Screenshot_20261020_142741_DERBIS.jpg"),
+    ("10_curated_for_you", "COLLECTIONS", "Curated\nfor you.", "Quick picks, ready when you are.", "Screenshot_20261017_143917_DERBIS.jpg"),
+    ("11_your_rhythm", "INSIGHTS", "Your\nrhythm.", "See the pattern behind the plays.", "Screenshot_20260927_131943_DERBIS.jpg"),
+    ("12_in_your_orbit", "HOME", "In your\norbit.", "Artists and albums close at hand.", "Screenshot_20261010_132103_DERBIS.jpg"),
+    ("13_tailor_every_detail", "SETTINGS", "Make Derbis\nyours.", "Theme, home, player and audio—in one place.", "Screenshot_20261015_205614_DERBIS.jpg"),
+    ("14_fresh_off_the_stage", "NEW RELEASES", "Fresh off\nthe stage.", "The newest music, without the clutter.", "Screenshot_20261010_144144_DERBIS.jpg"),
+    ("15_meet_the_artist", "ARTISTS", "Meet the\nartist.", "From the profile straight into the music.", "Screenshot_20261010_143646_DERBIS.jpg"),
+    ("16_listen_together", "DERBIS JAM", "Listen\ntogether.", "One room. One queue. Everyone in.", "Screenshot_20261011_133434_DERBIS.jpg"),
+    ("17_daylight_expressive", "LIGHT THEME", "Bask in\nthe light.", "Every curve and color tuned for daylight.", "Screenshot_20261017_133945_DERBIS.jpg"),
+    ("18_midnight_obsidian", "DARK THEME", "Into the\ndark.", "Deep contrast for midnight listening.", "Screenshot_20261017_134057_DERBIS.jpg"),
+    ("19_top_charts", "CHARTS", "Pulse of\nthe charts.", "What the world is playing right now.", "Screenshot_20261017_123908_DERBIS.jpg"),
+    ("20_your_year_in_music", "YEAR IN MUSIC", "Your year\nin sound.", "A story of your year, made on this device.", "Screenshot_20261016_223757_DERBIS.jpg"),
 ]
 
 def make_campaign_device(filename, width):
@@ -719,7 +719,7 @@ def paste_campaign_device(canvas, filename, width, center=None, angle=0, top_lef
     canvas.alpha_composite(device, (x, y))
 
 def paste_campaign_ribbon(canvas, width, center, opacity, angle=0):
-    ribbon_path = os.path.join(OUT_SHOWCASE_DIR, "levyra_editorial_ribbon.png")
+    ribbon_path = os.path.join(OUT_SHOWCASE_DIR, "derbis_editorial_ribbon.png")
     if not os.path.exists(ribbon_path):
         raise FileNotFoundError(f"Missing editorial ribbon: {ribbon_path}")
     with Image.open(ribbon_path) as ribbon_source:

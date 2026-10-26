@@ -17,7 +17,7 @@ class AiQualityGateTest(unittest.TestCase):
     def test_classifies_platform_changes(self) -> None:
         android = classify_changes({"app/src/main/java/example.kt"})
         desktop = classify_changes({"desktop/src/main/kotlin/example.kt"})
-        extractor = classify_changes({"third_party/LevyraExtractor/src/Test.kt"})
+        extractor = classify_changes({"third_party/DerbisExtractor/src/Test.kt"})
 
         self.assertTrue(android.android)
         self.assertFalse(android.desktop)
@@ -58,7 +58,7 @@ class AiQualityGateTest(unittest.TestCase):
 
     def test_allows_synthetic_ci_credentials(self) -> None:
         findings = scan_added_lines(
-            ['password = "levyra_ci_test_password"', 'token = "${TOKEN}"'],
+            ['password = "derbis_ci_test_password"', 'token = "${TOKEN}"'],
             "fixture",
         )
 
@@ -101,15 +101,15 @@ class AiQualityGateTest(unittest.TestCase):
         self.assertEqual(
             [],
             missing_skill_references(
-                {"levyra-ci", "levyra-reviewer", "levyra-worker"},
+                {"derbis-ci", "derbis-reviewer", "derbis-worker"},
                 set(),
             ),
         )
 
     def test_unknown_documented_skill_still_fails_validation(self) -> None:
         self.assertEqual(
-            ["levyra-missing-skill"],
-            missing_skill_references({"levyra-missing-skill"}, set()),
+            ["derbis-missing-skill"],
+            missing_skill_references({"derbis-missing-skill"}, set()),
         )
 
     def test_fast_gate_includes_persistent_memory_validation(self) -> None:
