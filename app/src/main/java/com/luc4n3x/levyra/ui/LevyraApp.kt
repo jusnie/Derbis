@@ -6966,6 +6966,20 @@ private data class QueueRemovalTarget(
 internal fun queueSelectionKeys(queue: List<Track>): List<String> =
     buildQueueEntries(queue).map { it.key }
 
+/**
+ * Endless Listening is a sliding queue: tracks before the current one are playback history, not
+ * upcoming songs.  Keep the current track and every later entry visible so newly appended radio
+ * recommendations are shown immediately, while completed entries never grow the song list.
+ */
+internal fun endlessListeningVisibleEntries(
+    entries: List<QueueEntry>,
+    currentQueueIndex: Int,
+    enabled: Boolean
+): List<QueueEntry> {
+    if (!enabled || currentQueueIndex < 0) return entries
+    return entries.filter { entry -> entry.queueIndex >= currentQueueIndex }
+}
+
 internal fun reorderQueueEntries(
     entries: List<QueueEntry>,
     from: Int,
@@ -7064,15 +7078,16 @@ private fun QueueOverlay(
         if (queueEntries.size == state.queue.size && queueEntries.map { it.track } == state.queue) queueEntries
         else buildQueueEntries(state.queue, queueEntries).also { queueEntries = it }
     }
-    val endlessListeningBufferActive = state.radioEnabled && state.automaticQueueTrackKeys.isNotEmpty()
-    val displayEntries = remember(currentEntries, state.automaticQueueTrackKeys, state.queueCurrentIndex, endlessListeningBufferActive) {
-        if (!endlessListeningBufferActive) currentEntries else currentEntries.filter { entry ->
-            entry.queueIndex == state.queueCurrentIndex ||
-                com.luc4n3x.levyra.player.queue.playbackQueueIdentity(entry.track) !in state.automaticQueueTrackKeys
-        }
+    val displayEntries = remember(currentEntries, state.queueCurrentIndex, state.radioEnabled) {
+        endlessListeningVisibleEntries(
+            entries = currentEntries,
+            currentQueueIndex = state.queueCurrentIndex,
+            enabled = state.radioEnabled
+        )
     }
-    // The current song is presented in the compact player header. The scrolling list is the
-    // actual upcoming queue, matching the reference while retaining all underlying queue order.
+    // The current song is presented in the compact player header.  In Endless Listening, completed
+    // tracks are intentionally absent; the list is a live window of current/upcoming tracks and all
+    // newly appended continuation picks, rather than a growing playback history.
     val upcomingEntries = remember(displayEntries, state.queueCurrentIndex) {
         displayEntries.filter { it.queueIndex != state.queueCurrentIndex }
     }

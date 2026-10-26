@@ -91,6 +91,33 @@ class QueueSelectionKeyTest {
     }
 
     @Test
+    fun endlessListeningHidesCompletedEntriesButKeepsCurrentAndUpcomingSongs() {
+        val entries = buildQueueEntries(listOf(track("a"), track("b"), track("c"), track("d")))
+
+        val visible = endlessListeningVisibleEntries(entries, currentQueueIndex = 2, enabled = true)
+
+        assertEquals(listOf("c", "d"), visible.map { it.track.id })
+        assertEquals(listOf(2, 3), visible.map(QueueEntry::queueIndex))
+    }
+
+    @Test
+    fun endlessListeningKeepsNewContinuationTracksVisible() {
+        val entries = buildQueueEntries(listOf(track("played"), track("current"), track("radio-1"), track("radio-2")))
+
+        val visible = endlessListeningVisibleEntries(entries, currentQueueIndex = 1, enabled = true)
+
+        assertEquals(listOf("current", "radio-1", "radio-2"), visible.map { it.track.id })
+    }
+
+    @Test
+    fun finiteQueueRetainsItsPlaybackHistory() {
+        val entries = buildQueueEntries(listOf(track("a"), track("b"), track("c")))
+
+        assertEquals(entries, endlessListeningVisibleEntries(entries, currentQueueIndex = 1, enabled = false))
+        assertEquals(entries, endlessListeningVisibleEntries(entries, currentQueueIndex = -1, enabled = true))
+    }
+
+    @Test
     fun entriesRetainBackingQueueIndexesAfterReordering() {
         var entries = buildQueueEntries(listOf(track("a"), track("b"), track("c")))
         assertEquals(listOf(0, 1, 2), entries.map(QueueEntry::queueIndex))
