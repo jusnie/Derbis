@@ -40,6 +40,8 @@ import com.luc4n3x.levyra.domain.RepeatMode
 import com.luc4n3x.levyra.feature.motion.DerbisCanvasCatalogProvider
 import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.artwork.LivingArtworkColors
+import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
+import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.domain.LyricLine
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
@@ -111,10 +113,20 @@ internal fun AppleMusicPlayerScene(
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L
 ) {
-    // Keep the artwork itself untouched: this deck no longer derives a coloured overlay from it.
-    val field = Color(0xFF151515)
-    val deep = Color.Black
-    BoxWithConstraints(modifier.fillMaxSize().background(Brush.verticalGradient(0f to field, 0.55f to Color(0xFF0B0B0B), 1f to deep))) {
+    // The Apple Music 13 deck deliberately lets the adaptive artwork ambience show through,
+    // then protects controls with a neutral, translucent lower scrim.
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = 0.10f),
+                    0.36f to Color.Transparent,
+                    0.68f to Color.Black.copy(alpha = 0.22f),
+                    1f to Color.Black.copy(alpha = 0.48f)
+                )
+            )
+    ) {
         val landscape = maxWidth > maxHeight
         val immersive = appleMusicCanvasImmersive(canvas, maxWidth, maxHeight, video)
         val canvasAlpha by animateFloatAsState(if (immersive) 1f else 0f, label = "apple-player-canvas-alpha")
@@ -130,8 +142,16 @@ internal fun AppleMusicPlayerScene(
             AppleMusicLandscapeDeck(track, slots, minOf(maxHeight - 34.dp, artworkCap), artwork, metadata, transport)
         } else {
             AppleMusicPortraitDeck(
-                track, slots, if (video) maxWidth else artworkCap, immersive, artwork, metadata, transport,
-                activeLyric, lyricPositionMs
+                track = track,
+                slots = slots,
+                artworkCap = if (video) maxWidth else artworkCap,
+                immersive = immersive,
+                video = video,
+                artwork = artwork,
+                metadata = metadata,
+                transport = transport,
+                activeLyric = activeLyric,
+                lyricPositionMs = lyricPositionMs
             )
         }
     }
@@ -182,10 +202,182 @@ private fun AppleMusicGrabber() {
 
 @Composable
 private fun AppleMusicPortraitDeck(
-    track: Track, slots: PlayerDeckSlots, artworkCap: Dp, immersive: Boolean, artwork: @Composable (Dp) -> Unit,
-    metadata: @Composable () -> Unit, transport: @Composable () -> Unit,
+    track: Track,
+    slots: PlayerDeckSlots,
+    artworkCap: Dp,
+    immersive: Boolean,
+    video: Boolean,
+    artwork: @Composable (Dp) -> Unit,
+    metadata: @Composable () -> Unit,
+    transport: @Composable () -> Unit,
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L
+) {
+    if (video) {
+        AppleMusicVideoPortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
+    } else {
+        AppleMusic13ReferencePortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
+    }
+}
+
+/**
+ * Portrait Apple Music 13 follows the supplied reference: a cropped cover band on top, the
+ * artwork's blurred adaptive field behind it, then airy metadata, slim progress, transport,
+ * volume and a compact output/action strip. This is intentionally separate from Velvet/Aura.
+ */
+@Composable
+private fun AppleMusic13ReferencePortraitDeck(
+    track: Track,
+    slots: PlayerDeckSlots,
+    artworkCap: Dp,
+    immersive: Boolean,
+    artwork: @Composable (Dp) -> Unit,
+    metadata: @Composable () -> Unit,
+    transport: @Composable () -> Unit,
+    activeLyric: LyricLine?,
+    lyricPositionMs: Long
+) {
+    BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        val coverHeight = (maxWidth / 1.62f).coerceIn(154.dp, 272.dp)
+        val topBreathingRoom = (maxHeight * 0.055f).coerceIn(20.dp, 46.dp)
+        Column(Modifier.fillMaxSize()) {
+            Spacer(Modifier.height(topBreathingRoom))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(coverHeight)
+                    .clip(RoundedCornerShape(2.dp))
+            ) {
+                SeamlessArtworkImage(
+                    url = preferredPlayerArtworkUrl(track),
+                    modifier = Modifier.fillMaxSize(),
+                    contentDescription = null,
+                    fallback = {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            artwork(minOf(coverHeight, artworkCap))
+                        }
+                    }
+                )
+                // A light bottom fade makes the source artwork flow naturally into its ambience.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.62f to Color.Transparent,
+                                1f to Color.Black.copy(alpha = 0.20f)
+                            )
+                        )
+                )
+                slots.gestures(track, Modifier.matchParentSize())
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.08f),
+                            1f to Color.Black.copy(alpha = 0.30f)
+                        )
+                    )
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Spacer(Modifier.height(12.dp))
+                Box(Modifier.fillMaxWidth().clipToBounds()) { metadata() }
+                AppleMusic13PageDots()
+                AppleMusic13InlineLyrics(
+                    line = activeLyric,
+                    positionMs = lyricPositionMs,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+                Box(Modifier.padding(top = 2.dp)) { slots.progress(PlayerProgressStyle.Classic) }
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Box(Modifier.padding(horizontal = 8.dp)) { transport() }
+                }
+                PlayerOutputVolume(
+                    contentColor = Color.White,
+                    mutedColor = Color.White.copy(alpha = 0.72f),
+                    activeColor = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.26f),
+                    condensed = true,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+                AppleMusic13ActionStrip(slots.dockActions(track))
+                Spacer(Modifier.height(2.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppleMusic13PageDots() {
+    Row(
+        modifier = Modifier.padding(top = 3.dp, bottom = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(3) { index ->
+            Box(
+                Modifier
+                    .size(if (index == 0) 7.dp else 5.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = if (index == 0) 0.92f else 0.42f))
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppleMusic13ActionStrip(actions: List<PlayerDockAction>) {
+    val shown = actions.filter { it.key == "lyrics" || it.key == "queue" || it.key == "visual-mode" }.take(3)
+    if (shown.isEmpty()) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        shown.forEachIndexed { index, action ->
+            Box(
+                modifier = Modifier
+                    .size(width = 58.dp, height = 48.dp)
+                    .clip(if (index == 1) RoundedCornerShape(24.dp) else RoundedCornerShape(16.dp))
+                    .background(if (index == 1 || action.active) Color.White.copy(alpha = 0.18f) else Color.Transparent)
+                    .clickable(enabled = action.enabled && !action.busy, role = Role.Button, onClick = action.onClick)
+                    .semantics {
+                        contentDescription = action.label
+                        action.stateDescription?.let { stateDescription = it }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (action.busy) {
+                    LevyraLoadingIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                } else {
+                    Icon(
+                        action.icon,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = if (action.enabled) 0.94f else 0.40f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppleMusicVideoPortraitDeck(
+    track: Track,
+    slots: PlayerDeckSlots,
+    artworkCap: Dp,
+    immersive: Boolean,
+    artwork: @Composable (Dp) -> Unit,
+    metadata: @Composable () -> Unit,
+    transport: @Composable () -> Unit,
+    activeLyric: LyricLine?,
+    lyricPositionMs: Long
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
@@ -196,14 +388,11 @@ private fun AppleMusicPortraitDeck(
         ) { artwork(minOf(maxWidth, maxHeight, artworkCap)) }
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp).clipToBounds()) { metadata() }
         if (!immersive) Box(Modifier.padding(horizontal = AppleMusicDesign.playerMetadataInset - 16.dp)) { slots.engagement(track) }
-        
-        // The compact line under the artwork uses real word timing whenever the provider has it.
         AppleMusic13InlineLyrics(
             line = activeLyric,
             positionMs = lyricPositionMs,
             modifier = Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset, vertical = 4.dp)
         )
-
         Box(Modifier.padding(horizontal = AppleMusicDesign.playerSeekbarInset)) { slots.progress(PlayerProgressStyle.Classic) }
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             Box(Modifier.padding(horizontal = 16.dp)) { transport() }

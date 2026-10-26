@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.VolumeDown
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
@@ -533,6 +534,7 @@ internal fun PlayerOutputVolume(
     mutedColor: Color = AuraInkSoft,
     activeColor: Color = AuraInk,
     trackColor: Color = AuraBadge,
+    condensed: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val label = LocalLevyraStrings.current.volume
@@ -562,38 +564,70 @@ internal fun PlayerOutputVolume(
     LaunchedEffect(level) {
         sliderState.value = level.coerceIn(0f, 1f)
     }
-    Column(modifier = modifier.fillMaxWidth()) {
+    if (condensed) {
         Row(
+            modifier = modifier.fillMaxWidth().height(44.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null, tint = mutedColor, modifier = Modifier.size(20.dp))
-            Text(label, color = contentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            Text("${(level * 100).toInt()}%", color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Icon(Icons.Rounded.VolumeDown, contentDescription = null, tint = mutedColor, modifier = Modifier.size(19.dp))
+            Slider(
+                state = sliderState,
+                onValueChange = { value ->
+                    sliderState.value = value
+                    apply(value)
+                },
+                colors = sliderColors,
+                thumb = { Box(Modifier.size(8.dp).background(activeColor, CircleShape)) },
+                track = { state ->
+                    SliderDefaults.Track(
+                        sliderState = state,
+                        colors = sliderColors,
+                        modifier = Modifier.height(6.dp),
+                        drawStopIndicator = null,
+                        thumbTrackGapSize = 4.dp,
+                        trackInsideCornerSize = 3.dp
+                    )
+                },
+                modifier = Modifier.weight(1f).height(LevyraPlayerDesign.MinimumTouchTarget)
+                    .semantics { contentDescription = label }
+            )
+            Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null, tint = mutedColor, modifier = Modifier.size(19.dp))
         }
-        Slider(
-            state = sliderState,
-            onValueChange = { value ->
-                sliderState.value = value
-                apply(value)
-            },
-            colors = sliderColors,
-            thumb = {
-                Box(Modifier.size(width = 4.dp, height = 40.dp).background(activeColor, CircleShape))
-            },
-            track = { state ->
-                SliderDefaults.Track(
-                    sliderState = state,
-                    colors = sliderColors,
-                    modifier = Modifier.height(32.dp),
-                    drawStopIndicator = null,
-                    thumbTrackGapSize = 4.dp,
-                    trackInsideCornerSize = 4.dp
-                )
-            },
-            modifier = Modifier.fillMaxWidth().height(LevyraPlayerDesign.MinimumTouchTarget)
-                .semantics { contentDescription = label }
-        )
+    } else {
+        Column(modifier = modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null, tint = mutedColor, modifier = Modifier.size(20.dp))
+                Text(label, color = contentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text("${(level * 100).toInt()}%", color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Slider(
+                state = sliderState,
+                onValueChange = { value ->
+                    sliderState.value = value
+                    apply(value)
+                },
+                colors = sliderColors,
+                thumb = {
+                    Box(Modifier.size(width = 4.dp, height = 40.dp).background(activeColor, CircleShape))
+                },
+                track = { state ->
+                    SliderDefaults.Track(
+                        sliderState = state,
+                        colors = sliderColors,
+                        modifier = Modifier.height(32.dp),
+                        drawStopIndicator = null,
+                        thumbTrackGapSize = 4.dp,
+                        trackInsideCornerSize = 4.dp
+                    )
+                },
+                modifier = Modifier.fillMaxWidth().height(LevyraPlayerDesign.MinimumTouchTarget)
+                    .semantics { contentDescription = label }
+            )
+        }
     }
 }
 
