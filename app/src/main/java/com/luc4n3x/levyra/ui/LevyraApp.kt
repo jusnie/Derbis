@@ -7105,8 +7105,9 @@ private fun QueueOverlay(
         var dragDistance by remember(entry.key) { mutableFloatStateOf(0f) }
         val latestMove by rememberUpdatedState(onMoveEntry)
         val latestRemove by rememberUpdatedState(onRemove)
-        val dismissState = remember(entry.key) {
-            SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, SwipeToDismissBoxDefaults.positionalThreshold)
+        val dismissThreshold = SwipeToDismissBoxDefaults.positionalThreshold
+        val dismissState = remember(entry.key, dismissThreshold) {
+            SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, dismissThreshold)
         }
         LaunchedEffect(dismissState.currentValue) {
             if (isCurrent || dismissState.currentValue != SwipeToDismissBoxValue.EndToStart) return@LaunchedEffect
@@ -7194,7 +7195,12 @@ private fun QueueOverlay(
                     }
                 }
                 if (isCurrent) {
-                    LevyraPlayingIndicator(state.isPlaying, queueAccent, 18.dp, strings.playing)
+                    LevyraPlayingIndicator(
+                        playing = state.isPlaying,
+                        color = queueAccent,
+                        size = 18.dp,
+                        contentDescription = strings.playing
+                    )
                 }
                 if (selectionActive) {
                     Icon(
