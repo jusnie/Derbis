@@ -21763,6 +21763,7 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
+                            })
                             item {
                                 SettingsToggle(
                                     icon = Icons.Rounded.Refresh,
@@ -21774,7 +21775,6 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
-                            })
                             skinSettingsItems(interfaceSettings.skin, defaults = {
                             item {
                                 SettingsToggle(

@@ -16,6 +16,19 @@ import timber.log.Timber
 class DerbisMixStudioStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
+    init {
+        // The removed two-song Library tool stored a transient plan under this reserved id.
+        // Clear it so an old active queue can never revive that retired entry point.
+        val activePlanId = preferences.getString(ACTIVE_KEY, null)
+            ?.let { raw -> runCatching { JSONObject(raw).optString("playlistId") }.getOrNull() }
+        preferences.edit()
+            .remove(planKey(LEGACY_TWO_SONG_TOOL_PLAN_ID))
+            .also { editor ->
+                if (activePlanId == LEGACY_TWO_SONG_TOOL_PLAN_ID) editor.remove(ACTIVE_KEY)
+            }
+            .apply()
+    }
+
     suspend fun load(playlistId: String): DerbisMixStudioPlan? = withContext(Dispatchers.IO) {
         if (playlistId.isBlank()) return@withContext null
         val raw = preferences.getString(planKey(playlistId), null) ?: return@withContext null
@@ -33,38 +46,6 @@ class DerbisMixStudioStore(context: Context) {
 
     suspend fun delete(playlistId: String) = withContext(Dispatchers.IO) {
         if (playlistId.isNotBlank()) preferences.edit().remove(planKey(playlistId)).commit()
-    }
-
-    /**
-     * Arms a one-off two-song transition made in the Library Tools surface. It shares the real
-     * playback pipeline with playlist Mix Studio but deliberately stores no Beat Sync request.
-     */
-    suspend fun saveToolTransition(
-        outgoing: Track,
-        incoming: Track,
-        preset: DerbisMixTransitionPreset,
-        durationMs: Long,
-        outgoingStartMs: Long? = null,
-        incomingStartMs: Long? = null
-    ): String = withContext(Dispatchers.IO) {
-        val plan = DerbisMixStudioPlan(
-            playlistId = TOOL_PLAN_ID,
-            enabled = true,
-            transitions = listOf(
-                DerbisMixTransitionSetting(
-                    outgoingEntryId = outgoing.derbisMixEntryId(),
-                    incomingEntryId = incoming.derbisMixEntryId(),
-                    preset = preset,
-                    durationMs = durationMs,
-                    beatSyncEnabled = false,
-                    outgoingStartMs = outgoingStartMs,
-                    incomingStartMs = incomingStartMs
-                )
-            ),
-            updatedAt = System.currentTimeMillis()
-        )
-        save(plan)
-        TOOL_PLAN_ID
     }
 
     /** Arms a saved playlist plan for the exact queue started from that playlist. */
@@ -159,6 +140,6 @@ class DerbisMixStudioStore(context: Context) {
         const val PREFERENCES = "derbis_mix_studio"
         const val PLAN_PREFIX = "plan."
         const val ACTIVE_KEY = "active_queue"
-        const val TOOL_PLAN_ID = "derbis.mix.tool"
+        const val LEGACY_TWO_SONG_TOOL_PLAN_ID = "derbis.mix.tool"
     }
 }

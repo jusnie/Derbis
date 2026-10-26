@@ -3991,24 +3991,6 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
 
     fun closeMixStudio() = mixStudio.close()
 
-    /** Launches the separate two-song Derbis Mix tool. Beat Sync remains opt-in in Mix Studio. */
-    fun playDerbisMixPair(
-        music1: Track,
-        music2: Track,
-        preset: com.luc4n3x.levyra.domain.DerbisMixTransitionPreset,
-        durationMs: Long,
-        outgoingStartMs: Long? = null,
-        incomingStartMs: Long? = null
-    ) {
-        if (samePlayableTrack(music1, music2)) return
-        viewModelScope.launch {
-            val toolPlanId = mixStudioStore.saveToolTransition(
-                music1, music2, preset, durationMs, outgoingStartMs, incomingStartMs
-            )
-            playFrom(listOf(music1, music2), music1, mixStudioPlaylistId = toolPlanId)
-        }
-    }
-
     fun openMixLab(initialParams: com.luc4n3x.levyra.domain.MixLabParams = com.luc4n3x.levyra.domain.MixLabParams()) {
         mixLab.open(initialParams)
     }
