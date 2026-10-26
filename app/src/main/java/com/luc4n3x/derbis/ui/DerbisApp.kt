@@ -21309,16 +21309,29 @@ private fun SettingsOverlay(
                         )
                     }
                     settingsGroupedItems { when (current) {
-                        "network" -> item {
-                            NetworkSettingsPanel(
-                                settings = networkSettings,
-                                proxyPasswordSet = networkProxyPasswordSet,
-                                testing = networkTesting,
-                                testOutcome = networkTestOutcome,
-                                errors = networkErrors,
-                                onApply = onNetworkSettings,
-                                onTest = onTestNetwork
-                            )
+                        "network" -> {
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.NetworkCell,
+                                    title = "Data Saver",
+                                    subtitle = "Turn off background queue, search, lyrics, Canvas, and artwork prefetching. Automatic downloads wait for Wi-Fi; automatic video is capped at 480p. Tracks, searches, and imports you start yourself still work.",
+                                    checked = interfaceSettings.dataSaverEnabled,
+                                    onCheckedChange = { enabled ->
+                                        onInterfaceSettings(interfaceSettings.copy(dataSaverEnabled = enabled))
+                                    }
+                                )
+                            }
+                            item {
+                                NetworkSettingsPanel(
+                                    settings = networkSettings,
+                                    proxyPasswordSet = networkProxyPasswordSet,
+                                    testing = networkTesting,
+                                    testOutcome = networkTestOutcome,
+                                    errors = networkErrors,
+                                    onApply = onNetworkSettings,
+                                    onTest = onTestNetwork
+                                )
+                            }
                         }
                         "jam" -> item {
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

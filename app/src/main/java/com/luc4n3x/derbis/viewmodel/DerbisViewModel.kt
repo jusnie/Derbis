@@ -573,7 +573,8 @@ internal fun shouldContinueMotionPrefetch(
 internal fun shouldRefreshMotionArtworkOwnership(
     previous: DerbisInterfaceSettings,
     next: DerbisInterfaceSettings
-): Boolean = previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly
+): Boolean = previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly ||
+    previous.dataSaverEnabled != next.dataSaverEnabled
 
 internal fun resumeStartPositionMs(pendingSeekMs: Long, durationMs: Long): Long =
     pendingSeekMs.takeIf { positionMs ->
@@ -582,6 +583,9 @@ internal fun resumeStartPositionMs(pendingSeekMs: Long, durationMs: Long): Long 
 
 /** A tap on a track is a fresh selection, distinct from resuming the player after a pause or restore. */
 internal fun explicitTrackStartPositionMs(): Long = 0L
+
+/** Data Saver never blocks a listener's explicit action; it only removes background network work. */
+internal fun dataSaverBlocksBackgroundNetwork(settings: DerbisInterfaceSettings): Boolean = settings.dataSaverEnabled
 
 internal fun shouldReuseFreshCurrentsRequest(
     activeRequestLanguage: String,
@@ -1624,7 +1628,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         com.luc4n3x.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
-            startupSettings.interfaceSettings.motionArtworkWifiOnly
+            startupSettings.interfaceSettings.motionArtworkWifiOnly || startupSettings.interfaceSettings.dataSaverEnabled
         )
         viewModelScope.launch(Dispatchers.IO) {
             applyAutomationSettings(startupSettings.automationSettings, persist = false)
@@ -2212,30 +2216,34 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         )
         val startupPlan = homeStartupWorkPlan()
 
-        viewModelScope.launch(Dispatchers.IO) {
-            delay(playbackWarmPlan.delayMs)
-            awaitHomeUiIdle(startupPlan)
-            resolver.warmNetwork()
-            if (!playbackPlan.lowRam && !playbackPlan.powerConstrained) {
-                resolver.warmPlaybackSecurity()
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+            viewModelScope.launch(Dispatchers.IO) {
+                delay(playbackWarmPlan.delayMs)
+                awaitHomeUiIdle(startupPlan)
+                if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@launch
+                resolver.warmNetwork()
+                if (!playbackPlan.lowRam && !playbackPlan.powerConstrained) {
+                    resolver.warmPlaybackSecurity()
+                }
+                val hot = (orbitSeed.take(1) + initialTracks.take(playbackWarmPlan.trackCount))
+                    .filter { it.id.isNotBlank() || it.videoUrl.isNotBlank() || it.title.isNotBlank() }
+                    .distinctBy { playbackIdentity(it) }
+                    .take(playbackWarmPlan.trackCount)
+                warmTracks(
+                    tracks = hot,
+                    concurrency = playbackWarmPlan.concurrency,
+                    delayStepMs = playbackPlan.staggerMs,
+                    prime = true,
+                    respectHomeScroll = true
+                )
             }
-            val hot = (orbitSeed.take(1) + initialTracks.take(playbackWarmPlan.trackCount))
-                .filter { it.id.isNotBlank() || it.videoUrl.isNotBlank() || it.title.isNotBlank() }
-                .distinctBy { playbackIdentity(it) }
-                .take(playbackWarmPlan.trackCount)
-            warmTracks(
-                tracks = hot,
-                concurrency = playbackWarmPlan.concurrency,
-                delayStepMs = playbackPlan.staggerMs,
-                prime = true,
-                respectHomeScroll = true
-            )
         }
 
-        if (orbitSeed.isNotEmpty()) {
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && orbitSeed.isNotEmpty()) {
             viewModelScope.launch {
                 delay(startupPlan.secondaryStartDelayMs)
                 awaitHomeUiIdle(startupPlan)
+                if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@launch
                 DerbisArtworkCache.preloadPriority(appContext, orbitSeed, DerbisPersonalOrbit.DISPLAY_LIMIT)
                 warmPersistentOrbit(orbitSeed, DerbisPersonalOrbit.DISPLAY_LIMIT, persist = false)
             }
@@ -2275,7 +2283,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) {
             val languageCode = _state.value.languageCode
             if (persist) preferences.savePersonalOrbitTracks(limited, languageCode)
-            if (limited.isNotEmpty()) DerbisArtworkCache.cachePersistent(appContext, limited, limited.size)
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && limited.isNotEmpty()) {
+                DerbisArtworkCache.cachePersistent(appContext, limited, limited.size)
+            }
         }
     }
 
@@ -4418,7 +4428,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun prefetchAlternateMode(track: Track, activeVideoMode: Boolean) {
         alternateModePrefetchJob?.cancel()
-        if (track.source.equals("Offline", true)) return
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) || track.source.equals("Offline", true)) return
         alternateModePrefetchJob = viewModelScope.launch(Dispatchers.IO) {
             val targetVideoMode = !activeVideoMode
             val selectedSource = if (targetVideoMode) preferredVideoPlaybackTrack(track) else audioModeSource(track)
@@ -5300,16 +5310,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
         persistHomeSnapshot()
         val startupPlan = homeStartupWorkPlan()
-        viewModelScope.launch(Dispatchers.IO) {
-            if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
-            DerbisArtworkCache.preloadHome(
-                getApplication<Application>().applicationContext,
-                visibleTracks,
-                startupPlan.refreshedArtworkCount
-            )
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+            viewModelScope.launch(Dispatchers.IO) {
+                if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
+                DerbisArtworkCache.preloadHome(
+                    getApplication<Application>().applicationContext,
+                    visibleTracks,
+                    startupPlan.refreshedArtworkCount
+                )
+            }
+            prefetchTop(visibleTracks, HOME_STARTUP_STREAM_PREFETCH_COUNT, respectHomeScroll = deferUntilHomeIdle)
+            refreshOfficialMetadataBatch(visibleTracks, HOME_STARTUP_METADATA_REFRESH_COUNT, deferUntilHomeIdle)
         }
-        prefetchTop(visibleTracks, HOME_STARTUP_STREAM_PREFETCH_COUNT, respectHomeScroll = deferUntilHomeIdle)
-        refreshOfficialMetadataBatch(visibleTracks, HOME_STARTUP_METADATA_REFRESH_COUNT, deferUntilHomeIdle)
         loadHomeAlbums(languageCode, deferUntilHomeIdle)
         refreshHomeResonanceIfStale()
     }
@@ -5742,7 +5754,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val previous = _state.value.interfaceSettings
         preferences.setInterfaceSettings(normalized)
         com.luc4n3x.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
-            normalized.motionArtworkWifiOnly
+            normalized.motionArtworkWifiOnly || normalized.dataSaverEnabled
         )
         DerbisTypographyController.apply(normalized.fontPreset)
         _state.update { it.copy(interfaceSettings = normalized) }
@@ -5788,6 +5800,27 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             }
             _state.value.currentTrack?.let(::refreshMotionArtworkAround)
             refreshPageMotionArtwork()
+        }
+        if (previous.dataSaverEnabled != normalized.dataSaverEnabled) {
+            if (normalized.dataSaverEnabled) {
+                cancelBackgroundWarmups()
+                alternateModePrefetchJob?.cancel()
+                chartPrefetchJob?.cancel()
+                chartPrefetchJob = null
+                chartEnrichJob?.cancel()
+                chartMemoryWarmJob?.cancel()
+                chartCatalogPrimeJob?.cancel()
+                orbitArtworkJob?.cancel()
+                officialMetadataPending.clear()
+            } else {
+                refreshQueuePrefetch()
+            }
+            SmartOfflineScheduler.schedule(derbisContext, effectiveSmartOfflineSettings(_state.value.smartOfflineSettings))
+            if (normalized.dataSaverEnabled && !dataSaverAllowsAutomaticDownload()) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    SmartOfflineScheduler.cancelSmartDownloads(derbisContext)
+                }
+            }
         }
         if (previous.enhanceVideoMetadata != normalized.enhanceVideoMetadata) {
             videoMetadataJob?.cancel()
@@ -5845,14 +5878,25 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     _state.update { it.copy(smartOfflineSettings = persisted) }
                     return@withLock
                 }
-                SmartOfflineScheduler.schedule(derbisContext, normalized)
+                SmartOfflineScheduler.schedule(derbisContext, effectiveSmartOfflineSettings(normalized))
                 if (!normalized.enabled) SmartOfflineScheduler.cancelSmartDownloads(derbisContext)
             }
         }
     }
 
     fun refreshSmartOffline() {
-        SmartOfflineScheduler.refresh(derbisContext, _state.value.smartOfflineSettings)
+        SmartOfflineScheduler.refresh(derbisContext, effectiveSmartOfflineSettings(_state.value.smartOfflineSettings))
+    }
+
+    private fun effectiveSmartOfflineSettings(value: DerbisSmartOfflineSettings): DerbisSmartOfflineSettings =
+        if (_state.value.interfaceSettings.dataSaverEnabled) value.copy(wifiOnly = true) else value
+
+    private fun dataSaverAllowsAutomaticDownload(): Boolean {
+        if (!_state.value.interfaceSettings.dataSaverEnabled) return true
+        val connectivity = getApplication<Application>().getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = connectivity.activeNetwork ?: return false
+        val capabilities = connectivity.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
     }
 
     fun setBackupSettings(value: DerbisBackupSettings) {
@@ -6109,7 +6153,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         motionArtworkRequestKey = null
         motionArtworkPrefetchJob?.cancel()
         com.luc4n3x.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
-            snapshot.interfaceSettings.motionArtworkWifiOnly
+            snapshot.interfaceSettings.motionArtworkWifiOnly || snapshot.interfaceSettings.dataSaverEnabled
         )
         _state.update {
             it.copy(
@@ -7203,6 +7247,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun warmChartRegionMemoryCache() {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         chartMemoryWarmJob?.cancel()
         chartCatalogPrimeJob?.cancel()
         chartMemoryWarmJob = viewModelScope.launch(Dispatchers.IO) {
@@ -7230,6 +7275,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun primeAllChartRegions(languageCode: String) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         chartCatalogPrimeJob?.cancel()
         val appContext = getApplication<Application>().applicationContext
         val concurrency = if (adaptivePlaybackPolicy.current(videoMode = false).lowRam) 1 else 2
@@ -7255,6 +7301,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun prefetchChartRegions(anchorRegionId: String) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val languageCode = _state.value.languageCode
         val regions = ChartsCatalog.regions
         val anchorIndex = regions.indexOfFirst { it.id == anchorRegionId }.coerceAtLeast(0)
@@ -7411,20 +7458,24 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             persistHomeSnapshot()
             refreshHomeResonanceIfStale()
             val startupPlan = homeStartupWorkPlan()
-            viewModelScope.launch(Dispatchers.IO) {
-                if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
-                DerbisArtworkCache.preloadHome(
-                    getApplication<Application>().applicationContext,
-                    result,
-                    startupPlan.chartArtworkCount
-                )
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
+                    if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@launch
+                    DerbisArtworkCache.preloadHome(
+                        getApplication<Application>().applicationContext,
+                        result,
+                        startupPlan.chartArtworkCount
+                    )
+                }
+                enrichCharts(regionId, result, deferUntilHomeIdle)
+                refreshOfficialMetadataBatch(result, 6, deferUntilHomeIdle)
             }
-            enrichCharts(regionId, result, deferUntilHomeIdle)
-            refreshOfficialMetadataBatch(result, 6, deferUntilHomeIdle)
         }
     }
 
     private fun enrichCharts(regionId: String, charts: List<Track>, deferUntilHomeIdle: Boolean = false) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         chartEnrichJob?.cancel()
         chartEnrichJob = viewModelScope.launch(Dispatchers.IO) {
             val startupPlan = homeStartupWorkPlan()
@@ -7529,17 +7580,20 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 updated to isFavorite
             }
             refreshForgottenFavorites()
-            DerbisArtworkCache.preloadPriority(
-                getApplication<Application>().applicationContext,
-                updated,
-                6
-            )
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                DerbisArtworkCache.preloadPriority(
+                    getApplication<Application>().applicationContext,
+                    updated,
+                    6
+                )
+            }
             recordSmartFavorite(track, isFavorite)
             autoDownloadFavorite(track, isFavorite)
         }
     }
 
     private fun autoDownloadFavorite(track: Track, becameFavorite: Boolean) {
+        if (!dataSaverAllowsAutomaticDownload()) return
         val current = _state.value
         val eligible = com.luc4n3x.derbis.player.PlaybackAutomationPolicy.shouldAutoDownloadFavorite(
             enabled = current.automationSettings.autoDownloadFavorites,
@@ -7595,11 +7649,13 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             refreshForgottenFavorites()
-            DerbisArtworkCache.preloadPriority(
-                getApplication<Application>().applicationContext,
-                updated,
-                6
-            )
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                DerbisArtworkCache.preloadPriority(
+                    getApplication<Application>().applicationContext,
+                    updated,
+                    6
+                )
+            }
         }
     }
 
@@ -7630,11 +7686,13 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             refreshForgottenFavorites()
-            DerbisArtworkCache.preloadPriority(
-                getApplication<Application>().applicationContext,
-                updated,
-                6
-            )
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                DerbisArtworkCache.preloadPriority(
+                    getApplication<Application>().applicationContext,
+                    updated,
+                    6
+                )
+            }
             cleanTracks.forEach { track ->
                 val isFavorite = areAllFavoriteTracks(updated, listOf(track))
                 recordSmartFavorite(track, isFavorite)
@@ -8090,8 +8148,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             recordSmartAlbumOpen(detail.album)
-            DerbisArtworkCache.preloadPriority(getApplication<Application>().applicationContext, detail.tracks, 8)
-            refreshOfficialMetadataBatch(detail.tracks, 12)
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                DerbisArtworkCache.preloadPriority(getApplication<Application>().applicationContext, detail.tracks, 8)
+                refreshOfficialMetadataBatch(detail.tracks, 12)
+            }
         }
     }
 
@@ -9101,6 +9161,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun prefetchSearchResults(tracks: List<Track>) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val plan = adaptivePlaybackPolicy.current(videoMode = false)
         DerbisArtworkCache.preloadHome(getApplication<Application>().applicationContext, tracks, if (plan.lowRam) 6 else 12)
         prefetchTop(tracks, if (plan.lowRam) 2 else 4)
@@ -9140,7 +9201,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     searchError = null
                 )
             }
-            DerbisArtworkCache.preloadHome(getApplication<Application>().applicationContext, playable, 10)
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                DerbisArtworkCache.preloadHome(getApplication<Application>().applicationContext, playable, 10)
+            }
             playFrom(playable, playable.first(), loopOnCompletion = true)
         }
     }
@@ -9179,13 +9242,13 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         )
         _state.update { it.copy(recentSearches = updated, personalOrbitTracks = orbit) }
         val appContext = getApplication<Application>().applicationContext
-        if (DerbisPersonalOrbit.hasAnyArtwork(stableTrack)) {
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && DerbisPersonalOrbit.hasAnyArtwork(stableTrack)) {
             DerbisArtworkCache.preloadPriority(appContext, listOf(stableTrack), 1)
         }
         viewModelScope.launch(Dispatchers.IO) {
             preferences.saveRecentSearches(updated)
             preferences.savePersonalOrbitTracks(orbit, snapshot.languageCode)
-            if (DerbisPersonalOrbit.hasAnyArtwork(stableTrack)) {
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && DerbisPersonalOrbit.hasAnyArtwork(stableTrack)) {
                 DerbisArtworkCache.cachePersistent(appContext, listOf(stableTrack), 1)
             }
         }
@@ -9224,6 +9287,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         limit: Int,
         deferUntilHomeIdle: Boolean
     ) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val pending = tracks
             .asSequence()
             .filter { it.title.isNotBlank() && it.artist.isNotBlank() }
@@ -9263,6 +9327,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun consumeOfficialMetadataQueue() {
         for (ignored in officialMetadataSignal) {
             while (currentCoroutineContext().isActive) {
+                if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+                    officialMetadataPending.clear()
+                    break
+                }
                 if (officialMetadataDeferUntilIdle.getAndSet(false)) {
                     awaitHomeUiIdle(homeStartupWorkPlan())
                 }
@@ -9282,8 +9350,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                         launch {
                             try {
                                 semaphore.withPermit {
-                                    if (!isActive) return@withPermit
+                                    if (!isActive || dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@withPermit
                                     awaitHomeUiIdle()
+                                    if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@withPermit
                                     val enriched = resolveOfficialOrbitArtwork(track, _state.value.languageCode)
                                         ?: return@withPermit
                                     enrichedTracks += enriched
@@ -9598,11 +9667,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             preferences.saveHomeAlbums(persistedHomeAlbums, languageCode)
             if (shouldPersistFavorites) favoritesStore.saveSuspending(persistedFavorites)
             if (shouldPersistPlaylists) playlistStore.updateTrackMetadata(persistedPlaylists)
-            if (artworkTracks.isNotEmpty()) {
+            if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && artworkTracks.isNotEmpty()) {
                 DerbisArtworkCache.cachePersistent(appContext, artworkTracks, artworkTracks.size)
             }
         }
-        if (artworkTracks.isNotEmpty()) {
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings) && artworkTracks.isNotEmpty()) {
             DerbisArtworkCache.preloadPriority(
                 appContext,
                 artworkTracks,
@@ -12050,7 +12119,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         snapshot: DerbisUiState,
         current: Track
     ): Boolean {
-        if (!snapshot.animationsEnabled || !snapshot.motionArtworkEnabled || snapshot.isVideoMode) {
+        if (!snapshot.animationsEnabled || !snapshot.motionArtworkEnabled || snapshot.interfaceSettings.dataSaverEnabled || snapshot.isVideoMode) {
             return false
         }
         return !current.isLiveRadio() && !isLocalPlaybackTrack(current)
@@ -12063,7 +12132,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         requestToken: Long
     ): Boolean {
         val visualStateAllowsMotion =
-            state.animationsEnabled && state.motionArtworkEnabled && !state.isVideoMode
+            state.animationsEnabled && state.motionArtworkEnabled && !state.interfaceSettings.dataSaverEnabled && !state.isVideoMode
         val requestMatches =
             motionArtworkRequestToken.get() == requestToken && playbackGeneration.isCurrent(ticket)
         val identityMatches = state.currentTrack
@@ -12129,6 +12198,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         if (
             !_state.value.animationsEnabled ||
             !_state.value.motionArtworkEnabled ||
+            _state.value.interfaceSettings.dataSaverEnabled ||
             _state.value.isVideoMode ||
             current.isPersonalCollectionTrack()
         ) {
@@ -12219,7 +12289,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun prefetchNextMotionArtwork(current: Track) {
         motionArtworkPrefetchJob?.cancel()
-        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled || _state.value.isVideoMode) return
+        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled ||
+            _state.value.interfaceSettings.dataSaverEnabled || _state.value.isVideoMode
+        ) return
         val generation = queueEngine.state.value.generation
         val currentKey = MotionArtworkIdentityKey.create(current)
         val next = queueEngine.upcoming(2)
@@ -12282,7 +12354,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         artistMotionJob?.cancel()
         artistMotionRequest = request
         artistMotionPublished = false
-        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled) {
+        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled || _state.value.interfaceSettings.dataSaverEnabled) {
             _state.update { it.copy(artistMotionArtwork = null) }
             return
         }
@@ -12330,7 +12402,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun refreshAlbumMotionArtwork(detail: AlbumDetail) {
         albumMotionJob?.cancel()
-        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled) {
+        if (!_state.value.animationsEnabled || !_state.value.motionArtworkEnabled || _state.value.interfaceSettings.dataSaverEnabled) {
             _state.update { it.copy(albumMotionArtwork = null) }
             return
         }
@@ -12377,6 +12449,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun prefetchLyricsAround(current: Track) {
         lyricsPrefetchJob?.cancel()
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val generation = queueEngine.state.value.generation
         val plan = adaptivePlaybackPolicy.current(videoMode = false)
         val networkProfile = lyricsNetworkProfile()
@@ -12445,6 +12518,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         prefetchJob?.cancel()
         PlaybackService.clearPreparedQueueNextIfStale()
         if (isLocalPlaybackTrack(playable)) return
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+            ensureRadioTail(force = false)
+            return
+        }
         // Keep bandwidth-heavy prefetch governed by the lyrics/data-saver policy, but still let
         // the explicitly enabled Endless queue request its small foreground recommendation page.
         if (!lyricsNetworkProfile().connected) {
@@ -12521,6 +12598,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun syncAdvancedQueuePrefetch() {
         val snapshot = _state.value
+        if (dataSaverBlocksBackgroundNetwork(snapshot.interfaceSettings)) {
+            cancelAdvancedQueuePrefetch()
+            return
+        }
         val windowSize = snapshot.audioSettings.advancedQueuePrefetchTracks
         if (windowSize <= 0) {
             cancelAdvancedQueuePrefetch()
@@ -13059,6 +13140,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun prefetchTop(tracks: List<Track>, count: Int = 8, respectHomeScroll: Boolean = false) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val plan = adaptivePlaybackPolicy.current(videoMode = false)
         val effectiveCount = if (plan.lowRam || plan.powerConstrained) count.coerceAtMost(3) else count
         val candidates = tracks
@@ -13070,6 +13152,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         listPrefetchJob = viewModelScope.launch(Dispatchers.IO) {
             delay(if (plan.lowRam) 450L else 250L)
             if (respectHomeScroll) awaitHomeUiIdle()
+            if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@launch
             resolver.warmNetwork()
             val hotCount = if (respectHomeScroll || plan.lowRam || plan.powerConstrained) 1 else 4
             val hot = candidates.take(hotCount)
@@ -13113,6 +13196,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private suspend fun warmTrack(track: Track, prime: Boolean) {
+        if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return
         val videoMode = _state.value.isVideoMode
         val youtube = youtubePlayableTrack(track)
         val resolved = if (youtube != null) {
@@ -13471,15 +13555,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         }
         persistHomeSnapshot()
         val startupPlan = homeStartupWorkPlan()
-        viewModelScope.launch(Dispatchers.IO) {
-            if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
-            DerbisArtworkCache.preloadHome(
-                getApplication<Application>().applicationContext,
-                tracks,
-                startupPlan.refreshedArtworkCount
-            )
+        if (!dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) {
+            viewModelScope.launch(Dispatchers.IO) {
+                if (deferUntilHomeIdle) awaitHomeUiIdle(startupPlan)
+                if (dataSaverBlocksBackgroundNetwork(_state.value.interfaceSettings)) return@launch
+                DerbisArtworkCache.preloadHome(
+                    getApplication<Application>().applicationContext,
+                    tracks,
+                    startupPlan.refreshedArtworkCount
+                )
+            }
+            prefetchTop(tracks, startupPlan.refreshedArtworkCount, respectHomeScroll = deferUntilHomeIdle)
         }
-        prefetchTop(tracks, startupPlan.refreshedArtworkCount, respectHomeScroll = deferUntilHomeIdle)
     }
 
     private fun searchMood(mood: Mood) {

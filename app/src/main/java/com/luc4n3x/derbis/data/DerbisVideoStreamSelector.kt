@@ -78,6 +78,10 @@ internal fun targetedVideoCandidate(
         }.thenBy { candidate -> if (candidate.muxed) 0 else 1 }
     )
 
+/** Data Saver caps only automatic video selection; an explicit quality choice is respected. */
+internal fun effectiveVideoQualityTarget(target: VideoQualityTarget, dataSaverEnabled: Boolean): VideoQualityTarget =
+    if (dataSaverEnabled && target == VideoQualityTarget.AUTO) VideoQualityTarget.P480 else target
+
 internal class DerbisVideoStreamSelector(context: Context) {
     private companion object {
         const val MAX_REJECTED_URLS = 128
@@ -114,7 +118,10 @@ internal class DerbisVideoStreamSelector(context: Context) {
         hasSeparateAudio: Boolean,
         blocked: (String) -> Boolean
     ): DerbisVideoSelection? {
-        val qualityTarget = preferences.videoQualityTarget()
+        val qualityTarget = effectiveVideoQualityTarget(
+            target = preferences.videoQualityTarget(),
+            dataSaverEnabled = preferences.interfaceSettings().dataSaverEnabled
+        )
         val targetHeight = VideoQualityTarget.resolveHeight(qualityTarget, autoTargetHeight())
         val rawMuxed = muxedCandidates.filter { it.url.isNotBlank() && !blocked(it.url) && !isRejected(it.url) }
         val rawVideoOnly = if (hasSeparateAudio) {
@@ -152,7 +159,11 @@ internal class DerbisVideoStreamSelector(context: Context) {
     }
 
     fun targetHeight(): Int {
-        return VideoQualityTarget.resolveHeight(preferences.videoQualityTarget(), autoTargetHeight())
+        val target = effectiveVideoQualityTarget(
+            target = preferences.videoQualityTarget(),
+            dataSaverEnabled = preferences.interfaceSettings().dataSaverEnabled
+        )
+        return VideoQualityTarget.resolveHeight(target, autoTargetHeight())
     }
 
     fun autoTargetHeight(): Int {

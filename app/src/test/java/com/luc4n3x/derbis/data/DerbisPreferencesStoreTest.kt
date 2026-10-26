@@ -121,6 +121,17 @@ class DerbisPreferencesStoreTest {
     }
 
     @Test
+    fun dataSaverDefaultsOffAndPersistsAcrossStoreRecreation() {
+        val (store, preferences) = open()
+
+        assertFalse(preferences.interfaceSettings().dataSaverEnabled)
+        preferences.setInterfaceSettings(DerbisInterfaceSettings(dataSaverEnabled = true))
+        flush(store)
+
+        assertTrue(reopen().interfaceSettings().dataSaverEnabled)
+    }
+
+    @Test
     fun skinPersistsAcrossStoreRecreationWithoutReplacingDefaultCustomization() {
         val (store, preferences) = open()
         preferences.setThemePreset(com.luc4n3x.derbis.ui.theme.DerbisThemes.FROST)

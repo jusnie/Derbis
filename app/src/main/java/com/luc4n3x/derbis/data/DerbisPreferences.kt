@@ -252,6 +252,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_TRANSPARENCY] = normalizedInterface.glassTransparency
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
+            mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_ENHANCE_VIDEO_METADATA] = normalizedInterface.enhanceVideoMetadata
             mutable[KEY_UI_BLOCK_AI_CONTENT] = normalizedInterface.blockAiContent
@@ -435,6 +436,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
             it[KEY_UI_GLASS_TINT] = normalized.glassTint
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
+            it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
             it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
@@ -891,6 +893,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassTransparency = preferences[KEY_UI_GLASS_TRANSPARENCY] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
+            dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
             blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
@@ -1387,6 +1390,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_PLAYER_GESTURES = booleanPreferencesKey("ui_player_gestures")
         val KEY_UI_SWIPE_TRACK_CHANGE = booleanPreferencesKey("ui_swipe_track_change")
         val KEY_UI_DOUBLE_TAP_ACTION = stringPreferencesKey("ui_double_tap_action")
+        val KEY_UI_DATA_SAVER = booleanPreferencesKey("ui_data_saver_enabled")
         val KEY_UI_PURE_BLACK = booleanPreferencesKey("ui_pure_black")
         val KEY_UI_SKIN = stringPreferencesKey("ui_skin")
         val KEY_PRISM_APPEARANCE = stringPreferencesKey("prism_appearance")

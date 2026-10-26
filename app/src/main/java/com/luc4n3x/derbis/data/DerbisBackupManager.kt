@@ -648,7 +648,14 @@ class DerbisBackupManager(private val context: Context) {
         }
         playlistCoverStore.prune(restoredCoverReferences)
         AutomaticBackupScheduler.schedule(appContext, restoredSettings.backupSettings)
-        SmartOfflineScheduler.schedule(appContext, restoredSettings.smartOfflineSettings)
+        SmartOfflineScheduler.schedule(
+            appContext,
+            if (restoredSettings.interfaceSettings.dataSaverEnabled) {
+                restoredSettings.smartOfflineSettings.copy(wifiOnly = true)
+            } else {
+                restoredSettings.smartOfflineSettings
+            }
+        )
     }
 
     private fun scanDerbisDownloads(): List<DownloadEntity> {
@@ -1824,6 +1831,7 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("glassTransparency", value.glassTransparency)
     .put("glassTint", value.glassTint)
     .put("glassRefraction", value.glassRefraction)
+    .put("dataSaverEnabled", value.dataSaverEnabled)
     .put("motionArtworkWifiOnly", value.motionArtworkWifiOnly)
     .put("enhanceVideoMetadata", value.enhanceVideoMetadata)
     .put("blockAiContent", value.blockAiContent)
@@ -1886,6 +1894,7 @@ internal fun backupInterfaceSettingsFromJson(
         glassTransparency = json.optInt("glassTransparency", DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassTint = json.optInt("glassTint", DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassRefraction = json.optBoolean("glassRefraction", true),
+        dataSaverEnabled = json.optBoolean("dataSaverEnabled", false),
         motionArtworkWifiOnly = json.optBoolean("motionArtworkWifiOnly", false),
         enhanceVideoMetadata = json.optBoolean("enhanceVideoMetadata", false),
         blockAiContent = json.optBoolean("blockAiContent", false),

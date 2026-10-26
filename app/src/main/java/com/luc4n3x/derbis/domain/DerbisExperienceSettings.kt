@@ -229,6 +229,8 @@ data class DerbisInterfaceSettings(
     val glassTransparency: Int = DEFAULT_GLASS_LEVEL,
     val glassTint: Int = DEFAULT_GLASS_LEVEL,
     val glassRefraction: Boolean = true,
+    /** Suppresses non-essential network work while preserving user-requested playback and search. */
+    val dataSaverEnabled: Boolean = false,
     val motionArtworkWifiOnly: Boolean = false,
     val enhanceVideoMetadata: Boolean = false,
     /** Hides tracks and videos explicitly identified as AI-generated. */

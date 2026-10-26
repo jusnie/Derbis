@@ -77,9 +77,12 @@ class DerbisApplication : Application() {
                 )
             }.onFailure { Timber.w(it, "Automatic backup scheduling failed") }
             runCatching {
+                val preferences = DerbisPreferences(this@DerbisApplication)
+                val smartOffline = preferences.smartOfflineSettings()
+                val dataSaver = preferences.interfaceSettings().dataSaverEnabled
                 SmartOfflineScheduler.schedule(
                     this@DerbisApplication,
-                    DerbisPreferences(this@DerbisApplication).smartOfflineSettings()
+                    if (dataSaver) smartOffline.copy(wifiOnly = true) else smartOffline
                 )
             }.onFailure { Timber.w(it, "Smart Offline scheduling failed") }
         }

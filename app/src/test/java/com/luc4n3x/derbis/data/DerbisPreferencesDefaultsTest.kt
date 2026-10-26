@@ -238,6 +238,17 @@ class DerbisPreferencesDefaultsTest {
     }
 
     @Test
+    fun dataSaverDefaultsOffAndRoundTripsThroughBackup() {
+        assertFalse(DerbisInterfaceSettings().dataSaverEnabled)
+        assertFalse(backupInterfaceSettingsFromJson(JSONObject()).dataSaverEnabled)
+        assertTrue(
+            backupInterfaceSettingsFromJson(
+                backupInterfaceSettingsToJson(DerbisInterfaceSettings(dataSaverEnabled = true))
+            ).dataSaverEnabled
+        )
+    }
+
+    @Test
     fun legacyBackupWithoutMotionArtworkWifiOnlyDefaultsToFalse() {
         assertFalse(backupInterfaceSettingsFromJson(JSONObject()).motionArtworkWifiOnly)
         assertFalse(backupInterfaceSettingsFromJson(JSONObject()).releaseNotificationsEnabled)

@@ -199,6 +199,7 @@ private fun MutableList<SettingsSearchEntry>.systemEntries(
     entry("integrations.listenbrainz", "ListenBrainz", strings.integrations, "listenbrainz scrobble scrobbling", categories.integrations)
     entry("integrations.audd", "AudD", strings.integrations, "audd recognition identify", categories.integrations)
     entry("integrations.device", deviceIntegrationCopy(strings.code).title, deviceIntegrationCopy(strings.code).subtitle, "hyperos xiaomi poco redmi super island vivo originos atomic island oppo oneplus realme coloros oxygenos samsung one ui now bar honor pixel battery autostart background", categories.integrations)
+    entry("network.data_saver", "Data Saver", "Disable non-essential background network work and cap automatic video quality.", "data cellular mobile wifi bandwidth prefetch canvas lyrics downloads video", categories.network)
     entry("network.dns", strings.networkDns, strings.networkSubtitle, "${strings.networkCustomDohUrl} dns doh", categories.network)
     entry("network.proxy", strings.networkProxy, strings.networkSubtitle, "${strings.networkProxyHost} ${strings.networkProxyAuthentication} proxy http socks", categories.network)
     entry("network.byedpi", strings.networkByeDpi, strings.networkByeDpiSubtitle, "byedpi dpi desync", categories.network)
