@@ -1,5 +1,6 @@
 package com.luc4n3x.derbis.feature.jam
 
+import java.math.BigInteger
 import java.security.SecureRandom
 import java.util.Locale
 
@@ -8,6 +9,7 @@ data class JamSessionCode(
     val port: Int,
     val secret: String
 ) {
+    /** A shareable, letters-only invite code. */
     fun encoded(): String {
         require(isPrivateIpv4(hostAddress))
         require(port in MIN_PORT..MAX_PORT)
@@ -18,10 +20,11 @@ data class JamSessionCode(
         bytes[ADDRESS_BYTES] = ((port shr 8) and 0xFF).toByte()
         bytes[ADDRESS_BYTES + 1] = (port and 0xFF).toByte()
         decodeHex(secret).copyInto(bytes, ADDRESS_BYTES + PORT_BYTES)
-        return encodeBase32(bytes)
+        return encodeLetters(bytes)
     }
 
-    fun formatted(): String = encoded().chunked(GROUP_SIZE).joinToString("-")
+    /** Formatting intentionally adds no separators so the displayed invite contains letters only. */
+    fun formatted(): String = encoded()
 
     fun deepLink(): String = "$DEEP_LINK_PREFIX${encoded()}"
 
@@ -31,17 +34,22 @@ data class JamSessionCode(
         const val ADDRESS_BYTES = 4
         const val PORT_BYTES = 2
         const val TOTAL_BYTES = ADDRESS_BYTES + PORT_BYTES + SECRET_BYTES
-        const val ENCODED_LENGTH = (TOTAL_BYTES * 8 + 4) / 5
-        const val GROUP_SIZE = 6
+        const val MIN_INVITE_LETTERS = 6
+        // ceil(log_26(2^(TOTAL_BYTES * 8))). The current payload needs 38 letters.
+        const val ENCODED_LENGTH = 38
         const val DEEP_LINK_PREFIX = "derbis://jam/"
         const val MIN_PORT = 1024
         const val MAX_PORT = 65_535
 
-        private const val ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-        private const val PADDING_BITS = ENCODED_LENGTH * 5 - TOTAL_BYTES * 8
-        private const val PADDING_MASK = (1 shl PADDING_BITS) - 1
+        private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        private val letterBase = BigInteger.valueOf(ALPHABET.length.toLong())
+        private val payloadLimit = BigInteger.ONE.shiftLeft(TOTAL_BYTES * 8)
         private val secretPattern = Regex("[0-9a-fA-F]{${SECRET_BYTES * 2}}")
         private val random = SecureRandom()
+
+        init {
+            check(letterBase.pow(ENCODED_LENGTH) >= payloadLimit)
+        }
 
         fun newSecret(): String {
             val bytes = ByteArray(SECRET_BYTES)
@@ -58,16 +66,10 @@ data class JamSessionCode(
             } else {
                 trimmed
             }
-            val compact = body.filterNot { it == '-' }
-            if (compact.length != ENCODED_LENGTH || compact.any { it.uppercaseChar() !in ALPHABET }) return null
-            val canonicalFormatted = compact.chunked(GROUP_SIZE).joinToString("-")
-            if (!body.equals(compact, ignoreCase = true) && !body.equals(canonicalFormatted, ignoreCase = true)) {
-                return null
-            }
-            val normalized = compact.uppercase(Locale.ROOT)
-            if (PADDING_BITS > 0 && ALPHABET.indexOf(normalized.last()) and PADDING_MASK != 0) return null
-            val bytes = decodeBase32(normalized) ?: return null
-            if (bytes.size < TOTAL_BYTES) return null
+            if (body.length != ENCODED_LENGTH || body.length < MIN_INVITE_LETTERS) return null
+            val normalized = body.uppercase(Locale.ROOT)
+            if (normalized.any { it !in ALPHABET }) return null
+            val bytes = decodeLetters(normalized) ?: return null
 
             val address = (0 until ADDRESS_BYTES).joinToString(".") { (bytes[it].toInt() and 0xFF).toString() }
             val port = ((bytes[ADDRESS_BYTES].toInt() and 0xFF) shl 8) or (bytes[ADDRESS_BYTES + 1].toInt() and 0xFF)
@@ -92,39 +94,35 @@ data class JamSessionCode(
             }
         }
 
-        private fun encodeBase32(bytes: ByteArray): String {
-            val builder = StringBuilder(ENCODED_LENGTH)
-            var buffer = 0
-            var bitsLeft = 0
-            for (byte in bytes) {
-                buffer = (buffer shl 8) or (byte.toInt() and 0xFF)
-                bitsLeft += 8
-                while (bitsLeft >= 5) {
-                    builder.append(ALPHABET[(buffer shr (bitsLeft - 5)) and 0x1F])
-                    bitsLeft -= 5
-                }
+        private fun encodeLetters(bytes: ByteArray): String {
+            var value = BigInteger(1, bytes)
+            val output = CharArray(ENCODED_LENGTH) { ALPHABET.first() }
+            for (index in output.lastIndex downTo 0) {
+                val division = value.divideAndRemainder(letterBase)
+                output[index] = ALPHABET[division[1].toInt()]
+                value = division[0]
             }
-            if (bitsLeft > 0) {
-                builder.append(ALPHABET[(buffer shl (5 - bitsLeft)) and 0x1F])
-            }
-            return builder.toString()
+            check(value == BigInteger.ZERO)
+            return output.concatToString()
         }
 
-        private fun decodeBase32(value: String): ByteArray? {
-            val output = ArrayList<Byte>(TOTAL_BYTES)
-            var buffer = 0
-            var bitsLeft = 0
-            for (character in value) {
-                val index = ALPHABET.indexOf(character)
-                if (index < 0) return null
-                buffer = (buffer shl 5) or index
-                bitsLeft += 5
-                if (bitsLeft >= 8) {
-                    output.add(((buffer shr (bitsLeft - 8)) and 0xFF).toByte())
-                    bitsLeft -= 8
-                }
+        private fun decodeLetters(value: String): ByteArray? {
+            var number = BigInteger.ZERO
+            value.forEach { letter ->
+                val digit = ALPHABET.indexOf(letter)
+                if (digit < 0) return null
+                number = number.multiply(letterBase).add(BigInteger.valueOf(digit.toLong()))
             }
-            return output.toByteArray()
+            if (number >= payloadLimit) return null
+            val raw = number.toByteArray()
+            val bytes = ByteArray(TOTAL_BYTES)
+            val count = raw.size.coerceAtMost(TOTAL_BYTES)
+            raw.copyInto(
+                destination = bytes,
+                destinationOffset = TOTAL_BYTES - count,
+                startIndex = raw.size - count
+            )
+            return bytes
         }
 
         private fun decodeHex(value: String): ByteArray {

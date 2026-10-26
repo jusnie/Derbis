@@ -74,6 +74,7 @@ import com.luc4n3x.derbis.feature.jam.JamGuestPermission
 import com.luc4n3x.derbis.feature.jam.JamParticipant
 import com.luc4n3x.derbis.feature.jam.JamPendingParticipant
 import com.luc4n3x.derbis.feature.jam.JamSessionState
+import com.luc4n3x.derbis.feature.jam.JamSessionCode
 import com.luc4n3x.derbis.feature.jam.JamTrack
 import com.luc4n3x.derbis.feature.jam.JamUiState
 import com.luc4n3x.derbis.ui.i18n.DerbisStrings
@@ -197,14 +198,22 @@ internal fun DerbisJamOverlay(
                         JamCardTitle(strings.jamJoin)
                         OutlinedTextField(
                             value = joinCode,
-                            onValueChange = { joinCode = it.take(JamSessionState.MAX_TEXT_LENGTH) },
+                            onValueChange = { entered ->
+                                joinCode = buildString {
+                                    entered.forEach { character ->
+                                        character.uppercaseChar()
+                                            .takeIf { it in 'A'..'Z' }
+                                            ?.let(::append)
+                                    }
+                                }.take(JamSessionCode.ENCODED_LENGTH)
+                            },
                             singleLine = true,
                             label = { Text(strings.jamCodeHint) },
                             modifier = Modifier.fillMaxWidth()
                         )
                         JamPrimaryButton(
                             label = strings.jamJoin,
-                            enabled = joinCode.isNotBlank(),
+                            enabled = joinCode.length == JamSessionCode.ENCODED_LENGTH,
                             onClick = { onJoin(joinCode) }
                         )
                         Text(

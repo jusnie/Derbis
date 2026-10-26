@@ -1,5 +1,6 @@
 package com.luc4n3x.derbis.feature.jam
 
+import java.math.BigInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -10,21 +11,28 @@ import org.junit.Test
 class JamSessionCodeTest {
 
     @Test
-    fun formattedAndDeepLinkRoundTrip() {
+    fun alphabeticInviteCodeAndDeepLinkRoundTrip() {
         val code = JamSessionCode("192.168.1.42", 42_424, "00112233445566778899aabbccddeeff")
+        val invite = code.formatted()
 
-        assertEquals(code, JamSessionCode.parse(code.formatted()))
+        assertEquals(code, JamSessionCode.parse(invite))
         assertEquals(code, JamSessionCode.parse(code.deepLink()))
-        assertEquals(JamSessionCode.ENCODED_LENGTH, code.encoded().length)
+        assertEquals(JamSessionCode.ENCODED_LENGTH, invite.length)
+        assertTrue(invite.length >= JamSessionCode.MIN_INVITE_LETTERS)
+        assertTrue(invite.all(Char::isLetter))
+        assertEquals(invite, code.encoded())
     }
 
     @Test
-    fun malformedDecorationsAreRejectedInsteadOfFilteredOut() {
+    fun decorationsDigitsAndWrongLengthAreRejected() {
         val code = JamSessionCode("10.0.0.8", 54_321, "aabbccddeeff00112233445566778899")
 
         assertNull(JamSessionCode.parse("#${code.formatted()}!"))
         assertNull(JamSessionCode.parse("derbis://other/${code.encoded()}"))
         assertNull(JamSessionCode.parse("not-a-jam-code"))
+        assertNull(JamSessionCode.parse(code.encoded().replaceRange(0, 1, "1")))
+        assertNull(JamSessionCode.parse(code.encoded().chunked(6).joinToString("-")))
+        assertNull(JamSessionCode.parse("ABCDEF"))
     }
 
     @Test
@@ -57,21 +65,9 @@ class JamSessionCodeTest {
     }
 
     @Test
-    fun legacyFortyBitSessionCodesAreRejected() {
-        assertNull(JamSessionCode.parse("R2M02A-N5Q001-28HK8G"))
+    fun legacyNumericSessionCodesAreRejected() {
+        assertNull(JamSessionCode.parse("R2M02AN5Q00128HK8G"))
         assertFalse(JamSessionCode.isValidSecret("0011223344"))
-    }
-
-    @Test
-    fun nonCanonicalGroupingIsRejected() {
-        val code = JamSessionCode(
-            "192.168.1.42",
-            42_424,
-            "00112233445566778899aabbccddeeff"
-        )
-        val malformed = code.encoded().chunked(4).joinToString("-")
-
-        assertNull(JamSessionCode.parse(malformed))
     }
 
     private fun encodeRaw(address: String, port: Int, secret: String): String {
@@ -82,19 +78,13 @@ class JamSessionCodeTest {
         secret.chunked(2).forEachIndexed { index, value ->
             bytes[JamSessionCode.ADDRESS_BYTES + JamSessionCode.PORT_BYTES + index] = value.toInt(16).toByte()
         }
-        val alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-        val output = StringBuilder()
-        var buffer = 0
-        var bits = 0
-        bytes.forEach { byte ->
-            buffer = (buffer shl 8) or (byte.toInt() and 0xff)
-            bits += 8
-            while (bits >= 5) {
-                output.append(alphabet[(buffer ushr (bits - 5)) and 31])
-                bits -= 5
-            }
-        }
-        if (bits > 0) output.append(alphabet[(buffer shl (5 - bits)) and 31])
-        return output.toString()
+        val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        val base = BigInteger.valueOf(alphabet.length.toLong())
+        var number = BigInteger(1, bytes)
+        return CharArray(JamSessionCode.ENCODED_LENGTH) {
+            val division = number.divideAndRemainder(base)
+            number = division[0]
+            alphabet[division[1].toInt()]
+        }.reversedArray().concatToString()
     }
 }
