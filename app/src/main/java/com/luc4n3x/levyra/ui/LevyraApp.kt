@@ -8156,7 +8156,6 @@ private fun LyricsOverlay(
             onPrevious = onPrevious,
             onTogglePlay = onTogglePlay,
             onNext = onNext,
-            onToggleFavorite = onToggleFavorite,
             onShareLyrics = { selectedLines ->
                 // The Apple Music 13 image action deliberately enters line selection first;
                 // this opens the existing image-card flow only with the listener's chosen verses.
@@ -8830,7 +8829,6 @@ private fun AppleMusic13FullscreenLyrics(
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
-    onToggleFavorite: (Track) -> Unit,
     onShareLyrics: (List<LyricLine>) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit,
@@ -8909,6 +8907,8 @@ private fun AppleMusic13FullscreenLyrics(
     }
     val shownProgress = dragProgress ?: progress
     val shownPosition = (state.durationMs * shownProgress).toLong()
+    // Full-screen lyrics are a reading surface. Playback controls remain on the player screen.
+    val showPlaybackChrome = false
     val fadeTone = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.78f) }
 
     // Image sharing in this variant is intentionally a lyric-line selection action, not a
@@ -8941,67 +8941,7 @@ private fun AppleMusic13FullscreenLyrics(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // Same compact record header as SimpMusic's lyrics body: the music remains identifiable
-            // while the lyrics get the page rather than being framed as a separate dialog.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (track != null) {
-                    AsyncImage(
-                        model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(55.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = track?.title ?: strings.lyrics,
-                        color = Color.White,
-                        style = AppleMusicTypography.titleMedium.copy(
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = track?.artist.orEmpty(),
-                        color = Color.White.copy(alpha = 0.70f),
-                        style = AppleMusicTypography.bodyMedium.copy(
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                IconButton(
-                    onClick = {
-                        wakeCluster()
-                        track?.let(onToggleFavorite)
-                    },
-                    enabled = track != null
-                ) {
-                    Icon(
-                        imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = strings.favorite,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = strings.options, tint = Color.White, modifier = Modifier.size(25.dp))
-                }
-            }
+
 
             Box(
                 modifier = Modifier
@@ -9034,15 +8974,17 @@ private fun AppleMusic13FullscreenLyrics(
                         }
                     } else {
                         itemsIndexed(lyrics, key = { index, line -> "apple-lyrics-${line.startMs}-${line.role}-$index" }) { index, line ->
-                            val active = index == activeIndex
+                            // Image lyric selection is deliberately static: it is a separate share-card
+                            // flow, never a second live-lyrics renderer competing with the timed view.
+                            val liveLyricActive = !imageShareSelectionMode && index == activeIndex
                             val imageShareSelected = imageShareRange?.contains(index) == true && isLyricsShareSelectable(line)
                             val lineColor by animateColorAsState(
-                                targetValue = if (imageShareSelected || active) Color.White else Color.White.copy(alpha = 0.34f),
+                                targetValue = if (imageShareSelected || liveLyricActive) Color.White else Color.White.copy(alpha = 0.34f),
                                 animationSpec = tween(if (state.animationsEnabled) 180 else 0),
                                 label = "simp-lyrics-line-color"
                             )
                             val lineScale by animateFloatAsState(
-                                targetValue = if (active) 1f else 0.94f,
+                                targetValue = if (liveLyricActive) 1f else 0.94f,
                                 animationSpec = tween(if (state.animationsEnabled) 180 else 0),
                                 label = "simp-lyrics-line-scale"
                             )
@@ -9072,11 +9014,11 @@ private fun AppleMusic13FullscreenLyrics(
                                     }
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             ) {
-                                if (state.lyricsSynced && line.words.isNotEmpty()) {
+                                if (!imageShareSelectionMode && state.lyricsSynced && line.words.isNotEmpty()) {
                                     AppleMusic13WordByWordLyrics(
                                         line = line,
                                         positionProvider = lyricPositionProvider,
-                                        isActive = active,
+                                        isActive = liveLyricActive,
                                         inactiveColor = lineColor,
                                         glowColor = accentEnd,
                                         animationsEnabled = state.animationsEnabled
@@ -9222,7 +9164,7 @@ private fun AppleMusic13FullscreenLyrics(
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
             // grow into the freed room instead of leaving an empty control-shaped band behind.
             AnimatedVisibility(
-                visible = showCluster && !imageShareSelectionMode,
+                visible = showPlaybackChrome && showCluster && !imageShareSelectionMode,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
