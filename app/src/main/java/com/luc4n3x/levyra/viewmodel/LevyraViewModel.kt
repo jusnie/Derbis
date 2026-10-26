@@ -7018,14 +7018,16 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         if (_state.value.currentTrack?.isLiveRadio() == true) return
         val enabled = !queueEngine.state.value.radioEnabled
         queueEngine.setRadioEnabled(enabled)
+        // Generated radio picks are never part of a saved user queue. Clear an old buffer before
+        // either starting a fresh listening session or turning the feature off; the engine keeps
+        // the selected track and its playback position intact.
+        queueEngine.clearAutomaticTracks()
+        radioJob?.cancel()
         if (enabled) {
-            radioJob?.cancel()
             beginRadioSession()
             ensureRadioTail(force = true)
         } else {
-            radioJob?.cancel()
             radioSession.set(null)
-            queueEngine.clearAutomaticTracks()
         }
     }
 
@@ -7033,6 +7035,9 @@ class LevyraViewModel(application: Application) : AndroidViewModel(application) 
         if (_state.value.currentTrack?.isLiveRadio() == true) return
         if (jamController.rejectGuestLocalMutation()) return
         if (!queueEngine.state.value.radioEnabled) queueEngine.setRadioEnabled(true)
+        // Song radio replaces its ephemeral recommendation buffer instead of accumulating an
+        // invisible random tail inside the active persistent queue.
+        queueEngine.clearAutomaticTracks()
         radioJob?.cancel()
         beginRadioSession()
         ensureRadioTail(force = true, insertAfterCurrent = true)

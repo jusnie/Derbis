@@ -465,7 +465,7 @@ object LevyraThemeController {
         val base = when (skin) {
             LevyraSkin.Default -> LevyraThemes.byId(presetId)
             LevyraSkin.Nocturne78 -> Nocturne78Palette
-            LevyraSkin.Prism -> prismPalette(prism, systemDark)
+            LevyraSkin.LiquidGlass -> prismPalette(prism, systemDark)
             LevyraSkin.Torque -> torquePalette(torque, coverAccentStart)
             LevyraSkin.Ivory -> ivoryPalette(ivory, systemDark)
             LevyraSkin.SpotifyStyle -> spotifyPalette()

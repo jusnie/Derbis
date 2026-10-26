@@ -242,6 +242,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import com.luc4n3x.levyra.domain.RepeatMode as PlaybackRepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -406,6 +407,7 @@ import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.OfflinePin
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.LibraryAdd
@@ -471,6 +473,9 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AddCircleOutline
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material3.Slider
@@ -2021,7 +2026,7 @@ fun LevyraApp(
     )
     val accentTrack = state.currentTrack ?: state.tracks.firstOrNull()
     when (state.interfaceSettings.skin) {
-        LevyraSkin.Prism -> PrismThemeEffect(state.interfaceSettings)
+        LevyraSkin.LiquidGlass -> PrismThemeEffect(state.interfaceSettings)
         LevyraSkin.Torque -> TorqueThemeEffect(state.interfaceSettings, state.currentTrack)
         LevyraSkin.Ivory -> IvoryThemeEffect(state.interfaceSettings)
         LevyraSkin.AppleMusicStyle -> AppleMusicThemeEffect()
@@ -2040,7 +2045,7 @@ fun LevyraApp(
         pureBlack,
         customThemes
     ) {
-        if (state.interfaceSettings.skin == LevyraSkin.Prism || state.interfaceSettings.skin == LevyraSkin.Torque || state.interfaceSettings.skin == LevyraSkin.Ivory || state.interfaceSettings.skin == LevyraSkin.AppleMusicStyle || state.interfaceSettings.skin == LevyraSkin.TidalStyle || state.interfaceSettings.skin == LevyraSkin.YouTubeMusicStyle) return@LaunchedEffect
+        if (state.interfaceSettings.skin == LevyraSkin.LiquidGlass || state.interfaceSettings.skin == LevyraSkin.Torque || state.interfaceSettings.skin == LevyraSkin.Ivory || state.interfaceSettings.skin == LevyraSkin.AppleMusicStyle || state.interfaceSettings.skin == LevyraSkin.TidalStyle || state.interfaceSettings.skin == LevyraSkin.YouTubeMusicStyle) return@LaunchedEffect
         LevyraThemeController.apply(
             state.themePreset,
             accentTrack?.accentStart,
@@ -2057,7 +2062,7 @@ fun LevyraApp(
         val nocturne = state.interfaceSettings.skin == LevyraSkin.Nocturne78
         val base = when (state.interfaceSettings.skin) {
             LevyraSkin.Nocturne78 -> Nocturne78Palette
-            LevyraSkin.Prism, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.AppleMusicStyle, LevyraSkin.TidalStyle, LevyraSkin.YouTubeMusicStyle -> LevyraActivePalette
+            LevyraSkin.LiquidGlass, LevyraSkin.Torque, LevyraSkin.Ivory, LevyraSkin.AppleMusicStyle, LevyraSkin.TidalStyle, LevyraSkin.YouTubeMusicStyle -> LevyraActivePalette
             LevyraSkin.SpotifyStyle -> spotifyPalette()
             LevyraSkin.Default -> LevyraThemes.byId(state.themePreset)
         }
@@ -2223,7 +2228,7 @@ fun LevyraApp(
                 enabled = state.interfaceSettings.liquidGlassEnabled &&
                     state.animationsEnabled &&
                     glassBlurAllowed &&
-                    (!LevyraSkinManagesLayout || state.interfaceSettings.skin == LevyraSkin.Prism)
+                    (!LevyraSkinManagesLayout || state.interfaceSettings.skin == LevyraSkin.LiquidGlass)
             )
 
             val homeListState = rememberLazyListState()
@@ -3149,13 +3154,19 @@ fun LevyraApp(
                 QueueOverlay(
                     state = state,
                     onPlay = viewModel::playQueueTrack,
+                    onPrevious = viewModel::previous,
+                    onTogglePlay = viewModel::togglePlay,
+                    onNext = viewModel::next,
+                    onSeek = viewModel::seekTo,
+                    onToggleShuffle = viewModel::toggleShuffle,
+                    onToggleRepeat = viewModel::toggleRepeat,
+                    onToggleFavorite = viewModel::toggleFavorite,
                     onSwitchQueueSpace = viewModel::switchQueueSpace,
                     onCreateQueueSpace = { name -> viewModel.createQueueSpace(name) },
                     onRenameQueueSpace = viewModel::renameQueueSpace,
                     onDuplicateQueueSpace = viewModel::duplicateQueueSpace,
                     onClearQueueSpace = viewModel::clearQueueSpace,
                     onDeleteQueueSpace = viewModel::deleteQueueSpace,
-                    onPlayNext = viewModel::playNext,
                     onRemove = { target ->
                         viewModel.removeFromQueue(target.track, target.spaceId)
                     },
@@ -7012,18 +7023,24 @@ private val queueSelectionSaver = listSaver<Set<String>, String>(
     restore = { it.toSet() }
 )
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun QueueOverlay(
     state: LevyraUiState,
     onPlay: (Track) -> Unit,
+    onPrevious: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onNext: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onToggleShuffle: () -> Unit,
+    onToggleRepeat: () -> Unit,
+    onToggleFavorite: (Track) -> Unit,
     onSwitchQueueSpace: (String) -> Unit,
     onCreateQueueSpace: (String) -> Unit,
     onRenameQueueSpace: (String, String) -> Unit,
     onDuplicateQueueSpace: (String) -> Unit,
     onClearQueueSpace: (String) -> Unit,
     onDeleteQueueSpace: (String) -> Unit,
-    onPlayNext: (Track) -> Unit,
     onRemove: (QueueRemovalTarget) -> Unit,
     onRemoveSelected: (List<Int>) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -7040,512 +7057,329 @@ private fun QueueOverlay(
     val strings = LocalLevyraStrings.current
     val haptics = LocalLevyraHaptics.current
     val queueAccent = rememberNowPlayingAccent(state.currentTrack, LevyraCyan)
-    val connectedStyle = LevyraConnectedDefaults.style(accent = queueAccent)
-    var selectedQueueKeys by rememberSaveable(stateSaver = queueSelectionSaver) {
-        mutableStateOf(emptySet<String>())
-    }
+    var selectedQueueKeys by rememberSaveable(stateSaver = queueSelectionSaver) { mutableStateOf(emptySet<String>()) }
     var addToPlaylistTracks by remember { mutableStateOf(emptyList<Track>()) }
-    var queueEntries by remember(state.activeQueueSpaceId) {
-        mutableStateOf(buildQueueEntries(state.queue))
-    }
+    var showQueueSpaces by rememberSaveable { mutableStateOf(false) }
+    var queueEntries by remember(state.activeQueueSpaceId) { mutableStateOf(buildQueueEntries(state.queue)) }
+
     val currentEntries = remember(state.queue, queueEntries) {
-        if (queueEntries.size == state.queue.size && queueEntries.map { it.track } == state.queue) {
-            queueEntries
-        } else {
-            buildQueueEntries(state.queue, queueEntries).also { queueEntries = it }
-        }
+        if (queueEntries.size == state.queue.size && queueEntries.map { it.track } == state.queue) queueEntries
+        else buildQueueEntries(state.queue, queueEntries).also { queueEntries = it }
     }
     val endlessListeningBufferActive = state.radioEnabled && state.automaticQueueTrackKeys.isNotEmpty()
-    val displayEntries = remember(
-        currentEntries,
-        state.automaticQueueTrackKeys,
-        state.queueCurrentIndex,
-        endlessListeningBufferActive
-    ) {
+    val displayEntries = remember(currentEntries, state.automaticQueueTrackKeys, state.queueCurrentIndex, endlessListeningBufferActive) {
         if (!endlessListeningBufferActive) currentEntries else currentEntries.filter { entry ->
             entry.queueIndex == state.queueCurrentIndex ||
                 com.luc4n3x.levyra.player.queue.playbackQueueIdentity(entry.track) !in state.automaticQueueTrackKeys
         }
     }
+    // The current song is presented in the compact player header. The scrolling list is the
+    // actual upcoming queue, matching the reference while retaining all underlying queue order.
+    val upcomingEntries = remember(displayEntries, state.queueCurrentIndex) {
+        displayEntries.filter { it.queueIndex != state.queueCurrentIndex }
+    }
+    val currentQueueEntry = remember(displayEntries, state.queueCurrentIndex) {
+        displayEntries.firstOrNull { it.queueIndex == state.queueCurrentIndex }
+    }
+    val selectedTracks = remember(upcomingEntries, selectedQueueKeys) {
+        upcomingEntries.filter { it.key in selectedQueueKeys }.map { it.track }
+    }
+    val removableIndices = remember(upcomingEntries, selectedQueueKeys) {
+        upcomingEntries.mapNotNull { entry -> entry.queueIndex.takeIf { entry.key in selectedQueueKeys } }
+    }
+    val selectionActive = selectedTracks.isNotEmpty()
+    val allSelected = upcomingEntries.isNotEmpty() && selectedTracks.size == upcomingEntries.size
+    val queueItemFade: FiniteAnimationSpec<Float>? = if (state.animationsEnabled) tween(LevyraMotion.Durations.Short, easing = LevyraMotion.Easings.Standard) else null
+    val queueItemPlacement: FiniteAnimationSpec<IntOffset>? = if (state.animationsEnabled) LevyraMotion.reorder.spec(visibilityThreshold = IntOffset.VisibilityThreshold) else null
+
     val onMoveEntry: (Int, Int) -> Unit = move@{ from, to ->
-        val sourceFrom = displayEntries.getOrNull(from)?.queueIndex ?: return@move
-        val sourceTo = displayEntries.getOrNull(to)?.queueIndex ?: return@move
+        val sourceFrom = upcomingEntries.getOrNull(from)?.queueIndex ?: return@move
+        val sourceTo = upcomingEntries.getOrNull(to)?.queueIndex ?: return@move
         queueEntries = reorderQueueEntries(currentEntries, sourceFrom, sourceTo)
         onMove(sourceFrom, sourceTo)
     }
-    val selectedTracks = remember(displayEntries, selectedQueueKeys) {
-        displayEntries.filter { it.key in selectedQueueKeys }.map { it.track }
-    }
-    val removableIndices = remember(displayEntries, selectedQueueKeys, state.queueCurrentIndex) {
-        displayEntries.mapNotNull { entry ->
-            entry.queueIndex.takeIf { it != state.queueCurrentIndex && entry.key in selectedQueueKeys }
-        }
-    }
-    val selectionActive = selectedTracks.isNotEmpty()
-    val allSelected = displayEntries.isNotEmpty() && selectedTracks.size == displayEntries.size
-    val queueItemFade: FiniteAnimationSpec<Float>? = if (state.animationsEnabled) {
-        tween(LevyraMotion.Durations.Short, easing = LevyraMotion.Easings.Standard)
-    } else {
-        null
-    }
-    val queueItemPlacement: FiniteAnimationSpec<IntOffset>? = if (state.animationsEnabled) {
-        LevyraMotion.reorder.spec(visibilityThreshold = IntOffset.VisibilityThreshold)
-    } else {
-        null
-    }
 
     val queueTrackRow: @Composable (Int, QueueEntry, Modifier) -> Unit = { index, entry, rowModifier ->
-                    val track = entry.track
-                    val isCurrent = entry.queueIndex == state.queueCurrentIndex
-                    val wasPlayed = state.queueCurrentIndex >= 0 && entry.queueIndex < state.queueCurrentIndex
-                    val rowKey = entry.key
-                    val rowSelected = rowKey in selectedQueueKeys
-                    var dragDistance by remember(entry.key) { mutableFloatStateOf(0f) }
-                    val latestEntries by rememberUpdatedState(currentEntries)
-                    val latestMove by rememberUpdatedState(onMoveEntry)
-                    val latestRemove by rememberUpdatedState(onRemove)
-                    val queuePosition = when {
-                        isCurrent -> LevyraConnectedPosition.Single
-                        state.queueCurrentIndex >= 0 && index < state.queueCurrentIndex ->
-                            LevyraConnectedPosition.of(index, state.queueCurrentIndex)
-                        else -> {
-                            val upcomingStart = (state.queueCurrentIndex + 1).coerceAtLeast(0)
-                            LevyraConnectedPosition.of(
-                                index - upcomingStart,
-                                currentEntries.size - upcomingStart
-                            )
-                        }
-                    }
-                    val dismissThreshold = SwipeToDismissBoxDefaults.positionalThreshold
-                    val dismissState = remember(entry.key) {
-                        SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, dismissThreshold)
-                    }
-                    LaunchedEffect(dismissState.currentValue) {
-                        if (isCurrent || dismissState.currentValue != SwipeToDismissBoxValue.EndToStart) return@LaunchedEffect
-                        haptics.perform(LevyraHapticAction.TrackSwipe)
-                        latestRemove(
-                            QueueRemovalTarget(
-                                track = entry.track,
-                                spaceId = state.activeQueueSpaceId,
-                                removable = true
-                            )
-                        )
-                        dismissState.reset()
-                    }
-                    SwipeToDismissBox(
-                        state = dismissState,
-                        enableDismissFromStartToEnd = false,
-                        enableDismissFromEndToStart = !isCurrent && !selectionActive,
-                        backgroundContent = {
-                            if (!selectionActive) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(connectedStyle.shapes.forPosition(queuePosition))
-                                        .background(LevyraPink.copy(alpha = 0.22f))
-                                        .padding(horizontal = 18.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.Delete,
-                                        strings.remove,
-                                        tint = LevyraPink,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-                            }
+        val track = entry.track
+        val isCurrent = entry.queueIndex == state.queueCurrentIndex
+        val wasPlayed = state.queueCurrentIndex >= 0 && entry.queueIndex < state.queueCurrentIndex
+        val rowSelected = entry.key in selectedQueueKeys
+        var dragDistance by remember(entry.key) { mutableFloatStateOf(0f) }
+        val latestMove by rememberUpdatedState(onMoveEntry)
+        val latestRemove by rememberUpdatedState(onRemove)
+        val dismissState = remember(entry.key) {
+            SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, SwipeToDismissBoxDefaults.positionalThreshold)
+        }
+        LaunchedEffect(dismissState.currentValue) {
+            if (isCurrent || dismissState.currentValue != SwipeToDismissBoxValue.EndToStart) return@LaunchedEffect
+            haptics.perform(LevyraHapticAction.TrackSwipe)
+            latestRemove(QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = true))
+            dismissState.reset()
+        }
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            enableDismissFromEndToStart = !isCurrent && !selectionActive,
+            backgroundContent = {
+                Box(
+                    Modifier.fillMaxSize().background(LevyraPink.copy(alpha = 0.28f)).padding(horizontal = 22.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) { Icon(Icons.Rounded.Delete, strings.remove, tint = Color.White) }
+            },
+            modifier = rowModifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (rowSelected) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+                    .levyraPressable(
+                        onClick = {
+                            if (selectionActive) selectedQueueKeys = if (rowSelected) selectedQueueKeys - entry.key else selectedQueueKeys + entry.key
+                            else onPlay(track)
                         },
-                        modifier = rowModifier
-                            .fillMaxWidth()
-                            .semantics {
-                                if (selectionActive) selected = rowSelected
-                                if (!isCurrent && !selectionActive) {
-                                    customActions = listOf(
-                                        CustomAccessibilityAction(strings.remove) {
-                                            onRemove(
-                                                QueueRemovalTarget(
-                                                    track = entry.track,
-                                                    spaceId = state.activeQueueSpaceId,
-                                                    removable = true
-                                                )
-                                            )
-                                            true
-                                        }
-                                    )
+                        pressedScale = LevyraPressScale.Row,
+                        role = if (selectionActive) Role.Checkbox else Role.Button,
+                        onClickLabel = if (selectionActive) strings.selectTrack else strings.play,
+                        onLongClickLabel = strings.selectTrack,
+                        onLongClick = { selectedQueueKeys = selectedQueueKeys + entry.key }
+                    )
+                    .padding(vertical = 7.dp, horizontal = 4.dp)
+                    .semantics {
+                        if (selectionActive) selected = rowSelected
+                        if (!selectionActive) {
+                            customActions = listOf(
+                                CustomAccessibilityAction(strings.remove) {
+                                    onRemove(QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = true))
+                                    true
                                 }
-                            }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(connectedStyle.shapes.forPosition(queuePosition))
-                                .background(
-                                    when {
-                                        isCurrent -> queueAccent.copy(alpha = 0.24f).compositeOver(QueueRowSurface)
-                                        rowSelected -> queueAccent.copy(alpha = 0.14f).compositeOver(QueueRowSurface)
-                                        else -> QueueRowSurface
-                                    }
-                                )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .levyraPressable(
-                                        onClick = {
-                                            if (selectionActive) {
-                                                selectedQueueKeys = if (rowSelected) {
-                                                    selectedQueueKeys - rowKey
-                                                } else {
-                                                    selectedQueueKeys + rowKey
-                                                }
-                                            } else {
-                                                onPlay(track)
-                                            }
-                                        },
-                                        pressedScale = LevyraPressScale.Row,
-                                        role = if (selectionActive) Role.Checkbox else Role.Button,
-                                        onClickLabel = when {
-                                            !selectionActive -> strings.play
-                                            rowSelected -> strings.deselectTrack
-                                            else -> strings.selectTrack
-                                        },
-                                        onLongClickLabel = strings.selectTrack,
-                                        onLongClick = { selectedQueueKeys = selectedQueueKeys + rowKey }
-                                    )
-                                    .padding(
-                                        start = 10.dp,
-                                        end = 4.dp,
-                                        top = if (isCurrent) 12.dp else 8.dp,
-                                        bottom = if (isCurrent) 12.dp else 8.dp
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                val reorderModifier = if (selectionActive) {
-                                    Modifier
-                                } else {
-                                    Modifier.pointerInput(entry.key) {
-                                        var dragIndex = index
-                                        detectVerticalDragGestures(
-                                            onDragStart = {
-                                                dragDistance = 0f
-                                                dragIndex = latestEntries.indexOfFirst { it.key == entry.key }
-                                                    .takeIf { it >= 0 }
-                                                    ?: index
-                                            },
-                                            onDragCancel = { dragDistance = 0f },
-                                            onDragEnd = { dragDistance = 0f },
-                                            onVerticalDrag = { change, amountY ->
-                                                change.consume()
-                                                dragDistance += amountY
-                                                val threshold = 46.dp.toPx()
-                                                val lastIndex = latestEntries.lastIndex
-                                                when {
-                                                    dragDistance > threshold && dragIndex < lastIndex -> {
-                                                        latestMove(dragIndex, dragIndex + 1)
-                                                        dragIndex += 1
-                                                        dragDistance = 0f
-                                                        haptics.perform(LevyraHapticAction.Reorder)
-                                                    }
-                                                    dragDistance < -threshold && dragIndex > 0 -> {
-                                                        latestMove(dragIndex, dragIndex - 1)
-                                                        dragIndex -= 1
-                                                        dragDistance = 0f
-                                                        haptics.perform(LevyraHapticAction.Reorder)
-                                                    }
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                                CoverImage(
-                                    track,
-                                    Modifier
-                                        .size(if (isCurrent) 60.dp else 50.dp)
-                                        .clip(if (isCurrent) QueueCurrentArtworkShape else RoundedCornerShape(12.dp))
-                                        .alpha(if (wasPlayed && !isCurrent) 0.5f else 1f)
-                                )
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        track.title,
-                                        color = when {
-                                            isCurrent -> queueAccent
-                                            wasPlayed -> LevyraMuted
-                                            else -> LevyraText
-                                        },
-                                        fontSize = if (isCurrent) 16.sp else 15.sp,
-                                        fontWeight = if (isCurrent) FontWeight.Black else FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        track.artist,
-                                        color = LevyraMuted.copy(alpha = if (wasPlayed) 0.62f else 1f),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if (isCurrent) {
-                                    LevyraPlayingIndicator(
-                                        playing = state.isPlaying,
-                                        color = queueAccent,
-                                        size = 18.dp,
-                                        contentDescription = strings.playing
-                                    )
-                                }
-                                if (selectionActive) {
-                                    Icon(
-                                        if (rowSelected) {
-                                            Icons.Rounded.CheckCircle
-                                        } else {
-                                            Icons.Rounded.RadioButtonUnchecked
-                                        },
-                                        contentDescription = null,
-                                        tint = if (rowSelected) queueAccent else LevyraMuted.copy(alpha = 0.35f),
-                                        modifier = Modifier.padding(horizontal = 6.dp)
-                                    )
-                                } else {
-                                    IconButton(
-                                        onClick = {
-                                            onTrackActions(
-                                                QueueRemovalTarget(
-                                                    track = entry.track,
-                                                    spaceId = state.activeQueueSpaceId,
-                                                    removable = !isCurrent
-                                                )
-                                            )
-                                        },
-                                        modifier = Modifier.size(40.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Rounded.MoreVert,
-                                            strings.options,
-                                            tint = LevyraMuted,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 40.dp, height = 44.dp)
-                                        .then(reorderModifier),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        Icons.Rounded.DragHandle,
-                                        if (selectionActive) null else strings.dragToReorder,
-                                        tint = if (selectionActive) LevyraMuted.copy(alpha = 0.3f) else LevyraMuted,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
-                            }
+                            )
                         }
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                CoverImage(
+                    track,
+                    Modifier
+                        .size(58.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .alpha(if (wasPlayed) 0.42f else 1f)
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(
+                        track.title,
+                        color = if (wasPlayed) Color.White.copy(alpha = 0.48f) else Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (track.explicit) {
+                            Text(
+                                "E",
+                                color = Color(0xFF233138),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(Color.White.copy(alpha = 0.72f)).padding(horizontal = 3.dp, vertical = 1.dp)
+                            )
+                        }
+                        Text(
+                            track.artist,
+                            color = Color.White.copy(alpha = if (wasPlayed) 0.40f else 0.72f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
-
+                }
+                if (isCurrent) {
+                    LevyraPlayingIndicator(state.isPlaying, queueAccent, 18.dp, strings.playing)
+                }
+                if (selectionActive) {
+                    Icon(
+                        if (rowSelected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (rowSelected) Color.White else Color.White.copy(alpha = 0.40f),
+                        modifier = Modifier.size(25.dp)
+                    )
+                } else {
+                    val reorderModifier = Modifier.pointerInput(entry.key) {
+                        var dragIndex = index
+                        detectVerticalDragGestures(
+                            onDragStart = { dragDistance = 0f; dragIndex = index },
+                            onDragCancel = { dragDistance = 0f },
+                            onDragEnd = { dragDistance = 0f },
+                            onVerticalDrag = { change, amountY ->
+                                change.consume()
+                                dragDistance += amountY
+                                val threshold = 42.dp.toPx()
+                                when {
+                                    dragDistance > threshold && dragIndex < upcomingEntries.lastIndex -> {
+                                        latestMove(dragIndex, dragIndex + 1)
+                                        dragIndex += 1
+                                        dragDistance = 0f
+                                        haptics.perform(LevyraHapticAction.Reorder)
+                                    }
+                                    dragDistance < -threshold && dragIndex > 0 -> {
+                                        latestMove(dragIndex, dragIndex - 1)
+                                        dragIndex -= 1
+                                        dragDistance = 0f
+                                        haptics.perform(LevyraHapticAction.Reorder)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    IconButton(
+                        onClick = { onTrackActions(QueueRemovalTarget(track = track, spaceId = state.activeQueueSpaceId, removable = !isCurrent)) },
+                        modifier = reorderModifier.size(42.dp)
+                    ) {
+                        Icon(Icons.Rounded.MoreVert, strings.options, tint = Color.White.copy(alpha = 0.92f), modifier = Modifier.size(25.dp))
+                    }
+                }
+            }
+        }
     }
 
     BackHandler(enabled = selectionActive) { selectedQueueKeys = emptySet() }
 
+    val currentTrack = state.currentTrack ?: currentQueueEntry?.track
+    val queueFocusTrack = upcomingEntries.firstOrNull()?.track ?: currentTrack
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(LevyraInk, LevyraBlack)))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        queueAccent.copy(alpha = 0.58f).compositeOver(Color(0xFF17323A)),
+                        queueAccent.copy(alpha = 0.30f).compositeOver(Color(0xFF18343A)),
+                        Color(0xFF17282E),
+                        Color(0xFF0D1518)
+                    )
+                )
+            )
             .windowInsetsPadding(LevyraHorizontalSafeInsets)
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-            contentPadding = PaddingValues(
-                start = 18.dp,
-                end = 18.dp,
-                top = 18.dp,
-                bottom = if (selectionActive) 210.dp else 120.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(connectedStyle.gap)
+            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            contentPadding = PaddingValues(start = 26.dp, end = 26.dp, top = 12.dp, bottom = if (selectionActive) 252.dp else 226.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item(contentType = "queue-header") {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(strings.queue, color = LevyraText, fontSize = 26.sp, fontWeight = FontWeight.Black)
-                        Text(
-                            strings.formatQueueSummary(displayEntries.size, state.queueHistoryCount),
-                            color = LevyraMuted,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    CircleIconButton(
-                        icon = Icons.Rounded.Close,
-                        tint = LevyraText,
-                        background = Color.White.copy(alpha = 0.1f),
-                        onClick = onClose
-                    )
+            item(contentType = "queue-grabber") {
+                Box(Modifier.fillMaxWidth().padding(vertical = 3.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.width(42.dp).height(6.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.40f)))
                 }
             }
-            if (!endlessListeningBufferActive) item(contentType = "queue-spaces") {
-                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-                    QueueSpacesPanel(
-                        spaces = state.queueSpaces,
-                        activeSpaceId = state.activeQueueSpaceId,
-                        switching = state.queueSwitching,
-                        accent = queueAccent,
-                        onSwitch = onSwitchQueueSpace,
-                        onCreate = onCreateQueueSpace,
-                        onRename = onRenameQueueSpace,
-                        onDuplicate = onDuplicateQueueSpace,
-                        onClear = onClearQueueSpace,
-                        onDelete = onDeleteQueueSpace,
-                        playlistLoadingSpaceId = state.queuePlaylistLoadingSpaceId,
-                        onSaveAsPlaylist = onPrepareQueuePlaylist
-                    )
-                }
-            }
-            item(contentType = "queue-radio") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp))
-                        .background(QueueRowSurface)
-                        .toggleable(
-                            value = state.radioEnabled,
-                            role = Role.Switch,
-                            onValueChange = { onToggleRadio() }
-                        )
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QueueActionIcon(Icons.Rounded.Bolt, if (state.radioEnabled) queueAccent else LevyraMuted)
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(strings.continuousRadio, color = LevyraText, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Text(
-                            strings.continuousRadioSubtitle,
-                            color = LevyraMuted,
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (state.queueUndoAvailable) {
-                        IconButton(onClick = onUndo) {
-                            Icon(Icons.AutoMirrored.Rounded.Undo, strings.undoRemoval, tint = queueAccent)
+            currentTrack?.let { playingTrack ->
+                item(key = "queue-current", contentType = "queue-current") {
+                    QueueReferenceCurrentTrack(
+                        track = playingTrack,
+                        isFavorite = playingTrack.id in state.favoriteIds,
+                        onManageSpaces = { showQueueSpaces = true },
+                        onToggleFavorite = { onToggleFavorite(playingTrack) },
+                        onMore = {
+                            onTrackActions(
+                                QueueRemovalTarget(
+                                    track = playingTrack,
+                                    spaceId = state.activeQueueSpaceId,
+                                    removable = currentQueueEntry?.queueIndex != state.queueCurrentIndex
+                                )
+                            )
                         }
-                    }
-                    Switch(
-                        checked = state.radioEnabled,
-                        onCheckedChange = null,
-                        thumbContent = if (state.radioEnabled) {
-                            { Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
-                        } else {
-                            null
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = LevyraBlack,
-                            checkedIconColor = queueAccent,
-                            checkedTrackColor = queueAccent,
-                            uncheckedThumbColor = LevyraMuted,
-                            uncheckedTrackColor = LevyraAdaptiveTrack,
-                            uncheckedBorderColor = LevyraMuted.copy(alpha = 0.6f)
-                        )
                     )
                 }
             }
-            if (!endlessListeningBufferActive) item(contentType = "queue-save") {
-                val loading = state.queuePlaylistLoadingSpaceId == state.activeQueueSpaceId
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
-                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 24.dp, bottomEnd = 24.dp))
-                        .background(QueueRowSurface)
-                        .heightIn(min = 56.dp)
-                        .levyraPressable(
-                            onClick = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
-                            enabled = state.queue.isNotEmpty() && !loading,
-                            pressedScale = LevyraPressScale.Row,
-                            role = Role.Button,
-                            onClickLabel = strings.mixLabSaveAsPlaylist,
-                            haptic = LevyraHapticAction.Confirm
-                        )
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (loading) {
-                        Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                            LevyraLoadingIndicator(color = queueAccent, modifier = Modifier.size(24.dp))
-                        }
-                    } else {
-                        QueueActionIcon(Icons.Rounded.BookmarkAdd, if (state.queue.isEmpty()) LevyraMuted else queueAccent)
-                    }
-                    Text(
-                        text = strings.mixLabSaveAsPlaylist,
-                        color = if (state.queue.isEmpty()) LevyraMuted else LevyraText,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Icon(
-                        Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = LevyraMuted.copy(alpha = 0.7f),
-                        modifier = Modifier.size(22.dp)
+            item(contentType = "queue-controls") {
+                QueueReferenceModeControls(
+                    shuffleEnabled = state.shuffleEnabled,
+                    repeatMode = state.repeatMode,
+                    onManageSpaces = { showQueueSpaces = true },
+                    onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
+                    onShuffle = onToggleShuffle,
+                    onRepeat = onToggleRepeat
+                )
+            }
+            queueFocusTrack?.let { focus ->
+                item(contentType = "queue-up-next") {
+                    QueueReferenceHeading(
+                        label = strings.nowPlaying,
+                        title = focus.title,
+                        endlessLabel = strings.continuousRadio,
+                        endlessEnabled = state.radioEnabled,
+                        undoAvailable = state.queueUndoAvailable,
+                        onToggleEndless = onToggleRadio,
+                        onUndo = onUndo
                     )
                 }
             }
-            if (displayEntries.isEmpty()) {
-                item { Text(strings.queueEmpty, color = LevyraMuted, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+            if (upcomingEntries.isEmpty()) {
+                item(contentType = "queue-empty") {
+                    Text(strings.queueEmpty, color = Color.White.copy(alpha = 0.72f), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(vertical = 24.dp))
+                }
             } else {
                 itemsIndexed(
-                    displayEntries,
-                    key = { _, entry -> "q-${entry.key}" },
-                    contentType = { _, entry -> if (entry.queueIndex == state.queueCurrentIndex) "queue-current" else "queue-track" }
+                    upcomingEntries,
+                    key = { _, entry -> "queue-reference-${entry.key}" },
+                    contentType = { _, _ -> "queue-reference-track" }
                 ) { index, entry ->
-                    queueTrackRow(
-                        index,
-                        entry,
-                        Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade)
-                    )
+                    queueTrackRow(index, entry, Modifier.animateItem(queueItemFade, queueItemPlacement, queueItemFade))
                 }
             }
         }
+
+        QueueReferencePlaybackRail(
+            state = state,
+            onPrevious = onPrevious,
+            onTogglePlay = onTogglePlay,
+            onNext = onNext,
+            onSeek = onSeek,
+            onManageSpaces = { showQueueSpaces = true },
+            onSaveQueue = { onPrepareQueuePlaylist(state.activeQueueSpaceId) },
+            onClose = onClose,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
 
         AnimatedVisibility(
             visible = selectionActive,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(start = 12.dp, end = 12.dp, bottom = 20.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 18.dp)
         ) {
             QueueSelectionBar(
                 count = selectedTracks.size,
                 allSelected = allSelected,
                 canRemove = removableIndices.isNotEmpty(),
-                onSelectAll = { selectedQueueKeys = displayEntries.map { it.key }.toSet() },
+                onSelectAll = { selectedQueueKeys = upcomingEntries.map { it.key }.toSet() },
                 onClear = { selectedQueueKeys = emptySet() },
                 onAddToPlaylist = { addToPlaylistTracks = selectedTracks },
-                onDownload = {
-                    onDownloadSelected(selectedTracks)
-                    selectedQueueKeys = emptySet()
-                },
-                onRemove = {
-                    onRemoveSelected(removableIndices)
-                    selectedQueueKeys = emptySet()
-                }
+                onDownload = { onDownloadSelected(selectedTracks); selectedQueueKeys = emptySet() },
+                onRemove = { onRemoveSelected(removableIndices); selectedQueueKeys = emptySet() }
             )
+        }
+    }
+
+    if (showQueueSpaces) {
+        ModalBottomSheet(onDismissRequest = { showQueueSpaces = false }) {
+            Box(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                QueueSpacesPanel(
+                    spaces = state.queueSpaces,
+                    activeSpaceId = state.activeQueueSpaceId,
+                    switching = state.queueSwitching,
+                    accent = queueAccent,
+                    onSwitch = { id -> onSwitchQueueSpace(id); showQueueSpaces = false },
+                    onCreate = onCreateQueueSpace,
+                    onRename = onRenameQueueSpace,
+                    onDuplicate = onDuplicateQueueSpace,
+                    onClear = onClearQueueSpace,
+                    onDelete = onDeleteQueueSpace,
+                    playlistLoadingSpaceId = state.queuePlaylistLoadingSpaceId,
+                    onSaveAsPlaylist = onPrepareQueuePlaylist
+                )
+            }
+            Spacer(Modifier.navigationBarsPadding().height(12.dp))
         }
     }
 
@@ -7588,57 +7422,157 @@ private fun QueueOverlay(
 }
 
 @Composable
-private fun QueueSectionHeader(label: String, count: Int?, accent: Color) {
-    Surface(
-        color = LevyraInk.copy(alpha = 0.97f),
-        modifier = Modifier.fillMaxWidth()
+private fun QueueReferenceCurrentTrack(
+    track: Track,
+    isFavorite: Boolean,
+    onManageSpaces: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onMore: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(start = 6.dp, top = 16.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                label.lowercase().replaceFirstChar { it.titlecase() },
-                color = accent,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            if (count != null) {
-                Text(
-                    count.toString(),
-                    color = accent,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(accent.copy(alpha = 0.16f))
-                        .padding(horizontal = 9.dp, vertical = 2.dp)
+        CoverImage(track, Modifier.size(58.dp).clip(RoundedCornerShape(4.dp)))
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(track.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(track.artist, color = Color.White.copy(alpha = 0.70f), fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        QueueReferenceHeaderAction(Icons.Rounded.AddCircleOutline, "Manage queue spaces", onManageSpaces)
+        QueueReferenceHeaderAction(if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder, "Favorite", onToggleFavorite)
+        QueueReferenceHeaderAction(Icons.Rounded.MoreVert, "More", onMore)
+    }
+}
+
+@Composable
+private fun QueueReferenceHeaderAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(42.dp)) {
+        Icon(icon, label, tint = Color.White, modifier = Modifier.size(29.dp))
+    }
+}
+
+@Composable
+private fun QueueReferenceModeControls(
+    shuffleEnabled: Boolean,
+    repeatMode: PlaybackRepeatMode,
+    onManageSpaces: () -> Unit,
+    onSaveQueue: () -> Unit,
+    onShuffle: () -> Unit,
+    onRepeat: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        QueueReferenceModeButton(Icons.Rounded.Info, "Manage queues", active = false, onClick = onManageSpaces, modifier = Modifier.weight(1f))
+        QueueReferenceModeButton(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", active = false, onClick = onSaveQueue, modifier = Modifier.weight(1f))
+        QueueReferenceModeButton(Icons.Rounded.Shuffle, "Shuffle", active = shuffleEnabled, onClick = onShuffle, modifier = Modifier.weight(1f))
+        QueueReferenceModeButton(if (repeatMode == PlaybackRepeatMode.One) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat, "Repeat", active = repeatMode != PlaybackRepeatMode.Off, onClick = onRepeat, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun QueueReferenceModeButton(icon: ImageVector, label: String, active: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .height(64.dp)
+            .clip(RoundedCornerShape(32.dp))
+            .background(if (active) Color.White.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.17f))
+            .levyraPressable(onClick = onClick, pressedScale = LevyraPressScale.Control, role = Role.Button, onClickLabel = label),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, label, tint = if (active) Color(0xFF12242A) else Color.White, modifier = Modifier.size(26.dp))
+    }
+}
+
+@Composable
+private fun QueueReferenceHeading(
+    label: String,
+    title: String,
+    endlessLabel: String,
+    endlessEnabled: Boolean,
+    undoAvailable: Boolean,
+    onToggleEndless: () -> Unit,
+    onUndo: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(label, color = Color.White.copy(alpha = 0.64f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(title, color = Color.White, fontSize = 23.sp, lineHeight = 28.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (undoAvailable) {
+            IconButton(onClick = onUndo) { Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = null, tint = Color.White) }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(endlessLabel, color = Color.White.copy(alpha = 0.70f), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Switch(
+                checked = endlessEnabled,
+                onCheckedChange = { onToggleEndless() },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFF08212A),
+                    checkedTrackColor = Color.White.copy(alpha = 0.86f),
+                    uncheckedThumbColor = Color.White.copy(alpha = 0.72f),
+                    uncheckedTrackColor = Color.Black.copy(alpha = 0.35f),
+                    uncheckedBorderColor = Color.White.copy(alpha = 0.30f)
                 )
-            }
+            )
         }
     }
 }
 
-private val QueueRowSurface: Color get() = if (LevyraIsLight) LevyraAdaptiveCard else Color(0xFF1C1D21)
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun QueueActionIcon(icon: ImageVector, tint: Color) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(MaterialShapes.Cookie4Sided.toShape())
-            .background(tint.copy(alpha = 0.18f)),
-        contentAlignment = Alignment.Center
+private fun QueueReferencePlaybackRail(
+    state: LevyraUiState,
+    onPrevious: () -> Unit,
+    onTogglePlay: () -> Unit,
+    onNext: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onManageSpaces: () -> Unit,
+    onSaveQueue: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = Color(0xE8121B1F),
+        contentColor = Color.White,
+        modifier = modifier.fillMaxWidth()
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        Column(
+            modifier = Modifier.navigationBarsPadding().padding(start = 26.dp, end = 26.dp, top = 8.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            AppleMusicSeekbar(state.positionMs, state.bufferedPositionMs, state.durationMs, onSeek)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(76.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                IconButton(onClick = onPrevious, modifier = Modifier.size(58.dp)) { Icon(Icons.Rounded.SkipPrevious, "Previous", tint = Color.White, modifier = Modifier.size(40.dp)) }
+                IconButton(onClick = onTogglePlay, modifier = Modifier.size(78.dp)) {
+                    Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (state.isPlaying) "Pause" else "Play", tint = Color.White, modifier = Modifier.size(58.dp))
+                }
+                IconButton(onClick = onNext, modifier = Modifier.size(58.dp)) { Icon(Icons.Rounded.SkipNext, "Next", tint = Color.White, modifier = Modifier.size(40.dp)) }
+            }
+            PlayerOutputVolume(
+                contentColor = Color.White,
+                mutedColor = Color.White.copy(alpha = 0.72f),
+                activeColor = Color.White,
+                trackColor = Color.White.copy(alpha = 0.28f),
+                condensed = true
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+                QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.QueueMusic, "Manage queues", onManageSpaces)
+                CastRouteButton(modifier = Modifier.size(46.dp))
+                QueueReferenceHeaderAction(Icons.AutoMirrored.Rounded.PlaylistAdd, "Save queue", onSaveQueue)
+                QueueReferenceHeaderAction(Icons.Rounded.Close, "Close queue", onClose)
+            }
+        }
     }
 }
-
-private val QueueCurrentArtworkShape: Shape
-    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-    @Composable get() = MaterialShapes.Cookie9Sided.toShape()
 
 @Composable
 private fun QueueSelectionBar(
@@ -28327,12 +28261,12 @@ private fun SettingsSkinSelection(interfaceSettings: LevyraInterfaceSettings, on
             onInterfaceSettings(
                 interfaceSettings.copy(
                     skin = skin,
-                    liquidGlassEnabled = if (skin == LevyraSkin.Prism) true else interfaceSettings.liquidGlassEnabled
+                    liquidGlassEnabled = if (skin == LevyraSkin.LiquidGlass) true else interfaceSettings.liquidGlassEnabled
                 )
             )
         }
     )
-    if (interfaceSettings.skin == LevyraSkin.Prism) {
+    if (interfaceSettings.skin == LevyraSkin.LiquidGlass) {
         PrismSettingsPanel(interfaceSettings.prism) { onInterfaceSettings(interfaceSettings.copy(prism = it)) }
     }
     if (interfaceSettings.skin == LevyraSkin.Torque) {

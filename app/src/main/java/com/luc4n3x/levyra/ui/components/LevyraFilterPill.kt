@@ -41,6 +41,7 @@ import com.luc4n3x.levyra.ui.theme.LevyraMotion
 import com.luc4n3x.levyra.ui.theme.LevyraType
 import com.luc4n3x.levyra.ui.theme.LevyraActivePalette
 import com.luc4n3x.levyra.ui.theme.LevyraIsPrism
+import com.luc4n3x.levyra.ui.theme.LevyraIsLiquidGlass
 import com.luc4n3x.levyra.ui.theme.LevyraIsTorque
 import com.luc4n3x.levyra.ui.theme.LevyraIsIvory
 import com.luc4n3x.levyra.ui.theme.LevyraIsSpotify
@@ -149,11 +150,23 @@ internal fun LevyraFilterPill(
         contentAlignment = Alignment.Center
     ) {
         val spotify = LevyraIsSpotify
+        val liquidGlassSurface = if (LevyraIsLiquidGlass) {
+            Modifier.levyraGlass(
+                shape = shape,
+                baseTint = if (selected) LevyraActivePalette.cyan else Color.White,
+                fallbackColor = if (selected) LevyraActivePalette.cyan.copy(alpha = 0.32f) else pillColors.container.copy(alpha = 0.78f),
+                fallbackBorderColor = Color.White.copy(alpha = if (selected) 0.46f else 0.26f),
+                intensity = if (selected) LevyraGlassIntensity.Standard else LevyraGlassIntensity.Subtle,
+                artworkTint = LevyraActivePalette.cyan
+            )
+        } else {
+            Modifier.background(pillColors.container)
+        }
         Row(
             modifier = Modifier
                 .height(if (spotify) SpotifyDesign.chipHeight else FilterPillVisualHeight)
                 .clip(if (spotify) SpotifyDesign.chipShape else shape)
-                .background(pillColors.container)
+                .then(liquidGlassSurface)
                 .padding(horizontal = if (spotify) 14.dp else 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

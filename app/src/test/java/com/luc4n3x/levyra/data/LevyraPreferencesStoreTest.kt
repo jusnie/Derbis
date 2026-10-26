@@ -107,7 +107,7 @@ class LevyraPreferencesStoreTest {
             translucency = com.luc4n3x.levyra.domain.PrismTranslucency.Reduced
         )
         val saved = LevyraInterfaceSettings(
-            skin = com.luc4n3x.levyra.domain.LevyraSkin.Prism,
+            skin = com.luc4n3x.levyra.domain.LevyraSkin.LiquidGlass,
             prism = prism, playerVisualMode = PlayerVisualMode.Flow, pureBlack = true
         )
         preferences.setInterfaceSettings(saved)

@@ -1,6 +1,7 @@
 package com.luc4n3x.levyra.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -36,7 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.domain.ResonanceCommentSnippet
 import com.luc4n3x.levyra.domain.Track
+import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
 import com.luc4n3x.levyra.ui.components.LevyraPlayingIndicator
+import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.components.levyraPressable
 import com.luc4n3x.levyra.ui.theme.*
 
@@ -214,10 +217,52 @@ internal fun SkinCollectionsShelf(title: String, collections: List<StudioCollect
                     torque -> TorqueCollectionCard(collection, tracks, onOpen)
                     LevyraIsIvory -> IvoryCollectionCard(collection, tracks, onOpen)
                     LevyraIsSpotify -> SpotifyMixCard(collection, tracks, onOpen)
+                    LevyraIsLiquidGlass -> LiquidGlassCollectionCard(collection, tracks, onOpen)
                     else -> PrismCollectionFanCard(collection, tracks, onOpen)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LiquidGlassCollectionCard(collection: StudioCollection, tracks: List<Track>, onOpen: (String) -> Unit) {
+    Column(
+        Modifier.width(210.dp).levyraPressable(onClick = { onOpen(collection.id) }, onClickLabel = collection.title, role = Role.Button),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+            tracks.indices.reversed().forEach { index ->
+                val angle = when (index) { 0 -> 0f; 1 -> -7f; else -> 7f }
+                val shift = when (index) { 0 -> 0.dp; 1 -> (-32).dp; else -> 32.dp }
+                val size = if (index == 0) 150.dp else 126.dp
+                val coverShape = RoundedCornerShape(22.dp)
+                Box(
+                    Modifier
+                        .offset(x = shift, y = if (index == 0) 0.dp else 10.dp)
+                        .size(size)
+                        .rotate(angle)
+                        .clip(coverShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.36f), coverShape)
+                ) { CoverImage(tracks[index], Modifier.fillMaxSize()) }
+            }
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .width(116.dp)
+                    .height(6.dp)
+                    .levyraGlass(
+                        shape = RoundedCornerShape(3.dp),
+                        baseTint = LevyraCyan,
+                        fallbackColor = LevyraCyan.copy(alpha = 0.44f),
+                        fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                        intensity = LevyraGlassIntensity.Subtle,
+                        artworkTint = LevyraActivePalette.cyan
+                    )
+            )
+        }
+        Text(collection.title, color = LevyraText, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(collection.subtitle, color = LevyraMuted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -280,10 +325,81 @@ internal fun SkinShowcaseShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
             when {
                 torque && item.round -> TorqueArtistCard(item)
                 torque -> TorqueAlbumCard(item, index, isPlaying)
+                LevyraIsLiquidGlass && item.round -> LiquidGlassArtistOrb(item)
+                LevyraIsLiquidGlass -> LiquidGlassAlbumCard(item, isPlaying)
                 item.round -> PrismArtistOrb(item)
                 else -> PrismAlbumCard(item, isPlaying)
             }
         }
+    }
+}
+
+@Composable
+private fun LiquidGlassArtistOrb(item: StudioShelfItem) {
+    Column(
+        Modifier.width(132.dp).levyraPressable(onClick = item.onClick, onLongClick = item.onLongClick, onClickLabel = item.title, role = Role.Button),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            Modifier
+                .size(128.dp)
+                .clip(CircleShape)
+                .levyraGlass(
+                    shape = CircleShape,
+                    baseTint = Color.White,
+                    fallbackColor = LevyraPanelSoft.copy(alpha = 0.72f),
+                    fallbackBorderColor = Color.White.copy(alpha = 0.46f),
+                    intensity = LevyraGlassIntensity.Standard,
+                    artworkTint = LevyraActivePalette.cyan
+                )
+                .padding(3.dp)
+                .clip(CircleShape)
+        ) {
+            item.artwork(Modifier.fillMaxSize(), true)
+        }
+        Text(item.title, color = if (item.current) LevyraCyan else LevyraText, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun LiquidGlassAlbumCard(item: StudioShelfItem, isPlaying: Boolean) {
+    val shape = RoundedCornerShape(22.dp)
+    Column(
+        Modifier.width(164.dp).levyraPressable(onClick = item.onClick, onLongClick = item.onLongClick, onClickLabel = item.title, role = Role.Button),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(shape)
+                .border(1.dp, Color.White.copy(alpha = 0.30f), shape)
+        ) {
+            item.artwork(Modifier.fillMaxSize(), false)
+            if (item.current) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(30.dp)
+                        .levyraGlass(
+                            shape = CircleShape,
+                            baseTint = LevyraCyan,
+                            fallbackColor = LevyraCyan.copy(alpha = 0.42f),
+                            fallbackBorderColor = Color.White.copy(alpha = 0.44f),
+                            intensity = LevyraGlassIntensity.Standard,
+                            artworkTint = LevyraActivePalette.cyan
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LevyraPlayingIndicator(playing = isPlaying, color = Color.White, size = 12.dp)
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(item.title, color = if (item.current) LevyraCyan else LevyraText, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        if (item.subtitle.isNotBlank()) Text(item.subtitle, color = LevyraMuted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -481,6 +597,13 @@ internal fun SkinNameGreeting(greeting: String, dayPart: String, name: String, m
             Text(dayPart.uppercase(), color = LevyraMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(name.uppercase(), color = LevyraText, fontSize = 34.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Box(Modifier.width(48.dp).height(4.dp).clip(TorqueTagShape).background(LevyraActivePalette.blue))
+        }
+        LevyraIsLiquidGlass -> Column(modifier.then(accessible)) {
+            Text(dayPart, color = LevyraMuted, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                name, color = LevyraText,
+                fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Normal, letterSpacing = (-1.4).sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
         }
         LevyraIsPrism -> Column(modifier.then(accessible)) {
             Text(dayPart, color = LevyraMuted, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)

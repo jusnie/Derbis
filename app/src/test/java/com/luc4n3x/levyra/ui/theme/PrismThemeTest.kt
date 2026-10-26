@@ -13,6 +13,13 @@ import org.junit.Test
 class PrismThemeTest {
     @After fun restore() { LevyraThemeController.apply(LevyraThemes.LEVYRA_AURA) }
 
+    @Test fun legacyPrismPreferenceOpensTheLiquidGlassSkin() {
+        assertEquals(LevyraSkin.LiquidGlass, LevyraSkin.from("Prism"))
+        assertEquals(LevyraSkin.LiquidGlass, LevyraSkin.from("LiquidGlass"))
+        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.LiquidGlass)
+        assertTrue(LevyraIsLiquidGlass)
+    }
+
     @Test fun appearancesHaveReadableContent() {
         listOf(PrismAppearance.Night, PrismAppearance.Light).forEach { appearance ->
             val p = prismPalette(PrismSettings(appearance = appearance))
@@ -26,15 +33,15 @@ class PrismThemeTest {
         }
     }
 
-    @Test fun nightIsDeepBlackWithFixedRaspberryAccentAndNoBlue() {
+    @Test fun liquidGlassUsesADeepNeutralBaseAndCoolSpectralAccents() {
         val night = prismPalette()
         assertEquals("Liquid Glass", night.label)
-        assertEquals(Color.Black, night.black)
+        assertEquals(Color(0xFF080A0F), night.black)
         listOf(PrismAppearance.Night, PrismAppearance.Light).forEach { appearance ->
             val p = prismPalette(PrismSettings(appearance = appearance))
             listOf(p.cyan, p.blue, p.violet, p.pink, p.orange).forEach { accent ->
                 val hue = Hct.fromInt(accent.toArgb()).hue
-                assertTrue("Accent hue $hue $appearance", hue !in 180.0..300.0)
+                assertTrue("Accent hue $hue $appearance", hue in 165.0..285.0)
             }
             assertEquals(p, prismPalette(PrismSettings(appearance = appearance)))
         }
@@ -109,7 +116,7 @@ class PrismThemeTest {
     @Test fun playerSheetsKeepReadableContentInBothAppearances() {
         listOf(PrismAppearance.Light, PrismAppearance.Night).forEach { appearance ->
             val settings = PrismSettings(appearance = appearance)
-            LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism, prism = settings)
+            LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.LiquidGlass, prism = settings)
             val surfaces = prismPlayerSurfaces(LevyraActivePalette)
             assertTrue(playerContrastRatio(surfaces.content, playerSheetColor(surfaces)) >= 4.5f)
             assertTrue(playerContrastRatio(surfaces.contentMuted, playerSheetColor(surfaces)) >= 4.5f)
@@ -125,7 +132,7 @@ class PrismThemeTest {
     @Test fun switchingSkinsRestoresDefaultAndNocturneExactly() {
         LevyraThemeController.apply(LevyraThemes.FROST, accentOverride = 0xFF3355AA.toInt())
         val saved = LevyraActivePalette
-        LevyraThemeController.apply(LevyraThemes.FROST, skin = LevyraSkin.Prism)
+        LevyraThemeController.apply(LevyraThemes.FROST, skin = LevyraSkin.LiquidGlass)
         assertTrue(LevyraSkinManagesLayout)
         assertTrue(LevyraIsPrism)
         LevyraThemeController.apply(LevyraThemes.FROST, skin = LevyraSkin.Nocturne78)
@@ -147,7 +154,7 @@ class PrismThemeTest {
     }
 
     @Test fun liquidGlassSkinProjectsGlassMiniPlayerAndNavigation() {
-        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
+        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.LiquidGlass)
         val mini = prismMiniSettings(LevyraMiniPlayerStudioSettings())
         val nav = prismNavSettings(LevyraNavigationStudioSettings())
 
@@ -158,11 +165,11 @@ class PrismThemeTest {
 
     @Test fun switchingSkinsUpdatesMiniPlayerCornerAfterDesignerNormalization() {
         val saved = LevyraMiniPlayerStudioSettings()
-        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
+        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.LiquidGlass)
         assertEquals(30, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Torque)
         assertEquals(2, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
-        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Prism)
+        LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.LiquidGlass)
         assertEquals(30, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         LevyraThemeController.apply(LevyraThemes.COSMIC, skin = LevyraSkin.Nocturne78)
         val nocturneTuning = nocturneMiniSettings(saved).activeTuning()

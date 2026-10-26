@@ -472,6 +472,21 @@ class QueueSpaceEngineTest {
     }
 
     @Test
+    fun clearingAutomaticTracksPreservesTheNamedQueueAndPlaybackPosition() = runBlocking {
+        val engine = restoredEngine("commute", listOf(track("morning"), track("current"), track("later")))
+        engine.select(1, positionMs = 42_000L)
+        engine.appendRadioTracks(listOf(track("radio-1"), track("radio-2")))
+
+        val cleared = engine.clearAutomaticTracks()
+
+        assertEquals(listOf("morning", "current", "later"), cleared.tracks.map { it.id })
+        assertEquals("current", cleared.currentTrack?.id)
+        assertEquals(1, cleared.currentIndex)
+        assertEquals(42_000L, cleared.positionMs)
+        assertTrue(engine.automaticTrackKeys().isEmpty())
+    }
+
+    @Test
     fun removedAutomaticTrackIsNotReinsertedByRadioInTheSameSpace() = runBlocking {
         val engine = restoredEngine("a", listOf(track("seed")))
         engine.appendRadioTracks(listOf(track("r1"), track("r2")))

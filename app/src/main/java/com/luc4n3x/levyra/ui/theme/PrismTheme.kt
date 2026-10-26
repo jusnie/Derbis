@@ -20,10 +20,12 @@ import com.luc4n3x.levyra.ui.artwork.rememberArtworkPalette
 import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.materialkolor.hct.Hct
 
+// Keep the historic palette id so existing installations retain their selected skin.
 internal const val PrismPaletteId = "derbis_prism"
 internal const val TorquePaletteId = "derbis_torque"
+internal val LevyraIsLiquidGlass: Boolean get() = LevyraActivePalette.id == PrismPaletteId
 val LevyraIsTorque: Boolean get() = LevyraActivePalette.id == TorquePaletteId
-val LevyraIsPrism: Boolean get() = LevyraActivePalette.id == PrismPaletteId || LevyraIsTorque || LevyraIsIvory || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsTidal || LevyraIsYouTubeMusic
+val LevyraIsPrism: Boolean get() = LevyraIsLiquidGlass || LevyraIsTorque || LevyraIsIvory || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsTidal || LevyraIsYouTubeMusic
 internal val LevyraSkinManagesLayout: Boolean get() = LevyraIsNocturne || LevyraIsPrism
 internal val LevyraSkinLabel: String get() = LevyraActivePalette.label
 internal var activePrismSettings by mutableStateOf(PrismSettings())
@@ -49,10 +51,11 @@ internal object PrismDesign {
 }
 
 internal object PrismAccent {
-    private val nightStart = Color(0xFFF03A62)
-    private val nightEnd = Color(0xFFD13FC0)
-    private val lightStart = Color(0xFFC41E4C)
-    private val lightEnd = Color(0xFF9F2594)
+    // Liquid Glass uses cool spectral refraction rather than the old raspberry Prism gradient.
+    private val nightStart = Color(0xFF72D5FF)
+    private val nightEnd = Color(0xFFC4B5FD)
+    private val lightStart = Color(0xFF007B9B)
+    private val lightEnd = Color(0xFF5E5CC6)
 
     fun gradient(light: Boolean = LevyraActivePalette.isLight): Brush = when {
         LevyraIsTorque || LevyraIsSpotify || LevyraIsAppleMusic || LevyraIsYouTubeMusic -> SolidColor(LevyraActivePalette.blue)
@@ -104,18 +107,18 @@ internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark:
     return LevyraThemes.cosmic.copy(
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
-        black = prismColor(light, 0xFFF7F6F8, 0xFF000000),
-        ink = prismColor(light, 0xFFFFFFFF, 0xFF0B0B0D),
-        panel = prismColor(light, 0xFFFFFFFF, 0xFF131316),
-        panelSoft = prismColor(light, 0xFFEEECF0, 0xFF1C1C20),
-        cyan = prismColor(light, 0xFFC2185E, 0xFFF2367F),
-        blue = prismColor(light, 0xFFC41E4C, 0xFFF03A62),
-        violet = prismColor(light, 0xFF9F2594, 0xFFD13FC0),
-        pink = prismColor(light, 0xFFB0246E, 0xFFF76AA6),
-        orange = prismColor(light, 0xFF9F2594, 0xFFD13FC0),
-        text = prismColor(light, 0xFF151418, 0xFFF6F5F7),
-        muted = prismColor(light, 0xFF5D5963, 0xFFA7A4AC),
-        outline = prismColor(light, 0xFFDAD7DE, 0xFF2B2B31)
+        black = prismColor(light, 0xFFF5F8FC, 0xFF080A0F),
+        ink = prismColor(light, 0xFFFFFFFF, 0xFF10141C),
+        panel = prismColor(light, 0xFFF8FAFD, 0xFF161C27),
+        panelSoft = prismColor(light, 0xFFEAF1F8, 0xFF202A38),
+        cyan = prismColor(light, 0xFF006E99, 0xFF7DD3FC),
+        blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
+        violet = prismColor(light, 0xFF635BCE, 0xFFC4B5FD),
+        pink = prismColor(light, 0xFF3D7EA6, 0xFFA5D8FF),
+        orange = prismColor(light, 0xFF007C91, 0xFF67E8F9),
+        text = prismColor(light, 0xFF121821, 0xFFF4F8FF),
+        muted = prismColor(light, 0xFF556271, 0xFFAAB6C7),
+        outline = prismColor(light, 0xFFD5E0EB, 0xFF334155)
     )
 }
 

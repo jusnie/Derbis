@@ -185,7 +185,7 @@ enum class PlayerVerticalSwipeAction {
 enum class LevyraSkin {
     Default,
     Nocturne78,
-    Prism,
+    LiquidGlass,
     Torque,
     Ivory,
     SpotifyStyle,
@@ -194,7 +194,11 @@ enum class LevyraSkin {
     YouTubeMusicStyle;
 
     companion object {
-        fun from(value: String): LevyraSkin = entries.firstOrNull { it.name == value } ?: Default
+        /** Prism was the temporary backing name for Liquid Glass builds. Keep old preferences valid. */
+        fun from(value: String): LevyraSkin = when (value) {
+            "Prism" -> LiquidGlass
+            else -> entries.firstOrNull { it.name == value } ?: Default
+        }
     }
 }
 

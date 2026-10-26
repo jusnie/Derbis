@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.LevyraGlassIntensity
+import com.luc4n3x.levyra.ui.components.LevyraGlassIconButton
 import com.luc4n3x.levyra.ui.components.levyraGlass
 import com.luc4n3x.levyra.ui.components.LevyraPlayingIndicator
 import com.luc4n3x.levyra.ui.components.levyraPressable
@@ -86,8 +87,31 @@ internal fun PrismHomeHeader(
     val strings = LocalLevyraStrings.current
     Column(Modifier.fillMaxWidth().padding(horizontal = inset)) {
         val actions: @Composable RowScope.() -> Unit = {
-            IconButton(onClick = onSearch, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.Search, strings.search, tint = LevyraText) }
-            IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.Settings, strings.settings, tint = LevyraText) }
+            if (LevyraIsLiquidGlass) {
+                LevyraGlassIconButton(
+                    icon = Icons.Outlined.Search,
+                    contentDescription = strings.search,
+                    onClick = onSearch,
+                    tint = LevyraText,
+                    baseTint = Color.White,
+                    fallbackColor = LevyraPanelSoft.copy(alpha = 0.78f),
+                    fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                    artworkTint = LevyraActivePalette.cyan
+                )
+                LevyraGlassIconButton(
+                    icon = Icons.Outlined.Settings,
+                    contentDescription = strings.settings,
+                    onClick = onSettings,
+                    tint = LevyraText,
+                    baseTint = Color.White,
+                    fallbackColor = LevyraPanelSoft.copy(alpha = 0.78f),
+                    fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                    artworkTint = LevyraActivePalette.cyan
+                )
+            } else {
+                IconButton(onClick = onSearch, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.Search, strings.search, tint = LevyraText) }
+                IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.Settings, strings.settings, tint = LevyraText) }
+            }
         }
         if (name.isNotBlank()) {
             Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -97,7 +121,8 @@ internal fun PrismHomeHeader(
         } else PrismPageHeader(greeting, date, actions)
         if (hero != null) {
             Spacer(Modifier.height(8.dp))
-            if (LevyraIsTorque) TorqueSoundtrackHero(hero, strings.play) else PrismSoundtrackHero(hero, strings.play)
+            if (LevyraIsTorque) TorqueSoundtrackHero(hero, strings.play)
+            else LiquidGlassSoundtrackHero(hero, strings.play)
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -118,9 +143,22 @@ internal fun PrismCompactShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
         itemsIndexed(pages, key = { index, page -> "$index:${page.first().key}" }) { _, page ->
             Column(Modifier.width(312.dp), verticalArrangement = Arrangement.spacedBy(if (LevyraIsTorque) 2.dp else 0.dp)) {
                 page.forEach { item ->
+                    val rowShape = RoundedCornerShape(if (LevyraIsLiquidGlass) 22.dp else PrismDesign.controlCorner)
+                    val rowSurface = if (LevyraIsLiquidGlass) {
+                        Modifier.levyraGlass(
+                            shape = rowShape,
+                            baseTint = if (item.current) LevyraCyan else Color.White,
+                            fallbackColor = if (item.current) LevyraCyan.copy(alpha = 0.26f) else LevyraPanelSoft.copy(alpha = 0.74f),
+                            fallbackBorderColor = Color.White.copy(alpha = if (item.current) 0.46f else 0.24f),
+                            intensity = if (item.current) LevyraGlassIntensity.Standard else LevyraGlassIntensity.Subtle,
+                            artworkTint = LevyraActivePalette.cyan
+                        )
+                    } else {
+                        Modifier.background(if (LevyraIsTorque) { if (item.current) LevyraPanelSoft else LevyraPanel } else if (item.current) PrismAccent.Tint else Color.Transparent)
+                    }
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(RoundedCornerShape(PrismDesign.controlCorner))
-                            .background(if (LevyraIsTorque) { if (item.current) LevyraPanelSoft else LevyraPanel } else if (item.current) PrismAccent.Tint else Color.Transparent)
+                        Modifier.fillMaxWidth().heightIn(min = 72.dp).clip(rowShape)
+                            .then(rowSurface)
                             .levyraPressable(onClick = item.onClick, onLongClick = item.onLongClick, onClickLabel = item.title, role = Role.Button)
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -141,9 +179,23 @@ internal fun PrismCompactShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
 @Composable
 internal fun PrismCollectionCard(title: String, subtitle: String, artwork: Track?, onOpen: () -> Unit, modifier: Modifier) {
     val ivory = LevyraIsIvory
+    val liquidGlass = LevyraIsLiquidGlass
     val content = if (ivory) IvoryDesign.onInk else LevyraText
+    val cardShape = if (liquidGlass) RoundedCornerShape(28.dp) else PrismDesign.cut(PrismDesign.surfaceCorner)
+    val cardSurface = if (liquidGlass) {
+        Modifier.levyraGlass(
+            shape = cardShape,
+            baseTint = Color.White,
+            fallbackColor = LevyraPanelSoft.copy(alpha = 0.76f),
+            fallbackBorderColor = Color.White.copy(alpha = 0.28f),
+            intensity = LevyraGlassIntensity.Standard,
+            artworkTint = LevyraActivePalette.cyan
+        )
+    } else {
+        Modifier.background(if (ivory) IvoryDesign.ink else LevyraPanel)
+    }
     Row(
-        modifier.fillMaxWidth().clip(PrismDesign.cut(PrismDesign.surfaceCorner)).background(if (ivory) IvoryDesign.ink else LevyraPanel)
+        modifier.fillMaxWidth().clip(cardShape).then(cardSurface)
             .levyraPressable(onClick = onOpen, onClickLabel = title, role = Role.Button).padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically
     ) {
@@ -151,8 +203,20 @@ internal fun PrismCollectionCard(title: String, subtitle: String, artwork: Track
             Text(title, color = content, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(subtitle, color = if (ivory) content.copy(alpha = 0.7f) else LevyraMuted, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
-            Box(Modifier.size(36.dp).clip(CircleShape).background(if (ivory) IvoryDesign.onInk else PrismAccent.Tint), contentAlignment = Alignment.Center) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = if (ivory) IvoryDesign.ink else LevyraCyan, modifier = Modifier.size(20.dp))
+            val actionModifier = if (liquidGlass) {
+                Modifier.levyraGlass(
+                    shape = CircleShape,
+                    baseTint = LevyraCyan,
+                    fallbackColor = LevyraCyan.copy(alpha = 0.44f),
+                    fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                    intensity = LevyraGlassIntensity.Strong,
+                    artworkTint = LevyraActivePalette.cyan
+                )
+            } else {
+                Modifier.background(if (ivory) IvoryDesign.onInk else PrismAccent.Tint, CircleShape)
+            }
+            Box(Modifier.size(36.dp).then(actionModifier), contentAlignment = Alignment.Center) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = if (ivory) IvoryDesign.ink else if (liquidGlass) Color.White else LevyraCyan, modifier = Modifier.size(20.dp))
             }
         }
         if (artwork != null) Box(Modifier.size(96.dp).clip(if (ivory) IvoryDesign.coverShape else RoundedCornerShape(PrismDesign.controlCorner))) { CoverImage(artwork, Modifier.fillMaxSize()) }
@@ -177,12 +241,27 @@ internal fun PrismArtworkShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
                 verticalArrangement = Arrangement.spacedBy(6.dp),
                 horizontalAlignment = if (item.round) Alignment.CenterHorizontally else Alignment.Start
             ) {
-                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(if (item.round) CircleShape else RoundedCornerShape(PrismDesign.controlCorner))) {
+                val artworkShape = if (item.round) CircleShape else RoundedCornerShape(if (LevyraIsLiquidGlass) 22.dp else PrismDesign.controlCorner)
+                Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(artworkShape).then(if (LevyraIsLiquidGlass) Modifier.border(1.dp, Color.White.copy(alpha = 0.26f), artworkShape) else Modifier)) {
                     item.artwork(Modifier.fillMaxSize(), false)
-                    if (item.current) Box(
-                        Modifier.align(Alignment.BottomEnd).padding(8.dp).size(28.dp).clip(CircleShape).background(PrismAccent.gradient()),
-                        contentAlignment = Alignment.Center
-                    ) { LevyraPlayingIndicator(playing = isPlaying, color = Color.White, size = 12.dp) }
+                    if (item.current) {
+                        val currentMarker = if (LevyraIsLiquidGlass) {
+                            Modifier.levyraGlass(
+                                shape = CircleShape,
+                                baseTint = LevyraCyan,
+                                fallbackColor = LevyraCyan.copy(alpha = 0.42f),
+                                fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                                intensity = LevyraGlassIntensity.Standard,
+                                artworkTint = LevyraActivePalette.cyan
+                            )
+                        } else {
+                            Modifier.background(PrismAccent.gradient(), CircleShape)
+                        }
+                        Box(
+                            Modifier.align(Alignment.BottomEnd).padding(8.dp).size(28.dp).then(currentMarker),
+                            contentAlignment = Alignment.Center
+                        ) { LevyraPlayingIndicator(playing = isPlaying, color = Color.White, size = 12.dp) }
+                    }
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(item.title, color = if (item.current) LevyraCyan else LevyraText, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
