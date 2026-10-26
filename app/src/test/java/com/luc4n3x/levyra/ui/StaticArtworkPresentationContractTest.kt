@@ -9,13 +9,14 @@ import org.junit.Test
 class StaticArtworkPresentationContractTest {
 
     @Test
-    fun `motion artwork layer always renders its supplied static cover`() {
+    fun `Canvas is opt in and unmatched tracks retain the supplied static cover`() {
         val layer = source("ui/MotionArtworkLayer.kt")
 
-        assertTrue(layer.contains("private val staticArtworkOnly = true"))
-        assertTrue(layer.contains("if (staticArtworkOnly)"))
-        assertTrue(layer.contains("onDynamicBackdropPalette(null)"))
-        assertTrue(layer.contains("Box(modifier = modifier) { staticArtwork() }"))
+        assertFalse(layer.contains("staticArtworkOnly"))
+        assertTrue(layer.contains("Canvas video is strictly opt-in"))
+        assertTrue(layer.contains("enabled &&"))
+        assertTrue(layer.contains("staticArtworkMotionEnabled: Boolean = false"))
+        assertTrue(layer.contains("MotionArtworkStaticFallback("))
         assertFalse(layer.contains("LivingArtworkLayer("))
     }
 
@@ -29,14 +30,15 @@ class StaticArtworkPresentationContractTest {
     }
 
     @Test
-    fun `saved motion preference cannot bring back video artwork or its controls`() {
+    fun `animated artwork preference is restored as an off by default opt in`() {
         val viewModel = source("viewmodel/LevyraViewModel.kt")
         val app = source("ui/LevyraApp.kt")
 
-        assertTrue(viewModel.contains("motionArtworkEnabled = false,"))
-        assertTrue(viewModel.contains("preferences.setMotionArtworkEnabled(false)"))
-        assertFalse(app.contains("onMotionArtwork"))
-        assertFalse(app.contains("strings.motionArtwork"))
+        assertTrue(viewModel.contains("motionArtworkEnabled = settings.motionArtworkEnabled"))
+        assertTrue(viewModel.contains("motionArtworkEnabled = snapshot.motionArtworkEnabled"))
+        assertTrue(viewModel.contains("preferences.setMotionArtworkEnabled(value)"))
+        assertTrue(app.contains("onMotionArtwork = viewModel::setMotionArtworkEnabled"))
+        assertTrue(app.contains("title = strings.motionArtwork"))
     }
 
     private fun source(relativePath: String): String = sequenceOf(

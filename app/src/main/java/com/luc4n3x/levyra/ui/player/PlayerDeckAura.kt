@@ -77,10 +77,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.luc4n3x.levyra.domain.LevyraCanvasQuality
 import com.luc4n3x.levyra.domain.Track
 import com.luc4n3x.levyra.feature.cast.CastRouteButton
+import com.luc4n3x.levyra.feature.motion.MotionArtwork
 import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
 import com.luc4n3x.levyra.ui.InstantArtworkPlaceholder
+import com.luc4n3x.levyra.ui.MotionArtworkLayer
+import com.luc4n3x.levyra.ui.MotionArtworkPresentation
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
 import com.luc4n3x.levyra.ui.components.LevyraPlayPauseGlyph
 import com.luc4n3x.levyra.ui.components.LevyraPressScale
@@ -111,6 +115,9 @@ internal fun PlayerAuraDeck(
     track: Track,
     slots: PlayerDeckSlots,
     artworkUrl: String,
+    motionArtwork: MotionArtwork?,
+    motionEnabled: Boolean,
+    canvasQuality: LevyraCanvasQuality,
     isFavorite: Boolean,
     isDownloaded: Boolean,
     isPlaying: Boolean,
@@ -137,8 +144,9 @@ internal fun PlayerAuraDeck(
     val velvetMid = remember(track.id, track.accentEnd) {
         androidx.compose.ui.graphics.lerp(Color(track.accentEnd), Color.Black, 0.86f)
     }
-    // Swap: Velvet now carries the stable, rounded sleeve that previously belonged to the
-    // Apple Music 13 deck. Its background remains Velvet-owned and never animates the cover.
+    // Swap: Velvet now carries the rounded sleeve that previously belonged to the Apple Music 13
+    // deck. It remains static by default; an explicitly enabled verified Canvas loop plays inside
+    // the sleeve without changing Velvet's layout or adding a palette/ink effect.
     Box(
         modifier = modifier.background(
             Brush.verticalGradient(0f to velvetTop, 0.50f to velvetMid, 1f to Color.Black)
@@ -162,6 +170,10 @@ internal fun PlayerAuraDeck(
                     .coerceAtLeast(152.dp)
                 AuraVelvetSleeve(
                     artworkUrl = artworkUrl,
+                    motionArtwork = motionArtwork,
+                    motionEnabled = motionEnabled,
+                    isPlaying = isPlaying,
+                    canvasQuality = canvasQuality,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 8.dp)
@@ -206,17 +218,35 @@ internal fun PlayerAuraDeck(
 }
 
 @Composable
-private fun AuraVelvetSleeve(artworkUrl: String, modifier: Modifier = Modifier) {
+private fun AuraVelvetSleeve(
+    artworkUrl: String,
+    motionArtwork: MotionArtwork?,
+    motionEnabled: Boolean,
+    isPlaying: Boolean,
+    canvasQuality: LevyraCanvasQuality,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(VelvetSleeveCorner))
             .background(Color.Black.copy(alpha = 0.30f))
     ) {
-        SeamlessArtworkImage(
-            url = artworkUrl,
-            modifier = Modifier.fillMaxSize(),
-            fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
-        )
+        MotionArtworkLayer(
+            artwork = motionArtwork,
+            enabled = motionEnabled,
+            isPlaying = isPlaying,
+            cornerRadius = VelvetSleeveCorner,
+            presentation = MotionArtworkPresentation.Card,
+            quality = canvasQuality,
+            staticArtworkMotionEnabled = false,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            SeamlessArtworkImage(
+                url = artworkUrl,
+                modifier = Modifier.fillMaxSize(),
+                fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+            )
+        }
     }
 }
 

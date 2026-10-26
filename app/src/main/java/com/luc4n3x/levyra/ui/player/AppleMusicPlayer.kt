@@ -52,6 +52,8 @@ import com.luc4n3x.levyra.player.PlaybackService
 import com.luc4n3x.levyra.ui.LocalAnimationsEnabled
 import com.luc4n3x.levyra.ui.KaraokeWordTimedText
 import com.luc4n3x.levyra.ui.InstantArtworkPlaceholder
+import com.luc4n3x.levyra.ui.MotionArtworkLayer
+import com.luc4n3x.levyra.ui.MotionArtworkPresentation
 import com.luc4n3x.levyra.ui.preferredPlayerArtworkUrl
 import com.luc4n3x.levyra.ui.artwork.SeamlessArtworkImage
 import com.luc4n3x.levyra.ui.components.LevyraLoadingIndicator
@@ -136,8 +138,8 @@ internal fun AppleMusicPlayerScene(
             )
     ) {
         val landscape = maxWidth > maxHeight
-        // Album imagery is intentionally static. The Apple Music 13 portrait deck owns a
-        // full-bleed cover treatment below; only landscape/video retain a bounded media stage.
+        // The portrait deck owns a full-bleed cover treatment below. A verified provider loop
+        // appears there only when the listener has explicitly enabled Animated artwork.
         val immersive = false
         val artwork: @Composable (Dp) -> Unit = { size ->
             if (video) AppleMusicPlayerVideo(track, slots, size) else AppleMusicPlayerArtwork(track, slots, size, { 0f }, showStage = true)
@@ -155,7 +157,9 @@ internal fun AppleMusicPlayerScene(
                 metadata = metadata,
                 transport = transport,
                 activeLyric = activeLyric,
-                lyricPositionMs = lyricPositionMs
+                lyricPositionMs = lyricPositionMs,
+                canvas = canvas,
+                playing = playing
             )
         }
     }
@@ -211,17 +215,19 @@ private fun AppleMusicPortraitDeck(
     metadata: @Composable () -> Unit,
     transport: @Composable () -> Unit,
     activeLyric: LyricLine? = null,
-    lyricPositionMs: Long = 0L
+    lyricPositionMs: Long = 0L,
+    canvas: AppleMusicCanvas? = null,
+    playing: Boolean = false
 ) {
     if (video) {
         AppleMusicVideoPortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
     } else {
-        AppleMusic13ReferencePortraitDeck(track, slots, metadata, transport, activeLyric, lyricPositionMs)
+        AppleMusic13ReferencePortraitDeck(track, slots, metadata, transport, activeLyric, lyricPositionMs, canvas, playing)
     }
 }
 
 /**
- * Derbis' Apple Music 13-inspired portrait player. Its cover is a static, full-bleed scene:
+ * Derbis' Apple Music 13-inspired portrait player. Its cover is a full-bleed scene:
  * the image fills the upper stage without distortion and fades into the deck's own controls.
  * This is an original Derbis treatment, not a reference-app layout.
  */
@@ -232,7 +238,9 @@ private fun AppleMusic13ReferencePortraitDeck(
     metadata: @Composable () -> Unit,
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
-    lyricPositionMs: Long
+    lyricPositionMs: Long,
+    canvas: AppleMusicCanvas?,
+    playing: Boolean
 ) {
     BoxWithConstraints(
         Modifier
@@ -246,7 +254,7 @@ private fun AppleMusic13ReferencePortraitDeck(
                 .fillMaxWidth()
                 .fillMaxHeight(AppleMusic13StretchedArtworkHeight)
         ) {
-            AppleMusic13StretchedArtwork(track)
+            AppleMusic13StretchedArtwork(track, canvas, playing)
         }
 
         // Preserve artwork gestures without putting an invisible surface over the controls.
@@ -317,14 +325,31 @@ private val AppleMusic13ArtworkFade = Brush.verticalGradient(
 )
 
 @Composable
-private fun AppleMusic13StretchedArtwork(track: Track) {
+private fun AppleMusic13StretchedArtwork(
+    track: Track,
+    canvas: AppleMusicCanvas?,
+    playing: Boolean
+) {
     val artworkUrl = preferredPlayerArtworkUrl(track)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        SeamlessArtworkImage(
-            url = artworkUrl,
-            modifier = Modifier.fillMaxSize(),
-            fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
-        )
+        // Only a user-enabled, provider-supplied loop can replace this static cover. There is no
+        // generated colour treatment or ink overlay when Canvas is on or when it falls back.
+        MotionArtworkLayer(
+            artwork = canvas?.artwork,
+            enabled = canvas?.enabled == true,
+            isPlaying = playing,
+            cornerRadius = 0.dp,
+            presentation = MotionArtworkPresentation.Immersive,
+            quality = canvas?.quality ?: LevyraCanvasQuality.Auto,
+            staticArtworkMotionEnabled = false,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            SeamlessArtworkImage(
+                url = artworkUrl,
+                modifier = Modifier.fillMaxSize(),
+                fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+            )
+        }
         Box(Modifier.fillMaxSize().background(AppleMusic13ArtworkFade))
     }
 }

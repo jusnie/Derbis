@@ -22,10 +22,19 @@ class AppleMusic13PlayerPresentationContractTest {
     }
 
     @Test
-    fun `Velvet receives the contained static sleeve presentation`() {
+    fun `Velvet receives the contained sleeve with an opt in Canvas loop`() {
         assertTrue(auraSource.contains("private fun AuraVelvetSleeve"))
         assertTrue(auraSource.contains("VelvetSleeveWidth"))
-        assertFalse(auraSource.contains("MotionArtworkLayer("))
+        assertTrue(auraSource.contains("MotionArtworkLayer("))
+        assertTrue(auraSource.contains("enabled = motionEnabled"))
+        assertTrue(auraSource.contains("staticArtworkMotionEnabled = false"))
+    }
+
+    @Test
+    fun `Apple stretched presentation uses Canvas only when explicitly enabled`() {
+        assertTrue(playerSource.contains("private fun AppleMusic13StretchedArtwork"))
+        assertTrue(playerSource.contains("enabled = canvas?.enabled == true"))
+        assertTrue(playerSource.contains("staticArtworkMotionEnabled = false"))
     }
 
     @Test

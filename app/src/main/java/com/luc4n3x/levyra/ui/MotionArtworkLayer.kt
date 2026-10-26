@@ -99,11 +99,10 @@ internal fun motionArtworkMaxZoom(presentation: MotionArtworkPresentation): Floa
 }
 
 /**
- * Album covers are intentionally static. The Canvas video and the palette-driven living-artwork
- * overlay were removed so every surface presents the supplied cover without a moving image or
- * coloured ink treatment.
+ * Canvas video is strictly opt-in through the caller's [enabled] flag. When it is off—or when
+ * the catalog has no verified loop—the supplied static album cover is rendered unchanged.
+ * The old palette/living-artwork ink layer remains intentionally absent.
  */
-private val staticArtworkOnly = true
 
 @Suppress("ComplexMethod", "CognitiveComplexMethod")
 @Composable
@@ -116,19 +115,13 @@ internal fun MotionArtworkLayer(
     presentation: MotionArtworkPresentation = MotionArtworkPresentation.Card,
     quality: LevyraCanvasQuality = LevyraCanvasQuality.Auto,
     pageMode: Boolean = false,
-    staticArtworkMotionEnabled: Boolean = true,
+    // A missing/unavailable loop must leave the album cover fully static.
+    staticArtworkMotionEnabled: Boolean = false,
     livingArtwork: LivingArtworkColors? = null,
     dynamicBackdropEnabled: Boolean = false,
     onDynamicBackdropPalette: (MotionBackdropPalette?) -> Unit = {},
     staticArtwork: @Composable () -> Unit
 ) {
-    if (staticArtworkOnly) {
-        // Clear a palette that may have been supplied by a prior Canvas frame before drawing the cover.
-        LaunchedEffect(onDynamicBackdropPalette) { onDynamicBackdropPalette(null) }
-        Box(modifier = modifier) { staticArtwork() }
-        return
-    }
-
     val lifecycleActive = rememberMotionArtworkLifecycleActive()
     val decorativeMotion = LocalLevyraVisualCapabilities.current.decorativeMotion
     val environment = rememberMotionArtworkEnvironment(enabled && lifecycleActive)

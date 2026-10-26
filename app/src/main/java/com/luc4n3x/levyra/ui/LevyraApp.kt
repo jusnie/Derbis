@@ -2912,6 +2912,8 @@ fun LevyraApp(
                     onBackupSettings = viewModel::setBackupSettings,
                     onAutomationSettings = viewModel::setAutomationSettings,
                     onAnimations = viewModel::setAnimationsEnabled,
+                    motionArtworkEnabled = state.motionArtworkEnabled,
+                    onMotionArtwork = viewModel::setMotionArtworkEnabled,
                     onDynamicColor = viewModel::setDynamicColor,
                     onSponsorBlock = viewModel::setSponsorBlock,
                     onSkipSilence = viewModel::setSkipSilence,
@@ -21190,6 +21192,8 @@ private fun SettingsOverlay(
     onBackupSettings: (LevyraBackupSettings) -> Unit,
     onAutomationSettings: (LevyraAutomationSettings) -> Unit,
     onAnimations: (Boolean) -> Unit,
+    motionArtworkEnabled: Boolean,
+    onMotionArtwork: (Boolean) -> Unit,
     onDynamicColor: (Boolean) -> Unit,
     onSponsorBlock: (Boolean) -> Unit,
     onSkipSilence: (Boolean) -> Unit,
@@ -21573,6 +21577,15 @@ private fun SettingsOverlay(
                                     subtitle = strings.animationsSubtitle,
                                     checked = animationsEnabled,
                                     onCheckedChange = onAnimations
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.AutoAwesome,
+                                    title = strings.motionArtwork,
+                                    subtitle = strings.motionArtworkSubtitle,
+                                    checked = motionArtworkEnabled,
+                                    onCheckedChange = onMotionArtwork
                                 )
                             }
                             item {
