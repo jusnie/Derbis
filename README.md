@@ -12,6 +12,22 @@
   <a href="https://github.com/jusnie/Derbis"><img src="https://img.shields.io/badge/Developer-Yasuda-white?style=for-the-badge&labelColor=000000" alt="Developer"></a>
 </p>
 
+<h2 align="center">Screenshots</h2>
+
+<p align="center">
+  <img src="assets/derbis-screenshots.png" alt="Derbis music library, home, and now-playing screens" width="100%">
+</p>
+
+<p align="center">
+  <img src="assets/derbis-screenshot-03.png" alt="Derbis Player Deck and Reactive Aura preview" width="44%">
+  <img src="assets/derbis-screenshot-04.png" alt="Derbis queue preview" width="44%">
+</p>
+
+<p align="center">
+  <img src="assets/derbis-screenshot-05.png" alt="Derbis synchronized lyrics preview" width="44%">
+  <img src="assets/derbis-screenshot-06.png" alt="Derbis now-playing preview" width="44%">
+</p>
+
 ---
 
 ## ✨ Features
