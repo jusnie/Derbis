@@ -226,7 +226,7 @@ object DerbisDiscordRichPresence {
         if (allowed) publishStored(context) else clear()
     }
 
-    fun publish(context: Context, presence: DerbisDiscordPresenceSnapshot) {
+    internal fun publish(context: Context, presence: DerbisDiscordPresenceSnapshot) {
         applicationContext = context.applicationContext
         lastPresence = presence
         if (!presence.playing || !isEnabled(context)) {
