@@ -19,6 +19,11 @@
 </p>
 
 <p align="center">
+  <img src="assets/derbis-screenshot-01.png" alt="Derbis Home and Your Orbit preview" width="44%">
+  <img src="assets/derbis-screenshot-02.png" alt="Derbis Discover for You preview" width="44%">
+</p>
+
+<p align="center">
   <img src="assets/derbis-screenshot-03.png" alt="Derbis Player Deck and Reactive Aura preview" width="44%">
   <img src="assets/derbis-screenshot-04.png" alt="Derbis queue preview" width="44%">
 </p>
