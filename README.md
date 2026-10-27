@@ -78,6 +78,25 @@ The dependency-free responsive web companion lives in [`website/`](website/). It
 
 ---
 
+<h2 align="center">Support Derbis</h2>
+
+<p align="center">
+  If Derbis makes your listening better, you can support its continued development.
+</p>
+
+<p align="center">
+  <a href="https://buymeacoffee.com/yasudaig"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=000000" alt="Support Derbis on Buy Me a Coffee"></a>
+  <a href="https://www.paypal.me/YasudaPlayz"><img src="https://img.shields.io/badge/PayPal-support-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Support Derbis via PayPal"></a>
+</p>
+
+<p align="center">
+  <img src="assets/derbis-gcash-qr.jpg" alt="GCash or InstaPay QR code for supporting Derbis" width="220">
+  <br>
+  <sub>Scan with GCash or a supported InstaPay app.</sub>
+</p>
+
+---
+
 ## 📄 License
 
 Derbis is licensed under the [GNU General Public License v3.0](LICENSE).
