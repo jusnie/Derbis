@@ -125,7 +125,10 @@ fun PremiumSeekbar(
     contentDescription: String? = null,
     waveform: FloatArray? = null,
     interactionKey: Any? = null,
-    thumbShape: SeekbarThumbShape = SeekbarThumbShape.Round
+    thumbShape: SeekbarThumbShape = SeekbarThumbShape.Round,
+    crossfadeStartFraction: Float? = null,
+    crossfadeActive: Boolean = false,
+    crossfadeColor: Color = activeColor
 ) {
     val density = LocalDensity.current
     val haptics = LocalDerbisHaptics.current
@@ -387,6 +390,35 @@ fun PremiumSeekbar(
                         topLeft = Offset(trackStart, trackTop),
                         size = Size(bufferedSpan, trackHeight),
                         cornerRadius = radius
+                    )
+                }
+            }
+
+            // The final configured seconds form a visible end-zone. It is subtle before the
+            // transition and becomes RGB-bright only while the two playback decks overlap.
+            crossfadeStartFraction?.let { startFraction ->
+                val zoneStart = (trackStart + startFraction.coerceIn(0f, 1f) * trackSpan).coerceIn(trackStart, trackEnd)
+                if (zoneStart < trackEnd) {
+                    val zoneColor = if (crossfadeActive) crossfadeColor else crossfadeColor.copy(alpha = 0.42f)
+                    if (crossfadeActive) {
+                        drawRoundRect(
+                            color = crossfadeColor.copy(alpha = 0.22f),
+                            topLeft = Offset(zoneStart, trackTop - trackHeight),
+                            size = Size(trackEnd - zoneStart, trackHeight * 3f),
+                            cornerRadius = CornerRadius(trackHeight * 1.5f)
+                        )
+                    }
+                    drawRoundRect(
+                        color = zoneColor.copy(alpha = if (crossfadeActive) 0.86f else 0.28f),
+                        topLeft = Offset(zoneStart, trackTop),
+                        size = Size(trackEnd - zoneStart, trackHeight),
+                        cornerRadius = radius
+                    )
+                    drawLine(
+                        color = zoneColor.copy(alpha = if (crossfadeActive) 1f else 0.72f),
+                        start = Offset(zoneStart, trackTop - trackHeight * 0.45f),
+                        end = Offset(zoneStart, trackTop + trackHeight * 1.45f),
+                        strokeWidth = if (crossfadeActive) 2.5f else 1.5f
                     )
                 }
             }

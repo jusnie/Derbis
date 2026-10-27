@@ -326,6 +326,8 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     jobject,
     jstring title,
     jstring artist,
+    jstring artwork_url,
+    jlong started_at_epoch_seconds,
     jboolean playing
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -336,17 +338,25 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
 
     const char* title_chars = title == nullptr ? "" : env->GetStringUTFChars(title, nullptr);
     const char* artist_chars = artist == nullptr ? "" : env->GetStringUTFChars(artist, nullptr);
+    const char* artwork_chars = artwork_url == nullptr ? "" : env->GetStringUTFChars(artwork_url, nullptr);
     std::string details = title_chars == nullptr ? "" : title_chars;
     std::string state = artist_chars == nullptr ? "" : artist_chars;
+    std::string image_key = artwork_chars == nullptr ? "" : artwork_chars;
     if (title_chars != nullptr) env->ReleaseStringUTFChars(title, title_chars);
     if (artist_chars != nullptr) env->ReleaseStringUTFChars(artist, artist_chars);
+    if (artwork_chars != nullptr) env->ReleaseStringUTFChars(artwork_url, artwork_chars);
+
+    // Discord Social SDK supports public HTTPS URLs as external Rich Presence assets. Local,
+    // malformed, or unavailable art falls back to the reviewed Derbis portal asset.
+    if (image_key.rfind("https://", 0) != 0) image_key = "derbis_listening";
+    std::string image_text = details;
+    if (!state.empty()) image_text += image_text.empty() ? state : " — " + state;
+    if (image_text.empty()) image_text = "Listening on Derbis";
 
     Discord_Activity activity{};
     Discord_Activity_Init(&activity);
     Discord_Activity_SetType(&activity, Discord_ActivityTypes_Listening);
     std::string name = "Derbis";
-    std::string image_key = "derbis_listening";
-    std::string image_text = "Listening on Derbis";
     auto name_value = string_view(name);
     auto details_value = string_view(details);
     auto state_value = string_view(state);
@@ -356,6 +366,14 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     if (!details.empty()) Discord_Activity_SetDetails(&activity, &details_value);
     if (!state.empty()) Discord_Activity_SetState(&activity, &state_value);
     Discord_Activity_SetSupportedPlatforms(&activity, Discord_ActivityGamePlatforms_Android);
+
+    if (started_at_epoch_seconds > 0) {
+        Discord_ActivityTimestamps timestamps{};
+        Discord_ActivityTimestamps_Init(&timestamps);
+        Discord_ActivityTimestamps_SetStart(&timestamps, static_cast<uint64_t>(started_at_epoch_seconds));
+        Discord_Activity_SetTimestamps(&activity, &timestamps);
+        Discord_ActivityTimestamps_Drop(&timestamps);
+    }
 
     Discord_ActivityAssets assets{};
     Discord_ActivityAssets_Init(&assets);

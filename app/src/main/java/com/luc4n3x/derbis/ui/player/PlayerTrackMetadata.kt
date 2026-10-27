@@ -10,10 +10,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,12 +40,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -65,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luc4n3x.derbis.domain.LyricLine
 import com.luc4n3x.derbis.domain.Track
-import com.luc4n3x.derbis.player.PlaybackService
 import com.luc4n3x.derbis.ui.components.PlayerGlassIconButton
 import com.luc4n3x.derbis.ui.components.derbisMarquee
 import com.luc4n3x.derbis.ui.components.rememberDerbisFavoriteMorphShape
@@ -145,7 +137,6 @@ internal fun PlayerTrackMetadata(
                     )
                 }
             }
-            PlayerCrossfadeWord()
             PlayerInlineLyricsLink(
                 line = activeLyric,
                 loading = lyricsLoading,
@@ -208,34 +199,6 @@ private fun PlayerInlineLyricsLink(
                 .semantics { contentDescription = accessibilityLabel }
         )
     }
-}
-
-/** A single, bright crossfade status is shared by every Player Deck while the audio decks overlap. */
-@Composable
-internal fun PlayerCrossfadeWord() {
-    val crossfade by PlaybackService.crossfadeProgressFlow.collectAsStateWithLifecycle()
-    if (!crossfade.active) return
-    val rainbow = rememberInfiniteTransition(label = "player-crossfade-rgb")
-    val hue by rainbow.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_350, easing = LinearEasing)
-        ),
-        label = "player-crossfade-hue"
-    )
-    val rgb = Color.hsv(hue = hue, saturation = 0.90f, value = 1f)
-    Text(
-        text = "Crossfading",
-        color = rgb,
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 10.sp,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.7.sp,
-            shadow = Shadow(color = rgb.copy(alpha = 0.94f), offset = Offset.Zero, blurRadius = 12f)
-        ),
-        maxLines = 1
-    )
 }
 
 private fun metadataTitleSize(compact: Boolean, appleMusic: Boolean, prism: Boolean): TextUnit = when {

@@ -90,6 +90,8 @@ import com.luc4n3x.derbis.domain.ReplayGainMode
 import com.luc4n3x.derbis.domain.selectReplayGain
 import com.luc4n3x.derbis.domain.LyricLine
 import com.luc4n3x.derbis.domain.Track
+import com.luc4n3x.derbis.feature.discord.DerbisDiscordRichPresence
+import com.luc4n3x.derbis.feature.discord.derbisDiscordPresenceSnapshot
 import com.luc4n3x.derbis.feature.radio.LIVE_RADIO_SOURCE
 import com.luc4n3x.derbis.feature.radio.LiveRadioPlaylistDataSource
 import com.luc4n3x.derbis.feature.radio.LiveRadioStreamMetadata
@@ -182,6 +184,7 @@ class PlaybackService : MediaLibraryService() {
     private var remoteSessionPlayerListener: Player.Listener? = null
     private var memoryGuardHighSamples = 0
     private var lastMemoryRecycleElapsedMs = 0L
+    private var lastDiscordPresenceSyncElapsedMs = 0L
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
@@ -1210,6 +1213,15 @@ class PlaybackService : MediaLibraryService() {
                 if (activePlayer !== player) return
                 updatePlaybackProtection(player)
                 deviceIntegration?.onPlayerEvents(events)
+                if (
+                    events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) ||
+                    events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) ||
+                    events.contains(Player.EVENT_POSITION_DISCONTINUITY)
+                ) {
+                    publishDiscordRichPresence(player)
+                    lastDiscordPresenceSyncElapsedMs = SystemClock.elapsedRealtime()
+                }
             }
         })
         startPlaybackWatchdog(player)
@@ -1254,6 +1266,11 @@ class PlaybackService : MediaLibraryService() {
                     playbackDeck.currentMediaItem?.mediaId == DerbisMediaItemFactory.mediaId(queueTrack)
                 ) {
                     queueEngine.updatePosition(playbackDeck.currentPosition)
+                }
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastDiscordPresenceSyncElapsedMs >= 30_000L) {
+                    publishDiscordRichPresence(playbackDeck)
+                    lastDiscordPresenceSyncElapsedMs = now
                 }
                 delay(2_000L)
             }
@@ -3056,20 +3073,27 @@ class PlaybackService : MediaLibraryService() {
             level == RUNNING_CRITICAL_LEVEL ||
             level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
 
+    /** Keeps Discord activity aligned with the active media service; task removal clears it. */
+    private fun publishDiscordRichPresence(player: Player? = mediaSession?.player ?: activePlayer) {
+        val playbackDeck = player ?: return
+        DerbisDiscordRichPresence.publish(
+            applicationContext,
+            derbisDiscordPresenceSnapshot(
+                track = queueEngine.state.value.currentTrack,
+                positionMs = playbackDeck.currentPosition,
+                playing = playbackDeck.isPlaying
+            )
+        )
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Music players normally keep their foreground service after the task is swiped away.
-        // This listener-controlled policy deliberately opts out and uses Media3's orderly stop
-        // path instead of killing the process, preserving Android's media-session invariants.
-        val stopWhenAppCloses = DerbisPreferences(this).stopPlaybackWhenAppCloses()
-        val player = mediaSession?.player
-        val playbackExpected = playbackStateStore.getBoolean(KEY_PLAYBACK_EXPECTED, false)
-        val keepAlive = player != null &&
-            player.mediaItemCount > 0 &&
-            player.playbackState != Player.STATE_ENDED &&
-            (player.playWhenReady || playbackExpected)
-        if (stopWhenAppCloses || !keepAlive) stopDerbisPlaybackForAppExit()
+        // Derbis follows the requested close policy: removing its task from Android's recents is
+        // an explicit stop. Clear the activity, foreground notification, and every audible deck
+        // instead of leaving a media service running without a visible Derbis task.
+        DerbisDiscordRichPresence.clear()
+        stopDerbisPlaybackForAppExit()
     }
 
     override fun onDestroy() {

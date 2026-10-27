@@ -20,7 +20,8 @@ on:
       release_version_code:
         description: "Monotonically increasing Android versionCode"
         required: true
-        default: "3000203"
+        # Reissued 1.1.1 needs a higher code so Android accepts it over the first 1.1.1 APK.
+        default: "3000204"
 
 permissions:
   contents: write
@@ -147,26 +148,15 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## What’s New
-            - Liquid Glass is now a full-system skin: the app background, Explore mood and genre surfaces, cards, grouped rows, controls, navigation, sheets, and dialogs share the frosted backdrop.
-            - Every Player Deck now exposes a Lyrics link beneath song metadata. Non-Apple decks preview the active line; Apple Music 13 preserves its word-timed lyric line.
-            - The active audio handoff is visible on every Player Deck through a thick, RGB-glowing `Crossfading` status.
-            - The player’s source line now reads `DERBIS MUSIC METADATA` and appends the active video resolution, such as `• 360` or `• 1080`.
-            - Apple Music 13 uses a heavier SF Pro-style, legal Inter fallback for its player and lyrics only.
-
-            ## Playback and data
-            - Pause now stops every active audio deck, including a crossfade’s prewarmed incoming deck, and blocks delayed recovery or auto-resume from restarting audio.
-            - Crossfade uses a clean two-deck promotion so the incoming player remains live while system controls transfer to it.
-            - The optional “Stop playback when Derbis closes” setting stops playback and the media service after the app task is removed.
-            - Data Saver now caps automatic video at 360p. Listener-selected quality remains respected.
-
-            ## Library, decks, and Jam
-            - The signed-in Spotify playlist browser has been removed; direct Spotify import and local imported-playlist viewing remain available.
-            - Velvet and Apple Music 13 deck previews now match their player layouts. Gallery and Tidal Music are no longer selectable Player Deck choices.
-            - Selected Derbis Jam choices use a blue outline and check rather than a blue filled card.
+            ## 1.1.1 refreshed build
+            - Removing Derbis from Android Recents now explicitly pauses playback, clears its activity and notification, and stops the media service.
+            - Discord Rich Presence is service-owned while music is active, avoids redundant native updates, and no longer tears down during Activity recreation.
+            - The timeline marks the configured crossfade end-zone; it becomes RGB-bright only during the real two-deck overlap, with a `CROSSFADING` status.
+            - `PLAYING FROM` and `DERBIS MUSIC METADATA` use a stronger player-header weight for better legibility.
+            - The refreshed APK keeps version name `1.1.1` and uses Android versionCode `3000204` so it can install over the original 1.1.1 package.
 
             ## Update delivery
-            - This release is published as `Derbis.apk` on GitHub and is recognized by Derbis’ built-in updater.
+            - This release replaces the previous `Derbis.apk` asset for v1.1.1 on GitHub.
           files: build-assets/Derbis.apk
           overwrite_files: true
         env:

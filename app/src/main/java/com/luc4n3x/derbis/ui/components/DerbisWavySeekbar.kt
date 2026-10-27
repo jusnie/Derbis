@@ -53,6 +53,9 @@ fun DerbisWavySeekbar(
     animated: Boolean,
     activeColor: Color,
     inactiveColor: Color,
+    crossfadeStartFraction: Float? = null,
+    crossfadeActive: Boolean = false,
+    crossfadeColor: Color = activeColor,
     onSeek: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -120,6 +123,37 @@ fun DerbisWavySeekbar(
                 strokeWidth = stroke,
                 cap = StrokeCap.Round
             )
+        }
+        // Mirrors the standard seek bar: the final configured seconds are a visible fade zone,
+        // and the RGB highlight turns on only for a real overlapping-deck transition.
+        crossfadeStartFraction?.let { startFraction ->
+            val zoneStart = (size.width * startFraction.coerceIn(0f, 1f)).coerceIn(0f, size.width)
+            if (zoneStart < size.width) {
+                val zoneColor = if (crossfadeActive) crossfadeColor else crossfadeColor.copy(alpha = 0.40f)
+                if (crossfadeActive) {
+                    drawLine(
+                        color = crossfadeColor.copy(alpha = 0.25f),
+                        start = Offset(zoneStart, centerY),
+                        end = Offset(size.width, centerY),
+                        strokeWidth = stroke * 3f,
+                        cap = StrokeCap.Round
+                    )
+                }
+                drawLine(
+                    color = zoneColor.copy(alpha = if (crossfadeActive) 0.90f else 0.32f),
+                    start = Offset(zoneStart, centerY),
+                    end = Offset(size.width - stroke / 2f, centerY),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round
+                )
+                drawLine(
+                    color = zoneColor.copy(alpha = if (crossfadeActive) 1f else 0.72f),
+                    start = Offset(zoneStart, centerY - stroke * 1.5f),
+                    end = Offset(zoneStart, centerY + stroke * 1.5f),
+                    strokeWidth = if (crossfadeActive) 2.5f else 1.5f,
+                    cap = StrokeCap.Round
+                )
+            }
         }
         if (waveEnd > 0f) {
             val amp = amplitude.toPx()

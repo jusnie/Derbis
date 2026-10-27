@@ -81,8 +81,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -161,14 +159,8 @@ class MainActivity : ComponentActivity() {
         DerbisSpotifyConnection.initialize(applicationContext)
         DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
         DerbisDiscordRichPresence.attach(this)
-        lifecycleScope.launch {
-            viewModel.state
-                .map { state -> Triple(state.currentTrack?.title, state.currentTrack?.artist, state.isPlaying) }
-                .distinctUntilChanged()
-                .collect { (title, artist, playing) ->
-                    DerbisDiscordRichPresence.publish(applicationContext, title, artist, playing)
-                }
-        }
+        // PlaybackService owns ongoing presence publication. This Activity only supplies the
+        // Discord SDK with the foreground engine Activity needed for account linking.
         DerbisLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
         if (Build.VERSION.SDK_INT >= 28) {
@@ -413,7 +405,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         updateJob?.cancel()
-        DerbisDiscordRichPresence.release()
+        // PlaybackService performs the ordered stop when a recents swipe removes the task.
+        // Keep the free-threaded SDK process-owned until then so Activity teardown cannot race a
+        // live native callback during a configuration change or task removal.
         DerbisPipBridge.unbind()
         super.onDestroy()
         if (exitApplicationRequested) android.os.Process.killProcess(android.os.Process.myPid())

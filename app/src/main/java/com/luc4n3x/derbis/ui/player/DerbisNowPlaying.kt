@@ -982,6 +982,7 @@ private fun DerbisNowPlayingContent(
                     animationsEnabled = animated,
                     motionActive = !motionSuspended,
                     compact = compactPlayer,
+                    crossfadeSeconds = state.audioSettings.crossfadeSeconds,
                     onSeek = viewModel::seekTo,
                     style = style
                 )
@@ -1850,7 +1851,7 @@ private fun PlayerSourceEyebrow(
             text = label,
             color = surfaces.contentFaint,
             fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -1859,7 +1860,7 @@ private fun PlayerSourceEyebrow(
             text = source,
             color = surfaces.contentMuted,
             fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.ExtraBold,
             letterSpacing = 0.2.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

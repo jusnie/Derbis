@@ -22332,7 +22332,6 @@ private fun SettingsOverlay(
                         }
                         "system" -> {
                             standaloneItem { SettingsSectionLabel(strings.playbackResilienceSection) }
-                            item { StopPlaybackWhenClosingSettingsPanel() }
                             item {
                                 SettingsButton(
                                     icon = Icons.Rounded.Bolt,
@@ -22465,23 +22464,6 @@ private fun SettingsSearchResultRow(title: String, description: String, category
             Text(category, color = DerbisMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
-}
-
-@Composable
-private fun StopPlaybackWhenClosingSettingsPanel() {
-    val context = LocalContext.current
-    val preferences = remember(context) { com.luc4n3x.derbis.data.DerbisPreferences(context) }
-    var enabled by remember(preferences) { mutableStateOf(preferences.stopPlaybackWhenAppCloses()) }
-    SettingsToggle(
-        icon = Icons.Rounded.Close,
-        title = "Stop playback when Derbis closes",
-        subtitle = "Stop the media service when you exit or swipe Derbis away",
-        checked = enabled,
-        onCheckedChange = { value ->
-            enabled = value
-            preferences.setStopPlaybackWhenAppCloses(value)
-        }
-    )
 }
 
 @Composable

@@ -3,6 +3,7 @@ package com.luc4n3x.derbis.feature.discord
 import android.app.Activity
 import android.content.Context
 import com.luc4n3x.derbis.BuildConfig
+import com.luc4n3x.derbis.domain.Track
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,6 +38,65 @@ data class DerbisDiscordConnectionState(
     val isConnected: Boolean get() = status == DerbisDiscordConnectionStatus.Connected
 }
 
+/** A rate-safe snapshot for one Discord Rich Presence activity update. */
+internal data class DerbisDiscordPresenceSnapshot(
+    val trackId: String = "",
+    val title: String = "",
+    val artist: String = "",
+    val artworkUrl: String = "",
+    val positionMs: Long = 0L,
+    val playing: Boolean = false
+) {
+    /** Re-publish on a track/state change and periodically enough to recover from a seek. */
+    val syncKey: String
+        get() = listOf(
+            trackId,
+            title,
+            artist,
+            artworkUrl,
+            playing.toString(),
+            if (playing) (positionMs.coerceAtLeast(0L) / DISCORD_POSITION_RESYNC_MS).toString() else ""
+        ).joinToString(separator = "\u0000")
+}
+
+private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
+private const val DISCORD_POSITION_RESYNC_MS = 30_000L
+
+/**
+ * Discord accepts HTTPS external images as Rich Presence assets. Prefer Derbis's high-resolution
+ * album artwork and use the uploaded Derbis mark only when no safe public cover URL is available.
+ */
+internal fun derbisDiscordPresenceSnapshot(
+    track: Track?,
+    positionMs: Long,
+    playing: Boolean
+): DerbisDiscordPresenceSnapshot {
+    val title = track?.title.orEmpty().discordPresenceText()
+    val artist = track?.artist.orEmpty().discordPresenceText()
+    val artwork = sequenceOf(track?.largeThumbnailUrl.orEmpty(), track?.thumbnailUrl.orEmpty())
+        .map(String::discordExternalArtworkUrl)
+        .firstOrNull(String::isNotBlank)
+        .orEmpty()
+    return DerbisDiscordPresenceSnapshot(
+        trackId = track?.id.orEmpty(),
+        title = title,
+        artist = artist,
+        artworkUrl = artwork,
+        positionMs = positionMs.coerceAtLeast(0L),
+        playing = playing && title.isNotBlank()
+    )
+}
+
+private fun String.discordPresenceText(): String =
+    trim().replace(Regex("\\s+"), " ").take(DISCORD_PRESENCE_TEXT_LIMIT)
+
+private fun String.discordExternalArtworkUrl(): String {
+    val candidate = trim()
+    return candidate.takeIf {
+        it.startsWith("https://", ignoreCase = true) && it.length <= 2_048
+    }.orEmpty()
+}
+
 object DerbisDiscordRichPresence {
     private const val PREFERENCES = "derbis_discord_presence"
     private const val ENABLED_KEY = "enabled"
@@ -59,9 +119,9 @@ object DerbisDiscordRichPresence {
     @Volatile private var loadAttempted = false
     @Volatile private var initialized = false
     @Volatile private var restoreAttempted = false
-    @Volatile private var lastTitle: String = ""
-    @Volatile private var lastArtist: String = ""
-    @Volatile private var lastPlaying: Boolean = false
+    @Volatile private var lastPresence = DerbisDiscordPresenceSnapshot()
+    @Volatile private var lastPublishedPresenceKey = ""
+    @Volatile private var nativePresenceActive = false
     @Volatile private var applicationContext: Context? = null
     private var statePollingJob: Job? = null
 
@@ -166,33 +226,52 @@ object DerbisDiscordRichPresence {
         if (allowed) publishStored(context) else clear()
     }
 
-    fun publish(context: Context, title: String?, artist: String?, playing: Boolean) {
+    fun publish(context: Context, presence: DerbisDiscordPresenceSnapshot) {
         applicationContext = context.applicationContext
-        lastTitle = title.orEmpty().trim()
-        lastArtist = artist.orEmpty().trim()
-        lastPlaying = playing
-        if (!isEnabled(context)) {
+        lastPresence = presence
+        if (!presence.playing || !isEnabled(context)) {
             clear()
             return
         }
-        nativeUpdate(lastTitle, lastArtist, lastPlaying)
+        publishNative(presence)
     }
 
     fun clear() {
-        if (loadBridge()) nativeClear()
+        if (nativePresenceActive && loadBridge()) nativeClear()
+        nativePresenceActive = false
+        lastPublishedPresenceKey = ""
     }
 
     fun release() {
         statePollingJob?.cancel()
         statePollingJob = null
+        clear()
         if (loadBridge()) nativeRelease()
         initialized = false
         restoreAttempted = false
     }
 
     private fun publishStored(context: Context) {
-        if (!isEnabled(context) || !loadBridge()) return
-        nativeUpdate(lastTitle, lastArtist, lastPlaying)
+        if (!lastPresence.playing || !isEnabled(context) || !loadBridge()) return
+        publishNative(lastPresence, force = true)
+    }
+
+    private fun publishNative(presence: DerbisDiscordPresenceSnapshot, force: Boolean = false) {
+        if (!force && nativePresenceActive && lastPublishedPresenceKey == presence.syncKey) return
+        // Discord renders the elapsed-runtime line itself from this absolute start timestamp;
+        // there is no once-per-second presence traffic from Derbis.
+        val startedAtEpochSeconds = (
+            System.currentTimeMillis() - presence.positionMs.coerceAtLeast(0L)
+        ).coerceAtLeast(0L) / 1_000L
+        nativeUpdate(
+            title = presence.title,
+            artist = presence.artist,
+            artworkUrl = presence.artworkUrl,
+            startedAtEpochSeconds = startedAtEpochSeconds,
+            playing = presence.playing
+        )
+        nativePresenceActive = true
+        lastPublishedPresenceKey = presence.syncKey
     }
 
     private fun ensureStatePolling() {
@@ -266,7 +345,13 @@ object DerbisDiscordRichPresence {
     private external fun nativeTakeAccessToken(): String
     private external fun nativeTakeRefreshToken(): String
     private external fun nativeTakeTokenType(): Int
-    private external fun nativeUpdate(title: String, artist: String, playing: Boolean)
+    private external fun nativeUpdate(
+        title: String,
+        artist: String,
+        artworkUrl: String,
+        startedAtEpochSeconds: Long,
+        playing: Boolean
+    )
     private external fun nativeClear()
     private external fun nativeRelease()
 }
