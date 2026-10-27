@@ -441,7 +441,7 @@ class PlaybackService : MediaLibraryService() {
                 service.playbackStateStore.edit().putBoolean(KEY_PLAYBACK_EXPECTED, false).commit()
             }
             service.mediaSession?.player?.clearMediaItems()
-            service.pauseAllPlayersAndStopSelf()
+            service.stopDerbisPlaybackForAppExit()
         }
 
         fun requestQueueNext(): Boolean {
@@ -2938,7 +2938,7 @@ class PlaybackService : MediaLibraryService() {
             }
     }
 
-    private fun pauseAllPlayersAndStopSelf() {
+    private fun stopDerbisPlaybackForAppExit() {
         pauseAllAudiblePlayback(mediaSession?.player, explicitUserRequest = true)
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -3069,7 +3069,7 @@ class PlaybackService : MediaLibraryService() {
             player.mediaItemCount > 0 &&
             player.playbackState != Player.STATE_ENDED &&
             (player.playWhenReady || playbackExpected)
-        if (stopWhenAppCloses || !keepAlive) pauseAllPlayersAndStopSelf()
+        if (stopWhenAppCloses || !keepAlive) stopDerbisPlaybackForAppExit()
     }
 
     override fun onDestroy() {

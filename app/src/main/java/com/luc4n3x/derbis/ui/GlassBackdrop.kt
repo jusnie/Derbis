@@ -102,16 +102,21 @@ fun rememberDerbisGlassAccessibility(): DerbisGlassAccessibility {
     val manager = remember(context) {
         context.applicationContext.getSystemService(AccessibilityManager::class.java)
     }
+    // The public high-contrast text API arrived in Android 16 / API 36. Earlier Android
+    // releases retain the normal material while Derbis's own accessibility settings can still
+    // select opaque surfaces.
     var highTextContrast by remember(manager) {
-        mutableStateOf(manager?.isHighTextContrastEnabled == true)
+        mutableStateOf(
+            Build.VERSION.SDK_INT >= 36 && manager?.isHighContrastTextEnabled == true
+        )
     }
-    DisposableEffect(manager) {
-        if (manager == null) return@DisposableEffect onDispose { }
-        val listener = AccessibilityManager.HighTextContrastChangeListener { enabled ->
+    DisposableEffect(manager, context) {
+        if (manager == null || Build.VERSION.SDK_INT < 36) return@DisposableEffect onDispose { }
+        val listener = AccessibilityManager.HighContrastTextStateChangeListener { enabled ->
             highTextContrast = enabled
         }
-        manager.addHighTextContrastStateChangeListener(listener)
-        onDispose { manager.removeHighTextContrastStateChangeListener(listener) }
+        manager.addHighContrastTextStateChangeListener(context.mainExecutor, listener)
+        onDispose { manager.removeHighContrastTextStateChangeListener(listener) }
     }
     return remember(highTextContrast) { DerbisGlassAccessibility(increasedContrast = highTextContrast) }
 }
