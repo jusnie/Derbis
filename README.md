@@ -1,5 +1,9 @@
 # Derbis
 
+<p align="center">
+  <img src="assets/derbis-banner.png" alt="Derbis Android app previews" width="100%">
+</p>
+
 **Sleek, lightweight, AMOLED-optimized music player for Android and Desktop.**
 
 <p align="center">
