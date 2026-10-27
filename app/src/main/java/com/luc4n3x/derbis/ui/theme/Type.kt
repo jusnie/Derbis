@@ -42,6 +42,24 @@ internal val AppleMusicFont: FontFamily = FontFamily(
     }
 )
 
+/**
+ * A legal SF Pro-style fallback reserved for the Apple Music 13 deck. SF Pro itself cannot be
+ * bundled with Derbis, so this expands the existing open Inter family through its heavier 800/900
+ * weights while preserving the compact, neutral system-sans character of that treatment.
+ */
+internal val AppleMusic13SfProFallbackFont: FontFamily = FontFamily(
+    listOf(
+        FontWeight.Normal,
+        FontWeight.Medium,
+        FontWeight.SemiBold,
+        FontWeight.Bold,
+        FontWeight.ExtraBold,
+        FontWeight.Black
+    ).map { weight ->
+        Font(googleFont = GoogleFont("Inter"), fontProvider = googleFontsProvider, weight = weight)
+    }
+)
+
 private val defaultTypography = Typography()
 
 private val DerbisLineHeightStyle = LineHeightStyle(

@@ -134,6 +134,31 @@ internal val AppleMusicTypography: Typography = typographyForFamily(AppleMusicFo
     )
 }
 
+/**
+ * The Apple Music 13 player and its lyrics use a denser, higher-contrast SF Pro-style hierarchy.
+ * This intentionally remains separate from [AppleMusicTypography] so the broader Apple Music skin
+ * retains its existing type scale and weight.
+ */
+internal val AppleMusic13Typography: Typography = typographyForFamily(AppleMusic13SfProFallbackFont).let { base ->
+    base.copy(
+        displayLarge = base.displayLarge.sf(34.sp, FontWeight.ExtraBold, 41.sp, (-0.7).sp),
+        displayMedium = base.displayMedium.sf(34.sp, FontWeight.ExtraBold, 41.sp, (-0.7).sp),
+        displaySmall = base.displaySmall.sf(28.sp, FontWeight.ExtraBold, 34.sp, (-0.6).sp),
+        headlineLarge = base.headlineLarge.sf(34.sp, FontWeight.ExtraBold, 41.sp, (-0.7).sp),
+        headlineMedium = base.headlineMedium.sf(28.sp, FontWeight.ExtraBold, 34.sp, (-0.6).sp),
+        headlineSmall = base.headlineSmall.sf(22.sp, FontWeight.Bold, 28.sp, (-0.45).sp),
+        titleLarge = base.titleLarge.sf(20.sp, FontWeight.Bold, 25.sp, (-0.35).sp),
+        titleMedium = base.titleMedium.sf(17.sp, FontWeight.Bold, 22.sp, (-0.35).sp),
+        titleSmall = base.titleSmall.sf(15.sp, FontWeight.SemiBold, 20.sp, (-0.25).sp),
+        bodyLarge = base.bodyLarge.sf(17.sp, FontWeight.SemiBold, 22.sp, (-0.3).sp),
+        bodyMedium = base.bodyMedium.sf(15.sp, FontWeight.Medium, 20.sp, (-0.2).sp),
+        bodySmall = base.bodySmall.sf(13.sp, FontWeight.Medium, 18.sp, (-0.1).sp),
+        labelLarge = base.labelLarge.sf(15.sp, FontWeight.Bold, 20.sp, (-0.2).sp),
+        labelMedium = base.labelMedium.sf(12.sp, FontWeight.Bold, 16.sp),
+        labelSmall = base.labelSmall.sf(11.sp, FontWeight.SemiBold, 14.sp, 0.1.sp)
+    )
+}
+
 internal fun appleMusicPalette(systemDark: Boolean = false): DerbisPalette {
     val light = !systemDark
     fun tone(day: Long, night: Long) = Color(if (light) day else night)

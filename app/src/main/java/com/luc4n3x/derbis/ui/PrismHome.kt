@@ -151,7 +151,7 @@ internal fun PrismCompactShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
                             baseTint = if (item.current) DerbisCyan else Color.White,
                             fallbackColor = if (item.current) DerbisCyan.copy(alpha = 0.26f) else DerbisPanelSoft.copy(alpha = 0.74f),
                             fallbackBorderColor = Color.White.copy(alpha = if (item.current) 0.46f else 0.24f),
-                            intensity = if (item.current) DerbisGlassIntensity.Standard else DerbisGlassIntensity.Subtle,
+                            intensity = DerbisGlassIntensity.Subtle,
                             artworkTint = DerbisActivePalette.cyan
                         )
                     } else {
@@ -189,7 +189,7 @@ internal fun PrismCollectionCard(title: String, subtitle: String, artwork: Track
             baseTint = Color.White,
             fallbackColor = DerbisPanelSoft.copy(alpha = 0.76f),
             fallbackBorderColor = Color.White.copy(alpha = 0.28f),
-            intensity = DerbisGlassIntensity.Standard,
+            intensity = DerbisGlassIntensity.Subtle,
             artworkTint = DerbisActivePalette.cyan
         )
     } else {

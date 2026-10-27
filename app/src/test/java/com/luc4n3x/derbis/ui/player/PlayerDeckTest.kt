@@ -19,9 +19,15 @@ import org.junit.Test
 class PlayerDeckTest {
 
     @Test
-    fun `deck order lists every visual mode exactly once`() {
-        assertEquals(PlayerVisualMode.entries.toSet(), PlayerDeckOrder.toSet())
-        assertEquals(PlayerVisualMode.entries.size, PlayerDeckOrder.size)
+    fun `deck order excludes Gallery and Tidal Music but keeps every presented deck exactly once`() {
+        val expected = PlayerVisualMode.entries.toSet() - setOf(
+            PlayerVisualMode.Artwork,
+            PlayerVisualMode.TidalMusic
+        )
+        assertEquals(expected, PlayerDeckOrder.toSet())
+        assertEquals(expected.size, PlayerDeckOrder.size)
+        assertFalse(PlayerVisualMode.Artwork in PlayerDeckOrder)
+        assertFalse(PlayerVisualMode.TidalMusic in PlayerDeckOrder)
         assertEquals(PlayerVisualMode.Flow, PlayerDeckOrder.first())
     }
 
@@ -248,6 +254,21 @@ class PlayerDeckTest {
                 LyricLine(0L, 1_000L, "Line", words = listOf(LyricWord(0L, 700L, "Line")))
             )
         )
+    }
+
+    @Test
+    fun `inline player lyrics show the active line or retain a Lyrics link`() {
+        assertEquals("Lyrics", playerInlineLyricsText(null, "Lyrics"))
+        assertEquals("Lyrics", playerInlineLyricsText(LyricLine(0L, 1_000L, "   "), "Lyrics"))
+        assertEquals("Current lyric", playerInlineLyricsText(LyricLine(0L, 1_000L, "  Current lyric  "), "Lyrics"))
+    }
+
+    @Test
+    fun `player metadata source reports the active video quality when available`() {
+        assertEquals("DERBIS MUSIC METADATA", playerMetadataSourceLabel(null))
+        assertEquals("DERBIS MUSIC METADATA", playerMetadataSourceLabel("  "))
+        assertEquals("DERBIS MUSIC METADATA • 360", playerMetadataSourceLabel("360p"))
+        assertEquals("DERBIS MUSIC METADATA • 1080", playerMetadataSourceLabel(" 1080p "))
     }
 
     @Test

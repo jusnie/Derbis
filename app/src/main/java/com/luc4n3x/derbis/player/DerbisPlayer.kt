@@ -504,10 +504,13 @@ class DerbisPlayer(context: Context) {
                 allowBackwardActivePosition = sameTrack && !recoveryReplacement
             )
         }
+        // A resolver/recovery coroutine can finish after a transport Pause. Never let that
+        // stale completion turn the session back on; only a new Play command clears this fence.
+        val requestedPlayWhenReady = playWhenReady && !PlaybackService.isExplicitPauseActive
         val effectivePlayWhenReady = if (sameTrack && !recoveryReplacement && active.mediaItemCount > 0) {
             active.playWhenReady
         } else {
-            playWhenReady
+            requestedPlayWhenReady
         }
         loadedTrack = track
         loadedStreamIdentity = streamIdentity(track, videoMode)
@@ -548,8 +551,11 @@ class DerbisPlayer(context: Context) {
     }
 
     fun pause() {
-        videoFrameWatchdogJob?.cancel()
-        videoFrameWatchdogJob = null
+        // Do not leave a one-shot video recovery waiting to replace the source after a user
+        // pause. Longer resolver work is cancelled by the view model and additionally fenced by
+        // PlaybackService.isExplicitPauseActive in replaceSource().
+        invalidateDelayedVideoRecovery()
+        recoveryInFlight = false
         val active = controller
         if (active != null) {
             active.pause()

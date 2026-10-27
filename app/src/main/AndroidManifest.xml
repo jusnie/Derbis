@@ -90,6 +90,21 @@
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
             android:value="8" />
+        <!-- Discord Social SDK's PKCE callback. It is disabled in source-only/F-Droid builds,
+             where the proprietary SDK is intentionally absent. -->
+        <activity
+            android:name="com.discord.socialsdk.AuthenticationActivity"
+            android:enabled="${discordSocialSdkAvailable}"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="discord-${discordApplicationId}" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

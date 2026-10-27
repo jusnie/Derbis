@@ -5,6 +5,7 @@ package com.luc4n3x.derbis.ui.jam
 import com.luc4n3x.derbis.ui.components.DerbisBackButton
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -776,17 +777,21 @@ private fun JamConnectionModePicker(
             val enabled = mode != JamTransportMode.Server || serverAvailable
             Surface(
                 enabled = enabled,
-                color = when {
-                    active -> MaterialTheme.colorScheme.primaryContainer
-                    enabled -> MaterialTheme.colorScheme.surfaceContainer
-                    else -> MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.52f)
+                // Selection is intentionally a blue outline plus check—not a solid blue fill.
+                // It keeps the choice readable and stops a selected row from looking like a
+                // primary action button.
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.surfaceContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.52f)
                 },
-                contentColor = when {
-                    active -> MaterialTheme.colorScheme.onPrimaryContainer
-                    enabled -> MaterialTheme.colorScheme.onSurface
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
+                contentColor = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.62f)
                 },
-                shape = if (active) MaterialShapes.Cookie4Sided.toShape() else MaterialTheme.shapes.large,
+                border = if (active) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                shape = MaterialTheme.shapes.large,
                 onClick = { onSelect(mode) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -808,7 +813,12 @@ private fun JamConnectionModePicker(
                             modifier = Modifier.weight(1f)
                         )
                         if (active) {
-                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Rounded.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                     Text(
@@ -834,9 +844,10 @@ private fun JamPermissionPicker(
         JamPermissionOptions.forEach { permission ->
             val active = permission == selected
             Surface(
-                color = if (active) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                shape = if (active) MaterialShapes.Cookie4Sided.toShape() else MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = if (active) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                shape = MaterialTheme.shapes.large,
                 onClick = { onSelect(permission) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -864,7 +875,8 @@ private fun JamPermissionPicker(
                         Icon(
                             Icons.Rounded.Check,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

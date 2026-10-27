@@ -187,6 +187,16 @@ private val HeaderSideReserve = 108.dp
 private val HeaderButtonMinimumWidth = 40.dp
 private val HeaderCenterMinimumWidth = 112.dp
 private const val DefaultBackdropFocus = 0.34f
+// UI identity only: stream provenance remains available in technical diagnostics.
+internal const val PlayerMetadataSourceLabel = "DERBIS MUSIC METADATA"
+
+/** Adds the active video resolution only when the player has a concrete selected quality. */
+internal fun playerMetadataSourceLabel(activeQualityLabel: String?): String {
+    val quality = activeQualityLabel?.trim().orEmpty()
+    // The compact source line uses only the resolution number: “360p” becomes “360”.
+    val resolution = quality.substringBefore('p').trim()
+    return if (resolution.isBlank()) PlayerMetadataSourceLabel else "$PlayerMetadataSourceLabel • $resolution"
+}
 
 @Composable
 fun DerbisNowPlaying(
@@ -590,7 +600,9 @@ private fun DerbisNowPlayingContent(
             // the normal player identity with a song/video switch.
             PlayerSourceEyebrow(
                 label = strings.playingFrom,
-                source = track?.source ?: "DERBIS",
+                source = playerMetadataSourceLabel(
+                    activeQualityLabel = state.videoQuality.activeLabel.takeIf { state.isVideoMode }
+                ),
                 surfaces = surfaces
             )
         }
@@ -920,6 +932,13 @@ private fun DerbisNowPlayingContent(
                     compact = compactPlayer,
                     openArtistLabel = strings.openArtist,
                     favoritesLabel = strings.favoritesPlain,
+                    activeLyric = state.activeLyric,
+                    lyricsLoading = state.lyricsLoading,
+                    // Apple Music 13 retains its own word-timed line directly beneath metadata;
+                    // other decks show their active preview here while all retain the Lyrics link.
+                    showLyricPreview = !appleMusicPlayer,
+                    lyricsLabel = strings.lyrics,
+                    onOpenLyrics = viewModel::openLyrics,
                     onArtistClick = { artistIndex ->
                         playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
                             ?: viewModel.openArtist(activeTrack, artistIndex)

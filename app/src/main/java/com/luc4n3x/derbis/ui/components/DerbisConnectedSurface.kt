@@ -9,13 +9,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.composed
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.luc4n3x.derbis.ui.theme.DerbisActivePalette
 import com.luc4n3x.derbis.ui.theme.DerbisGlassBorder
+import com.luc4n3x.derbis.ui.theme.DerbisIsLiquidGlass
 import com.luc4n3x.derbis.ui.theme.DerbisPlayerDesign
 
 enum class DerbisConnectedPosition {
@@ -134,10 +137,23 @@ fun Modifier.derbisConnectedRowSurface(
     selected: Boolean = false,
     enabled: Boolean = true,
     bordered: Boolean = selected || position == DerbisConnectedPosition.Single
-): Modifier {
+): Modifier = composed {
     val shape = style.shapes.forRowPosition(position)
-    val base = this.clip(shape).background(style.fillFor(selected, enabled), shape)
-    return if (bordered) base.border(style.borderWidth, style.borderFor(selected), shape) else base
+    val fill = style.fillFor(selected, enabled)
+    if (LocalDerbisLiquidGlassEnabled.current && DerbisIsLiquidGlass) {
+        this.derbisGlass(
+            shape = shape,
+            baseTint = if (selected) DerbisActivePalette.cyan else fill,
+            fallbackColor = fill,
+            fallbackBorderColor = style.borderFor(selected),
+            intensity = if (selected) DerbisGlassIntensity.Standard else DerbisGlassIntensity.Subtle,
+            artworkTint = DerbisActivePalette.cyan,
+            borderWidth = if (bordered) style.borderWidth else 0.dp
+        )
+    } else {
+        val base = this.clip(shape).background(fill, shape)
+        if (bordered) base.border(style.borderWidth, style.borderFor(selected), shape) else base
+    }
 }
 
 fun Modifier.derbisConnectedSurface(
@@ -146,10 +162,23 @@ fun Modifier.derbisConnectedSurface(
     selected: Boolean = false,
     enabled: Boolean = true,
     bordered: Boolean = selected || position == DerbisConnectedPosition.Single
-): Modifier {
+): Modifier = composed {
     val shape = style.shapes.forPosition(position)
-    val base = this.clip(shape).background(style.fillFor(selected, enabled), shape)
-    return if (bordered) base.border(style.borderWidth, style.borderFor(selected), shape) else base
+    val fill = style.fillFor(selected, enabled)
+    if (LocalDerbisLiquidGlassEnabled.current && DerbisIsLiquidGlass) {
+        this.derbisGlass(
+            shape = shape,
+            baseTint = if (selected) DerbisActivePalette.cyan else fill,
+            fallbackColor = fill,
+            fallbackBorderColor = style.borderFor(selected),
+            intensity = if (selected) DerbisGlassIntensity.Standard else DerbisGlassIntensity.Subtle,
+            artworkTint = DerbisActivePalette.cyan,
+            borderWidth = if (bordered) style.borderWidth else 0.dp
+        )
+    } else {
+        val base = this.clip(shape).background(fill, shape)
+        if (bordered) base.border(style.borderWidth, style.borderFor(selected), shape) else base
+    }
 }
 
 @Composable

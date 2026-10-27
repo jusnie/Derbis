@@ -28,6 +28,11 @@ internal enum class PlayerDeckLayout {
     TidalMusic
 }
 
+/**
+ * Modes presented in the Player Deck chooser. Gallery and Tidal Music remain readable legacy
+ * layouts, but are intentionally not selectable here: Gallery is a fallback presentation and
+ * Tidal is chosen through its dedicated app skin instead of a second player-deck entry.
+ */
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Flow,
     PlayerVisualMode.CanvasCard,
@@ -35,8 +40,6 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
-    PlayerVisualMode.TidalMusic,
-    PlayerVisualMode.Artwork,
     PlayerVisualMode.Pulse
 )
 

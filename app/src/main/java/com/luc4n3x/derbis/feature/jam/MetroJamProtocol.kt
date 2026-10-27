@@ -93,7 +93,7 @@ internal object MetroJamProtocol {
     fun encodeCapabilities(): ByteArray = envelope(CLIENT_CAPABILITIES, ProtoWriter().apply {
         bool(1, true)
         bool(2, true)
-        string(3, "Derbis/1.1.0")
+        string(3, "Derbis/1.1.1")
         string(4, "replace_queue")
         string(4, "host_sequence")
         string(4, "track_revision")

@@ -395,6 +395,13 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         write { it[KEY_SKIP_SILENCE] = value }
     }
 
+    /** When enabled, swiping Derbis away also stops its media service and current playback. */
+    fun stopPlaybackWhenAppCloses(): Boolean = read { it[KEY_STOP_PLAYBACK_WHEN_APP_CLOSES] ?: false }
+
+    fun setStopPlaybackWhenAppCloses(value: Boolean) {
+        write { it[KEY_STOP_PLAYBACK_WHEN_APP_CLOSES] = value }
+    }
+
     fun audioNormalization(): Boolean = read { it[KEY_AUDIO_NORMALIZATION] ?: false }
 
     fun setAudioNormalization(value: Boolean) {
@@ -1310,6 +1317,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val KEY_SPONSORBLOCK = booleanPreferencesKey("sponsorblock_enabled")
         val KEY_SKIP_SILENCE = booleanPreferencesKey("skip_silence")
+        val KEY_STOP_PLAYBACK_WHEN_APP_CLOSES = booleanPreferencesKey("stop_playback_when_app_closes")
         val KEY_AUTOMATION_BT_RESUME = booleanPreferencesKey("automation_bluetooth_resume")
         val KEY_AUTOMATION_PAUSE_ON_MUTE = booleanPreferencesKey("automation_pause_on_mute")
         val KEY_AUTOMATION_AUTO_DOWNLOAD_FAVORITES = booleanPreferencesKey("automation_auto_download_favorites")

@@ -102,15 +102,30 @@ private fun SkinBottomTabs(
 @Composable
 private fun RowScope.PrismNavigationTab(entry: DerbisTabEntry, active: Boolean, onClick: () -> Unit) {
     val torque = DerbisIsTorque
+    val liquidGlass = DerbisIsLiquidGlass
     val tint = if (active) DerbisCyan else DerbisMuted
+    val indicatorShape = RoundedCornerShape(if (torque) 2.dp else 15.dp)
+    val indicatorMaterial = when {
+        active && liquidGlass -> Modifier.derbisGlass(
+            shape = indicatorShape,
+            baseTint = DerbisActivePalette.cyan,
+            fallbackColor = DerbisActivePalette.cyan.copy(alpha = 0.28f),
+            fallbackBorderColor = Color.White.copy(alpha = if (DerbisActivePalette.isLight) 0.32f else 0.24f),
+            // The active state belongs within an already-frosted dock, so it is a quiet material
+            // fill rather than another blur layer.
+            intensity = DerbisGlassIntensity.Subtle,
+            artworkTint = DerbisActivePalette.cyan
+        )
+        active && !torque -> Modifier.background(PrismAccent.Tint, indicatorShape)
+        else -> Modifier.background(Color.Transparent, indicatorShape)
+    }
     Column(
         Modifier.weight(1f).fillMaxHeight().heightIn(min = 60.dp).clip(RoundedCornerShape(PrismDesign.controlCorner))
             .selectable(active, role = Role.Tab, onClick = onClick).padding(horizontal = 2.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
         Box(
-            Modifier.width(52.dp).height(30.dp).clip(RoundedCornerShape(if (torque) 2.dp else 15.dp))
-                .background(if (active && !torque) PrismAccent.Tint else Color.Transparent),
+            Modifier.width(52.dp).height(30.dp).then(indicatorMaterial),
             contentAlignment = Alignment.Center
         ) {
             Icon(if (active) entry.selectedIcon else entry.unselectedIcon, null, tint = tint, modifier = Modifier.size(22.dp))

@@ -1,6 +1,7 @@
 package com.luc4n3x.derbis.ui
 
 import android.app.ActivityManager
+import android.view.accessibility.AccessibilityManager
 import android.graphics.RenderEffect as AndroidRenderEffect
 import android.graphics.Shader as AndroidShader
 import android.graphics.ColorMatrix
@@ -10,6 +11,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.geometry.Size
@@ -78,6 +80,41 @@ class GlassBackdropState {
 
 /** Provides the active [GlassBackdropState] to descendants so panels can opt in without plumbing. */
 val LocalGlassBackdrop = compositionLocalOf<GlassBackdropState?> { null }
+
+/**
+ * Accessibility state for shared glass material. Android exposes High text contrast rather than a
+ * direct "Reduce transparency" switch, so high contrast selects an opaque, bordered material.
+ * The user-facing transparency setting can request the same safe treatment through
+ * [DerbisGlassStyle.prefersOpaqueMaterials].
+ */
+@Immutable
+data class DerbisGlassAccessibility(
+    val increasedContrast: Boolean = false
+) {
+    val prefersOpaqueMaterials: Boolean get() = increasedContrast
+}
+
+val LocalDerbisGlassAccessibility = staticCompositionLocalOf { DerbisGlassAccessibility() }
+
+@Composable
+fun rememberDerbisGlassAccessibility(): DerbisGlassAccessibility {
+    val context = LocalContext.current
+    val manager = remember(context) {
+        context.applicationContext.getSystemService(AccessibilityManager::class.java)
+    }
+    var highTextContrast by remember(manager) {
+        mutableStateOf(manager?.isHighTextContrastEnabled == true)
+    }
+    DisposableEffect(manager) {
+        if (manager == null) return@DisposableEffect onDispose { }
+        val listener = AccessibilityManager.HighTextContrastChangeListener { enabled ->
+            highTextContrast = enabled
+        }
+        manager.addHighTextContrastStateChangeListener(listener)
+        onDispose { manager.removeHighTextContrastStateChangeListener(listener) }
+    }
+    return remember(highTextContrast) { DerbisGlassAccessibility(increasedContrast = highTextContrast) }
+}
 
 private val blurSupported: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -393,12 +430,23 @@ fun Modifier.glassSurface(
     refraction: Boolean = false
 ): Modifier {
     val sheen = if (highlightAlpha > 0f) {
-        Brush.verticalGradient(0f to Color.White.copy(alpha = highlightAlpha), 0.45f to Color.Transparent)
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = highlightAlpha),
+            0.22f to Color.White.copy(alpha = highlightAlpha * 0.28f),
+            0.54f to Color.Transparent
+        )
     } else {
         null
     }
+    // A very restrained lower shade and a directional rim give controls a physical edge without
+    // faking depth with heavy shadows or turning a content card into chrome.
+    val edgeShade = Brush.verticalGradient(
+        0.58f to Color.Transparent,
+        1f to Color.Black.copy(alpha = tint.alpha * GlassLowerEdgeShadeShare)
+    )
     val rim = Brush.verticalGradient(
         0f to borderColor,
+        0.24f to borderColor.copy(alpha = borderColor.alpha * 0.68f),
         1f to borderColor.copy(alpha = borderColor.alpha * GlassRimBottomShare)
     )
     return this
@@ -410,6 +458,7 @@ fun Modifier.glassSurface(
             onDrawFrosted = {
                 drawRect(tint)
                 if (sheen != null) drawRect(sheen)
+                drawRect(edgeShade)
             },
             onDrawFallback = { drawRect(fallbackColor) }
         )
@@ -417,6 +466,7 @@ fun Modifier.glassSurface(
 }
 
 private const val GlassRimBottomShare = 0.38f
+private const val GlassLowerEdgeShadeShare = 0.22f
 
 @Immutable
 data class DerbisGlassStyle(
@@ -429,9 +479,12 @@ data class DerbisGlassStyle(
     val tintAlphaScale: Float get() = 1.45f - transparency.coerceIn(0, 100) / 100f * 0.9f
     val tintMix: Float get() = tint.coerceIn(0, 100) / 100f * 0.2f
     val saturation: Float get() = 1f + tint.coerceIn(0, 100) / 100f * 0.36f
+    /** The lowest-transparency setting is a legibility choice, not merely a darker blur. */
+    val prefersOpaqueMaterials: Boolean get() = transparency.coerceIn(0, 100) <= OPAQUE_TRANSPARENCY_THRESHOLD
 
     companion object {
         const val DEFAULT_LEVEL = 50
+        private const val OPAQUE_TRANSPARENCY_THRESHOLD = 16
     }
 }
 

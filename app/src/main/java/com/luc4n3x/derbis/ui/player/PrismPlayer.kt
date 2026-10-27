@@ -27,12 +27,15 @@ import com.luc4n3x.derbis.domain.PrismPlayerLayout
 import com.luc4n3x.derbis.domain.RepeatMode
 import com.luc4n3x.derbis.domain.Track
 import com.luc4n3x.derbis.ui.PrismPlayDisc
+import com.luc4n3x.derbis.ui.LocalDerbisGlassAccessibility
+import com.luc4n3x.derbis.ui.LocalDerbisGlassStyle
 import com.luc4n3x.derbis.ui.LocalGlassBackdrop
 import com.luc4n3x.derbis.ui.glassBackdropSource
 import com.luc4n3x.derbis.ui.rememberGlassBackdropState
 import com.luc4n3x.derbis.ui.rememberGlassBlurAllowed
 import com.luc4n3x.derbis.ui.components.PlayerControlLabels
 import com.luc4n3x.derbis.ui.components.DerbisGlassIntensity
+import com.luc4n3x.derbis.ui.components.LocalDerbisLiquidGlassEnabled
 import com.luc4n3x.derbis.ui.components.derbisGlass
 import com.luc4n3x.derbis.ui.components.formatSeekbarMillis
 import com.luc4n3x.derbis.ui.i18n.LocalDerbisStrings
@@ -65,9 +68,14 @@ internal fun PrismPlayerScene(
         return
     }
     val focus = activePrismSettings.playerLayout == PrismPlayerLayout.Focus
-    // Real blur is scoped to one player backdrop. Low-RAM, battery saver, and Lite Mode resolve
-    // this to the same lightweight opaque material instead of leaving an expensive layer alive.
-    val playerGlass = rememberGlassBackdropState(rememberGlassBlurAllowed())
+    // Real blur is scoped to one player backdrop. Low-RAM, battery saver, High text contrast,
+    // and the low-transparency setting resolve to the same lightweight opaque material instead
+    // of leaving an unused expensive layer alive. Reduced Motion remains independent.
+    val glassAccessibility = LocalDerbisGlassAccessibility.current
+    val glassStyle = LocalDerbisGlassStyle.current
+    val playerGlassEnabled = LocalDerbisLiquidGlassEnabled.current &&
+        !glassAccessibility.prefersOpaqueMaterials && !glassStyle.prefersOpaqueMaterials
+    val playerGlass = rememberGlassBackdropState(playerGlassEnabled && rememberGlassBlurAllowed())
     CompositionLocalProvider(LocalGlassBackdrop provides playerGlass) {
         BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
             Box(

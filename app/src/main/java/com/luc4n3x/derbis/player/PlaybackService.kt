@@ -22,6 +22,7 @@ import android.os.Handler
 import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.ServiceCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
@@ -104,6 +105,7 @@ import com.luc4n3x.derbis.feature.radio.RadioUrlPolicy
 import com.luc4n3x.derbis.feature.radio.isLiveRadio
 import com.luc4n3x.derbis.feature.radio.liveRadioStreamMetadata
 import com.luc4n3x.derbis.feature.radio.nextLiveRadioStreamMetadata
+import com.luc4n3x.derbis.feature.cast.RemotePlaybackBackend
 import com.luc4n3x.derbis.feature.cast.RemotePlaybackBackendProvider
 import com.luc4n3x.derbis.feature.cast.RemotePlaybackState
 import com.luc4n3x.derbis.feature.cast.CastHandoffConverter
@@ -175,6 +177,9 @@ class PlaybackService : MediaLibraryService() {
     private var queueTransitionMonitorJob: Job? = null
     private var memoryGuardJob: Job? = null
     private var castHandoffJob: Job? = null
+    private var remotePlaybackBackend: RemotePlaybackBackend? = null
+    private var remoteSessionPlayer: Player? = null
+    private var remoteSessionPlayerListener: Player.Listener? = null
     private var memoryGuardHighSamples = 0
     private var lastMemoryRecycleElapsedMs = 0L
     private var transitionPlayer: ExoPlayer? = null
@@ -413,6 +418,15 @@ class PlaybackService : MediaLibraryService() {
             uiRecoveryAvailable = available
         }
 
+        /** True after a pause transport command until a new Play command reaches the session. */
+        internal val isExplicitPauseActive: Boolean
+            get() = activeService?.playbackPausedByUser == true
+
+        /** Records a fresh in-app play selection before its stream resolves asynchronously. */
+        internal fun beginExplicitPlaybackRequest() {
+            activeService?.playbackPausedByUser = false
+        }
+
         suspend fun stopForAppExit() {
             val service = activeService ?: return
             service.appExitRequested = true
@@ -528,6 +542,10 @@ class PlaybackService : MediaLibraryService() {
     private var pausedByRouteLossAtMs: Long? = null
     private var liveRadioPausedAtMs = C.TIME_UNSET
     private var liveRadioReconnectJob: Job? = null
+    // Set by an explicit pause or stop action. It blocks delayed worker callbacks from turning an
+    // explicitly paused session back into audible playback.
+    @Volatile
+    private var playbackPausedByUser = false
     private var lastTransitionMediaId: String? = null
     private val romMediaCapabilities by lazy { detectDerbisRomMediaCapabilities() }
     private var romMediaId = ""
@@ -1025,6 +1043,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (activePlayer !== player) return
                 queueEngine.state.value.currentTrack?.id?.takeIf(String::isNotBlank)
                     ?.let(beatGridProcessor::beginTrack)
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
@@ -1079,13 +1098,14 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onMetadata(metadata: Metadata) {
-                if (!isLiveRadioMediaItem(player.currentMediaItem)) return
+                if (activePlayer !== player || !isLiveRadioMediaItem(player.currentMediaItem)) return
                 val icy = (0 until metadata.length()).firstNotNullOfOrNull { index -> metadata[index] as? IcyInfo } ?: return
                 val received = liveRadioStreamMetadata(icy.title, String(icy.rawMetadata, Charsets.UTF_8))
                 _liveRadioMetadataFlow.value = nextLiveRadioStreamMetadata(_liveRadioMetadataFlow.value, received)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                if (activePlayer !== player) return
                 RuntimeHooks.player(
                     action = RuntimeSignal.PLAYER_STATE,
                     value = playbackState,
@@ -1099,6 +1119,9 @@ class PlaybackService : MediaLibraryService() {
                     playbackFailureGuard.onHealthyPlayback()
                 }
                 if (playbackState != Player.STATE_ENDED) return
+                // An outgoing deck can report STATE_ENDED after an explicit pause. That late
+                // callback must never start queue auto-advance again.
+                if (playbackPausedByUser) return
                 if (isLiveRadioMediaItem(player.currentMediaItem)) {
                     markPlaybackExpected(false, force = true)
                     releasePlaybackWakeLock()
@@ -1114,6 +1137,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                if (activePlayer !== player) return
                 if (VideoDecoderFallback.Shared.redirect(error)) {
                     Timber.w("Video decoder failed; retrying with the next available decoder")
                     player.prepare()
@@ -1150,6 +1174,15 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (activePlayer !== player) return
+                // A worker that was already completing when the listener pressed pause must not
+                // be allowed to resurrect the primary deck. Normal user/system Play commands go
+                // through the forwarding session player below and clear this flag first.
+                if (playWhenReady && playbackPausedByUser) {
+                    runCatching { player.pause() }
+                        .onFailure { Timber.w(it, "Paused playback restart could not be stopped") }
+                    return
+                }
                 if (isLiveRadioMediaItem(player.currentMediaItem)) {
                     if (playWhenReady) reconnectStaleLiveRadio(player) else liveRadioPausedAtMs = SystemClock.elapsedRealtime()
                 }
@@ -1160,8 +1193,11 @@ class PlaybackService : MediaLibraryService() {
                     lostRouteWasBluetooth = false
                     pausedByRouteLossAtMs = null
                 }
-                if (!playWhenReady && queueTransitionJob?.isActive == true) {
-                    cancelQueueTransition()
+                if (!playWhenReady) {
+                    // This is intentionally unconditional. A transition coroutine may already
+                    // have completed while its secondary ExoPlayer is still the audible deck.
+                    // Releasing that deck is the only reliable pause-all-audio boundary.
+                    cancelPendingPlaybackAfterPause()
                 }
                 if (playWhenReady && serviceRecoveryExhausted) {
                     serviceRecoveryExhausted = false
@@ -1171,6 +1207,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
+                if (activePlayer !== player) return
                 updatePlaybackProtection(player)
                 deviceIntegration?.onPlayerEvents(events)
             }
@@ -1211,11 +1248,12 @@ class PlaybackService : MediaLibraryService() {
         serviceScope.launch {
             while (isActive) {
                 val queueTrack = queueEngine.state.value.currentTrack
+                val playbackDeck = activePlayer ?: player
                 if (
                     queueTrack != null &&
-                    player.currentMediaItem?.mediaId == DerbisMediaItemFactory.mediaId(queueTrack)
+                    playbackDeck.currentMediaItem?.mediaId == DerbisMediaItemFactory.mediaId(queueTrack)
                 ) {
-                    queueEngine.updatePosition(player.currentPosition)
+                    queueEngine.updatePosition(playbackDeck.currentPosition)
                 }
                 delay(2_000L)
             }
@@ -1435,181 +1473,14 @@ class PlaybackService : MediaLibraryService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val remotePlaybackBackend = RemotePlaybackBackendProvider.create(this)
+        remotePlaybackBackend = RemotePlaybackBackendProvider.create(this)
         serviceScope.launch {
-            remotePlaybackBackend.state.collect { state ->
+            remotePlaybackBackend?.state?.collect { state ->
                 _remotePlaybackStateFlow.value = state
             }
         }
-        val sessionPlayer = remotePlaybackBackend.attachLocalPlayer(player)
-        sessionPlayer.addListener(object : Player.Listener {
-            override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
-                if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
-                    audioRouteSelectionJob?.cancel()
-                    audioRouteSelectionJob = null
-                    audioRouteFeedbackResetJob?.cancel()
-                    clearPreferredAudioOutput()
-                    audioRouteSelectionState = DerbisAudioRouteSelectionState.Idle
-                    cancelQueueTransition()
-                    cancelServicePrefetch()
-                    clearPreparedQueueNextInternal()
-                    handoffQueueToCast(sessionPlayer)
-                } else {
-                    castHandoffJob?.cancel()
-                }
-                refreshAudioRouteCenterState()
-            }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                if (sessionPlayer.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) return
-                val mediaId = mediaItem?.mediaId ?: return
-                val snapshot = queueEngine.state.value
-                val index = snapshot.tracks.indexOfFirst { DerbisMediaItemFactory.metadataOnly(it).mediaId == mediaId }
-                if (index >= 0 && index != snapshot.currentIndex) {
-                    queueEngine.select(index, sessionPlayer.currentPosition, rememberCurrent = true)
-                }
-            }
-        })
-        val forwardingPlayer = object : androidx.media3.common.ForwardingPlayer(sessionPlayer) {
-            private val commandListeners = java.util.IdentityHashMap<Player.Listener, Player.Listener>()
-
-            override fun addListener(listener: Player.Listener) {
-                val wrapped = commandListeners.getOrPut(listener) {
-                    object : Player.Listener {
-                        override fun onEvents(player: Player, events: Player.Events) = listener.onEvents(player, events)
-                        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = listener.onTimelineChanged(timeline, reason)
-                        override fun onTracksChanged(tracks: androidx.media3.common.Tracks) = listener.onTracksChanged(tracks)
-                        override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) = listener.onMediaMetadataChanged(mediaMetadata)
-                        override fun onPlaylistMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) = listener.onPlaylistMetadataChanged(mediaMetadata)
-                        override fun onIsLoadingChanged(isLoading: Boolean) = listener.onIsLoadingChanged(isLoading)
-                        override fun onPlaybackStateChanged(playbackState: Int) = listener.onPlaybackStateChanged(playbackState)
-                        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = listener.onPlayWhenReadyChanged(playWhenReady, reason)
-                        override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) = listener.onPlaybackSuppressionReasonChanged(playbackSuppressionReason)
-                        override fun onIsPlayingChanged(isPlaying: Boolean) = listener.onIsPlayingChanged(isPlaying)
-                        override fun onRepeatModeChanged(repeatMode: Int) = listener.onRepeatModeChanged(repeatMode)
-                        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = listener.onShuffleModeEnabledChanged(shuffleModeEnabled)
-                        override fun onPlayerError(error: PlaybackException) = listener.onPlayerError(error)
-                        override fun onPlayerErrorChanged(error: PlaybackException?) = listener.onPlayerErrorChanged(error)
-                        override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) = listener.onPositionDiscontinuity(oldPosition, newPosition, reason)
-                        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = listener.onPlaybackParametersChanged(playbackParameters)
-                        override fun onSeekBackIncrementChanged(seekBackIncrementMs: Long) = listener.onSeekBackIncrementChanged(seekBackIncrementMs)
-                        override fun onSeekForwardIncrementChanged(seekForwardIncrementMs: Long) = listener.onSeekForwardIncrementChanged(seekForwardIncrementMs)
-                        override fun onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs: Long) = listener.onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs)
-                        override fun onTrackSelectionParametersChanged(parameters: androidx.media3.common.TrackSelectionParameters) = listener.onTrackSelectionParametersChanged(parameters)
-                        override fun onAudioSessionIdChanged(audioSessionId: Int) = listener.onAudioSessionIdChanged(audioSessionId)
-                        override fun onAudioAttributesChanged(audioAttributes: AudioAttributes) = listener.onAudioAttributesChanged(audioAttributes)
-                        override fun onVolumeChanged(volume: Float) = listener.onVolumeChanged(volume)
-                        override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) = listener.onSkipSilenceEnabledChanged(skipSilenceEnabled)
-                        override fun onSurfaceSizeChanged(width: Int, height: Int) = listener.onSurfaceSizeChanged(width, height)
-                        override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) = listener.onVideoSizeChanged(videoSize)
-                        override fun onRenderedFirstFrame() = listener.onRenderedFirstFrame()
-                        override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) = listener.onDeviceInfoChanged(deviceInfo)
-                        override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) = listener.onDeviceVolumeChanged(volume, muted)
-                        override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) = listener.onCues(cueGroup)
-
-                        override fun onAvailableCommandsChanged(availableCommands: Player.Commands) {
-                            listener.onAvailableCommandsChanged(getAvailableCommands())
-                        }
-
-                        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                            listener.onMediaItemTransition(mediaItem, reason)
-                            listener.onAvailableCommandsChanged(getAvailableCommands())
-                        }
-                    }
-                }
-                super.addListener(wrapped)
-            }
-
-            override fun removeListener(listener: Player.Listener) {
-                commandListeners.remove(listener)?.let { super.removeListener(it) }
-            }
-
-            override fun getDuration(): Long {
-                if (isLiveRadioMediaItem(currentMediaItem)) return androidx.media3.common.C.TIME_UNSET
-                val realDuration = super.getDuration()
-                if (realDuration > 0L) return realDuration
-                val metadataDuration = currentMediaItem?.mediaMetadata?.extras
-                    ?.getLong("derbis.durationMs", androidx.media3.common.C.TIME_UNSET)
-                    ?: androidx.media3.common.C.TIME_UNSET
-                return metadataDuration.takeIf { it > 0L } ?: androidx.media3.common.C.TIME_UNSET
-            }
-
-            override fun isCurrentMediaItemSeekable(): Boolean {
-                return !isLiveRadioMediaItem(currentMediaItem) && getDuration() > 0L && !isCurrentMediaItemLive
-            }
-
-            override fun isCurrentMediaItemLive(): Boolean {
-                return isLiveRadioMediaItem(currentMediaItem) || super.isCurrentMediaItemLive()
-            }
-
-            override fun getAvailableCommands(): androidx.media3.common.Player.Commands {
-                val commands = super.getAvailableCommands().buildUpon()
-                if (isCurrentMediaItemSeekable) {
-                    commands.add(androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-                } else {
-                    commands.remove(androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
-                }
-                commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS)
-                commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT)
-                commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                if (canSkipToPreviousTrack()) {
-                    commands.addAll(
-                        androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS,
-                        androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
-                    )
-                }
-                if (canSkipToNextTrack()) {
-                    commands.addAll(
-                        androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT,
-                        androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
-                    )
-                }
-                return commands.build()
-            }
-
-            override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
-
-            override fun hasNextMediaItem(): Boolean = canSkipToNextTrack()
-
-            override fun hasPreviousMediaItem(): Boolean = canSkipToPreviousTrack()
-
-            override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
-                if (isLiveRadioMediaItem(currentMediaItem)) return
-                super.seekTo(mediaItemIndex, positionMs)
-            }
-
-            override fun seekToNext() = seekRemoteOrLocal(forward = true)
-
-            override fun seekToNextMediaItem() = seekRemoteOrLocal(forward = true)
-
-            override fun seekToPrevious() = seekRemoteOrLocal(forward = false)
-
-            override fun seekToPreviousMediaItem() = seekRemoteOrLocal(forward = false, allowRewind = false)
-
-            private fun seekRemoteOrLocal(forward: Boolean, allowRewind: Boolean = true) {
-                if (isLiveRadioMediaItem(currentMediaItem)) return
-                if (sessionPlayer.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) {
-                    skipQueue(forward, respectRepeatOne = false, allowRewind = allowRewind)
-                    return
-                }
-                if (!forward && allowRewind && sessionPlayer.currentPosition > 5_000L) {
-                    sessionPlayer.seekTo(0L)
-                    queueEngine.updatePosition(0L)
-                    return
-                }
-                val canMoveInsideWindow = if (forward) {
-                    sessionPlayer.currentMediaItemIndex < sessionPlayer.mediaItemCount - 1
-                } else {
-                    sessionPlayer.currentMediaItemIndex > 0
-                }
-                if (canMoveInsideWindow) {
-                    if (forward) super.seekToNextMediaItem() else super.seekToPreviousMediaItem()
-                } else {
-                    skipCastQueue(forward, sessionPlayer)
-                }
-            }
-        }
+        val sessionPlayer = bindRemoteSessionPlayer(player)
+        val forwardingPlayer = createSessionPlayerFacade(sessionPlayer)
 
         mediaSession = MediaLibrarySession.Builder(this, forwardingPlayer, callback)
             .setSessionActivity(sessionActivity)
@@ -1630,6 +1501,229 @@ class PlaybackService : MediaLibraryService() {
         super.onStartCommand(intent, flags, startId)
         if (intent == null && !scheduleStickyPlaybackRestore(startId)) return START_NOT_STICKY
         return START_STICKY
+    }
+
+    private fun createSessionPlayerFacade(delegate: Player): Player = object : androidx.media3.common.ForwardingPlayer(delegate) {
+    private val commandListeners = java.util.IdentityHashMap<Player.Listener, Player.Listener>()
+
+    override fun play() {
+        // Every supported transport (full/mini player, notification, Bluetooth and
+        // external media controllers) reaches this session player, so it is the single
+        // place that authorizes a new audible playback start after an explicit pause.
+        playbackPausedByUser = false
+        super.play()
+    }
+
+    override fun pause() {
+        // Do not merely forward pause to the MediaSession primary player: a crossfade
+        // may have a separate incoming ExoPlayer that is currently audible.
+        pauseAllAudiblePlayback(delegate, explicitUserRequest = true)
+    }
+
+    override fun setPlayWhenReady(playWhenReady: Boolean) {
+        if (playWhenReady) {
+            playbackPausedByUser = false
+            super.setPlayWhenReady(true)
+        } else {
+            // Some controller integrations issue this lower-level command rather than
+            // Player.pause(); it has exactly the same pause-all-audio contract.
+            pauseAllAudiblePlayback(delegate, explicitUserRequest = true)
+        }
+    }
+
+    override fun addListener(listener: Player.Listener) {
+        val wrapped = commandListeners.getOrPut(listener) {
+            object : Player.Listener {
+                override fun onEvents(player: Player, events: Player.Events) = listener.onEvents(player, events)
+                override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = listener.onTimelineChanged(timeline, reason)
+                override fun onTracksChanged(tracks: androidx.media3.common.Tracks) = listener.onTracksChanged(tracks)
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) = listener.onMediaMetadataChanged(mediaMetadata)
+                override fun onPlaylistMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) = listener.onPlaylistMetadataChanged(mediaMetadata)
+                override fun onIsLoadingChanged(isLoading: Boolean) = listener.onIsLoadingChanged(isLoading)
+                override fun onPlaybackStateChanged(playbackState: Int) = listener.onPlaybackStateChanged(playbackState)
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = listener.onPlayWhenReadyChanged(playWhenReady, reason)
+                override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) = listener.onPlaybackSuppressionReasonChanged(playbackSuppressionReason)
+                override fun onIsPlayingChanged(isPlaying: Boolean) = listener.onIsPlayingChanged(isPlaying)
+                override fun onRepeatModeChanged(repeatMode: Int) = listener.onRepeatModeChanged(repeatMode)
+                override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = listener.onShuffleModeEnabledChanged(shuffleModeEnabled)
+                override fun onPlayerError(error: PlaybackException) = listener.onPlayerError(error)
+                override fun onPlayerErrorChanged(error: PlaybackException?) = listener.onPlayerErrorChanged(error)
+                override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) = listener.onPositionDiscontinuity(oldPosition, newPosition, reason)
+                override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = listener.onPlaybackParametersChanged(playbackParameters)
+                override fun onSeekBackIncrementChanged(seekBackIncrementMs: Long) = listener.onSeekBackIncrementChanged(seekBackIncrementMs)
+                override fun onSeekForwardIncrementChanged(seekForwardIncrementMs: Long) = listener.onSeekForwardIncrementChanged(seekForwardIncrementMs)
+                override fun onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs: Long) = listener.onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs)
+                override fun onTrackSelectionParametersChanged(parameters: androidx.media3.common.TrackSelectionParameters) = listener.onTrackSelectionParametersChanged(parameters)
+                override fun onAudioSessionIdChanged(audioSessionId: Int) = listener.onAudioSessionIdChanged(audioSessionId)
+                override fun onAudioAttributesChanged(audioAttributes: AudioAttributes) = listener.onAudioAttributesChanged(audioAttributes)
+                override fun onVolumeChanged(volume: Float) = listener.onVolumeChanged(volume)
+                override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) = listener.onSkipSilenceEnabledChanged(skipSilenceEnabled)
+                override fun onSurfaceSizeChanged(width: Int, height: Int) = listener.onSurfaceSizeChanged(width, height)
+                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) = listener.onVideoSizeChanged(videoSize)
+                override fun onRenderedFirstFrame() = listener.onRenderedFirstFrame()
+                override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) = listener.onDeviceInfoChanged(deviceInfo)
+                override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) = listener.onDeviceVolumeChanged(volume, muted)
+                override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) = listener.onCues(cueGroup)
+
+                override fun onAvailableCommandsChanged(availableCommands: Player.Commands) {
+                    listener.onAvailableCommandsChanged(getAvailableCommands())
+                }
+
+                override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                    listener.onMediaItemTransition(mediaItem, reason)
+                    listener.onAvailableCommandsChanged(getAvailableCommands())
+                }
+            }
+        }
+        super.addListener(wrapped)
+    }
+
+    override fun removeListener(listener: Player.Listener) {
+        commandListeners.remove(listener)?.let { super.removeListener(it) }
+    }
+
+    override fun getDuration(): Long {
+        if (isLiveRadioMediaItem(currentMediaItem)) return androidx.media3.common.C.TIME_UNSET
+        val realDuration = super.getDuration()
+        if (realDuration > 0L) return realDuration
+        val metadataDuration = currentMediaItem?.mediaMetadata?.extras
+            ?.getLong("derbis.durationMs", androidx.media3.common.C.TIME_UNSET)
+            ?: androidx.media3.common.C.TIME_UNSET
+        return metadataDuration.takeIf { it > 0L } ?: androidx.media3.common.C.TIME_UNSET
+    }
+
+    override fun isCurrentMediaItemSeekable(): Boolean {
+        return !isLiveRadioMediaItem(currentMediaItem) && getDuration() > 0L && !isCurrentMediaItemLive
+    }
+
+    override fun isCurrentMediaItemLive(): Boolean {
+        return isLiveRadioMediaItem(currentMediaItem) || super.isCurrentMediaItemLive()
+    }
+
+    override fun getAvailableCommands(): androidx.media3.common.Player.Commands {
+        val commands = super.getAvailableCommands().buildUpon()
+        if (isCurrentMediaItemSeekable) {
+            commands.add(androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+        } else {
+            commands.remove(androidx.media3.common.Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+        }
+        commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS)
+        commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+        commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT)
+        commands.remove(androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+        if (canSkipToPreviousTrack()) {
+            commands.addAll(
+                androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS,
+                androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
+            )
+        }
+        if (canSkipToNextTrack()) {
+            commands.addAll(
+                androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT,
+                androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
+            )
+        }
+        return commands.build()
+    }
+
+    override fun isCommandAvailable(command: Int): Boolean = availableCommands.contains(command)
+
+    override fun hasNextMediaItem(): Boolean = canSkipToNextTrack()
+
+    override fun hasPreviousMediaItem(): Boolean = canSkipToPreviousTrack()
+
+    override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+        if (isLiveRadioMediaItem(currentMediaItem)) return
+        super.seekTo(mediaItemIndex, positionMs)
+    }
+
+    override fun seekToNext() = seekRemoteOrLocal(forward = true)
+
+    override fun seekToNextMediaItem() = seekRemoteOrLocal(forward = true)
+
+    override fun seekToPrevious() = seekRemoteOrLocal(forward = false)
+
+    override fun seekToPreviousMediaItem() = seekRemoteOrLocal(forward = false, allowRewind = false)
+
+    private fun seekRemoteOrLocal(forward: Boolean, allowRewind: Boolean = true) {
+        if (isLiveRadioMediaItem(currentMediaItem)) return
+        if (delegate.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) {
+            skipQueue(forward, respectRepeatOne = false, allowRewind = allowRewind)
+            return
+        }
+        if (!forward && allowRewind && delegate.currentPosition > 5_000L) {
+            delegate.seekTo(0L)
+            queueEngine.updatePosition(0L)
+            return
+        }
+        val canMoveInsideWindow = if (forward) {
+            delegate.currentMediaItemIndex < delegate.mediaItemCount - 1
+        } else {
+            delegate.currentMediaItemIndex > 0
+        }
+        if (canMoveInsideWindow) {
+            if (forward) super.seekToNextMediaItem() else super.seekToPreviousMediaItem()
+        } else {
+            skipCastQueue(forward, delegate)
+        }
+    }
+}
+
+    /**
+     * Rebuilds the optional Cast wrapper around the currently audible local deck. The wrapper is
+     * recreated only after the outgoing deck has faded out, so its teardown can never cut audio.
+     */
+    private fun bindRemoteSessionPlayer(localPlayer: Player): Player {
+        remoteSessionPlayerListener?.let { listener ->
+            runCatching { remoteSessionPlayer?.removeListener(listener) }
+        }
+        val transport = remotePlaybackBackend?.attachLocalPlayer(localPlayer) ?: localPlayer
+        val listener = object : Player.Listener {
+            override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
+                if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
+                    audioRouteSelectionJob?.cancel()
+                    audioRouteSelectionJob = null
+                    audioRouteFeedbackResetJob?.cancel()
+                    clearPreferredAudioOutput()
+                    audioRouteSelectionState = DerbisAudioRouteSelectionState.Idle
+                    cancelQueueTransition()
+                    cancelServicePrefetch()
+                    clearPreparedQueueNextInternal()
+                    handoffQueueToCast(transport)
+                } else {
+                    castHandoffJob?.cancel()
+                }
+                refreshAudioRouteCenterState()
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (transport.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) return
+                val mediaId = mediaItem?.mediaId ?: return
+                val snapshot = queueEngine.state.value
+                val index = snapshot.tracks.indexOfFirst { DerbisMediaItemFactory.metadataOnly(it).mediaId == mediaId }
+                if (index >= 0 && index != snapshot.currentIndex) {
+                    queueEngine.select(index, transport.currentPosition, rememberCurrent = true)
+                }
+            }
+        }
+        transport.addListener(listener)
+        remoteSessionPlayer = transport
+        remoteSessionPlayerListener = listener
+        return transport
+    }
+
+    /**
+     * Keeps MediaSession, notification and Bluetooth controls attached to the deck the listener
+     * is actually hearing. Unlike rebuilding an old primary deck, this is metadata/control-only
+     * and does not stop or seek the incoming audio.
+     */
+    private fun setMediaSessionDeck(player: Player) {
+        val session = mediaSession ?: return
+        systemMediaActions?.detach()
+        studioWidgetSync.detach()
+        session.setPlayer(createSessionPlayerFacade(player))
+        systemMediaActions?.attach(session)
+        studioWidgetSync.attach(session)
     }
 
     private fun handleSystemMediaCommand(
@@ -1701,23 +1795,30 @@ class PlaybackService : MediaLibraryService() {
         allowRewind: Boolean = true,
         onAdvanced: (() -> Unit)? = null
     ) {
+        // A deliberate Next/Previous command is a new listener action. In contrast, an old
+        // end-of-track callback must not override an explicit Pause.
+        if (autoAdvance && playbackPausedByUser) return
+        if (!autoAdvance) playbackPausedByUser = false
         val activeMediaItem = activePlayer?.currentMediaItem ?: mediaSession?.player?.currentMediaItem
         if (isLiveRadioMediaItem(activeMediaItem)) return
         cancelQueueTransition()
         queueSkipJob?.cancel()
         cancelServicePrefetch()
         queueSkipJob = serviceScope.launch {
+            if (autoAdvance && playbackPausedByUser) return@launch
             val player = activePlayer ?: return@launch
             if (allowRewind && rewindInsteadOfSkip(player, forward)) return@launch
             val target = withContext(Dispatchers.IO) {
                 selectSkipTarget(forward, respectRepeatOne)
             } ?: return@launch
+            if (autoAdvance && playbackPausedByUser) return@launch
             val resolved = withContext(Dispatchers.IO) {
                 resolveSkipTarget(target, autoAdvance)
             } ?: run {
                 abandonAutoAdvance(target, autoAdvance)
                 return@launch
             }
+            if (autoAdvance && playbackPausedByUser) return@launch
             playSkipTarget(player, resolved)
             onAdvanced?.invoke()
         }
@@ -2115,6 +2216,7 @@ class PlaybackService : MediaLibraryService() {
         val targetIdentity = playbackQueueIdentity(target)
         var secondary: ExoPlayer? = null
         var handoffCommitted = false
+        var incomingPromoted = false
         try {
             val resolved = awaitPreparedQueueTrackForTransition(currentIdentity, targetIdentity)
                 ?: withContext(Dispatchers.IO) { resolveQueueTrack(target) }
@@ -2185,39 +2287,14 @@ class PlaybackService : MediaLibraryService() {
                     primary.currentPosition + SEEK_TOLERANCE_MS >= transitionStartMs
             }
 
-            transitionNormalization?.let { normalizationProcessor.continueFromGain(it.appliedGain) }
-            val handoffPosition = secondary.currentPosition.coerceAtLeast(0L)
-            primary.volume = 0f
-            primary.setMediaItem(
-                DerbisMediaItemFactory.build(resolved),
-                handoffPosition
-            )
-            RuntimeHooks.player(RuntimeSignal.PLAYER_PREPARE)
-            RuntimeHooks.hot(RuntimeSignal.HOT_PLAYER_PREPARE)
-            primary.prepare()
+            // The old implementation rebuilt this already-audible deck back into the original
+            // ExoPlayer, then tried to synchronize and fade a second time. That was the audible
+            // stop/restart chase. Promote the pre-warmed incoming deck instead: it has the exact
+            // decoder, buffer and media clock the listener is already hearing.
+            incomingPromoted = promoteIncomingCrossfadeDeck(outgoing = primary, incoming = secondary)
+            if (!incomingPromoted) return
 
-            if (!awaitPrimaryHandoffReady(primary, secondary, targetIdentity, resolved.title)) return
-            // The replacement primary can lag its preloaded peer after a network/decoder stall.
-            // Re-align before muting the audible incoming deck so the listener never hears a jump.
-            if (!synchronizePrimaryHandoff(primary, secondary, targetIdentity)) return
-
-            // The primary is already prepared, playing muted, and synchronized to the
-            // incoming deck above. Do not seek it again here: a final seek could leave the
-            // secondary as the only audible deck and then release it during a rebuffer. Blend
-            // the two warmed outputs directly so playback cannot stop in the middle of a song.
-            fadePlayers(
-                outgoing = secondary,
-                incoming = primary,
-                durationMs = PRIMARY_HANDOFF_FADE_MS,
-                curve = CrossfadeCurve.EqualPower,
-                isValid = { handoffStillValid(primary, secondary, targetIdentity) }
-            )
-            secondary.volume = 0f
-            secondary.pause()
-            primary.volume = 1f
-            primary.play()
-
-            queueEngine.updatePosition(primary.currentPosition)
+            queueEngine.updatePosition(secondary.currentPosition.coerceAtLeast(0L))
             if (!isLocalPlaybackTrack(resolved)) prefetchServiceQueueNext()
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -2229,9 +2306,145 @@ class PlaybackService : MediaLibraryService() {
             if (handoffCommitted) armCrossfadeCompletionGuard()
             isQueueTransitionInProgress = false
             _crossfadeProgressFlow.value = CrossfadeProgress()
-            primary.volume = 1f
-            releaseTransitionPlayer(secondary)
+            if (!incomingPromoted) {
+                primary.volume = 1f
+                releaseTransitionPlayer(secondary)
+            }
         }
+    }
+
+    /**
+     * Makes the incoming pre-warmed deck the long-lived deck. There is intentionally no
+     * setMediaItem/prepare/seek on it here: touching its stream after it has become audible is
+     * exactly what caused the old stop-then-chase handoff.
+     */
+    private fun promoteIncomingCrossfadeDeck(outgoing: ExoPlayer, incoming: ExoPlayer): Boolean {
+        if (transitionPlayer !== incoming) {
+            Timber.w("Crossfade promotion ignored because the incoming deck was replaced")
+            return false
+        }
+
+        // It is no longer a disposable transition resource. From this point onward this is the
+        // one deck used for normal playback, recovery, queue monitoring and UI position.
+        transitionPlayer = null
+        transitionNormalization = null
+        transitionEightDAudioProcessor = null
+        activePlayer = incoming
+        incoming.volume = 1f
+        updatePlayerWakeMode(incoming, incoming.currentMediaItem)
+        applyPlaybackTrackSelection(incoming, incoming.currentMediaItem)
+        attachPromotedDeckRuntime(incoming)
+
+        // Move MediaSession to the deck that is already producing the incoming audio before the
+        // old deck is torn down. The second call wraps that same deck for Cast; neither call
+        // changes the incoming ExoPlayer's stream, position or playWhenReady.
+        setMediaSessionDeck(incoming)
+        val transport = bindRemoteSessionPlayer(incoming)
+        setMediaSessionDeck(transport)
+
+        runCatching { outgoing.pause() }
+            .onFailure { Timber.w(it, "Crossfade outgoing deck pause failed") }
+        runCatching { outgoing.clearMediaItems() }
+            .onFailure { Timber.w(it, "Crossfade outgoing deck clear failed") }
+        runCatching { outgoing.release() }
+            .onFailure { Timber.w(it, "Crossfade outgoing deck release failed") }
+        return true
+    }
+
+    /** Attaches the service responsibilities that previously belonged to the first ExoPlayer. */
+    private fun attachPromotedDeckRuntime(player: ExoPlayer) {
+        player.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                if (activePlayer !== player) return
+                if (mediaItem?.mediaId != lastTransitionMediaId) {
+                    lastTransitionMediaId = mediaItem?.mediaId
+                    VideoDecoderFallback.Shared.reset()
+                    _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
+                    liveRadioPausedAtMs = C.TIME_UNSET
+                    liveRadioReconnectJob?.cancel()
+                }
+                updateRomMediaGeneration(mediaItem)
+                updatePlayerWakeMode(player, mediaItem)
+                applyPlaybackTrackSelection(player, mediaItem)
+                watchdogPositionMs = C.TIME_UNSET
+                watchdogAdvancedAtMs = SystemClock.elapsedRealtime()
+                if (!isLocalMediaItem(mediaItem) && !isLiveRadioMediaItem(mediaItem)) {
+                    prefetchServiceQueueNext()
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (activePlayer !== player) return
+                if (playbackState == Player.STATE_READY && player.playWhenReady) {
+                    playbackFailureGuard.onHealthyPlayback()
+                }
+                if (playbackState != Player.STATE_ENDED || playbackPausedByUser) return
+                if (isLiveRadioMediaItem(player.currentMediaItem)) {
+                    markPlaybackExpected(false, force = true)
+                    releasePlaybackWakeLock()
+                    return
+                }
+                if (sleepTimer.consumeEndOfTrackBoundary()) {
+                    pausePlaybackForSleepTimer()
+                    return
+                }
+                if (DerbisWidgetBridge.onNext == null && !isQueueTransitionCompletionSuppressed) {
+                    skipQueue(forward = true, respectRepeatOne = true, autoAdvance = true)
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                if (activePlayer !== player) return
+                updatePlaybackProtection(player)
+                discardIncompatiblePlaybackCache(error)
+                val failureKind = classifyPlaybackFailureReason(playbackFailureReasonOf(error))
+                if (isLiveRadioMediaItem(player.currentMediaItem)) {
+                    markPlaybackExpected(false, force = true)
+                    releasePlaybackWakeLock()
+                } else if (isTerminalPlaybackFailure(failureKind)) {
+                    serviceRecoveryExhausted = true
+                    markPlaybackExpected(false, force = true)
+                    releasePlaybackWakeLock()
+                    skipUnrecoverableTrack()
+                } else {
+                    scheduleServiceRecovery(error)
+                }
+            }
+
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (activePlayer !== player) return
+                if (playWhenReady && playbackPausedByUser) {
+                    runCatching { player.pause() }
+                        .onFailure { Timber.w(it, "Promoted deck restart could not be stopped") }
+                    return
+                }
+                if (isLiveRadioMediaItem(player.currentMediaItem)) {
+                    if (playWhenReady) reconnectStaleLiveRadio(player) else liveRadioPausedAtMs = SystemClock.elapsedRealtime()
+                }
+                if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY) {
+                    lostRouteWasBluetooth = lostRouteWasBluetooth || routedOutputIsBluetooth
+                    pausedByRouteLossAtMs = SystemClock.elapsedRealtime()
+                } else {
+                    lostRouteWasBluetooth = false
+                    pausedByRouteLossAtMs = null
+                }
+                if (!playWhenReady) cancelPendingPlaybackAfterPause()
+                if (playWhenReady && serviceRecoveryExhausted) {
+                    serviceRecoveryExhausted = false
+                    serviceRecoveryAttempts = 0
+                    markPlaybackExpected(true, force = true)
+                }
+            }
+
+            override fun onEvents(changedPlayer: Player, events: Player.Events) {
+                if (activePlayer !== player) return
+                updatePlaybackProtection(changedPlayer)
+                deviceIntegration?.onPlayerEvents(events)
+            }
+        })
+        startPlaybackWatchdog(player)
+        startQueueTransitionMonitor(player)
+        startMemoryGuard(player)
     }
 
     private suspend fun prepareTransitionPlayerWithDecoderFallback(
@@ -2372,7 +2585,8 @@ class PlaybackService : MediaLibraryService() {
         targetIdentity: String
     ): Boolean {
         val current = queueEngine.state.value
-        return playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
+        return !playbackPausedByUser &&
+            playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
             !sleepTimer.isEndOfTrackActive() &&
             primary.playWhenReady &&
             secondary.playWhenReady &&
@@ -2385,7 +2599,8 @@ class PlaybackService : MediaLibraryService() {
         targetIdentity: String
     ): Boolean {
         val current = queueEngine.state.value
-        return playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
+        return !playbackPausedByUser &&
+            playbackQueueIdentity(current.currentTrack ?: return false) == targetIdentity &&
             primary.playWhenReady &&
             secondary.playWhenReady &&
             primary.currentMediaItem?.mediaMetadata?.extras?.getBoolean(EXTRA_VIDEO_MODE, false) != true
@@ -2552,7 +2767,8 @@ class PlaybackService : MediaLibraryService() {
         player: ExoPlayer
     ): Boolean {
         val current = queueEngine.state.value
-        return current.generation == generation &&
+        return !playbackPausedByUser &&
+            current.generation == generation &&
             playbackQueueIdentity(current.currentTrack ?: return false) == currentIdentity &&
             current.repeatMode != com.luc4n3x.derbis.domain.RepeatMode.One &&
             !sleepTimer.isEndOfTrackActive() &&
@@ -2678,6 +2894,56 @@ class PlaybackService : MediaLibraryService() {
         releaseTransitionPlayer()
     }
 
+    /**
+     * Cancels work that was allowed to begin while playback was active. This is deliberately
+     * separate from the player calls so the primary-player listener can also use it for a raw
+     * pause (for example an audio-focus pause) without recursively controlling the session.
+     */
+    private fun cancelPendingPlaybackAfterPause() {
+        queueSkipJob?.cancel()
+        queueSkipJob = null
+        serviceRecoveryJob?.cancel()
+        serviceRecoveryJob = null
+        stickyRestoreJob?.cancel()
+        stickyRestoreJob = null
+        castHandoffJob?.cancel()
+        castHandoffJob = null
+        liveRadioReconnectJob?.cancel()
+        liveRadioReconnectJob = null
+        cancelQueueTransition()
+        clearPreparedQueueNextInternal()
+        markPlaybackExpected(false, force = true)
+        releasePlaybackWakeLock()
+    }
+
+    /** Stops every deck that can output audio for one MediaSession pause command. */
+    private fun pauseAllAudiblePlayback(
+        target: Player? = null,
+        explicitUserRequest: Boolean = false
+    ) {
+        if (explicitUserRequest) {
+            playbackPausedByUser = true
+            // A listener pause takes precedence over reconnect automation.
+            lostRouteWasBluetooth = false
+            pausedByRouteLossAtMs = null
+        }
+        cancelPendingPlaybackAfterPause()
+        runCatching { target?.pause() }
+            .onFailure { Timber.w(it, "Session playback pause failed") }
+        activePlayer
+            ?.takeIf { it !== target }
+            ?.let { primary ->
+                runCatching { primary.pause() }
+                    .onFailure { Timber.w(it, "Primary playback pause failed") }
+            }
+    }
+
+    private fun pauseAllPlayersAndStopSelf() {
+        pauseAllAudiblePlayback(mediaSession?.player, explicitUserRequest = true)
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
     private fun applySleepFadeVolume(volume: Float) {
         val player = mediaSession?.player ?: return
         if (volume >= 1f) {
@@ -2695,7 +2961,7 @@ class PlaybackService : MediaLibraryService() {
     private fun resumeAfterRouteReconnect() {
         val player = mediaSession?.player ?: return
         refreshAudioOutputProfile()
-        if (!lostRouteWasBluetooth || !routedOutputIsBluetooth) return
+        if (playbackPausedByUser || !lostRouteWasBluetooth || !routedOutputIsBluetooth) return
         val eligible = PlaybackAutomationPolicy.shouldResumeOnRouteReconnect(
             enabled = automationSettings.resumeOnBluetoothReconnect,
             pausedByRouteLossAtMs = pausedByRouteLossAtMs,
@@ -2760,8 +3026,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun pausePlaybackForSleepTimer() {
-        cancelQueueTransition()
-        mediaSession?.player?.pause()
+        pauseAllAudiblePlayback(mediaSession?.player, explicitUserRequest = true)
     }
 
     private fun releaseTransitionPlayer(expected: ExoPlayer? = null) {
@@ -2794,13 +3059,17 @@ class PlaybackService : MediaLibraryService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        // Music players normally keep their foreground service after the task is swiped away.
+        // This listener-controlled policy deliberately opts out and uses Media3's orderly stop
+        // path instead of killing the process, preserving Android's media-session invariants.
+        val stopWhenAppCloses = DerbisPreferences(this).stopPlaybackWhenAppCloses()
         val player = mediaSession?.player
         val playbackExpected = playbackStateStore.getBoolean(KEY_PLAYBACK_EXPECTED, false)
         val keepAlive = player != null &&
             player.mediaItemCount > 0 &&
             player.playbackState != Player.STATE_ENDED &&
             (player.playWhenReady || playbackExpected)
-        if (!keepAlive) pauseAllPlayersAndStopSelf()
+        if (stopWhenAppCloses || !keepAlive) pauseAllPlayersAndStopSelf()
     }
 
     override fun onDestroy() {
@@ -2894,6 +3163,7 @@ class PlaybackService : MediaLibraryService() {
                     com.luc4n3x.derbis.domain.RepeatMode.All -> Player.REPEAT_MODE_ALL
                     com.luc4n3x.derbis.domain.RepeatMode.Off -> Player.REPEAT_MODE_OFF
                 }
+                if (playbackPausedByUser) return@withContext
                 castPlayer.prepare()
                 if (handoff.playing) castPlayer.play()
             }
@@ -3218,7 +3488,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun isPlaybackRecoveryExpected(): Boolean =
-        playbackStateStore.getBoolean(KEY_PLAYBACK_EXPECTED, false)
+        !playbackPausedByUser && playbackStateStore.getBoolean(KEY_PLAYBACK_EXPECTED, false)
 
     private suspend fun awaitUiRecovery(localPlayback: Boolean): Boolean {
         if (!uiRecoveryAvailable || localPlayback) return false
@@ -3406,7 +3676,7 @@ class PlaybackService : MediaLibraryService() {
         activeRecovery: Boolean
     ): Boolean {
         val player = mediaSession?.player ?: return false
-        if (isLiveRadioMediaItem(player.currentMediaItem)) return false
+        if (playbackPausedByUser || isLiveRadioMediaItem(player.currentMediaItem)) return false
         if (!playbackStateStore.getBoolean(KEY_PLAYBACK_EXPECTED, false)) return false
         val currentItem = player.currentMediaItem
         val queueSnapshot = queueEngine.state.value

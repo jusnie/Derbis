@@ -325,7 +325,9 @@ private fun PlayerDeckPreview(
     accent: Color
 ) {
     when (mode) {
-        PlayerVisualMode.CanvasImmersive -> ImmersivePreview(track, artworkUrl, accent)
+        // Velvet is a rounded sleeve; Apple Music 13 owns the stretched, full-bleed stage.
+        // Keep these preview assignments aligned with PlayerAuraDeck and AppleMusicPlayer.
+        PlayerVisualMode.CanvasImmersive -> VelvetPreview(track, artworkUrl, accent)
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
@@ -367,7 +369,7 @@ private fun DeckArtwork(
 }
 
 @Composable
-private fun ImmersivePreview(track: Track, artworkUrl: String, accent: Color) {
+private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color) {
     Box(modifier = Modifier.fillMaxSize()) {
         DeckArtwork(
             track = track,
@@ -392,7 +394,7 @@ private fun ImmersivePreview(track: Track, artworkUrl: String, accent: Color) {
 }
 
 @Composable
-private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color) {
+private fun VelvetPreview(track: Track, artworkUrl: String, accent: Color) {
     val field = lerp(accent, Color.Black, 0.58f)
     Box(
         modifier = Modifier

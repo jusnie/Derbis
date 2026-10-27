@@ -1,11 +1,8 @@
 package com.luc4n3x.derbis.ui.player
 
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -40,7 +37,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luc4n3x.derbis.domain.DerbisCanvasQuality
 import com.luc4n3x.derbis.domain.RepeatMode
 import com.luc4n3x.derbis.feature.motion.DerbisCanvasCatalogProvider
@@ -48,7 +44,6 @@ import com.luc4n3x.derbis.feature.motion.MotionArtwork
 import com.luc4n3x.derbis.ui.artwork.LivingArtworkColors
 import com.luc4n3x.derbis.domain.Track
 import com.luc4n3x.derbis.domain.LyricLine
-import com.luc4n3x.derbis.player.PlaybackService
 import com.luc4n3x.derbis.ui.LocalAnimationsEnabled
 import com.luc4n3x.derbis.ui.KaraokeWordTimedText
 import com.luc4n3x.derbis.ui.InstantArtworkPlaceholder
@@ -62,7 +57,8 @@ import com.luc4n3x.derbis.ui.components.formatSeekbarMillis
 import com.luc4n3x.derbis.ui.i18n.LocalDerbisStrings
 import com.luc4n3x.derbis.ui.theme.AppleMusicDesign
 import com.luc4n3x.derbis.ui.theme.AppleMusicShapes
-import com.luc4n3x.derbis.ui.theme.AppleMusicTypography
+import com.luc4n3x.derbis.ui.theme.AppleMusic13SfProFallbackFont
+import com.luc4n3x.derbis.ui.theme.AppleMusic13Typography
 import com.luc4n3x.derbis.ui.theme.AppleMusicVibrant
 import com.luc4n3x.derbis.ui.theme.DerbisIsAppleMusic
 import com.luc4n3x.derbis.ui.theme.DerbisIsPrism
@@ -91,7 +87,7 @@ internal fun AppleMusicPlayerStyleScope(enabled: Boolean, content: @Composable (
     val palette = remember(systemDark) { appleMusicPalette(systemDark) }
     val colorScheme = remember(palette) { appleMusicColorScheme(palette) }
     CompositionLocalProvider(LocalAppleMusicPlayerPalette provides palette) {
-        MaterialTheme(colorScheme = colorScheme, typography = AppleMusicTypography, shapes = AppleMusicShapes, content = content)
+        MaterialTheme(colorScheme = colorScheme, typography = AppleMusic13Typography, shapes = AppleMusicShapes, content = content)
     }
 }
 
@@ -456,14 +452,16 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                 completedColor = Color.White.copy(alpha = 0.96f),
                 activeColor = Color.White,
                 pendingColor = Color.White.copy(alpha = 0.42f),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = AppleMusic13SfProFallbackFont
             )
         }
     } else {
         Text(
             text = activeLine.text,
             style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = AppleMusic13SfProFallbackFont,
                 fontSize = 16.sp,
                 letterSpacing = (-0.2).sp
             ),
@@ -605,13 +603,11 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
 private fun AppleMusicAudioBadge(modifier: Modifier = Modifier) {
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
-    val crossfade by PlaybackService.crossfadeProgressFlow.collectAsStateWithLifecycle()
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        if (crossfade.active) AppleMusicCrossfadeWord()
         val displayLabel = if (label.isNotEmpty()) label else "73 kbps · 48 kHz"
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -635,30 +631,6 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier) {
             )
         }
     }
-}
-
-/** A compact RGB transition cue, intentionally limited to the single word requested. */
-@Composable
-private fun AppleMusicCrossfadeWord() {
-    val rainbow = rememberInfiniteTransition(label = "apple-crossfade-rgb")
-    val hue by rainbow.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1_350, easing = LinearEasing)
-        ),
-        label = "apple-crossfade-hue"
-    )
-    Text(
-        text = "Crossfading",
-        color = Color.hsv(hue = hue, saturation = 0.88f, value = 1f),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 0.7.sp
-        ),
-        maxLines = 1
-    )
 }
 
 internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {

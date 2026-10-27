@@ -137,7 +137,7 @@ if (isPrDiagnosticsArtifactTaskRequested() && canvasClientKey.isBlank()) {
 fun normalizedVersionName(value: String): String {
     val clean = value.trim().removePrefix("v").removePrefix("V")
     val match = Regex("\\d+(?:\\.\\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?").find(clean)?.value
-    return match ?: clean.ifBlank { "1.1.0" }
+    return match ?: clean.ifBlank { "1.1.1" }
 }
 
 fun generatedVersionCode(versionName: String): Int {
@@ -168,14 +168,14 @@ val derbisVersionName = normalizedVersionName(
     (findProperty("derbisVersionName") as? String)
         ?: System.getenv("DERBIS_VERSION_NAME")
         ?: githubTagVersionName()
-        ?: "1.1.0"
+        ?: "1.1.1"
 )
 
 val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
     ?: System.getenv("DERBIS_VERSION_CODE"))
     ?.toIntOrNull()
     ?.takeIf { it > 0 }
-    ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_202)
+    ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_203)
 
 android {
     namespace = "com.luc4n3x.derbis"
@@ -189,6 +189,8 @@ android {
         versionName = derbisVersionName
         vectorDrawables.useSupportLibrary = true
         manifestPlaceholders["upstreamUpdatesEnabled"] = (!isFdroidBuild).toString()
+        manifestPlaceholders["discordApplicationId"] = discordApplicationId
+        manifestPlaceholders["discordSocialSdkAvailable"] = discordSocialSdkAvailable.toString()
         buildConfigField("String", "UPDATE_REPOSITORY", "\"jusnie/Derbis\"")
         buildConfigField("String", "UPDATE_RELEASES_URL", "\"https://api.github.com/repos/jusnie/Derbis/releases?per_page=30\"")
         buildConfigField("boolean", "UPSTREAM_UPDATES_ENABLED", (!isFdroidBuild).toString())
@@ -359,6 +361,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     if (!isFdroidBuild) implementation(libs.androidx.fragment.ktx)
+    if (!isFdroidBuild) implementation(libs.androidx.browser)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

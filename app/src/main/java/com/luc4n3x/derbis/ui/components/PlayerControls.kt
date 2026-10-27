@@ -109,6 +109,7 @@ fun Modifier.playerGlass(
         backdrop = LocalGlassBackdrop.current,
         shape = shape,
         baseTint = fill.copy(alpha = 1f),
+        fallbackColor = fill,
         fallbackBorderColor = fallbackBorder,
         intensity = DerbisGlassIntensity.Standard,
         artworkTint = null,

@@ -80,7 +80,7 @@ internal fun targetedVideoCandidate(
 
 /** Data Saver caps only automatic video selection; an explicit quality choice is respected. */
 internal fun effectiveVideoQualityTarget(target: VideoQualityTarget, dataSaverEnabled: Boolean): VideoQualityTarget =
-    if (dataSaverEnabled && target == VideoQualityTarget.AUTO) VideoQualityTarget.P480 else target
+    if (dataSaverEnabled && target == VideoQualityTarget.AUTO) VideoQualityTarget.P360 else target
 
 internal class DerbisVideoStreamSelector(context: Context) {
     private companion object {

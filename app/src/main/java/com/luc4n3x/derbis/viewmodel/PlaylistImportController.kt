@@ -17,10 +17,6 @@ import com.luc4n3x.derbis.data.playlistimport.classifyPlaylistInput
 import com.luc4n3x.derbis.data.playlistimport.directTrack
 import com.luc4n3x.derbis.data.playlistimport.playlistImportInputHash
 import com.luc4n3x.derbis.data.playlistimport.toMatchCandidate
-import com.luc4n3x.derbis.data.spotify.SpotifyPlaylistBrowser
-import com.luc4n3x.derbis.data.spotify.SpotifyPlaylistBrowserException
-import com.luc4n3x.derbis.data.spotify.SpotifyPlaylistDetail
-import com.luc4n3x.derbis.data.spotify.SpotifyPlaylistSearchResult
 import com.luc4n3x.derbis.domain.Playlist
 import com.luc4n3x.derbis.domain.PlaylistImportFailureKind
 import com.luc4n3x.derbis.domain.Track
@@ -86,20 +82,6 @@ data class PlaylistManualSearchState(
 )
 
 @Immutable
-data class SpotifyPlaylistBrowseUiState(
-    val visible: Boolean = false,
-    val loadingLibrary: Boolean = false,
-    val loadingMore: Boolean = false,
-    val results: List<SpotifyPlaylistSearchResult> = emptyList(),
-    val totalResults: Int? = null,
-    val nextLibraryOffset: Int? = null,
-    val selectedPlaylist: SpotifyPlaylistSearchResult? = null,
-    val selected: SpotifyPlaylistDetail? = null,
-    val loadingPlaylist: Boolean = false,
-    val error: String = ""
-)
-
-@Immutable
 data class PlaylistImportUiState(
     val visible: Boolean = false,
     val step: PlaylistImportStep = PlaylistImportStep.INPUT,
@@ -123,7 +105,6 @@ data class PlaylistImportUiState(
     val resumable: List<PlaylistImportSessionSummary> = emptyList(),
     val focusedPosition: Int? = null,
     val manualSearch: PlaylistManualSearchState? = null,
-    val spotifyBrowse: SpotifyPlaylistBrowseUiState = SpotifyPlaylistBrowseUiState(),
     val committedPlaylistId: String? = null,
     val sessionId: String? = null
 ) {
@@ -151,8 +132,7 @@ class PlaylistImportController(
     private val gateway: PlaylistImportGateway,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
-    private val workerCount: Int = RESOLUTION_WORKERS,
-    private val spotifyPlaylistBrowser: SpotifyPlaylistBrowser? = null
+    private val workerCount: Int = RESOLUTION_WORKERS
 ) {
     private val _state = MutableStateFlow(PlaylistImportUiState())
     val state: StateFlow<PlaylistImportUiState> = _state.asStateFlow()
@@ -160,7 +140,6 @@ class PlaylistImportController(
     private var job: Job? = null
     private var searchJob: Job? = null
     private var persistJob: Job? = null
-    private var spotifyBrowseJob: Job? = null
     private var generation = 0L
     private var fileText: String? = null
     private var session: PlaylistImportSession? = null
@@ -181,10 +160,6 @@ class PlaylistImportController(
 
     fun close() {
         val current = _state.value
-        if (current.spotifyBrowse.visible) {
-            closeSpotifyBrowse()
-            return
-        }
         if (current.busy || current.step == PlaylistImportStep.REVIEW || current.step == PlaylistImportStep.INCOMPLETE) {
             _state.update { it.copy(visible = false, focusedPosition = null, manualSearch = null) }
         } else {
@@ -227,160 +202,6 @@ class PlaylistImportController(
             )
         }
         start()
-    }
-
-    fun openSpotifyBrowse() {
-        if (_state.value.busy) return
-        loadSpotifyPlaylistLibrary(offset = 0, replaceResults = true)
-    }
-
-    fun closeSpotifyBrowse() {
-        spotifyBrowseJob?.cancel()
-        _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
-                visible = false,
-                loadingLibrary = false,
-                loadingMore = false,
-                selectedPlaylist = null,
-                selected = null,
-                loadingPlaylist = false,
-                error = ""
-            ))
-        }
-    }
-
-    fun closeSpotifyPlaylistPreview() {
-        spotifyBrowseJob?.cancel()
-        _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
-                loadingLibrary = false,
-                loadingMore = false,
-                selectedPlaylist = null,
-                selected = null,
-                loadingPlaylist = false,
-                error = ""
-            ))
-        }
-    }
-
-    fun loadMoreSpotifyPlaylists() {
-        if (_state.value.busy) return
-        val browse = _state.value.spotifyBrowse
-        val offset = browse.nextLibraryOffset ?: return
-        if (browse.loadingLibrary || browse.loadingMore) return
-        loadSpotifyPlaylistLibrary(offset = offset, replaceResults = false)
-    }
-
-    private fun loadSpotifyPlaylistLibrary(offset: Int, replaceResults: Boolean) {
-        val browser = spotifyPlaylistBrowser ?: run {
-            spotifyBrowseFailure("Spotify playlist browsing is unavailable in this build.")
-            return
-        }
-        spotifyBrowseJob?.cancel()
-        _state.update { current ->
-            val browse = current.spotifyBrowse
-            current.copy(spotifyBrowse = if (replaceResults) {
-                browse.copy(
-                    visible = true,
-                    loadingLibrary = true,
-                    loadingMore = false,
-                    results = emptyList(),
-                    totalResults = null,
-                    nextLibraryOffset = null,
-                    selectedPlaylist = null,
-                    selected = null,
-                    loadingPlaylist = false,
-                    error = ""
-                )
-            } else {
-                browse.copy(loadingMore = true, error = "")
-            })
-        }
-        spotifyBrowseJob = scope.launch {
-            try {
-                val page = withContext(ioDispatcher) { browser.library(offset) }
-                _state.update { current ->
-                    val browse = current.spotifyBrowse
-                    if (!browse.visible || (!replaceResults && browse.nextLibraryOffset != offset)) current
-                    else current.copy(spotifyBrowse = if (replaceResults) {
-                        browse.copy(
-                            loadingLibrary = false,
-                            results = page.playlists,
-                            totalResults = page.total,
-                            nextLibraryOffset = page.nextOffset
-                        )
-                    } else {
-                        browse.copy(
-                            loadingMore = false,
-                            results = (browse.results + page.playlists).distinctBy(SpotifyPlaylistSearchResult::id),
-                            totalResults = page.total ?: browse.totalResults,
-                            nextLibraryOffset = page.nextOffset
-                        )
-                    })
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                spotifyBrowseFailure(error.spotifyBrowseMessage())
-            }
-        }
-    }
-
-    fun openSpotifyPlaylist(id: String) {
-        if (_state.value.busy) return
-        val browser = spotifyPlaylistBrowser ?: run {
-            spotifyBrowseFailure("Spotify playlist browsing is unavailable in this build.")
-            return
-        }
-        val playlist = _state.value.spotifyBrowse.results.firstOrNull { it.id == id } ?: return
-        spotifyBrowseJob?.cancel()
-        _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
-                loadingLibrary = false,
-                loadingMore = false,
-                selectedPlaylist = playlist,
-                selected = null,
-                loadingPlaylist = true,
-                error = ""
-            ))
-        }
-        spotifyBrowseJob = scope.launch {
-            try {
-                val detail = withContext(ioDispatcher) { browser.playlist(id) }
-                _state.update { current ->
-                    if (current.spotifyBrowse.selectedPlaylist?.id != id) current
-                    else current.copy(spotifyBrowse = current.spotifyBrowse.copy(selected = detail, loadingPlaylist = false))
-                }
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                _state.update { current ->
-                    if (current.spotifyBrowse.selectedPlaylist?.id != id) current
-                    else current.copy(spotifyBrowse = current.spotifyBrowse.copy(loadingPlaylist = false, error = error.spotifyBrowseMessage()))
-                }
-            }
-        }
-    }
-
-    fun importSpotifyPlaylist() {
-        val detail = _state.value.spotifyBrowse.selected ?: return
-        if (_state.value.busy) return
-        val runGeneration = ++generation
-        job?.cancel()
-        spotifyBrowseJob?.cancel()
-        _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(visible = false, error = ""))
-        }
-        job = scope.launch {
-            val hash = playlistImportInputHash("spotify-api:${detail.playlist.id}")
-            val existing = resumableSessions().firstOrNull { it.inputHash == hash }
-            if (runGeneration != generation) return@launch
-            if (existing != null) {
-                resumeInternal(existing.id, runGeneration)
-            } else {
-                readSpotifySelection(detail, hash, runGeneration)
-            }
-        }
     }
 
     fun setPreference(preference: ResolutionPreference) {
@@ -636,7 +457,6 @@ class PlaylistImportController(
     fun finish() {
         generation++
         job?.cancel()
-        spotifyBrowseJob?.cancel()
         clearWorking()
         _state.value = PlaylistImportUiState()
         refreshResumable()
@@ -674,39 +494,6 @@ class PlaylistImportController(
             if (runGeneration != generation) return
             val label = if (input.fileName != null) input.fileName.substringAfterLast('/') else input.text.trim().take(MAX_LABEL_LENGTH)
             acceptReadResult(result, hash, label, runGeneration)
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            handleFailure(error)
-        }
-    }
-
-    private suspend fun readSpotifySelection(detail: SpotifyPlaylistDetail, hash: String, runGeneration: Long) {
-        if (runGeneration != generation) return
-        clearWorking()
-        _state.update {
-            it.copy(
-                step = PlaylistImportStep.READING,
-                activity = PlaylistImportActivity.READING,
-                detectedSource = PlaylistImportSource.SPOTIFY,
-                progressDone = 0,
-                progressTotal = detail.playlist.trackCount,
-                failure = null,
-                failureSource = null,
-                summary = null,
-                committedPlaylistId = null
-            )
-        }
-        try {
-            catalog.refreshLocal()
-            val result = PlaylistSourceResult(
-                com.luc4n3x.derbis.nexus.playlistimport.ParsedPlaylist(
-                    detail.descriptor,
-                    detail.identities,
-                    detail.completeness
-                )
-            )
-            acceptReadResult(result, hash, "Spotify: ${detail.playlist.id}", runGeneration)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -756,23 +543,6 @@ class PlaylistImportController(
             return
         }
         match(runGeneration)
-    }
-
-    private fun spotifyBrowseFailure(message: String) {
-        _state.update { current ->
-            current.copy(spotifyBrowse = current.spotifyBrowse.copy(
-                loadingLibrary = false,
-                loadingMore = false,
-                loadingPlaylist = false,
-                error = message
-            ))
-        }
-    }
-
-    private fun Exception.spotifyBrowseMessage(): String = when (this) {
-        is SpotifyPlaylistBrowserException -> message.orEmpty()
-        is IOException -> "Could not reach Spotify. Check your connection and try again."
-        else -> "Spotify could not load playlists right now. Please try again."
     }
 
     private suspend fun match(runGeneration: Long) {
@@ -1029,7 +799,6 @@ class PlaylistImportController(
     private fun reset(keepVisible: Boolean) {
         generation++
         job?.cancel()
-        spotifyBrowseJob?.cancel()
         clearWorking()
         _state.update { PlaylistImportUiState(visible = keepVisible, resumable = it.resumable) }
     }

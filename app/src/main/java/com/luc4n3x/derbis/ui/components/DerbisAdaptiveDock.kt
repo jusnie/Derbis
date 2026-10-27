@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.luc4n3x.derbis.ui.GlassBackdropState
+import com.luc4n3x.derbis.ui.LocalDerbisGlassAccessibility
 import com.luc4n3x.derbis.ui.glassFrost
 import com.luc4n3x.derbis.ui.theme.DerbisActivePalette
 import com.luc4n3x.derbis.ui.theme.DerbisBlack
@@ -181,29 +182,29 @@ private fun rememberDockMaterial(): DockMaterial {
         when {
             isLight -> DockMaterial(
                 ground = black,
-                frostTop = Color.White.copy(alpha = 0.74f),
-                frostBottom = panel.copy(alpha = 0.88f),
-                solidTop = Color.White,
-                solidBottom = panel,
-                rim = Color(0x1A11131F),
+                frostTop = Color.White.copy(alpha = 0.54f),
+                frostBottom = panel.copy(alpha = 0.68f),
+                solidTop = Color.White.copy(alpha = 0.96f),
+                solidBottom = panel.copy(alpha = 0.98f),
+                rim = Color(0x2B11131F),
                 shadow = DockShadowLight
             )
             pureBlack -> DockMaterial(
                 ground = Color.Black,
-                frostTop = Color.Black.copy(alpha = 0.74f),
-                frostBottom = Color.Black.copy(alpha = 0.90f),
-                solidTop = Color.Black,
+                frostTop = Color.Black.copy(alpha = 0.56f),
+                frostBottom = Color.Black.copy(alpha = 0.74f),
+                solidTop = Color.Black.copy(alpha = 0.98f),
                 solidBottom = Color.Black,
-                rim = Color.White.copy(alpha = 0.10f),
+                rim = Color.White.copy(alpha = 0.16f),
                 shadow = DockShadowDark
             )
             else -> DockMaterial(
                 ground = black,
-                frostTop = ink.copy(alpha = 0.72f),
-                frostBottom = black.copy(alpha = 0.88f),
-                solidTop = ink,
-                solidBottom = black,
-                rim = Color.White.copy(alpha = 0.12f),
+                frostTop = ink.copy(alpha = 0.54f),
+                frostBottom = black.copy(alpha = 0.70f),
+                solidTop = ink.copy(alpha = 0.96f),
+                solidBottom = black.copy(alpha = 0.98f),
+                rim = Color.White.copy(alpha = 0.17f),
                 shadow = DockShadowDark
             )
         }
@@ -220,19 +221,28 @@ fun DerbisAdaptiveDockSurface(
     val shape = remember {
         RoundedCornerShape(topStart = DerbisPlayerDesign.DockTrayCorner, topEnd = DerbisPlayerDesign.DockTrayCorner)
     }
+    val accessibility = LocalDerbisGlassAccessibility.current
     val frostBrush = remember(material) { Brush.verticalGradient(listOf(material.frostTop, material.frostBottom)) }
     val solidBrush = remember(material) { Brush.verticalGradient(listOf(material.solidTop, material.solidBottom)) }
     val rimBrush = remember(material) { Brush.verticalGradient(0f to material.rim, 0.35f to Color.Transparent) }
+    val materialModifier = if (accessibility.prefersOpaqueMaterials) {
+        Modifier.background(solidBrush)
+    } else {
+        Modifier.glassFrost(
+            state = glass,
+            blurRadius = DockBlurRadius,
+            groundColor = material.ground,
+            onDrawFrosted = { drawRect(frostBrush) },
+            onDrawFallback = { drawRect(solidBrush) }
+        )
+    }
     Column(
         modifier = modifier
-            .shadow(material.shadow, shape, clip = true)
-            .glassFrost(
-                state = glass,
-                blurRadius = DockBlurRadius,
-                groundColor = material.ground,
-                onDrawFrosted = { drawRect(frostBrush) },
-                onDrawFallback = { drawRect(solidBrush) }
-            )
+            .shadow(material.shadow, shape, clip = false)
+            // Frost must be clipped before its border: the old order could leave square samples
+            // visible in the dock's rounded top corners.
+            .clip(shape)
+            .then(materialModifier)
             .border(DerbisPlayerDesign.Hairline, rimBrush, shape),
         content = content
     )

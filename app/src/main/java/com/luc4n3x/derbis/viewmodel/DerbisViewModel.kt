@@ -975,8 +975,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 override fun playlistsChanged() = loadPlaylists()
 
                 override fun openPlaylist(playlistId: String) = this@DerbisViewModel.openPlaylist(playlistId)
-            },
-            spotifyPlaylistBrowser = com.luc4n3x.derbis.data.spotify.SpotifyPlaylistBrowser(appContext)
+            }
         )
     }
     private val deArrowRepository = lazy { DeArrowRepository(DeArrowApi()) }
@@ -4142,6 +4141,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun onTrackCompleted() {
+        if (PlaybackService.isExplicitPauseActive) return
         val snapshot = _state.value
         val current = snapshot.currentTrack ?: return
         if (PlaybackService.isQueueTransitionCompletionSuppressed) return
@@ -4366,7 +4366,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         playWhenReady: Boolean,
         errorMessage: String
     ) {
-        if (isLocalPlaybackTrack(failedTrack)) return
+        if (isLocalPlaybackTrack(failedTrack) || PlaybackService.isExplicitPauseActive) return
         val transitionId = ++streamTransitionId
         modeSwitchJob?.cancel()
         streamRecoveryJob?.cancel()
@@ -4383,6 +4383,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     ?: failedTrack.forModeResolution()
                 val resolved = withContext(Dispatchers.IO) { providerRouter.resolve(baseTrack, videoMode) }
                 if (!isActive || transitionId != streamTransitionId) return@launch
+                if (PlaybackService.isExplicitPauseActive) {
+                    _state.update { it.copy(isResolving = false, isPlaying = false) }
+                    return@launch
+                }
+                val shouldResume = playWhenReady && !PlaybackService.isExplicitPauseActive
                 val currentIndex = queueEngine.state.value.currentIndex
                 if (currentIndex >= 0) queueEngine.updateTrackAt(currentIndex, resolved)
                 repository.replace(resolved)
@@ -4390,7 +4395,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     track = resolved,
                     positionMs = positionMs,
                     videoMode = videoMode,
-                    playWhenReady = playWhenReady
+                    playWhenReady = shouldResume
                 )
                 queueEngine.updatePosition(positionMs)
                 _state.update {
@@ -4399,7 +4404,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                         isVideoMode = videoMode,
                         selectedVideoSubtitleId = null,
                         isResolving = false,
-                        isPlaying = playWhenReady,
+                        isPlaying = shouldResume,
                         positionMs = positionMs,
                         bufferedPositionMs = positionMs,
                         durationMs = resolved.durationMs.takeIf { duration -> duration > 0L } ?: it.durationMs,
@@ -4421,7 +4426,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             } catch (error: Throwable) {
                 if (error is CancellationException) throw error
                 if (transitionId != streamTransitionId) return@launch
-                if (playWhenReady && isTransientNetworkFailure(error)) {
+                if (playWhenReady && !PlaybackService.isExplicitPauseActive && isTransientNetworkFailure(error)) {
                     player.deferRecoveryToService()
                     _state.update { it.copy(isResolving = false, isPlaying = player.isPlaying, playerError = null) }
                     return@launch
@@ -9825,6 +9830,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun recoverLiveRadioStream(failedTrack: Track, playWhenReady: Boolean, errorMessage: String) {
+        if (PlaybackService.isExplicitPauseActive) {
+            _state.update { it.copy(isPlaying = false, isResolving = false, liveRadioReconnectAttempt = 0) }
+            return
+        }
         val station = _state.value.liveRadioStation ?: return
         if (failedTrack.id != station.toTrack().id) return
         val attempt = liveRadioRecoveryAttempt + 1
@@ -9855,17 +9864,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
             val replacement = station.toTrack(recovery.streamUrl, liveRadioArtwork)
+            val shouldResume = playWhenReady && !PlaybackService.isExplicitPauseActive
             queueEngine.replaceTransient(listOf(replacement), 0)
             player.replaceSource(
                 track = replacement,
                 positionMs = 0L,
                 videoMode = false,
-                playWhenReady = playWhenReady
+                playWhenReady = shouldResume
             )
             _state.update {
                 it.copy(
                     currentTrack = replacement,
-                    isPlaying = playWhenReady,
+                    isPlaying = shouldResume,
                     isResolving = false,
                     liveRadioReconnectAttempt = attempt,
                     playerError = null
@@ -9883,6 +9893,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun tryLiveRadioSiblingStream(station: RadioStation, playWhenReady: Boolean, errorMessage: String) {
         streamRecoveryJob?.cancel()
+        if (PlaybackService.isExplicitPauseActive) {
+            _state.update { it.copy(isPlaying = false, isResolving = false, liveRadioReconnectAttempt = 0) }
+            return
+        }
         if (!playWhenReady || liveRadioSessionRecoveries > LIVE_RADIO_MAX_SESSION_RECOVERIES) {
             failLiveRadioStation(errorMessage)
             return
@@ -9906,6 +9920,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }.orEmpty().also { liveRadioSiblingStreams = it }
             if (_state.value.liveRadioStation?.uuid != station.uuid) return@launch
+            if (PlaybackService.isExplicitPauseActive) {
+                _state.update { it.copy(isPlaying = false, isResolving = false, liveRadioReconnectAttempt = 0) }
+                return@launch
+            }
             val next = siblings.firstOrNull { it !in liveRadioTriedStreams }
             if (next == null || !hasInternetCapableNetwork()) {
                 failLiveRadioStation(errorMessage)
@@ -10311,6 +10329,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun startResolve(track: Track, autoRetryWhenOffline: Boolean = false, startPaused: Boolean = false) {
+        // A fresh library/search selection is an explicit play request even though resolving the
+        // stream happens asynchronously. Auto-retries deliberately do not clear a user pause.
+        if (!startPaused && !autoRetryWhenOffline) PlaybackService.beginExplicitPlaybackRequest()
         if (_state.value.interfaceSettings.blockAiContent && AiContentFilter.blocks(track)) {
             _state.update { current -> current.copy(playerError = "AI-generated content is blocked by AI Slop.") }
             return
@@ -11376,7 +11397,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private fun startPlayback(playable: Track, request: PlaybackResolveRequest) {
         if (request.id != playRequestId) return
         consecutiveUnavailableLocalSkips = 0
-        val startPaused = shouldStartPlaybackPaused(request, playRequestId)
+        // A notification/Bluetooth pause can arrive while this request is resolving. Prepare its
+        // result paused instead of briefly playing it and then attempting to pause afterwards.
+        val startPaused = shouldStartPlaybackPaused(request, playRequestId) || PlaybackService.isExplicitPauseActive
         val queueSnapshot = queueEngine.state.value
         val selectedIndex = queueSnapshot.currentIndex
         val queuedEntryId = queueSnapshot.tracks.getOrNull(selectedIndex)?.playlistEntryId.orEmpty()
@@ -11399,8 +11422,16 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         }
         repository.replace(resolved)
         val resumeMs = resumePositionFor(resolved)
-        player.play(resolved, _state.value.isVideoMode, startPositionMs = resumeMs)
-        if (startPaused) player.pause()
+        if (startPaused) {
+            player.replaceSource(
+                track = resolved,
+                positionMs = resumeMs,
+                videoMode = _state.value.isVideoMode,
+                playWhenReady = false
+            )
+        } else {
+            player.play(resolved, _state.value.isVideoMode, startPositionMs = resumeMs)
+        }
         queueEngine.updatePosition(resumeMs)
         pendingSeekMs = 0L
         _state.update {
@@ -13265,7 +13296,24 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun pause() {
         pendingResumeJob?.cancel()
         pendingResumeJob = null
+        // A recovery resolver can complete long after the visible control was pressed. Cancel it
+        // and advance its generation before pausing the service-level audio decks.
+        streamTransitionId++
+        playJob?.cancel()
+        playJob = null
+        playbackGeneration.begin("")
+        streamRecoveryJob?.cancel()
+        streamRecoveryJob = null
+        modeSwitchJob?.cancel()
+        modeSwitchJob = null
         player.pause()
+        _state.update {
+            it.copy(
+                isPlaying = false,
+                isResolving = false,
+                liveRadioReconnectAttempt = 0
+            )
+        }
     }
 
     fun togglePlay() {

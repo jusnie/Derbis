@@ -4,8 +4,15 @@ import com.luc4n3x.derbis.ui.theme.*
 import com.luc4n3x.derbis.ui.theme.DerbisIsNocturne
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +30,7 @@ import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbUp as OutlinedThumbUp
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Icon
@@ -35,11 +43,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
@@ -49,7 +62,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.luc4n3x.derbis.domain.LyricLine
 import com.luc4n3x.derbis.domain.Track
+import com.luc4n3x.derbis.player.PlaybackService
 import com.luc4n3x.derbis.ui.components.PlayerGlassIconButton
 import com.luc4n3x.derbis.ui.components.derbisMarquee
 import com.luc4n3x.derbis.ui.components.rememberDerbisFavoriteMorphShape
@@ -72,6 +87,11 @@ internal fun PlayerTrackMetadata(
     compact: Boolean,
     openArtistLabel: String,
     favoritesLabel: String,
+    activeLyric: LyricLine?,
+    lyricsLoading: Boolean,
+    showLyricPreview: Boolean,
+    lyricsLabel: String,
+    onOpenLyrics: () -> Unit,
     onArtistClick: (Int) -> Unit,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
@@ -85,44 +105,54 @@ internal fun PlayerTrackMetadata(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AnimatedContent(
-            targetState = track,
-            modifier = Modifier.weight(1f),
-            transitionSpec = { DerbisMotion.trackChange(animationsEnabled, stepDirection) },
-            contentKey = { it.id },
-            label = "player-metadata"
-        ) { shown ->
-            val isCurrent = shown.id == track.id
-            Column {
-                Text(
-                    text = shown.title,
-                    color = surfaces.content,
-                    fontSize = titleSize,
-                    lineHeight = DerbisTypeRhythm.lineHeight(titleSize),
-                    fontWeight = metadataTitleWeight(appleMusic, prism),
-                    letterSpacing = if (DerbisIsSpotify) (-0.4).sp else if (DerbisIsYouTubeMusic) (-0.2).sp else if (appleMusic) (-0.3).sp else (-0.8).sp,
-                    maxLines = if (animationsEnabled) 1 else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.derbisMarquee(
-                        enabled = animationsEnabled,
-                        repeatDelayMillis = TitleMarqueeDelayMs
+        Column(modifier = Modifier.weight(1f)) {
+            AnimatedContent(
+                targetState = track,
+                transitionSpec = { DerbisMotion.trackChange(animationsEnabled, stepDirection) },
+                contentKey = { it.id },
+                label = "player-metadata"
+            ) { shown ->
+                val isCurrent = shown.id == track.id
+                Column {
+                    Text(
+                        text = shown.title,
+                        color = surfaces.content,
+                        fontSize = titleSize,
+                        lineHeight = DerbisTypeRhythm.lineHeight(titleSize),
+                        fontWeight = metadataTitleWeight(appleMusic, prism),
+                        letterSpacing = if (DerbisIsSpotify) (-0.4).sp else if (DerbisIsYouTubeMusic) (-0.2).sp else if (appleMusic) (-0.3).sp else (-0.8).sp,
+                        maxLines = if (animationsEnabled) 1 else 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.derbisMarquee(
+                            enabled = animationsEnabled,
+                            repeatDelayMillis = TitleMarqueeDelayMs
+                        )
                     )
-                )
-                PlayerArtistText(
-                    track = shown,
-                    color = surfaces.contentMuted,
-                    style = TextStyle(
-                        fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                        fontSize = artistSize,
-                        lineHeight = DerbisTypeRhythm.lineHeight(artistSize),
-                        fontWeight = if (DerbisIsSpotify || appleMusic || DerbisIsYouTubeMusic) FontWeight.Normal else FontWeight.Medium,
-                        letterSpacing = (-0.1).sp
-                    ),
-                    onClickLabel = openArtistLabel,
-                    onArtistClick = onArtistClick,
-                    enabled = isCurrent
-                )
+                    PlayerArtistText(
+                        track = shown,
+                        color = surfaces.contentMuted,
+                        style = TextStyle(
+                            fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                            fontSize = artistSize,
+                            lineHeight = DerbisTypeRhythm.lineHeight(artistSize),
+                            fontWeight = if (DerbisIsSpotify || appleMusic || DerbisIsYouTubeMusic) FontWeight.Normal else FontWeight.Medium,
+                            letterSpacing = (-0.1).sp
+                        ),
+                        onClickLabel = openArtistLabel,
+                        onArtistClick = onArtistClick,
+                        enabled = isCurrent
+                    )
+                }
             }
+            PlayerCrossfadeWord()
+            PlayerInlineLyricsLink(
+                line = activeLyric,
+                loading = lyricsLoading,
+                showLinePreview = showLyricPreview,
+                label = lyricsLabel,
+                color = surfaces.activeContent,
+                onOpenLyrics = onOpenLyrics
+            )
         }
         Spacer(modifier = Modifier.width(DerbisPlayerDesign.SpaceMd))
         PlayerFavoriteButton(
@@ -134,6 +164,77 @@ internal fun PlayerTrackMetadata(
             onToggle = onToggleFavorite
         )
     }
+}
+
+/**
+ * Every Player Deck uses this compact SimpMusic-style lyric affordance directly beneath metadata.
+ * Text changes fade rather than jump as the active lyric moves; tapping it opens the full lyrics page.
+ */
+internal fun playerInlineLyricsText(line: LyricLine?, label: String): String =
+    line?.text?.trim()?.takeIf { it.isNotEmpty() } ?: label
+
+@Composable
+private fun PlayerInlineLyricsLink(
+    line: LyricLine?,
+    loading: Boolean,
+    showLinePreview: Boolean,
+    label: String,
+    color: Color,
+    onOpenLyrics: () -> Unit
+) {
+    val lyricText = if (showLinePreview) playerInlineLyricsText(line, label) else label
+    val accessibilityLabel = if (showLinePreview && line?.text?.isNotBlank() == true) "$label: $lyricText" else label
+    AnimatedContent(
+        targetState = lyricText,
+        transitionSpec = {
+            (fadeIn(animationSpec = tween(190)) + scaleIn(initialScale = 0.985f, animationSpec = tween(190)))
+                .togetherWith(fadeOut(animationSpec = tween(125)))
+        },
+        label = "player-inline-lyric"
+    ) { shownLyric ->
+        Text(
+            text = shownLyric,
+            color = color.copy(alpha = if (loading && line == null) 0.74f else 0.96f),
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.1).sp
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onOpenLyrics)
+                .semantics { contentDescription = accessibilityLabel }
+        )
+    }
+}
+
+/** A single, bright crossfade status is shared by every Player Deck while the audio decks overlap. */
+@Composable
+internal fun PlayerCrossfadeWord() {
+    val crossfade by PlaybackService.crossfadeProgressFlow.collectAsStateWithLifecycle()
+    if (!crossfade.active) return
+    val rainbow = rememberInfiniteTransition(label = "player-crossfade-rgb")
+    val hue by rainbow.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1_350, easing = LinearEasing)
+        ),
+        label = "player-crossfade-hue"
+    )
+    val rgb = Color.hsv(hue = hue, saturation = 0.90f, value = 1f)
+    Text(
+        text = "Crossfading",
+        color = rgb,
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 0.7.sp,
+            shadow = Shadow(color = rgb.copy(alpha = 0.94f), offset = Offset.Zero, blurRadius = 12f)
+        ),
+        maxLines = 1
+    )
 }
 
 private fun metadataTitleSize(compact: Boolean, appleMusic: Boolean, prism: Boolean): TextUnit = when {

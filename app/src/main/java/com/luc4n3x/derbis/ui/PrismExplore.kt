@@ -21,6 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.luc4n3x.derbis.ui.components.DerbisGlassIntensity
+import com.luc4n3x.derbis.ui.components.derbisGlass
 import com.luc4n3x.derbis.ui.components.derbisPressable
 import com.luc4n3x.derbis.ui.theme.*
 import com.luc4n3x.derbis.domain.Track
@@ -44,15 +46,40 @@ internal fun RowScope.PrismMoodTile(label: String, portrait: String, active: Boo
 private fun RowScope.PrismFacetMoodTile(label: String, portrait: String, active: Boolean, onClick: () -> Unit, onMix: (() -> Unit)?, mixLabel: String, onPortraitError: () -> Unit) {
     val shape = PrismDesign.cut(PrismDesign.surfaceCorner)
     val hasPortrait = portrait.isNotBlank()
+    val moodSurface = if (DerbisIsLiquidGlass) {
+        Modifier.derbisGlass(
+            shape = shape,
+            baseTint = if (active) DerbisCyan else DerbisPanelSoft,
+            fallbackColor = DerbisPanel.copy(alpha = 0.76f),
+            fallbackBorderColor = Color.White.copy(alpha = if (active) 0.56f else 0.32f),
+            intensity = if (active) DerbisGlassIntensity.Standard else DerbisGlassIntensity.Subtle,
+            artworkTint = DerbisActivePalette.cyan
+        )
+    } else {
+        Modifier.background(if (hasPortrait) DerbisPanelSoft else DerbisPanel)
+    }
     Box(
         Modifier.weight(1f).aspectRatio(1.05f).clip(shape)
-            .background(if (hasPortrait) DerbisPanelSoft else DerbisPanel)
+            .then(moodSurface)
             .then(if (active) Modifier.border(2.dp, DerbisCyan, shape) else Modifier)
             .semantics { selected = active }
             .derbisPressable(onClick = onClick, onClickLabel = label, role = Role.Button, onLongClick = onMix, onLongClickLabel = if (onMix != null) mixLabel else null)
     ) {
         if (hasPortrait) {
             AsyncImage(portrait, contentDescription = null, contentScale = ContentScale.Crop, onError = { onPortraitError() }, modifier = Modifier.fillMaxSize())
+            if (DerbisIsLiquidGlass) {
+                Box(
+                    Modifier.fillMaxSize().derbisGlass(
+                        shape = shape,
+                        baseTint = DerbisPanelSoft,
+                        fallbackColor = DerbisPanel.copy(alpha = 0.58f),
+                        fallbackBorderColor = Color.Transparent,
+                        intensity = DerbisGlassIntensity.Subtle,
+                        artworkTint = DerbisActivePalette.cyan,
+                        borderWidth = 0.dp
+                    )
+                )
+            }
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.82f))))
         } else {
             Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(PrismAccent.Tint, Color.Transparent))))

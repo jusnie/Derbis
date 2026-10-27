@@ -8,19 +8,19 @@ on:
       release_tag:
         description: "Stable Android release tag"
         required: true
-        default: "v1.1.0"
+        default: "v1.1.1"
       release_name:
         description: "Visible release name"
         required: true
-        default: "Derbis v1.1.0"
+        default: "Derbis v1.1.1"
       release_version:
         description: "Version embedded in the Android package"
         required: true
-        default: "1.1.0"
+        default: "1.1.1"
       release_version_code:
         description: "Monotonically increasing Android versionCode"
         required: true
-        default: "3000202"
+        default: "3000203"
 
 permissions:
   contents: write
@@ -147,29 +147,26 @@ jobs:
           draft: false
           prerelease: false
           body: |
-            ## What's Fixed
-            - `d64bbb7` Selecting a previously played track now starts it from the beginning.
-            - `84b2677` Crossfade ignores stale handoff completions, preventing an older transition from replacing the active deck.
-            - `9e9300c` Apple Music 13 lyrics keep a dimmed artwork backdrop so white lyric text remains readable.
-            - `a4faca1` Android 1.1.0 packages retain correct version metadata so the in-app updater recognizes them as newer.
-            - `3fb1c86` Spotify library loading reads the complete signed-in library response so eligible playlists are not mistaken for empty.
+            ## What’s New
+            - Liquid Glass is now a full-system skin: the app background, Explore mood and genre surfaces, cards, grouped rows, controls, navigation, sheets, and dialogs share the frosted backdrop.
+            - Every Player Deck now exposes a Lyrics link beneath song metadata. Non-Apple decks preview the active line; Apple Music 13 preserves its word-timed lyric line.
+            - The active audio handoff is visible on every Player Deck through a thick, RGB-glowing `Crossfading` status.
+            - The player’s source line now reads `DERBIS MUSIC METADATA` and appends the active video resolution, such as `• 360` or `• 1080`.
+            - Apple Music 13 uses a heavier SF Pro-style, legal Inter fallback for its player and lyrics only.
 
-            ## What's New
-            - `e871551` Opt-in animated artwork Canvas support is available again; static artwork remains the default.
-            - `4f9640e` Liquid Glass now reaches Search, Explore, Library, Settings, the mini-player, and navigation.
-            - `5f26471` AI Slop adds a persisted setting that filters explicitly identified AI-generated music and video content.
-            - `ba79e80` Derbis Jam invite codes now use letters only and are at least six letters long.
-            - `7e0be74` Jam hosts can explicitly choose LAN Jam for the same Wi-Fi network or Server Jam through the configured Derbis relay.
-            - `c9095f7` Signed-in Spotify users can list their Spotify library, view accessible tracks, and import them through Derbis matching.
-            - `e3d9cb3` Data Saver suppresses background prefetching, Canvas fetching, and mobile-data automatic downloads while retaining listener-started playback, search, and imports.
+            ## Playback and data
+            - Pause now stops every active audio deck, including a crossfade’s prewarmed incoming deck, and blocks delayed recovery or auto-resume from restarting audio.
+            - Crossfade uses a clean two-deck promotion so the incoming player remains live while system controls transfer to it.
+            - The optional “Stop playback when Derbis closes” setting stops playback and the media service after the app task is removed.
+            - Data Saver now caps automatic video at 360p. Listener-selected quality remains respected.
 
-            ## Changed
-            - `deaaf7c` Player artwork is static by default.
-            - `f6132c0` Apple Music 13 uses full-bleed artwork while Velvet uses the contained cover treatment.
-            - `fb07fc9` Explore Samples has been removed.
-            - `f5c6583` The two-song Derbis Mix tool has been removed; Mix Studio and automatic mixing remain.
-            - `3439bf4` Full-player tap, long-press, double-tap, and vertical-swipe gestures have been removed.
-            - `9953af2` Internal Levyra identifiers have been renamed to Derbis.
+            ## Library, decks, and Jam
+            - The signed-in Spotify playlist browser has been removed; direct Spotify import and local imported-playlist viewing remain available.
+            - Velvet and Apple Music 13 deck previews now match their player layouts. Gallery and Tidal Music are no longer selectable Player Deck choices.
+            - Selected Derbis Jam choices use a blue outline and check rather than a blue filled card.
+
+            ## Update delivery
+            - This release is published as `Derbis.apk` on GitHub and is recognized by Derbis’ built-in updater.
           files: build-assets/Derbis.apk
           overwrite_files: true
         env:

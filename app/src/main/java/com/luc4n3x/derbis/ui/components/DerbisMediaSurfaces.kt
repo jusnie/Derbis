@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.luc4n3x.derbis.ui.theme.DerbisActivePalette
 import com.luc4n3x.derbis.ui.theme.DerbisCardDesign
+import com.luc4n3x.derbis.ui.theme.DerbisGlassBorder
 import com.luc4n3x.derbis.ui.theme.DerbisCyan
 import com.luc4n3x.derbis.ui.theme.DerbisMuted
 import com.luc4n3x.derbis.ui.theme.DerbisPanel
@@ -48,6 +49,22 @@ internal fun Modifier.derbisMarquee(enabled: Boolean = true): Modifier =
 internal fun Modifier.derbisDockSurface(): Modifier {
     val fill = DerbisPanel.copy(alpha = 0.98f)
     val shadowColor = Color.Black.copy(alpha = if (DerbisActivePalette.isLight) 0.18f else 0.55f)
+    val material = if (LocalDerbisLiquidGlassEnabled.current) {
+        // This compact Now Playing / bulk-action dock is floating functional chrome. Give it the
+        // same material vocabulary as the main navigation instead of an unrelated opaque bubble.
+        Modifier.derbisGlass(
+            shape = CircleShape,
+            baseTint = DerbisPanel,
+            fallbackColor = fill,
+            fallbackBorderColor = DerbisGlassBorder,
+            intensity = DerbisGlassIntensity.Standard,
+            artworkTint = DerbisActivePalette.cyan
+        )
+    } else {
+        Modifier
+            .clip(CircleShape)
+            .background(fill)
+    }
     return this
         .shadow(
             elevation = 18.dp,
@@ -56,8 +73,7 @@ internal fun Modifier.derbisDockSurface(): Modifier {
             ambientColor = shadowColor,
             spotColor = shadowColor
         )
-        .clip(CircleShape)
-        .background(fill)
+        .then(material)
 }
 
 @Composable

@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.BasicText
 import com.luc4n3x.derbis.ui.components.DerbisFilterPill
 import com.luc4n3x.derbis.ui.components.DerbisGlassIntensity
 import com.luc4n3x.derbis.ui.components.derbisGlass
+import com.luc4n3x.derbis.ui.components.derbisSystemGlass
 import com.luc4n3x.derbis.ui.components.DerbisSectionAction
 import com.luc4n3x.derbis.ui.components.DerbisSectionHeader
 import com.luc4n3x.derbis.ui.components.DerbisSectionPlayAll
@@ -2180,6 +2181,11 @@ fun DerbisApp(
         enabled = navigationStudio.visible ||
             navigationStudio.settings.activeTuning().colorSource == NavColorSource.Artwork
     )
+    // Keep Liquid Glass legible when Android's High text contrast accessibility setting is on.
+    // Reduced Motion is intentionally independent: motion may stop while material remains useful.
+    val glassAccessibility = rememberDerbisGlassAccessibility()
+    val glassMaterialIsOpaque = glassAccessibility.prefersOpaqueMaterials ||
+        LocalDerbisGlassStyle.current.prefersOpaqueMaterials
     CompositionLocalProvider(
         LocalAnimationsEnabled provides state.animationsEnabled,
         LocalDerbisVisualCapabilities provides visualCapabilities,
@@ -2188,7 +2194,8 @@ fun DerbisApp(
         LocalLayoutDirection provides layoutDirection,
         LocalNocturneNavigationHeight provides remember { mutableStateOf(64.dp) },
         LocalNavDockExtraClearance provides if (DerbisSkinManagesLayout) 0.dp else navDockExtraClearance(navigationStudio.settings.style, navigationStudio.settings.activeTuning()),
-        LocalNavArtworkSeed provides navArtworkSeed
+        LocalNavArtworkSeed provides navArtworkSeed,
+        LocalDerbisGlassAccessibility provides glassAccessibility
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             BoxWithConstraints(
@@ -2201,7 +2208,7 @@ fun DerbisApp(
             val dockGlass = rememberGlassBackdropState(
                 enabled = (state.interfaceSettings.liquidGlassEnabled ||
                     state.interfaceSettings.skin == DerbisSkin.LiquidGlass) &&
-                    state.animationsEnabled &&
+                    !glassMaterialIsOpaque &&
                     glassBlurAllowed &&
                     (!DerbisSkinManagesLayout || state.interfaceSettings.skin == DerbisSkin.LiquidGlass)
             )
@@ -2389,6 +2396,7 @@ fun DerbisApp(
                     modifier = Modifier
                         .fillMaxSize()
                         .windowInsetsPadding(DerbisHorizontalSafeInsets)
+                        .derbisSystemGlass()
                 ) {
                     when (tab) {
                         DerbisTab.Home -> {
@@ -8925,7 +8933,12 @@ private fun AppleMusic13FullscreenLyrics(
             ?.let { index -> toggleLyricsShareSelection(null, index, lyrics) }
     }
 
-    Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
+    MaterialTheme(
+        colorScheme = MaterialTheme.colorScheme,
+        typography = AppleMusic13Typography,
+        shapes = MaterialTheme.shapes
+    ) {
+        Box(Modifier.fillMaxSize().consumeOverlayTouches()) {
         if (imageShareSelectionMode) {
             // A dedicated selection surface keeps image-card choices separate from live lyrics.
             Box(
@@ -8991,10 +9004,10 @@ private fun AppleMusic13FullscreenLyrics(
                         Text(
                             text = track?.title ?: strings.lyrics,
                             color = Color.White,
-                            style = AppleMusicTypography.titleMedium.copy(
-                                fontFamily = FontFamily.SansSerif,
+                            style = AppleMusic13Typography.titleMedium.copy(
+                                fontFamily = AppleMusic13SfProFallbackFont,
                                 fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.ExtraBold
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -9002,8 +9015,8 @@ private fun AppleMusic13FullscreenLyrics(
                         Text(
                             text = track?.artist.orEmpty(),
                             color = Color.White.copy(alpha = 0.70f),
-                            style = AppleMusicTypography.bodyMedium.copy(
-                                fontFamily = FontFamily.SansSerif,
+                            style = AppleMusic13Typography.bodyMedium.copy(
+                                fontFamily = AppleMusic13SfProFallbackFont,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             ),
@@ -9062,7 +9075,7 @@ private fun AppleMusic13FullscreenLyrics(
                             Text(
                                 text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
                                 color = Color.White.copy(alpha = 0.58f),
-                                style = AppleMusicTypography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                style = AppleMusic13Typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
                             )
                         }
                     } else {
@@ -9119,19 +9132,19 @@ private fun AppleMusic13FullscreenLyrics(
                                 Text(
                                     text = line.text,
                                     color = lineColor,
-                                    style = AppleMusicTypography.headlineLarge.copy(
-                                        fontFamily = FontFamily.SansSerif,
+                                    style = AppleMusic13Typography.headlineLarge.copy(
+                                        fontFamily = AppleMusic13SfProFallbackFont,
                                         fontSize = 31.sp,
                                         lineHeight = 38.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.ExtraBold
                                     )
                                 )
                                 if (showRomanization && line.romanized.isNotBlank()) {
                                     Text(
                                         text = line.romanized,
                                         color = lineColor.copy(alpha = 0.72f),
-                                        style = AppleMusicTypography.bodyLarge.copy(
-                                            fontFamily = FontFamily.SansSerif,
+                                        style = AppleMusic13Typography.bodyLarge.copy(
+                                            fontFamily = AppleMusic13SfProFallbackFont,
                                             fontSize = 17.sp,
                                             lineHeight = 22.sp,
                                             fontWeight = FontWeight.Medium
@@ -9143,8 +9156,8 @@ private fun AppleMusic13FullscreenLyrics(
                                     Text(
                                         text = line.translated,
                                         color = lineColor.copy(alpha = 0.82f),
-                                        style = AppleMusicTypography.bodyLarge.copy(
-                                            fontFamily = FontFamily.SansSerif,
+                                        style = AppleMusic13Typography.bodyLarge.copy(
+                                            fontFamily = AppleMusic13SfProFallbackFont,
                                             fontSize = 18.sp,
                                             lineHeight = 23.sp,
                                             fontWeight = FontWeight.Medium
@@ -9273,12 +9286,12 @@ private fun AppleMusic13FullscreenLyrics(
                                 Text(
                                     text = formatSeekbarMillis(shownPosition),
                                     color = Color.White.copy(alpha = 0.76f),
-                                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                                    style = AppleMusic13Typography.labelMedium.copy(fontFamily = AppleMusic13SfProFallbackFont)
                                 )
                                 Text(
                                     text = if (state.durationMs > 0L) formatSeekbarMillis(state.durationMs) else "--:--",
                                     color = Color.White.copy(alpha = 0.76f),
-                                    style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                                    style = AppleMusic13Typography.labelMedium.copy(fontFamily = AppleMusic13SfProFallbackFont)
                                 )
                             }
                         }
@@ -9332,12 +9345,12 @@ private fun AppleMusic13FullscreenLyrics(
                         Text(
                             text = formatSeekbarMillis(shownPosition),
                             color = Color.White.copy(alpha = 0.78f),
-                            style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                            style = AppleMusic13Typography.labelMedium.copy(fontFamily = AppleMusic13SfProFallbackFont)
                         )
                         Text(
                             text = if (state.durationMs > 0L) "-" + formatSeekbarMillis((state.durationMs - shownPosition).coerceAtLeast(0L)) else "--:--",
                             color = Color.White.copy(alpha = 0.78f),
-                            style = AppleMusicTypography.labelMedium.copy(fontFamily = FontFamily.SansSerif)
+                            style = AppleMusic13Typography.labelMedium.copy(fontFamily = AppleMusic13SfProFallbackFont)
                         )
                     }
                     Row(
@@ -9372,6 +9385,7 @@ private fun AppleMusic13FullscreenLyrics(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -17432,7 +17446,7 @@ private fun RecentSearchesRow(
                         baseTint = Color.White,
                         fallbackColor = DerbisPanel.copy(alpha = 0.72f),
                         fallbackBorderColor = Color.White.copy(alpha = 0.30f),
-                        intensity = DerbisGlassIntensity.Standard,
+                        intensity = DerbisGlassIntensity.Subtle,
                         artworkTint = DerbisActivePalette.cyan
                     )
                 } else {
@@ -17808,7 +17822,7 @@ private fun DownloadsFolderCard(count: Int, onClick: () -> Unit) {
                         baseTint = DerbisCyan,
                         fallbackColor = DerbisPanel.copy(alpha = 0.68f),
                         fallbackBorderColor = Color.White.copy(alpha = 0.28f),
-                        intensity = DerbisGlassIntensity.Standard,
+                        intensity = DerbisGlassIntensity.Subtle,
                         artworkTint = DerbisActivePalette.cyan
                     )
                 } else {
@@ -18505,7 +18519,7 @@ private fun LibraryFilterChip(
                         baseTint = if (selected) accent else Color.White,
                         fallbackColor = background,
                         fallbackBorderColor = borderColor,
-                        intensity = if (selected) DerbisGlassIntensity.Standard else DerbisGlassIntensity.Subtle,
+                        intensity = DerbisGlassIntensity.Subtle,
                         artworkTint = DerbisActivePalette.cyan
                     )
                 } else {
@@ -18958,7 +18972,7 @@ private fun LibraryEmptyState(
                         baseTint = accent,
                         fallbackColor = DerbisPanel.copy(alpha = 0.68f),
                         fallbackBorderColor = Color.White.copy(alpha = 0.28f),
-                        intensity = DerbisGlassIntensity.Standard,
+                        intensity = DerbisGlassIntensity.Subtle,
                         artworkTint = DerbisActivePalette.cyan
                     )
                 } else {
@@ -21314,7 +21328,7 @@ private fun SettingsOverlay(
                                 SettingsToggle(
                                     icon = Icons.Rounded.NetworkCell,
                                     title = "Data Saver",
-                                    subtitle = "Turn off background queue, search, lyrics, Canvas, and artwork prefetching. Automatic downloads wait for Wi-Fi; automatic video is capped at 480p. Tracks, searches, and imports you start yourself still work.",
+                                    subtitle = "Turn off background queue, search, lyrics, Canvas, and artwork prefetching. Automatic downloads wait for Wi-Fi; automatic video is capped at 360p. Tracks, searches, and imports you start yourself still work.",
                                     checked = interfaceSettings.dataSaverEnabled,
                                     onCheckedChange = { enabled ->
                                         onInterfaceSettings(interfaceSettings.copy(dataSaverEnabled = enabled))
@@ -21650,11 +21664,9 @@ private fun SettingsOverlay(
                                     title = strings.playerVisualMode,
                                     subtitle = strings.playerVisualModeSubtitle,
                                     options = listOf(
-                                        PlayerVisualMode.Artwork.name to strings.playerVisualModeArtwork,
                                         PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
                                         PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
                                         PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
-                                        PlayerVisualMode.TidalMusic.name to strings.playerDeckTidalMusic,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
                                         PlayerVisualMode.Halo.name to strings.playerDeckHalo,
                                         PlayerVisualMode.Folio.name to strings.playerDeckFolio,
@@ -22320,6 +22332,7 @@ private fun SettingsOverlay(
                         }
                         "system" -> {
                             standaloneItem { SettingsSectionLabel(strings.playbackResilienceSection) }
+                            item { StopPlaybackWhenClosingSettingsPanel() }
                             item {
                                 SettingsButton(
                                     icon = Icons.Rounded.Bolt,
@@ -22455,27 +22468,94 @@ private fun SettingsSearchResultRow(title: String, description: String, category
 }
 
 @Composable
-private fun DiscordRichPresenceSettingsPanel() {
+private fun StopPlaybackWhenClosingSettingsPanel() {
     val context = LocalContext.current
-    val available = remember(context) { com.luc4n3x.derbis.feature.discord.DerbisDiscordRichPresence.isAvailable() }
-    var enabled by remember(context, available) {
-        mutableStateOf(available && com.luc4n3x.derbis.feature.discord.DerbisDiscordRichPresence.isEnabled(context))
-    }
-    Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    val preferences = remember(context) { com.luc4n3x.derbis.data.DerbisPreferences(context) }
+    var enabled by remember(preferences) { mutableStateOf(preferences.stopPlaybackWhenAppCloses()) }
     SettingsToggle(
-        icon = Icons.Rounded.AccountCircle,
-        title = "Discord Rich Presence",
-        subtitle = if (available) {
-            "Show your current Derbis track in the signed-in Discord app"
-        } else {
-            "Discord Social SDK is unavailable in this build"
-        },
+        icon = Icons.Rounded.Close,
+        title = "Stop playback when Derbis closes",
+        subtitle = "Stop the media service when you exit or swipe Derbis away",
         checked = enabled,
         onCheckedChange = { value ->
-            enabled = value && available
-            com.luc4n3x.derbis.feature.discord.DerbisDiscordRichPresence.setEnabled(context, enabled)
+            enabled = value
+            preferences.setStopPlaybackWhenAppCloses(value)
         }
     )
+}
+
+@Composable
+private fun DiscordRichPresenceSettingsPanel() {
+    val context = LocalContext.current
+    val discord = com.luc4n3x.derbis.feature.discord.DerbisDiscordRichPresence
+    val connection by discord.connectionState.collectAsStateWithLifecycle()
+    var presenceEnabled by remember(context) {
+        mutableStateOf(discord.isEnabled(context))
+    }
+
+    LaunchedEffect(context) {
+        discord.initialize(context)
+    }
+    LaunchedEffect(connection.status) {
+        presenceEnabled = connection.isConnected && discord.isEnabled(context)
+    }
+
+    Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    when (connection.status) {
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable -> {
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Discord unavailable",
+                subtitle = "Discord Social SDK is unavailable in this build",
+                enabled = false,
+                onClick = {}
+            )
+        }
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.Disconnected -> {
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Connect Discord",
+                subtitle = "Sign in securely through the Discord app to enable Rich Presence",
+                onClick = { discord.beginSignIn(context) }
+            )
+        }
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn,
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting -> {
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Connecting Discord",
+                subtitle = connection.detail.ifBlank { "Finish the approval in Discord" },
+                enabled = false,
+                onClick = {}
+            )
+        }
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.Error -> {
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Reconnect Discord",
+                subtitle = connection.detail.ifBlank { "Discord connection failed. Try again." },
+                onClick = { discord.beginSignIn(context) }
+            )
+        }
+        com.luc4n3x.derbis.feature.discord.DerbisDiscordConnectionStatus.Connected -> {
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Disconnect Discord",
+                subtitle = "Disconnect this Discord account from Derbis",
+                onClick = { discord.disconnect(context) }
+            )
+            SettingsToggle(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Discord Rich Presence",
+                subtitle = "Show your current Derbis track, artist, and Derbis artwork in Discord",
+                checked = presenceEnabled,
+                onCheckedChange = { value ->
+                    presenceEnabled = value
+                    discord.setEnabled(context, value)
+                }
+            )
+        }
+    }
 }
 
 @Composable
@@ -22872,7 +22952,7 @@ private fun SettingsTile(
                     baseTint = Color.White,
                     fallbackColor = color.copy(alpha = 0.72f),
                     fallbackBorderColor = Color.White.copy(alpha = 0.28f),
-                    intensity = DerbisGlassIntensity.Standard,
+                    intensity = DerbisGlassIntensity.Subtle,
                     artworkTint = DerbisActivePalette.cyan
                 )
             } else {
@@ -27776,7 +27856,7 @@ private fun DerbisExploreShortcutTile(
             baseTint = entry.container,
             fallbackColor = DerbisPanel.copy(alpha = 0.72f),
             fallbackBorderColor = Color.White.copy(alpha = 0.30f),
-            intensity = DerbisGlassIntensity.Standard,
+            intensity = DerbisGlassIntensity.Subtle,
             artworkTint = DerbisActivePalette.cyan
         )
     } else {

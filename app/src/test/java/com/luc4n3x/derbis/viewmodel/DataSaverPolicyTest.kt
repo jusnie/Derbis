@@ -28,7 +28,7 @@ class DataSaverPolicyTest {
     @Test
     fun dataSaverCapsOnlyAutomaticVideoQuality() {
         assertEquals(
-            VideoQualityTarget.P480,
+            VideoQualityTarget.P360,
             effectiveVideoQualityTarget(VideoQualityTarget.AUTO, dataSaverEnabled = true)
         )
         assertEquals(
