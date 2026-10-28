@@ -536,6 +536,20 @@
     return decoder.value;
   }
 
+  function formatIsoDuration(iso) {
+    if (!iso) return "";
+    const match = String(iso).match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return "";
+    const hours = parseInt(match[1] || "0", 10);
+    const minutes = parseInt(match[2] || "0", 10);
+    const seconds = parseInt(match[3] || "0", 10);
+    const secStr = String(seconds).padStart(2, "0");
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, "0")}:${secStr}`;
+    }
+    return `${minutes}:${secStr}`;
+  }
+
   function cleanSongTrack(item) {
     const videoId = item?.id?.videoId;
     if (!videoId) return null;
@@ -588,27 +602,127 @@
       songs.push(song);
     }
     songs.sort((a, b) => b.score - a.score);
-    return songs.slice(0, 12);
+    return songs.slice(0, 10);
   }
 
-  function renderYouTubeResults(songs) {
-    if (!songs.length) {
+  function renderMultiSectionResults({ songs, artists, albums, playlists }) {
+    if (!songs.length && !artists.length && !albums.length && !playlists.length) {
       elements.youtubeSearchResults.innerHTML = "";
-      setYouTubeSearchStatus("No matching songs found. Try a different search.");
+      setYouTubeSearchStatus("No matching songs or artists found. Try a different search.");
       return;
     }
-    elements.youtubeSearchResults.innerHTML = songs.map((song) => {
-      return `<button class="youtube-result" type="button" data-youtube-video="${escapeHtml(song.videoId)}" data-youtube-title="${escapeHtml(song.title)}" data-youtube-artist="${escapeHtml(song.artist)}" data-youtube-thumbnail="${escapeHtml(song.thumbnail)}" aria-label="Play ${escapeHtml(song.title)} by ${escapeHtml(song.artist)}">
-        <span class="youtube-result-art"><img src="${escapeHtml(song.thumbnail)}" alt="" referrerpolicy="no-referrer" /><i class="youtube-result-play"><svg><use href="#i-play"/></svg></i></span>
-        <span class="youtube-result-copy"><strong>${escapeHtml(song.title)}</strong><small>${escapeHtml(song.artist)}</small></span>
-      </button>`;
-    }).join("");
+
+    let html = `
+      <div class="search-tabs" id="search-tabs" role="tablist" aria-label="Search categories">
+        <button class="search-tab is-active" type="button" data-filter="all">All</button>
+        ${songs.length ? `<button class="search-tab" type="button" data-filter="songs">Songs</button>` : ""}
+        ${artists.length ? `<button class="search-tab" type="button" data-filter="artists">Artists</button>` : ""}
+        ${albums.length ? `<button class="search-tab" type="button" data-filter="albums">Albums</button>` : ""}
+        ${playlists.length ? `<button class="search-tab" type="button" data-filter="playlists">Playlists</button>` : ""}
+      </div>
+      <div class="search-sections-wrap">
+    `;
+
+    // 1. Songs section (vertical track rows matching user screenshot)
+    if (songs.length) {
+      html += `
+        <section class="search-section" data-section="songs">
+          <h2 class="search-section-heading">Songs</h2>
+          <div class="search-song-list">
+            ${songs.map((song) => `
+              <button class="search-track-row" type="button" data-youtube-video="${escapeHtml(song.videoId)}" data-youtube-title="${escapeHtml(song.title)}" data-youtube-artist="${escapeHtml(song.artist)}" data-youtube-thumbnail="${escapeHtml(song.thumbnail)}" aria-label="Play ${escapeHtml(song.title)} by ${escapeHtml(song.artist)}">
+                <img class="search-track-art" src="${escapeHtml(song.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <div class="search-track-info">
+                  <strong class="search-track-title">${escapeHtml(song.title)}</strong>
+                  <span class="search-track-artist">${escapeHtml(song.artist)}</span>
+                </div>
+                ${song.duration ? `<span class="search-track-duration">${escapeHtml(song.duration)}</span>` : ""}
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    // 2. Artists section
+    if (artists.length) {
+      html += `
+        <section class="search-section" data-section="artists">
+          <h2 class="search-section-heading">Artists</h2>
+          <div class="search-artist-grid">
+            ${artists.map((artist) => `
+              <button class="search-artist-card" type="button" data-genre-search="${escapeHtml(artist.title)} songs" aria-label="Explore songs by ${escapeHtml(artist.title)}">
+                <img class="search-artist-img" src="${escapeHtml(artist.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <strong>${escapeHtml(artist.title)}</strong>
+                <span>Artist</span>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    // 3. Albums section
+    if (albums.length) {
+      html += `
+        <section class="search-section" data-section="albums">
+          <h2 class="search-section-heading">Albums</h2>
+          <div class="search-album-grid">
+            ${albums.map((album) => `
+              <button class="search-album-card" type="button" data-genre-search="${escapeHtml(album.title)} ${escapeHtml(album.artist)}" aria-label="Explore album ${escapeHtml(album.title)}">
+                <img class="search-album-img" src="${escapeHtml(album.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <strong>${escapeHtml(album.title)}</strong>
+                <span>${escapeHtml(album.artist)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    // 4. Playlists section
+    if (playlists.length) {
+      html += `
+        <section class="search-section" data-section="playlists">
+          <h2 class="search-section-heading">Playlists</h2>
+          <div class="search-playlist-grid">
+            ${playlists.map((playlist) => `
+              <button class="search-playlist-card" type="button" data-genre-search="${escapeHtml(playlist.title)}" aria-label="Explore playlist ${escapeHtml(playlist.title)}">
+                <img class="search-playlist-img" src="${escapeHtml(playlist.thumb)}" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <strong>${escapeHtml(playlist.title)}</strong>
+                <span>${escapeHtml(playlist.author || "Playlist")}</span>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    html += `</div>`;
+    elements.youtubeSearchResults.innerHTML = html;
+    setYouTubeSearchStatus("Select a song to play in Derbis.");
+
+    // Wire up song playback
     all("[data-youtube-video]").forEach((button) => button.addEventListener("click", () => {
       elements.youtubeUrl.value = button.dataset.youtubeVideo;
       playYouTubeVideo(button.dataset.youtubeVideo, {
         title: button.dataset.youtubeTitle,
         artist: button.dataset.youtubeArtist,
         thumbnail: button.dataset.youtubeThumbnail
+      });
+    }));
+
+    // Wire up artist/album/playlist searches
+    all(".search-artist-card, .search-album-card, .search-playlist-card").forEach((button) => button.addEventListener("click", () => {
+      if (button.dataset.genreSearch) searchYouTube(button.dataset.genreSearch);
+    }));
+
+    // Wire up tabs
+    all(".search-tab").forEach((tab) => tab.addEventListener("click", () => {
+      const filter = tab.dataset.filter;
+      all(".search-tab").forEach((t) => t.classList.toggle("is-active", t === tab));
+      all(".search-section").forEach((sec) => {
+        sec.hidden = filter !== "all" && sec.dataset.section !== filter;
       });
     }));
   }
@@ -631,34 +745,140 @@
     youtubeSearchAbort = new AbortController();
     setYouTubeSearchStatus(`Searching songs for “${normalizedQuery}”…`, "loading");
     elements.youtubeSearchResults.innerHTML = "";
+
     try {
-      const params = new URLSearchParams({
+      const songParams = new URLSearchParams({
         part: "snippet",
         type: "video",
         videoCategoryId: "10",
         videoEmbeddable: "true",
         videoSyndicated: "true",
-        maxResults: "25",
+        maxResults: "12",
         q: normalizedQuery
       });
-      // Public discovery uses the browser-restricted key. OAuth remains for profile/channel details.
-      if (youtubeDataApiKey) params.set("key", youtubeDataApiKey);
-      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`, {
-        headers: youtubeDataApiKey ? {} : { Authorization: `Bearer ${activeAccessToken}` },
-        signal: youtubeSearchAbort.signal
+      const artistParams = new URLSearchParams({
+        part: "snippet",
+        type: "channel",
+        maxResults: "4",
+        q: normalizedQuery
       });
-      if (response.status === 401 && !youtubeDataApiKey) {
-        activeAccessToken = null;
-        pendingYouTubeSearch = normalizedQuery;
-        setYouTubeSearchStatus("Your Google session expired. Reconnecting…", "loading");
-        requestConnection();
-        return;
+      const albumParams = new URLSearchParams({
+        part: "snippet",
+        type: "playlist",
+        maxResults: "4",
+        q: `${normalizedQuery} album`
+      });
+      const playlistParams = new URLSearchParams({
+        part: "snippet",
+        type: "playlist",
+        maxResults: "4",
+        q: `${normalizedQuery} playlist`
+      });
+
+      if (youtubeDataApiKey) {
+        songParams.set("key", youtubeDataApiKey);
+        artistParams.set("key", youtubeDataApiKey);
+        albumParams.set("key", youtubeDataApiKey);
+        playlistParams.set("key", youtubeDataApiKey);
       }
-      if (!response.ok) throw new Error(`YouTube search returned ${response.status}`);
-      const payload = await response.json();
-      const songs = processSearchResults(payload.items || []);
-      renderYouTubeResults(songs);
-      if (songs.length) setYouTubeSearchStatus("Select a song to play in Derbis.");
+
+      const headers = youtubeDataApiKey ? {} : { Authorization: `Bearer ${activeAccessToken}` };
+
+      const [songsRes, artistsRes, albumsRes, playlistsRes] = await Promise.allSettled([
+        fetch(`https://www.googleapis.com/youtube/v3/search?${songParams}`, { headers, signal: youtubeSearchAbort.signal }),
+        fetch(`https://www.googleapis.com/youtube/v3/search?${artistParams}`, { headers, signal: youtubeSearchAbort.signal }),
+        fetch(`https://www.googleapis.com/youtube/v3/search?${albumParams}`, { headers, signal: youtubeSearchAbort.signal }),
+        fetch(`https://www.googleapis.com/youtube/v3/search?${playlistParams}`, { headers, signal: youtubeSearchAbort.signal })
+      ]);
+
+      if (songsRes.status === "rejected" || !songsRes.value.ok) {
+        throw new Error("Song search failed");
+      }
+
+      const songPayload = await songsRes.value.json();
+      const rawSongs = processSearchResults(songPayload.items || []);
+
+      // Batch-fetch durations for these songs
+      const videoIds = rawSongs.map((s) => s.videoId).filter(Boolean);
+      const durations = {};
+      if (videoIds.length) {
+        try {
+          const detailParams = new URLSearchParams({
+            part: "contentDetails",
+            id: videoIds.join(",")
+          });
+          if (youtubeDataApiKey) detailParams.set("key", youtubeDataApiKey);
+          const detailRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?${detailParams}`, {
+            headers,
+            signal: youtubeSearchAbort.signal
+          });
+          if (detailRes.ok) {
+            const detailPayload = await detailRes.json();
+            (detailPayload.items || []).forEach((item) => {
+              if (item?.id && item.contentDetails?.duration) {
+                durations[item.id] = formatIsoDuration(item.contentDetails.duration);
+              }
+            });
+          }
+        } catch {
+          // Durations are optional enrichment; proceed smoothly if unavailable
+        }
+      }
+
+      rawSongs.forEach((song) => {
+        song.duration = durations[song.videoId] || "";
+      });
+
+      // Parse artists
+      let artists = [];
+      if (artistsRes.status === "fulfilled" && artistsRes.value.ok) {
+        try {
+          const payload = await artistsRes.value.json();
+          artists = (payload.items || []).map((it) => {
+            const snip = it.snippet || {};
+            const title = decodeYouTubeText(snip.title || "Artist").replace(/ - Topic$/, "");
+            const thumb = snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || "";
+            return { title, thumb };
+          }).filter((a) => a.title);
+        } catch {}
+      }
+
+      // Parse albums
+      let albums = [];
+      if (albumsRes.status === "fulfilled" && albumsRes.value.ok) {
+        try {
+          const payload = await albumsRes.value.json();
+          albums = (payload.items || []).map((it) => {
+            const snip = it.snippet || {};
+            const title = decodeYouTubeText(snip.title || "Album");
+            const artist = decodeYouTubeText(snip.channelTitle || "");
+            const thumb = snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || "";
+            return { title, artist, thumb };
+          }).filter((a) => a.title);
+        } catch {}
+      }
+
+      // Parse playlists
+      let playlists = [];
+      if (playlistsRes.status === "fulfilled" && playlistsRes.value.ok) {
+        try {
+          const payload = await playlistsRes.value.json();
+          playlists = (payload.items || []).map((it) => {
+            const snip = it.snippet || {};
+            const title = decodeYouTubeText(snip.title || "Playlist");
+            const author = decodeYouTubeText(snip.channelTitle || "");
+            const thumb = snip.thumbnails?.medium?.url || snip.thumbnails?.default?.url || "";
+            return { title, author, thumb };
+          }).filter((p) => p.title);
+        } catch {}
+      }
+
+      renderMultiSectionResults({
+        songs: rawSongs,
+        artists,
+        albums,
+        playlists
+      });
     } catch (error) {
       if (error.name === "AbortError") return;
       console.error(error);
