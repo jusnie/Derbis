@@ -25,7 +25,13 @@
   let youTubePlayer = null;
   let youtubeApiPromise = null;
   let directYoutubeEmbed = false;
-  let currentYouTubeTrack = null;
+  let currentYouTubeTrack = {
+    title: "Love Me Harder",
+    artist: "Ariana Grande, The Weeknd",
+    thumbnail: "https://i.ytimg.com/vi/g5qU7p7yOY8/hqdefault.jpg",
+    thumb: "https://i.ytimg.com/vi/g5qU7p7yOY8/hqdefault.jpg",
+    videoId: "g5qU7p7yOY8"
+  };
   let toastTimer = 0;
 
   const $ = (selector) => document.querySelector(selector);
@@ -353,9 +359,10 @@
   function setYouTubeNowPlaying(track) {
     const title = track?.title || "Public YouTube video";
     const artist = track?.artist || "YouTube";
-    const thumbnail = String(track?.thumbnail || "");
+    const thumbnail = String(track?.thumbnail || track?.thumb || "");
     const duration = String(track?.duration || "");
-    currentYouTubeTrack = { title, artist, thumbnail, duration };
+    const videoId = track?.videoId || "";
+    currentYouTubeTrack = { title, artist, thumbnail, thumb: thumbnail, duration, videoId };
     elements.dockTitle.textContent = title;
     elements.dockArtist.textContent = artist;
     elements.nowPlayingTitle.textContent = title;
@@ -369,13 +376,18 @@
     elements.dockElapsed.textContent = "0:00";
     elements.dockSeek.value = "0";
     elements.dockSeek.disabled = false;
-    elements.dockArt.className = "dock-art";
-    elements.dockArt.style.backgroundImage = thumbnail
-      ? `linear-gradient(145deg, transparent 38%, rgba(0,0,0,.58)), url("${thumbnail.replace(/"/g, "\\\"")}")`
-      : "";
-    elements.dockArt.style.backgroundPosition = "center";
-    elements.dockArt.style.backgroundSize = "cover";
-    elements.dockArt.innerHTML = "<i></i><em>▶</em>";
+    elements.dockArt.className = "dock-art has-thumb";
+    if (thumbnail) {
+      elements.dockArt.innerHTML = `<img id="dock-art-img" src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;" />`;
+    } else {
+      elements.dockArt.innerHTML = "<i></i><em>▶</em>";
+    }
+    all(".quick-track, .orbit-card").forEach((item) => {
+      const match = item.dataset.title === title;
+      item.classList.toggle("is-current", match);
+      const bars = item.querySelector(".playing-bars");
+      if (bars) bars.style.display = match ? "inline-flex" : "none";
+    });
   }
 
   async function playYouTubeVideo(value, track = null) {
@@ -384,8 +396,10 @@
       showToast("Paste a valid public YouTube video URL or 11-character video ID.");
       return;
     }
-    setYouTubeNowPlaying(track || { title: "Public YouTube video", artist: "YouTube" });
-    openNowPlayingSidebar();
+    setYouTubeNowPlaying(track || { title: "Public YouTube video", artist: "YouTube", videoId });
+    if (window.innerWidth > 820) {
+      openNowPlayingSidebar();
+    }
     if (elements.audio.src) elements.audio.pause();
     showPlayerLoading();
     try {
@@ -416,14 +430,18 @@
                 stopYouTubeProgress();
                 elements.dockSeek.value = "0";
                 elements.dockElapsed.textContent = "0:00";
+                playNextTrack();
               }
             },
-            onAutoplayBlocked: () => showToast("Tap play in the YouTube player to start this video."),
-            onError: () => showToast("This YouTube video cannot be embedded. Try another public video.")
+            onAutoplayBlocked: () => showToast("Tap play in the player to start this video."),
+            onError: () => {
+              console.warn("YouTube iframe API error; trying fallback embed.");
+              renderDirectYouTubeEmbed(videoId);
+            }
           }
         });
       }
-      showToast("Playing with YouTube’s official embedded player.");
+      showToast(`Playing ${track?.title || "song"} on Derbis`);
     } catch (error) {
       console.warn("YouTube IFrame API unavailable; using official embed fallback.", error);
       renderDirectYouTubeEmbed(videoId);
@@ -655,6 +673,10 @@
 
   function togglePlayback() {
     if (currentYouTubeTrack || youTubePlayer) {
+      if (!youTubePlayer && currentYouTubeTrack?.videoId) {
+        playYouTubeVideo(currentYouTubeTrack.videoId, currentYouTubeTrack);
+        return;
+      }
       try {
         const state = youTubePlayer?.getPlayerState?.();
         if (state === window.YT?.PlayerState?.PLAYING || state === 1) {
@@ -668,6 +690,10 @@
         }
       } catch {
         // Fall back to opening Now Playing
+      }
+      if (currentYouTubeTrack?.videoId) {
+        playYouTubeVideo(currentYouTubeTrack.videoId, currentYouTubeTrack);
+        return;
       }
       openYouTubeDialog();
       return;
@@ -684,18 +710,29 @@
     openYouTubeDialog();
   }
 
-  function setNowPlaying(title, artist, artClass) {
-    currentYouTubeTrack = null;
+  function setNowPlaying(title, artist, artClass = "art-noir", thumb = "", videoId = "") {
+    currentYouTubeTrack = { title, artist, thumbnail: thumb, thumb, videoId };
     elements.dockTitle.textContent = title;
     elements.dockArtist.textContent = artist;
     elements.nowPlayingTitle.textContent = title;
     elements.nowPlayingArtist.textContent = artist;
-    elements.dockArt.className = `dock-art ${artClass}`;
-    elements.dockArt.style.removeProperty("background-image");
-    elements.dockArt.style.removeProperty("background-position");
-    elements.dockArt.style.removeProperty("background-size");
-    elements.dockArt.innerHTML = `<i></i><em>${escapeHtml(title.slice(0, 8).toUpperCase())}</em>`;
-    all(".quick-track").forEach((item) => item.classList.toggle("is-current", item.dataset.title === title));
+    if (elements.sideTrackTitle) elements.sideTrackTitle.textContent = title;
+    if (elements.sideArtistName) elements.sideArtistName.textContent = artist;
+    if (elements.sideArtistAvatar && thumb) elements.sideArtistAvatar.src = thumb;
+    if (elements.sideArtworkImg && thumb) elements.sideArtworkImg.src = thumb;
+
+    elements.dockArt.className = `dock-art ${thumb ? "has-thumb" : artClass}`;
+    if (thumb) {
+      elements.dockArt.innerHTML = `<img id="dock-art-img" src="${escapeHtml(thumb)}" alt="${escapeHtml(title)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;" />`;
+    } else {
+      elements.dockArt.innerHTML = `<i></i><em>${escapeHtml(title.slice(0, 8).toUpperCase())}</em>`;
+    }
+    all(".quick-track, .orbit-card").forEach((item) => {
+      const match = item.dataset.title === title;
+      item.classList.toggle("is-current", match);
+      const bars = item.querySelector(".playing-bars");
+      if (bars) bars.style.display = match ? "inline-flex" : "none";
+    });
   }
 
   function selectTrack(target) {
@@ -703,8 +740,17 @@
     if (!button) return;
     const title = button.dataset.title;
     const artist = button.dataset.artist;
-    setNowPlaying(title, artist, button.dataset.art || "art-blue");
-    searchYouTube(`${title} ${artist}`);
+    const thumb = button.dataset.thumb || button.querySelector("img")?.src || "";
+    const videoId = button.dataset.videoId;
+    const art = button.dataset.art || "art-noir";
+
+    setNowPlaying(title, artist, art, thumb, videoId);
+
+    if (videoId) {
+      playYouTubeVideo(videoId, { title, artist, thumbnail: thumb, thumb, videoId });
+    } else {
+      searchYouTube(`${title} ${artist}`);
+    }
   }
 
   function setYouTubeSearchStatus(message, state = "") {
@@ -1161,7 +1207,17 @@
     });
     elements.soundtrackPlay.addEventListener("click", (event) => {
       event.stopPropagation();
-      toggleNowPlayingSidebar();
+      const first = $(".quick-track");
+      if (first) {
+        selectTrack(first);
+      } else {
+        playYouTubeVideo("kPa7bsKwL-c", {
+          title: "Die With A Smile",
+          artist: "Lady Gaga & Bruno Mars",
+          thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg",
+          videoId: "kPa7bsKwL-c"
+        });
+      }
     });
     elements.dockPlay.addEventListener("click", togglePlayback);
     elements.audio.addEventListener("loadedmetadata", () => {
