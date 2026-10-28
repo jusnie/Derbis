@@ -25,6 +25,7 @@
   let youTubePlayer = null;
   let youtubeApiPromise = null;
   let directYoutubeEmbed = false;
+  let spotlightHeroTrack = null;
   let currentYouTubeTrack = {
     title: "Love Me Harder",
     artist: "Ariana Grande, The Weeknd",
@@ -115,7 +116,18 @@
     sidePrevBtn: $("#side-prev-btn"),
     sideNextBtn: $("#side-next-btn"),
     sheetHandle: $(".mobile-sheet-handle"),
+    soundtrackCard: $("#soundtrack-card"),
+    soundtrackArt: $("#soundtrack-art"),
+    soundtrackPortraitImg: $("#soundtrack-portrait-img"),
+    soundtrackGlow: $("#soundtrack-glow"),
+    soundtrackTitle: $("#soundtrack-title"),
+    soundtrackSubtitle: $("#soundtrack-subtitle"),
+    soundtrackLead: $("#soundtrack-lead"),
+    soundtrackCompanionStack: $("#soundtrack-companion-stack"),
     soundtrackPlay: $("#soundtrack-play"),
+    quickGrid: $("#quick-grid"),
+    quickPlayAll: $("#quick-play-all"),
+    orbitRail: $("#orbit-rail"),
     search: $("#search-input")
   };
 
@@ -593,6 +605,7 @@
             renderAccount(profile);
             closeAccountDialog();
             showToast("Google / YouTube account connected for this browser session.");
+            await syncYouTubeAccountData(activeAccessToken);
             if (pendingYouTubeSearch) {
               const query = pendingYouTubeSearch;
               pendingYouTubeSearch = null;
@@ -613,7 +626,9 @@
 
   function disconnect() {
     sessionStorage.removeItem(stateKey);
+    localStorage.removeItem("derbis-youtube-account-data");
     renderAccount(null);
+    applyDerbisAlgorithm();
     showToast("Disconnected from this browser session.");
   }
 
@@ -735,6 +750,522 @@
     });
   }
 
+  /* ==========================================================================
+     Derbis Personal Orbit & Quick Picks Algorithm Engine
+     Mirrors DerbisPersonalOrbit.kt and DerbisScreenViewModels.kt (buildQuickPicks)
+     ========================================================================== */
+
+  const KNOWN_ARTIST_PROFILES = {
+    "ariana grande": {
+      name: "Ariana Grande",
+      portrait: "https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(139, 187, 255, 0.35)",
+      topTrack: {
+        title: "Love Me Harder",
+        artist: "Ariana Grande, The Weeknd",
+        videoId: "g5qU7p7yOY8",
+        thumbnail: "https://i.ytimg.com/vi/g5qU7p7yOY8/hqdefault.jpg"
+      }
+    },
+    "maki": {
+      name: "Maki",
+      portrait: "https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(244, 161, 99, 0.35)",
+      topTrack: {
+        title: "kahel na langit",
+        artist: "Maki",
+        videoId: "DuKb1yF5Wh4",
+        thumbnail: "https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg"
+      }
+    },
+    "lady gaga": {
+      name: "Lady Gaga",
+      portrait: "https://yt3.ggpht.com/lM8HHBd5BZtP_-Dh1i3n1Z4teVW8v2KTG-hsS83yXUiK0K6krkk1XNEFbho3uwH-CS-FQpnlHw=s800-c-k-c0x00ffffff-no-rj",
+      avatar: "https://yt3.ggpht.com/lM8HHBd5BZtP_-Dh1i3n1Z4teVW8v2KTG-hsS83yXUiK0K6krkk1XNEFbho3uwH-CS-FQpnlHw=s800-c-k-c0x00ffffff-no-rj",
+      glow: "rgba(220, 120, 240, 0.35)",
+      topTrack: {
+        title: "Die With A Smile",
+        artist: "Lady Gaga & Bruno Mars",
+        videoId: "kPa7bsKwL-c",
+        thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg"
+      }
+    },
+    "billie eilish": {
+      name: "Billie Eilish",
+      portrait: "https://yt3.ggpht.com/cCf3P5ZRQ5f0D69oXzAg6LUI6gazIPLhIohervVyg0JdGrDfo5MUCzU_qujvGruLVWwtVtbf6Q=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/cCf3P5ZRQ5f0D69oXzAg6LUI6gazIPLhIohervVyg0JdGrDfo5MUCzU_qujvGruLVWwtVtbf6Q=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(110, 200, 160, 0.35)",
+      topTrack: {
+        title: "BIRDS OF A FEATHER",
+        artist: "Billie Eilish",
+        videoId: "V9PVRfjEBTI",
+        thumbnail: "https://i.ytimg.com/vi/V9PVRfjEBTI/hqdefault.jpg"
+      }
+    },
+    "sabrina carpenter": {
+      name: "Sabrina Carpenter",
+      portrait: "https://yt3.ggpht.com/KgFH3zHZEmjN6tPMRBTrc1kBAHPajOGgw5tQbh-rNJnLyoabg7CCxcGdLjBOhaBxGZtRz-Z5=s800-c-k-c0x00ffffff-no-rj",
+      avatar: "https://yt3.ggpht.com/KgFH3zHZEmjN6tPMRBTrc1kBAHPajOGgw5tQbh-rNJnLyoabg7CCxcGdLjBOhaBxGZtRz-Z5=s800-c-k-c0x00ffffff-no-rj",
+      glow: "rgba(255, 190, 120, 0.35)",
+      topTrack: {
+        title: "Espresso",
+        artist: "Sabrina Carpenter",
+        videoId: "eVli-tstM5E",
+        thumbnail: "https://i.ytimg.com/vi/eVli-tstM5E/hqdefault.jpg"
+      }
+    },
+    "the weeknd": {
+      name: "The Weeknd",
+      portrait: "https://yt3.ggpht.com/EuRWZeic2Q6xLGGxm-VihpDFHAS790YJXHwnnUnYBubP1alIO8rmsbUhaQT2Cz-zzZ28HEo7pg=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/EuRWZeic2Q6xLGGxm-VihpDFHAS790YJXHwnnUnYBubP1alIO8rmsbUhaQT2Cz-zzZ28HEo7pg=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(230, 80, 80, 0.35)",
+      topTrack: {
+        title: "Blinding Lights",
+        artist: "The Weeknd",
+        videoId: "4NRXx6U8ABQ",
+        thumbnail: "https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg"
+      }
+    },
+    "bini": {
+      name: "BINI",
+      portrait: "https://yt3.ggpht.com/z7Z3zm2O1_pHcFBcZW0DBfME5xlVmgfiMoWlw9LqGYybjiIzHqnbZoAG-ApCHmcBQ12H1TFN-uU=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/z7Z3zm2O1_pHcFBcZW0DBfME5xlVmgfiMoWlw9LqGYybjiIzHqnbZoAG-ApCHmcBQ12H1TFN-uU=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(255, 140, 200, 0.35)",
+      topTrack: {
+        title: "Pantropiko",
+        artist: "BINI",
+        videoId: "Zx31bB2vMns",
+        thumbnail: "https://i.ytimg.com/vi/Zx31bB2vMns/hqdefault.jpg"
+      }
+    },
+    "bruno mars": {
+      name: "Bruno Mars",
+      portrait: "https://yt3.ggpht.com/7v3fStxrcZgiFvAjAs-Mm9VtjSCmSyExaJ7X4MgXD24Evzm-_pAPZKAkT9bwTgdrq0Be5kltCw=s800-c-k-c0xffffffff-no-rj-mo",
+      avatar: "https://yt3.ggpht.com/7v3fStxrcZgiFvAjAs-Mm9VtjSCmSyExaJ7X4MgXD24Evzm-_pAPZKAkT9bwTgdrq0Be5kltCw=s800-c-k-c0xffffffff-no-rj-mo",
+      glow: "rgba(255, 180, 80, 0.35)",
+      topTrack: {
+        title: "24K Magic",
+        artist: "Bruno Mars",
+        videoId: "UqyT8IEBkvY",
+        thumbnail: "https://i.ytimg.com/vi/UqyT8IEBkvY/hqdefault.jpg"
+      }
+    },
+    "taylor swift": {
+      name: "Taylor Swift",
+      portrait: "https://yt3.ggpht.com/5cW4-NDteLLBaWpsjSirr7EmaOKtFGyX8PG2-6Xx7RELneLZe50Y5Bv9oEothnH9BOqxUpClfA=s800-c-k-c0x00ffffff-no-rj",
+      avatar: "https://yt3.ggpht.com/5cW4-NDteLLBaWpsjSirr7EmaOKtFGyX8PG2-6Xx7RELneLZe50Y5Bv9oEothnH9BOqxUpClfA=s800-c-k-c0x00ffffff-no-rj",
+      glow: "rgba(170, 200, 255, 0.35)",
+      topTrack: {
+        title: "Cruel Summer",
+        artist: "Taylor Swift",
+        videoId: "ic8j13piAhQ",
+        thumbnail: "https://i.ytimg.com/vi/ic8j13piAhQ/hqdefault.jpg"
+      }
+    },
+    "olivia rodrigo": {
+      name: "Olivia Rodrigo",
+      portrait: "https://yt3.ggpht.com/41-4WZupE4yY88igineZefzBZ3ud2nrtlBMv61OBWOfOcATol8PhmI5OZ0fLlrTszyZ3Ul9I9sE=s800-c-k-c0x00ffffff-no-rj",
+      avatar: "https://yt3.ggpht.com/41-4WZupE4yY88igineZefzBZ3ud2nrtlBMv61OBWOfOcATol8PhmI5OZ0fLlrTszyZ3Ul9I9sE=s800-c-k-c0x00ffffff-no-rj",
+      glow: "rgba(180, 120, 220, 0.35)",
+      topTrack: {
+        title: "vampire",
+        artist: "Olivia Rodrigo",
+        videoId: "ZmDBbnmKpqQ",
+        thumbnail: "https://i.ytimg.com/vi/ZmDBbnmKpqQ/hqdefault.jpg"
+      }
+    }
+  };
+
+  const DERBIS_CATALOG_TRACKS = [
+    { title: "Love Me Harder", artist: "Ariana Grande, The Weeknd", videoId: "g5qU7p7yOY8", thumbnail: "https://i.ytimg.com/vi/g5qU7p7yOY8/hqdefault.jpg" },
+    { title: "kahel na langit", artist: "Maki", videoId: "DuKb1yF5Wh4", thumbnail: "https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg" },
+    { title: "Die With A Smile", artist: "Lady Gaga & Bruno Mars", videoId: "kPa7bsKwL-c", thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg" },
+    { title: "BIRDS OF A FEATHER", artist: "Billie Eilish", videoId: "V9PVRfjEBTI", thumbnail: "https://i.ytimg.com/vi/V9PVRfjEBTI/hqdefault.jpg" },
+    { title: "Espresso", artist: "Sabrina Carpenter", videoId: "eVli-tstM5E", thumbnail: "https://i.ytimg.com/vi/eVli-tstM5E/hqdefault.jpg" },
+    { title: "Dilaw", artist: "Maki", videoId: "L215z9C4Zd8", thumbnail: "https://i.ytimg.com/vi/L215z9C4Zd8/hqdefault.jpg" },
+    { title: "we can't be friends (wait for your love)", artist: "Ariana Grande", videoId: "KNtJGQkC-WI", thumbnail: "https://i.ytimg.com/vi/KNtJGQkC-WI/hqdefault.jpg" },
+    { title: "Taste", artist: "Sabrina Carpenter", videoId: "kJQP7kiw5Fk", thumbnail: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" },
+    { title: "Pantropiko", artist: "BINI", videoId: "Zx31bB2vMns", thumbnail: "https://i.ytimg.com/vi/Zx31bB2vMns/hqdefault.jpg" },
+    { title: "Blinding Lights", artist: "The Weeknd", videoId: "4NRXx6U8ABQ", thumbnail: "https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg" },
+    { title: "Starboy", artist: "The Weeknd ft. Daft Punk", videoId: "34Na4j8AVgA", thumbnail: "https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg" },
+    { title: "Cruel Summer", artist: "Taylor Swift", videoId: "ic8j13piAhQ", thumbnail: "https://i.ytimg.com/vi/ic8j13piAhQ/hqdefault.jpg" },
+    { title: "vampire", artist: "Olivia Rodrigo", videoId: "ZmDBbnmKpqQ", thumbnail: "https://i.ytimg.com/vi/ZmDBbnmKpqQ/hqdefault.jpg" },
+    { title: "good 4 u", artist: "Olivia Rodrigo", videoId: "gNi_6U5Pm_o", thumbnail: "https://i.ytimg.com/vi/gNi_6U5Pm_o/hqdefault.jpg" },
+    { title: "7 rings", artist: "Ariana Grande", videoId: "QYh6mYIJG2Y", thumbnail: "https://i.ytimg.com/vi/QYh6mYIJG2Y/hqdefault.jpg" },
+    { title: "Bad Romance", artist: "Lady Gaga", videoId: "bESGLojNYSo", thumbnail: "https://i.ytimg.com/vi/bESGLojNYSo/hqdefault.jpg" },
+    { title: "24K Magic", artist: "Bruno Mars", videoId: "UqyT8IEBkvY", thumbnail: "https://i.ytimg.com/vi/UqyT8IEBkvY/hqdefault.jpg" },
+    { title: "Levitating", artist: "Dua Lipa", videoId: "TUVcZfQe-Kw", thumbnail: "https://i.ytimg.com/vi/TUVcZfQe-Kw/hqdefault.jpg" },
+    { title: "Bohemian Rhapsody", artist: "Queen", videoId: "fJ9rUzIMcZQ", thumbnail: "https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" },
+    { title: "Viva La Vida", artist: "Coldplay", videoId: "dvgZkm1xWPE", thumbnail: "https://i.ytimg.com/vi/dvgZkm1xWPE/hqdefault.jpg" }
+  ];
+
+  const bracketAnnotationPattern = /[([][^)]*(?:(?:official\s+)?(?:music\s+)?(?:video|audio)|lyrics?|visuali[sz]er|feat\.?|ft\.?|featuring|hd|4k|mv)[^)\]]*[)\]]/gi;
+  const trailingFeaturePattern = /\b(?:feat\.?|ft\.?|featuring)\b.*$/i;
+  const displayAnnotationPattern = /\b(?:(?:official\s+)?(?:music\s+)?(?:video|audio)|lyrics?|visuali[sz]er|4k|hd|mv)\b/gi;
+  const nonMusicWordPattern = /[^\p{L}\p{M}\p{N}\s]/gu;
+  const whitespacePattern = /\s+/g;
+  const artistSeparatorPattern = /(?:\s(?:feat\.?|featuring|ft\.?|and|with|e|y|und|[,&;+])\s|[,;&+]\s)/gi;
+
+  function cleanYouTubeTrackTitle(raw) {
+    return String(raw || "")
+      .replace(bracketAnnotationPattern, " ")
+      .replace(displayAnnotationPattern, " ")
+      .replace(whitespacePattern, " ")
+      .trim();
+  }
+
+  function parseYouTubeVideoTitle(rawTitle, defaultChannel) {
+    let clean = cleanYouTubeTrackTitle(rawTitle);
+    if (clean.includes(" - ")) {
+      const parts = clean.split(" - ");
+      const artist = parts[0].trim();
+      const title = parts.slice(1).join(" - ").trim();
+      return { title: title || clean, artist: artist || defaultChannel || "Official Artist" };
+    }
+    return { title: clean, artist: defaultChannel || "Official Artist" };
+  }
+
+  function normalizeMusicTitle(title) {
+    return String(title || "")
+      .toLowerCase()
+      .replace(bracketAnnotationPattern, " ")
+      .replace(trailingFeaturePattern, " ")
+      .replace(displayAnnotationPattern, " ")
+      .replace(nonMusicWordPattern, " ")
+      .replace(whitespacePattern, " ")
+      .trim();
+  }
+
+  function normalizeArtists(artist) {
+    return String(artist || "")
+      .toLowerCase()
+      .replace(artistSeparatorPattern, "|")
+      .split("|")
+      .map((a) => a.replace(nonMusicWordPattern, " ").replace(whitespacePattern, " ").trim())
+      .filter(Boolean);
+  }
+
+  function getTrackIdentityKey(track) {
+    if (!track) return "";
+    const titleKey = normalizeMusicTitle(track.title);
+    const artistKey = normalizeArtists(track.artist).sort().join("|");
+    if (titleKey && artistKey) return `${artistKey}|${titleKey}`;
+    return track.videoId || track.id || "";
+  }
+
+  function recordPlaybackHistory(track) {
+    if (!track?.title || !track?.videoId) return;
+    try {
+      const historyKey = "derbis-playback-history";
+      const raw = localStorage.getItem(historyKey);
+      let list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+      const identity = getTrackIdentityKey(track);
+      list = list.filter((item) => getTrackIdentityKey(item) !== identity);
+      list.unshift(track);
+      if (list.length > 50) list.length = 50;
+      localStorage.setItem(historyKey, JSON.stringify(list));
+      applyDerbisAlgorithm({ preserveCurrentPlaying: true });
+    } catch (e) {
+      console.warn("Could not save playback history:", e);
+    }
+  }
+
+  const HOME_QUICK_PICKS_LIMIT = 20;
+  const HOME_QUICK_PICKS_ARTIST_LIMIT = 2;
+  const HOME_ORBIT_LIMIT = 8;
+
+  function buildPersonalOrbitAlgorithm({ accountTracks = [], historyTracks = [], catalogTracks = [] }) {
+    const tasteSeeds = [...historyTracks, ...accountTracks];
+    const topSeedArtists = new Set();
+    tasteSeeds.forEach((t) => {
+      normalizeArtists(t.artist).forEach((a) => topSeedArtists.add(a));
+    });
+
+    const candidates = [...catalogTracks];
+    candidates.sort((a, b) => {
+      const aArtists = normalizeArtists(a.artist);
+      const bArtists = normalizeArtists(b.artist);
+      const aMatch = aArtists.some((art) => topSeedArtists.has(art)) ? 1 : 0;
+      const bMatch = bArtists.some((art) => topSeedArtists.has(art)) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+
+    const selected = [];
+    const seen = new Set();
+    for (const t of candidates) {
+      if (selected.length >= HOME_ORBIT_LIMIT) break;
+      const idKey = getTrackIdentityKey(t);
+      if (!idKey || seen.has(idKey)) continue;
+      seen.add(idKey);
+      selected.push(t);
+    }
+    return selected;
+  }
+
+  function buildQuickPicksAlgorithm({ accountTracks = [], historyTracks = [], catalogTracks = [], orbitTracks = [] }) {
+    const orbitKeys = new Set(orbitTracks.map(getTrackIdentityKey).filter(Boolean));
+    const candidates = [
+      ...accountTracks,
+      ...historyTracks,
+      ...catalogTracks
+    ];
+
+    const selected = [];
+    const seen = new Set();
+    const artistCounts = new Map();
+
+    function addCandidate(track, enforceArtistLimit, allowOrbitOverlap) {
+      if (selected.length >= HOME_QUICK_PICKS_LIMIT) return;
+      if (!track?.videoId || !track?.title) return;
+      const identity = getTrackIdentityKey(track);
+      if (!identity) return;
+      if (!allowOrbitOverlap && orbitKeys.has(identity)) return;
+      if (seen.has(identity)) return;
+
+      const primaryArtist = (normalizeArtists(track.artist)[0] || track.artist || "").toLowerCase().trim();
+      const count = artistCounts.get(primaryArtist) || 0;
+      if (enforceArtistLimit && primaryArtist && count >= HOME_QUICK_PICKS_ARTIST_LIMIT) {
+        return;
+      }
+
+      seen.add(identity);
+      selected.push(track);
+      if (primaryArtist) {
+        artistCounts.set(primaryArtist, count + 1);
+      }
+    }
+
+    for (const track of candidates) {
+      addCandidate(track, true, false);
+    }
+    if (selected.length < HOME_QUICK_PICKS_LIMIT) {
+      for (const track of candidates) {
+        addCandidate(track, false, false);
+      }
+    }
+    if (selected.length < HOME_QUICK_PICKS_LIMIT) {
+      for (const track of candidates) {
+        addCandidate(track, false, true);
+      }
+    }
+
+    return selected;
+  }
+
+  function buildStudioSpotlightHero({ quickTracks = [], orbitTracks = [], accountTracks = [], historyTracks = [], subscriptions = [] }) {
+    const leadCandidates = [currentYouTubeTrack, ...historyTracks, ...accountTracks, ...orbitTracks, ...quickTracks].filter(Boolean);
+    let heroCandidate = leadCandidates[0] || DERBIS_CATALOG_TRACKS[0];
+    let primaryArtist = (normalizeArtists(heroCandidate.artist)[0] || heroCandidate.artist || "Ariana Grande").toLowerCase();
+
+    let heroProfile = KNOWN_ARTIST_PROFILES[primaryArtist];
+    if (!heroProfile) {
+      const matchedKey = Object.keys(KNOWN_ARTIST_PROFILES).find((k) => primaryArtist.includes(k) || k.includes(primaryArtist));
+      if (matchedKey) {
+        heroProfile = KNOWN_ARTIST_PROFILES[matchedKey];
+        primaryArtist = matchedKey;
+      } else {
+        heroProfile = KNOWN_ARTIST_PROFILES["ariana grande"];
+      }
+    }
+
+    spotlightHeroTrack = heroCandidate;
+
+    const companionArtists = [];
+    const companionAvatars = [];
+    const seenCompanion = new Set([primaryArtist]);
+
+    subscriptions.forEach((sub) => {
+      const subNorm = sub.name.toLowerCase().trim();
+      if (!seenCompanion.has(subNorm) && sub.avatar && companionAvatars.length < 3) {
+        seenCompanion.add(subNorm);
+        companionArtists.push(sub.name);
+        companionAvatars.push({ name: sub.name, avatar: sub.avatar });
+      }
+    });
+
+    for (const track of [...quickTracks, ...orbitTracks, ...DERBIS_CATALOG_TRACKS]) {
+      if (companionAvatars.length >= 3) break;
+      const tArtists = normalizeArtists(track.artist);
+      for (const art of tArtists) {
+        if (companionAvatars.length >= 3) break;
+        if (!seenCompanion.has(art)) {
+          seenCompanion.add(art);
+          const prof = KNOWN_ARTIST_PROFILES[art] || Object.values(KNOWN_ARTIST_PROFILES).find((p) => p.name.toLowerCase().includes(art) || art.includes(p.name.toLowerCase()));
+          if (prof) {
+            companionArtists.push(prof.name);
+            companionAvatars.push({ name: prof.name, avatar: prof.avatar });
+          }
+        }
+      }
+    }
+
+    if (companionAvatars.length < 3) {
+      const defaults = [KNOWN_ARTIST_PROFILES["maki"], KNOWN_ARTIST_PROFILES["billie eilish"], KNOWN_ARTIST_PROFILES["lady gaga"]];
+      defaults.forEach((def) => {
+        if (companionAvatars.length < 3 && !companionArtists.includes(def.name) && def.name.toLowerCase() !== heroProfile.name.toLowerCase()) {
+          companionArtists.push(def.name);
+          companionAvatars.push({ name: def.name, avatar: def.avatar });
+        }
+      });
+    }
+
+    const leadNames = [heroProfile.name, ...companionArtists.slice(0, 2)];
+    let leadText = `Starts with ${leadNames[0]}`;
+    if (leadNames.length === 2) {
+      leadText = `Starts with ${leadNames[0]} and ${leadNames[1]}`;
+    } else if (leadNames.length >= 3) {
+      leadText = `Starts with ${leadNames[0]}, ${leadNames[1]}, and ${leadNames[2]}`;
+    }
+
+    if (elements.soundtrackPortraitImg) {
+      elements.soundtrackPortraitImg.src = heroProfile.portrait;
+      elements.soundtrackPortraitImg.alt = heroProfile.name;
+    }
+    if (elements.soundtrackGlow && heroProfile.glow) {
+      elements.soundtrackGlow.style.background = `radial-gradient(circle, ${heroProfile.glow} 0%, rgba(94,129,244,0.16) 45%, transparent 72%)`;
+    }
+    if (elements.soundtrackCompanionStack) {
+      elements.soundtrackCompanionStack.innerHTML = companionAvatars
+        .slice(0, 3)
+        .map((c) => `<img class="companion-avatar" src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" />`)
+        .join("");
+    }
+    if (elements.soundtrackLead) {
+      elements.soundtrackLead.textContent = leadText;
+    }
+  }
+
+  function renderQuickPicksGrid(tracks) {
+    if (!elements.quickGrid) return;
+    elements.quickGrid.innerHTML = tracks
+      .map((t, idx) => {
+        const isCurrent = currentYouTubeTrack?.videoId === t.videoId || idx === 0;
+        return `
+          <button class="quick-track ${isCurrent ? "is-current" : ""}" type="button" data-title="${escapeHtml(t.title)}" data-artist="${escapeHtml(t.artist)}" data-video-id="${escapeHtml(t.videoId)}" data-thumb="${escapeHtml(t.thumbnail)}">
+            <span class="album-art has-thumb"><img src="${escapeHtml(t.thumbnail)}" alt="${escapeHtml(t.title)}" loading="lazy" /></span>
+            <span class="track-meta"><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.artist)}</small></span>
+            <span class="playing-bars" aria-label="Selected" style="display:${isCurrent ? "inline-flex" : "none"};"><i></i><i></i><i></i></span>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function renderOrbitRail(tracks) {
+    if (!elements.orbitRail) return;
+    elements.orbitRail.innerHTML = tracks
+      .map((t) => {
+        return `
+          <button class="orbit-card" type="button" data-title="${escapeHtml(t.title)}" data-artist="${escapeHtml(t.artist)}" data-video-id="${escapeHtml(t.videoId)}" data-thumb="${escapeHtml(t.thumbnail)}">
+            <span class="cover has-thumb"><img src="${escapeHtml(t.thumbnail)}" alt="${escapeHtml(t.title)}" loading="lazy" /></span>
+            <strong>${escapeHtml(t.title)}</strong>
+            <small>${escapeHtml(t.artist)}</small>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function applyDerbisAlgorithm({ preserveCurrentPlaying = false } = {}) {
+    let accountData = null;
+    try {
+      const raw = localStorage.getItem("derbis-youtube-account-data");
+      if (raw) accountData = JSON.parse(raw);
+    } catch {}
+
+    let historyTracks = [];
+    try {
+      const raw = localStorage.getItem("derbis-playback-history");
+      if (raw) historyTracks = JSON.parse(raw);
+      if (!Array.isArray(historyTracks)) historyTracks = [];
+    } catch {}
+
+    const accountTracks = Array.isArray(accountData?.likedTracks) ? accountData.likedTracks : [];
+    const subscriptions = Array.isArray(accountData?.subscriptions) ? accountData.subscriptions : [];
+
+    const orbitTracks = buildPersonalOrbitAlgorithm({
+      accountTracks,
+      historyTracks,
+      catalogTracks: DERBIS_CATALOG_TRACKS
+    });
+
+    const quickTracks = buildQuickPicksAlgorithm({
+      accountTracks,
+      historyTracks,
+      catalogTracks: DERBIS_CATALOG_TRACKS,
+      orbitTracks
+    });
+
+    renderOrbitRail(orbitTracks);
+    renderQuickPicksGrid(quickTracks);
+
+    buildStudioSpotlightHero({
+      quickTracks,
+      orbitTracks,
+      accountTracks,
+      historyTracks,
+      subscriptions
+    });
+  }
+
+  async function syncYouTubeAccountData(token) {
+    if (!token) return;
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [likedRes, playlistsRes, subsRes] = await Promise.all([
+        fetch("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=LL&maxResults=25", { headers }).catch(() => null),
+        fetch("https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=20", { headers }).catch(() => null),
+        fetch("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=25", { headers }).catch(() => null)
+      ]);
+
+      const likedTracks = [];
+      if (likedRes && likedRes.ok) {
+        const likedData = await likedRes.json();
+        (likedData.items || []).forEach((item) => {
+          const snip = item.snippet;
+          const vid = snip?.resourceId?.videoId || item.contentDetails?.videoId;
+          if (vid && snip?.title) {
+            const rawTitle = snip.title;
+            const channel = snip.videoOwnerChannelTitle || snip.channelTitle || "";
+            const { title, artist } = parseYouTubeVideoTitle(rawTitle, channel);
+            const thumb = snip.thumbnails?.high?.url || snip.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+            likedTracks.push({ title, artist, videoId: vid, thumbnail: thumb, source: "liked" });
+          }
+        });
+      }
+
+      const subscriptions = [];
+      if (subsRes && subsRes.ok) {
+        const subsData = await subsRes.json();
+        (subsData.items || []).forEach((item) => {
+          const snip = item.snippet;
+          if (snip?.title) {
+            subscriptions.push({
+              name: snip.title,
+              avatar: snip.thumbnails?.high?.url || snip.thumbnails?.medium?.url || "",
+              channelId: snip.resourceId?.channelId
+            });
+          }
+        });
+      }
+
+      const accountData = {
+        likedTracks,
+        subscriptions,
+        syncedAt: Date.now()
+      };
+
+      localStorage.setItem("derbis-youtube-account-data", JSON.stringify(accountData));
+      applyDerbisAlgorithm();
+      showToast("YouTube account data synced: Quick Picks & My Soundtrack updated.");
+    } catch (err) {
+      console.warn("YouTube account data sync failed:", err);
+    }
+  }
+
   function selectTrack(target) {
     const button = target.closest("[data-title]");
     if (!button) return;
@@ -744,6 +1275,7 @@
     const videoId = button.dataset.videoId;
     const art = button.dataset.art || "art-noir";
 
+    recordPlaybackHistory({ title, artist, thumbnail: thumb, thumb, videoId });
     setNowPlaying(title, artist, art, thumb, videoId);
 
     if (videoId) {
@@ -1205,18 +1737,31 @@
       event.stopPropagation();
       toggleNowPlayingSidebar();
     });
-    elements.soundtrackPlay.addEventListener("click", (event) => {
+    elements.quickGrid?.addEventListener("click", (event) => {
+      const track = event.target.closest(".quick-track");
+      if (track) selectTrack(track);
+    });
+    elements.orbitRail?.addEventListener("click", (event) => {
+      const card = event.target.closest(".orbit-card");
+      if (card) selectTrack(card);
+    });
+    elements.soundtrackPlay?.addEventListener("click", (event) => {
       event.stopPropagation();
-      const first = $(".quick-track");
-      if (first) {
-        selectTrack(first);
+      if (spotlightHeroTrack?.videoId) {
+        setNowPlaying(spotlightHeroTrack.title, spotlightHeroTrack.artist, "art-pop", spotlightHeroTrack.thumbnail, spotlightHeroTrack.videoId);
+        playYouTubeVideo(spotlightHeroTrack.videoId, spotlightHeroTrack);
       } else {
-        playYouTubeVideo("kPa7bsKwL-c", {
-          title: "Die With A Smile",
-          artist: "Lady Gaga & Bruno Mars",
-          thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg",
-          videoId: "kPa7bsKwL-c"
-        });
+        const first = $(".quick-track");
+        if (first) {
+          selectTrack(first);
+        } else {
+          playYouTubeVideo("kPa7bsKwL-c", {
+            title: "Die With A Smile",
+            artist: "Lady Gaga & Bruno Mars",
+            thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg",
+            videoId: "kPa7bsKwL-c"
+          });
+        }
       }
     });
     elements.dockPlay.addEventListener("click", togglePlayback);
@@ -1353,5 +1898,6 @@
   renderAccount(storedProfile());
   renderDayGreeting();
   scheduleGreetingRefresh();
+  applyDerbisAlgorithm();
   setPlayIcon(false);
 })();

@@ -98,17 +98,27 @@
         <section class="page page-home" data-page-panel="home">
           <div class="mobile-greeting"><p id="mobile-day-greeting">Good evening</p><h1 id="mobile-welcome-name">Yasuda</h1></div>
 
-          <article class="soundtrack-card" aria-labelledby="soundtrack-title">
+          <article class="soundtrack-card" id="soundtrack-card" aria-labelledby="soundtrack-title">
             <div class="soundtrack-noise"></div>
             <div class="soundtrack-orbit orbit-a"></div><div class="soundtrack-orbit orbit-b"></div>
-            <div class="soundtrack-art" aria-hidden="true"><div class="portrait-glow"></div><span>Y</span><i></i></div>
+            <div class="soundtrack-art" id="soundtrack-art" aria-hidden="true">
+              <div class="portrait-glow" id="soundtrack-glow"></div>
+              <img class="soundtrack-portrait-img" id="soundtrack-portrait-img" src="https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" alt="Featured Artist" />
+            </div>
             <div class="soundtrack-content">
               <span class="eyebrow"><i></i> RADIO</span>
               <h2 id="soundtrack-title">My soundtrack</h2>
-              <p>Made for your next moment</p>
-              <div class="listener-stack" aria-hidden="true"><b>Y</b><b>+</b><b>♫</b><span>Starts with your favorites</span></div>
+              <p id="soundtrack-subtitle">Made for your next moment</p>
+              <div class="listener-stack" id="soundtrack-listener-stack" aria-hidden="true">
+                <div class="companion-stack" id="soundtrack-companion-stack">
+                  <img class="companion-avatar" src="https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" alt="Ariana Grande" />
+                  <img class="companion-avatar" src="https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo" alt="Maki" />
+                  <img class="companion-avatar" src="https://yt3.ggpht.com/cCf3P5ZRQ5f0D69oXzAg6LUI6gazIPLhIohervVyg0JdGrDfo5MUCzU_qujvGruLVWwtVtbf6Q=s800-c-k-c0xffffffff-no-rj-mo" alt="Billie Eilish" />
+                </div>
+                <span id="soundtrack-lead">Starts with Ariana Grande, Maki, and Billie Eilish</span>
+              </div>
             </div>
-            <button class="hero-play" id="soundtrack-play" type="button" aria-label="Open the official YouTube player"><svg><use href="#i-youtube"/></svg></button>
+            <button class="hero-play" id="soundtrack-play" type="button" aria-label="Play My Soundtrack"><svg><use href="#i-play"/></svg></button>
           </article>
 
           <div class="mood-scroller" aria-label="Quick filters">
@@ -173,7 +183,7 @@
               <div><p class="section-kicker">YASUDA</p><h2 id="orbit-title">Your orbit</h2></div>
               <button class="text-action" type="button" data-toast="Your orbit refreshes as you listen on Derbis.">See all <svg><use href="#i-arrow"/></svg></button>
             </div>
-            <div class="album-rail" aria-label="Your orbit suggestions">
+            <div class="album-rail" id="orbit-rail" aria-label="Your orbit suggestions">
               <button class="orbit-card" type="button" data-title="Die With A Smile" data-artist="Lady Gaga & Bruno Mars" data-video-id="kPa7bsKwL-c" data-thumb="https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg"><span class="cover has-thumb"><img src="https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg" alt="Die With A Smile" loading="lazy" /></span><strong>Die With A Smile</strong><small>Lady Gaga &amp; Bruno Mars</small></button>
               <button class="orbit-card" type="button" data-title="kahel na langit" data-artist="Maki" data-video-id="DuKb1yF5Wh4" data-thumb="https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg"><span class="cover has-thumb"><img src="https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg" alt="kahel na langit" loading="lazy" /></span><strong>kahel na langit</strong><small>Maki radio</small></button>
               <button class="orbit-card" type="button" data-title="Dilaw" data-artist="Maki" data-video-id="L215z9C4Zd8" data-thumb="https://i.ytimg.com/vi/L215z9C4Zd8/hqdefault.jpg"><span class="cover has-thumb"><img src="https://i.ytimg.com/vi/L215z9C4Zd8/hqdefault.jpg" alt="Dilaw" loading="lazy" /></span><strong>Dilaw</strong><small>Maki official</small></button>
