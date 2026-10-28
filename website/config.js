@@ -6,7 +6,7 @@
  * add your deployed https origin under Authorized JavaScript origins, then set its ID.
  */
 window.DERBIS_WEB_CONFIG = {
-  googleOAuthClientId: "",
+  googleOAuthClientId: "584141503005-h3lamjrir2ehbpjl3pruojg52u0hvu2j.apps.googleusercontent.com",
   googleOAuthScopes: [
     "openid",
     "email",
