@@ -60,6 +60,8 @@
     dialogDetail: $("#account-dialog-detail"),
     dialogConnect: $("#dialog-connect"),
     disconnect: $("#disconnect-button"),
+    libraryConnectBtn: $("#library-connect-btn"),
+    libraryDisconnectBtn: $("#library-disconnect-btn"),
     welcomeName: $("#welcome-name"),
     mobileWelcomeName: $("#mobile-welcome-name"),
     desktopDayGreeting: $("#desktop-day-greeting"),
@@ -408,8 +410,10 @@
     elements.libraryAccountDetail.textContent = connected
       ? `Connected as ${profile.email || "Google account"}. ${profile.channelTitle || "No public YouTube channel found"}.`
       : "Use official Google browser authorization for your YouTube profile and channel details.";
-    elements.dialogConnect.textContent = connected ? "Reconnect Google / YouTube" : "Connect Google / YouTube";
+    elements.dialogConnect.hidden = connected;
     elements.disconnect.hidden = !connected;
+    if (elements.libraryConnectBtn) elements.libraryConnectBtn.hidden = connected;
+    if (elements.libraryDisconnectBtn) elements.libraryDisconnectBtn.hidden = !connected;
     [elements.profileAvatar, elements.topProfileAvatar, elements.dialogAvatar].forEach((avatar) => setAvatar(avatar, profile, initial));
   }
 
@@ -1015,6 +1019,7 @@
     });
     all(".connect-trigger").forEach((button) => button.addEventListener("click", requestConnection));
     elements.disconnect.addEventListener("click", disconnect);
+    elements.libraryDisconnectBtn?.addEventListener("click", disconnect);
     elements.file.addEventListener("change", () => selectLocalAudio(elements.file.files?.[0]));
     elements.playerDock.addEventListener("click", (event) => {
       if (event.target.closest("#dock-play, .dock-icon, .dock-queue, input")) return;
