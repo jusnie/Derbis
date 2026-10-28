@@ -15,6 +15,7 @@
   let youtubeSearchAbort = null;
   let youTubePlayer = null;
   let youtubeApiPromise = null;
+  let directYoutubeEmbed = false;
   let toastTimer = 0;
 
   const $ = (selector) => document.querySelector(selector);
@@ -35,6 +36,7 @@
     youtubeClose: $("#youtube-close"),
     youtubeForm: $("#youtube-form"),
     youtubeUrl: $("#youtube-url"),
+    youtubeFrame: $("#youtube-frame"),
     youtubeTrigger: $("#youtube-trigger"),
     youtubeSearchForm: $("#youtube-search-form"),
     youtubeSearchInput: $("#youtube-search-input"),
@@ -173,20 +175,49 @@
     }
   }
 
+  function playerPlaceholder(message = "Paste a video link to begin") {
+    return `<div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>${escapeHtml(message)}</span></div>`;
+  }
+
+  function showPlayerLoading() {
+    if (elements.youtubeFrame?.isConnected) {
+      elements.youtubeFrame.innerHTML = playerPlaceholder("Loading the official YouTube player…");
+    }
+  }
+
+  function renderDirectYouTubeEmbed(videoId) {
+    // Reliable official fallback for slow/blocked IFrame API script loads.
+    if (!elements.youtubeFrame?.isConnected) return;
+    directYoutubeEmbed = true;
+    elements.youtubeFrame.innerHTML = `<iframe title="YouTube video player" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&rel=0&modestbranding=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+    showToast("Use the YouTube player controls if your browser blocks autoplay.");
+  }
+
   function loadYouTubeIframeApi() {
     if (window.YT?.Player) return Promise.resolve();
     if (youtubeApiPromise) return youtubeApiPromise;
     youtubeApiPromise = new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        callback(value);
+      };
       const previousReady = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = () => {
         if (typeof previousReady === "function") previousReady();
-        resolve();
+        finish(resolve);
       };
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
-      script.onerror = () => reject(new Error("The YouTube player library could not load."));
+      script.onerror = () => finish(reject, new Error("The YouTube player library could not load."));
+      const timeout = window.setTimeout(() => finish(reject, new Error("The YouTube player library timed out.")), 7000);
       document.head.append(script);
+    }).catch((error) => {
+      youtubeApiPromise = null;
+      throw error;
     });
     return youtubeApiPromise;
   }
@@ -195,7 +226,11 @@
     try {
       youTubePlayer?.pauseVideo?.();
     } catch {
-      // The embedded player may not have finished initializing yet.
+      // The API player may not have finished initializing yet.
+    }
+    if (directYoutubeEmbed && elements.youtubeFrame?.isConnected) {
+      elements.youtubeFrame.innerHTML = playerPlaceholder("Playback paused");
+      directYoutubeEmbed = false;
     }
   }
 
@@ -215,29 +250,36 @@
       showToast("Paste a valid public YouTube video URL or 11-character video ID.");
       return;
     }
+    // Open immediately so the tap always gives visible feedback, even on a slow network.
+    if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
+    if (elements.audio.src) elements.audio.pause();
+    showPlayerLoading();
     try {
       await loadYouTubeIframeApi();
-      if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
-      if (elements.audio.src) elements.audio.pause();
       if (youTubePlayer) {
+        directYoutubeEmbed = false;
         youTubePlayer.loadVideoById(videoId);
       } else {
+        directYoutubeEmbed = false;
         youTubePlayer = new window.YT.Player("youtube-frame", {
           videoId,
           playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
           events: {
-            onReady: (event) => event.target.playVideo(),
+            onReady: (event) => {
+              if (elements.youtubeDialog.open) event.target.playVideo();
+            },
             onStateChange: (event) => {
               if (event.data === window.YT.PlayerState.PLAYING && elements.audio.src) elements.audio.pause();
             },
+            onAutoplayBlocked: () => showToast("Tap play in the YouTube player to start this video."),
             onError: () => showToast("This YouTube video cannot be embedded. Try another public video.")
           }
         });
       }
       showToast("Playing with YouTube’s official embedded player.");
     } catch (error) {
-      console.error(error);
-      showToast("The YouTube player could not start. Check your connection and try again.");
+      console.warn("YouTube IFrame API unavailable; using official embed fallback.", error);
+      renderDirectYouTubeEmbed(videoId);
     }
   }
 
