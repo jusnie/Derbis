@@ -1515,7 +1515,210 @@
     }));
   }
 
-  async function searchYouTube(query) {
+  const CURATED_GENRE_TRACKS = {
+    pop: {
+      songs: [
+        { title: "Cruel Summer", artist: "Taylor Swift", videoId: "ic8j13piAhQ", duration: "2:58", thumbnail: "https://i.ytimg.com/vi/ic8j13piAhQ/hqdefault.jpg" },
+        { title: "Love Me Harder", artist: "Ariana Grande ft. The Weeknd", videoId: "g5qU7p7yOY8", duration: "3:56", thumbnail: "https://i.ytimg.com/vi/g5qU7p7yOY8/hqdefault.jpg" },
+        { title: "Espresso", artist: "Sabrina Carpenter", videoId: "eVli-tstM5E", duration: "2:55", thumbnail: "https://i.ytimg.com/vi/eVli-tstM5E/hqdefault.jpg" },
+        { title: "Levitating", artist: "Dua Lipa", videoId: "TUVcZfQe-Kw", duration: "3:23", thumbnail: "https://i.ytimg.com/vi/TUVcZfQe-Kw/hqdefault.jpg" },
+        { title: "Taste", artist: "Sabrina Carpenter", videoId: "kJQP7kiw5Fk", duration: "2:37", thumbnail: "https://i.ytimg.com/vi/kJQP7kiw5Fk/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Taylor Swift", thumb: "https://yt3.googleusercontent.com/5cW4-NDteLLBaWpsjSirr7EmaOKtFGyX8PG2-6Xx7RELneLZe50Y5Bv9oEothnH9BOqxUpClfA=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Ariana Grande", thumb: "https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Dua Lipa", thumb: "https://yt3.googleusercontent.com/c3upBFWLu55hnBvqncQS9ZEF_hkvHsNTQiB7m7ZYYavLFMzfyn9Bwo-1VF4HSPGo3G2EdwGtgWg=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    rock: {
+      songs: [
+        { title: "Bohemian Rhapsody", artist: "Queen", videoId: "fJ9rUzIMcZQ", duration: "5:55", thumbnail: "https://i.ytimg.com/vi/fJ9rUzIMcZQ/hqdefault.jpg" },
+        { title: "Viva La Vida", artist: "Coldplay", videoId: "dvgZkm1xWPE", duration: "4:02", thumbnail: "https://i.ytimg.com/vi/dvgZkm1xWPE/hqdefault.jpg" },
+        { title: "In the End", artist: "Linkin Park", videoId: "eVTXPUF4Oz4", duration: "3:36", thumbnail: "https://i.ytimg.com/vi/eVTXPUF4Oz4/hqdefault.jpg" },
+        { title: "Smells Like Teen Spirit", artist: "Nirvana", videoId: "hTWKbfoikeg", duration: "4:38", thumbnail: "https://i.ytimg.com/vi/hTWKbfoikeg/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Queen", thumb: "https://yt3.googleusercontent.com/MiFTTCMl22bQ46F91rXFVhZ7PnBfLujsRWNxMik7NKVRDRBc-uBE7fba_3r9vTN39JvfRmh8nVU=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Coldplay", thumb: "https://yt3.googleusercontent.com/vWWn3HO1emNl2iGb08UuY4q_OtqXwUUWJMjMDr6bBPpuCBoWg-dE_Gu-yoMQNrBqb2gMzA3wLQ=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Linkin Park", thumb: "https://yt3.googleusercontent.com/OtUf050j6w6iRPUmGgmzblD2saluxUusxiVmo0-SMUnWiNKwR89JL_-xJ6JvIEram8UbPT_zDA=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    jam: {
+      songs: [
+        { title: "Gravity (Live)", artist: "John Mayer", videoId: "dBFW8OvciIU", duration: "5:48", thumbnail: "https://i.ytimg.com/vi/dBFW8OvciIU/hqdefault.jpg" },
+        { title: "Touch of Grey", artist: "Grateful Dead", videoId: "mzvk0fWtCs0", duration: "5:47", thumbnail: "https://i.ytimg.com/vi/mzvk0fWtCs0/hqdefault.jpg" },
+        { title: "Crash Into Me", artist: "Dave Matthews Band", videoId: "k7in-9E3ImQ", duration: "5:16", thumbnail: "https://i.ytimg.com/vi/k7in-9E3ImQ/hqdefault.jpg" },
+        { title: "Ripple", artist: "Grateful Dead", videoId: "CFsbAuX9P4w", duration: "4:09", thumbnail: "https://i.ytimg.com/vi/CFsbAuX9P4w/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "John Mayer", thumb: "https://yt3.googleusercontent.com/IrtssmU5WpTdgnAC3r-YNq_WDGujO8025uptIyQAj_qSL8I5w1NliNEGKvvtm9fWL3xVX6kmrQ=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Grateful Dead", thumb: "https://yt3.googleusercontent.com/kn1ugrZ4Nv2pGEKa7Oj1l01gcyR0c97Epx7cbsdiV7hwd2clnjocV_K9iyNIH8X5NJO2wFbuWw=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Dave Matthews Band", thumb: "https://yt3.googleusercontent.com/7Y5Hye_NzWoGQ_dmlWP33U70rG6JtwNeyi0-FIB9TECM2WFW1CJMP98mBrpO0uV0Ejjhteq_4A=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    hiphop: {
+      songs: [
+        { title: "HUMBLE.", artist: "Kendrick Lamar", videoId: "tvTRZJ-4EyI", duration: "2:57", thumbnail: "https://i.ytimg.com/vi/tvTRZJ-4EyI/hqdefault.jpg" },
+        { title: "SICKO MODE", artist: "Travis Scott", videoId: "6ONRf7h3Mdk", duration: "5:12", thumbnail: "https://i.ytimg.com/vi/6ONRf7h3Mdk/hqdefault.jpg" },
+        { title: "Lose Yourself", artist: "Eminem", videoId: "_Yhyp-_hX2s", duration: "5:26", thumbnail: "https://i.ytimg.com/vi/_Yhyp-_hX2s/hqdefault.jpg" },
+        { title: "Without Me", artist: "Eminem", videoId: "YVkUvmDQ3HY", duration: "4:50", thumbnail: "https://i.ytimg.com/vi/YVkUvmDQ3HY/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Kendrick Lamar", thumb: "https://yt3.googleusercontent.com/ytc/AIdro_mJoVPMBjJ0WNhRgNoQeztGbf1fbHjWlrP72VWlTr0rBg=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Travis Scott", thumb: "https://yt3.googleusercontent.com/ytc/AIdro_lYT_V7ztsYEvILayV7Ey_fgzx2VYpeLJxFXf1TO0rjPH8=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Eminem", thumb: "https://yt3.googleusercontent.com/8yd6Ce-sUyDjr4SbcpSrFGHK7lgDIzT24_uAet_h5A7SkKIotSzeSyseAuwuHBsjKpdDR9RIm-s=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    rnb: {
+      songs: [
+        { title: "Kill Bill", artist: "SZA", videoId: "MSRcC626prw", duration: "2:33", thumbnail: "https://i.ytimg.com/vi/MSRcC626prw/hqdefault.jpg" },
+        { title: "Blinding Lights", artist: "The Weeknd", videoId: "4NRXx6U8ABQ", duration: "3:20", thumbnail: "https://i.ytimg.com/vi/4NRXx6U8ABQ/hqdefault.jpg" },
+        { title: "Starboy", artist: "The Weeknd ft. Daft Punk", videoId: "34Na4j8AVgA", duration: "3:50", thumbnail: "https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg" },
+        { title: "Die With A Smile", artist: "Lady Gaga & Bruno Mars", videoId: "kPa7bsKwL-c", duration: "4:11", thumbnail: "https://i.ytimg.com/vi/kPa7bsKwL-c/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "SZA", thumb: "https://yt3.googleusercontent.com/yLBjfGExL_iEyNmOd5VjEVt6tQWg8Upr1mpafHQfsv-MU3875DnCI74VsslG0lZtiGjg0lf1wTk=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "The Weeknd", thumb: "https://yt3.ggpht.com/EuRWZeic2Q6xLGGxm-VihpDFHAS790YJXHwnnUnYBubP1alIO8rmsbUhaQT2Cz-zzZ28HEo7pg=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Frank Ocean", thumb: "https://yt3.ggpht.com/cEJPESZMHmLtSJblh9s7V5b_Xw7jv0LrHCTMyK-6L3S4noWl_RDySI1Ywkg5e3o0EkXFZjSsJQ=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    opm: {
+      songs: [
+        { title: "Pantropiko", artist: "BINI", videoId: "Zx31bB2vMns", duration: "3:45", thumbnail: "https://i.ytimg.com/vi/Zx31bB2vMns/hqdefault.jpg" },
+        { title: "kahel na langit", artist: "Maki", videoId: "DuKb1yF5Wh4", duration: "4:01", thumbnail: "https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg" },
+        { title: "Dilaw", artist: "Maki", videoId: "L215z9C4Zd8", duration: "3:10", thumbnail: "https://i.ytimg.com/vi/L215z9C4Zd8/hqdefault.jpg" },
+        { title: "GENTO", artist: "SB19", videoId: "VZZA_38RUBI", duration: "3:52", thumbnail: "https://i.ytimg.com/vi/VZZA_38RUBI/hqdefault.jpg" },
+        { title: "Salamin, Salamin", artist: "BINI", videoId: "J1Ip2sC_lss", duration: "3:50", thumbnail: "https://i.ytimg.com/vi/J1Ip2sC_lss/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "BINI", thumb: "https://yt3.ggpht.com/z7Z3zm2O1_pHcFBcZW0DBfME5xlVmgfiMoWlw9LqGYybjiIzHqnbZoAG-ApCHmcBQ12H1TFN-uU=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Maki", thumb: "https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "SB19", thumb: "https://yt3.ggpht.com/Lq6oaEj_0jHHYdZezF5_wQuWpmc49sWyL1X1c-_cSmdltb83ZW8oO4qa-t4BQT6VKiuTLdTaxAg=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    indie: {
+      songs: [
+        { title: "BIRDS OF A FEATHER", artist: "Billie Eilish", videoId: "V9PVRfjEBTI", duration: "3:13", thumbnail: "https://i.ytimg.com/vi/V9PVRfjEBTI/hqdefault.jpg" },
+        { title: "vampire", artist: "Olivia Rodrigo", videoId: "ZmDBbnmKpqQ", duration: "3:39", thumbnail: "https://i.ytimg.com/vi/ZmDBbnmKpqQ/hqdefault.jpg" },
+        { title: "good 4 u", artist: "Olivia Rodrigo", videoId: "gNi_6U5Pm_o", duration: "2:58", thumbnail: "https://i.ytimg.com/vi/gNi_6U5Pm_o/hqdefault.jpg" },
+        { title: "bad guy", artist: "Billie Eilish", videoId: "DyDfgMOUjCI", duration: "3:14", thumbnail: "https://i.ytimg.com/vi/DyDfgMOUjCI/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Billie Eilish", thumb: "https://yt3.ggpht.com/cCf3P5ZRQ5f0D69oXzAg6LUI6gazIPLhIohervVyg0JdGrDfo5MUCzU_qujvGruLVWwtVtbf6Q=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Olivia Rodrigo", thumb: "https://yt3.ggpht.com/41-4WZupE4yY88igineZefzBZ3ud2nrtlBMv61OBWOfOcATol8PhmI5OZ0fLlrTszyZ3Ul9I9sE=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "keshi", thumb: "https://yt3.ggpht.com/Fms_QqC83TEej3mcHa8qy41s2rrSX3WeNtNCPDrbJ2EYWb_K7uBtgMRAhq5rQFVd_v19y6Qi=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    electro: {
+      songs: [
+        { title: "One Kiss", artist: "Calvin Harris, Dua Lipa", videoId: "DkeiKbqa02g", duration: "3:34", thumbnail: "https://i.ytimg.com/vi/DkeiKbqa02g/hqdefault.jpg" },
+        { title: "Summer", artist: "Calvin Harris", videoId: "ebXbLfLACGM", duration: "3:42", thumbnail: "https://i.ytimg.com/vi/ebXbLfLACGM/hqdefault.jpg" },
+        { title: "Starboy", artist: "The Weeknd ft. Daft Punk", videoId: "34Na4j8AVgA", duration: "3:50", thumbnail: "https://i.ytimg.com/vi/34Na4j8AVgA/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Calvin Harris", thumb: "https://yt3.ggpht.com/ouLbox-YbCuUOQCqTnjNpHifrrcWHb88ib44Kv5nYVSKoeQR4OflWM1sERnPNICGLROLcnlIJg=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Peggy Gou", thumb: "https://yt3.ggpht.com/ko1eSag1s_0E_C65UFduoTy0CbwcFvl6GcsewDR77aR3gTlJnlMNgnTqViV1UEaj0Bw64GsF3pU=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Fred again..", thumb: "https://yt3.ggpht.com/GE02xhztGfN-uFAgLcECHUg_Q4dsAx4wI9ceipru59gd2atY1Kom10seh2byGW2p0l3w5rRZ1A=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    chill: {
+      songs: [
+        { title: "Glimpse of Us", artist: "Joji", videoId: "FvOpPeKSf_4", duration: "3:53", thumbnail: "https://i.ytimg.com/vi/FvOpPeKSf_4/hqdefault.jpg" },
+        { title: "LIMBO", artist: "keshi", videoId: "W8a4W8w9mR4", duration: "3:32", thumbnail: "https://i.ytimg.com/vi/W8a4W8w9mR4/hqdefault.jpg" },
+        { title: "From the Start", artist: "Laufey", videoId: "lSD_L-x77Po", duration: "2:49", thumbnail: "https://i.ytimg.com/vi/lSD_L-x77Po/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Joji", thumb: "https://yt3.ggpht.com/4x9M18imJnFNUG71pOsVy8iL_Klz7_WCoIK3-3UJ_XCU1WjAkq8Oqts_cbHKeLDw0Awej-_rHQ=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "keshi", thumb: "https://yt3.ggpht.com/Fms_QqC83TEej3mcHa8qy41s2rrSX3WeNtNCPDrbJ2EYWb_K7uBtgMRAhq5rQFVd_v19y6Qi=s800-c-k-c0xffffffff-no-rj-mo" },
+        { title: "Laufey", thumb: "https://yt3.ggpht.com/KoMKgKlz4DlQLPqWvGIvV6hsDR3CTbPoMLdTDAT1mExwHFzH1aasBdvz_9inH1lygCNEzCLQ=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    kpop: {
+      songs: [
+        { title: "Super Shy", artist: "NewJeans", videoId: "ArmDp-zijuc", duration: "2:34", thumbnail: "https://i.ytimg.com/vi/ArmDp-zijuc/hqdefault.jpg" },
+        { title: "Hype Boy", artist: "NewJeans", videoId: "11cta61Wi0g", duration: "2:59", thumbnail: "https://i.ytimg.com/vi/11cta61Wi0g/hqdefault.jpg" },
+        { title: "How You Like That", artist: "BLACKPINK", videoId: "ioNng23DkIM", duration: "3:01", thumbnail: "https://i.ytimg.com/vi/ioNng23DkIM/hqdefault.jpg" },
+        { title: "Dynamite", artist: "BTS", videoId: "gdZLi9oWNZg", duration: "3:19", thumbnail: "https://i.ytimg.com/vi/gdZLi9oWNZg/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "NewJeans", thumb: "https://yt3.googleusercontent.com/seIPyT29v_T3KcqQ1aHoAC8qHBVH4Pz4pPa1qpZL623ypce3of75-uA5US-TZyk5WwZLUO0n3A=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "BLACKPINK", thumb: "https://yt3.googleusercontent.com/U3VrCkKjzTpQ3VYv4SCPjNfDHeJV-swGNnhLYhr0nV4lZz_GVUNzK4EB-HFRfKv9S5VNh14uAg=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "BTS", thumb: "https://yt3.googleusercontent.com/NNG93LntJGDpMlGYIhavu2n4gREs7CNbNT8jjG-7dpotBa5uQDHhuOL8e_oU4ihzWhlwdCmsJw0=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    country: {
+      songs: [
+        { title: "Something in the Orange", artist: "Zach Bryan", videoId: "lA8F9sIhGdg", duration: "3:48", thumbnail: "https://i.ytimg.com/vi/lA8F9sIhGdg/hqdefault.jpg" },
+        { title: "Last Night", artist: "Morgan Wallen", videoId: "b1kc4eC1w1k", duration: "2:43", thumbnail: "https://i.ytimg.com/vi/b1kc4eC1w1k/hqdefault.jpg" },
+        { title: "Stick Season", artist: "Noah Kahan", videoId: "g_V76v8Lhbg", duration: "3:02", thumbnail: "https://i.ytimg.com/vi/g_V76v8Lhbg/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Zach Bryan", thumb: "https://yt3.googleusercontent.com/kZ-tPheXtCBcKzOxyGEpGM8SwcxYYChkjdYVq4pAnv2fOnhAAlrXbV9EJi5ml_Iv4uTT6dIZ3w=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Morgan Wallen", thumb: "https://yt3.googleusercontent.com/Z3VsV2Xn09OykpfcXtgNKaUfcA9mlGtDlokxSUkIBfemZciBvg4Q116ZdjDM6NFDHaUcEwUW6Q=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Noah Kahan", thumb: "https://yt3.googleusercontent.com/6XXnm3gVcQjrZQoMg9roYAQw9kqDY8ICH8Qw2PPCu5el_17MgZOLctoKcESs7yTS5Q1ykiqK=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    metal: {
+      songs: [
+        { title: "Enter Sandman", artist: "Metallica", videoId: "CD-E-LDc384", duration: "5:32", thumbnail: "https://i.ytimg.com/vi/CD-E-LDc384/hqdefault.jpg" },
+        { title: "Master of Puppets", artist: "Metallica", videoId: "E0ozmU9cJDg", duration: "8:35", thumbnail: "https://i.ytimg.com/vi/E0ozmU9cJDg/hqdefault.jpg" },
+        { title: "In the End", artist: "Linkin Park", videoId: "eVTXPUF4Oz4", duration: "3:36", thumbnail: "https://i.ytimg.com/vi/eVTXPUF4Oz4/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Metallica", thumb: "https://yt3.googleusercontent.com/fK2IIcXxpselcbHY6CfS5wadTo51L8kUkRTzvysvZDUGuFNBimIgnsiKu7gz6GhvESySpCAQCw=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Linkin Park", thumb: "https://yt3.googleusercontent.com/OtUf050j6w6iRPUmGgmzblD2saluxUusxiVmo0-SMUnWiNKwR89JL_-xJ6JvIEram8UbPT_zDA=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Queen", thumb: "https://yt3.googleusercontent.com/MiFTTCMl22bQ46F91rXFVhZ7PnBfLujsRWNxMik7NKVRDRBc-uBE7fba_3r9vTN39JvfRmh8nVU=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    jazz: {
+      songs: [
+        { title: "So What", artist: "Miles Davis", videoId: "ylXk1LBvIqU", duration: "9:22", thumbnail: "https://i.ytimg.com/vi/ylXk1LBvIqU/hqdefault.jpg" },
+        { title: "Don't Know Why", artist: "Norah Jones", videoId: "tO4dxvguQDk", duration: "3:05", thumbnail: "https://i.ytimg.com/vi/tO4dxvguQDk/hqdefault.jpg" },
+        { title: "Gravity (Live)", artist: "John Mayer", videoId: "dBFW8OvciIU", duration: "5:48", thumbnail: "https://i.ytimg.com/vi/dBFW8OvciIU/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Miles Davis", thumb: "https://yt3.googleusercontent.com/H4NIbxVIIA5bubjmg9LeCHefQuR-TMQikw4-CKcyIBJ4LZeyvRPn_LTlnNKHTwasbZOXE2mq=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "John Mayer", thumb: "https://yt3.googleusercontent.com/IrtssmU5WpTdgnAC3r-YNq_WDGujO8025uptIyQAj_qSL8I5w1NliNEGKvvtm9fWL3xVX6kmrQ=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    acoustic: {
+      songs: [
+        { title: "Thinking Out Loud", artist: "Ed Sheeran", videoId: "lp-EO5I60KA", duration: "4:41", thumbnail: "https://i.ytimg.com/vi/lp-EO5I60KA/hqdefault.jpg" },
+        { title: "Say You Won't Let Go", artist: "James Arthur", videoId: "0yW7w8F2TVA", duration: "3:31", thumbnail: "https://i.ytimg.com/vi/0yW7w8F2TVA/hqdefault.jpg" },
+        { title: "Riptide", artist: "Vance Joy", videoId: "uJ_1HMAGb4k", duration: "3:24", thumbnail: "https://i.ytimg.com/vi/uJ_1HMAGb4k/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Ed Sheeran", thumb: "https://yt3.googleusercontent.com/pZQ5JMD4EOI8TcNYAPTzMexe_fC0CKnb_hYlV4rPfIzmDidF239fH1XKmzkeT30XSg7fxNwc_w=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Olivia Rodrigo", thumb: "https://yt3.ggpht.com/41-4WZupE4yY88igineZefzBZ3ud2nrtlBMv61OBWOfOcATol8PhmI5OZ0fLlrTszyZ3Ul9I9sE=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    },
+    party: {
+      songs: [
+        { title: "24K Magic", artist: "Bruno Mars", videoId: "UqyT8IEBkvY", duration: "3:46", thumbnail: "https://i.ytimg.com/vi/UqyT8IEBkvY/hqdefault.jpg" },
+        { title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", videoId: "OPf0YbXqDm0", duration: "4:30", thumbnail: "https://i.ytimg.com/vi/OPf0YbXqDm0/hqdefault.jpg" },
+        { title: "Timber", artist: "Pitbull ft. Ke$ha", videoId: "hHUbLv4ThOo", duration: "3:24", thumbnail: "https://i.ytimg.com/vi/hHUbLv4ThOo/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Bruno Mars", thumb: "https://yt3.googleusercontent.com/dxwzp4IYsNJKDcwNYgF0UGdw9vCWSMqkHaLtC08VVKg8eybNs69pbdTaGdoaKQYHVQjFyeybzA=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Dua Lipa", thumb: "https://yt3.googleusercontent.com/c3upBFWLu55hnBvqncQS9ZEF_hkvHsNTQiB7m7ZYYavLFMzfyn9Bwo-1VF4HSPGo3G2EdwGtgWg=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Calvin Harris", thumb: "https://yt3.ggpht.com/ouLbox-YbCuUOQCqTnjNpHifrrcWHb88ib44Kv5nYVSKoeQR4OflWM1sERnPNICGLROLcnlIJg=s800-c-k-c0xffffffff-no-rj-mo" }
+      ]
+    },
+    workout: {
+      songs: [
+        { title: "Till I Collapse", artist: "Eminem", videoId: "gY9C0ItyO0k", duration: "4:57", thumbnail: "https://i.ytimg.com/vi/gY9C0ItyO0k/hqdefault.jpg" },
+        { title: "HUMBLE.", artist: "Kendrick Lamar", videoId: "tvTRZJ-4EyI", duration: "2:57", thumbnail: "https://i.ytimg.com/vi/tvTRZJ-4EyI/hqdefault.jpg" },
+        { title: "Titanium", artist: "David Guetta ft. Sia", videoId: "JRfuAukYTKg", duration: "4:05", thumbnail: "https://i.ytimg.com/vi/JRfuAukYTKg/hqdefault.jpg" }
+      ],
+      artists: [
+        { title: "Eminem", thumb: "https://yt3.googleusercontent.com/8yd6Ce-sUyDjr4SbcpSrFGHK7lgDIzT24_uAet_h5A7SkKIotSzeSyseAuwuHBsjKpdDR9RIm-s=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Kendrick Lamar", thumb: "https://yt3.googleusercontent.com/ytc/AIdro_mJoVPMBjJ0WNhRgNoQeztGbf1fbHjWlrP72VWlTr0rBg=s800-c-k-c0x00ffffff-no-rj" },
+        { title: "Dua Lipa", thumb: "https://yt3.googleusercontent.com/c3upBFWLu55hnBvqncQS9ZEF_hkvHsNTQiB7m7ZYYavLFMzfyn9Bwo-1VF4HSPGo3G2EdwGtgWg=s800-c-k-c0x00ffffff-no-rj" }
+      ]
+    }
+  };
+
+  async function searchYouTube(query, categoryKey = "") {
     const normalizedQuery = String(query || "").trim();
     if (!normalizedQuery) {
       setYouTubeSearchStatus("Enter a song, artist, or track to search.", "error");
@@ -1523,7 +1726,32 @@
     }
     goTo("explore");
     elements.youtubeSearchInput.value = normalizedQuery;
+
+    if (!categoryKey) {
+      const lower = normalizedQuery.toLowerCase();
+      for (const k of Object.keys(CURATED_GENRE_TRACKS)) {
+        if (lower.includes(k)) {
+          categoryKey = k;
+          break;
+        }
+      }
+    }
+
     if (!youtubeDataApiKey && !activeAccessToken) {
+      if (categoryKey && CURATED_GENRE_TRACKS[categoryKey]) {
+        const catData = CURATED_GENRE_TRACKS[categoryKey];
+        renderMultiSectionResults({
+          songs: catData.songs || [],
+          artists: catData.artists || [],
+          albums: [],
+          playlists: []
+        });
+        setYouTubeSearchStatus(`Top official songs for “${normalizedQuery}” · Connect Google or enter a YouTube API key in Settings to search all of YouTube.`);
+        setTimeout(() => {
+          elements.youtubeSearchResults?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+        return;
+      }
       pendingYouTubeSearch = normalizedQuery;
       setYouTubeSearchStatus("Connect Google to search songs.", "loading");
       requestConnection();
@@ -1705,7 +1933,19 @@
       if (shelf) shelf.scrollBy({ left: 320, behavior: "smooth" });
     });
     all("[data-genre-search]").forEach((button) => button.addEventListener("click", () => {
-      searchYouTube(button.dataset.genreSearch);
+      searchYouTube(button.dataset.genreSearch, button.dataset.genreCategory || "");
+    }));
+    all("[data-genre-filter]").forEach((chip) => chip.addEventListener("click", () => {
+      all("[data-genre-filter]").forEach((item) => item.classList.toggle("is-selected", item === chip));
+      const filter = chip.dataset.genreFilter;
+      all(".explore-tile").forEach((tile) => {
+        if (filter === "all" || tile.dataset.genreCategory === filter) {
+          tile.style.display = "";
+        } else {
+          tile.style.display = "none";
+        }
+      });
+      showToast(filter === "all" ? "Showing all categories" : `${chip.textContent.trim()} category`);
     }));
     elements.profileTrigger.addEventListener("click", openAccountDialog);
     elements.topProfileTrigger.addEventListener("click", openAccountDialog);
