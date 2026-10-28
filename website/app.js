@@ -17,6 +17,7 @@
   let youTubePlayer = null;
   let youtubeApiPromise = null;
   let directYoutubeEmbed = false;
+  let currentYouTubeTrack = null;
   let toastTimer = 0;
 
   const $ = (selector) => document.querySelector(selector);
@@ -35,6 +36,8 @@
     themeToggle: $("#theme-toggle"),
     youtubeDialog: $("#youtube-dialog"),
     youtubeClose: $("#youtube-close"),
+    nowPlayingTitle: $("#youtube-dialog-title"),
+    nowPlayingArtist: $("#now-playing-artist"),
     youtubeForm: $("#youtube-form"),
     youtubeUrl: $("#youtube-url"),
     youtubeFrame: $("#youtube-frame"),
@@ -61,6 +64,7 @@
     audio: $("#audio-player"),
     file: $("#local-audio"),
     dockArt: $("#dock-art"),
+    nowPlayingTrigger: $("#now-playing-trigger"),
     dockTitle: $("#dock-title"),
     dockArtist: $("#dock-artist"),
     dockPlay: $("#dock-play"),
@@ -237,20 +241,39 @@
 
   function openYouTubeDialog() {
     if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
-    window.setTimeout(() => elements.youtubeUrl.focus(), 0);
+    if (!currentYouTubeTrack) window.setTimeout(() => elements.youtubeUrl.focus(), 0);
   }
 
   function closeYouTubeDialog() {
-    pauseYouTube();
+    // Closing this surface minimizes it to the persistent dock; it does not stop the video.
     if (elements.youtubeDialog.open) elements.youtubeDialog.close();
   }
 
-  async function playYouTubeVideo(value) {
+  function setYouTubeNowPlaying(track) {
+    const title = track?.title || "Public YouTube video";
+    const artist = track?.artist || "YouTube";
+    const thumbnail = String(track?.thumbnail || "");
+    currentYouTubeTrack = { title, artist, thumbnail };
+    elements.dockTitle.textContent = title;
+    elements.dockArtist.textContent = artist;
+    elements.nowPlayingTitle.textContent = title;
+    elements.nowPlayingArtist.textContent = artist;
+    elements.dockArt.className = "dock-art";
+    elements.dockArt.style.backgroundImage = thumbnail
+      ? `linear-gradient(145deg, transparent 38%, rgba(0,0,0,.58)), url("${thumbnail.replace(/"/g, "\\\"")}")`
+      : "";
+    elements.dockArt.style.backgroundPosition = "center";
+    elements.dockArt.style.backgroundSize = "cover";
+    elements.dockArt.innerHTML = "<i></i><em>▶</em>";
+  }
+
+  async function playYouTubeVideo(value, track = null) {
     const videoId = extractYouTubeVideoId(value);
     if (!videoId) {
       showToast("Paste a valid public YouTube video URL or 11-character video ID.");
       return;
     }
+    setYouTubeNowPlaying(track || { title: "Public YouTube video", artist: "YouTube" });
     // Open immediately so the tap always gives visible feedback, even on a slow network.
     if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
     if (elements.audio.src) elements.audio.pause();
@@ -459,9 +482,15 @@
   }
 
   function setNowPlaying(title, artist, artClass, showMessage = true) {
+    currentYouTubeTrack = null;
     elements.dockTitle.textContent = title;
     elements.dockArtist.textContent = artist;
+    elements.nowPlayingTitle.textContent = title;
+    elements.nowPlayingArtist.textContent = `${artist} · Choose a public YouTube result to play here.`;
     elements.dockArt.className = `dock-art ${artClass}`;
+    elements.dockArt.style.removeProperty("background-image");
+    elements.dockArt.style.removeProperty("background-position");
+    elements.dockArt.style.removeProperty("background-size");
     elements.dockArt.innerHTML = `<i></i><em>${escapeHtml(title.slice(0, 8).toUpperCase())}</em>`;
     all(".quick-track").forEach((item) => item.classList.toggle("is-current", item.dataset.title === title));
     if (showMessage && !elements.audio.src) showToast(`${title} is selected. Choose local audio to use the browser player.`);
@@ -498,14 +527,18 @@
       const title = decodeYouTubeText(snippet.title || "Untitled video");
       const channel = decodeYouTubeText(snippet.channelTitle || "YouTube");
       if (!videoId) return "";
-      return `<button class="youtube-result" type="button" data-youtube-video="${escapeHtml(videoId)}" aria-label="Play ${escapeHtml(title)} on YouTube">
+      return `<button class="youtube-result" type="button" data-youtube-video="${escapeHtml(videoId)}" data-youtube-title="${escapeHtml(title)}" data-youtube-artist="${escapeHtml(channel)}" data-youtube-thumbnail="${escapeHtml(thumbnail)}" aria-label="Play ${escapeHtml(title)} on YouTube">
         <span class="youtube-result-art"><img src="${escapeHtml(thumbnail)}" alt="" referrerpolicy="no-referrer" /><i class="youtube-result-play"><svg><use href="#i-play"/></svg></i></span>
         <span class="youtube-result-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(channel)}</small></span>
       </button>`;
     }).join("");
     all("[data-youtube-video]").forEach((button) => button.addEventListener("click", () => {
       elements.youtubeUrl.value = button.dataset.youtubeVideo;
-      playYouTubeVideo(button.dataset.youtubeVideo);
+      playYouTubeVideo(button.dataset.youtubeVideo, {
+        title: button.dataset.youtubeTitle,
+        artist: button.dataset.youtubeArtist,
+        thumbnail: button.dataset.youtubeThumbnail
+      });
     }));
   }
 
@@ -608,7 +641,8 @@
     all(".connect-trigger").forEach((button) => button.addEventListener("click", requestConnection));
     elements.disconnect.addEventListener("click", disconnect);
     elements.file.addEventListener("change", () => selectLocalAudio(elements.file.files?.[0]));
-    elements.dockArt.addEventListener("click", chooseLocalAudio);
+    elements.dockArt.addEventListener("click", openYouTubeDialog);
+    elements.nowPlayingTrigger.addEventListener("click", openYouTubeDialog);
     elements.soundtrackPlay.addEventListener("click", openYouTubeDialog);
     elements.dockPlay.addEventListener("click", togglePlayback);
     elements.audio.addEventListener("loadedmetadata", () => {

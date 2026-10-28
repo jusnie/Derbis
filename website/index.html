@@ -202,8 +202,8 @@
     </div>
 
     <section class="player-dock" aria-label="Player">
-      <button class="dock-art art-noir" id="dock-art" type="button" aria-label="Choose local audio"><i></i><em>LMH</em></button>
-      <div class="dock-track"><strong id="dock-title">Love Me Harder</strong><span id="dock-artist">Ariana Grande, The Weeknd</span></div>
+      <button class="dock-art art-noir" id="dock-art" type="button" aria-label="Open Now Playing"><i></i><em>LMH</em></button>
+      <button class="dock-track" id="now-playing-trigger" type="button" aria-label="Open Now Playing"><strong id="dock-title">Love Me Harder</strong><span id="dock-artist">Ariana Grande, The Weeknd</span></button>
       <div class="dock-progress"><span id="dock-elapsed">0:00</span><input id="dock-seek" type="range" min="0" max="100" value="0" aria-label="Playback position" disabled /><span id="dock-duration">0:00</span></div>
       <div class="dock-controls">
         <button class="dock-icon desktop-only" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
@@ -224,10 +224,11 @@
     </nav>
 
     <dialog class="youtube-dialog" id="youtube-dialog" aria-labelledby="youtube-dialog-title">
-      <button class="dialog-close icon-button" id="youtube-close" type="button" aria-label="Close YouTube player"><svg><use href="#i-close"/></svg></button>
-      <div class="dialog-brand"><span class="youtube-brand-icon"><svg><use href="#i-youtube"/></svg></span><span>YOUTUBE PLAYER</span></div>
+      <button class="dialog-close icon-button" id="youtube-close" type="button" aria-label="Minimize Now Playing"><svg><use href="#i-close"/></svg></button>
+      <div class="dialog-brand"><span class="youtube-brand-icon"><svg><use href="#i-youtube"/></svg></span><span>NOW PLAYING</span></div>
       <h2 id="youtube-dialog-title">Play a public YouTube video</h2>
-      <p class="youtube-description">Paste a public YouTube video or music-video link. Derbis uses YouTube’s official embedded player—no copied sessions or YouTube Music account playback.</p>
+      <p class="now-playing-artist" id="now-playing-artist">Choose a search result or paste a public YouTube video link.</p>
+      <p class="youtube-description">Derbis uses YouTube’s official embedded player—no copied sessions or YouTube Music account playback.</p>
       <div class="youtube-frame-shell"><div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Paste a video link to begin</span></div></div></div>
       <form class="youtube-form" id="youtube-form">
         <label for="youtube-url">YouTube video URL or ID</label>
