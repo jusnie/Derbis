@@ -32,6 +32,7 @@
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.6 15.1A8.5 8.5 0 0 1 8.9 3.4 8.6 8.6 0 1 0 20.6 15.1Z"/></symbol>
+      <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3a9 9 0 0 1 9 9"/></symbol>
       <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M21 12c0 3.7-.4 6-1 7-.5.8-1.3 1.2-2.3 1.3-2.3.3-4.2.3-5.7.3s-3.4 0-5.7-.3c-1-.1-1.8-.5-2.3-1.3-.6-1-1-3.3-1-7s.4-6 1-7c.5-.8 1.3-1.2 2.3-1.3C8.6 3.4 10.5 3.4 12 3.4s3.4 0 5.7.3c1 .1 1.8.5 2.3 1.3.6 1 1 3.3 1 7Z"/><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor" stroke="none"/></symbol>
     </svg>
 
@@ -56,6 +57,7 @@
         <button class="sidebar-link" type="button" data-toast="Create is coming to the Derbis web companion."><svg><use href="#i-plus"/></svg><span>Create</span></button>
         <button class="sidebar-link" type="button" data-page="library"><svg><use href="#i-heart"/></svg><span>Favorites</span></button>
         <button class="sidebar-link" type="button" data-page="library"><svg><use href="#i-queue"/></svg><span>Playlists</span></button>
+        <button class="sidebar-link" id="sidebar-settings-btn" type="button"><svg><use href="#i-settings"/></svg><span>Settings</span></button>
 
         <div class="sidebar-bottom">
           <button class="profile-card" id="profile-trigger" type="button" aria-haspopup="dialog">
@@ -84,7 +86,7 @@
           <div class="topbar-actions">
             <button class="new-button" type="button" data-toast="Create is coming to the Derbis web companion."><svg><use href="#i-plus"/></svg><span>Create</span></button>
             <button class="icon-button notification-button" type="button" aria-label="Notifications" data-toast="You’re all caught up."><svg><use href="#i-bell"/></svg><i></i></button>
-            <button class="icon-button desktop-settings" type="button" aria-label="Settings" data-toast="Settings will mirror the Derbis app next."><svg><use href="#i-settings"/></svg></button>
+            <button class="icon-button desktop-settings" id="settings-trigger" type="button" aria-label="Settings"><svg><use href="#i-settings"/></svg></button>
             <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Use light mode" aria-pressed="false"><svg><use href="#i-sun"/></svg></button>
             <button class="top-avatar" id="top-profile-trigger" type="button" aria-label="Open account"><span id="top-profile-avatar">Y</span></button>
           </div>
@@ -253,11 +255,28 @@
             <span class="side-kicker">NOW PLAYING</span>
             <h2 id="youtube-dialog-title">Love Me Harder</h2>
           </div>
+          <div class="now-playing-visual-switch" role="tablist" aria-label="Visual mode">
+            <button class="np-switch-btn is-active" id="np-switch-artwork" type="button" data-mode="artwork" title="Show Song Artwork">
+              <svg><use href="#i-disc"/></svg><span>Song</span>
+            </button>
+            <button class="np-switch-btn" id="np-switch-video" type="button" data-mode="video" title="Show Music Video">
+              <svg><use href="#i-youtube"/></svg><span>Video</span>
+            </button>
+          </div>
           <button class="side-panel-close icon-button" id="youtube-close" type="button" aria-label="Close Now Playing view"><svg><use href="#i-close"/></svg></button>
         </header>
 
-        <div class="side-media-shell">
-          <div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Select a song to play</span></div></div>
+        <div class="side-media-shell" id="side-media-shell" data-visual-mode="artwork">
+          <div class="side-artwork-card" id="side-artwork-card">
+            <div class="side-artwork-wrap">
+              <img id="side-artwork-img" src="https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" alt="Song artwork" referrerpolicy="no-referrer" />
+              <div class="side-artwork-overlay"></div>
+            </div>
+          </div>
+          <div class="side-video-container" id="side-video-container">
+            <div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Select a song to play</span></div></div>
+            <div class="side-video-badge" id="side-video-badge" title="Playing in background companion stream"><span>Video stream</span></div>
+          </div>
         </div>
 
         <div class="side-track-header">
@@ -329,6 +348,59 @@
         <button class="secondary-button" id="disconnect-button" type="button" hidden>Disconnect</button>
       </div>
       <p class="account-note">Derbis uses Google’s official browser authorization. It does not copy cookies or provide YouTube Music web playback or Music-library sync.</p>
+    </dialog>
+
+    <dialog class="account-dialog settings-dialog" id="settings-dialog" aria-labelledby="settings-dialog-title">
+      <button class="dialog-close icon-button" id="settings-close" type="button" aria-label="Close settings"><svg><use href="#i-close"/></svg></button>
+      <div class="dialog-brand"><img src="assets/derbis-logo.png" alt="" /><span>DERBIS SETTINGS</span></div>
+      
+      <div class="settings-section">
+        <p class="section-kicker">NOW PLAYING DISPLAY</p>
+        <h2 id="settings-dialog-title">Visual Preference</h2>
+        <p class="settings-desc">Choose what to focus on when playing songs in the Now Playing panel.</p>
+        
+        <div class="visual-mode-toggle" role="radiogroup" aria-label="Visual preference">
+          <button class="visual-mode-card is-active" id="mode-artwork-btn" type="button" role="radio" aria-checked="true" data-visual-mode="artwork">
+            <div class="mode-icon"><svg><use href="#i-disc"/></svg></div>
+            <div class="mode-info">
+              <strong>Song Artwork (Song Mode)</strong>
+              <span>Display high-res album cover art with the video player kept in a discrete companion frame</span>
+            </div>
+            <span class="mode-check">✓</span>
+          </button>
+          
+          <button class="visual-mode-card" id="mode-video-btn" type="button" role="radio" aria-checked="false" data-visual-mode="video">
+            <div class="mode-icon"><svg><use href="#i-youtube"/></svg></div>
+            <div class="mode-info">
+              <strong>Video Player (Video Mode)</strong>
+              <span>Display the full-size YouTube music video embed front-and-center</span>
+            </div>
+            <span class="mode-check">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <p class="section-kicker">AUDIO CATALOG</p>
+        <div class="settings-row">
+          <div>
+            <strong>YouTube Music Topic Filter</strong>
+            <p>Prioritizes official studio releases, Topic channels, and clean audio tracks over junk fan edits.</p>
+          </div>
+          <span class="settings-badge">Active</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <p class="section-kicker">APPEARANCE</p>
+        <div class="settings-row">
+          <div>
+            <strong>Color Theme</strong>
+            <p>Toggle between Dark mode and Light mode.</p>
+          </div>
+          <button class="secondary-button" id="settings-theme-toggle" type="button">Switch Theme</button>
+        </div>
+      </div>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

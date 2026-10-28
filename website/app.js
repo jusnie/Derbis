@@ -9,6 +9,14 @@
     : "openid email profile https://www.googleapis.com/auth/youtube.readonly";
   const stateKey = "derbis-web-google-profile";
   const themeKey = "derbis-web-theme";
+  const visualModeKey = "derbis-web-visual-mode";
+  let currentVisualMode = (() => {
+    try {
+      return localStorage.getItem(visualModeKey) || "artwork";
+    } catch {
+      return "artwork";
+    }
+  })();
   let tokenClient = null;
   let localObjectUrl = null;
   let activeAccessToken = null;
@@ -34,6 +42,19 @@
     profileTrigger: $("#profile-trigger"),
     topProfileTrigger: $("#top-profile-trigger"),
     themeToggle: $("#theme-toggle"),
+    settingsDialog: $("#settings-dialog"),
+    settingsTrigger: $("#settings-trigger"),
+    sidebarSettingsBtn: $("#sidebar-settings-btn"),
+    settingsClose: $("#settings-close"),
+    modeArtworkBtn: $("#mode-artwork-btn"),
+    modeVideoBtn: $("#mode-video-btn"),
+    npSwitchArtwork: $("#np-switch-artwork"),
+    npSwitchVideo: $("#np-switch-video"),
+    sideMediaShell: $("#side-media-shell"),
+    sideArtworkCard: $("#side-artwork-card"),
+    sideArtworkImg: $("#side-artwork-img"),
+    sideVideoContainer: $("#side-video-container"),
+    settingsThemeToggle: $("#settings-theme-toggle"),
     nowPlayingSidebar: $("#now-playing-sidebar"),
     youtubeClose: $("#youtube-close"),
     nowPlayingTitle: $("#youtube-dialog-title"),
@@ -324,6 +345,7 @@
     if (elements.sideTrackTitle) elements.sideTrackTitle.textContent = title;
     if (elements.sideArtistName) elements.sideArtistName.textContent = artist;
     if (elements.sideArtistAvatar && thumbnail) elements.sideArtistAvatar.src = thumbnail;
+    if (elements.sideArtworkImg && thumbnail) elements.sideArtworkImg.src = thumbnail;
     if (elements.sideArtistBio) elements.sideArtistBio.textContent = `Official track by ${artist}. Playing with YouTube’s official embedded player in Derbis.`;
     if (duration) elements.dockDuration.textContent = duration;
     elements.dockElapsed.textContent = "0:00";
@@ -423,6 +445,45 @@
 
   function closeAccountDialog() {
     if (elements.accountDialog.open) elements.accountDialog.close();
+  }
+
+  function openSettingsDialog() {
+    if (!elements.settingsDialog.open) elements.settingsDialog.showModal();
+  }
+
+  function closeSettingsDialog() {
+    if (elements.settingsDialog.open) elements.settingsDialog.close();
+  }
+
+  function applyVisualMode(mode, notify = false) {
+    currentVisualMode = mode === "video" ? "video" : "artwork";
+    try {
+      localStorage.setItem(visualModeKey, currentVisualMode);
+    } catch {}
+
+    if (elements.sideMediaShell) {
+      elements.sideMediaShell.setAttribute("data-visual-mode", currentVisualMode);
+    }
+    if (elements.modeArtworkBtn) {
+      const isArtwork = currentVisualMode === "artwork";
+      elements.modeArtworkBtn.classList.toggle("is-active", isArtwork);
+      elements.modeArtworkBtn.setAttribute("aria-checked", String(isArtwork));
+    }
+    if (elements.modeVideoBtn) {
+      const isVideo = currentVisualMode === "video";
+      elements.modeVideoBtn.classList.toggle("is-active", isVideo);
+      elements.modeVideoBtn.setAttribute("aria-checked", String(isVideo));
+    }
+    if (elements.npSwitchArtwork) {
+      elements.npSwitchArtwork.classList.toggle("is-active", currentVisualMode === "artwork");
+    }
+    if (elements.npSwitchVideo) {
+      elements.npSwitchVideo.classList.toggle("is-active", currentVisualMode === "video");
+    }
+
+    if (notify) {
+      showToast(currentVisualMode === "artwork" ? "Visual preference: Song Artwork" : "Visual preference: Video Player");
+    }
   }
 
   function openMenu() {
@@ -1017,6 +1078,28 @@
       const rect = elements.accountDialog.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeAccountDialog();
     });
+    elements.settingsTrigger?.addEventListener("click", openSettingsDialog);
+    elements.sidebarSettingsBtn?.addEventListener("click", () => {
+      closeMenu();
+      openSettingsDialog();
+    });
+    elements.settingsClose?.addEventListener("click", closeSettingsDialog);
+    elements.settingsDialog?.addEventListener("click", (event) => {
+      const rect = elements.settingsDialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSettingsDialog();
+    });
+
+    elements.modeArtworkBtn?.addEventListener("click", () => applyVisualMode("artwork", true));
+    elements.modeVideoBtn?.addEventListener("click", () => applyVisualMode("video", true));
+    elements.npSwitchArtwork?.addEventListener("click", () => applyVisualMode("artwork", true));
+    elements.npSwitchVideo?.addEventListener("click", () => applyVisualMode("video", true));
+    elements.sideVideoContainer?.addEventListener("click", (event) => {
+      if (currentVisualMode === "artwork" && !event.target.closest("iframe")) {
+        applyVisualMode("video", true);
+      }
+    });
+    elements.settingsThemeToggle?.addEventListener("click", toggleTheme);
+
     all(".connect-trigger").forEach((button) => button.addEventListener("click", requestConnection));
     elements.disconnect.addEventListener("click", disconnect);
     elements.libraryDisconnectBtn?.addEventListener("click", disconnect);
@@ -1100,6 +1183,7 @@
 
   bindEvents();
   applyTheme(getStoredTheme());
+  applyVisualMode(currentVisualMode);
   const requestedPage = window.location.hash.replace("#", "");
   if (["explore", "library"].includes(requestedPage)) goTo(requestedPage);
   renderAccount(storedProfile());
