@@ -3,140 +3,253 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Derbis web companion — a lightweight browser-native music companion." />
-    <title>Derbis — web companion</title>
+    <meta name="theme-color" content="#050506" />
+    <meta name="description" content="Derbis — your responsive music companion for web." />
+    <title>Derbis — your soundtrack</title>
     <link rel="icon" type="image/png" href="assets/derbis-logo.png" />
     <link rel="stylesheet" href="styles.css" />
     <script src="config.js"></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
+    <svg class="svg-sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z"/></symbol>
+      <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m15.8 8.2-2.1 5.5-5.5 2.1 2.1-5.5 5.5-2.1Z"/></symbol>
+      <symbol id="i-library" viewBox="0 0 24 24"><rect x="4" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="M18 5v14m-2-11h4m-4 6h4"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m16 16 4.3 4.3"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 10a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18C21 17 18 17 18 10Zm-8 11h4"/></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.2 2.2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3.2v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.2-2.2.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H5v-3.2h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.2-2.2.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3.5h3.2v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.2 2.2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2V14h-.2a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path d="m5 5 10 7-10 7V5Zm11 0h3v14h-3z"/></symbol>
+      <symbol id="i-prev" viewBox="0 0 24 24"><path d="m19 5-10 7 10 7V5ZM5 5h3v14H5z"/></symbol>
+      <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 8.7c0 5.1-8.8 10.3-8.8 10.3S3.2 13.8 3.2 8.7A4.7 4.7 0 0 1 12 6.4a4.7 4.7 0 0 1 8.8 2.3Z"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></symbol>
+      <symbol id="i-queue" viewBox="0 0 24 24"><path d="M4 6h11M4 12h11M4 18h8"/><path d="m17 15 4 3-4 3v-6Z"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 1.5 7.5L21 12l-7.5 1.5L12 21l-1.5-7.5L3 12l7.5-2.5L12 2Z"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.6 15.1A8.5 8.5 0 0 1 8.9 3.4 8.6 8.6 0 1 0 20.6 15.1Z"/></symbol>
+      <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M21 12c0 3.7-.4 6-1 7-.5.8-1.3 1.2-2.3 1.3-2.3.3-4.2.3-5.7.3s-3.4 0-5.7-.3c-1-.1-1.8-.5-2.3-1.3-.6-1-1-3.3-1-7s.4-6 1-7c.5-.8 1.3-1.2 2.3-1.3C8.6 3.4 10.5 3.4 12 3.4s3.4 0 5.7.3c1 .1 1.8.5 2.3 1.3.6 1 1 3.3 1 7Z"/><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor" stroke="none"/></symbol>
+    </svg>
+
     <div class="app-shell">
       <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-        <div class="brand">
-          <img src="assets/derbis-logo.png" alt="Derbis diamond mark" />
-          <span>Derbis</span>
+        <div class="sidebar-top">
+          <a class="brand" href="#home" aria-label="Derbis home">
+            <img src="assets/derbis-logo.png" alt="" />
+            <span>DERBIS</span>
+          </a>
+          <button class="close-menu icon-button" id="close-menu" type="button" aria-label="Close menu"><svg><use href="#i-close"/></svg></button>
         </div>
-        <nav class="nav-list" aria-label="Derbis pages">
-          <button class="nav-link is-active" type="button" data-page="home"><span aria-hidden="true">⌂</span><span>Home</span></button>
-          <button class="nav-link" type="button" data-page="library"><span aria-hidden="true">♫</span><span>Your Library</span></button>
-          <button class="nav-link" type="button" data-page="downloads"><span aria-hidden="true">⇩</span><span>Downloads</span></button>
+
+        <nav class="side-nav" aria-label="Pages">
+          <button class="nav-item is-active" type="button" data-page="home"><svg><use href="#i-home"/></svg><span>Home</span></button>
+          <button class="nav-item" type="button" data-page="explore"><svg><use href="#i-compass"/></svg><span>Explore</span></button>
+          <button class="nav-item" type="button" data-page="library"><svg><use href="#i-library"/></svg><span>Library</span></button>
         </nav>
-        <div class="sidebar-foot">
-          <a href="https://github.com/jusnie/Derbis" target="_blank" rel="noreferrer">GitHub</a>
-          <span>Developer/Author: Yasuda</span>
+
+        <div class="sidebar-divider"></div>
+        <p class="sidebar-label">YOUR SPACE</p>
+        <button class="sidebar-link" type="button" data-toast="Create is coming to the Derbis web companion."><svg><use href="#i-plus"/></svg><span>Create</span></button>
+        <button class="sidebar-link" type="button" data-page="library"><svg><use href="#i-heart"/></svg><span>Favorites</span></button>
+        <button class="sidebar-link" type="button" data-page="library"><svg><use href="#i-queue"/></svg><span>Playlists</span></button>
+
+        <div class="sidebar-bottom">
+          <button class="profile-card" id="profile-trigger" type="button" aria-haspopup="dialog">
+            <span class="profile-avatar profile-avatar--default" id="profile-avatar">Y</span>
+            <span class="profile-copy"><strong id="profile-name">Yasuda</strong><small id="profile-status">Connect Google</small></span>
+            <svg class="profile-more"><use href="#i-more"/></svg>
+          </button>
+          <a class="github-link" href="https://github.com/jusnie/Derbis" target="_blank" rel="noreferrer">GitHub <span>↗</span></a>
         </div>
       </aside>
 
-      <main id="main-content" class="main-content" tabindex="-1">
+      <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
+
+      <main class="main" id="main-content" tabindex="-1">
         <header class="topbar">
-          <button class="menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false">☰</button>
-          <a class="topbar-brand" href="#home" aria-label="Derbis home"><img src="assets/derbis-logo.png" alt="" /> <span>Derbis</span></a>
+          <div class="topbar-start">
+            <button class="menu-toggle icon-button" id="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+            <div class="mobile-brand"><img src="assets/derbis-logo.png" alt="" /><span>DERBIS</span></div>
+            <div class="desktop-greeting"><p id="desktop-day-greeting">Good evening</p><h1 id="welcome-name">Yasuda</h1></div>
+          </div>
+          <label class="global-search" aria-label="Search Derbis">
+            <svg><use href="#i-search"/></svg>
+            <input id="search-input" type="search" placeholder="Search songs, artists, and playlists" autocomplete="off" />
+            <kbd>⌘ K</kbd>
+          </label>
           <div class="topbar-actions">
-            <span class="status-dot" id="connection-dot" aria-hidden="true"></span>
-            <span class="connection-label" id="connection-label">Not connected</span>
-            <button class="account-button" id="connect-button" type="button">Connect Google</button>
+            <button class="new-button" type="button" data-toast="Create is coming to the Derbis web companion."><svg><use href="#i-plus"/></svg><span>Create</span></button>
+            <button class="icon-button notification-button" type="button" aria-label="Notifications" data-toast="You’re all caught up."><svg><use href="#i-bell"/></svg><i></i></button>
+            <button class="icon-button desktop-settings" type="button" aria-label="Settings" data-toast="Settings will mirror the Derbis app next."><svg><use href="#i-settings"/></svg></button>
+            <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Use light mode" aria-pressed="false"><svg><use href="#i-sun"/></svg></button>
+            <button class="top-avatar" id="top-profile-trigger" type="button" aria-label="Open account"><span id="top-profile-avatar">Y</span></button>
           </div>
         </header>
 
         <section class="page page-home" data-page-panel="home">
-          <div class="hero">
-            <p class="eyebrow">DERBIS WEB COMPANION</p>
-            <h1>Music, without the heavy desktop setup.</h1>
-            <p class="hero-copy">A clean, responsive Derbis companion for your browser. It uses the browser’s native media support—no VLC, plug-in, desktop helper, or account-cookie import required.</p>
-            <div class="hero-actions">
-              <button class="primary-button" id="hero-connect" type="button">Connect Google / YouTube</button>
-              <a class="secondary-button" href="https://github.com/jusnie/Derbis/releases" target="_blank" rel="noreferrer">Get Derbis apps</a>
+          <div class="mobile-greeting"><p id="mobile-day-greeting">Good evening</p><h1 id="mobile-welcome-name">Yasuda</h1></div>
+
+          <article class="soundtrack-card" aria-labelledby="soundtrack-title">
+            <div class="soundtrack-noise"></div>
+            <div class="soundtrack-orbit orbit-a"></div><div class="soundtrack-orbit orbit-b"></div>
+            <div class="soundtrack-art" aria-hidden="true"><div class="portrait-glow"></div><span>Y</span><i></i></div>
+            <div class="soundtrack-content">
+              <span class="eyebrow"><i></i> RADIO</span>
+              <h2 id="soundtrack-title">My soundtrack</h2>
+              <p>Made for your next moment</p>
+              <div class="listener-stack" aria-hidden="true"><b>Y</b><b>+</b><b>♫</b><span>Starts with your favorites</span></div>
             </div>
+            <button class="hero-play" id="soundtrack-play" type="button" aria-label="Open the official YouTube player"><svg><use href="#i-youtube"/></svg></button>
+          </article>
+
+          <div class="mood-scroller" aria-label="Quick filters">
+            <button class="mood-chip is-selected" type="button">For you</button>
+            <button class="mood-chip" type="button">New releases</button>
+            <button class="mood-chip" type="button">Local Wave</button>
+            <button class="mood-chip" type="button">Rap &amp; Drill</button>
+            <button class="mood-chip" type="button">Electronic</button>
+            <button class="mood-chip" type="button">Chill</button>
           </div>
 
-          <div class="dashboard-grid">
-            <article class="connection-card panel" aria-labelledby="connection-title">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">ACCOUNT</p>
-                  <h2 id="connection-title">Google / YouTube connection</h2>
-                </div>
-                <span class="connection-badge" id="connection-badge">Not connected</span>
-              </div>
-              <div id="account-summary" class="account-summary">
-                <div class="avatar placeholder-avatar" aria-hidden="true">D</div>
-                <div>
-                  <strong>Connect only when you’re ready</strong>
-                  <p>Derbis uses Google’s official browser authorization. It can read the account/channel data permitted by the YouTube Data API. It does not copy cookies or impersonate YouTube Music playback.</p>
-                </div>
-              </div>
-              <div class="connection-actions">
-                <button class="primary-button small" id="card-connect" type="button">Connect account</button>
-                <button class="text-button" id="disconnect-button" type="button" hidden>Disconnect</button>
-              </div>
-            </article>
+          <section class="content-section quick-picks" aria-labelledby="quick-picks-title">
+            <div class="section-heading">
+              <div><p class="section-kicker">MADE FOR YOU</p><h2 id="quick-picks-title">Quick Picks</h2></div>
+              <button class="play-all" type="button" id="quick-play-all"><span><svg><use href="#i-play"/></svg></span>Play all</button>
+            </div>
+            <div class="quick-grid" id="quick-grid">
+              <button class="quick-track is-current" type="button" data-title="Love Me Harder" data-artist="Ariana Grande, The Weeknd" data-art="art-noir">
+                <span class="album-art art-noir"><i></i><em>LMH</em></span><span class="track-meta"><strong>Love Me Harder</strong><small>Ariana Grande, The Weeknd</small></span><span class="playing-bars" aria-label="Selected"><i></i><i></i><i></i></span>
+              </button>
+              <button class="quick-track" type="button" data-title="kahel na langit" data-artist="Maki" data-art="art-sunrise">
+                <span class="album-art art-sunrise"><i></i><em>KNL</em></span><span class="track-meta"><strong>kahel na langit</strong><small>Maki</small></span><svg class="track-more"><use href="#i-more"/></svg>
+              </button>
+              <button class="quick-track" type="button" data-title="INTRO" data-artist="Phases" data-art="art-violet">
+                <span class="album-art art-violet"><i></i><em>INTRO</em></span><span class="track-meta"><strong>INTRO</strong><small>Phases</small></span><svg class="track-more"><use href="#i-more"/></svg>
+              </button>
+              <button class="quick-track" type="button" data-title="Same Damn Time" data-artist="Future" data-art="art-steel">
+                <span class="album-art art-steel"><i></i><em>FUTURE</em></span><span class="track-meta"><strong>Same Damn Time</strong><small>Future</small></span><svg class="track-more"><use href="#i-more"/></svg>
+              </button>
+              <button class="quick-track" type="button" data-title="HEAVEN AND BACK" data-artist="Chase Atlantic" data-art="art-red">
+                <span class="album-art art-red"><i></i><em>H&amp;B</em></span><span class="track-meta"><strong>HEAVEN AND BACK</strong><small>Chase Atlantic</small></span><svg class="track-more"><use href="#i-more"/></svg>
+              </button>
+              <button class="quick-track" type="button" data-title="The Way You Move" data-artist="OutKast" data-art="art-moon">
+                <span class="album-art art-moon"><i></i><em>MOVE</em></span><span class="track-meta"><strong>The Way You Move</strong><small>OutKast</small></span><svg class="track-more"><use href="#i-more"/></svg>
+              </button>
+            </div>
+          </section>
 
-            <article class="now-playing panel" aria-labelledby="player-title">
-              <div class="panel-heading">
-                <div>
-                  <p class="eyebrow">BROWSER PLAYER</p>
-                  <h2 id="player-title">No VLC required</h2>
-                </div>
-                <span class="native-badge">Native audio</span>
-              </div>
-              <div class="player-layout">
-                <div class="album-art" aria-hidden="true"><img src="assets/derbis-logo.png" alt="" /></div>
-                <div class="track-copy">
-                  <strong id="track-title">Choose a local audio file</strong>
-                  <span id="track-artist">It stays in your browser tab</span>
-                  <div class="seek-row"><span id="elapsed">0:00</span><input id="seek" aria-label="Playback position" type="range" min="0" max="100" value="0" disabled /><span id="duration">0:00</span></div>
-                  <div class="player-controls">
-                    <label class="file-button" for="local-audio">Choose audio<input id="local-audio" type="file" accept="audio/*" hidden /></label>
-                    <button id="play-button" type="button" class="round-button" aria-label="Play local audio" disabled>▶</button>
-                    <button id="mute-button" type="button" class="round-button" aria-label="Mute audio" disabled>♩</button>
-                  </div>
-                </div>
-              </div>
-              <audio id="audio-player" preload="metadata"></audio>
-            </article>
+          <section class="content-section orbit-section" aria-labelledby="orbit-title">
+            <div class="section-heading">
+              <div><p class="section-kicker">YASUDA</p><h2 id="orbit-title">Your orbit</h2></div>
+              <button class="text-action" type="button" data-toast="Your orbit refreshes as you listen on Derbis.">See all <svg><use href="#i-arrow"/></svg></button>
+            </div>
+            <div class="album-rail" aria-label="Your orbit suggestions">
+              <button class="orbit-card" type="button" data-title="Love Me Harder" data-artist="Ariana Grande, The Weeknd" data-art="art-noir"><span class="cover art-noir"><i></i><em>LMH</em></span><strong>Love Me Harder</strong><small>With Ariana Grande</small></button>
+              <button class="orbit-card" type="button" data-title="kahel na langit" data-artist="Maki" data-art="art-sunrise"><span class="cover art-sunrise"><i></i><em>KNL</em></span><strong>kahel na langit</strong><small>Maki radio</small></button>
+              <button class="orbit-card" type="button" data-title="Phases" data-artist="Selected cuts" data-art="art-violet"><span class="cover art-violet"><i></i><em>PHASES</em></span><strong>Phases</strong><small>Fresh for you</small></button>
+              <button class="orbit-card" type="button" data-title="Midnight drive" data-artist="Derbis mix" data-art="art-blue"><span class="cover art-blue"><i></i><em>MIDNIGHT</em></span><strong>Midnight drive</strong><small>Derbis mix</small></button>
+              <button class="orbit-card" type="button" data-title="New heat" data-artist="Your weekly blend" data-art="art-lime"><span class="cover art-lime"><i></i><em>NEW</em></span><strong>New heat</strong><small>Weekly blend</small></button>
+              <button class="orbit-card" type="button" data-title="Cloud room" data-artist="Late night picks" data-art="art-cloud"><span class="cover art-cloud"><i></i><em>CLOUD</em></span><strong>Cloud room</strong><small>Late night picks</small></button>
+            </div>
+          </section>
 
-            <article class="limits-card panel">
-              <p class="eyebrow">CLEAR LIMITS</p>
-              <h2>What this connection does—and does not do</h2>
-              <ul class="limit-list">
-                <li><span>✓</span> Uses the official Google authorization window and YouTube Data API scopes.</li>
-                <li><span>✓</span> Keeps the returned session only in this browser session.</li>
-                <li><span>✓</span> Plays local files with the browser’s native HTML5 audio engine.</li>
-                <li><span>—</span> Does not claim YouTube Music web playback, Music-library sync, or cookie-based sign-in.</li>
-              </ul>
-            </article>
+          <section class="content-section fresh-section" aria-labelledby="fresh-title">
+            <div class="section-heading"><div><p class="section-kicker">DISCOVER</p><h2 id="fresh-title">Fresh on Derbis</h2></div><button class="text-action" type="button" data-page="explore">Explore <svg><use href="#i-arrow"/></svg></button></div>
+            <div class="feature-grid">
+              <button class="feature-card feature-card--one" type="button" data-toast="Explore collections are coming to the web companion."><span>LOCAL WAVE</span><strong>New voices, close to home.</strong><i>→</i></button>
+              <button class="feature-card feature-card--two" type="button" data-toast="Explore collections are coming to the web companion."><span>DISCOVERY</span><strong>Move between moods.</strong><i>→</i></button>
+              <button class="feature-card feature-card--three" type="button" data-toast="Explore collections are coming to the web companion."><span>RELEASE RADAR</span><strong>Start somewhere new.</strong><i>→</i></button>
+            </div>
+          </section>
+        </section>
+
+        <section class="page alternate-page" data-page-panel="explore" hidden>
+          <div class="page-intro"><p class="section-kicker">DISCOVER</p><h1>Explore your next orbit.</h1><p>Search public, embeddable YouTube videos and play them inside Derbis with the official YouTube player.</p></div>
+          <section class="youtube-search-panel" aria-labelledby="youtube-search-title">
+            <div class="youtube-search-heading"><div><p class="section-kicker">OFFICIAL YOUTUBE SEARCH</p><h2 id="youtube-search-title">Find a track or artist</h2></div><span>Public videos only</span></div>
+            <form id="youtube-search-form" class="youtube-search-form">
+              <label class="sr-only" for="youtube-search-input">Search YouTube</label>
+              <svg><use href="#i-search"/></svg><input id="youtube-search-input" type="search" placeholder="Search songs, artists, live sessions…" autocomplete="off" /><button class="primary-button" type="submit">Search</button>
+            </form>
+            <p class="youtube-search-status" id="youtube-search-status">Connect Google, then search and play public YouTube videos here.</p>
+            <div class="youtube-results" id="youtube-search-results" aria-live="polite"></div>
+          </section>
+          <div class="explore-board">
+            <button class="explore-tile explore-tile--pink" type="button" data-toast="Mood collection selected."><span>01</span><strong>Late night</strong><small>Slow burn selections</small></button>
+            <button class="explore-tile explore-tile--blue" type="button" data-toast="Mood collection selected."><span>02</span><strong>Electric</strong><small>Turn the energy up</small></button>
+            <button class="explore-tile explore-tile--orange" type="button" data-toast="Mood collection selected."><span>03</span><strong>Golden hour</strong><small>Warm, easy listens</small></button>
+            <button class="explore-tile explore-tile--green" type="button" data-toast="Mood collection selected."><span>04</span><strong>Focus flow</strong><small>Clear the noise</small></button>
           </div>
         </section>
 
-        <section class="page" data-page-panel="library" hidden>
-          <p class="eyebrow">YOUR LIBRARY</p>
-          <h1>Your music stays clear.</h1>
-          <div class="empty-state panel"><img src="assets/derbis-logo.png" alt="" /><h2>Connect a Google account to see official account details.</h2><p>YouTube Music-specific library and playback features are intentionally unavailable until there is compliant official web access.</p><button class="primary-button small connect-trigger" type="button">Connect Google</button></div>
-        </section>
-
-        <section class="page" data-page-panel="downloads" hidden>
-          <p class="eyebrow">DOWNLOADS</p>
-          <h1>Derbis is app-first.</h1>
-          <div class="download-grid">
-            <a class="download-card panel" href="https://github.com/jusnie/Derbis/releases/tag/v1.0.3" target="_blank" rel="noreferrer"><span>ANDROID</span><strong>Derbis v1.0.3</strong><small>Official APK release →</small></a>
-            <a class="download-card panel" href="https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3" target="_blank" rel="noreferrer"><span>WINDOWS</span><strong>Derbis for Windows v1.0.3</strong><small>MSI and EXE installers →</small></a>
+        <section class="page alternate-page library-page" data-page-panel="library" hidden>
+          <div class="page-intro"><p class="section-kicker">YOUR SPACE</p><h1>Your library, clear and close.</h1><p>Connect your Google account to show official YouTube account details. Music-library sync is not available on the public web API.</p></div>
+          <div class="library-connect panel">
+            <div class="library-connect-icon"><svg><use href="#i-library"/></svg></div>
+            <div><p class="section-kicker">GOOGLE / YOUTUBE</p><h2 id="library-account-name">Connect your account</h2><p id="library-account-detail">Use official Google browser authorization for your YouTube profile and channel details.</p></div>
+            <button class="primary-button connect-trigger" type="button">Connect Google</button>
+          </div>
+          <div class="library-cards">
+            <article class="library-stat"><span>QUICK PICKS</span><strong>Made for your next listen</strong><small>Suggestions appear in your Derbis app.</small></article>
+            <article class="library-stat"><span>LOCAL AUDIO</span><strong>Play in this browser</strong><small>Choose an audio file in the player below.</small></article>
           </div>
         </section>
       </main>
     </div>
 
-    <div class="scrim" id="scrim" hidden></div>
-    <dialog class="setup-dialog" id="setup-dialog" aria-labelledby="setup-title">
-      <button class="dialog-close" id="dialog-close" type="button" aria-label="Close">×</button>
-      <p class="eyebrow">GOOGLE AUTHORIZATION</p>
-      <h2 id="setup-title">Connection needs one public setting</h2>
-      <p>Set a Google OAuth <strong>Web application Client ID</strong> in <code>website/config.js</code>, enable YouTube Data API v3, and add this site’s HTTPS origin to Google Cloud’s authorized JavaScript origins.</p>
-      <p>The client ID is public. Never add a Google client secret, browser cookies, or a YouTube Music account session to this site.</p>
-      <a class="primary-button small" href="README.md" target="_blank">Open setup guide</a>
+    <section class="player-dock" aria-label="Player">
+      <button class="dock-art art-noir" id="dock-art" type="button" aria-label="Choose local audio"><i></i><em>LMH</em></button>
+      <div class="dock-track"><strong id="dock-title">Love Me Harder</strong><span id="dock-artist">Ariana Grande, The Weeknd</span></div>
+      <div class="dock-progress"><span id="dock-elapsed">0:00</span><input id="dock-seek" type="range" min="0" max="100" value="0" aria-label="Playback position" disabled /><span id="dock-duration">0:00</span></div>
+      <div class="dock-controls">
+        <button class="dock-icon desktop-only" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
+        <button class="dock-play" id="dock-play" type="button" aria-label="Choose local audio to play"><svg><use href="#i-play"/></svg></button>
+        <button class="dock-icon desktop-only" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
+      </div>
+      <button class="dock-youtube" id="youtube-trigger" type="button" aria-label="Open YouTube player"><svg><use href="#i-youtube"/></svg><span>YouTube</span></button>
+      <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play local audio."><svg><use href="#i-queue"/></svg></button>
+      <input id="local-audio" type="file" accept="audio/*" hidden />
+      <audio id="audio-player" preload="metadata"></audio>
+    </section>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <button class="mobile-nav-item is-active" type="button" data-page="home"><svg><use href="#i-home"/></svg><span>Home</span></button>
+      <button class="mobile-nav-item" type="button" data-page="explore"><svg><use href="#i-compass"/></svg><span>Explore</span></button>
+      <button class="mobile-nav-item" type="button" data-page="library"><svg><use href="#i-library"/></svg><span>Library</span></button>
+      <button class="mobile-nav-item" type="button" id="mobile-search"><svg><use href="#i-search"/></svg><span>Search</span></button>
+    </nav>
+
+    <dialog class="youtube-dialog" id="youtube-dialog" aria-labelledby="youtube-dialog-title">
+      <button class="dialog-close icon-button" id="youtube-close" type="button" aria-label="Close YouTube player"><svg><use href="#i-close"/></svg></button>
+      <div class="dialog-brand"><span class="youtube-brand-icon"><svg><use href="#i-youtube"/></svg></span><span>YOUTUBE PLAYER</span></div>
+      <h2 id="youtube-dialog-title">Play a public YouTube video</h2>
+      <p class="youtube-description">Paste a public YouTube video or music-video link. Derbis uses YouTube’s official embedded player—no copied sessions or YouTube Music account playback.</p>
+      <div class="youtube-frame-shell"><div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Paste a video link to begin</span></div></div></div>
+      <form class="youtube-form" id="youtube-form">
+        <label for="youtube-url">YouTube video URL or ID</label>
+        <div><input id="youtube-url" type="text" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" /><button class="primary-button" type="submit">Play</button></div>
+      </form>
+      <p class="youtube-note">Some videos cannot be embedded because their uploader has disabled embedding. YouTube terms and ads may apply.</p>
     </dialog>
+
+    <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
+      <button class="dialog-close icon-button" id="dialog-close" type="button" aria-label="Close account panel"><svg><use href="#i-close"/></svg></button>
+      <div class="dialog-brand"><img src="assets/derbis-logo.png" alt="" /><span>DERBIS</span></div>
+      <div class="account-summary" id="account-summary">
+        <span class="dialog-avatar" id="dialog-avatar">Y</span>
+        <div><p class="section-kicker">YOUR ACCOUNT</p><h2 id="account-dialog-title">Yasuda</h2><p id="account-dialog-detail">Connect Google to add official YouTube account details.</p></div>
+      </div>
+      <div class="account-actions">
+        <button class="primary-button connect-trigger" id="dialog-connect" type="button">Connect Google / YouTube</button>
+        <button class="secondary-button" id="disconnect-button" type="button" hidden>Disconnect</button>
+      </div>
+      <p class="account-note">Derbis uses Google’s official browser authorization. It does not copy cookies or provide YouTube Music web playback or Music-library sync.</p>
+    </dialog>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>
