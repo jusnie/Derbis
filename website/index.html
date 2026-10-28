@@ -33,6 +33,9 @@
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.6 15.1A8.5 8.5 0 0 1 8.9 3.4 8.6 8.6 0 1 0 20.6 15.1Z"/></symbol>
       <symbol id="i-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3a9 9 0 0 1 9 9"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5m-1.5-3.5L14 10m-4 4-5.5 5.5m0-15 5.5 5.5M21 21v-5m0 5h-5m-1.5-3.5L4 4"/></symbol>
+      <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4m14-3v2a4 4 0 0 1-4 4H3"/></symbol>
       <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M21 12c0 3.7-.4 6-1 7-.5.8-1.3 1.2-2.3 1.3-2.3.3-4.2.3-5.7.3s-3.4 0-5.7-.3c-1-.1-1.8-.5-2.3-1.3-.6-1-1-3.3-1-7s.4-6 1-7c.5-.8 1.3-1.2 2.3-1.3C8.6 3.4 10.5 3.4 12 3.4s3.4 0 5.7.3c1 .1 1.8.5 2.3 1.3.6 1 1 3.3 1 7Z"/><path d="m10 8.5 5.5 3.5-5.5 3.5v-7Z" fill="currentColor" stroke="none"/></symbol>
     </svg>
 
@@ -250,6 +253,7 @@
       </main>
 
       <aside class="now-playing-sidebar" id="now-playing-sidebar" aria-label="Now Playing View">
+        <div class="mobile-sheet-handle" aria-hidden="true"><div class="mobile-sheet-bar"></div></div>
         <header class="side-panel-header">
           <div class="side-header-title">
             <span class="side-kicker">NOW PLAYING</span>
@@ -263,7 +267,10 @@
               <svg><use href="#i-youtube"/></svg><span>Video</span>
             </button>
           </div>
-          <button class="side-panel-close icon-button" id="youtube-close" type="button" aria-label="Close Now Playing view"><svg><use href="#i-close"/></svg></button>
+          <button class="side-panel-close icon-button" id="youtube-close" type="button" aria-label="Close Now Playing view">
+            <svg class="desktop-only"><use href="#i-close"/></svg>
+            <svg class="mobile-only"><use href="#i-chevron-down"/></svg>
+          </button>
         </header>
 
         <div class="side-media-shell" id="side-media-shell" data-visual-mode="artwork">
@@ -287,6 +294,20 @@
           <div class="side-track-actions">
             <button class="icon-button side-action-btn" type="button" aria-label="Save to favorites" data-toast="Saved to favorites"><svg><use href="#i-heart"/></svg></button>
             <button class="icon-button side-action-btn" type="button" aria-label="More options" data-toast="More options"><svg><use href="#i-more"/></svg></button>
+          </div>
+        </div>
+
+        <div class="side-player-controls" id="side-player-controls">
+          <div class="side-progress-wrap">
+            <input class="side-seek-slider" id="side-seek" type="range" min="0" max="100" value="0" aria-label="Seek track" />
+            <div class="side-time-row"><span id="side-elapsed">0:00</span><span id="side-duration">0:00</span></div>
+          </div>
+          <div class="side-buttons-row">
+            <button class="icon-button side-ctrl-btn" type="button" aria-label="Shuffle" data-toast="Shuffle mode enabled"><svg><use href="#i-shuffle"/></svg></button>
+            <button class="icon-button side-ctrl-btn" id="side-prev-btn" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
+            <button class="side-play-btn" id="side-play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
+            <button class="icon-button side-ctrl-btn" id="side-next-btn" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
+            <button class="icon-button side-ctrl-btn" type="button" aria-label="Repeat" data-toast="Repeat mode enabled"><svg><use href="#i-repeat"/></svg></button>
           </div>
         </div>
 
@@ -315,13 +336,14 @@
     </div>
 
     <section class="player-dock" id="player-dock" aria-label="Player">
+      <div class="dock-mini-progress" id="dock-mini-progress"><div class="dock-mini-progress-fill" id="dock-mini-progress-fill"></div></div>
       <button class="dock-art art-noir" id="dock-art" type="button" aria-label="Open Now Playing"><i></i><em>LMH</em></button>
       <button class="dock-track" id="now-playing-trigger" type="button" aria-label="Open Now Playing"><strong id="dock-title">Love Me Harder</strong><span id="dock-artist">Ariana Grande, The Weeknd</span></button>
       <div class="dock-progress"><span id="dock-elapsed">0:00</span><input id="dock-seek" type="range" min="0" max="100" value="0" aria-label="Playback position" disabled /><span id="dock-duration">0:00</span></div>
       <div class="dock-controls">
         <button class="dock-icon desktop-only" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
         <button class="dock-play" id="dock-play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
-        <button class="dock-icon desktop-only" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
+        <button class="dock-icon dock-next-btn" id="dock-next" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
       </div>
       <button class="dock-icon side-panel-toggle desktop-only" id="dock-side-panel-toggle" type="button" aria-label="Now playing view" title="Now playing view"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H13V6h6v12Z" fill="currentColor"/></svg></button>
       <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play songs."><svg><use href="#i-queue"/></svg></button>

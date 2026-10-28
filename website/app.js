@@ -97,9 +97,18 @@
     dockTitle: $("#dock-title"),
     dockArtist: $("#dock-artist"),
     dockPlay: $("#dock-play"),
+    dockNext: $("#dock-next"),
     dockSeek: $("#dock-seek"),
     dockElapsed: $("#dock-elapsed"),
     dockDuration: $("#dock-duration"),
+    dockMiniProgressFill: $("#dock-mini-progress-fill"),
+    sideSeek: $("#side-seek"),
+    sideElapsed: $("#side-elapsed"),
+    sideDuration: $("#side-duration"),
+    sidePlay: $("#side-play"),
+    sidePrevBtn: $("#side-prev-btn"),
+    sideNextBtn: $("#side-next-btn"),
+    sheetHandle: $(".mobile-sheet-handle"),
     soundtrackPlay: $("#soundtrack-play"),
     search: $("#search-input")
   };
@@ -265,12 +274,21 @@
       const current = youTubePlayer.getCurrentTime() || 0;
       const duration = youTubePlayer.getDuration() || 0;
       if (duration > 0) {
+        const pct = (current / duration) * 100;
+        const curFormatted = formatTime(current);
+        const durFormatted = formatTime(duration);
         elements.dockSeek.disabled = false;
-        elements.dockDuration.textContent = formatTime(duration);
-        elements.dockElapsed.textContent = formatTime(current);
+        elements.dockDuration.textContent = durFormatted;
+        elements.dockElapsed.textContent = curFormatted;
         if (!isSeeking) {
-          elements.dockSeek.value = String((current / duration) * 100);
+          elements.dockSeek.value = String(pct);
+          if (elements.sideSeek) elements.sideSeek.value = String(pct);
         }
+        if (elements.dockMiniProgressFill) {
+          elements.dockMiniProgressFill.style.width = pct + "%";
+        }
+        if (elements.sideDuration) elements.sideDuration.textContent = durFormatted;
+        if (elements.sideElapsed) elements.sideElapsed.textContent = curFormatted;
       }
     } catch {
       // Player might not be ready yet
@@ -588,14 +606,39 @@
   }
 
   function setPlayIcon(isPlaying) {
-    elements.dockPlay.innerHTML = `<svg><use href="#${isPlaying ? "i-pause" : "i-play"}"/></svg>`;
+    const iconHtml = `<svg><use href="#${isPlaying ? "i-pause" : "i-play"}"/></svg>`;
+    elements.dockPlay.innerHTML = iconHtml;
     elements.dockPlay.setAttribute("aria-label", isPlaying ? "Pause audio" : "Play audio");
+    if (elements.sidePlay) {
+      elements.sidePlay.innerHTML = iconHtml;
+      elements.sidePlay.setAttribute("aria-label", isPlaying ? "Pause audio" : "Play audio");
+    }
   }
 
   function resetPlayer() {
     elements.dockSeek.value = "0";
     elements.dockElapsed.textContent = "0:00";
     elements.dockDuration.textContent = formatTime(elements.audio.duration);
+    if (elements.sideSeek) elements.sideSeek.value = "0";
+    if (elements.sideElapsed) elements.sideElapsed.textContent = "0:00";
+    if (elements.sideDuration) elements.sideDuration.textContent = formatTime(elements.audio.duration);
+    if (elements.dockMiniProgressFill) elements.dockMiniProgressFill.style.width = "0%";
+  }
+
+  function playNextTrack() {
+    const tracks = all(".quick-track");
+    if (!tracks.length) return;
+    const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
+    const nextIdx = (currentIdx + 1) % tracks.length;
+    selectTrack(tracks[nextIdx]);
+  }
+
+  function playPrevTrack() {
+    const tracks = all(".quick-track");
+    if (!tracks.length) return;
+    const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
+    const prevIdx = (currentIdx - 1 + tracks.length) % tracks.length;
+    selectTrack(tracks[prevIdx]);
   }
 
   function selectLocalAudio(file) {
@@ -1127,9 +1170,16 @@
     });
     elements.audio.addEventListener("timeupdate", () => {
       if (!Number.isFinite(elements.audio.duration)) return;
-      elements.dockSeek.value = String((elements.audio.currentTime / elements.audio.duration) * 100);
-      elements.dockElapsed.textContent = formatTime(elements.audio.currentTime);
-      elements.dockDuration.textContent = formatTime(elements.audio.duration);
+      const pct = (elements.audio.currentTime / elements.audio.duration) * 100;
+      const curFormatted = formatTime(elements.audio.currentTime);
+      const durFormatted = formatTime(elements.audio.duration);
+      elements.dockSeek.value = String(pct);
+      elements.dockElapsed.textContent = curFormatted;
+      elements.dockDuration.textContent = durFormatted;
+      if (elements.sideSeek) elements.sideSeek.value = String(pct);
+      if (elements.sideElapsed) elements.sideElapsed.textContent = curFormatted;
+      if (elements.sideDuration) elements.sideDuration.textContent = durFormatted;
+      if (elements.dockMiniProgressFill) elements.dockMiniProgressFill.style.width = pct + "%";
     });
     elements.audio.addEventListener("play", () => {
       pauseYouTube();
@@ -1139,29 +1189,75 @@
     elements.audio.addEventListener("ended", () => {
       elements.dockSeek.value = "0";
       setPlayIcon(false);
+      playNextTrack();
     });
     elements.dockSeek.addEventListener("input", () => {
       isSeeking = true;
+      const val = Number(elements.dockSeek.value);
+      if (elements.sideSeek) elements.sideSeek.value = String(val);
+      if (elements.dockMiniProgressFill) elements.dockMiniProgressFill.style.width = val + "%";
       if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
-        const seekTime = (Number(elements.dockSeek.value) / 100) * youTubePlayer.getDuration();
+        const seekTime = (val / 100) * youTubePlayer.getDuration();
         elements.dockElapsed.textContent = formatTime(seekTime);
+        if (elements.sideElapsed) elements.sideElapsed.textContent = formatTime(seekTime);
       } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
-        const seekTime = (Number(elements.dockSeek.value) / 100) * elements.audio.duration;
+        const seekTime = (val / 100) * elements.audio.duration;
         elements.dockElapsed.textContent = formatTime(seekTime);
+        if (elements.sideElapsed) elements.sideElapsed.textContent = formatTime(seekTime);
       }
     });
     elements.dockSeek.addEventListener("change", () => {
       isSeeking = false;
+      const val = Number(elements.dockSeek.value);
+      if (elements.sideSeek) elements.sideSeek.value = String(val);
       if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
-        const seekTime = (Number(elements.dockSeek.value) / 100) * youTubePlayer.getDuration();
+        const seekTime = (val / 100) * youTubePlayer.getDuration();
         try {
           youTubePlayer.seekTo(seekTime, true);
         } catch {}
         elements.dockElapsed.textContent = formatTime(seekTime);
+        if (elements.sideElapsed) elements.sideElapsed.textContent = formatTime(seekTime);
       } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
-        elements.audio.currentTime = (Number(elements.dockSeek.value) / 100) * elements.audio.duration;
+        elements.audio.currentTime = (val / 100) * elements.audio.duration;
       }
     });
+
+    elements.sideSeek?.addEventListener("input", () => {
+      isSeeking = true;
+      const val = Number(elements.sideSeek.value);
+      elements.dockSeek.value = String(val);
+      if (elements.dockMiniProgressFill) elements.dockMiniProgressFill.style.width = val + "%";
+      if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
+        const seekTime = (val / 100) * youTubePlayer.getDuration();
+        elements.dockElapsed.textContent = formatTime(seekTime);
+        elements.sideElapsed.textContent = formatTime(seekTime);
+      } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
+        const seekTime = (val / 100) * elements.audio.duration;
+        elements.dockElapsed.textContent = formatTime(seekTime);
+        elements.sideElapsed.textContent = formatTime(seekTime);
+      }
+    });
+    elements.sideSeek?.addEventListener("change", () => {
+      isSeeking = false;
+      const val = Number(elements.sideSeek.value);
+      elements.dockSeek.value = String(val);
+      if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
+        const seekTime = (val / 100) * youTubePlayer.getDuration();
+        try {
+          youTubePlayer.seekTo(seekTime, true);
+        } catch {}
+        elements.dockElapsed.textContent = formatTime(seekTime);
+        elements.sideElapsed.textContent = formatTime(seekTime);
+      } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
+        elements.audio.currentTime = (val / 100) * elements.audio.duration;
+      }
+    });
+
+    elements.dockNext?.addEventListener("click", playNextTrack);
+    elements.sideNextBtn?.addEventListener("click", playNextTrack);
+    elements.sidePrevBtn?.addEventListener("click", playPrevTrack);
+    elements.sidePlay?.addEventListener("click", togglePlayback);
+    elements.sheetHandle?.addEventListener("click", closeNowPlayingSidebar);
     elements.search.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
