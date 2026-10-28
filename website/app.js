@@ -41,7 +41,6 @@
     youtubeForm: $("#youtube-form"),
     youtubeUrl: $("#youtube-url"),
     youtubeFrame: $("#youtube-frame"),
-    youtubeTrigger: $("#youtube-trigger"),
     youtubeSearchForm: $("#youtube-search-form"),
     youtubeSearchInput: $("#youtube-search-input"),
     youtubeSearchStatus: $("#youtube-search-status"),
@@ -619,7 +618,6 @@
     elements.profileTrigger.addEventListener("click", openAccountDialog);
     elements.topProfileTrigger.addEventListener("click", openAccountDialog);
     elements.themeToggle.addEventListener("click", toggleTheme);
-    elements.youtubeTrigger.addEventListener("click", openYouTubeDialog);
     elements.youtubeClose.addEventListener("click", closeYouTubeDialog);
     elements.youtubeDialog.addEventListener("click", (event) => {
       const rect = elements.youtubeDialog.getBoundingClientRect();
