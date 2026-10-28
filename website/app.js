@@ -227,7 +227,42 @@
     return youtubeApiPromise;
   }
 
+  let youTubeProgressTimer = null;
+  let isSeeking = false;
+
+  function updateYouTubeProgress() {
+    if (!youTubePlayer || typeof youTubePlayer.getCurrentTime !== "function") return;
+    try {
+      const current = youTubePlayer.getCurrentTime() || 0;
+      const duration = youTubePlayer.getDuration() || 0;
+      if (duration > 0) {
+        elements.dockSeek.disabled = false;
+        elements.dockDuration.textContent = formatTime(duration);
+        elements.dockElapsed.textContent = formatTime(current);
+        if (!isSeeking) {
+          elements.dockSeek.value = String((current / duration) * 100);
+        }
+      }
+    } catch {
+      // Player might not be ready yet
+    }
+  }
+
+  function startYouTubeProgress() {
+    stopYouTubeProgress();
+    updateYouTubeProgress();
+    youTubeProgressTimer = window.setInterval(updateYouTubeProgress, 250);
+  }
+
+  function stopYouTubeProgress() {
+    if (youTubeProgressTimer) {
+      window.clearInterval(youTubeProgressTimer);
+      youTubeProgressTimer = null;
+    }
+  }
+
   function pauseYouTube() {
+    stopYouTubeProgress();
     try {
       youTubePlayer?.pauseVideo?.();
     } catch {
@@ -253,11 +288,16 @@
     const title = track?.title || "Public YouTube video";
     const artist = track?.artist || "YouTube";
     const thumbnail = String(track?.thumbnail || "");
-    currentYouTubeTrack = { title, artist, thumbnail };
+    const duration = String(track?.duration || "");
+    currentYouTubeTrack = { title, artist, thumbnail, duration };
     elements.dockTitle.textContent = title;
     elements.dockArtist.textContent = artist;
     elements.nowPlayingTitle.textContent = title;
     elements.nowPlayingArtist.textContent = artist;
+    if (duration) elements.dockDuration.textContent = duration;
+    elements.dockElapsed.textContent = "0:00";
+    elements.dockSeek.value = "0";
+    elements.dockSeek.disabled = false;
     elements.dockArt.className = "dock-art";
     elements.dockArt.style.backgroundImage = thumbnail
       ? `linear-gradient(145deg, transparent 38%, rgba(0,0,0,.58)), url("${thumbnail.replace(/"/g, "\\\"")}")`
@@ -297,8 +337,15 @@
               if (state === window.YT.PlayerState.PLAYING) {
                 if (elements.audio.src) elements.audio.pause();
                 setPlayIcon(true);
-              } else if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.ENDED) {
+                startYouTubeProgress();
+              } else if (state === window.YT.PlayerState.PAUSED) {
                 setPlayIcon(false);
+                stopYouTubeProgress();
+              } else if (state === window.YT.PlayerState.ENDED) {
+                setPlayIcon(false);
+                stopYouTubeProgress();
+                elements.dockSeek.value = "0";
+                elements.dockElapsed.textContent = "0:00";
               }
             },
             onAutoplayBlocked: () => showToast("Tap play in the YouTube player to start this video."),
@@ -630,7 +677,7 @@
           <h2 class="search-section-heading">Songs</h2>
           <div class="search-song-list">
             ${songs.map((song) => `
-              <button class="search-track-row" type="button" data-youtube-video="${escapeHtml(song.videoId)}" data-youtube-title="${escapeHtml(song.title)}" data-youtube-artist="${escapeHtml(song.artist)}" data-youtube-thumbnail="${escapeHtml(song.thumbnail)}" aria-label="Play ${escapeHtml(song.title)} by ${escapeHtml(song.artist)}">
+              <button class="search-track-row" type="button" data-youtube-video="${escapeHtml(song.videoId)}" data-youtube-title="${escapeHtml(song.title)}" data-youtube-artist="${escapeHtml(song.artist)}" data-youtube-thumbnail="${escapeHtml(song.thumbnail)}" data-youtube-duration="${escapeHtml(song.duration || "")}" aria-label="Play ${escapeHtml(song.title)} by ${escapeHtml(song.artist)}">
                 <img class="search-track-art" src="${escapeHtml(song.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" />
                 <div class="search-track-info">
                   <strong class="search-track-title">${escapeHtml(song.title)}</strong>
@@ -708,7 +755,8 @@
       playYouTubeVideo(button.dataset.youtubeVideo, {
         title: button.dataset.youtubeTitle,
         artist: button.dataset.youtubeArtist,
-        thumbnail: button.dataset.youtubeThumbnail
+        thumbnail: button.dataset.youtubeThumbnail,
+        duration: button.dataset.youtubeDuration
       });
     }));
 
@@ -963,8 +1011,26 @@
       setPlayIcon(false);
     });
     elements.dockSeek.addEventListener("input", () => {
-      if (!Number.isFinite(elements.audio.duration)) return;
-      elements.audio.currentTime = (Number(elements.dockSeek.value) / 100) * elements.audio.duration;
+      isSeeking = true;
+      if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
+        const seekTime = (Number(elements.dockSeek.value) / 100) * youTubePlayer.getDuration();
+        elements.dockElapsed.textContent = formatTime(seekTime);
+      } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
+        const seekTime = (Number(elements.dockSeek.value) / 100) * elements.audio.duration;
+        elements.dockElapsed.textContent = formatTime(seekTime);
+      }
+    });
+    elements.dockSeek.addEventListener("change", () => {
+      isSeeking = false;
+      if (youTubePlayer && typeof youTubePlayer.getDuration === "function" && youTubePlayer.getDuration() > 0) {
+        const seekTime = (Number(elements.dockSeek.value) / 100) * youTubePlayer.getDuration();
+        try {
+          youTubePlayer.seekTo(seekTime, true);
+        } catch {}
+        elements.dockElapsed.textContent = formatTime(seekTime);
+      } else if (Number.isFinite(elements.audio.duration) && elements.audio.duration > 0) {
+        elements.audio.currentTime = (Number(elements.dockSeek.value) / 100) * elements.audio.duration;
+      }
     });
     elements.search.addEventListener("keydown", (event) => {
       if (event.key === "Enter") handleSearch();
