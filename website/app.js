@@ -125,7 +125,10 @@
     soundtrackLead: $("#soundtrack-lead"),
     soundtrackCompanionStack: $("#soundtrack-companion-stack"),
     soundtrackPlay: $("#soundtrack-play"),
-    quickGrid: $("#quick-grid"),
+    quickShelf: $("#quick-shelf") || $("#quick-grid"),
+    quickGrid: $("#quick-shelf") || $("#quick-grid"),
+    quickPrevBtn: $("#quick-prev-btn"),
+    quickNextBtn: $("#quick-next-btn"),
     quickPlayAll: $("#quick-play-all"),
     orbitRail: $("#orbit-rail"),
     search: $("#search-input")
@@ -394,7 +397,7 @@
     } else {
       elements.dockArt.innerHTML = "<i></i><em>▶</em>";
     }
-    all(".quick-track, .orbit-card").forEach((item) => {
+    all(".quick-track-row, .quick-track, .orbit-card").forEach((item) => {
       const match = item.dataset.title === title;
       item.classList.toggle("is-current", match);
       const bars = item.querySelector(".playing-bars");
@@ -659,7 +662,7 @@
   }
 
   function playNextTrack() {
-    const tracks = all(".quick-track");
+    const tracks = all(".quick-track-row, .quick-track");
     if (!tracks.length) return;
     const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
     const nextIdx = (currentIdx + 1) % tracks.length;
@@ -667,7 +670,7 @@
   }
 
   function playPrevTrack() {
-    const tracks = all(".quick-track");
+    const tracks = all(".quick-track-row, .quick-track");
     if (!tracks.length) return;
     const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
     const prevIdx = (currentIdx - 1 + tracks.length) % tracks.length;
@@ -742,7 +745,7 @@
     } else {
       elements.dockArt.innerHTML = `<i></i><em>${escapeHtml(title.slice(0, 8).toUpperCase())}</em>`;
     }
-    all(".quick-track, .orbit-card").forEach((item) => {
+    all(".quick-track-row, .quick-track, .orbit-card").forEach((item) => {
       const match = item.dataset.title === title;
       item.classList.toggle("is-current", match);
       const bars = item.querySelector(".playing-bars");
@@ -1138,21 +1141,43 @@
     }
   }
 
-  function renderQuickPicksGrid(tracks) {
-    if (!elements.quickGrid) return;
-    elements.quickGrid.innerHTML = tracks
-      .map((t, idx) => {
-        const isCurrent = currentYouTubeTrack?.videoId === t.videoId || idx === 0;
-        return `
-          <button class="quick-track ${isCurrent ? "is-current" : ""}" type="button" data-title="${escapeHtml(t.title)}" data-artist="${escapeHtml(t.artist)}" data-video-id="${escapeHtml(t.videoId)}" data-thumb="${escapeHtml(t.thumbnail)}">
-            <span class="album-art has-thumb"><img src="${escapeHtml(t.thumbnail)}" alt="${escapeHtml(t.title)}" loading="lazy" /></span>
-            <span class="track-meta"><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.artist)}</small></span>
-            <span class="playing-bars" aria-label="Selected" style="display:${isCurrent ? "inline-flex" : "none"};"><i></i><i></i><i></i></span>
-          </button>
-        `;
-      })
+  function renderQuickPicksShelf(tracks) {
+    const shelf = elements.quickShelf || elements.quickGrid || $("#quick-shelf") || $("#quick-grid");
+    if (!shelf) return;
+    const TRACK_COLUMN_ROWS = 4;
+    const columns = [];
+    for (let i = 0; i < tracks.length; i += TRACK_COLUMN_ROWS) {
+      columns.push(tracks.slice(i, i + TRACK_COLUMN_ROWS));
+    }
+
+    shelf.innerHTML = columns
+      .map((colTracks, colIdx) => `
+        <div class="quick-column" data-column-index="${colIdx}">
+          ${colTracks
+            .map((t, rowIdx) => {
+              const isCurrent = currentYouTubeTrack?.videoId === t.videoId || (!currentYouTubeTrack && colIdx === 0 && rowIdx === 0);
+              return `
+                <button class="quick-track-row ${isCurrent ? "is-current" : ""}" type="button" data-title="${escapeHtml(t.title)}" data-artist="${escapeHtml(t.artist)}" data-video-id="${escapeHtml(t.videoId)}" data-thumb="${escapeHtml(t.thumbnail)}">
+                  <span class="quick-row-thumb">
+                    <img src="${escapeHtml(t.thumbnail)}" alt="${escapeHtml(t.title)}" loading="lazy" />
+                    <span class="playing-bars" aria-label="Playing" style="display:${isCurrent ? "inline-flex" : "none"};"><i></i><i></i><i></i></span>
+                  </span>
+                  <span class="quick-row-meta">
+                    <strong class="quick-row-title">${escapeHtml(t.title)}</strong>
+                    <small class="quick-row-artist">${escapeHtml(t.artist)}</small>
+                  </span>
+                  <button class="quick-row-more" type="button" aria-label="Song options" data-action="options" data-title="${escapeHtml(t.title)}" data-artist="${escapeHtml(t.artist)}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><use href="#i-more"/></svg>
+                  </button>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      `)
       .join("");
   }
+  const renderQuickPicksGrid = renderQuickPicksShelf;
 
   function renderOrbitRail(tracks) {
     if (!elements.orbitRail) return;
@@ -1267,6 +1292,7 @@
   }
 
   function selectTrack(target) {
+    if (target.closest(".quick-row-more, [data-action='options']")) return;
     const button = target.closest("[data-title]");
     if (!button) return;
     const title = button.dataset.title;
@@ -1665,10 +1691,18 @@
       all(".mood-chip").forEach((item) => item.classList.toggle("is-selected", item === chip));
       showToast(`${chip.textContent.trim()} is selected.`);
     }));
-    all(".quick-track, .orbit-card").forEach((button) => button.addEventListener("click", (event) => selectTrack(event.currentTarget)));
-    $("#quick-play-all").addEventListener("click", () => {
-      const first = $(".quick-track");
+    all(".quick-track-row, .quick-track, .orbit-card").forEach((button) => button.addEventListener("click", (event) => selectTrack(event.currentTarget)));
+    elements.quickPlayAll?.addEventListener("click", () => {
+      const first = $(".quick-track-row, .quick-track");
       if (first) selectTrack(first);
+    });
+    elements.quickPrevBtn?.addEventListener("click", () => {
+      const shelf = elements.quickShelf || $("#quick-shelf");
+      if (shelf) shelf.scrollBy({ left: -320, behavior: "smooth" });
+    });
+    elements.quickNextBtn?.addEventListener("click", () => {
+      const shelf = elements.quickShelf || $("#quick-shelf");
+      if (shelf) shelf.scrollBy({ left: 320, behavior: "smooth" });
     });
     all("[data-genre-search]").forEach((button) => button.addEventListener("click", () => {
       searchYouTube(button.dataset.genreSearch);
@@ -1737,8 +1771,17 @@
       event.stopPropagation();
       toggleNowPlayingSidebar();
     });
-    elements.quickGrid?.addEventListener("click", (event) => {
-      const track = event.target.closest(".quick-track");
+    const shelfContainer = elements.quickShelf || elements.quickGrid || $("#quick-shelf") || $("#quick-grid");
+    shelfContainer?.addEventListener("click", (event) => {
+      const moreBtn = event.target.closest(".quick-row-more");
+      if (moreBtn) {
+        event.stopPropagation();
+        const title = moreBtn.dataset.title || "Song";
+        const artist = moreBtn.dataset.artist || "Artist";
+        showToast(`${title} · ${artist} added to queue`);
+        return;
+      }
+      const track = event.target.closest(".quick-track-row, .quick-track");
       if (track) selectTrack(track);
     });
     elements.orbitRail?.addEventListener("click", (event) => {
@@ -1751,7 +1794,7 @@
         setNowPlaying(spotlightHeroTrack.title, spotlightHeroTrack.artist, "art-pop", spotlightHeroTrack.thumbnail, spotlightHeroTrack.videoId);
         playYouTubeVideo(spotlightHeroTrack.videoId, spotlightHeroTrack);
       } else {
-        const first = $(".quick-track");
+        const first = $(".quick-track-row, .quick-track");
         if (first) {
           selectTrack(first);
         } else {
