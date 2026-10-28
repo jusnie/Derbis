@@ -242,6 +242,53 @@
           </div>
         </section>
       </main>
+
+      <aside class="now-playing-sidebar" id="now-playing-sidebar" aria-label="Now Playing View">
+        <header class="side-panel-header">
+          <div class="side-header-title">
+            <span class="side-kicker">NOW PLAYING</span>
+            <h2 id="youtube-dialog-title">Love Me Harder</h2>
+          </div>
+          <button class="side-panel-close icon-button" id="youtube-close" type="button" aria-label="Close Now Playing view"><svg><use href="#i-close"/></svg></button>
+        </header>
+
+        <div class="side-media-shell">
+          <div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Select a song to play</span></div></div>
+        </div>
+
+        <div class="side-track-header">
+          <div class="side-track-meta">
+            <strong class="side-track-title" id="side-track-title">Love Me Harder</strong>
+            <span class="side-track-artist" id="now-playing-artist">Ariana Grande, The Weeknd</span>
+          </div>
+          <div class="side-track-actions">
+            <button class="icon-button side-action-btn" type="button" aria-label="Save to favorites" data-toast="Saved to favorites"><svg><use href="#i-heart"/></svg></button>
+            <button class="icon-button side-action-btn" type="button" aria-label="More options" data-toast="More options"><svg><use href="#i-more"/></svg></button>
+          </div>
+        </div>
+
+        <div class="side-about-artist" id="side-about-artist">
+          <div class="side-artist-banner" id="side-artist-banner">
+            <img id="side-artist-avatar" src="https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" alt="" referrerpolicy="no-referrer" />
+            <div class="side-artist-overlay">
+              <p class="section-kicker">ABOUT THE ARTIST</p>
+              <h3 id="side-artist-name">Ariana Grande</h3>
+            </div>
+          </div>
+          <div class="side-artist-details">
+            <p id="side-artist-bio">Verified Official Artist on YouTube. Playing through official YouTube embedded player in Derbis.</p>
+            <button class="secondary-button" id="side-artist-explore-btn" type="button">Explore artist</button>
+          </div>
+        </div>
+
+        <form class="side-youtube-form" id="youtube-form">
+          <label for="youtube-url">Play via link or video ID</label>
+          <div>
+            <input id="youtube-url" type="text" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" />
+            <button class="primary-button" type="submit">Play</button>
+          </div>
+        </form>
+      </aside>
     </div>
 
     <section class="player-dock" id="player-dock" aria-label="Player">
@@ -253,6 +300,7 @@
         <button class="dock-play" id="dock-play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
         <button class="dock-icon desktop-only" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
       </div>
+      <button class="dock-icon side-panel-toggle desktop-only" id="dock-side-panel-toggle" type="button" aria-label="Now playing view" title="Now playing view"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H13V6h6v12Z" fill="currentColor"/></svg></button>
       <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play songs."><svg><use href="#i-queue"/></svg></button>
       <input id="local-audio" type="file" accept="audio/*" hidden />
       <audio id="audio-player" preload="metadata"></audio>
@@ -264,20 +312,6 @@
       <button class="mobile-nav-item" type="button" data-page="library"><svg><use href="#i-library"/></svg><span>Library</span></button>
       <button class="mobile-nav-item" type="button" id="mobile-search"><svg><use href="#i-search"/></svg><span>Search</span></button>
     </nav>
-
-    <dialog class="youtube-dialog" id="youtube-dialog" aria-labelledby="youtube-dialog-title">
-      <button class="dialog-close icon-button" id="youtube-close" type="button" aria-label="Minimize Now Playing"><svg><use href="#i-close"/></svg></button>
-      <div class="dialog-brand"><span class="youtube-brand-icon"><svg><use href="#i-youtube"/></svg></span><span>NOW PLAYING</span></div>
-      <h2 id="youtube-dialog-title">Play a public YouTube video</h2>
-      <p class="now-playing-artist" id="now-playing-artist">Choose a search result or paste a public YouTube video link.</p>
-      <p class="youtube-description">Derbis uses YouTube’s official embedded player—no copied sessions or YouTube Music account playback.</p>
-      <div class="youtube-frame-shell"><div id="youtube-frame"><div class="youtube-placeholder"><svg><use href="#i-youtube"/></svg><span>Paste a video link to begin</span></div></div></div>
-      <form class="youtube-form" id="youtube-form">
-        <label for="youtube-url">YouTube video URL or ID</label>
-        <div><input id="youtube-url" type="text" inputmode="url" autocomplete="off" placeholder="https://youtu.be/…" /><button class="primary-button" type="submit">Play</button></div>
-      </form>
-      <p class="youtube-note">Some videos cannot be embedded because their uploader has disabled embedding. YouTube terms and ads may apply.</p>
-    </dialog>
 
     <dialog class="account-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
       <button class="dialog-close icon-button" id="dialog-close" type="button" aria-label="Close account panel"><svg><use href="#i-close"/></svg></button>

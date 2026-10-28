@@ -34,10 +34,16 @@
     profileTrigger: $("#profile-trigger"),
     topProfileTrigger: $("#top-profile-trigger"),
     themeToggle: $("#theme-toggle"),
-    youtubeDialog: $("#youtube-dialog"),
+    nowPlayingSidebar: $("#now-playing-sidebar"),
     youtubeClose: $("#youtube-close"),
     nowPlayingTitle: $("#youtube-dialog-title"),
     nowPlayingArtist: $("#now-playing-artist"),
+    sideTrackTitle: $("#side-track-title"),
+    sideArtistName: $("#side-artist-name"),
+    sideArtistAvatar: $("#side-artist-avatar"),
+    sideArtistBio: $("#side-artist-bio"),
+    sideArtistExplore: $("#side-artist-explore-btn"),
+    dockSideToggle: $("#dock-side-panel-toggle"),
     youtubeForm: $("#youtube-form"),
     youtubeUrl: $("#youtube-url"),
     youtubeFrame: $("#youtube-frame"),
@@ -274,14 +280,33 @@
     }
   }
 
+  function openNowPlayingSidebar() {
+    elements.nowPlayingSidebar?.classList.add("is-open");
+    document.body.classList.add("has-now-playing-open");
+    elements.dockSideToggle?.classList.add("is-active");
+  }
+
+  function closeNowPlayingSidebar() {
+    elements.nowPlayingSidebar?.classList.remove("is-open");
+    document.body.classList.remove("has-now-playing-open");
+    elements.dockSideToggle?.classList.remove("is-active");
+  }
+
+  function toggleNowPlayingSidebar() {
+    if (elements.nowPlayingSidebar?.classList.contains("is-open")) {
+      closeNowPlayingSidebar();
+    } else {
+      openNowPlayingSidebar();
+    }
+  }
+
   function openYouTubeDialog() {
-    if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
-    if (!currentYouTubeTrack) window.setTimeout(() => elements.youtubeUrl.focus(), 0);
+    openNowPlayingSidebar();
+    if (!currentYouTubeTrack) window.setTimeout(() => elements.youtubeUrl?.focus(), 0);
   }
 
   function closeYouTubeDialog() {
-    // Closing this surface minimizes it to the persistent dock; it does not stop the video.
-    if (elements.youtubeDialog.open) elements.youtubeDialog.close();
+    closeNowPlayingSidebar();
   }
 
   function setYouTubeNowPlaying(track) {
@@ -294,6 +319,10 @@
     elements.dockArtist.textContent = artist;
     elements.nowPlayingTitle.textContent = title;
     elements.nowPlayingArtist.textContent = artist;
+    if (elements.sideTrackTitle) elements.sideTrackTitle.textContent = title;
+    if (elements.sideArtistName) elements.sideArtistName.textContent = artist;
+    if (elements.sideArtistAvatar && thumbnail) elements.sideArtistAvatar.src = thumbnail;
+    if (elements.sideArtistBio) elements.sideArtistBio.textContent = `Official track by ${artist}. Playing with YouTube’s official embedded player in Derbis.`;
     if (duration) elements.dockDuration.textContent = duration;
     elements.dockElapsed.textContent = "0:00";
     elements.dockSeek.value = "0";
@@ -314,8 +343,7 @@
       return;
     }
     setYouTubeNowPlaying(track || { title: "Public YouTube video", artist: "YouTube" });
-    // Open immediately so the tap always gives visible feedback, even on a slow network.
-    if (!elements.youtubeDialog.open) elements.youtubeDialog.showModal();
+    openNowPlayingSidebar();
     if (elements.audio.src) elements.audio.pause();
     showPlayerLoading();
     try {
@@ -330,7 +358,7 @@
           playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1 },
           events: {
             onReady: (event) => {
-              if (elements.youtubeDialog.open) event.target.playVideo();
+              event.target.playVideo();
             },
             onStateChange: (event) => {
               const state = event.data;
@@ -962,10 +990,15 @@
     elements.profileTrigger.addEventListener("click", openAccountDialog);
     elements.topProfileTrigger.addEventListener("click", openAccountDialog);
     elements.themeToggle.addEventListener("click", toggleTheme);
-    elements.youtubeClose.addEventListener("click", closeYouTubeDialog);
-    elements.youtubeDialog.addEventListener("click", (event) => {
-      const rect = elements.youtubeDialog.getBoundingClientRect();
-      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeYouTubeDialog();
+    elements.youtubeClose.addEventListener("click", closeNowPlayingSidebar);
+    elements.dockSideToggle?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNowPlayingSidebar();
+    });
+    elements.sideArtistExplore?.addEventListener("click", () => {
+      if (currentYouTubeTrack?.artist) {
+        searchYouTube(`${currentYouTubeTrack.artist} songs`);
+      }
     });
     elements.youtubeForm.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -985,11 +1018,20 @@
     elements.file.addEventListener("change", () => selectLocalAudio(elements.file.files?.[0]));
     elements.playerDock.addEventListener("click", (event) => {
       if (event.target.closest("#dock-play, .dock-icon, .dock-queue, input")) return;
-      openYouTubeDialog();
+      toggleNowPlayingSidebar();
     });
-    elements.dockArt.addEventListener("click", openYouTubeDialog);
-    elements.nowPlayingTrigger.addEventListener("click", openYouTubeDialog);
-    elements.soundtrackPlay.addEventListener("click", openYouTubeDialog);
+    elements.dockArt.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNowPlayingSidebar();
+    });
+    elements.nowPlayingTrigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNowPlayingSidebar();
+    });
+    elements.soundtrackPlay.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleNowPlayingSidebar();
+    });
     elements.dockPlay.addEventListener("click", togglePlayback);
     elements.audio.addEventListener("loadedmetadata", () => {
       resetPlayer();
