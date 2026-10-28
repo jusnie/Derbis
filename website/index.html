@@ -160,29 +160,72 @@
           <section class="content-section fresh-section" aria-labelledby="fresh-title">
             <div class="section-heading"><div><p class="section-kicker">DISCOVER</p><h2 id="fresh-title">Fresh on Derbis</h2></div><button class="text-action" type="button" data-page="explore">Explore <svg><use href="#i-arrow"/></svg></button></div>
             <div class="feature-grid">
-              <button class="feature-card feature-card--one" type="button" data-toast="Explore collections are coming to the web companion."><span>LOCAL WAVE</span><strong>New voices, close to home.</strong><i>→</i></button>
-              <button class="feature-card feature-card--two" type="button" data-toast="Explore collections are coming to the web companion."><span>DISCOVERY</span><strong>Move between moods.</strong><i>→</i></button>
-              <button class="feature-card feature-card--three" type="button" data-toast="Explore collections are coming to the web companion."><span>RELEASE RADAR</span><strong>Start somewhere new.</strong><i>→</i></button>
+              <button class="feature-card feature-card--one" type="button" data-genre-search="Local Wave music">
+                <div class="category-artists" aria-hidden="true">
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/Lq6oaEj_0jHHYdZezF5_wQuWpmc49sWyL1X1c-_cSmdltb83ZW8oO4qa-t4BQT6VKiuTLdTaxAg=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                </div>
+                <span>LOCAL WAVE</span><strong>New voices, close to home.</strong><i>→</i>
+              </button>
+              <button class="feature-card feature-card--two" type="button" data-genre-search="Kendrick Lamar Olivia Rodrigo">
+                <div class="category-artists" aria-hidden="true">
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/8fYEqptbj6PB0P1wsInLaxKp1Dx297k9rmqHG6ku_W6RroudF1Nsm1vuIT3BhYx3eLwI8Y5t_Q=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/cCf3P5ZRQ5f0D69oXzAg6LUI6gazIPLhIohervVyg0JdGrDfo5MUCzU_qujvGruLVWwtVtbf6Q=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                </div>
+                <span>DISCOVERY</span><strong>Move between moods.</strong><i>→</i>
+              </button>
+              <button class="feature-card feature-card--three" type="button" data-genre-search="Ariana Grande Post Malone">
+                <div class="category-artists" aria-hidden="true">
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/u2o5_V4WeYMDebsryzMFHN6OBoXZsMjfpOSguscVEAVS6MKYHowaXnPjfZmzaRSr1jqtjiCowg=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                  <img class="category-artist-avatar" src="https://yt3.ggpht.com/qmo56thj8jWOOXl2k5niUFdmwxVTfLEPruhmtZvfdeAfJz7nPxWtWLveG6VvHh7C0G-WbYKXbA=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                </div>
+                <span>RELEASE RADAR</span><strong>Start somewhere new.</strong><i>→</i>
+              </button>
             </div>
           </section>
         </section>
 
         <section class="page alternate-page" data-page-panel="explore" hidden>
-          <div class="page-intro"><p class="section-kicker">DISCOVER</p><h1>Explore your next orbit.</h1><p>Search public, embeddable YouTube videos and play them inside Derbis with the official YouTube player.</p></div>
+          <div class="page-intro"><p class="section-kicker">DISCOVER</p><h1>Explore songs &amp; artists.</h1><p>Search official songs, artists, and audio tracks. Play them directly in Derbis with the official embedded player.</p></div>
           <section class="youtube-search-panel" aria-labelledby="youtube-search-title">
-            <div class="youtube-search-heading"><div><p class="section-kicker">OFFICIAL YOUTUBE SEARCH</p><h2 id="youtube-search-title">Find a track or artist</h2></div><span>Public videos only</span></div>
+            <div class="youtube-search-heading"><div><p class="section-kicker">OFFICIAL MUSIC SEARCH</p><h2 id="youtube-search-title">Search songs &amp; artists</h2></div><span>Songs &amp; Audio</span></div>
             <form id="youtube-search-form" class="youtube-search-form">
-              <label class="sr-only" for="youtube-search-input">Search YouTube</label>
-              <svg><use href="#i-search"/></svg><input id="youtube-search-input" type="search" placeholder="Search songs, artists, live sessions…" autocomplete="off" /><button class="primary-button" type="submit">Search</button>
+              <label class="sr-only" for="youtube-search-input">Search songs &amp; artists</label>
+              <svg><use href="#i-search"/></svg><input id="youtube-search-input" type="search" placeholder="Search songs, artists, or tracks…" autocomplete="off" /><button class="primary-button" type="submit">Search</button>
             </form>
-            <p class="youtube-search-status" id="youtube-search-status">Search and play public YouTube videos here. Google connection is optional for profile details.</p>
+            <p class="youtube-search-status" id="youtube-search-status">Search for songs and audio tracks to play in Derbis.</p>
             <div class="youtube-results" id="youtube-search-results" aria-live="polite"></div>
           </section>
           <div class="explore-board">
-            <button class="explore-tile explore-tile--pink" type="button" data-toast="Mood collection selected."><span>01</span><strong>Late night</strong><small>Slow burn selections</small></button>
-            <button class="explore-tile explore-tile--blue" type="button" data-toast="Mood collection selected."><span>02</span><strong>Electric</strong><small>Turn the energy up</small></button>
-            <button class="explore-tile explore-tile--orange" type="button" data-toast="Mood collection selected."><span>03</span><strong>Golden hour</strong><small>Warm, easy listens</small></button>
-            <button class="explore-tile explore-tile--green" type="button" data-toast="Mood collection selected."><span>04</span><strong>Focus flow</strong><small>Clear the noise</small></button>
+            <button class="explore-tile explore-tile--pink" type="button" data-genre-search="The Weeknd SZA Frank Ocean">
+              <div class="category-artists" aria-hidden="true">
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/rGPw7CWb4R1EEeYcpKlhEAQHyka3HJ4yL51gfa0kwqmFH9gQKyN1QiNjr-VkhEmV-uin3rL9Tg=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/ZtXdHCoJ1Es8WQIoVqzDNLptUb9oK2OGvwFgO0iE8cRozo18823gjWUSbc7R3PKcP1R6kcjswA=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+              </div>
+              <span>01</span><strong>Late night</strong><small>Slow burn R&amp;B &amp; soul</small>
+            </button>
+            <button class="explore-tile explore-tile--blue" type="button" data-genre-search="Dua Lipa Calvin Harris Daft Punk">
+              <div class="category-artists" aria-hidden="true">
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/FenmwFiHMkLZn3XZ3GW8Ul2uXsLI_HxThPksN-PhSMeqA8IZXN6u6tFZgJHZ8ApdzenSl9F2MrQ=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/ouLbox-YbCuUOQCqTnjNpHifrrcWHb88ib44Kv5nYVSKoeQR4OflWM1sERnPNICGLROLcnlIJg=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+              </div>
+              <span>02</span><strong>Electric</strong><small>Turn the energy up</small>
+            </button>
+            <button class="explore-tile explore-tile--orange" type="button" data-genre-search="Taylor Swift Harry Styles Billie Eilish">
+              <div class="category-artists" aria-hidden="true">
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/M2RGEwo78CL0BVYi0czVt1p7x-iJLowHEfvovtfSLKjcSSt3YCHS7IkJ9fYJWwNTgHx-jL_u3w=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/8hLc0Byr96VAL9Vyawo3QnlwhRGamtnGYNO5EULgtHfx_QFB3ZCRkwW2P_lWMEYoXJe4an8j6kM=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/UeRl0m3WCfsjc3SmJL8bgJz8X9yqmptmCH0fVy20bEcRLHhIeBLpfBWDgEKlWEvTjlU6kcYnyzQ=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+              </div>
+              <span>03</span><strong>Golden hour</strong><small>Warm acoustic &amp; pop</small>
+            </button>
+            <button class="explore-tile explore-tile--green" type="button" data-genre-search="Tycho Bonobo Lofi Chill">
+              <div class="category-artists" aria-hidden="true">
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/FoD6VmzaE4nKTPEKR0HXYH9GAaoFhGRifUJW6T9tneMfHjRMMvr_ToomsP5TDDTFxPAWiWp_=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+                <img class="category-artist-avatar" src="https://yt3.ggpht.com/8fYEqptbj6PB0P1wsInLaxKp1Dx297k9rmqHG6ku_W6RroudF1Nsm1vuIT3BhYx3eLwI8Y5t_Q=s800-c-k-c0xffffffff-no-rj-mo" alt="" loading="lazy" referrerpolicy="no-referrer" />
+              </div>
+              <span>04</span><strong>Focus flow</strong><small>Ambient &amp; lo-fi study</small>
+            </button>
           </div>
         </section>
 
@@ -201,16 +244,16 @@
       </main>
     </div>
 
-    <section class="player-dock" aria-label="Player">
+    <section class="player-dock" id="player-dock" aria-label="Player">
       <button class="dock-art art-noir" id="dock-art" type="button" aria-label="Open Now Playing"><i></i><em>LMH</em></button>
       <button class="dock-track" id="now-playing-trigger" type="button" aria-label="Open Now Playing"><strong id="dock-title">Love Me Harder</strong><span id="dock-artist">Ariana Grande, The Weeknd</span></button>
       <div class="dock-progress"><span id="dock-elapsed">0:00</span><input id="dock-seek" type="range" min="0" max="100" value="0" aria-label="Playback position" disabled /><span id="dock-duration">0:00</span></div>
       <div class="dock-controls">
         <button class="dock-icon desktop-only" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
-        <button class="dock-play" id="dock-play" type="button" aria-label="Choose local audio to play"><svg><use href="#i-play"/></svg></button>
+        <button class="dock-play" id="dock-play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
         <button class="dock-icon desktop-only" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
       </div>
-      <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play local audio."><svg><use href="#i-queue"/></svg></button>
+      <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play songs."><svg><use href="#i-queue"/></svg></button>
       <input id="local-audio" type="file" accept="audio/*" hidden />
       <audio id="audio-player" preload="metadata"></audio>
     </section>

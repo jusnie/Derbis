@@ -62,6 +62,7 @@
     libraryAccountDetail: $("#library-account-detail"),
     audio: $("#audio-player"),
     file: $("#local-audio"),
+    playerDock: $("#player-dock"),
     dockArt: $("#dock-art"),
     nowPlayingTrigger: $("#now-playing-trigger"),
     dockTitle: $("#dock-title"),
@@ -292,7 +293,13 @@
               if (elements.youtubeDialog.open) event.target.playVideo();
             },
             onStateChange: (event) => {
-              if (event.data === window.YT.PlayerState.PLAYING && elements.audio.src) elements.audio.pause();
+              const state = event.data;
+              if (state === window.YT.PlayerState.PLAYING) {
+                if (elements.audio.src) elements.audio.pause();
+                setPlayIcon(true);
+              } else if (state === window.YT.PlayerState.PAUSED || state === window.YT.PlayerState.ENDED) {
+                setPlayIcon(false);
+              }
             },
             onAutoplayBlocked: () => showToast("Tap play in the YouTube player to start this video."),
             onError: () => showToast("This YouTube video cannot be embedded. Try another public video.")
@@ -442,17 +449,13 @@
 
   function setPlayIcon(isPlaying) {
     elements.dockPlay.innerHTML = `<svg><use href="#${isPlaying ? "i-pause" : "i-play"}"/></svg>`;
-    elements.dockPlay.setAttribute("aria-label", isPlaying ? "Pause local audio" : "Play local audio");
+    elements.dockPlay.setAttribute("aria-label", isPlaying ? "Pause audio" : "Play audio");
   }
 
   function resetPlayer() {
     elements.dockSeek.value = "0";
     elements.dockElapsed.textContent = "0:00";
     elements.dockDuration.textContent = formatTime(elements.audio.duration);
-  }
-
-  function chooseLocalAudio() {
-    elements.file.click();
   }
 
   function selectLocalAudio(file) {
@@ -462,43 +465,63 @@
     elements.audio.src = localObjectUrl;
     elements.audio.load();
     const title = file.name.replace(/\.[^.]+$/, "") || "Local audio";
-    setNowPlaying(title, "Local audio · browser playback", "art-blue", false);
+    setNowPlaying(title, "Local audio · browser playback", "art-blue");
     resetPlayer();
     elements.audio.play().catch(() => showToast("Your audio file is ready. Press play when you are ready."));
   }
 
   function togglePlayback() {
-    if (!elements.audio.src) {
-      showToast("Choose a local audio file to use the browser player.");
-      chooseLocalAudio();
+    if (currentYouTubeTrack || youTubePlayer) {
+      try {
+        const state = youTubePlayer?.getPlayerState?.();
+        if (state === window.YT?.PlayerState?.PLAYING || state === 1) {
+          youTubePlayer?.pauseVideo?.();
+          setPlayIcon(false);
+          return;
+        } else if (state === window.YT?.PlayerState?.PAUSED || state === 2 || state === -1 || state === 0 || state === 5) {
+          youTubePlayer?.playVideo?.();
+          setPlayIcon(true);
+          return;
+        }
+      } catch {
+        // Fall back to opening Now Playing
+      }
+      openYouTubeDialog();
       return;
     }
-    if (elements.audio.paused) {
-      elements.audio.play().catch(() => showToast("This browser could not play that audio file."));
-    } else {
-      elements.audio.pause();
+    if (elements.audio.src) {
+      if (elements.audio.paused) {
+        elements.audio.play().catch(() => showToast("This browser could not play that audio file."));
+      } else {
+        elements.audio.pause();
+      }
+      return;
     }
+    // If no song is active, open Now Playing so the user can search or play
+    openYouTubeDialog();
   }
 
-  function setNowPlaying(title, artist, artClass, showMessage = true) {
+  function setNowPlaying(title, artist, artClass) {
     currentYouTubeTrack = null;
     elements.dockTitle.textContent = title;
     elements.dockArtist.textContent = artist;
     elements.nowPlayingTitle.textContent = title;
-    elements.nowPlayingArtist.textContent = `${artist} · Choose a public YouTube result to play here.`;
+    elements.nowPlayingArtist.textContent = artist;
     elements.dockArt.className = `dock-art ${artClass}`;
     elements.dockArt.style.removeProperty("background-image");
     elements.dockArt.style.removeProperty("background-position");
     elements.dockArt.style.removeProperty("background-size");
     elements.dockArt.innerHTML = `<i></i><em>${escapeHtml(title.slice(0, 8).toUpperCase())}</em>`;
     all(".quick-track").forEach((item) => item.classList.toggle("is-current", item.dataset.title === title));
-    if (showMessage && !elements.audio.src) showToast(`${title} is selected. Choose local audio to use the browser player.`);
   }
 
   function selectTrack(target) {
     const button = target.closest("[data-title]");
     if (!button) return;
-    setNowPlaying(button.dataset.title, button.dataset.artist, button.dataset.art || "art-blue");
+    const title = button.dataset.title;
+    const artist = button.dataset.artist;
+    setNowPlaying(title, artist, button.dataset.art || "art-blue");
+    searchYouTube(`${title} ${artist}`);
   }
 
   function setYouTubeSearchStatus(message, state = "") {
@@ -513,22 +536,71 @@
     return decoder.value;
   }
 
-  function renderYouTubeResults(items) {
-    if (!items.length) {
+  function cleanSongTrack(item) {
+    const videoId = item?.id?.videoId;
+    if (!videoId) return null;
+    const snippet = item?.snippet || {};
+    const rawTitle = decodeYouTubeText(snippet.title || "Untitled song");
+    const rawChannel = decodeYouTubeText(snippet.channelTitle || "Unknown Artist");
+    const thumbnail = snippet?.thumbnails?.high?.url || snippet?.thumbnails?.medium?.url || snippet?.thumbnails?.default?.url || "";
+
+    const junkPattern = /\b(choreograph\w*|dance\b|tutorial|reaction|review|interview|behind\s+the\s+scenes|vlog|parody|karaoke|1\s*hour|10\s*hours|slowed|reverb|speed\s*up|sped\s*up|tiktok\s*edit)\b/i;
+    if (junkPattern.test(rawTitle)) return null;
+
+    const isTopic = rawChannel.endsWith(" - Topic");
+    let artist = isTopic ? rawChannel.slice(0, -8).trim() : rawChannel;
+    let title = rawTitle.replace(/[\(\[\{]?(?:official\s+)?(?:music\s+)?(?:audio|video|lyric\s+video|lyrics|hd|hq|visualizer|mv|4k)[\)\]\}]?/gi, "").trim();
+
+    if (!isTopic && title.includes(" - ")) {
+      const parts = title.split(" - ");
+      if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+        artist = parts[0].trim();
+        title = parts.slice(1).join(" - ").trim();
+      }
+    }
+    title = title.replace(/\s+/g, " ").replace(/^[-–—\s]+|[-–—\s]+$/g, "").trim();
+    if (!title) title = rawTitle;
+
+    let score = 0;
+    if (isTopic) score += 20;
+    if (/official\s+audio/i.test(rawTitle)) score += 15;
+    if (/audio/i.test(rawTitle)) score += 8;
+    if (/lyrics?/i.test(rawTitle)) score -= 10;
+
+    return {
+      videoId,
+      title,
+      artist,
+      thumbnail,
+      score,
+      dedupKey: `${title.toLowerCase()}_${artist.toLowerCase()}`
+    };
+  }
+
+  function processSearchResults(items) {
+    const seen = new Set();
+    const songs = [];
+    for (const item of items) {
+      const song = cleanSongTrack(item);
+      if (!song) continue;
+      if (seen.has(song.dedupKey)) continue;
+      seen.add(song.dedupKey);
+      songs.push(song);
+    }
+    songs.sort((a, b) => b.score - a.score);
+    return songs.slice(0, 12);
+  }
+
+  function renderYouTubeResults(songs) {
+    if (!songs.length) {
       elements.youtubeSearchResults.innerHTML = "";
-      setYouTubeSearchStatus("No embeddable public videos found. Try a different search.");
+      setYouTubeSearchStatus("No matching songs found. Try a different search.");
       return;
     }
-    elements.youtubeSearchResults.innerHTML = items.map((item) => {
-      const videoId = item?.id?.videoId;
-      const snippet = item?.snippet || {};
-      const thumbnail = snippet?.thumbnails?.medium?.url || snippet?.thumbnails?.high?.url || snippet?.thumbnails?.default?.url || "";
-      const title = decodeYouTubeText(snippet.title || "Untitled video");
-      const channel = decodeYouTubeText(snippet.channelTitle || "YouTube");
-      if (!videoId) return "";
-      return `<button class="youtube-result" type="button" data-youtube-video="${escapeHtml(videoId)}" data-youtube-title="${escapeHtml(title)}" data-youtube-artist="${escapeHtml(channel)}" data-youtube-thumbnail="${escapeHtml(thumbnail)}" aria-label="Play ${escapeHtml(title)} on YouTube">
-        <span class="youtube-result-art"><img src="${escapeHtml(thumbnail)}" alt="" referrerpolicy="no-referrer" /><i class="youtube-result-play"><svg><use href="#i-play"/></svg></i></span>
-        <span class="youtube-result-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(channel)}</small></span>
+    elements.youtubeSearchResults.innerHTML = songs.map((song) => {
+      return `<button class="youtube-result" type="button" data-youtube-video="${escapeHtml(song.videoId)}" data-youtube-title="${escapeHtml(song.title)}" data-youtube-artist="${escapeHtml(song.artist)}" data-youtube-thumbnail="${escapeHtml(song.thumbnail)}" aria-label="Play ${escapeHtml(song.title)} by ${escapeHtml(song.artist)}">
+        <span class="youtube-result-art"><img src="${escapeHtml(song.thumbnail)}" alt="" referrerpolicy="no-referrer" /><i class="youtube-result-play"><svg><use href="#i-play"/></svg></i></span>
+        <span class="youtube-result-copy"><strong>${escapeHtml(song.title)}</strong><small>${escapeHtml(song.artist)}</small></span>
       </button>`;
     }).join("");
     all("[data-youtube-video]").forEach((button) => button.addEventListener("click", () => {
@@ -544,28 +616,29 @@
   async function searchYouTube(query) {
     const normalizedQuery = String(query || "").trim();
     if (!normalizedQuery) {
-      setYouTubeSearchStatus("Enter a song, artist, or video title to search.", "error");
+      setYouTubeSearchStatus("Enter a song, artist, or track to search.", "error");
       return;
     }
     goTo("explore");
     elements.youtubeSearchInput.value = normalizedQuery;
     if (!youtubeDataApiKey && !activeAccessToken) {
       pendingYouTubeSearch = normalizedQuery;
-      setYouTubeSearchStatus("Connect Google to search public YouTube videos.", "loading");
+      setYouTubeSearchStatus("Connect Google to search songs.", "loading");
       requestConnection();
       return;
     }
     youtubeSearchAbort?.abort();
     youtubeSearchAbort = new AbortController();
-    setYouTubeSearchStatus(`Searching YouTube for “${normalizedQuery}”…`, "loading");
+    setYouTubeSearchStatus(`Searching songs for “${normalizedQuery}”…`, "loading");
     elements.youtubeSearchResults.innerHTML = "";
     try {
       const params = new URLSearchParams({
         part: "snippet",
         type: "video",
+        videoCategoryId: "10",
         videoEmbeddable: "true",
         videoSyndicated: "true",
-        maxResults: "12",
+        maxResults: "25",
         q: normalizedQuery
       });
       // Public discovery uses the browser-restricted key. OAuth remains for profile/channel details.
@@ -583,12 +656,13 @@
       }
       if (!response.ok) throw new Error(`YouTube search returned ${response.status}`);
       const payload = await response.json();
-      renderYouTubeResults((payload.items || []).filter((item) => item?.id?.videoId));
-      if (payload.items?.length) setYouTubeSearchStatus("Select a result to play it in Derbis.");
+      const songs = processSearchResults(payload.items || []);
+      renderYouTubeResults(songs);
+      if (songs.length) setYouTubeSearchStatus("Select a song to play in Derbis.");
     } catch (error) {
       if (error.name === "AbortError") return;
       console.error(error);
-      setYouTubeSearchStatus("YouTube search is unavailable. Check the YouTube Data API and try again.", "error");
+      setYouTubeSearchStatus("Song search is unavailable right now. Try again shortly.", "error");
     }
   }
 
@@ -612,9 +686,11 @@
     all(".quick-track, .orbit-card").forEach((button) => button.addEventListener("click", (event) => selectTrack(event.currentTarget)));
     $("#quick-play-all").addEventListener("click", () => {
       const first = $(".quick-track");
-      selectTrack(first);
-      showToast("Quick Picks are selected. Choose local audio to use the browser player.");
+      if (first) selectTrack(first);
     });
+    all("[data-genre-search]").forEach((button) => button.addEventListener("click", () => {
+      searchYouTube(button.dataset.genreSearch);
+    }));
     elements.profileTrigger.addEventListener("click", openAccountDialog);
     elements.topProfileTrigger.addEventListener("click", openAccountDialog);
     elements.themeToggle.addEventListener("click", toggleTheme);
@@ -639,6 +715,10 @@
     all(".connect-trigger").forEach((button) => button.addEventListener("click", requestConnection));
     elements.disconnect.addEventListener("click", disconnect);
     elements.file.addEventListener("change", () => selectLocalAudio(elements.file.files?.[0]));
+    elements.playerDock.addEventListener("click", (event) => {
+      if (event.target.closest("#dock-play, .dock-icon, .dock-queue, input")) return;
+      openYouTubeDialog();
+    });
     elements.dockArt.addEventListener("click", openYouTubeDialog);
     elements.nowPlayingTrigger.addEventListener("click", openYouTubeDialog);
     elements.soundtrackPlay.addEventListener("click", openYouTubeDialog);
