@@ -1,12 +1,13 @@
 /*
- * Public browser configuration only. A Google OAuth Web Client ID is safe to expose;
- * do not put a client secret, account cookie, or API key here.
+ * Public browser configuration only. A Google OAuth Web Client ID and a browser-restricted
+ * YouTube Data API key are safe to expose. Never put a client secret, account cookie,
+ * service-account JSON, or an unrestricted API key here.
  *
- * Create a Web application OAuth client in Google Cloud, enable YouTube Data API v3,
- * add your deployed https origin under Authorized JavaScript origins, then set its ID.
+ * Restrict the YouTube key to the deployed HTTPS origin and YouTube Data API v3 only.
  */
 window.DERBIS_WEB_CONFIG = {
   googleOAuthClientId: "584141503005-h3lamjrir2ehbpjl3pruojg52u0hvu2j.apps.googleusercontent.com",
+  youtubeDataApiKey: "AIzaSyAdv_xV2Tmy-8afPYvRUS5-8bevlvhpHpM",
   googleOAuthScopes: [
     "openid",
     "email",

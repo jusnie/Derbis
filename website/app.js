@@ -3,6 +3,7 @@
 
   const config = window.DERBIS_WEB_CONFIG || {};
   const clientId = String(config.googleOAuthClientId || "").trim();
+  const youtubeDataApiKey = String(config.youtubeDataApiKey || "").trim();
   const scopes = Array.isArray(config.googleOAuthScopes)
     ? config.googleOAuthScopes.join(" ")
     : "openid email profile https://www.googleapis.com/auth/youtube.readonly";
@@ -516,7 +517,7 @@
     }
     goTo("explore");
     elements.youtubeSearchInput.value = normalizedQuery;
-    if (!activeAccessToken) {
+    if (!youtubeDataApiKey && !activeAccessToken) {
       pendingYouTubeSearch = normalizedQuery;
       setYouTubeSearchStatus("Connect Google to search public YouTube videos.", "loading");
       requestConnection();
@@ -535,11 +536,13 @@
         maxResults: "12",
         q: normalizedQuery
       });
+      // Public discovery uses the browser-restricted key. OAuth remains for profile/channel details.
+      if (youtubeDataApiKey) params.set("key", youtubeDataApiKey);
       const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`, {
-        headers: { Authorization: `Bearer ${activeAccessToken}` },
+        headers: youtubeDataApiKey ? {} : { Authorization: `Bearer ${activeAccessToken}` },
         signal: youtubeSearchAbort.signal
       });
-      if (response.status === 401) {
+      if (response.status === 401 && !youtubeDataApiKey) {
         activeAccessToken = null;
         pendingYouTubeSearch = normalizedQuery;
         setYouTubeSearchStatus("Your Google session expired. Reconnecting…", "loading");
