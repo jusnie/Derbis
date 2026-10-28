@@ -1030,7 +1030,7 @@
   function handleSearch() {
     const query = elements.search.value.trim();
     if (!query) return;
-    elements.search.value = "";
+    elements.search.blur();
     searchYouTube(query);
   }
 
@@ -1163,11 +1163,23 @@
       }
     });
     elements.search.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") handleSearch();
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleSearch();
+      }
     });
-    $("#mobile-search").addEventListener("click", () => {
+    elements.search.addEventListener("search", () => {
+      handleSearch();
+    });
+    $("#mobile-search")?.addEventListener("click", () => {
+      goTo("explore");
+      all(".mobile-nav-item").forEach((btn) => btn.classList.remove("is-active"));
+      $("#mobile-search")?.classList.add("is-active");
       window.scrollTo({ top: 0, behavior: "smooth" });
-      showToast("Search is available in the desktop bar. Web search is coming next.");
+      window.setTimeout(() => {
+        elements.youtubeSearchInput?.focus();
+        elements.youtubeSearchInput?.select();
+      }, 120);
     });
     window.addEventListener("keydown", (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
