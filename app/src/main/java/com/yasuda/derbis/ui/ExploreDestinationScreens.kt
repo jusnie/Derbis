@@ -1426,30 +1426,25 @@ internal fun ExploreDiscoveryCategoryCard(
         SkinCategoryCard(title, artworkUrl, modifier, onLongClick, onClick)
         return
     }
-    val (accentStart, accentEnd) = accentColors ?: exploreCategoryPalette(identity)
+    val fallbackUrl = remember(identity) { exploreMoodHardFallbackPortraitUrl(identity) }
+    val effectiveArtwork = artworkUrl.ifBlank { fallbackUrl }
     val shape = RoundedCornerShape(16.dp)
     val metrics = exploreCategoryCardMetrics(prominent)
     val longTitle = title.length >= 14
     val titleSize = if (longTitle) metrics.titleSize * 0.92f else metrics.titleSize
+    var artworkFailed by remember(effectiveArtwork) { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .shadow(
-                elevation = 4.dp,
+                elevation = 6.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = accentStart.copy(alpha = 0.20f),
-                spotColor = accentEnd.copy(alpha = 0.25f)
+                ambientColor = Color.Black.copy(alpha = 0.35f),
+                spotColor = Color.Black.copy(alpha = 0.45f)
             )
             .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        accentStart,
-                        accentEnd,
-                        accentEnd.copy(alpha = 0.88f)
-                    )
-                )
-            )
+            .background(Color(0xFF14141B))
             .border(BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)), shape)
             .semantics { role = Role.Button }
             .derbisPressable(
@@ -1460,38 +1455,61 @@ internal fun ExploreDiscoveryCategoryCard(
                 onClickLabel = title
             )
     ) {
+        // Real high-res artist photography background (no random colors)
+        if (effectiveArtwork.isNotBlank() && !artworkFailed) {
+            AsyncImage(
+                model = effectiveArtwork,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                onError = { artworkFailed = true },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Dark gradient scrims for pristine text legibility over artist photo
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            DerbisBlack.copy(alpha = 0.18f),
-                            DerbisBlack.copy(alpha = 0.02f),
-                            DerbisBlack.copy(alpha = 0.10f)
-                        )
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.78f),
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.20f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
                     )
                 )
         )
-        ExploreDiscoveryCategoryArtwork(
-            artworkUrl = artworkUrl,
-            metrics = metrics
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        0.5f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.65f)
+                    )
+                )
         )
+
         Text(
             text = title,
             color = Color.White,
             fontSize = titleSize,
             lineHeight = DerbisTypeRhythm.lineHeight(titleSize),
-            fontWeight = FontWeight.Black,
+            fontWeight = FontWeight.ExtraBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             style = TextStyle(
-                shadow = Shadow(color = DerbisBlack.copy(alpha = 0.42f), offset = Offset(0f, 2f), blurRadius = 8f)
+                shadow = Shadow(color = Color.Black.copy(alpha = 0.85f), offset = Offset(0f, 2f), blurRadius = 8f)
             ),
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth(metrics.titleWidthFraction)
-                .padding(start = 14.dp, top = 13.dp, end = 4.dp)
+                .padding(start = 14.dp, top = 14.dp, end = 6.dp)
         )
     }
 }

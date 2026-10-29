@@ -65,6 +65,20 @@ import java.util.Locale
 private val ExploreMoodPortraitLookupSemaphore = Semaphore(2)
 private const val ExploreRapFallbackPortraitUrl = "https://upload.wikimedia.org/wikipedia/commons/5/54/Eminem_in_2021.jpg"
 
+private val ExploreMoodFallbackPortraits = mapOf(
+    "nuove-uscite" to "https://i.ytimg.com/vi/JFcgOboQZ08/maxresdefault.jpg",
+    "local-wave" to "https://i.ytimg.com/vi/gNi_6U5Pm_o/maxresdefault.jpg",
+    "rap-drill" to "https://upload.wikimedia.org/wikipedia/commons/5/54/Eminem_in_2021.jpg",
+    "elettronica" to "https://i.ytimg.com/vi/4NRXx6U8ABQ/maxresdefault.jpg",
+    "pop-global" to "https://i.ytimg.com/vi/eVli-tstM5E/maxresdefault.jpg",
+    "rnb-soul" to "https://i.ytimg.com/vi/tvTRZJ-4EyI/maxresdefault.jpg",
+    "rock-alt" to "https://i.ytimg.com/vi/fJ9rUzIMcZQ/maxresdefault.jpg",
+    "latino" to "https://i.ytimg.com/vi/Zx31bB2vMns/maxresdefault.jpg",
+    "lofi-chill" to "https://i.ytimg.com/vi/DuKb1yF5Wh4/maxresdefault.jpg",
+    "anime-jpop" to "https://i.ytimg.com/vi/kJQP7kiw5Fk/maxresdefault.jpg",
+    "afrobeats" to "https://i.ytimg.com/vi/4NRXx6U8ABQ/maxresdefault.jpg"
+)
+
 private val ExploreMoodGlobalArtistPools = mapOf(
     "nuove-uscite" to listOf("Billie Eilish", "The Weeknd", "Sabrina Carpenter", "Bruno Mars"),
     "local-wave" to listOf("Dua Lipa", "The Weeknd", "Billie Eilish", "Bad Bunny"),
@@ -183,7 +197,7 @@ internal fun exploreMoodPortraitWindow(
 private fun exploreMoodArtistKey(artist: String): String = artist.trim().lowercase(Locale.ROOT)
 
 internal fun exploreMoodHardFallbackPortraitUrl(zoneId: String): String =
-    if (zoneId == "rap-drill") ExploreRapFallbackPortraitUrl else ""
+    ExploreMoodFallbackPortraits[zoneId] ?: ExploreRapFallbackPortraitUrl
 
 
 @Composable
