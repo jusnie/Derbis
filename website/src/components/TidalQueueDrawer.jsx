@@ -1,7 +1,6 @@
 import React from "react";
 import { X, Trash2, Radio, Play, ChevronUp, ChevronDown, Sparkles, Music } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
-import { QUICK_PICKS_TRACKS } from "../data/catalog";
 
 export default function TidalQueueDrawer() {
   const {
@@ -16,47 +15,51 @@ export default function TidalQueueDrawer() {
     clearQueue,
     endlessListening,
     toggleEndlessListening,
-    addToQueue
+    ensureRadioTail,
+    isRadioLoading
   } = usePlayer();
 
   if (!isQueueOpen) return null;
 
-  const addRecommendations = () => {
-    const unqueued = QUICK_PICKS_TRACKS.filter(t => t.id !== currentTrack.id && !queue.find(q => q.id === t.id)).slice(0, 5);
-    unqueued.forEach(t => addToQueue(t));
+  const handleAddRecommendations = () => {
+    if (currentTrack) {
+      ensureRadioTail(currentTrack);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none select-none">
+    <div className="fixed inset-0 z-50 overflow-hidden select-none animate-fadeIn">
       {/* Backdrop */}
       <div
         onClick={() => setIsQueueOpen(false)}
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto transition-opacity"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity"
       />
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10 pointer-events-auto">
-        <div className="w-screen max-w-md bg-[#0a0a0d] border-l border-[#1a1a24] shadow-2xl flex flex-col">
+      {/* Drawer Container: Full width on mobile, max-w-md on desktop */}
+      <div className="absolute inset-y-0 right-0 w-full sm:max-w-md flex pointer-events-auto">
+        <div className="w-full bg-[#09090c] border-l border-[#1a1a24] shadow-2xl flex flex-col h-full">
           
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-[#181820] flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-[#181820] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <h3 className="text-base font-black text-white tracking-tight">Play Queue</h3>
-              <span className="px-2 py-0.5 text-xs font-bold rounded-md bg-[#00e5ff]/15 text-[#00e5ff]">
+              <span className="px-2 py-0.5 text-xs font-bold rounded-md bg-white/10 border border-white/15 text-white">
                 {queue.length}
               </span>
             </div>
             <button
               onClick={() => setIsQueueOpen(false)}
-              className="p-1 rounded-lg text-white/50 hover:text-white"
+              className="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close queue"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Endless Listening / Track Radio Banner */}
-          <div className="p-4 bg-[#111116] border-b border-[#181820] flex items-center justify-between">
+          {/* Endless Listening / Track Radio Banner (Monochrome Derbis Style) */}
+          <div className="p-4 bg-[#111116] border-b border-[#181820] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-[#00e5ff]/10 text-[#00e5ff]">
+              <div className="p-2 rounded-xl bg-white/10 border border-white/10 text-white">
                 <Radio className={`w-4 h-4 ${endlessListening ? "animate-pulse" : ""}`} />
               </div>
               <div>
@@ -69,7 +72,7 @@ export default function TidalQueueDrawer() {
               type="button"
               onClick={toggleEndlessListening}
               className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                endlessListening ? "bg-[#00e5ff]" : "bg-white/20"
+                endlessListening ? "bg-white" : "bg-white/20"
               }`}
             >
               <span
@@ -80,33 +83,35 @@ export default function TidalQueueDrawer() {
             </button>
           </div>
 
-          {/* Queue Content */}
+          {/* Queue Content (Scrollable) */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
             
             {/* Now Playing */}
-            <div>
-              <span className="text-[10px] font-black tracking-widest text-[#00e5ff] uppercase">
-                NOW PLAYING
-              </span>
-              <div className="mt-2 flex items-center gap-3 p-3 rounded-xl bg-[#00e5ff]/10 border border-[#00e5ff]/30">
-                <img
-                  src={currentTrack.thumbnail}
-                  alt={currentTrack.title}
-                  className="w-11 h-11 rounded-lg object-cover shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm font-bold text-white truncate">{currentTrack.title}</p>
-                  <p className="text-[11px] text-white/60 truncate">{currentTrack.artist}</p>
-                </div>
-                {isPlaying && (
-                  <div className="flex items-center gap-0.5 shrink-0 px-2">
-                    <span className="w-1 h-3 bg-[#00e5ff] rounded-full animate-bounce" />
-                    <span className="w-1 h-5 bg-[#00e5ff] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1 h-2 bg-[#00e5ff] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            {currentTrack && (
+              <div>
+                <span className="text-[10px] font-black tracking-widest text-white/40 uppercase">
+                  NOW PLAYING
+                </span>
+                <div className="mt-2 flex items-center gap-3 p-3 rounded-xl bg-[#14141a] border border-white/15 shadow-md">
+                  <img
+                    src={currentTrack.thumbnail}
+                    alt={currentTrack.title}
+                    className="w-11 h-11 rounded-lg object-cover shrink-0 border border-white/10"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-bold text-white truncate">{currentTrack.title}</p>
+                    <p className="text-[11px] text-white/50 truncate">{currentTrack.artist}</p>
                   </div>
-                )}
+                  {isPlaying && (
+                    <div className="flex items-center gap-0.5 shrink-0 px-2">
+                      <span className="w-1 h-3 bg-white rounded-full animate-bounce" />
+                      <span className="w-1 h-5 bg-white rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="w-1 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Upcoming List */}
             <div>
@@ -117,7 +122,7 @@ export default function TidalQueueDrawer() {
                 {queue.length > 0 && (
                   <button
                     onClick={clearQueue}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                    className="text-xs text-white/50 hover:text-red-400 flex items-center gap-1 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" />
                     <span>Clear</span>
@@ -131,23 +136,24 @@ export default function TidalQueueDrawer() {
                   <p className="text-sm font-bold text-white/70">Queue is empty</p>
                   <p className="text-xs text-white/40">
                     {endlessListening
-                      ? "Track Radio will queue recommendations automatically."
+                      ? "Track Radio will queue similar songs automatically."
                       : "Add songs to build your listening session."}
                   </p>
                   <button
-                    onClick={addRecommendations}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00e5ff]/15 hover:bg-[#00e5ff]/25 text-[#00e5ff] text-xs font-bold border border-[#00e5ff]/30"
+                    onClick={handleAddRecommendations}
+                    disabled={isRadioLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-colors"
                   >
                     <Sparkles className="w-3 h-3" />
-                    <span>Add Recommendations</span>
+                    <span>{isRadioLoading ? "Loading Radio..." : "Add Recommendations"}</span>
                   </button>
                 </div>
               ) : (
                 <div className="space-y-1.5">
                   {queue.map((track, idx) => (
                     <div
-                      key={`${track.id}-${idx}`}
-                      className="group flex items-center justify-between p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/5 transition-all"
+                      key={`${track.videoId || track.id}-${idx}`}
+                      className="group flex items-center justify-between p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all"
                     >
                       <div
                         onClick={() => {
@@ -156,7 +162,7 @@ export default function TidalQueueDrawer() {
                         }}
                         className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
                       >
-                        <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0">
+                        <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-black/40 shrink-0 border border-white/5">
                           <img
                             src={track.thumbnail}
                             alt={track.title}
@@ -168,7 +174,7 @@ export default function TidalQueueDrawer() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-white truncate group-hover:text-[#00e5ff]">
+                          <p className="text-xs font-bold text-white truncate group-hover:underline">
                             {track.title}
                           </p>
                           <p className="text-[10px] text-white/50 truncate">

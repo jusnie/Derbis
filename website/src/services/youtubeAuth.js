@@ -202,3 +202,107 @@ export async function searchYouTubeLive(query, apiKey = "", token = "") {
 
   return tracks;
 }
+
+// Clean music title key for derivative comparison (based on Derbis Personal Orbit / SimilarSongsSelector)
+function cleanTitleKey(title = "") {
+  return title
+    .toLowerCase()
+    .replace(/\s*[\(\[](official\s*(music\s*)?(video|audio|lyric\s*video|visualizer|video)?|4k|hd|remastered|lyrics?|audio|acoustic|live|tiktok.*)[\)\]]/gi, "")
+    .replace(/[^\w\s]/gi, "")
+    .trim();
+}
+
+function cleanArtistKey(artist = "") {
+  return artist
+    .toLowerCase()
+    .replace(/\s*(ft\.?|feat\.?|,|&).*$/gi, "")
+    .replace(/[^\w\s]/gi, "")
+    .trim();
+}
+
+// SimilarSongsSelector implementation based on Derbis App (/app/src/main/java/com/luc4n3x/derbis/domain/SimilarSongs.kt)
+export function filterSimilarSongs(candidates, seedTrack, limit = 18) {
+  if (!candidates || candidates.length === 0) return [];
+  if (!seedTrack) return candidates.slice(0, limit);
+
+  const seedId = seedTrack.videoId || seedTrack.id;
+  const seedTitleClean = cleanTitleKey(seedTrack.title);
+
+  const selected = [];
+  const seenTitles = new Set();
+  if (seedTitleClean) seenTitles.add(seedTitleClean);
+
+  for (const candidate of candidates) {
+    const candId = candidate.videoId || candidate.id;
+    if (!candId || candId === seedId) continue;
+
+    const candTitleClean = cleanTitleKey(candidate.title);
+    if (!candTitleClean) continue;
+
+    // Check if derivative of seed title (e.g. covers, acoustic, reuploads of same title)
+    const isDerivative =
+      candTitleClean === seedTitleClean ||
+      (seedTitleClean.length >= 5 && candTitleClean.includes(seedTitleClean)) ||
+      (candTitleClean.length >= 5 && seedTitleClean.includes(candTitleClean));
+
+    if (isDerivative) continue;
+
+    // Check for duplicate candidate titles already in selection
+    if (seenTitles.has(candTitleClean)) continue;
+
+    seenTitles.add(candTitleClean);
+    selected.push(candidate);
+    if (selected.length >= limit) break;
+  }
+
+  return selected;
+}
+
+// Fetch Endless Listening / Radio Recommendations for a seed track
+// (based on Derbis ViewModel ensureRadioTail / SimilarSongsSelector)
+export async function fetchRadioTracks(seedTrack, apiKey = "", token = "") {
+  if (!seedTrack) return [];
+
+  const mainArtist = cleanArtistKey(seedTrack.artist) || seedTrack.artist;
+  const query = `${mainArtist} top hits songs`;
+
+  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=25`;
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (apiKey) {
+    url += `&key=${apiKey}`;
+  }
+
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const rawCandidates = [];
+    (data.items || []).forEach((item) => {
+      const vid = item.id?.videoId;
+      const snip = item.snippet;
+      if (vid && snip?.title) {
+        const channel = snip.channelTitle || "";
+        const { title, artist } = parseYouTubeTitle(snip.title, channel);
+        const thumb = snip.thumbnails?.high?.url || snip.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+        rawCandidates.push({
+          id: vid,
+          videoId: vid,
+          title,
+          artist,
+          thumbnail: thumb,
+          duration: "3:30",
+          genre: "radio"
+        });
+      }
+    });
+
+    return filterSimilarSongs(rawCandidates, seedTrack, 18);
+  } catch (e) {
+    console.error("fetchRadioTracks error:", e);
+    return [];
+  }
+}

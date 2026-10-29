@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { CATEGORIES_WITH_ARTIST_BACKGROUND, DERBIS_THE_HITS } from "../data/catalog";
-import { fetchYouTubeUserData, fetchPlaylistTracks, extractPlaylistId, searchYouTubeLive } from "../services/youtubeAuth";
+import {
+  fetchYouTubeUserData,
+  fetchPlaylistTracks,
+  extractPlaylistId,
+  searchYouTubeLive,
+  fetchRadioTracks
+} from "../services/youtubeAuth";
 
 const PlayerContext = createContext(null);
 
@@ -25,12 +31,15 @@ export function PlayerProvider({ children }) {
   // 'song' vs 'video' mode
   const [playbackMode, setPlaybackMode] = useState("song");
   
-  // Continuous radio
+  // Continuous radio (Endless listening)
   const [endlessListening, setEndlessListening] = useState(true);
   
-  // Up Next Queue
+  // Up Next Queue & Radio Recommendations
   const [queue, setQueue] = useState([]);
   const [history, setHistory] = useState([]);
+  const [radioRecommendations, setRadioRecommendations] = useState([]);
+  const [isRadioLoading, setIsRadioLoading] = useState(false);
+  const [radioSeedTrack, setRadioSeedTrack] = useState(null);
   
   // UI states
   const [isQueueOpen, setIsQueueOpen] = useState(false);
@@ -240,6 +249,41 @@ export function PlayerProvider({ children }) {
     }
   }, [currentTrack]);
 
+  // Fetch Endless Listening Radio tail for a seed track
+  // (Matches Derbis App ensureRadioTail and SimilarSongsSelector)
+  const ensureRadioTail = useCallback(async (seedTrack) => {
+    if (!seedTrack) return [];
+    setIsRadioLoading(true);
+    setRadioSeedTrack(seedTrack);
+    try {
+      const config = window.DERBIS_WEB_CONFIG || {};
+      const radioTracks = await fetchRadioTracks(seedTrack, config.youtubeDataApiKey, activeToken);
+      setRadioRecommendations(radioTracks);
+      return radioTracks;
+    } catch (e) {
+      console.error("ensureRadioTail error:", e);
+      return [];
+    } finally {
+      setIsRadioLoading(false);
+    }
+  }, [activeToken]);
+
+  // Play song selected from Search:
+  // Starts an Endless Listening session with just that song,
+  // and fetches different, similar songs for the queue (NOT duplicate search results)
+  const playSearchTrack = useCallback(async (track) => {
+    if (!track) return;
+    // 1. Play track immediately with empty queue
+    playTrack(track, []);
+    setEndlessListening(true);
+
+    // 2. Fetch Endless Radio tail (different songs by artist & related artists)
+    const radioTracks = await ensureRadioTail(track);
+    if (radioTracks && radioTracks.length > 0) {
+      setQueue(radioTracks);
+    }
+  }, [playTrack, ensureRadioTail]);
+
   // Toggle play/pause
   const togglePlayPause = useCallback(() => {
     if (!ytPlayerRef.current) return;
@@ -281,17 +325,37 @@ export function PlayerProvider({ children }) {
       const remaining = queue.slice(1);
       setQueue(remaining);
       playTrack(next);
+
+      // Pre-fetch more radio tracks if tail is running low
+      if (endlessListening && remaining.length <= 2) {
+        ensureRadioTail(next).then((moreTracks) => {
+          if (moreTracks && moreTracks.length > 0) {
+            setQueue(prev => [...prev, ...moreTracks.slice(0, 8)]);
+          }
+        });
+      }
       return;
     }
 
-    if (endlessListening && displayedQuickPicks.length > 0) {
-      const available = displayedQuickPicks.filter(t => (t.videoId || t.id) !== (currentTrack?.videoId || currentTrack?.id));
-      const next = available[Math.floor(Math.random() * available.length)] || displayedQuickPicks[0];
-      if (next) playTrack(next);
+    // If queue is empty and endless radio is active, fetch tail for current track
+    if (endlessListening && currentTrack) {
+      ensureRadioTail(currentTrack).then((radioTracks) => {
+        if (radioTracks && radioTracks.length > 0) {
+          const next = radioTracks[0];
+          setQueue(radioTracks.slice(1));
+          playTrack(next);
+        } else if (displayedQuickPicks.length > 0) {
+          const available = displayedQuickPicks.filter(t => (t.videoId || t.id) !== (currentTrack?.videoId || currentTrack?.id));
+          const fallback = available[0] || displayedQuickPicks[0];
+          if (fallback) playTrack(fallback);
+        } else {
+          setIsPlaying(false);
+        }
+      });
     } else {
       setIsPlaying(false);
     }
-  }, [repeatMode, queue, endlessListening, currentTrack, playTrack, seekTo, displayedQuickPicks]);
+  }, [repeatMode, queue, endlessListening, currentTrack, playTrack, seekTo, ensureRadioTail, displayedQuickPicks]);
 
   // Next Track
   const nextTrack = useCallback(() => {
@@ -300,10 +364,18 @@ export function PlayerProvider({ children }) {
       const remaining = queue.slice(1);
       setQueue(remaining);
       playTrack(next);
+
+      if (endlessListening && remaining.length <= 2) {
+        ensureRadioTail(next).then((moreTracks) => {
+          if (moreTracks && moreTracks.length > 0) {
+            setQueue(prev => [...prev, ...moreTracks.slice(0, 8)]);
+          }
+        });
+      }
     } else if (endlessListening) {
       handleTrackEnded();
     }
-  }, [queue, endlessListening, playTrack, handleTrackEnded]);
+  }, [queue, endlessListening, playTrack, handleTrackEnded, ensureRadioTail]);
 
   // Previous Track
   const previousTrack = useCallback(() => {
@@ -528,6 +600,10 @@ export function PlayerProvider({ children }) {
     toggleEndlessListening: () => setEndlessListening(prev => !prev),
     queue,
     history,
+    radioRecommendations,
+    isRadioLoading,
+    radioSeedTrack,
+    ensureRadioTail,
     isShuffle,
     setIsShuffle,
     repeatMode,
@@ -557,6 +633,7 @@ export function PlayerProvider({ children }) {
     performSearch,
     audioFrequencies,
     playTrack,
+    playSearchTrack,
     togglePlayPause,
     seekTo,
     nextTrack,

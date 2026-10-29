@@ -22,7 +22,7 @@ function get(url) {
 }
 
 (async () => {
-  const url = "https://dpaste.org/OGzc3/raw";
+  const url = "https://dpaste.org/fWuWO/raw";
   console.log("Fetching Derbis bundle from " + url);
   const text = await get(url);
   console.log("Successfully fetched " + text.length + " chars from " + url);
@@ -42,5 +42,5 @@ function get(url) {
   if (files["assets/derbis-logo.png"]) {
     fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo.png"], "base64"));
   }
-  console.log("DERBIS SEARCH & YOUTUBE DATA SYNC BUNDLE DEPLOYED SUCCESSFULLY");
+  console.log("DERBIS SEARCH SELECTION & ENDLESS RADIO BUNDLE DEPLOYED SUCCESSFULLY");
 })();

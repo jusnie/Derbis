@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Search, Play, Plus, X, RefreshCw } from "lucide-react";
+import { Search, Play, Pause, Plus, X, RefreshCw, Radio, Sparkles } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { CATEGORIES_WITH_ARTIST_BACKGROUND } from "../data/catalog";
 
@@ -7,23 +7,30 @@ export default function SearchView() {
   const {
     searchQuery,
     setSearchQuery,
+    playSearchTrack,
     playTrack,
     addToQueue,
     currentTrack,
     isPlaying,
+    togglePlayPause,
     selectCategoryFilter,
     setActiveTab,
     liveSearchResults,
     isSearchingLive,
-    performSearch
+    performSearch,
+    radioRecommendations,
+    isRadioLoading,
+    radioSeedTrack
   } = usePlayer();
 
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
+  const [viewMode, setViewMode] = useState("recommendations"); // 'recommendations' | 'search_list'
+  const [selectedTrackId, setSelectedTrackId] = useState(null);
 
   useEffect(() => {
     // Focus search input when opening search view
-    if (inputRef.current) {
+    if (inputRef.current && !searchQuery) {
       inputRef.current.focus();
     }
   }, []);
@@ -34,6 +41,7 @@ export default function SearchView() {
     if (searchQuery.trim().length > 1) {
       debounceRef.current = setTimeout(() => {
         performSearch(searchQuery);
+        setViewMode("search_list");
       }, 350);
     }
     return () => {
@@ -46,7 +54,15 @@ export default function SearchView() {
     setActiveTab("home");
   };
 
+  const handleSelectSong = (track) => {
+    setSelectedTrackId(track.videoId || track.id);
+    playSearchTrack(track);
+    // Switch to Endless Radio / Similar songs recommendations!
+    setViewMode("recommendations");
+  };
+
   const isSearchActive = searchQuery.trim().length > 0;
+  const showRecommendations = viewMode === "recommendations" && (radioRecommendations.length > 0 || isRadioLoading);
 
   return (
     <div className="space-y-6 select-none py-2 max-w-6xl animate-fadeIn">
@@ -68,7 +84,11 @@ export default function SearchView() {
           )}
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedTrackId(null);
+                setViewMode("search_list");
+              }}
               className="p-1 rounded-full text-white/40 hover:text-white"
             >
               <X className="w-4 h-4" />
@@ -77,79 +97,226 @@ export default function SearchView() {
         </label>
       </div>
 
-      {/* When user has typed a query: Show LIVE REAL SEARCH RESULTS */}
+      {/* When user has typed a query: Show SEARCH or ENDLESS RADIO RECOMMENDATIONS */}
       {isSearchActive ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="text-sm font-bold text-white/70">
-              Search results for <span className="text-white">"{searchQuery}"</span>
-            </h3>
+          
+          {/* Active Navigation Switch between Endless Radio Recommendations and Raw Search List */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {radioRecommendations.length > 0 && (
+                <button
+                  onClick={() => setViewMode("recommendations")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    viewMode === "recommendations"
+                      ? "bg-white text-black shadow"
+                      : "bg-[#14141a] text-white/60 hover:text-white border border-[#22222a]"
+                  }`}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>You might also like</span>
+                  <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 text-current">
+                    {radioRecommendations.length}
+                  </span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setViewMode("search_list")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  viewMode === "search_list"
+                    ? "bg-white text-black shadow"
+                    : "bg-[#14141a] text-white/60 hover:text-white border border-[#22222a]"
+                }`}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Search results</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 text-current">
+                  {liveSearchResults.length}
+                </span>
+              </button>
+            </div>
+
             {isSearchingLive ? (
               <span className="text-xs text-white/40">Searching YouTube...</span>
-            ) : (
-              <span className="text-xs text-white/40">
-                {liveSearchResults.length} real tracks found
+            ) : isRadioLoading ? (
+              <span className="text-xs text-white/40 flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span>Generating Endless Radio...</span>
               </span>
-            )}
+            ) : null}
           </div>
 
-          {liveSearchResults.length === 0 && !isSearchingLive ? (
-            <div className="text-center py-16 space-y-2">
-              <Search className="w-10 h-10 text-white/20 mx-auto" />
-              <p className="text-base text-white/70 font-semibold">No YouTube tracks found</p>
-              <p className="text-xs text-white/40">
-                Try searching for artist names like "Ariana Grande", "BINI", "Maki", or "Sabrina Carpenter".
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {liveSearchResults.map((track) => {
-                const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
-
-                return (
-                  <div
-                    key={track.videoId || track.id}
-                    onClick={() => playTrack(track, liveSearchResults)}
-                    className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                      isCurrent
-                        ? "bg-white/10 border-white/30 text-white"
-                        : "bg-[#101014] hover:bg-[#16161c] border-[#1e1e24] hover:border-white/20 text-white/80 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                      <img
-                        src={track.thumbnail}
-                        alt={track.title}
-                        className="w-11 h-11 rounded-lg object-cover shrink-0 shadow"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-white truncate group-hover:underline">
-                          {track.title}
-                        </p>
-                        <p className="text-[11px] text-white/50 truncate mt-0.5">
-                          {track.artist}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToQueue(track);
-                        }}
-                        className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10"
-                        title="Add to queue"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+          {/* If a song was selected: Show Now Playing Station Banner */}
+          {selectedTrackId && currentTrack && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#121218] border border-[#22222a] flex items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3 min-w-0 pr-2">
+                <img
+                  src={currentTrack.thumbnail}
+                  alt={currentTrack.title}
+                  className="w-12 h-12 rounded-xl object-cover shrink-0 shadow border border-white/10"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/40">
+                      Now Playing Station
+                    </span>
+                    <Radio className="w-3 h-3 text-white/60 animate-pulse" />
                   </div>
-                );
-              })}
+                  <p className="text-sm font-bold text-white truncate">
+                    {currentTrack.title}
+                  </p>
+                  <p className="text-xs text-white/50 truncate">
+                    {currentTrack.artist}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={togglePlayPause}
+                  className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow hover:scale-105 active:scale-95 transition-transform"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4 fill-current" />
+                  ) : (
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  )}
+                </button>
+              </div>
             </div>
           )}
+
+          {/* VIEW MODE 1: YOU MIGHT ALSO LIKE (ENDLESS RADIO RECOMMENDATIONS - DIFFERENT SONGS) */}
+          {showRecommendations ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-0.5">
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-white" />
+                    <span>You might also like (Endless Listening)</span>
+                  </h3>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    Stream similar songs by {currentTrack?.artist || "the artist"} without repeats
+                  </p>
+                </div>
+
+                {isRadioLoading && (
+                  <RefreshCw className="w-4 h-4 text-white/50 animate-spin" />
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {radioRecommendations.map((track) => {
+                  const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
+
+                  return (
+                    <div
+                      key={track.videoId || track.id}
+                      onClick={() => handleSelectSong(track)}
+                      className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                        isCurrent
+                          ? "bg-white/10 border-white/30 text-white"
+                          : "bg-[#101014] hover:bg-[#16161c] border-[#1e1e24] hover:border-white/20 text-white/80 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <img
+                          src={track.thumbnail}
+                          alt={track.title}
+                          className="w-11 h-11 rounded-lg object-cover shrink-0 shadow"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white truncate group-hover:underline">
+                            {track.title}
+                          </p>
+                          <p className="text-[11px] text-white/50 truncate mt-0.5">
+                            {track.artist}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToQueue(track);
+                          }}
+                          className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10"
+                          title="Add to queue"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* VIEW MODE 2: RAW SEARCH LIST RESULTS */
+            <div className="space-y-3">
+              {liveSearchResults.length === 0 && !isSearchingLive ? (
+                <div className="text-center py-16 space-y-2">
+                  <Search className="w-10 h-10 text-white/20 mx-auto" />
+                  <p className="text-base text-white/70 font-semibold">No YouTube tracks found</p>
+                  <p className="text-xs text-white/40">
+                    Try searching for artist names like "Ariana Grande", "BINI", "Maki", or "Sabrina Carpenter".
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {liveSearchResults.map((track) => {
+                    const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
+
+                    return (
+                      <div
+                        key={track.videoId || track.id}
+                        onClick={() => handleSelectSong(track)}
+                        className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                          isCurrent
+                            ? "bg-white/10 border-white/30 text-white"
+                            : "bg-[#101014] hover:bg-[#16161c] border-[#1e1e24] hover:border-white/20 text-white/80 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0 pr-2">
+                          <img
+                            src={track.thumbnail}
+                            alt={track.title}
+                            className="w-11 h-11 rounded-lg object-cover shrink-0 shadow"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-white truncate group-hover:underline">
+                              {track.title}
+                            </p>
+                            <p className="text-[11px] text-white/50 truncate mt-0.5">
+                              {track.artist}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToQueue(track);
+                            }}
+                            className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10"
+                            title="Add to queue"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       ) : (
         /* When search query is empty: BROWSE ALL CATEGORIES WITH ARTIST BACKGROUNDS (NO RANDOM COLORS) */
