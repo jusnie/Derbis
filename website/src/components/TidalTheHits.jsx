@@ -1,15 +1,10 @@
 import React from "react";
 import { Play } from "lucide-react";
-import { DERBIS_THE_HITS, QUICK_PICKS_TRACKS } from "../data/catalog";
+import { DERBIS_THE_HITS } from "../data/catalog";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalTheHits() {
-  const { playTrack } = usePlayer();
-
-  const handleCardClick = (hit) => {
-    const track = QUICK_PICKS_TRACKS.find(t => t.id === hit.seedTrackId) || QUICK_PICKS_TRACKS[0];
-    playTrack(track, QUICK_PICKS_TRACKS);
-  };
+  const { selectCategoryFilter, activeCategoryFilter } = usePlayer();
 
   return (
     <section className="mt-6 select-none">
@@ -28,88 +23,98 @@ export default function TidalTheHits() {
 
       {/* 2-Column on Mobile, 4-Column on Desktop (Matches Screenshot) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-        {DERBIS_THE_HITS.map((hit) => (
-          <div
-            key={hit.id}
-            onClick={() => handleCardClick(hit)}
-            className="group cursor-pointer flex flex-col"
-          >
-            {/* Square Card with Artist Photo Background */}
-            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#121216] border border-[#222228] shadow-lg group-hover:border-white/30 transition-all">
-              
-              {/* Artist Background Photo */}
-              <img
-                src={hit.bgArtistPhoto}
-                alt={hit.title}
-                loading="lazy"
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-              />
+        {DERBIS_THE_HITS.map((hit) => {
+          const isSelected = activeCategoryFilter === hit.id;
 
-              {/* Dark Vignette Overlay for Crisp Typography */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/50" />
-
-              {/* Official Derbis PNG Logo on Top Right */}
-              <div className="absolute top-2.5 right-2.5 z-10 w-5 h-5 flex items-center justify-center">
+          return (
+            <div
+              key={hit.id}
+              onClick={() => selectCategoryFilter(hit)}
+              className="group cursor-pointer flex flex-col"
+            >
+              {/* Square Card with Artist Photo Background */}
+              <div
+                className={`relative aspect-square w-full rounded-xl overflow-hidden bg-[#121216] transition-all shadow-lg ${
+                  isSelected
+                    ? "border-2 border-white ring-2 ring-white/20 scale-[0.98]"
+                    : "border border-[#222228] group-hover:border-white/40"
+                }`}
+              >
+                
+                {/* Artist Background Photo */}
                 <img
-                  src="/assets/derbis-logo.png"
-                  alt="Derbis"
-                  className="w-full h-full object-contain drop-shadow"
+                  src={hit.bgArtistPhoto}
+                  alt={hit.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
+
+                {/* Dark Vignette Overlay for Crisp Typography */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/50" />
+
+                {/* Official Derbis PNG Logo on Top Right */}
+                <div className="absolute top-2.5 right-2.5 z-10 w-5 h-5 flex items-center justify-center">
+                  <img
+                    src="/assets/derbis-logo.png"
+                    alt="Derbis"
+                    className="w-full h-full object-contain drop-shadow"
+                  />
+                </div>
+
+                {/* Editorial Title Banner */}
+                {hit.tagOrientation === "top" ? (
+                  <div className="absolute top-2.5 left-2.5 z-10 max-w-[80%]">
+                    <span className="block text-xs sm:text-sm font-black tracking-tighter text-white uppercase leading-none drop-shadow-md">
+                      {hit.tagText}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="absolute top-2.5 left-2.5 z-10">
+                    <span className="text-[11px] sm:text-xs font-black tracking-tight text-white uppercase drop-shadow-md">
+                      {hit.tagText}
+                    </span>
+                  </div>
+                )}
+
+                {/* The 3 Circular Artist Avatars on the Card */}
+                <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center justify-between w-[calc(100%-20px)]">
+                  <div className="flex -space-x-2 overflow-hidden">
+                    {hit.artists.map((artist, aIdx) => (
+                      <div
+                        key={aIdx}
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-black overflow-hidden bg-black/60 shadow-md"
+                        title={artist.name}
+                      >
+                        <img
+                          src={artist.avatar}
+                          alt={artist.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Hover Play Button */}
+                  <div className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                    <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                  </div>
+                </div>
+
               </div>
 
-              {/* Editorial Title Banner */}
-              {hit.tagOrientation === "top" ? (
-                <div className="absolute top-2.5 left-2.5 z-10 max-w-[80%]">
-                  <span className="block text-xs sm:text-sm font-black tracking-tighter text-white uppercase leading-none drop-shadow-md">
-                    {hit.tagText}
-                  </span>
-                </div>
-              ) : (
-                <div className="absolute top-2.5 left-2.5 z-10">
-                  <span className="text-[11px] sm:text-xs font-black tracking-tight text-white uppercase drop-shadow-md">
-                    {hit.tagText}
-                  </span>
-                </div>
-              )}
-
-              {/* The 3 Circular Artist Avatars on the Card */}
-              <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center justify-between w-[calc(100%-20px)]">
-                <div className="flex -space-x-2 overflow-hidden">
-                  {hit.artists.map((artist, aIdx) => (
-                    <div
-                      key={aIdx}
-                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 border-black overflow-hidden bg-black/60 shadow-md"
-                      title={artist.name}
-                    >
-                      <img
-                        src={artist.avatar}
-                        alt={artist.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Hover Play Button */}
-                <div className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                </div>
+              {/* Title & Subtitle Below the Card */}
+              <div className="mt-2 px-0.5">
+                <h3 className={`text-xs sm:text-sm font-bold truncate group-hover:underline ${isSelected ? "text-white" : "text-white"}`}>
+                  {hit.title}
+                </h3>
+                <p className="text-[11px] text-white/50 font-medium truncate mt-0.5">
+                  {hit.subtitle}
+                </p>
               </div>
-
             </div>
-
-            {/* Title & Subtitle Below the Card */}
-            <div className="mt-2 px-0.5">
-              <h3 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-white">
-                {hit.title}
-              </h3>
-              <p className="text-[11px] text-white/50 font-medium truncate mt-0.5">
-                {hit.subtitle}
-              </p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

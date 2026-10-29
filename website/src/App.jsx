@@ -4,9 +4,11 @@ import TidalSidebar from "./components/TidalSidebar";
 import TidalTopbar from "./components/TidalTopbar";
 import TidalHomeHeader from "./components/TidalHomeHeader";
 import TidalTheHits from "./components/TidalTheHits";
+import HomeYouTubeShelves from "./components/HomeYouTubeShelves";
 import TidalPopularAlbums from "./components/TidalPopularAlbums";
 import TidalTrackList from "./components/TidalTrackList";
 import TidalVideos from "./components/TidalVideos";
+import SearchView from "./components/SearchView";
 import LibraryView from "./components/LibraryView";
 import TidalPlayerBar from "./components/TidalPlayerBar";
 import TidalMobileMiniPlayer from "./components/TidalMobileMiniPlayer";
@@ -14,13 +16,13 @@ import TidalMobileNav from "./components/TidalMobileNav";
 import TidalFullScreenPlayer from "./components/TidalFullScreenPlayer";
 import TidalQueueDrawer from "./components/TidalQueueDrawer";
 import LyricsModal from "./components/LyricsModal";
-import SearchResults from "./components/SearchResults";
 import SettingsModal from "./components/SettingsModal";
 import { X } from "lucide-react";
 
 function MainShell() {
   const {
     activeTab,
+    setActiveTab,
     searchQuery,
     playbackMode,
     setPlaybackMode,
@@ -29,6 +31,9 @@ function MainShell() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // If user is actively typing in the search bar, automatically present search view
+  const isSearchActive = activeTab === "search" || searchQuery.trim().length > 0;
 
   return (
     <div className="relative min-h-screen bg-[#000000] text-white flex flex-col font-sans selection:bg-white selection:text-black">
@@ -77,14 +82,15 @@ function MainShell() {
 
         {/* Dynamic Page Views */}
         <main className="flex-1 px-4 sm:px-8 py-3 sm:py-5 max-w-[1500px] w-full mx-auto">
-          {searchQuery.trim() ? (
-            <SearchResults />
+          {isSearchActive ? (
+            <SearchView />
           ) : (
             <>
               {activeTab === "home" && (
                 <>
                   <TidalHomeHeader onOpenAuth={() => setIsSettingsOpen(true)} />
                   <TidalTheHits />
+                  <HomeYouTubeShelves />
                   <TidalPopularAlbums />
                   <TidalTrackList />
                 </>
@@ -92,8 +98,7 @@ function MainShell() {
 
               {activeTab === "explore" && (
                 <div className="py-2">
-                  <TidalTheHits />
-                  <TidalPopularAlbums />
+                  <SearchView />
                 </div>
               )}
 

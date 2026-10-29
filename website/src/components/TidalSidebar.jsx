@@ -2,6 +2,7 @@ import React from "react";
 import {
   Home,
   Compass,
+  Search,
   Video,
   Radio,
   ListMusic,
@@ -78,6 +79,18 @@ export default function TidalSidebar({ isMobileOpen, setIsMobileOpen, onOpenSett
           >
             <Home className="w-4 h-4" />
             <span>Home</span>
+          </button>
+
+          <button
+            onClick={() => handleNav("search")}
+            className={`flex items-center gap-3 w-full h-10 px-3 rounded-lg text-xs font-bold transition-colors ${
+              activeTab === "search"
+                ? "bg-[#181820] text-white"
+                : "text-white/50 hover:text-white hover:bg-white/[0.04]"
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Search</span>
           </button>
 
           <button

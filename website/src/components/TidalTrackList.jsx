@@ -1,29 +1,72 @@
 import React from "react";
-import { Play, Pause, Plus, Heart } from "lucide-react";
-import { QUICK_PICKS_TRACKS } from "../data/catalog";
+import { Play, Pause, Plus, X, Sparkles, CheckCircle2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalTrackList() {
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, addToQueue } = usePlayer();
+  const {
+    currentTrack,
+    isPlaying,
+    playTrack,
+    togglePlayPause,
+    addToQueue,
+    displayedQuickPicks,
+    categoryFilterTitle,
+    clearCategoryFilter,
+    activeSubTab,
+    userProfile
+  } = usePlayer();
+
+  // Dynamic heading based on selection or YouTube sync
+  let sectionTitle = "Quick Picks";
+  let sectionSubtitle = "Recommended tracks for you";
+
+  if (categoryFilterTitle) {
+    sectionTitle = categoryFilterTitle;
+    sectionSubtitle = "Filtered category tracks";
+  } else if (userProfile?.connected && activeSubTab === "for_you") {
+    sectionTitle = "Listen again";
+    sectionSubtitle = "Based on your YouTube Music liked songs & history";
+  } else if (activeSubTab === "staff_picks") {
+    sectionTitle = "Staff Picks";
+    sectionSubtitle = "Curated editorial selections by Derbis editors";
+  } else if (activeSubTab === "uploads") {
+    sectionTitle = "Trending Uploads";
+    sectionSubtitle = "Top independent releases and uploads";
+  }
 
   return (
     <section className="mt-8 select-none">
-      <div className="flex items-center justify-between mb-4 px-0.5">
+      {/* Header with Active Filter Pill */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-0.5">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Quick Picks
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              {sectionTitle}
+            </h2>
+            {categoryFilterTitle && (
+              <button
+                onClick={clearCategoryFilter}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-white transition-colors"
+                title="Clear category filter"
+              >
+                <span>Filtered</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
           <p className="text-xs text-white/50 mt-0.5">
-            Recommended tracks for you
+            {sectionSubtitle}
           </p>
         </div>
 
-        <button
-          onClick={() => playTrack(QUICK_PICKS_TRACKS[0], QUICK_PICKS_TRACKS)}
-          className="text-xs font-bold text-white/50 hover:text-white transition-colors"
-        >
-          Play all
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => displayedQuickPicks.length > 0 && playTrack(displayedQuickPicks[0], displayedQuickPicks)}
+            className="text-xs font-bold text-white/50 hover:text-white transition-colors"
+          >
+            Play all
+          </button>
+        </div>
       </div>
 
       {/* Table Header (Desktop) */}
@@ -36,16 +79,16 @@ export default function TidalTrackList() {
 
       {/* Track Rows */}
       <div className="divide-y divide-white/[0.04] mt-1">
-        {QUICK_PICKS_TRACKS.map((track, idx) => {
+        {displayedQuickPicks.map((track, idx) => {
           const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
           const isCurrentlyPlaying = isCurrent && isPlaying;
 
           return (
             <div
-              key={track.id}
+              key={track.id || track.videoId || idx}
               onClick={() => {
                 if (isCurrent) togglePlayPause();
-                else playTrack(track, QUICK_PICKS_TRACKS);
+                else playTrack(track, displayedQuickPicks);
               }}
               className={`group flex sm:grid sm:grid-cols-12 items-center gap-3 sm:gap-4 px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${
                 isCurrent
@@ -91,11 +134,7 @@ export default function TidalTrackList() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs sm:text-sm font-bold truncate ${
-                        isCurrent ? "text-white" : "text-white"
-                      }`}
-                    >
+                    <span className="text-xs sm:text-sm font-bold truncate text-white">
                       {track.title}
                     </span>
                     <span className="px-1.5 py-0.2 rounded text-[9px] font-black text-white/80 bg-white/10 border border-white/15 uppercase shrink-0">
@@ -127,7 +166,7 @@ export default function TidalTrackList() {
                   <Plus className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-xs font-mono text-white/40">
-                  {track.duration}
+                  {track.duration || "3:30"}
                 </span>
               </div>
             </div>

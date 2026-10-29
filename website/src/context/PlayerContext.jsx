@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
-import { QUICK_PICKS_TRACKS, EXPLORE_CATEGORIES, GENRE_SEEDS } from "../data/catalog";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { QUICK_PICKS_TRACKS, HITS_TRACK_SETS, GENRE_SEEDS, DERBIS_THE_HITS } from "../data/catalog";
 import { fetchYouTubeUserData, fetchPlaylistTracks, extractPlaylistId } from "../services/youtubeAuth";
 
 const PlayerContext = createContext(null);
@@ -8,21 +8,21 @@ export function PlayerProvider({ children }) {
   const [currentTrack, setCurrentTrack] = useState(QUICK_PICKS_TRACKS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(236); // default 3:56
+  const [duration, setDuration] = useState(194);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   
   // Audio quality badge ('MAX', 'HI-FI', 'HIGH')
   const [audioQuality, setAudioQuality] = useState("MAX");
   
-  // 'song' (artwork & 3D visualizer) vs 'video' (YouTube embedded visual)
+  // 'song' (artwork) vs 'video' (YouTube embedded visual)
   const [playbackMode, setPlaybackMode] = useState("song");
   
   // Continuous radio / Endless listening
   const [endlessListening, setEndlessListening] = useState(true);
   
   // Up Next Queue
-  const [queue, setQueue] = useState(QUICK_PICKS_TRACKS.slice(1, 12));
+  const [queue, setQueue] = useState(QUICK_PICKS_TRACKS.slice(1));
   const [history, setHistory] = useState([]);
   
   // UI states
@@ -34,9 +34,11 @@ export function PlayerProvider({ children }) {
   const [visualizerMode, setVisualizerMode] = useState("off");
   
   // Navigation / Search state
-  const [activeTab, setActiveTab] = useState("home"); // 'home' | 'explore' | 'videos' | 'collection'
+  const [activeTab, setActiveTab] = useState("home"); // 'home' | 'explore' | 'videos' | 'collection' | 'search'
+  const [activeSubTab, setActiveSubTab] = useState("for_you"); // 'for_you' | 'staff_picks' | 'uploads'
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState(null);
+  const [categoryFilterTitle, setCategoryFilterTitle] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState(null);
 
   // Audio frequency simulation
   const [audioFrequencies, setAudioFrequencies] = useState(() => new Float32Array(64));
@@ -63,6 +65,28 @@ export function PlayerProvider({ children }) {
   const [isSyncingYouTube, setIsSyncingYouTube] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [activeToken, setActiveToken] = useState(null);
+
+  // Dynamic Quick Picks calculation based on user selection or YouTube data
+  const displayedQuickPicks = useMemo(() => {
+    // 1. If user clicked a specific category/hit card
+    if (activeCategoryFilter && HITS_TRACK_SETS[activeCategoryFilter]) {
+      return HITS_TRACK_SETS[activeCategoryFilter];
+    }
+    // 2. If user selected subtab "Staff Picks"
+    if (activeSubTab === "staff_picks") {
+      return HITS_TRACK_SETS.staff_picks;
+    }
+    // 3. If user selected subtab "Uploads"
+    if (activeSubTab === "uploads") {
+      return HITS_TRACK_SETS.uploads;
+    }
+    // 4. If user logged in and has YouTube Music data ("For you" / "Listen again")
+    if (userProfile?.connected && youtubeData.likedTracks.length > 0) {
+      return youtubeData.likedTracks;
+    }
+    // 5. Default curated tracks
+    return QUICK_PICKS_TRACKS;
+  }, [activeCategoryFilter, activeSubTab, userProfile, youtubeData.likedTracks]);
 
   // YouTube player references
   const ytPlayerRef = useRef(null);
@@ -100,7 +124,7 @@ export function PlayerProvider({ children }) {
     ytPlayerRef.current = new window.YT.Player("yt-audio-engine", {
       height: "100%",
       width: "100%",
-      videoId: currentTrack?.videoId || "gNi_6U5Pm_o",
+      videoId: currentTrack?.videoId || "JFcgOboQZ08",
       playerVars: {
         autoplay: 0,
         controls: 0,
@@ -258,18 +282,17 @@ export function PlayerProvider({ children }) {
     }
 
     if (endlessListening) {
-      const genre = currentTrack?.genre || "pop";
-      const candidateList = GENRE_SEEDS[genre] || QUICK_PICKS_TRACKS;
-      const available = candidateList.filter(t => t.id !== currentTrack.id);
-      const next = available[Math.floor(Math.random() * available.length)] || QUICK_PICKS_TRACKS[0];
+      const candidateList = displayedQuickPicks.length > 0 ? displayedQuickPicks : QUICK_PICKS_TRACKS;
+      const available = candidateList.filter(t => (t.videoId || t.id) !== (currentTrack.videoId || currentTrack.id));
+      const next = available[Math.floor(Math.random() * available.length)] || candidateList[0];
       
-      const moreRadioTracks = QUICK_PICKS_TRACKS.filter(t => t.id !== next.id && t.id !== currentTrack.id).slice(0, 5);
+      const moreRadioTracks = candidateList.filter(t => (t.videoId || t.id) !== (next.videoId || next.id)).slice(0, 5);
       setQueue(moreRadioTracks);
       playTrack(next);
     } else {
       setIsPlaying(false);
     }
-  }, [repeatMode, queue, endlessListening, currentTrack, playTrack, seekTo]);
+  }, [repeatMode, queue, endlessListening, currentTrack, playTrack, seekTo, displayedQuickPicks]);
 
   // Next Track
   const nextTrack = useCallback(() => {
@@ -320,6 +343,27 @@ export function PlayerProvider({ children }) {
     setQueue([]);
   }, []);
 
+  // Category Filter Selection ("make it changing based what you clicked or select")
+  const selectCategoryFilter = useCallback((hit) => {
+    if (!hit) {
+      setActiveCategoryFilter(null);
+      setCategoryFilterTitle(null);
+      return;
+    }
+    setActiveCategoryFilter(hit.id);
+    setCategoryFilterTitle(hit.title);
+
+    const trackSet = HITS_TRACK_SETS[hit.id] || QUICK_PICKS_TRACKS;
+    if (trackSet.length > 0) {
+      playTrack(trackSet[0], trackSet);
+    }
+  }, [playTrack]);
+
+  const clearCategoryFilter = useCallback(() => {
+    setActiveCategoryFilter(null);
+    setCategoryFilterTitle(null);
+  }, []);
+
   // Connect Google / YouTube OAuth
   const connectGoogleYouTube = useCallback(() => {
     const config = window.DERBIS_WEB_CONFIG || {};
@@ -363,7 +407,16 @@ export function PlayerProvider({ children }) {
               subscriptions: data.subscriptions
             }));
 
+            // Once logged in, automatically switch subtab to "for_you" so Home displays their YouTube data!
+            setActiveSubTab("for_you");
+            setActiveCategoryFilter(null);
+            setCategoryFilterTitle(null);
             setIsSyncingYouTube(false);
+
+            // If user has liked tracks, begin playback of first liked track
+            if (data.likedTracks.length > 0) {
+              playTrack(data.likedTracks[0], data.likedTracks);
+            }
           } catch (err) {
             console.error("YouTube sync error:", err);
             setIsSyncingYouTube(false);
@@ -378,7 +431,7 @@ export function PlayerProvider({ children }) {
       setIsSyncingYouTube(false);
       setSyncError("Google Sign-In initialization failed.");
     }
-  }, []);
+  }, [playTrack]);
 
   // Disconnect Google / YouTube
   const disconnectGoogleYouTube = useCallback(() => {
@@ -458,10 +511,15 @@ export function PlayerProvider({ children }) {
     setIsMobilePlayerExpanded,
     activeTab,
     setActiveTab,
+    activeSubTab,
+    setActiveSubTab,
+    activeCategoryFilter,
+    categoryFilterTitle,
+    selectCategoryFilter,
+    clearCategoryFilter,
+    displayedQuickPicks,
     searchQuery,
     setSearchQuery,
-    selectedGenre,
-    setSelectedGenre,
     audioFrequencies,
     playTrack,
     togglePlayPause,
