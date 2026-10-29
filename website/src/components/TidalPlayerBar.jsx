@@ -17,6 +17,7 @@ import {
   Heart
 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
+import { SoundWaveIcon } from "./TidalFullScreenPlayer";
 
 function formatTime(seconds) {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -31,6 +32,9 @@ export default function TidalPlayerBar() {
     isPlaying,
     currentTime,
     duration,
+    isCrossfading,
+    audioQuality,
+    streamingQuality,
     togglePlayPause,
     seekTo,
     nextTrack,
@@ -55,6 +59,10 @@ export default function TidalPlayerBar() {
   } = usePlayer();
 
   const [isLiked, setIsLiked] = useState(false);
+
+  const currentQuality = (streamingQuality || audioQuality || "high").toLowerCase();
+  const qualityLevel = currentQuality === "low" ? "Low" : currentQuality === "medium" ? "Medium" : "High";
+  const codecBadgeLabel = `OPUS ${qualityLevel}`;
 
   const handleSeek = (e) => {
     const val = parseFloat(e.target.value);
@@ -158,6 +166,9 @@ export default function TidalPlayerBar() {
             {formatTime(currentTime)}
           </span>
           <div className="relative flex-1 group flex items-center py-1">
+            {isCrossfading && (
+              <div className="absolute inset-x-0 h-3 rounded-full blur-sm bg-gradient-to-r from-pink-500 via-amber-400 via-emerald-400 via-cyan-400 to-purple-500 opacity-70 animate-rgbShift pointer-events-none" />
+            )}
             <input
               type="range"
               min="0"
@@ -165,11 +176,19 @@ export default function TidalPlayerBar() {
               step="0.5"
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-1 bg-white/15 rounded-lg appearance-none cursor-pointer accent-white focus:outline-none group-hover:h-1.5 transition-all"
+              className={`relative z-10 w-full h-1 rounded-lg appearance-none cursor-pointer focus:outline-none group-hover:h-1.5 transition-all ${
+                isCrossfading
+                  ? "bg-gradient-to-r from-pink-500 via-amber-400 via-emerald-400 via-cyan-400 to-purple-500 animate-rgbShift shadow-[0_0_12px_rgba(236,72,153,0.7)]"
+                  : "bg-white/15 accent-white"
+              }`}
             />
           </div>
           <span className="text-[10px] font-mono text-white/40 w-8 text-left">
             {formatTime(duration)}
+          </span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-bold text-white/70 shrink-0">
+            <SoundWaveIcon className="w-3 h-3 text-white/90" />
+            {codecBadgeLabel}
           </span>
         </div>
       </div>

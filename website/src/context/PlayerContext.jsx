@@ -25,14 +25,62 @@ export function PlayerProvider({ children }) {
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Audio quality badge
-  const [audioQuality, setAudioQuality] = useState("MAX");
+  // Audio quality tier: "AUTO", "HIGH" (300k+), "MEDIUM" (98-128k), "LOW" (48k)
+  const [streamingQuality, setStreamingQualityState] = useState(() => {
+    try {
+      return localStorage.getItem("derbis_streaming_quality") || "AUTO";
+    } catch {
+      return "AUTO";
+    }
+  });
+
+  // Audio quality badge (MAX, HIGH, LOW)
+  const [audioQuality, setAudioQuality] = useState(() => {
+    try {
+      const q = localStorage.getItem("derbis_streaming_quality") || "AUTO";
+      if (q === "LOW") return "LOW";
+      if (q === "MEDIUM") return "HIGH";
+      return "MAX";
+    } catch {
+      return "MAX";
+    }
+  });
+
+  const setStreamingQuality = (quality) => {
+    setStreamingQualityState(quality);
+    try {
+      localStorage.setItem("derbis_streaming_quality", quality);
+    } catch {
+      // ignore
+    }
+    if (quality === "LOW") setAudioQuality("LOW");
+    else if (quality === "MEDIUM") setAudioQuality("HIGH");
+    else setAudioQuality("MAX");
+  };
   
   // 'song' vs 'video' mode
   const [playbackMode, setPlaybackMode] = useState("song");
   
-  // Continuous radio (Endless listening)
-  const [endlessListening, setEndlessListening] = useState(true);
+  // Continuous radio (Endless listening) - PERSISTENT STATE:
+  // Once the user enables it, it stays enabled until they turn it off!
+  const [endlessListening, setEndlessListening] = useState(() => {
+    try {
+      const saved = localStorage.getItem("derbis_endless_listening");
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleEndlessListening = useCallback(() => {
+    setEndlessListening(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem("derbis_endless_listening", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
   
   // Up Next Queue & Radio Recommendations
   const [queue, setQueue] = useState([]);
@@ -270,19 +318,19 @@ export function PlayerProvider({ children }) {
 
   // Play song selected from Search:
   // Starts an Endless Listening session with just that song,
-  // and fetches different, similar songs for the queue (NOT duplicate search results)
+  // and respects user's persistent endless listening toggle!
   const playSearchTrack = useCallback(async (track) => {
     if (!track) return;
-    // 1. Play track immediately with empty queue
     playTrack(track, []);
-    setEndlessListening(true);
 
-    // 2. Fetch Endless Radio tail (different songs by artist & related artists)
-    const radioTracks = await ensureRadioTail(track);
-    if (radioTracks && radioTracks.length > 0) {
-      setQueue(radioTracks);
+    // Only populate radio tail if endlessListening is enabled
+    if (endlessListening) {
+      const radioTracks = await ensureRadioTail(track);
+      if (radioTracks && radioTracks.length > 0) {
+        setQueue(radioTracks);
+      }
     }
-  }, [playTrack, ensureRadioTail]);
+  }, [playTrack, ensureRadioTail, endlessListening]);
 
   // Toggle play/pause
   const togglePlayPause = useCallback(() => {
@@ -582,22 +630,27 @@ export function PlayerProvider({ children }) {
     }
   }, [activeToken]);
 
+  const isCrossfading = isPlaying && duration > 20 && (currentTime >= Math.max(0, duration - 8) || (currentTime <= 3 && history.length > 0));
+
   const value = {
     currentTrack,
     isPlaying,
     currentTime,
     duration,
+    isCrossfading,
     volume,
     setVolume,
     isMuted,
     setIsMuted,
     audioQuality,
     setAudioQuality,
+    streamingQuality,
+    setStreamingQuality,
     playbackMode,
     setPlaybackMode,
     endlessListening,
     setEndlessListening,
-    toggleEndlessListening: () => setEndlessListening(prev => !prev),
+    toggleEndlessListening,
     queue,
     history,
     radioRecommendations,

@@ -30,7 +30,7 @@ jna-platform = { group = "net.java.dev.jna", name = "jna-platform", version.ref 
 slf4j-api = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
 json = { group = "org.json", name = "json", version.ref = "json" }
-derbis-extractor = { group = "com.github.LUC4N3X", name = "DerbisExtractor", version.ref = "derbisExtractor" }
+derbis-extractor = { group = "com.github.YASUDA", name = "DerbisExtractor", version.ref = "derbisExtractor" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 compose-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMaterial3" }
 compose-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "compose" }

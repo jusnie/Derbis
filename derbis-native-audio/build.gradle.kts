@@ -14,7 +14,7 @@ val nativeAudioAbis = listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
 val nativeDepsDir = rootProject.layout.projectDirectory.dir(".gradle/derbis-native-deps")
 
 android {
-    namespace = "com.luc4n3x.derbis.nativeaudio"
+    namespace = "com.yasuda.derbis.nativeaudio"
     compileSdk = 37
 
     defaultConfig {

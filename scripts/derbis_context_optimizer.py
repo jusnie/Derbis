@@ -371,7 +371,7 @@ def optimize_unit_test_output(text: str) -> str:
             or stripped.startswith("at org.gradle.internal.dispatch.")
             or stripped.startswith("at org.junit.runners.")
         )
-        is_project_frame = "com.luc4n3x.derbis" in stripped or "scripts." in stripped
+        is_project_frame = "com.yasuda.derbis" in stripped or "scripts." in stripped
         is_failure_signal = (
             "FAIL" in line
             or "AssertionError" in line
@@ -497,7 +497,7 @@ def optimize_stack_trace_output(text: str) -> str:
     for line in lines:
         stripped = line.strip()
         is_at_frame = stripped.startswith("at ")
-        is_project_frame = "com.luc4n3x.derbis" in stripped or "scripts." in stripped
+        is_project_frame = "com.yasuda.derbis" in stripped or "scripts." in stripped
         is_cause = stripped.startswith("Caused by:") or "Exception" in stripped or "Error" in stripped
 
         if is_cause:

@@ -51,16 +51,16 @@ kotlin {
             "Android sources shared with Derbis Desktop"
         ).apply {
             srcDir(rootProject.file("../app/src/main/java"))
-            include("com/luc4n3x/derbis/ui/i18n/**/*.kt")
-            include("com/luc4n3x/derbis/domain/DerbisAudio.kt")
-            include("com/luc4n3x/derbis/domain/ParametricEqualizer.kt")
-            include("com/luc4n3x/derbis/domain/PlaylistImportFailureKind.kt")
-            include("com/luc4n3x/derbis/domain/LyricsProviderPriority.kt")
-            include("com/luc4n3x/derbis/feature/radio/RadioCategory.kt")
-            include("com/luc4n3x/derbis/feature/radio/CustomRadioError.kt")
-            exclude("com/luc4n3x/derbis/ui/i18n/DerbisPersonalizedSearchStrings.kt")
-            exclude("com/luc4n3x/derbis/ui/i18n/DerbisPersonalCollectionStrings.kt")
-            exclude("com/luc4n3x/derbis/ui/i18n/DerbisSmartOfflineCount.kt")
+            include("com/yasuda/derbis/ui/i18n/**/*.kt")
+            include("com/yasuda/derbis/domain/DerbisAudio.kt")
+            include("com/yasuda/derbis/domain/ParametricEqualizer.kt")
+            include("com/yasuda/derbis/domain/PlaylistImportFailureKind.kt")
+            include("com/yasuda/derbis/domain/LyricsProviderPriority.kt")
+            include("com/yasuda/derbis/feature/radio/RadioCategory.kt")
+            include("com/yasuda/derbis/feature/radio/CustomRadioError.kt")
+            exclude("com/yasuda/derbis/ui/i18n/DerbisPersonalizedSearchStrings.kt")
+            exclude("com/yasuda/derbis/ui/i18n/DerbisPersonalCollectionStrings.kt")
+            exclude("com/yasuda/derbis/ui/i18n/DerbisSmartOfflineCount.kt")
         }
         kotlin.source(sharedAndroidSources)
     }
@@ -102,13 +102,13 @@ dependencies {
 
 compose.resources {
     publicResClass = true
-    packageOfResClass = "com.luc4n3x.derbis.desktop.app.generated.resources"
+    packageOfResClass = "com.yasuda.derbis.desktop.app.generated.resources"
     customDirectory("main", prepareComposeResources.map { generatedComposeResources.get() })
 }
 
 compose.desktop {
     application {
-        mainClass = "com.luc4n3x.derbis.desktop.app.MainKt"
+        mainClass = "com.yasuda.derbis.desktop.app.MainKt"
 
         buildTypes.release.proguard {
             isEnabled.set(false)

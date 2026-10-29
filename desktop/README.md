@@ -264,10 +264,6 @@ The hardware media keys (play/pause, next, previous, stop) are registered system
 
 The complete list is also shown in Settings, under the keyboard shortcuts section.
 
-## Technical References
-
-The Desktop lifecycle hardening used the GPL-3.0 SimpMusic project as an architectural reference, especially for single-instance handling, the mini player, crash handling, deep links, and desktop packaging patterns. Derbis's implementation was rewritten and adapted to its own state model, libvlc player, and persistence system.
-
 ## Design Constraints
 
 The interface preserves the official Derbis icon, localized onboarding, country menus with real flags and native country names, RTL layout for Arabic and Hebrew, the integrated Library, and a closable player.

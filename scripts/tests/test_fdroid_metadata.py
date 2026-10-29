@@ -45,7 +45,7 @@ class FdroidMetadataTest(unittest.TestCase):
         malformed = rendered.replace("Binaries: \n", "Binaries:\n")
 
         with tempfile.TemporaryDirectory() as directory:
-            candidate = Path(directory) / "com.luc4n3x.derbis.yml"
+            candidate = Path(directory) / "com.yasuda.derbis.yml"
             metadata.write_exact_text(candidate, malformed)
             with redirect_stderr(io.StringIO()):
                 self.assertFalse(metadata.check_metadata(rendered, candidate))
@@ -59,7 +59,7 @@ class FdroidMetadataTest(unittest.TestCase):
             self.COMMIT,
         )
         with tempfile.TemporaryDirectory() as directory:
-            candidate = Path(directory) / "com.luc4n3x.derbis.yml"
+            candidate = Path(directory) / "com.yasuda.derbis.yml"
             with candidate.open("w", encoding="utf-8", newline="") as destination:
                 destination.write(rendered.replace("\n", "\r\n"))
             self.assertTrue(metadata.check_metadata(rendered, candidate))

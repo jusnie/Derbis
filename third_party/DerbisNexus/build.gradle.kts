@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "2.4.21"
 }
 
-group = "com.github.LUC4N3X"
+group = "com.github.YASUDA"
 version = "1.0.0"
 
 val isFdroidBuild = providers.gradleProperty("derbisFdroidBuild")

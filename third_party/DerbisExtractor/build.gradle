@@ -3,7 +3,7 @@ def environmentValue = { String name, String fallback ->
     value == null || value.trim().isEmpty() ? fallback : value.trim()
 }
 
-def rootGroupId = environmentValue("GROUP", "com.github.LUC4N3X")
+def rootGroupId = environmentValue("GROUP", "com.github.YASUDA")
 def rootArtifactId = environmentValue("ARTIFACT", "DerbisExtractor")
 def publicationVersion = environmentValue("VERSION", "v1.0.0-derbis.10")
 def moduleGroupId = "${rootGroupId}.${rootArtifactId}"

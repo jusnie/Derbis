@@ -3,8 +3,8 @@ version = 1
 [[annotations]]
 path = "**"
 precedence = "closest"
-SPDX-FileCopyrightText = "2026 Yasuda and Derbis contributors"
-SPDX-License-Identifier = "GPL-3.0-only"
+SPDX-FileCopyrightText = "2026 Yasuda"
+SPDX-License-Identifier = "LicenseRef-Derbis-EULA"
 
 [[annotations]]
 path = [
@@ -27,7 +27,7 @@ SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = [
-  "app/src/main/java/com/luc4n3x/derbis/ui/components/DerbisIonicons.kt",
+  "app/src/main/java/com/yasuda/derbis/ui/components/DerbisIonicons.kt",
   "app/src/main/assets/licenses/ionicons.txt",
 ]
 precedence = "override"

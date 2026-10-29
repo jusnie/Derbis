@@ -1,0 +1,81 @@
+package com.yasuda.derbis.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.yasuda.derbis.domain.Track
+import com.yasuda.derbis.feature.radio.isLiveRadio
+import com.yasuda.derbis.ui.components.DerbisDockProgress
+import com.yasuda.derbis.ui.components.DerbisRowText
+import com.yasuda.derbis.ui.components.derbisDockSurface
+import com.yasuda.derbis.ui.theme.DerbisCardDesign
+import com.yasuda.derbis.ui.theme.DerbisCyan
+import com.yasuda.derbis.ui.theme.DerbisIsSpotify
+
+@Composable
+internal fun AlbumNowPlayingDock(
+    track: Track,
+    isPlaying: Boolean,
+    isResolving: Boolean,
+    progress: Float,
+    animated: Boolean,
+    onToggle: () -> Unit,
+    onOpenPlayer: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (DerbisIsSpotify) {
+        SpotifyNowPlayingBar(track, isPlaying, isResolving, progress, onToggle, onOpenPlayer, modifier)
+        return
+    }
+    if (YouTubeMusicDetailDock(track, isPlaying, isResolving, progress, onToggle, onOpenPlayer, modifier)) return
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .derbisDockSurface()
+            .clickable(onClick = onOpenPlayer)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(start = 10.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(DerbisCardDesign.ThumbShape)
+            ) {
+                CoverImage(track, Modifier.fillMaxSize())
+            }
+            DerbisRowText(
+                title = track.title,
+                subtitle = track.artist,
+                modifier = Modifier.weight(1f)
+            )
+            MiniPlayerToggleButton(
+                isPlaying = isPlaying,
+                isResolving = isResolving,
+                liveRadio = track.isLiveRadio(),
+                progress = { progress },
+                accent = DerbisCyan,
+                animated = animated,
+                onToggle = onToggle
+            )
+        }
+        DerbisDockProgress(progress = progress)
+    }
+}

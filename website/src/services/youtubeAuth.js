@@ -220,7 +220,7 @@ function cleanArtistKey(artist = "") {
     .trim();
 }
 
-// SimilarSongsSelector implementation based on Derbis App (/app/src/main/java/com/luc4n3x/derbis/domain/SimilarSongs.kt)
+// SimilarSongsSelector implementation based on Derbis App (/app/src/main/java/com/yasuda/derbis/domain/SimilarSongs.kt)
 export function filterSimilarSongs(candidates, seedTrack, limit = 18) {
   if (!candidates || candidates.length === 0) return [];
   if (!seedTrack) return candidates.slice(0, limit);

@@ -17,7 +17,7 @@ const requestJson = async url => {
   return response.json()
 }
 
-const apptekaPackage = 'com.luc4n3x.derbis'
+const apptekaPackage = 'com.yasuda.derbis'
 const apptekaInfoUrl = 'https://appteka.store/api/1/app/info'
 
 const fetchApptekaDownloads = async () => {

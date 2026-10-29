@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.luc4n3x.derbis.baselineprofile"
+    namespace = "com.yasuda.derbis.baselineprofile"
     compileSdk = 37
 
     defaultConfig {

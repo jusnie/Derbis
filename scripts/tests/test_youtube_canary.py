@@ -608,7 +608,7 @@ class YoutubeCanaryTest(unittest.TestCase):
     def test_web_player_user_agent_mirrors_youtube_web_client_identity(self):
         source = (
             Path(__file__).resolve().parents[2]
-            / "app/src/main/java/com/luc4n3x/derbis/data/YoutubeWebClientIdentity.kt"
+            / "app/src/main/java/com/yasuda/derbis/data/YoutubeWebClientIdentity.kt"
         ).read_text(encoding="utf-8")
         match = re.search(r'const\s+val\s+USER_AGENT\s*=\s*"([^"]+)"', source)
         self.assertIsNotNone(match)
@@ -743,7 +743,7 @@ class YoutubeCanaryTest(unittest.TestCase):
         entry = next(item for item in canary.DERBIS_CLIENT_MATRIX if item["name"] == "VISIONOS")
         resolver = (
             Path(__file__).resolve().parents[2]
-            / "app/src/main/java/com/luc4n3x/derbis/data/PlaybackResolver.kt"
+            / "app/src/main/java/com/yasuda/derbis/data/PlaybackResolver.kt"
         ).read_text(encoding="utf-8")
         self.assertIn(f'.put("deviceModel", "{entry["client"]["deviceModel"]}")', resolver)
         self.assertIn(f'.put("osVersion", "{entry["client"]["osVersion"]}")', resolver)

@@ -13,8 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROPERTIES = ROOT / "gradle.properties"
-DEFAULT_TEMPLATE = ROOT / "fdroid" / "metadata" / "com.luc4n3x.derbis.yml.in"
-APP_ID = "com.luc4n3x.derbis"
+DEFAULT_TEMPLATE = ROOT / "fdroid" / "metadata" / "com.yasuda.derbis.yml.in"
+APP_ID = "com.yasuda.derbis"
 VERSION_PATTERN = re.compile(r"^[0-9]+(?:\.[0-9]+){0,3}(?:[-+][0-9A-Za-z.-]+)?$")
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 

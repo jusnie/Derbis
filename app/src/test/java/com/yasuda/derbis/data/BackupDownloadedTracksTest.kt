@@ -1,0 +1,158 @@
+package com.yasuda.derbis.data
+
+import com.yasuda.derbis.data.local.DownloadEntity
+import com.yasuda.derbis.domain.DownloadOwnership
+import org.json.JSONArray
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class BackupDownloadedTracksTest {
+    @Test
+    fun restoredDownloadDestinationRequiresCurrentWriteAccess() {
+        val uri = "content://com.android.externalstorage.documents/tree/1234-5678%3AMusic"
+
+        assertEquals(uri, restorableDownloadDestinationTreeUri(uri) { it == uri })
+        assertEquals("", restorableDownloadDestinationTreeUri(uri) { false })
+        assertEquals("", restorableDownloadDestinationTreeUri("   ") { true })
+    }
+
+    @Test
+    fun downloadMetadataRoundTripPreservesOfflineIdentity() {
+        val download = download(
+            trackId = "track-1",
+            uri = "content://media/external/audio/media/41",
+            fileName = "Artist - Track.m4a"
+        ).copy(
+            embeddedMetadata = true,
+            downloadPreset = "high",
+            downloadQuality = "256k",
+            savedAt = 123_456L,
+            ownership = DownloadOwnership.SMART_OFFLINE.name
+        )
+
+        val restored = parseDownloads(JSONArray().put(downloadToJson(download)))
+
+        assertEquals(listOf(download), restored)
+    }
+
+    @Test
+    fun downloadMetadataRoundTripPreservesArtwork() {
+        val download = download(
+            trackId = "track-art",
+            uri = "content://media/external/audio/media/99",
+            fileName = "Artist - Track.m4a"
+        ).copy(
+            artworkUrl = "https://example.com/art.jpg",
+            artworkUri = "file:///data/user/0/com.yasuda.derbis/files/derbis_offline_artwork/art_1.jpg"
+        )
+
+        val restored = parseDownloads(JSONArray().put(downloadToJson(download)))
+
+        assertEquals(listOf(download), restored)
+        assertEquals("https://example.com/art.jpg", restored.single().artworkUrl)
+        assertEquals("file:///data/user/0/com.yasuda.derbis/files/derbis_offline_artwork/art_1.jpg", restored.single().artworkUri)
+    }
+
+    @Test
+    fun legacyBackupWithoutOwnershipRestoresAsProtectedManualDownload() {
+        val legacy = downloadToJson(download("track-1", "content://downloads/1", "Track.m4a"))
+        legacy.remove("ownership")
+
+        val restored = parseDownloads(JSONArray().put(legacy)).single()
+
+        assertEquals(DownloadOwnership.MANUAL.name, restored.ownership)
+    }
+
+    @Test
+    fun reconciliationRecoversFilesWhenLegacyBackupHasNoDownloadSection() {
+        val discovered = download(
+            trackId = "",
+            uri = "content://media/external/audio/media/42",
+            fileName = "Artist - Track.m4a"
+        )
+
+        val restored = reconcileDownloadedTracks(emptyList(), listOf(discovered)) { true }
+
+        assertEquals(listOf(discovered), restored)
+    }
+
+    @Test
+    fun reconciliationRemapsStaleUriAndKeepsBackedUpMetadata() {
+        val backup = download(
+            trackId = "track-1",
+            uri = "content://media/external/audio/media/7",
+            fileName = "Artist - Track.m4a"
+        ).copy(embeddedMetadata = true, downloadPreset = "automatic", downloadQuality = "best")
+        val discovered = download(
+            trackId = "",
+            uri = "content://media/external/audio/media/42",
+            fileName = backup.fileName
+        )
+
+        val restored = reconcileDownloadedTracks(listOf(backup), listOf(discovered)) {
+            it == discovered.uri
+        }.single()
+
+        assertEquals(discovered.uri, restored.uri)
+        assertEquals(backup.trackId, restored.trackId)
+        assertEquals(backup.downloadPreset, restored.downloadPreset)
+        assertEquals(backup.downloadQuality, restored.downloadQuality)
+        assertTrue(restored.embeddedMetadata)
+    }
+
+    @Test
+    fun reconciliationKeepsSmartOwnershipOnlyForTheSameFile() {
+        val smartBackup = download(
+            trackId = "track-1",
+            uri = "content://media/external/audio/media/7",
+            fileName = "Artist - Track.m4a"
+        ).copy(ownership = DownloadOwnership.SMART_OFFLINE.name)
+        val sameFile = smartBackup.copy(trackId = "")
+        val metadataMatch = smartBackup.copy(trackId = "", uri = "content://media/external/audio/media/42", ownership = DownloadOwnership.MANUAL.name)
+
+        val exact = reconcileDownloadedTracks(listOf(smartBackup), listOf(sameFile)) { true }.single()
+        val remapped = reconcileDownloadedTracks(listOf(smartBackup), listOf(metadataMatch)) {
+            it == metadataMatch.uri
+        }.single()
+
+        assertEquals(DownloadOwnership.SMART_OFFLINE.name, exact.ownership)
+        assertEquals(metadataMatch.uri, remapped.uri)
+        assertEquals(DownloadOwnership.MANUAL.name, remapped.ownership)
+    }
+
+    @Test
+    fun reconciliationDropsMissingFilesAndDeduplicatesReadableUris() {
+        val available = download(
+            trackId = "track-1",
+            uri = "content://media/external/audio/media/42",
+            fileName = "Artist - Track.m4a"
+        )
+        val missing = download(
+            trackId = "missing",
+            uri = "content://media/external/audio/media/404",
+            fileName = "Missing.m4a"
+        )
+
+        val restored = reconcileDownloadedTracks(listOf(available, missing), listOf(available.copy(trackId = ""))) {
+            it == available.uri
+        }
+
+        assertEquals(listOf(available.copy(id = 0L)), restored)
+    }
+
+    private fun download(trackId: String, uri: String, fileName: String) = DownloadEntity(
+        trackId = trackId,
+        title = "Track",
+        artist = "Artist",
+        album = "Album",
+        durationMs = 180_000L,
+        fileName = fileName,
+        uri = uri,
+        mimeType = "audio/mp4",
+        embeddedMetadata = false,
+        downloadPreset = "",
+        downloadQuality = "",
+        savedAt = 100L
+    )
+}

@@ -1,0 +1,623 @@
+package com.yasuda.derbis.desktop.app.ui.components.navigation
+
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.yasuda.derbis.desktop.app.state.Destination
+import com.yasuda.derbis.desktop.app.ui.i18n.LocalStrings
+import com.yasuda.derbis.desktop.app.ui.components.derbisIconPainter
+import com.yasuda.derbis.desktop.app.ui.icons.DerbisIcons
+import com.yasuda.derbis.desktop.app.ui.icons.OfflineIcons
+import com.yasuda.derbis.desktop.app.ui.theme.DerbisMotion
+import com.yasuda.derbis.desktop.app.ui.theme.LocalAccentColor
+import com.yasuda.derbis.desktop.core.storage.LibraryData
+import com.yasuda.derbis.desktop.core.storage.LocalPlaylist
+
+@Composable
+fun DerbisSidebar(
+    destination: Destination,
+    openPlaylistId: String,
+    library: LibraryData,
+    hasActiveTrack: Boolean,
+    isPlaying: Boolean,
+    onNavigate: (Destination) -> Unit,
+    onOpenPlaylist: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val strings = LocalStrings.current
+    val accent = LocalAccentColor.current
+    var libraryExpanded by rememberSaveable { mutableStateOf(true) }
+    var playlistQuery by rememberSaveable { mutableStateOf("") }
+    var sortAlphabetically by rememberSaveable { mutableStateOf(false) }
+    val visiblePlaylists = remember(library.playlists, playlistQuery, sortAlphabetically) {
+        library.playlists
+            .asSequence()
+            .filter { playlist -> playlist.name.contains(playlistQuery.trim(), ignoreCase = true) }
+            .let { playlists ->
+                if (sortAlphabetically) playlists.sortedBy { it.name.lowercase() }
+                else playlists.sortedByDescending { it.createdAt }
+            }
+            .toList()
+    }
+    val shellShape = RoundedCornerShape(20.dp)
+    val shellBrush = Brush.verticalGradient(
+        colors = listOf(
+            accent.copy(alpha = 0.13f),
+            MaterialTheme.colorScheme.surfaceContainerLow,
+            MaterialTheme.colorScheme.surface
+        )
+    )
+    val borderBrush = Brush.verticalGradient(
+        colors = listOf(
+            accent.copy(alpha = 0.42f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f)
+        )
+    )
+
+    Box(
+        modifier = modifier
+            .width(228.dp)
+            .fillMaxHeight()
+            .clip(shellShape)
+            .background(shellBrush)
+            .border(width = 1.dp, brush = borderBrush, shape = shellShape)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(116.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(accent.copy(alpha = 0.10f), Color.Transparent)
+                    )
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 13.dp, vertical = 16.dp)
+        ) {
+            SidebarBrand(
+                appName = strings.appName,
+                accent = accent
+            )
+
+            Spacer(modifier = Modifier.height(27.dp))
+            SidebarSectionLabel(strings.navSectionExplore)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SidebarItem(
+                icon = DerbisIcons.Home,
+                label = strings.navHome,
+                selected = destination == Destination.HOME,
+                onClick = { onNavigate(Destination.HOME) }
+            )
+            SidebarItem(
+                icon = DerbisIcons.Chart,
+                label = strings.navDiscover,
+                selected = destination == Destination.DISCOVER,
+                onClick = { onNavigate(Destination.DISCOVER) }
+            )
+            SidebarItem(
+                icon = DerbisIcons.Search,
+                label = strings.navSearch,
+                selected = destination == Destination.SEARCH || destination == Destination.COLLECTION,
+                onClick = { onNavigate(Destination.SEARCH) }
+            )
+
+            Spacer(modifier = Modifier.height(22.dp))
+            SidebarLibraryHeader(
+                label = strings.navSectionLibrary,
+                expanded = libraryExpanded,
+                onToggle = { libraryExpanded = !libraryExpanded }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            SidebarItem(
+                icon = OfflineIcons.Library,
+                label = strings.navLibrary,
+                selected = destination == Destination.LIBRARY || destination == Destination.PLAYLIST,
+                onClick = { onNavigate(Destination.LIBRARY) }
+            )
+
+            if (libraryExpanded) {
+                SidebarLibraryBrowser(
+                    playlistQuery = playlistQuery,
+                    onPlaylistQueryChange = { playlistQuery = it },
+                    sortAlphabetically = sortAlphabetically,
+                    onToggleSort = { sortAlphabetically = !sortAlphabetically },
+                    playlists = visiblePlaylists,
+                    openPlaylistId = openPlaylistId,
+                    destination = destination,
+                    onOpenPlaylist = onOpenPlaylist,
+                    onOpenLocalMusic = { onNavigate(Destination.LOCAL_MUSIC) },
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                SidebarItem(
+                    icon = OfflineIcons.Folder,
+                    label = strings.localMusic,
+                    selected = destination == Destination.LOCAL_MUSIC,
+                    onClick = { onNavigate(Destination.LOCAL_MUSIC) }
+                )
+                Spacer(modifier = Modifier.weight(1f))
+            }
+
+            SidebarItem(
+                icon = DerbisIcons.Disc,
+                label = strings.navNowPlaying,
+                selected = destination == Destination.NOW_PLAYING,
+                trailing = if (hasActiveTrack) {
+                    {
+                        SidebarPlayingIndicator(
+                            isPlaying = isPlaying,
+                            color = if (destination == Destination.NOW_PLAYING) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                accent
+                            }
+                        )
+                    }
+                } else {
+                    null
+                },
+                onClick = { onNavigate(Destination.NOW_PLAYING) }
+            )
+
+            if (libraryExpanded) Spacer(modifier = Modifier.height(8.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.outlineVariant,
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            SidebarItem(
+                icon = DerbisIcons.Settings,
+                label = strings.navSettings,
+                selected = destination == Destination.SETTINGS,
+                onClick = { onNavigate(Destination.SETTINGS) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarLibraryHeader(
+    label: String,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val accent = LocalAccentColor.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SidebarSectionLabel(label)
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = if (expanded) DerbisIcons.ChevronUp else DerbisIcons.ChevronDown,
+            contentDescription = if (expanded) "Collapse library" else "Expand library",
+            tint = accent,
+            modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun SidebarLibraryBrowser(
+    playlistQuery: String,
+    onPlaylistQueryChange: (String) -> Unit,
+    sortAlphabetically: Boolean,
+    onToggleSort: () -> Unit,
+    playlists: List<LocalPlaylist>,
+    openPlaylistId: String,
+    destination: Destination,
+    onOpenPlaylist: (String) -> Unit,
+    onOpenLocalMusic: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val strings = LocalStrings.current
+    val accent = LocalAccentColor.current
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        OutlinedTextField(
+            value = playlistQuery,
+            onValueChange = onPlaylistQueryChange,
+            singleLine = true,
+            placeholder = { Text(strings.searchPlaceholder, maxLines = 1) },
+            trailingIcon = {
+                Text(
+                    text = if (sortAlphabetically) "A–Z" else "Recent",
+                    color = accent,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(7.dp))
+                        .clickable(onClick = onToggleSort)
+                        .padding(horizontal = 5.dp, vertical = 4.dp)
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = accent,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.72f),
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 42.dp)
+        )
+        Spacer(modifier = Modifier.height(7.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            SidebarLibraryCollectionItem(
+                icon = OfflineIcons.Folder,
+                label = strings.localMusic,
+                caption = "",
+                selected = destination == Destination.LOCAL_MUSIC,
+                onClick = onOpenLocalMusic
+            )
+            if (playlists.isNotEmpty()) {
+                Text(
+                    text = strings.libraryPlaylists.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.55.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.66f),
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 11.dp, top = 8.dp, bottom = 2.dp)
+                )
+                playlists.forEach { playlist ->
+                    SidebarLibraryCollectionItem(
+                        icon = DerbisIcons.Playlist,
+                        label = playlist.name,
+                        caption = "${playlist.tracks.size}",
+                        selected = destination == Destination.PLAYLIST && openPlaylistId == playlist.id,
+                        onClick = { onOpenPlaylist(playlist.id) }
+                    )
+                }
+            } else if (playlistQuery.isNotBlank()) {
+                Text(
+                    text = strings.searchNoResults,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SidebarLibraryCollectionItem(
+    icon: ImageVector,
+    label: String,
+    caption: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val accent = LocalAccentColor.current
+    val background = if (selected) accent.copy(alpha = 0.14f) else Color.Transparent
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (caption.isNotBlank()) {
+            Text(
+                text = caption,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarBrand(
+    appName: String,
+    accent: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            modifier = Modifier.size(44.dp),
+            shape = RoundedCornerShape(15.dp),
+            color = accent.copy(alpha = 0.15f),
+            border = BorderStroke(1.dp, accent.copy(alpha = 0.34f)),
+            shadowElevation = 8.dp
+        ) {
+            Box(
+                modifier = Modifier.background(
+                    Brush.radialGradient(
+                        colors = listOf(accent.copy(alpha = 0.26f), Color.Transparent)
+                    )
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = derbisIconPainter(),
+                    contentDescription = appName,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = appName,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "DESKTOP",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    letterSpacing = 1.25.sp
+                ),
+                color = accent,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SidebarSectionLabel(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.65.sp),
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.76f),
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(horizontal = 12.dp)
+    )
+}
+
+@Composable
+private fun SidebarItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val accent = LocalAccentColor.current
+    val interactionSource = remember(label) { MutableInteractionSource() }
+    val hovered by interactionSource.collectIsHoveredAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
+
+    val targetBackground = when {
+        selected -> accent.copy(alpha = 0.17f)
+        hovered || focused -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.78f)
+        else -> Color.Transparent
+    }
+    val background by animateColorAsState(
+        targetValue = targetBackground,
+        animationSpec = tween(durationMillis = 160)
+    )
+    val targetContentColor = when {
+        selected -> MaterialTheme.colorScheme.onSurface
+        hovered || focused -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val contentColor by animateColorAsState(
+        targetValue = targetContentColor,
+        animationSpec = tween(durationMillis = 140)
+    )
+    val iconBackground by animateColorAsState(
+        targetValue = if (selected) {
+            accent.copy(alpha = 0.22f)
+        } else if (hovered || focused) {
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.72f)
+        } else {
+            Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 160)
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .hoverable(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(14.dp),
+        color = background,
+        border = if (selected) BorderStroke(1.dp, accent.copy(alpha = 0.28f)) else null
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(if (selected) 26.dp else 12.dp)
+                    .clip(RoundedCornerShape(99.dp))
+                    .background(if (selected) accent else Color.Transparent)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(31.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (selected) accent else contentColor,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+
+            trailing?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun SidebarPlayingIndicator(
+    isPlaying: Boolean,
+    color: Color
+) {
+    val transition = rememberInfiniteTransition(label = "sidebarPlaying")
+    val first by transition.animateFloat(
+        initialValue = 5f,
+        targetValue = 14f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 520),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sidebarPlayingFirst"
+    )
+    val second by transition.animateFloat(
+        initialValue = 13f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 430),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sidebarPlayingSecond"
+    )
+    val third by transition.animateFloat(
+        initialValue = 7f,
+        targetValue = 15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 610),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "sidebarPlayingThird"
+    )
+
+    Row(
+        modifier = Modifier
+            .width(22.dp)
+            .height(17.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        listOf(first, second, third).forEach { animatedHeight ->
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height((if (isPlaying) animatedHeight else 5f).dp)
+                    .clip(RoundedCornerShape(99.dp))
+                    .background(color.copy(alpha = if (isPlaying) 0.95f else DerbisMotion.HOVER_ALPHA + 0.32f))
+            )
+        }
+    }
+}

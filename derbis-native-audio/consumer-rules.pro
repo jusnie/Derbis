@@ -10,6 +10,6 @@
     <init>(android.os.Handler, androidx.media3.exoplayer.audio.AudioRendererEventListener, androidx.media3.exoplayer.audio.AudioSink);
 }
 
--keepclasseswithmembernames,includedescriptorclasses class com.luc4n3x.derbis.nativeaudio.OboeNative {
+-keepclasseswithmembernames,includedescriptorclasses class com.yasuda.derbis.nativeaudio.OboeNative {
     native <methods>;
 }

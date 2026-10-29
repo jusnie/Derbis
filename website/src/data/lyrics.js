@@ -52,5 +52,40 @@ export const SYNCHRONIZED_LYRICS = {
     { time: 35, text: "The love me hard, love me, love me harder" },
     { time: 40, text: "'Cause if it makes me better, and make you real" },
     { time: 45, text: "Then love me, love me, love me harder" }
+  ],
+  "akap": [
+    { time: 6, text: "Nanginig ang aking mga kamay" },
+    { time: 14, text: "Nang ika'y masilayan sa dulo ng tulay" },
+    { time: 22, text: "Ikaw lamang ang tangi kong inaasam" },
+    { time: 31, text: "Makapiling ka kahit na sandali lang" },
+    { time: 39, text: "Sa bawat saglit, ikaw ang hanap" },
+    { time: 47, text: "Tunay na ligaya sa iyong yakap" },
+    { time: 55, text: "Hahawiin ang ulap sa madilim na gabi" },
+    { time: 63, text: "Basta't ika'y laging katabi" },
+    { time: 70, text: "Ikaw lamang ang tangi kong inaasam" }
   ]
 };
+
+export function getTrackLyrics(track) {
+  if (!track) return [];
+  const id = track.id || track.videoId || "";
+  if (SYNCHRONIZED_LYRICS[id]) return SYNCHRONIZED_LYRICS[id];
+
+  const titleLower = (track.title || "").toLowerCase();
+  if (titleLower.includes("akap") || titleLower.includes("imago")) {
+    return SYNCHRONIZED_LYRICS["akap"];
+  }
+
+  // Synthesize rhythmic karaoke lines matching track context
+  const artist = track.artist || "Derbis";
+  const title = track.title || "Soundtrack";
+  return [
+    { time: 4, text: `♪ Listening to ${title} ♪` },
+    { time: 12, text: `Performed by ${artist}` },
+    { time: 20, text: "Feel the lossless rhythm flowing" },
+    { time: 28, text: "Synesthesia audio wave moving in harmony" },
+    { time: 36, text: `Every heartbeat sings ${title}` },
+    { time: 45, text: "Endless listening continuous sound" },
+    { time: 54, text: `♪ ${title} — ${artist} ♪` }
+  ];
+}

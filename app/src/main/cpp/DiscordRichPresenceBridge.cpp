@@ -189,7 +189,7 @@ void clear_locked() {
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeInitialize(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeInitialize(
     JNIEnv*, jobject, jlong application_id
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -198,7 +198,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeInitiali
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeBeginSignIn(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeBeginSignIn(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -229,7 +229,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeBeginSig
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeRestoreSession(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeRestoreSession(
     JNIEnv* env,
     jobject,
     jstring refresh_token
@@ -256,7 +256,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeRestoreS
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeDisconnect(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeDisconnect(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -272,7 +272,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeDisconne
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnectionState(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnectionState(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -281,7 +281,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnecti
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnectionError(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnectionError(
     JNIEnv* env, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -290,7 +290,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeConnecti
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeAccessToken(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeAccessToken(
     JNIEnv* env, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -301,7 +301,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeAcce
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeRefreshToken(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeRefreshToken(
     JNIEnv* env, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -312,7 +312,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeRefr
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeTokenType(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeTokenType(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -321,7 +321,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeTakeToke
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     JNIEnv* env,
     jobject,
     jstring title,
@@ -387,7 +387,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeClear(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeClear(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -396,7 +396,7 @@ Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeClear(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_luc4n3x_derbis_feature_discord_DerbisDiscordRichPresence_nativeRelease(
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeRelease(
     JNIEnv*, jobject
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);

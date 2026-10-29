@@ -17,7 +17,7 @@ dependencyResolutionManagement {
 
 includeBuild("../third_party/DerbisExtractor") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:DerbisExtractor")).using(project(":"))
+        substitute(module("com.github.YASUDA:DerbisExtractor")).using(project(":"))
     }
 }
 

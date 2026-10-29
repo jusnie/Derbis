@@ -178,7 +178,7 @@ val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
     ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_203)
 
 android {
-    namespace = "com.luc4n3x.derbis"
+    namespace = "com.yasuda.derbis"
     compileSdk = 37
 
     defaultConfig {

@@ -24,13 +24,13 @@ dependencyResolutionManagement {
 
 includeBuild("third_party/DerbisExtractor") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:DerbisExtractor")).using(project(":"))
+        substitute(module("com.github.YASUDA:DerbisExtractor")).using(project(":"))
     }
 }
 
 includeBuild("third_party/DerbisNexus") {
     dependencySubstitution {
-        substitute(module("com.github.LUC4N3X:DerbisNexus")).using(project(":"))
+        substitute(module("com.github.YASUDA:DerbisNexus")).using(project(":"))
     }
 }
 

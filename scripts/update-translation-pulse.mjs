@@ -5,7 +5,7 @@ const RESOURCE_ROOT = 'app/src/main/res'
 const BASE_STRINGS = join(RESOURCE_ROOT, 'values', 'strings.xml')
 const LOCALE_CONFIG = join(RESOURCE_ROOT, 'xml', 'locales_config.xml')
 const ASSET_DIR = 'docs/assets'
-const STRING_CATALOG_DIR = 'app/src/main/java/com/luc4n3x/derbis/ui/i18n'
+const STRING_CATALOG_DIR = 'app/src/main/java/com/yasuda/derbis/ui/i18n'
 
 const escapeXml = value => String(value)
   .replaceAll('&', '&amp;')

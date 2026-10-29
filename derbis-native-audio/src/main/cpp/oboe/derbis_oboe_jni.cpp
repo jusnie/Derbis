@@ -24,7 +24,7 @@ constexpr jint kErrorClosed = static_cast<jint>(oboe::Result::ErrorClosed);
 
 #define OBOE_NATIVE_FUNC(RETURN_TYPE, NAME, ...) \
     extern "C" JNIEXPORT RETURN_TYPE JNICALL     \
-    Java_com_luc4n3x_derbis_nativeaudio_OboeNative_##NAME([[maybe_unused]] JNIEnv *env, [[maybe_unused]] jclass clazz, ##__VA_ARGS__)
+    Java_com_yasuda_derbis_nativeaudio_OboeNative_##NAME([[maybe_unused]] JNIEnv *env, [[maybe_unused]] jclass clazz, ##__VA_ARGS__)
 
 OBOE_NATIVE_FUNC(jlong, nativeOpen, jint sampleRate, jint channelCount, jint sessionId, jint deviceId,
                  jint ringCapacityFrames, jint usage, jint contentType, jintArray errorOut) {

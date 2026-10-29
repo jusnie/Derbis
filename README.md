@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/jusnie/Derbis/releases/latest"><img src="https://img.shields.io/github/v/release/jusnie/Derbis?style=for-the-badge&color=white&labelColor=000000" alt="Latest Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-white?style=for-the-badge&labelColor=000000" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-EULA-white?style=for-the-badge&labelColor=000000" alt="License"></a>
   <a href="https://github.com/jusnie/Derbis"><img src="https://img.shields.io/badge/Developer-Yasuda-white?style=for-the-badge&labelColor=000000" alt="Developer"></a>
 </p>
 

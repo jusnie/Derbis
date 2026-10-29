@@ -77,3 +77,44 @@ input[type="range"]::-moz-range-thumb {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+@keyframes rgbShift {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes rgbGlow {
+  0%, 100% {
+    background: radial-gradient(ellipse at center, rgba(255, 0, 100, 0.45) 0%, rgba(0, 200, 255, 0.25) 50%, transparent 70%);
+  }
+  50% {
+    background: radial-gradient(ellipse at center, rgba(0, 255, 150, 0.45) 0%, rgba(180, 0, 255, 0.25) 50%, transparent 70%);
+  }
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rgbShift {
+  animation: rgbShift 6s linear infinite;
+}
+
+.animate-rgbGlow {
+  animation: rgbGlow 3s ease-in-out infinite;
+}
+
+.animate-slideUpFade {
+  animation: slideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

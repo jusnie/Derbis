@@ -25,7 +25,7 @@ class FdroidReviewContractTest(unittest.TestCase):
 
     def test_downloads_fallback_is_rejected(self) -> None:
         relative = (
-            "app/src/main/java/com/luc4n3x/derbis/player/offline/"
+            "app/src/main/java/com/yasuda/derbis/player/offline/"
             "OfflineAudioExporter.kt"
         )
         violations = self.violations_after(
@@ -71,7 +71,7 @@ class FdroidReviewContractTest(unittest.TestCase):
 
     def test_hardcoded_runtime_message_is_rejected(self) -> None:
         relative = (
-            "app/src/main/java/com/luc4n3x/derbis/viewmodel/DerbisViewModel.kt"
+            "app/src/main/java/com/yasuda/derbis/viewmodel/DerbisViewModel.kt"
         )
         violations = self.violations_after(
             relative,
@@ -92,7 +92,7 @@ class FdroidReviewContractTest(unittest.TestCase):
         self.assertTrue(any("network behavior" in item for item in violations))
 
     def test_editorial_artwork_host_contract_cannot_drift_silently(self) -> None:
-        relative = "app/src/main/java/com/luc4n3x/derbis/data/EditorialChartsRepository.kt"
+        relative = "app/src/main/java/com/yasuda/derbis/data/EditorialChartsRepository.kt"
         mutated = self.source(relative).replace(
             'host == "image-cdn-ak.spotifycdn.com"',
             'host == "images.example.invalid"',

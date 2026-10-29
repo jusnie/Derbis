@@ -35,10 +35,10 @@ You may edit only these production areas:
 
 - `third_party/DerbisExtractor/extractor/src/main/**`
 - `third_party/DerbisExtractor/extractor/src/test/**`
-- `app/src/main/java/com/luc4n3x/derbis/data/PlaybackResolver.kt`
-- `app/src/main/java/com/luc4n3x/derbis/data/YoutubeLocalDecoder.kt`
-- `app/src/main/java/com/luc4n3x/derbis/data/network/YoutubeClientIdentityInterceptor.kt`
-- `app/src/test/java/com/luc4n3x/derbis/data/**`
+- `app/src/main/java/com/yasuda/derbis/data/PlaybackResolver.kt`
+- `app/src/main/java/com/yasuda/derbis/data/YoutubeLocalDecoder.kt`
+- `app/src/main/java/com/yasuda/derbis/data/network/YoutubeClientIdentityInterceptor.kt`
+- `app/src/test/java/com/yasuda/derbis/data/**`
 
 Do **not** edit:
 

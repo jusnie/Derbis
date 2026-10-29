@@ -1,0 +1,26 @@
+package com.yasuda.derbis.ui.i18n
+
+import com.yasuda.derbis.domain.DerbisLanguageCatalog
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class WidgetStudioLocalizationTest {
+    @Test
+    fun everySupportedLanguageShipsCompleteWidgetStudioCopy() {
+        val catalogCodes = DerbisLanguageCatalog.languages.map { it.code }.toSet()
+        assertEquals(catalogCodes, widgetStudioLocalizationCodes())
+        assertTrue(widgetStudioIncompleteLocalizationCodes().toString(), widgetStudioIncompleteLocalizationCodes().isEmpty())
+    }
+
+    @Test
+    fun translatedLanguagesDoNotFallBackToEnglish() {
+        val english = DerbisStrings.forCode("en").widgetStudioCopy
+        DerbisStrings.all().filter { it.code != "en" }.forEach { strings ->
+            val copy = strings.widgetStudioCopy
+            assertNotEquals(strings.code, english[WidgetStudioText.Intro], copy[WidgetStudioText.Intro])
+            assertNotEquals(strings.code, english[WidgetStudioText.ProgressRefreshHint], copy[WidgetStudioText.ProgressRefreshHint])
+        }
+    }
+}

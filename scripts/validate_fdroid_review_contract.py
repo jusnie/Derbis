@@ -45,7 +45,7 @@ FDROID_RUNTIME_DEPENDENCIES = {
     "okhttp": "com.squareup.okhttp3:okhttp",
     "okhttp.brotli": "com.squareup.okhttp3:okhttp-brotli",
     "okhttp.dnsoverhttps": "com.squareup.okhttp3:okhttp-dnsoverhttps",
-    "newpipe.extractor": "com.github.LUC4N3X:DerbisExtractor",
+    "newpipe.extractor": "com.github.YASUDA:DerbisExtractor",
     "androidx.room.runtime": "androidx.room:room-runtime",
     "androidx.room.ktx": "androidx.room:room-ktx",
     "androidx.datastore.preferences": "androidx.datastore:datastore-preferences",
@@ -201,7 +201,7 @@ def collect_violations(
             )
 
     prompt_path = (
-        "app/src/main/java/com/luc4n3x/derbis/ui/support/"
+        "app/src/main/java/com/yasuda/derbis/ui/support/"
         "OpenSourceSupportPrompt.kt"
     )
     prompt = read(prompt_path)
@@ -214,7 +214,7 @@ def collect_violations(
     )
 
     announcement_path = (
-        "app/src/main/java/com/luc4n3x/derbis/ui/support/"
+        "app/src/main/java/com/yasuda/derbis/ui/support/"
         "RemoteAnnouncementRepository.kt"
     )
     announcements = read(announcement_path)
@@ -226,7 +226,7 @@ def collect_violations(
         "repository entry points must remain gated for F-Droid",
     )
 
-    preferences_path = "app/src/main/java/com/luc4n3x/derbis/data/DerbisPreferences.kt"
+    preferences_path = "app/src/main/java/com/yasuda/derbis/data/DerbisPreferences.kt"
     preferences = read(preferences_path)
     require(
         preferences_path,
@@ -236,7 +236,7 @@ def collect_violations(
     )
 
     exporter_path = (
-        "app/src/main/java/com/luc4n3x/derbis/player/offline/"
+        "app/src/main/java/com/yasuda/derbis/player/offline/"
         "OfflineAudioExporter.kt"
     )
     exporter = read(exporter_path)
@@ -255,7 +255,7 @@ def collect_violations(
     ):
         require(exporter_path, exporter, required, reason)
 
-    resolver_path = "app/src/main/java/com/luc4n3x/derbis/data/PlaybackResolver.kt"
+    resolver_path = "app/src/main/java/com/yasuda/derbis/data/PlaybackResolver.kt"
     resolver = read(resolver_path)
     require(
         resolver_path,
@@ -271,7 +271,7 @@ def collect_violations(
     )
 
     viewmodel_path = (
-        "app/src/main/java/com/luc4n3x/derbis/viewmodel/DerbisViewModel.kt"
+        "app/src/main/java/com/yasuda/derbis/viewmodel/DerbisViewModel.kt"
     )
     viewmodel = read(viewmodel_path)
     for forbidden in (
@@ -299,7 +299,7 @@ def collect_violations(
             "the reviewed localization path must remain in use",
         )
 
-    editorial_path = "app/src/main/java/com/luc4n3x/derbis/data/EditorialChartsRepository.kt"
+    editorial_path = "app/src/main/java/com/yasuda/derbis/data/EditorialChartsRepository.kt"
     editorial = read(editorial_path)
     for marker in (
         '"https://raw.githubusercontent.com/jusnie/Derbis/editorial-data/catalog/editorial.json"',
@@ -371,12 +371,12 @@ def collect_violations(
             )
 
     required_tests = (
-        "app/src/test/java/com/luc4n3x/derbis/data/DerbisPreferencesDefaultsTest.kt",
-        "app/src/test/java/com/luc4n3x/derbis/data/PlaybackResolverOfflineExportTest.kt",
-        "app/src/test/java/com/luc4n3x/derbis/player/offline/OfflineAudioExporterTest.kt",
-        "app/src/test/java/com/luc4n3x/derbis/player/offline/tagging/DerbisM4aTagWriterTest.kt",
-        "app/src/test/java/com/luc4n3x/derbis/ui/i18n/DerbisStringsTest.kt",
-        "app/src/test/java/com/luc4n3x/derbis/ui/support/RemoteAnnouncementRepositoryTest.kt",
+        "app/src/test/java/com/yasuda/derbis/data/DerbisPreferencesDefaultsTest.kt",
+        "app/src/test/java/com/yasuda/derbis/data/PlaybackResolverOfflineExportTest.kt",
+        "app/src/test/java/com/yasuda/derbis/player/offline/OfflineAudioExporterTest.kt",
+        "app/src/test/java/com/yasuda/derbis/player/offline/tagging/DerbisM4aTagWriterTest.kt",
+        "app/src/test/java/com/yasuda/derbis/ui/i18n/DerbisStringsTest.kt",
+        "app/src/test/java/com/yasuda/derbis/ui/support/RemoteAnnouncementRepositoryTest.kt",
     )
     for required_test in required_tests:
         read(required_test)

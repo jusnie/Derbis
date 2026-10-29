@@ -2,7 +2,7 @@
 param(
     [string]$DeviceId = "",
     [string]$ApkPath = "",
-    [string]$PackageName = "com.luc4n3x.derbis.debug",
+    [string]$PackageName = "com.yasuda.derbis.debug",
     [switch]$SkipBuild,
     [switch]$SkipInstall,
     [switch]$ExercisePlayback,
@@ -17,7 +17,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$mainActivity = "com.luc4n3x.derbis.MainActivity"
+$mainActivity = "com.yasuda.derbis.MainActivity"
 $selectedDevice = ""
 $selectedTransport = ""
 $reportRoot = if ([System.IO.Path]::IsPathRooted($ReportDirectory)) {

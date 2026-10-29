@@ -375,10 +375,10 @@ class DerbisContextOptimizerFiltersTest(unittest.TestCase):
 
     def test_unit_test_failure_preserves_assertions_and_condenses_framework(self) -> None:
         test_output = (
-            "com.luc4n3x.derbis.domain.PlaybackSpeedTest > speedClamping FAILED\n"
+            "com.yasuda.derbis.domain.PlaybackSpeedTest > speedClamping FAILED\n"
             "    java.lang.AssertionError: expected:<2.0> but was:<3.5>\n"
             "        at org.junit.Assert.fail(Assert.java:89)\n"
-            "        at com.luc4n3x.derbis.domain.PlaybackSpeedTest.speedClamping(PlaybackSpeedTest.kt:34)\n"
+            "        at com.yasuda.derbis.domain.PlaybackSpeedTest.speedClamping(PlaybackSpeedTest.kt:34)\n"
             "        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n"
             "        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)\n"
             "        at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)\n"
@@ -386,7 +386,7 @@ class DerbisContextOptimizerFiltersTest(unittest.TestCase):
         optimized = optimize_unit_test_output(test_output)
         self.assertIn("speedClamping FAILED", optimized)
         self.assertIn("java.lang.AssertionError: expected:<2.0> but was:<3.5>", optimized)
-        self.assertIn("com.luc4n3x.derbis.domain.PlaybackSpeedTest.speedClamping", optimized)
+        self.assertIn("com.yasuda.derbis.domain.PlaybackSpeedTest.speedClamping", optimized)
         self.assertIn("framework reflection frames omitted", optimized)
         self.assertNotIn("NativeMethodAccessorImpl", optimized)
 
@@ -427,18 +427,18 @@ class DerbisContextOptimizerFiltersTest(unittest.TestCase):
     def test_stack_trace_preserves_root_causes(self) -> None:
         trace = (
             "AppException: top failure\n"
-            "	at com.luc4n3x.derbis.MainActivity.onCreate(MainActivity.kt:15)\n"
+            "	at com.yasuda.derbis.MainActivity.onCreate(MainActivity.kt:15)\n"
             "	at android.app.Activity.performCreate(Activity.java:8000)\n"
             "	at android.app.Instrumentation.callActivityOnCreate(Instrumentation.java:1300)\n"
             "	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:3400)\n"
             "Caused by: RootException: actual cause\n"
-            "	at com.luc4n3x.derbis.Engine.init(Engine.kt:40)\n"
+            "	at com.yasuda.derbis.Engine.init(Engine.kt:40)\n"
         )
         optimized = optimize_stack_trace_output(trace)
         self.assertIn("AppException: top failure", optimized)
-        self.assertIn("com.luc4n3x.derbis.MainActivity.onCreate", optimized)
+        self.assertIn("com.yasuda.derbis.MainActivity.onCreate", optimized)
         self.assertIn("Caused by: RootException: actual cause", optimized)
-        self.assertIn("com.luc4n3x.derbis.Engine.init", optimized)
+        self.assertIn("com.yasuda.derbis.Engine.init", optimized)
 
     def test_unavailable_cache_always_preserves_entire_output(self) -> None:
         raw = "BUILD SUCCESSFUL\n" + (

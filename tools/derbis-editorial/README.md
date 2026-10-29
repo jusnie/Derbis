@@ -18,10 +18,9 @@ This repository-owned Python tool reads configured public country rankings with 
   PaxSenix-compatible request profile using the same short-lived access token derived inside the
   collector; Derbis does not call a third-party PaxSenix service or forward the `sp_dc` cookie.
 
-The implementation is original Derbis code. SimpMusic was used only as a behavioral reference for
-the current `sp_dc` plus TOTP session exchange and Canvas protocol shape; no SimpMusic source code
-was copied. [PaxSenix Spotify Canvas API](https://github.com/Paxsenix0/Spotify-Canvas-API) was used
-as the behavioral reference for the fallback request profile.
+The implementation is original Derbis code. The current `sp_dc` plus TOTP session exchange and
+Canvas protocol handling are maintained by Derbis. [PaxSenix Spotify Canvas API](https://github.com/Paxsenix0/Spotify-Canvas-API)
+was used as the behavioral reference for the fallback request profile.
 
 ## Repository secret
 
@@ -51,8 +50,8 @@ or expired Spotify session preserves the last published files.
 Public URL:
 
 ```text
-https://raw.githubusercontent.com/LUC4N3X/Derbis-deepsound/editorial-data/catalog/editorial.json
-https://raw.githubusercontent.com/LUC4N3X/Derbis-deepsound/editorial-data/catalog/spotify-canvas.json
+https://raw.githubusercontent.com/YASUDA/Derbis-deepsound/editorial-data/catalog/editorial.json
+https://raw.githubusercontent.com/YASUDA/Derbis-deepsound/editorial-data/catalog/spotify-canvas.json
 ```
 
 Android uses a process-wide repository, a separate bounded HTTP cache, an `AtomicFile` disk snapshot, a 30-minute refresh target and a 48-hour maximum catalog age. Network refresh runs independently and never consumes the existing YouTube chart latency budget.
