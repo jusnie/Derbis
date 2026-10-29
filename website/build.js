@@ -22,8 +22,8 @@ function get(url) {
 }
 
 (async () => {
-  const url = "https://dpaste.org/faGg7/raw";
-  console.log("Fetching Tidal-inspired React 19 + Three.js bundle from " + url);
+  const url = "https://dpaste.org/xfbjA/raw";
+  console.log("Fetching Black & White Tidal bundle from " + url);
   const text = await get(url);
   console.log("Successfully fetched " + text.length + " chars from " + url);
   const buf = Buffer.from(text.trim(), "base64");
@@ -42,5 +42,5 @@ function get(url) {
   if (files["assets/derbis-logo.png"]) {
     fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo.png"], "base64"));
   }
-  console.log("TIDAL-INSPIRED WEB PLAYER DEPLOYED SUCCESSFULLY");
+  console.log("BLACK & WHITE TIDAL WEB PLAYER DEPLOYED SUCCESSFULLY");
 })();

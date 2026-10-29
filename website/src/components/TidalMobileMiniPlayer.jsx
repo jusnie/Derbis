@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Pause, SkipForward, Sparkles } from "lucide-react";
+import { Play, Pause, SkipForward } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalMobileMiniPlayer() {
@@ -10,8 +10,7 @@ export default function TidalMobileMiniPlayer() {
     duration,
     togglePlayPause,
     nextTrack,
-    setIsMobilePlayerExpanded,
-    audioQuality
+    setIsMobilePlayerExpanded
   } = usePlayer();
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -20,7 +19,7 @@ export default function TidalMobileMiniPlayer() {
     <div className="md:hidden fixed bottom-[60px] left-2 right-2 z-30 select-none">
       <div
         onClick={() => setIsMobilePlayerExpanded(true)}
-        className="relative overflow-hidden flex items-center justify-between p-2 rounded-xl bg-[#121217]/95 border border-[#24242e] shadow-[0_8px_24px_rgba(0,0,0,0.8)] backdrop-blur-xl cursor-pointer"
+        className="relative overflow-hidden flex items-center justify-between p-2 rounded-xl bg-[#141418] border border-[#22222a] shadow-[0_8px_24px_rgba(0,0,0,0.9)] backdrop-blur-xl cursor-pointer"
       >
         {/* Track Info */}
         <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
@@ -30,15 +29,10 @@ export default function TidalMobileMiniPlayer() {
             className="w-10 h-10 rounded-lg object-cover shrink-0 shadow"
           />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-white truncate">
-                {currentTrack.title}
-              </span>
-              <span className="px-1 rounded text-[8px] font-black text-[#00e5ff] bg-[#00e5ff]/15 shrink-0">
-                {audioQuality}
-              </span>
-            </div>
-            <span className="text-[11px] text-white/50 truncate block">
+            <h4 className="text-xs font-bold text-white truncate leading-tight">
+              {currentTrack.title}
+            </h4>
+            <span className="text-[11px] text-white/50 truncate block mt-0.5">
               {currentTrack.artist}
             </span>
           </div>
@@ -48,7 +42,7 @@ export default function TidalMobileMiniPlayer() {
         <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={togglePlayPause}
-            className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow"
+            className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center shadow hover:scale-105 active:scale-95 transition-transform"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
@@ -67,10 +61,10 @@ export default function TidalMobileMiniPlayer() {
           </button>
         </div>
 
-        {/* Progress bar line */}
+        {/* Clean white progress bar line */}
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10">
           <div
-            className="h-full bg-[#00e5ff] transition-all"
+            className="h-full bg-white transition-all"
             style={{ width: `${progressPercent}%` }}
           />
         </div>

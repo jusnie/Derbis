@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { PlayerProvider, usePlayer } from "./context/PlayerContext";
 import TidalSidebar from "./components/TidalSidebar";
 import TidalTopbar from "./components/TidalTopbar";
-import TidalHero from "./components/TidalHero";
+import TidalHomeHeader from "./components/TidalHomeHeader";
+import TidalTheHits from "./components/TidalTheHits";
+import TidalPopularAlbums from "./components/TidalPopularAlbums";
 import TidalTrackList from "./components/TidalTrackList";
-import TidalExploreGrid from "./components/TidalExploreGrid";
 import TidalVideos from "./components/TidalVideos";
 import LibraryView from "./components/LibraryView";
 import TidalPlayerBar from "./components/TidalPlayerBar";
@@ -30,15 +31,9 @@ function MainShell() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen bg-[#000000] text-white flex flex-col font-sans selection:bg-[#00e5ff] selection:text-black">
+    <div className="relative min-h-screen bg-[#000000] text-white flex flex-col font-sans selection:bg-white selection:text-black">
       
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-32 right-1/4 w-[500px] h-[500px] bg-[#00e5ff]/5 rounded-full blur-[140px]" />
-        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-blue-900/5 rounded-full blur-[140px]" />
-      </div>
-
-      {/* Persistent Audio Engine Container (Song mode = offscreen, Video mode = floating theater PiP) */}
+      {/* Persistent Audio Engine (Song mode = offscreen, Video mode = floating PiP) */}
       <div
         className={`transition-all duration-300 ${
           playbackMode === "video"
@@ -77,25 +72,28 @@ function MainShell() {
         <TidalTopbar
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenAuth={() => setIsSettingsOpen(true)}
         />
 
         {/* Dynamic Page Views */}
-        <main className="flex-1 px-4 sm:px-8 py-5 max-w-[1500px] w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-8 py-3 sm:py-5 max-w-[1500px] w-full mx-auto">
           {searchQuery.trim() ? (
             <SearchResults />
           ) : (
             <>
               {activeTab === "home" && (
                 <>
-                  <TidalHero />
+                  <TidalHomeHeader onOpenAuth={() => setIsSettingsOpen(true)} />
+                  <TidalTheHits />
+                  <TidalPopularAlbums />
                   <TidalTrackList />
-                  <TidalExploreGrid />
                 </>
               )}
 
               {activeTab === "explore" && (
                 <div className="py-2">
-                  <TidalExploreGrid />
+                  <TidalTheHits />
+                  <TidalPopularAlbums />
                 </div>
               )}
 
@@ -117,8 +115,8 @@ function MainShell() {
       {/* Mobile Floating Mini Player (Fixed above bottom nav on mobile) */}
       <TidalMobileMiniPlayer />
 
-      {/* Mobile Bottom Navigation Bar (4 tabs on mobile) */}
-      <TidalMobileNav />
+      {/* Mobile Bottom Navigation Bar (5 icons matching screenshot) */}
+      <TidalMobileNav onOpenAuth={() => setIsSettingsOpen(true)} />
 
       {/* Mobile Full-Screen Now Playing View (Tidal style bottom sheet) */}
       <TidalFullScreenPlayer />

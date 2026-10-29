@@ -1,9 +1,9 @@
 import React, { useRef } from "react";
-import { Search, ChevronLeft, ChevronRight, Menu, Download, Settings, Sparkles } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Menu, Download, Settings } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 
-export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings }) {
-  const { searchQuery, setSearchQuery, audioQuality } = usePlayer();
+export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpenAuth }) {
+  const { searchQuery, setSearchQuery } = usePlayer();
   const inputRef = useRef(null);
 
   return (
@@ -18,19 +18,8 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings }) {
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Mobile Brand */}
-        <div className="flex items-center gap-2 md:hidden">
-          <div className="grid grid-cols-2 gap-0.5 w-4 h-4 rotate-45 transform">
-            <div className="w-1.5 h-1.5 bg-[#00e5ff] rounded-[0.5px]" />
-            <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
-            <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
-            <div className="w-1.5 h-1.5 bg-[#00e5ff] rounded-[0.5px]" />
-          </div>
-          <span className="text-xs font-black tracking-widest text-white">DERBIS</span>
-        </div>
-
         {/* Desktop History chevrons */}
-        <div className="hidden md:flex items-center gap-1 text-white/50">
+        <div className="hidden md:flex items-center gap-1 text-white/40">
           <button
             onClick={() => window.history.back()}
             className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
@@ -50,7 +39,7 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings }) {
 
       {/* Center: Tidal-style Clean Pill Search Bar */}
       <div className="flex-1 max-w-md mx-2">
-        <label className="relative flex items-center w-full h-9 px-3 rounded-full bg-[#141418] hover:bg-[#1a1a20] focus-within:bg-[#202028] border border-transparent focus-within:border-white/20 transition-all cursor-text">
+        <label className="relative flex items-center w-full h-9 px-3.5 rounded-full bg-[#121217] hover:bg-[#181820] focus-within:bg-[#1e1e26] border border-transparent focus-within:border-white/20 transition-all cursor-text">
           <Search className="w-3.5 h-3.5 text-white/40 mr-2 shrink-0" />
           <input
             ref={inputRef}
@@ -71,26 +60,14 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings }) {
         </label>
       </div>
 
-      {/* Right: Tidal Audio Quality Badge, APK link & Settings */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Tidal Audio Quality Badge */}
-        <div
-          title="Streaming in Hi-Res Lossless Audio (24-bit, 96 kHz)"
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#00e5ff]/10 border border-[#00e5ff]/30 text-[#00e5ff] text-[10px] font-black tracking-widest uppercase select-none"
+      {/* Right: "Log in / Create a free account" pill matching Screenshot */}
+      <div className="flex items-center gap-3 shrink-0">
+        <button
+          onClick={onOpenAuth}
+          className="hidden sm:inline-flex items-center h-8 px-4 rounded-full bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shadow"
         >
-          <Sparkles className="w-3 h-3" />
-          <span>{audioQuality}</span>
-        </div>
-
-        {/* Direct APK Link */}
-        <a
-          href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-          download
-          className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/10 transition-all"
-        >
-          <Download className="w-3 h-3 text-[#00e5ff]" />
-          <span>Get App</span>
-        </a>
+          Log in / Create a free account
+        </button>
 
         {/* Settings */}
         <button
@@ -104,7 +81,7 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings }) {
         {/* User Avatar */}
         <button
           onClick={onOpenSettings}
-          className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-black font-black text-xs hover:scale-105 transition-transform"
+          className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-black text-xs hover:scale-105 transition-transform"
         >
           Y
         </button>
