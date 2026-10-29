@@ -22,8 +22,8 @@ function get(url) {
 }
 
 (async () => {
-  const url = "https://dpaste.org/y8knX/raw";
-  console.log("Fetching React 19 + Three.js bundle from " + url);
+  const url = "https://dpaste.org/HShTu/raw";
+  console.log("Fetching enhanced React 19 + Three.js bundle from " + url);
   const text = await get(url);
   console.log("Successfully fetched " + text.length + " chars from " + url);
   const buf = Buffer.from(text.trim(), "base64");
@@ -39,8 +39,8 @@ function get(url) {
     }
     console.log(`Extracted ${relPath} (${content.length} bytes)`);
   }
-  if (files["assets/derbis-logo-CogOKgS-.png"]) {
-    fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo-CogOKgS-.png"], "base64"));
+  if (files["assets/derbis-logo.png"]) {
+    fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo.png"], "base64"));
   }
-  console.log("REACT 19 + THREE.JS + TAILWIND BUILD SUCCESSFULLY DEPLOYED");
+  console.log("DERBIS WEB PLAYER ENHANCED SUCCESSFULLY");
 })();
