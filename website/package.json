@@ -1,12 +1,30 @@
 {
-  "name": "derbis-web-companion",
+  "name": "derbis-web",
   "private": true,
-  "version": "1.1.0",
-  "description": "Dependency-free static Derbis web companion",
+  "version": "1.2.0",
+  "type": "module",
+  "description": "Award-winning Derbis Web Music Player built with React 19, Three.js, Vite & Tailwind CSS",
   "scripts": {
-    "build": "node -e \"console.log('Derbis static site: no bundle required')\""
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.63.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^3.4.17",
+    "vite": "^8.3.5"
   }
 }

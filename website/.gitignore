@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.static.*
+assets/index-*
+assets/derbis-logo-*
