@@ -3,6 +3,7 @@ import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalHomeHeader({ onOpenAuth }) {
   const [activeSubTab, setActiveSubTab] = useState("for_you");
+  const { userProfile } = usePlayer();
 
   return (
     <div className="select-none pt-2 pb-4">
@@ -20,13 +21,25 @@ export default function TidalHomeHeader({ onOpenAuth }) {
           </span>
         </div>
 
-        {/* Log in / Create a free account pill on Right */}
-        <button
-          onClick={onOpenAuth}
-          className="h-8 px-4 rounded-full bg-white text-black text-xs font-bold tracking-tight hover:bg-white/90 active:scale-95 transition-all shadow"
-        >
-          Log in / Create a free account
-        </button>
+        {/* Log in / Profile pill on Right */}
+        {userProfile?.connected ? (
+          <button
+            onClick={onOpenAuth}
+            className="h-8 pl-1.5 pr-3 rounded-full bg-[#181820] border border-white/10 text-white text-xs font-bold flex items-center gap-1.5 shadow"
+          >
+            {userProfile.avatar && (
+              <img src={userProfile.avatar} alt="Avatar" className="w-5 h-5 rounded-full object-cover" />
+            )}
+            <span className="truncate max-w-[80px]">{userProfile.name?.split(" ")[0]}</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAuth}
+            className="h-8 px-4 rounded-full bg-white text-black text-xs font-bold tracking-tight hover:bg-white/90 active:scale-95 transition-all shadow"
+          >
+            Log in / Create a free account
+          </button>
+        )}
       </div>
 
       {/* Large Bold "Home" Title */}

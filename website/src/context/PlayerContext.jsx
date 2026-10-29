@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { QUICK_PICKS_TRACKS, EXPLORE_CATEGORIES, GENRE_SEEDS } from "../data/catalog";
+import { fetchYouTubeUserData, fetchPlaylistTracks, extractPlaylistId } from "../services/youtubeAuth";
 
 const PlayerContext = createContext(null);
 
@@ -30,15 +31,38 @@ export function PlayerProvider({ children }) {
   const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState("off"); // 'off' | 'all' | 'one'
-  const [visualizerMode, setVisualizerMode] = useState("aura"); // 'aura' | 'vinyl' | 'waves' | 'off'
+  const [visualizerMode, setVisualizerMode] = useState("off");
   
   // Navigation / Search state
   const [activeTab, setActiveTab] = useState("home"); // 'home' | 'explore' | 'videos' | 'collection'
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState(null);
 
-  // Audio frequency simulation for Three.js visualizer
+  // Audio frequency simulation
   const [audioFrequencies, setAudioFrequencies] = useState(() => new Float32Array(64));
+
+  // YouTube / Google OAuth state
+  const [userProfile, setUserProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem("derbis_user_profile");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [youtubeData, setYoutubeData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("derbis_youtube_data");
+      return saved ? JSON.parse(saved) : { likedTracks: [], playlists: [], subscriptions: [] };
+    } catch {
+      return { likedTracks: [], playlists: [], subscriptions: [] };
+    }
+  });
+
+  const [isSyncingYouTube, setIsSyncingYouTube] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+  const [activeToken, setActiveToken] = useState(null);
 
   // YouTube player references
   const ytPlayerRef = useRef(null);
@@ -76,7 +100,7 @@ export function PlayerProvider({ children }) {
     ytPlayerRef.current = new window.YT.Player("yt-audio-engine", {
       height: "100%",
       width: "100%",
-      videoId: currentTrack?.videoId || "g5qU7p7yOY8",
+      videoId: currentTrack?.videoId || "gNi_6U5Pm_o",
       playerVars: {
         autoplay: 0,
         controls: 0,
@@ -109,7 +133,7 @@ export function PlayerProvider({ children }) {
     });
   }, [currentTrack, volume]);
 
-  // Track progress ticker & audio frequencies
+  // Track progress ticker
   useEffect(() => {
     if (isPlaying) {
       timerRef.current = setInterval(() => {
@@ -174,7 +198,7 @@ export function PlayerProvider({ children }) {
     setIsPlaying(true);
 
     if (newQueue && Array.isArray(newQueue)) {
-      setQueue(newQueue.filter(t => t.id !== track.id));
+      setQueue(newQueue.filter(t => (t.videoId || t.id) !== (track.videoId || track.id)));
     }
 
     if (ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
@@ -296,6 +320,112 @@ export function PlayerProvider({ children }) {
     setQueue([]);
   }, []);
 
+  // Connect Google / YouTube OAuth
+  const connectGoogleYouTube = useCallback(() => {
+    const config = window.DERBIS_WEB_CONFIG || {};
+    const clientId = config.googleOAuthClientId || "584141503005-h3lamjrir2ehbpjl3pruojg52u0hvu2j.apps.googleusercontent.com";
+
+    if (!window.google?.accounts?.oauth2) {
+      setSyncError("Google Sign-In is still loading. Please check your internet connection and try again.");
+      return;
+    }
+
+    try {
+      setIsSyncingYouTube(true);
+      setSyncError(null);
+
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: "openid email profile https://www.googleapis.com/auth/youtube.readonly",
+        callback: async (tokenResponse) => {
+          if (tokenResponse.error) {
+            setIsSyncingYouTube(false);
+            setSyncError("Google sign-in was canceled or not authorized.");
+            return;
+          }
+
+          try {
+            const token = tokenResponse.access_token;
+            setActiveToken(token);
+            const data = await fetchYouTubeUserData(token);
+
+            setUserProfile(data.profile);
+            setYoutubeData({
+              likedTracks: data.likedTracks,
+              playlists: data.playlists,
+              subscriptions: data.subscriptions
+            });
+
+            localStorage.setItem("derbis_user_profile", JSON.stringify(data.profile));
+            localStorage.setItem("derbis_youtube_data", JSON.stringify({
+              likedTracks: data.likedTracks,
+              playlists: data.playlists,
+              subscriptions: data.subscriptions
+            }));
+
+            setIsSyncingYouTube(false);
+          } catch (err) {
+            console.error("YouTube sync error:", err);
+            setIsSyncingYouTube(false);
+            setSyncError("Connected, but could not load YouTube data. Check Google Cloud permissions.");
+          }
+        }
+      });
+
+      client.requestAccessToken({ prompt: "select_account" });
+    } catch (err) {
+      console.error("Failed to start Google OAuth:", err);
+      setIsSyncingYouTube(false);
+      setSyncError("Google Sign-In initialization failed.");
+    }
+  }, []);
+
+  // Disconnect Google / YouTube
+  const disconnectGoogleYouTube = useCallback(() => {
+    setUserProfile(null);
+    setYoutubeData({ likedTracks: [], playlists: [], subscriptions: [] });
+    setActiveToken(null);
+    localStorage.removeItem("derbis_user_profile");
+    localStorage.removeItem("derbis_youtube_data");
+  }, []);
+
+  // Manual import public YouTube playlist
+  const importYouTubePlaylist = useCallback(async (urlOrId) => {
+    const playlistId = extractPlaylistId(urlOrId);
+    if (!playlistId) throw new Error("Invalid playlist URL or ID. Look for a link containing 'list=PL...'");
+
+    setIsSyncingYouTube(true);
+    setSyncError(null);
+    try {
+      const config = window.DERBIS_WEB_CONFIG || {};
+      const tracks = await fetchPlaylistTracks(playlistId, config.youtubeDataApiKey, activeToken);
+      
+      const newPlaylist = {
+        id: playlistId,
+        title: `Imported Playlist (${tracks.length} songs)`,
+        itemCount: tracks.length,
+        thumbnail: tracks[0]?.thumbnail || "",
+        tracks
+      };
+
+      setYoutubeData(prev => {
+        const updated = {
+          ...prev,
+          playlists: [newPlaylist, ...prev.playlists.filter(p => p.id !== playlistId)]
+        };
+        localStorage.setItem("derbis_youtube_data", JSON.stringify(updated));
+        return updated;
+      });
+
+      setIsSyncingYouTube(false);
+      return newPlaylist;
+    } catch (err) {
+      setIsSyncingYouTube(false);
+      setSyncError(err.message || "Could not load playlist");
+      throw err;
+    }
+  }, [activeToken]);
+
   const value = {
     currentTrack,
     isPlaying,
@@ -341,7 +471,16 @@ export function PlayerProvider({ children }) {
     addToQueue,
     removeFromQueue,
     reorderQueue,
-    clearQueue
+    clearQueue,
+
+    // YouTube Sync & Auth
+    userProfile,
+    youtubeData,
+    isSyncingYouTube,
+    syncError,
+    connectGoogleYouTube,
+    disconnectGoogleYouTube,
+    importYouTubePlaylist
   };
 
   return (

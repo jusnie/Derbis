@@ -1,9 +1,9 @@
 import React, { useRef } from "react";
-import { Search, ChevronLeft, ChevronRight, Menu, Download, Settings } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Menu, Settings } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpenAuth }) {
-  const { searchQuery, setSearchQuery } = usePlayer();
+  const { searchQuery, setSearchQuery, userProfile } = usePlayer();
   const inputRef = useRef(null);
 
   return (
@@ -37,7 +37,7 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpen
         </div>
       </div>
 
-      {/* Center: Tidal-style Clean Pill Search Bar */}
+      {/* Center: Derbis Clean Pill Search Bar */}
       <div className="flex-1 max-w-md mx-2">
         <label className="relative flex items-center w-full h-9 px-3.5 rounded-full bg-[#121217] hover:bg-[#181820] focus-within:bg-[#1e1e26] border border-transparent focus-within:border-white/20 transition-all cursor-text">
           <Search className="w-3.5 h-3.5 text-white/40 mr-2 shrink-0" />
@@ -60,14 +60,34 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpen
         </label>
       </div>
 
-      {/* Right: "Log in / Create a free account" pill matching Screenshot */}
-      <div className="flex items-center gap-3 shrink-0">
-        <button
-          onClick={onOpenAuth}
-          className="hidden sm:inline-flex items-center h-8 px-4 rounded-full bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shadow"
-        >
-          Log in / Create a free account
-        </button>
+      {/* Right: Auth / Profile Button */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        {userProfile?.connected ? (
+          <button
+            onClick={onOpenAuth}
+            className="hidden sm:inline-flex items-center gap-2 h-8 pl-1.5 pr-3 rounded-full bg-[#181820] border border-white/10 text-white text-xs font-bold hover:bg-[#202028] transition-all"
+          >
+            {userProfile.avatar ? (
+              <img
+                src={userProfile.avatar}
+                alt={userProfile.name}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center text-[10px] font-black">
+                {userProfile.name?.charAt(0) || "U"}
+              </div>
+            )}
+            <span className="truncate max-w-[100px]">{userProfile.name?.split(" ")[0]}</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAuth}
+            className="hidden sm:inline-flex items-center h-8 px-4 rounded-full bg-white text-black text-xs font-bold hover:bg-white/90 active:scale-95 transition-all shadow"
+          >
+            Log in / Create a free account
+          </button>
+        )}
 
         {/* Settings */}
         <button
@@ -78,12 +98,16 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpen
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* User Avatar */}
+        {/* User Avatar Circle */}
         <button
           onClick={onOpenSettings}
-          className="w-7 h-7 rounded-full bg-white text-black flex items-center justify-center font-black text-xs hover:scale-105 transition-transform"
+          className="w-7 h-7 rounded-full overflow-hidden bg-white text-black flex items-center justify-center font-black text-xs hover:scale-105 transition-transform"
         >
-          Y
+          {userProfile?.avatar ? (
+            <img src={userProfile.avatar} alt="User" className="w-full h-full object-cover" />
+          ) : (
+            <span>{userProfile?.name?.charAt(0) || "Y"}</span>
+          )}
         </button>
       </div>
     </header>
