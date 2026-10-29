@@ -11,6 +11,9 @@ export function PlayerProvider({ children }) {
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   
+  // Audio quality badge ('MAX', 'HI-FI', 'HIGH')
+  const [audioQuality, setAudioQuality] = useState("MAX");
+  
   // 'song' (artwork & 3D visualizer) vs 'video' (YouTube embedded visual)
   const [playbackMode, setPlaybackMode] = useState("song");
   
@@ -18,29 +21,27 @@ export function PlayerProvider({ children }) {
   const [endlessListening, setEndlessListening] = useState(true);
   
   // Up Next Queue
-  const [queue, setQueue] = useState(QUICK_PICKS_TRACKS.slice(1, 10));
+  const [queue, setQueue] = useState(QUICK_PICKS_TRACKS.slice(1, 12));
   const [history, setHistory] = useState([]);
   
   // UI states
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState("off"); // 'off' | 'all' | 'one'
   const [visualizerMode, setVisualizerMode] = useState("aura"); // 'aura' | 'vinyl' | 'waves' | 'off'
   
   // Navigation / Search state
-  const [activeTab, setActiveTab] = useState("home"); // 'home' | 'explore' | 'library' | 'radio'
+  const [activeTab, setActiveTab] = useState("home"); // 'home' | 'explore' | 'videos' | 'collection'
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   // Audio frequency simulation for Three.js visualizer
   const [audioFrequencies, setAudioFrequencies] = useState(() => new Float32Array(64));
 
   // YouTube player references
   const ytPlayerRef = useRef(null);
-  const playerContainerRef = useRef(null);
   const isApiReadyRef = useRef(false);
   const timerRef = useRef(null);
   const animFrameRef = useRef(null);
@@ -101,15 +102,14 @@ export function PlayerProvider({ children }) {
             handleTrackEnded();
           }
         },
-        onError: (err) => {
-          console.warn("YouTube player warning, advancing to next recommendation:", err);
+        onError: () => {
           handleTrackEnded();
         }
       }
     });
   }, [currentTrack, volume]);
 
-  // Track progress ticker & simulated frequency generation for 3D visualizer
+  // Track progress ticker & audio frequencies
   useEffect(() => {
     if (isPlaying) {
       timerRef.current = setInterval(() => {
@@ -121,9 +121,8 @@ export function PlayerProvider({ children }) {
             if (d && !isNaN(d) && d > 0) setDuration(d);
           } catch (e) {}
         }
-      }, 500);
+      }, 400);
 
-      // Animation loop for audio visualizer frequency data
       let phase = 0;
       const updateFrequencies = () => {
         phase += 0.08;
@@ -141,7 +140,6 @@ export function PlayerProvider({ children }) {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      // Calm decay for frequencies
       setAudioFrequencies(new Float32Array(64).fill(0.15));
     }
 
@@ -151,7 +149,7 @@ export function PlayerProvider({ children }) {
     };
   }, [isPlaying]);
 
-  // Volume synchronization
+  // Volume
   useEffect(() => {
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) {
       try {
@@ -165,7 +163,7 @@ export function PlayerProvider({ children }) {
     }
   }, [volume, isMuted]);
 
-  // Play a specific track
+  // Play track
   const playTrack = useCallback((track, newQueue = null) => {
     if (!track) return;
     if (currentTrack?.videoId) {
@@ -186,7 +184,7 @@ export function PlayerProvider({ children }) {
           startSeconds: 0
         });
       } catch (e) {
-        console.error("Failed to load video in YT player:", e);
+        console.error("Failed to load track:", e);
       }
     }
   }, [currentTrack]);
@@ -217,7 +215,7 @@ export function PlayerProvider({ children }) {
     }
   }, []);
 
-  // Handle Track End (Endless Listening logic)
+  // Track Ended / Continuous Radio
   const handleTrackEnded = useCallback(() => {
     if (repeatMode === "one") {
       seekTo(0);
@@ -235,16 +233,13 @@ export function PlayerProvider({ children }) {
       return;
     }
 
-    // Endless listening Continuous Radio fallback
     if (endlessListening) {
-      // Pick track from same genre or random quick pick not in history
       const genre = currentTrack?.genre || "pop";
       const candidateList = GENRE_SEEDS[genre] || QUICK_PICKS_TRACKS;
       const available = candidateList.filter(t => t.id !== currentTrack.id);
       const next = available[Math.floor(Math.random() * available.length)] || QUICK_PICKS_TRACKS[0];
       
-      // Auto queue 3 more continuous radio tracks
-      const moreRadioTracks = QUICK_PICKS_TRACKS.filter(t => t.id !== next.id && t.id !== currentTrack.id).slice(0, 4);
+      const moreRadioTracks = QUICK_PICKS_TRACKS.filter(t => t.id !== next.id && t.id !== currentTrack.id).slice(0, 5);
       setQueue(moreRadioTracks);
       playTrack(next);
     } else {
@@ -280,13 +275,8 @@ export function PlayerProvider({ children }) {
     }
   }, [currentTime, history, currentTrack, playTrack, seekTo]);
 
-  // Queue Operations
   const addToQueue = useCallback((track) => {
     setQueue(prev => [...prev, track]);
-  }, []);
-
-  const playNext = useCallback((track) => {
-    setQueue(prev => [track, ...prev]);
   }, []);
 
   const removeFromQueue = useCallback((index) => {
@@ -315,6 +305,8 @@ export function PlayerProvider({ children }) {
     setVolume,
     isMuted,
     setIsMuted,
+    audioQuality,
+    setAudioQuality,
     playbackMode,
     setPlaybackMode,
     endlessListening,
@@ -332,16 +324,14 @@ export function PlayerProvider({ children }) {
     setIsQueueOpen,
     isLyricsOpen,
     setIsLyricsOpen,
+    isMobilePlayerExpanded,
+    setIsMobilePlayerExpanded,
     activeTab,
     setActiveTab,
     searchQuery,
     setSearchQuery,
     selectedGenre,
     setSelectedGenre,
-    searchResults,
-    setSearchResults,
-    isSearching,
-    setIsSearching,
     audioFrequencies,
     playTrack,
     togglePlayPause,
@@ -349,11 +339,9 @@ export function PlayerProvider({ children }) {
     nextTrack,
     previousTrack,
     addToQueue,
-    playNext,
     removeFromQueue,
     reorderQueue,
-    clearQueue,
-    playerContainerRef
+    clearQueue
   };
 
   return (

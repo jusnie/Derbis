@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { PlayerProvider, usePlayer } from "./context/PlayerContext";
-import Sidebar from "./components/Sidebar";
-import Topbar from "./components/Topbar";
-import SoundtrackHero from "./components/SoundtrackHero";
-import MoodScroller from "./components/MoodScroller";
-import QuickPicksShelf from "./components/QuickPicksShelf";
-import ExploreBoard from "./components/ExploreBoard";
+import TidalSidebar from "./components/TidalSidebar";
+import TidalTopbar from "./components/TidalTopbar";
+import TidalHero from "./components/TidalHero";
+import TidalTrackList from "./components/TidalTrackList";
+import TidalExploreGrid from "./components/TidalExploreGrid";
+import TidalVideos from "./components/TidalVideos";
 import LibraryView from "./components/LibraryView";
-import ApkDownloadBanner from "./components/ApkDownloadBanner";
-import PlayerDock from "./components/PlayerDock";
-import QueueDrawer from "./components/QueueDrawer";
+import TidalPlayerBar from "./components/TidalPlayerBar";
+import TidalMobileMiniPlayer from "./components/TidalMobileMiniPlayer";
+import TidalMobileNav from "./components/TidalMobileNav";
+import TidalFullScreenPlayer from "./components/TidalFullScreenPlayer";
+import TidalQueueDrawer from "./components/TidalQueueDrawer";
 import LyricsModal from "./components/LyricsModal";
 import SearchResults from "./components/SearchResults";
 import SettingsModal from "./components/SettingsModal";
@@ -28,19 +30,19 @@ function MainShell() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen bg-[#050506] text-white flex flex-col font-sans selection:bg-[#5d9cff] selection:text-black">
+    <div className="relative min-h-screen bg-[#000000] text-white flex flex-col font-sans selection:bg-[#00e5ff] selection:text-black">
       
-      {/* Background Nocturnal Atmospheric Glows */}
+      {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[500px] bg-blue-600/10 rounded-full blur-[160px]" />
-        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-purple-700/8 rounded-full blur-[160px]" />
+        <div className="absolute -top-32 right-1/4 w-[500px] h-[500px] bg-[#00e5ff]/5 rounded-full blur-[140px]" />
+        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-blue-900/5 rounded-full blur-[140px]" />
       </div>
 
-      {/* Persistent Audio Engine (Song mode = offscreen, Video mode = floating theater PiP) */}
+      {/* Persistent Audio Engine Container (Song mode = offscreen, Video mode = floating theater PiP) */}
       <div
         className={`transition-all duration-300 ${
           playbackMode === "video"
-            ? "fixed top-24 right-6 z-40 w-[320px] sm:w-[420px] aspect-video rounded-3xl overflow-hidden bg-black/90 border border-white/20 shadow-2xl backdrop-blur-3xl animate-scaleIn"
+            ? "fixed top-20 right-6 z-40 w-[320px] sm:w-[440px] aspect-video rounded-2xl overflow-hidden bg-black/95 border border-[#22222a] shadow-2xl backdrop-blur-2xl"
             : "fixed -left-[9999px] -top-[9999px] w-[320px] h-[240px] opacity-0 pointer-events-none"
         }`}
       >
@@ -61,45 +63,47 @@ function MainShell() {
         <div id="yt-audio-engine" className="w-full h-full" />
       </div>
 
-      {/* Left Sidebar (256px wide on desktop) */}
-      <Sidebar
+      {/* Desktop Left Sidebar (240px) */}
+      <TidalSidebar
         isMobileOpen={isMobileMenuOpen}
         setIsMobileOpen={setIsMobileMenuOpen}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
-      {/* Main Content Area (offset by 256px / ml-64 on desktop) */}
-      <div className="flex-1 flex flex-col md:ml-64 min-h-screen pb-28">
+      {/* Main Content Area (offset by 240px / md:ml-60 on desktop) */}
+      <div className="flex-1 flex flex-col md:ml-60 min-h-screen pb-32 md:pb-24">
         
         {/* Topbar */}
-        <Topbar
+        <TidalTopbar
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
 
         {/* Dynamic Page Views */}
-        <main className="flex-1 px-4 sm:px-8 lg:px-12 py-6 max-w-[1500px] w-full mx-auto">
+        <main className="flex-1 px-4 sm:px-8 py-5 max-w-[1500px] w-full mx-auto">
           {searchQuery.trim() ? (
             <SearchResults />
           ) : (
             <>
               {activeTab === "home" && (
                 <>
-                  <SoundtrackHero />
-                  <MoodScroller />
-                  <QuickPicksShelf />
-                  <ExploreBoard />
-                  <ApkDownloadBanner />
+                  <TidalHero />
+                  <TidalTrackList />
+                  <TidalExploreGrid />
                 </>
               )}
 
               {activeTab === "explore" && (
                 <div className="py-2">
-                  <ExploreBoard />
+                  <TidalExploreGrid />
                 </div>
               )}
 
-              {activeTab === "library" && (
+              {activeTab === "videos" && (
+                <TidalVideos />
+              )}
+
+              {activeTab === "collection" && (
                 <LibraryView />
               )}
             </>
@@ -107,11 +111,20 @@ function MainShell() {
         </main>
       </div>
 
-      {/* Bottom Player Dock */}
-      <PlayerDock />
+      {/* Desktop Player Bar (Fixed across bottom on desktop) */}
+      <TidalPlayerBar />
 
-      {/* Up Next Slide-over Queue Drawer */}
-      <QueueDrawer />
+      {/* Mobile Floating Mini Player (Fixed above bottom nav on mobile) */}
+      <TidalMobileMiniPlayer />
+
+      {/* Mobile Bottom Navigation Bar (4 tabs on mobile) */}
+      <TidalMobileNav />
+
+      {/* Mobile Full-Screen Now Playing View (Tidal style bottom sheet) */}
+      <TidalFullScreenPlayer />
+
+      {/* Up Next Play Queue Drawer */}
+      <TidalQueueDrawer />
 
       {/* Synchronized Lyrics Modal */}
       <LyricsModal />
