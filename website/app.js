@@ -57,6 +57,21 @@
     modeVideoBtn: $("#mode-video-btn"),
     npSwitchArtwork: $("#np-switch-artwork"),
     npSwitchVideo: $("#np-switch-video"),
+    dockQueueBtn: $("#dock-queue-btn"),
+    dockQueueBadge: $("#dock-queue-badge"),
+    sideQueueBtn: $("#side-queue-btn"),
+    queueDialog: $("#queue-dialog"),
+    queueClose: $("#queue-close"),
+    queueNowTitle: $("#queue-now-title"),
+    queueNowArtist: $("#queue-now-artist"),
+    endlessToggleInput: $("#endless-toggle-input"),
+    endlessStatusDesc: $("#endless-status-desc"),
+    queueCountPill: $("#queue-count-pill"),
+    queueCountNumber: $("#queue-count-number"),
+    queueShuffleBtn: $("#queue-shuffle-btn"),
+    queueClearBtn: $("#queue-clear-btn"),
+    queueList: $("#queue-list"),
+    queueEmptyBox: $("#queue-empty-box"),
     sideMediaShell: $("#side-media-shell"),
     sideArtworkCard: $("#side-artwork-card"),
     sideArtworkImg: $("#side-artwork-img"),
@@ -387,6 +402,8 @@
     if (elements.sideArtistAvatar && thumbnail) elements.sideArtistAvatar.src = thumbnail;
     if (elements.sideArtworkImg && thumbnail) elements.sideArtworkImg.src = thumbnail;
     if (elements.sideArtistBio) elements.sideArtistBio.textContent = `Official track by ${artist}. Playing with YouTube’s official embedded player in Derbis.`;
+    if (elements.queueNowTitle) elements.queueNowTitle.textContent = title;
+    if (elements.queueNowArtist) elements.queueNowArtist.textContent = artist;
     if (duration) elements.dockDuration.textContent = duration;
     elements.dockElapsed.textContent = "0:00";
     elements.dockSeek.value = "0";
@@ -661,15 +678,197 @@
     if (elements.dockMiniProgressFill) elements.dockMiniProgressFill.style.width = "0%";
   }
 
+  let playbackQueue = [];
+  let endlessListeningEnabled = (localStorage.getItem("derbis_endless_listening") ?? "true") === "true";
+
+  function setEndlessListening(enabled) {
+    endlessListeningEnabled = Boolean(enabled);
+    try {
+      localStorage.setItem("derbis_endless_listening", String(endlessListeningEnabled));
+    } catch {}
+    if (elements.endlessToggleInput) elements.endlessToggleInput.checked = endlessListeningEnabled;
+    if (elements.endlessStatusDesc) {
+      elements.endlessStatusDesc.textContent = endlessListeningEnabled ? "Continuous radio on" : "Stops when queue ends";
+    }
+    const emptyNote = $("#queue-empty-note");
+    if (emptyNote) {
+      emptyNote.textContent = endlessListeningEnabled
+        ? "Endless listening is active. More songs from this genre will autoplay automatically when this track finishes."
+        : "Endless listening is off. Playback will stop when current track ends.";
+    }
+    showToast(endlessListeningEnabled ? "Endless listening enabled" : "Endless listening off");
+  }
+
+  function openQueueDialog() {
+    renderQueue();
+    if (!elements.queueDialog.open) elements.queueDialog.showModal();
+  }
+
+  function closeQueueDialog() {
+    if (elements.queueDialog.open) elements.queueDialog.close();
+  }
+
+  function toggleQueueDialog() {
+    if (elements.queueDialog.open) {
+      closeQueueDialog();
+    } else {
+      openQueueDialog();
+    }
+  }
+
+  function renderQueue() {
+    if (!elements.queueList) return;
+    const count = playbackQueue.length;
+    if (elements.queueCountNumber) elements.queueCountNumber.textContent = count;
+    if (elements.dockQueueBadge) {
+      if (count > 0) {
+        elements.dockQueueBadge.hidden = false;
+        elements.dockQueueBadge.textContent = count > 99 ? "99+" : String(count);
+      } else {
+        elements.dockQueueBadge.hidden = true;
+      }
+    }
+    if (currentYouTubeTrack) {
+      if (elements.queueNowTitle) elements.queueNowTitle.textContent = currentYouTubeTrack.title;
+      if (elements.queueNowArtist) elements.queueNowArtist.textContent = currentYouTubeTrack.artist;
+    }
+    if (elements.endlessToggleInput) {
+      elements.endlessToggleInput.checked = endlessListeningEnabled;
+    }
+    if (elements.endlessStatusDesc) {
+      elements.endlessStatusDesc.textContent = endlessListeningEnabled ? "Continuous radio on" : "Stops when queue ends";
+    }
+
+    if (count === 0) {
+      elements.queueList.innerHTML = "";
+      if (elements.queueEmptyBox) elements.queueEmptyBox.style.display = "flex";
+      return;
+    }
+
+    if (elements.queueEmptyBox) elements.queueEmptyBox.style.display = "none";
+    elements.queueList.innerHTML = playbackQueue.map((track, idx) => `
+      <div class="queue-track-row" data-queue-idx="${idx}" role="button" tabindex="0" aria-label="Play ${escapeHtml(track.title)} by ${escapeHtml(track.artist)}">
+        <span class="queue-track-idx">${idx + 1}</span>
+        <img class="queue-track-art" src="${escapeHtml(track.thumbnail || track.thumb || 'https://i.ytimg.com/vi/' + track.videoId + '/hqdefault.jpg')}" alt="" loading="lazy" />
+        <div class="queue-track-text">
+          <strong>${escapeHtml(track.title)}</strong>
+          <span>${escapeHtml(track.artist)}</span>
+        </div>
+        <span class="queue-track-dur">${escapeHtml(track.duration || '')}</span>
+        <button class="queue-track-del" type="button" data-del-idx="${idx}" aria-label="Remove ${escapeHtml(track.title)} from queue" title="Remove track">
+          <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    `).join("");
+  }
+
+  function removeFromQueue(index) {
+    if (index >= 0 && index < playbackQueue.length) {
+      const removed = playbackQueue.splice(index, 1)[0];
+      renderQueue();
+      showToast(`Removed “${removed.title}” from queue`);
+    }
+  }
+
+  function clearQueue() {
+    if (!playbackQueue.length) return;
+    playbackQueue = [];
+    renderQueue();
+    showToast("Queue cleared");
+  }
+
+  function shuffleQueue() {
+    if (playbackQueue.length <= 1) return;
+    for (let i = playbackQueue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playbackQueue[i], playbackQueue[j]] = [playbackQueue[j], playbackQueue[i]];
+    }
+    renderQueue();
+    showToast("Queue shuffled");
+  }
+
+  function addToQueue(track, playNext = false) {
+    if (!track || !track.videoId) return;
+    if (playNext) {
+      playbackQueue.unshift(track);
+    } else {
+      playbackQueue.push(track);
+    }
+    renderQueue();
+    showToast(`Added “${track.title}” to queue`);
+  }
+
+  function loadEndlessRecommendationsAndPlay() {
+    const currentVid = currentYouTubeTrack?.videoId;
+    let pool = [];
+
+    if (currentYouTubeTrack) {
+      const artistLower = (currentYouTubeTrack.artist || "").toLowerCase();
+      for (const [genreKey, catData] of Object.entries(CURATED_GENRE_TRACKS)) {
+        const matches = (catData.songs || []).some((s) => s.videoId === currentVid || s.artist.toLowerCase().includes(artistLower) || artistLower.includes(s.artist.toLowerCase()));
+        if (matches) {
+          pool = (catData.songs || []).filter((s) => s.videoId !== currentVid);
+          break;
+        }
+      }
+    }
+
+    if (!pool.length) {
+      pool = DERBIS_CATALOG_TRACKS.filter((s) => s.videoId !== currentVid);
+    }
+
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const nextTrack = shuffled[0];
+    const rest = shuffled.slice(1, 6);
+
+    if (nextTrack) {
+      playbackQueue = rest;
+      renderQueue();
+      showToast(`Endless listening: ${nextTrack.title} · ${nextTrack.artist}`);
+      playYouTubeVideo(nextTrack.videoId, nextTrack);
+    } else {
+      setPlayIcon(false);
+      showToast("End of playback");
+    }
+  }
+
   function playNextTrack() {
-    const tracks = all(".quick-track-row, .quick-track");
-    if (!tracks.length) return;
-    const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
-    const nextIdx = (currentIdx + 1) % tracks.length;
-    selectTrack(tracks[nextIdx]);
+    if (playbackQueue.length > 0) {
+      const nextTrack = playbackQueue.shift();
+      renderQueue();
+      if (nextTrack.videoId) {
+        showToast(`Now playing: ${nextTrack.title}`);
+        playYouTubeVideo(nextTrack.videoId, nextTrack);
+      }
+      return;
+    }
+
+    if (endlessListeningEnabled) {
+      loadEndlessRecommendationsAndPlay();
+      return;
+    }
+
+    setPlayIcon(false);
+    showToast("Queue finished · Endless listening is off");
   }
 
   function playPrevTrack() {
+    if (youTubePlayer && typeof youTubePlayer.getCurrentTime === "function") {
+      try {
+        if (youTubePlayer.getCurrentTime() > 3) {
+          youTubePlayer.seekTo(0, true);
+          return;
+        }
+      } catch {}
+    }
+    const history = getPlaybackHistory();
+    if (history && history.length > 1) {
+      const prevTrack = history[1];
+      if (prevTrack && prevTrack.videoId) {
+        playYouTubeVideo(prevTrack.videoId, prevTrack);
+        return;
+      }
+    }
     const tracks = all(".quick-track-row, .quick-track");
     if (!tracks.length) return;
     const currentIdx = tracks.findIndex((t) => t.classList.contains("is-current"));
@@ -1304,6 +1503,24 @@
     recordPlaybackHistory({ title, artist, thumbnail: thumb, thumb, videoId });
     setNowPlaying(title, artist, art, thumb, videoId);
 
+    // Populate upcoming queue with the remaining tracks on the shelf
+    const allRows = all(".quick-track-row, .quick-track");
+    const currentIndex = allRows.indexOf(button);
+    if (currentIndex !== -1 && allRows.length > 1) {
+      const remainingRows = [
+        ...allRows.slice(currentIndex + 1),
+        ...allRows.slice(0, currentIndex)
+      ];
+      playbackQueue = remainingRows.map((r) => ({
+        title: r.dataset.title,
+        artist: r.dataset.artist,
+        videoId: r.dataset.videoId,
+        thumbnail: r.dataset.thumb || r.querySelector("img")?.src || "",
+        duration: r.dataset.duration || r.querySelector(".track-duration")?.textContent?.trim() || ""
+      })).filter((t) => t.title && t.videoId);
+      renderQueue();
+    }
+
     if (videoId) {
       playYouTubeVideo(videoId, { title, artist, thumbnail: thumb, thumb, videoId });
     } else {
@@ -1490,14 +1707,28 @@
     setYouTubeSearchStatus("Select a song to play in Derbis.");
 
     // Wire up song playback
-    all("[data-youtube-video]").forEach((button) => button.addEventListener("click", () => {
+    all("[data-youtube-video]").forEach((button, bIdx, btnArr) => button.addEventListener("click", () => {
       elements.youtubeUrl.value = button.dataset.youtubeVideo;
-      playYouTubeVideo(button.dataset.youtubeVideo, {
+      const clickedTrack = {
         title: button.dataset.youtubeTitle,
         artist: button.dataset.youtubeArtist,
         thumbnail: button.dataset.youtubeThumbnail,
-        duration: button.dataset.youtubeDuration
-      });
+        duration: button.dataset.youtubeDuration,
+        videoId: button.dataset.youtubeVideo
+      };
+      // Queue subsequent search songs
+      const subsequent = btnArr.slice(bIdx + 1).map((b) => ({
+        title: b.dataset.youtubeTitle,
+        artist: b.dataset.youtubeArtist,
+        thumbnail: b.dataset.youtubeThumbnail,
+        duration: b.dataset.youtubeDuration,
+        videoId: b.dataset.youtubeVideo
+      })).filter((t) => t.title && t.videoId);
+      if (subsequent.length) {
+        playbackQueue = subsequent;
+        renderQueue();
+      }
+      playYouTubeVideo(button.dataset.youtubeVideo, clickedTrack);
     }));
 
     // Wire up artist/album/playlist searches
@@ -2141,6 +2372,46 @@
     elements.sideNextBtn?.addEventListener("click", playNextTrack);
     elements.sidePrevBtn?.addEventListener("click", playPrevTrack);
     elements.sidePlay?.addEventListener("click", togglePlayback);
+    elements.dockQueueBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleQueueDialog();
+    });
+    elements.sideQueueBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleQueueDialog();
+    });
+    elements.queueClose?.addEventListener("click", closeQueueDialog);
+    elements.queueDialog?.addEventListener("click", (event) => {
+      const rect = elements.queueDialog.getBoundingClientRect();
+      if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeQueueDialog();
+    });
+    elements.endlessToggleInput?.addEventListener("change", (e) => {
+      setEndlessListening(e.target.checked);
+    });
+    elements.queueShuffleBtn?.addEventListener("click", shuffleQueue);
+    elements.queueClearBtn?.addEventListener("click", clearQueue);
+    elements.queueList?.addEventListener("click", (event) => {
+      const delBtn = event.target.closest(".queue-track-del");
+      if (delBtn) {
+        event.stopPropagation();
+        const idx = parseInt(delBtn.dataset.delIdx, 10);
+        if (!isNaN(idx)) {
+          removeFromQueue(idx);
+        }
+        return;
+      }
+      const row = event.target.closest(".queue-track-row");
+      if (row) {
+        const idx = parseInt(row.dataset.queueIdx, 10);
+        if (!isNaN(idx) && playbackQueue[idx]) {
+          const track = playbackQueue.splice(idx, 1)[0];
+          renderQueue();
+          if (track.videoId) {
+            playYouTubeVideo(track.videoId, track);
+          }
+        }
+      }
+    });
     elements.sheetHandle?.addEventListener("click", closeNowPlayingSidebar);
     elements.search.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -2183,4 +2454,8 @@
   scheduleGreetingRefresh();
   applyDerbisAlgorithm();
   setPlayIcon(false);
+  if (!playbackQueue.length && DERBIS_CATALOG_TRACKS.length > 1) {
+    playbackQueue = DERBIS_CATALOG_TRACKS.slice(1);
+  }
+  renderQueue();
 })();

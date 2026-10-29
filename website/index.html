@@ -780,7 +780,7 @@
             <button class="icon-button side-ctrl-btn" id="side-prev-btn" type="button" aria-label="Previous track"><svg><use href="#i-prev"/></svg></button>
             <button class="side-play-btn" id="side-play" type="button" aria-label="Play or pause"><svg><use href="#i-play"/></svg></button>
             <button class="icon-button side-ctrl-btn" id="side-next-btn" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
-            <button class="icon-button side-ctrl-btn" type="button" aria-label="Repeat" data-toast="Repeat mode enabled"><svg><use href="#i-repeat"/></svg></button>
+            <button class="icon-button side-ctrl-btn" id="side-queue-btn" type="button" aria-label="Up Next & Queue" title="Up Next & Queue"><svg><use href="#i-queue"/></svg></button>
           </div>
         </div>
 
@@ -819,7 +819,7 @@
         <button class="dock-icon dock-next-btn" id="dock-next" type="button" aria-label="Next track"><svg><use href="#i-next"/></svg></button>
       </div>
       <button class="dock-icon side-panel-toggle desktop-only" id="dock-side-panel-toggle" type="button" aria-label="Now playing view" title="Now playing view"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 14H13V6h6v12Z" fill="currentColor"/></svg></button>
-      <button class="dock-queue desktop-only" type="button" aria-label="Queue" data-toast="Your queue appears here when you play songs."><svg><use href="#i-queue"/></svg></button>
+      <button class="dock-icon dock-queue" id="dock-queue-btn" type="button" aria-label="Open Queue" title="Up Next & Queue"><svg><use href="#i-queue"/></svg><span class="dock-queue-badge" id="dock-queue-badge" hidden>0</span></button>
       <input id="local-audio" type="file" accept="audio/*" hidden />
       <audio id="audio-player" preload="metadata"></audio>
     </section>
@@ -895,6 +895,55 @@
           </div>
           <button class="secondary-button" id="settings-theme-toggle" type="button">Switch Theme</button>
         </div>
+      </div>
+    </dialog>
+
+    <dialog class="queue-dialog" id="queue-dialog" aria-labelledby="queue-dialog-title">
+      <header class="queue-header">
+        <div class="queue-header-start">
+          <span class="queue-kicker">UP NEXT</span>
+          <h2 id="queue-dialog-title">Playback Queue</h2>
+        </div>
+        <button class="dialog-close icon-button" id="queue-close" type="button" aria-label="Close queue"><svg><use href="#i-close"/></svg></button>
+      </header>
+
+      <!-- Queue Reference Heading matching DerbisApp.kt -->
+      <div class="queue-reference-heading">
+        <div class="queue-focus-info">
+          <span class="queue-focus-kicker">NOW PLAYING</span>
+          <strong class="queue-focus-title" id="queue-now-title">Love Me Harder</strong>
+          <span class="queue-focus-artist" id="queue-now-artist">Ariana Grande, The Weeknd</span>
+        </div>
+        <div class="queue-endless-box">
+          <div class="endless-text-col">
+            <span class="endless-title">Endless listening</span>
+            <span class="endless-sub" id="endless-status-desc">Continuous radio on</span>
+          </div>
+          <label class="derbis-switch" for="endless-toggle-input" title="Toggle Endless Listening (Plays recommendations automatically)">
+            <input type="checkbox" id="endless-toggle-input" checked />
+            <span class="derbis-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="queue-toolbar">
+        <span class="queue-count-pill" id="queue-count-pill">Up Next · <span id="queue-count-number">0</span> tracks</span>
+        <div class="queue-toolbar-actions">
+          <button class="queue-action-pill" id="queue-shuffle-btn" type="button" title="Shuffle upcoming tracks">
+            <svg><use href="#i-shuffle"/></svg><span>Shuffle</span>
+          </button>
+          <button class="queue-action-pill" id="queue-clear-btn" type="button" title="Clear all tracks from queue">
+            <svg><use href="#i-close"/></svg><span>Clear</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="queue-list" id="queue-list" role="list"></div>
+
+      <div class="queue-empty-box" id="queue-empty-box">
+        <div class="queue-empty-icon"><svg><use href="#i-queue"/></svg></div>
+        <strong>No upcoming tracks</strong>
+        <p id="queue-empty-note">Endless listening is active. More songs from this genre will autoplay automatically when this track finishes.</p>
       </div>
     </dialog>
 

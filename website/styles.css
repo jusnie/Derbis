@@ -478,7 +478,7 @@ html[data-theme="light"] .youtube-search-panel { border-color: rgba(19,25,35,.12
   transition: aspect-ratio .25s ease;
 }
 
-/* ARTWORK MODE (Song mode) */
+/* ARTWORK MODE (Song mode): ONLY album artwork is displayed; YouTube video is completely hidden in background */
 .side-media-shell[data-visual-mode="artwork"] {
   aspect-ratio: 1 / 1;
 }
@@ -510,47 +510,28 @@ html[data-theme="light"] .youtube-search-panel { border-color: rgba(19,25,35,.12
 }
 .side-media-shell[data-visual-mode="artwork"] .side-video-container {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 140px;
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-  z-index: 3;
-  border: 1px solid rgba(255,255,255,.2);
-  box-shadow: 0 8px 24px rgba(0,0,0,.65);
-  background: #000;
-  cursor: pointer;
-  transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
-}
-.side-media-shell[data-visual-mode="artwork"] .side-video-container:hover {
-  transform: scale(1.05);
-  border-color: var(--blue);
-  box-shadow: 0 10px 28px rgba(93,156,255,.3);
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
 }
 .side-media-shell[data-visual-mode="artwork"] .side-video-badge {
-  position: absolute;
-  top: 5px;
-  left: 6px;
-  z-index: 4;
-  font-size: 8.5px;
-  font-weight: 850;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,.92);
-  background: rgba(0,0,0,.68);
-  backdrop-filter: blur(4px);
-  padding: 2px 5px;
-  border-radius: 4px;
-  pointer-events: none;
+  display: none !important;
 }
 
-/* VIDEO MODE */
+/* VIDEO MODE: Full 16:9 interactive video playback */
 .side-media-shell[data-visual-mode="video"] {
   aspect-ratio: 16 / 9;
 }
 .side-media-shell[data-visual-mode="video"] .side-artwork-card {
-  display: none;
+  display: none !important;
 }
 .side-media-shell[data-visual-mode="video"] .side-video-container {
   position: relative;
@@ -559,6 +540,9 @@ html[data-theme="light"] .youtube-search-panel { border-color: rgba(19,25,35,.12
   border-radius: 0;
   border: 0;
   box-shadow: none;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 2;
 }
 .side-media-shell[data-visual-mode="video"] .side-video-badge {
   display: none;
@@ -1051,4 +1035,365 @@ html[data-theme="light"] .side-youtube-form input {
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
+}
+
+/* ==========================================================================
+   QUEUE DRAWER & ENDLESS LISTENING (Matching DerbisApp.kt)
+   ========================================================================== */
+.dock-queue {
+  position: relative;
+}
+.dock-queue-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #071526;
+  font-size: 9.5px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+.queue-dialog {
+  width: min(94vw, 540px);
+  max-height: min(88vh, 720px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 26px;
+  padding: 24px;
+  background: #111216;
+  color: var(--ink);
+  box-shadow: 0 30px 110px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.queue-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+}
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.queue-header-start {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.queue-header-start .queue-kicker {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+.queue-header-start h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+.queue-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  cursor: pointer;
+}
+.queue-close svg {
+  width: 16px;
+  height: 16px;
+}
+.queue-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Queue Reference Heading (DerbisApp.kt) */
+.queue-reference-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 14px;
+}
+.queue-focus-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.queue-focus-kicker {
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+.queue-focus-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-focus-artist {
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-endless-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+.endless-text-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.endless-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+}
+.endless-sub {
+  font-size: 10px;
+  color: var(--quiet);
+  white-space: nowrap;
+}
+
+/* Derbis Jetpack Compose Switch style */
+.derbis-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.derbis-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.derbis-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 26px;
+  transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
+}
+.derbis-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2.5px;
+  bottom: 2.5px;
+  background-color: rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  transition: all 0.22s cubic-bezier(0.2, 0, 0, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+.derbis-switch input:checked + .derbis-slider {
+  background-color: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.88);
+}
+.derbis-switch input:checked + .derbis-slider:before {
+  transform: translateX(20px);
+  background-color: #08212a;
+}
+
+/* Queue toolbar */
+.queue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-bottom: 8px;
+}
+.queue-count-pill {
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--muted);
+}
+.queue-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.queue-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.queue-action-pill svg {
+  width: 12px;
+  height: 12px;
+}
+.queue-action-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
+
+/* Queue List */
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 380px;
+  padding-right: 4px;
+  margin-top: 6px;
+  scrollbar-width: thin;
+}
+.queue-track-row {
+  display: grid;
+  grid-template-columns: 24px 44px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease;
+  width: 100%;
+}
+.queue-track-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.queue-track-idx {
+  font-size: 11px;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.queue-track-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #191b20;
+}
+.queue-track-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.queue-track-text strong {
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-track-text span {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.queue-track-dur {
+  font-size: 11px;
+  color: var(--quiet);
+  font-variant-numeric: tabular-nums;
+  padding-right: 4px;
+}
+.queue-track-del {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: 0;
+  color: var(--quiet);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.queue-track-del:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ff5252;
+}
+.queue-track-del svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Empty Queue */
+.queue-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--muted);
+}
+.queue-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--quiet);
+  margin-bottom: 12px;
+}
+.queue-empty-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.queue-empty-box strong {
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.queue-empty-box p {
+  font-size: 12px;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+  color: var(--quiet);
 }
