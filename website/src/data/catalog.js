@@ -179,3 +179,5 @@ export const GENRE_SEEDS = {
     { id: "DuKb1yF5Wh4", title: "kahel na langit", artist: "Maki", videoId: "DuKb1yF5Wh4", duration: "4:01", thumbnail: "https://i.ytimg.com/vi/DuKb1yF5Wh4/hqdefault.jpg" }
   ]
 };
+
+export const EXPLORE_CATEGORIES = TIDAL_THE_HITS;

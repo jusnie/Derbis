@@ -1,5 +1,5 @@
 import React from "react";
-import { Heart, Play, Music, Sparkles, Youtube, ListMusic } from "lucide-react";
+import { Heart, Play, Music, Sparkles, Video, ListMusic } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { QUICK_PICKS_TRACKS } from "../data/catalog";
 
@@ -24,7 +24,7 @@ export default function LibraryView() {
       <div className="p-6 rounded-3xl bg-gradient-to-r from-blue-900/30 via-purple-900/20 to-black/40 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 shrink-0">
-            <Youtube className="w-6 h-6" />
+            <Video className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-base font-bold text-white">

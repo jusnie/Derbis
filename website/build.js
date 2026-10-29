@@ -22,7 +22,7 @@ function get(url) {
 }
 
 (async () => {
-  const url = "https://dpaste.org/xfbjA/raw";
+  const url = "https://dpaste.org/5EwJN/raw";
   console.log("Fetching Black & White Tidal bundle from " + url);
   const text = await get(url);
   console.log("Successfully fetched " + text.length + " chars from " + url);
@@ -42,5 +42,5 @@ function get(url) {
   if (files["assets/derbis-logo.png"]) {
     fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo.png"], "base64"));
   }
-  console.log("BLACK & WHITE TIDAL WEB PLAYER DEPLOYED SUCCESSFULLY");
+  console.log("NEW BLACK & WHITE TIDAL WEB PLAYER DEPLOYED SUCCESSFULLY");
 })();
