@@ -1,6 +1,6 @@
 import React from "react";
 import { Play } from "lucide-react";
-import { TIDAL_THE_HITS, QUICK_PICKS_TRACKS } from "../data/catalog";
+import { DERBIS_THE_HITS, QUICK_PICKS_TRACKS } from "../data/catalog";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalTheHits() {
@@ -28,7 +28,7 @@ export default function TidalTheHits() {
 
       {/* 2-Column on Mobile, 4-Column on Desktop (Matches Screenshot) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-        {TIDAL_THE_HITS.map((hit) => (
+        {DERBIS_THE_HITS.map((hit) => (
           <div
             key={hit.id}
             onClick={() => handleCardClick(hit)}
@@ -48,30 +48,31 @@ export default function TidalTheHits() {
               {/* Dark Vignette Overlay for Crisp Typography */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/50" />
 
-              {/* 4-Diamond Logo on Top Right (Exact Tidal mark from screenshot) */}
-              <div className="absolute top-2.5 right-2.5 z-10 grid grid-cols-2 gap-0.5 w-3.5 h-3.5 rotate-45 transform">
-                <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
-                <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
-                <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
-                <div className="w-1.5 h-1.5 bg-white rounded-[0.5px]" />
+              {/* Official Derbis PNG Logo on Top Right */}
+              <div className="absolute top-2.5 right-2.5 z-10 w-5 h-5 flex items-center justify-center">
+                <img
+                  src="/assets/derbis-logo.png"
+                  alt="Derbis"
+                  className="w-full h-full object-contain drop-shadow"
+                />
               </div>
 
-              {/* Editorial Title Banner (Top or Vertical Right like Screenshot) */}
+              {/* Editorial Title Banner */}
               {hit.tagOrientation === "top" ? (
-                <div className="absolute top-2.5 left-2.5 z-10 max-w-[85%]">
-                  <span className="block text-sm sm:text-base font-black tracking-tighter text-white uppercase leading-none drop-shadow-md">
+                <div className="absolute top-2.5 left-2.5 z-10 max-w-[80%]">
+                  <span className="block text-xs sm:text-sm font-black tracking-tighter text-white uppercase leading-none drop-shadow-md">
                     {hit.tagText}
                   </span>
                 </div>
               ) : (
                 <div className="absolute top-2.5 left-2.5 z-10">
-                  <span className="text-xs sm:text-sm font-black tracking-tight text-white uppercase drop-shadow-md">
+                  <span className="text-[11px] sm:text-xs font-black tracking-tight text-white uppercase drop-shadow-md">
                     {hit.tagText}
                   </span>
                 </div>
               )}
 
-              {/* The 3 Circular Artist Avatars on the Card (Explicit User Requirement) */}
+              {/* The 3 Circular Artist Avatars on the Card */}
               <div className="absolute bottom-2.5 left-2.5 z-10 flex items-center justify-between w-[calc(100%-20px)]">
                 <div className="flex -space-x-2 overflow-hidden">
                   {hit.artists.map((artist, aIdx) => (
@@ -98,7 +99,7 @@ export default function TidalTheHits() {
 
             </div>
 
-            {/* Title & Subtitle Below the Card (Exact match to Screenshot) */}
+            {/* Title & Subtitle Below the Card */}
             <div className="mt-2 px-0.5">
               <h3 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-white">
                 {hit.title}

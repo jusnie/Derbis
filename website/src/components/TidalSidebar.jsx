@@ -8,7 +8,6 @@ import {
   Heart,
   Users,
   Download,
-  ExternalLink,
   X
 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
@@ -37,18 +36,17 @@ export default function TidalSidebar({ isMobileOpen, setIsMobileOpen, onOpenSett
           isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        {/* Brand Header with 4-Diamond Logo (Pure White) */}
+        {/* Brand Header with User's Derbis PNG Logo */}
         <div className="flex items-center justify-between px-2 mb-7">
           <div
             onClick={() => handleNav("home")}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="grid grid-cols-2 gap-0.5 w-6 h-6 rotate-45 transform group-hover:scale-105 transition-transform">
-              <div className="w-2.5 h-2.5 bg-white rounded-[0.5px]" />
-              <div className="w-2.5 h-2.5 bg-white rounded-[0.5px]" />
-              <div className="w-2.5 h-2.5 bg-white rounded-[0.5px]" />
-              <div className="w-2.5 h-2.5 bg-white rounded-[0.5px]" />
-            </div>
+            <img
+              src="/assets/derbis-logo.png"
+              alt="Derbis"
+              className="w-8 h-8 object-contain group-hover:scale-105 transition-transform drop-shadow"
+            />
 
             <div className="flex flex-col">
               <span className="text-base font-black tracking-[0.2em] text-white">

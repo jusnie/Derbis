@@ -6,14 +6,18 @@ export default function TidalHomeHeader({ onOpenAuth }) {
 
   return (
     <div className="select-none pt-2 pb-4">
-      {/* Mobile Top Bar matching screenshot */}
+      {/* Mobile Top Bar */}
       <div className="flex md:hidden items-center justify-between py-2 mb-3">
-        {/* 4-Diamond Logo on Left */}
-        <div className="grid grid-cols-2 gap-0.5 w-5 h-5 rotate-45 transform">
-          <div className="w-2 h-2 bg-white rounded-[0.5px]" />
-          <div className="w-2 h-2 bg-white rounded-[0.5px]" />
-          <div className="w-2 h-2 bg-white rounded-[0.5px]" />
-          <div className="w-2 h-2 bg-white rounded-[0.5px]" />
+        {/* Official Derbis PNG Logo on Left */}
+        <div className="flex items-center gap-2">
+          <img
+            src="/assets/derbis-logo.png"
+            alt="Derbis"
+            className="w-7 h-7 object-contain"
+          />
+          <span className="text-sm font-black tracking-[0.15em] text-white">
+            DERBIS
+          </span>
         </div>
 
         {/* Log in / Create a free account pill on Right */}
