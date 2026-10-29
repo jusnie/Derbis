@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from "react";
-import { Search, Play, Plus, X, Sparkles } from "lucide-react";
+import React, { useRef, useEffect, useState } from "react";
+import { Search, Play, Plus, X, RefreshCw } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
-import { SEARCH_BROWSE_CATEGORIES, QUICK_PICKS_TRACKS, HITS_TRACK_SETS } from "../data/catalog";
+import { CATEGORIES_WITH_ARTIST_BACKGROUND } from "../data/catalog";
 
 export default function SearchView() {
   const {
@@ -12,10 +12,14 @@ export default function SearchView() {
     currentTrack,
     isPlaying,
     selectCategoryFilter,
-    setActiveTab
+    setActiveTab,
+    liveSearchResults,
+    isSearchingLive,
+    performSearch
   } = usePlayer();
 
   const inputRef = useRef(null);
+  const debounceRef = useRef(null);
 
   useEffect(() => {
     // Focus search input when opening search view
@@ -24,32 +28,25 @@ export default function SearchView() {
     }
   }, []);
 
-  const query = searchQuery.toLowerCase().trim();
-
-  // Search Results
-  const matchedTracks = query
-    ? QUICK_PICKS_TRACKS.filter(
-        t =>
-          t.title.toLowerCase().includes(query) ||
-          t.artist.toLowerCase().includes(query) ||
-          (t.album && t.album.toLowerCase().includes(query)) ||
-          (t.genre && t.genre.toLowerCase().includes(query))
-      )
-    : [];
-
-  const matchedCategories = query
-    ? SEARCH_BROWSE_CATEGORIES.filter(
-        c =>
-          c.title.toLowerCase().includes(query) ||
-          c.tagText.toLowerCase().includes(query) ||
-          c.artists.some(a => a.name.toLowerCase().includes(query))
-      )
-    : [];
+  // Debounced live search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (searchQuery.trim().length > 1) {
+      debounceRef.current = setTimeout(() => {
+        performSearch(searchQuery);
+      }, 350);
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchQuery, performSearch]);
 
   const handleCategoryClick = (cat) => {
     selectCategoryFilter(cat);
     setActiveTab("home");
   };
+
+  const isSearchActive = searchQuery.trim().length > 0;
 
   return (
     <div className="space-y-6 select-none py-2 max-w-6xl animate-fadeIn">
@@ -63,9 +60,12 @@ export default function SearchView() {
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="What do you want to listen to? (Songs, artists, genres)"
+            placeholder="Search songs, artists, or genres on YouTube"
             className="w-full bg-transparent border-0 outline-none text-sm text-white placeholder-white/40 font-medium"
           />
+          {isSearchingLive && (
+            <RefreshCw className="w-4 h-4 text-white/50 animate-spin mr-2" />
+          )}
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
@@ -77,121 +77,78 @@ export default function SearchView() {
         </label>
       </div>
 
-      {/* When user has typed a query: Show Instant Search Results */}
-      {query ? (
+      {/* When user has typed a query: Show LIVE REAL SEARCH RESULTS */}
+      {isSearchActive ? (
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 pb-3">
             <h3 className="text-sm font-bold text-white/70">
-              Results for <span className="text-white">"{searchQuery}"</span>
+              Search results for <span className="text-white">"{searchQuery}"</span>
             </h3>
-            <span className="text-xs text-white/40">
-              {matchedTracks.length} tracks • {matchedCategories.length} categories
-            </span>
+            {isSearchingLive ? (
+              <span className="text-xs text-white/40">Searching YouTube...</span>
+            ) : (
+              <span className="text-xs text-white/40">
+                {liveSearchResults.length} real tracks found
+              </span>
+            )}
           </div>
 
-          {matchedTracks.length === 0 && matchedCategories.length === 0 ? (
+          {liveSearchResults.length === 0 && !isSearchingLive ? (
             <div className="text-center py-16 space-y-2">
               <Search className="w-10 h-10 text-white/20 mx-auto" />
-              <p className="text-base text-white/70 font-semibold">No direct matches found</p>
+              <p className="text-base text-white/70 font-semibold">No YouTube tracks found</p>
               <p className="text-xs text-white/40">
-                Try searching for "Billie", "Sabrina", "Ariana", "BINI", "Maki", or "Queen".
+                Try searching for artist names like "Ariana Grande", "BINI", "Maki", or "Sabrina Carpenter".
               </p>
             </div>
           ) : (
-            <>
-              {/* Matching Tracks */}
-              {matchedTracks.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-white/40 tracking-wider uppercase">
-                    Songs
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {matchedTracks.map((track) => {
-                      const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {liveSearchResults.map((track) => {
+                const isCurrent = (currentTrack?.videoId || currentTrack?.id) === (track.videoId || track.id);
 
-                      return (
-                        <div
-                          key={track.id}
-                          onClick={() => playTrack(track, matchedTracks)}
-                          className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isCurrent
-                              ? "bg-white/10 border-white/30 text-white"
-                              : "bg-[#101014] hover:bg-[#16161c] border-[#1e1e24] hover:border-white/20 text-white/80 hover:text-white"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0 pr-2">
-                            <img
-                              src={track.thumbnail}
-                              alt={track.title}
-                              className="w-11 h-11 rounded-lg object-cover shrink-0 shadow"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-white truncate group-hover:underline">
-                                {track.title}
-                              </p>
-                              <p className="text-[11px] text-white/50 truncate mt-0.5">
-                                {track.artist}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToQueue(track);
-                              }}
-                              className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10"
-                              title="Add to queue"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="text-[10px] font-mono text-white/40 w-8 text-right">
-                              {track.duration}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Matching Categories */}
-              {matchedCategories.length > 0 && (
-                <div className="space-y-3 pt-4">
-                  <h4 className="text-xs font-bold text-white/40 tracking-wider uppercase">
-                    Categories
-                  </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {matchedCategories.map((cat) => (
-                      <div
-                        key={cat.id}
-                        onClick={() => handleCategoryClick(cat)}
-                        className="group cursor-pointer flex flex-col"
-                      >
-                        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-[#121216] border border-[#222228] shadow group-hover:border-white/30 transition-all">
-                          <img
-                            src={cat.bgArtistPhoto}
-                            alt={cat.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40" />
-                          <div className="absolute top-2.5 right-2.5 z-10 w-4 h-4">
-                            <img src="/assets/derbis-logo.png" alt="Derbis" className="w-full h-full object-contain" />
-                          </div>
-                          <span className="absolute top-2.5 left-2.5 z-10 text-xs font-black text-white uppercase">
-                            {cat.tagText}
-                          </span>
-                        </div>
-                        <h4 className="mt-2 text-xs font-bold text-white truncate">{cat.title}</h4>
+                return (
+                  <div
+                    key={track.videoId || track.id}
+                    onClick={() => playTrack(track, liveSearchResults)}
+                    className={`group flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                      isCurrent
+                        ? "bg-white/10 border-white/30 text-white"
+                        : "bg-[#101014] hover:bg-[#16161c] border-[#1e1e24] hover:border-white/20 text-white/80 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <img
+                        src={track.thumbnail}
+                        alt={track.title}
+                        className="w-11 h-11 rounded-lg object-cover shrink-0 shadow"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate group-hover:underline">
+                          {track.title}
+                        </p>
+                        <p className="text-[11px] text-white/50 truncate mt-0.5">
+                          {track.artist}
+                        </p>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToQueue(track);
+                        }}
+                        className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/10"
+                        title="Add to queue"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
+                );
+              })}
+            </div>
           )}
         </div>
       ) : (
@@ -203,14 +160,14 @@ export default function SearchView() {
                 Browse all
               </h2>
               <p className="text-xs text-white/50 mt-0.5">
-                All categories feature real artist photography & curated hit stations
+                Every category features real artist photography & curated hit stations
               </p>
             </div>
           </div>
 
           {/* Grid: 2 columns on mobile, 4 columns on desktop */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {SEARCH_BROWSE_CATEGORIES.map((cat) => (
+            {CATEGORIES_WITH_ARTIST_BACKGROUND.map((cat) => (
               <div
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat)}
@@ -239,7 +196,7 @@ export default function SearchView() {
                     />
                   </div>
 
-                  {/* Editorial Title Banner */}
+                  {/* Editorial Title Banner (e.g. JAM, POP, ROCK, OPM, RAP, R&B) */}
                   <div className="absolute top-2.5 left-2.5 z-10 max-w-[80%]">
                     <span className="block text-xs sm:text-sm font-black tracking-tighter text-white uppercase leading-none drop-shadow-md">
                       {cat.tagText}

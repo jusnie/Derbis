@@ -50,7 +50,7 @@ export async function fetchYouTubeUserData(token) {
     fetch("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50", { headers })
   ]);
 
-  // Parse Liked Tracks
+  // Parse Liked Tracks (Real user songs)
   const likedTracks = [];
   if (likedRes.status === "fulfilled" && likedRes.value.ok) {
     const data = await likedRes.value.json();
@@ -68,7 +68,7 @@ export async function fetchYouTubeUserData(token) {
           artist,
           thumbnail: thumb,
           duration: "3:30",
-          genre: "custom",
+          genre: "liked",
           source: "liked"
         });
       }
@@ -156,6 +156,46 @@ export async function fetchPlaylistTracks(playlistId, apiKey = "", token = "") {
         thumbnail: thumb,
         duration: "3:30",
         genre: "playlist"
+      });
+    }
+  });
+
+  return tracks;
+}
+
+// Real Live YouTube Music Search (No fake tracks)
+export async function searchYouTubeLive(query, apiKey = "", token = "") {
+  if (!query || !query.trim()) return [];
+
+  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=25`;
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (apiKey) {
+    url += `&key=${apiKey}`;
+  }
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error("YouTube search request failed");
+
+  const data = await res.json();
+  const tracks = [];
+  (data.items || []).forEach((item) => {
+    const vid = item.id?.videoId;
+    const snip = item.snippet;
+    if (vid && snip?.title) {
+      const channel = snip.channelTitle || "";
+      const { title, artist } = parseYouTubeTitle(snip.title, channel);
+      const thumb = snip.thumbnails?.high?.url || snip.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`;
+      tracks.push({
+        id: vid,
+        videoId: vid,
+        title,
+        artist,
+        thumbnail: thumb,
+        duration: "3:30",
+        genre: "search"
       });
     }
   });

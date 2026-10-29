@@ -3,8 +3,14 @@ import { Search, ChevronLeft, ChevronRight, Menu, Settings } from "lucide-react"
 import { usePlayer } from "../context/PlayerContext";
 
 export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpenAuth }) {
-  const { searchQuery, setSearchQuery, userProfile } = usePlayer();
+  const { searchQuery, setSearchQuery, userProfile, setActiveTab, activeTab } = usePlayer();
   const inputRef = useRef(null);
+
+  const handleSearchFocus = () => {
+    if (activeTab !== "search") {
+      setActiveTab("search");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 h-16 px-4 sm:px-8 bg-[#000000]/95 backdrop-blur-xl border-b border-[#141418]">
@@ -37,7 +43,7 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpen
         </div>
       </div>
 
-      {/* Center: Derbis Clean Pill Search Bar */}
+      {/* Center: Derbis Clean Pill Search Bar - Clicking immediately switches to Search View */}
       <div className="flex-1 max-w-md mx-2">
         <label className="relative flex items-center w-full h-9 px-3.5 rounded-full bg-[#121217] hover:bg-[#181820] focus-within:bg-[#1e1e26] border border-transparent focus-within:border-white/20 transition-all cursor-text">
           <Search className="w-3.5 h-3.5 text-white/40 mr-2 shrink-0" />
@@ -45,7 +51,12 @@ export default function TidalTopbar({ onToggleMobileMenu, onOpenSettings, onOpen
             ref={inputRef}
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={handleSearchFocus}
+            onClick={handleSearchFocus}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              handleSearchFocus();
+            }}
             placeholder="Search songs, artists, or genres"
             className="w-full bg-transparent border-0 outline-none text-xs text-white placeholder-white/40"
           />
