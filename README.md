@@ -99,5 +99,6 @@ The dependency-free responsive web companion lives in [`website/`](website/). It
 
 ## 📄 License
 
-Derbis is licensed under the [GNU General Public License v3.0](LICENSE).
-Developed with care by **Yasuda**.
+Derbis is proprietary software licensed under the [Derbis End User License Agreement (EULA)](LICENSE).  
+Copyright © 2026 **Yasuda**. All rights reserved.  
+Unauthorized copying, cloning, redistribution, public mirroring, or commercial exploitation is strictly prohibited.

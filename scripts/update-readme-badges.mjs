@@ -137,18 +137,18 @@ await mkdir('docs/assets', { recursive: true })
 await Promise.all([
   writeFile('docs/assets/derbis-release.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7' }), 'utf8'),
   writeFile('docs/assets/derbis-downloads.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981' }), 'utf8'),
-  writeFile('docs/assets/derbis-license.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8' }), 'utf8'),
+  writeFile('docs/assets/derbis-license.svg', makePill({ label: 'LICENSE', value: 'EULA', icon: icons.license, isDark: true, accentColor: '#38BDF8' }), 'utf8'),
   writeFile('docs/assets/derbis-stars.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24' }), 'utf8'),
   writeFile('docs/assets/derbis-release-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED' }), 'utf8'),
   writeFile('docs/assets/derbis-downloads-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669' }), 'utf8'),
-  writeFile('docs/assets/derbis-license-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7' }), 'utf8'),
+  writeFile('docs/assets/derbis-license-light.svg', makePill({ label: 'LICENSE', value: 'EULA', icon: icons.license, isDark: false, accentColor: '#0284C7' }), 'utf8'),
   writeFile('docs/assets/derbis-stars-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706' }), 'utf8'),
   writeFile('docs/assets/derbis-release-mobile.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: true, accentColor: '#A855F7', mobile: true }), 'utf8'),
   writeFile('docs/assets/derbis-downloads-mobile.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: true, accentColor: '#10B981', mobile: true }), 'utf8'),
-  writeFile('docs/assets/derbis-license-mobile.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: true, accentColor: '#38BDF8', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-license-mobile.svg', makePill({ label: 'LICENSE', value: 'EULA', icon: icons.license, isDark: true, accentColor: '#38BDF8', mobile: true }), 'utf8'),
   writeFile('docs/assets/derbis-stars-mobile.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: true, accentColor: '#FBBF24', mobile: true }), 'utf8'),
   writeFile('docs/assets/derbis-release-mobile-light.svg', makePill({ label: 'LATEST', value: releaseValue, icon: icons.latest, isDark: false, accentColor: '#7C3AED', mobile: true }), 'utf8'),
   writeFile('docs/assets/derbis-downloads-mobile-light.svg', makePill({ label: 'DOWNLOADS', value: downloadsValue, icon: icons.downloads, isDark: false, accentColor: '#059669', mobile: true }), 'utf8'),
-  writeFile('docs/assets/derbis-license-mobile-light.svg', makePill({ label: 'LICENSE', value: 'GPL-3.0', icon: icons.license, isDark: false, accentColor: '#0284C7', mobile: true }), 'utf8'),
+  writeFile('docs/assets/derbis-license-mobile-light.svg', makePill({ label: 'LICENSE', value: 'EULA', icon: icons.license, isDark: false, accentColor: '#0284C7', mobile: true }), 'utf8'),
   writeFile('docs/assets/derbis-stars-mobile-light.svg', makePill({ label: 'STARS', value: starsValue, icon: icons.stars, isDark: false, accentColor: '#D97706', mobile: true }), 'utf8')
 ])
