@@ -689,9 +689,6 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
         val c5 = Color.hsv((hue + 288f) % 360f, 0.92f, 1f)
         Brush.horizontalGradient(listOf(c1, c2, c3, c4, c5))
     }
-    val rgbGlowColor = remember(hue) {
-        Color.hsv(hue % 360f, 0.88f, 1f)
-    }
 
     Column(modifier.fillMaxWidth()) {
         Slider(
@@ -709,36 +706,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                         Box(Modifier.fillMaxWidth(buffered).fillMaxHeight().background(AppleMusicVibrant.quaternary))
                     }
 
-                    // RGB Glowing Bloom behind active progress bar (visible and animated when crossfading)
-                    if (crossfadeAlpha > 0.01f && activeFraction > 0.005f) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth(activeFraction)
-                                .fillMaxHeight()
-                                .drawBehind {
-                                    val glowH = 12.dp.toPx()
-                                    val barHeightPx = barHeight.toPx()
-                                    // Outer soft neon spectrum glow
-                                    drawRoundRect(
-                                        brush = rgbBrush,
-                                        topLeft = Offset(-4.dp.toPx(), -glowH * 0.6f),
-                                        size = Size(size.width + 8.dp.toPx(), size.height + glowH * 1.2f),
-                                        cornerRadius = CornerRadius((barHeightPx + glowH) / 2f),
-                                        alpha = crossfadeAlpha * 0.50f
-                                    )
-                                    // Inner core bloom
-                                    drawRoundRect(
-                                        color = rgbGlowColor,
-                                        topLeft = Offset(-2.dp.toPx(), -3.dp.toPx()),
-                                        size = Size(size.width + 4.dp.toPx(), size.height + 6.dp.toPx()),
-                                        cornerRadius = CornerRadius((barHeightPx + 6.dp.toPx()) / 2f),
-                                        alpha = crossfadeAlpha * 0.40f
-                                    )
-                                }
-                        )
-                    }
-
-                    // Active progress bar
+                    // Active progress bar: RGB applied directly and only to the progress bar track itself
                     if (activeFraction > 0f) {
                         Box(
                             Modifier
@@ -747,7 +715,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                                 .clip(shape)
                                 .background(if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary)
                         )
-                        // RGB progress overlay with smooth fade
+                        // RGB progress overlay applied strictly within the progress bar bounds
                         if (crossfadeAlpha > 0.01f) {
                             Box(
                                 Modifier
