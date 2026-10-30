@@ -44,6 +44,8 @@ jobs:
         run: |
           npm install || true
           node build.js
+          mkdir -p dist
+          cp -r index.html app.js styles.css assets install.html manifest.plist dist/ 2>/dev/null || true
 
       - name: Setup Capacitor iOS Project
         working-directory: website

@@ -94,5 +94,23 @@ function get(url) {
   };
   fs.writeFileSync(path.resolve(__dirname, "vercel.json"), JSON.stringify(vercelConfig, null, 2), "utf8");
 
+  // Ensure dist directory for Capacitor iOS build
+  const distDir = path.resolve(__dirname, "dist");
+  fs.mkdirSync(distDir, { recursive: true });
+  for (const file of ["index.html", "app.js", "styles.css", "install.html", "manifest.plist", "config.js"]) {
+    const src = path.resolve(__dirname, file);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.resolve(distDir, file));
+    }
+  }
+  const assetsDir = path.resolve(__dirname, "assets");
+  if (fs.existsSync(assetsDir)) {
+    fs.cpSync(assetsDir, path.resolve(distDir, "assets"), { recursive: true });
+  }
+  const publicDir = path.resolve(__dirname, "public");
+  if (fs.existsSync(publicDir)) {
+    fs.cpSync(publicDir, distDir, { recursive: true });
+  }
+
   console.log("DERBIS SEARCH SELECTION & ENDLESS RADIO BUNDLE DEPLOYED SUCCESSFULLY");
 })();
