@@ -112,7 +112,8 @@ private fun DerbisUiState.toMainActivityUiSlice(): MainActivityUiSlice = MainAct
         blur = interfaceSettings.glassBlur,
         transparency = interfaceSettings.glassTransparency,
         tint = interfaceSettings.glassTint,
-        refraction = interfaceSettings.glassRefraction
+        refraction = interfaceSettings.glassRefraction,
+        effects = interfaceSettings.glassEffects
     ),
     isPlaying = isPlaying,
     showSettings = showSettings,

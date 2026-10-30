@@ -1,5 +1,7 @@
 package com.yasuda.derbis.ui.theme
 
+import androidx.compose.ui.graphics.Color
+import com.yasuda.derbis.domain.DerbisGlassEffects
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -148,6 +150,16 @@ internal fun ThemeStudioGlassSection(
                 checked = style.refraction,
                 enabled = enabled,
                 onCheckedChange = { onStyleChange(style.copy(refraction = it)) }
+            )
+            // Plain-language budget for the optical glass. Deliberately not labelled with the
+            // internal tiers: "Auto" is the only one a non-technical user has to reason about.
+            GlassEffectsTile(
+                title = copy.effects,
+                subtitle = copy.effectsSubtitle,
+                selected = style.effects,
+                enabled = enabled,
+                copy = copy,
+                onSelect = { onStyleChange(style.copy(effects = it)) }
             )
         }
         Text(
@@ -310,6 +322,128 @@ private fun GlassRefractionTile(
                     )
                 }
             )
+        }
+    }
+}
+
+/**
+ * Three-option chooser for [DerbisGlassEffects]. Each row carries a plain hint so the choice
+ * reads as "how it looks / how fast it feels", never as a rendering quality tier.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassEffectsTile(
+    title: String,
+    subtitle: String,
+    selected: DerbisGlassEffects,
+    enabled: Boolean,
+    copy: GlassStudioCopy,
+    onSelect: (DerbisGlassEffects) -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    val options = listOf(
+        Triple(DerbisGlassEffects.Automatic, copy.effectsAuto, copy.effectsAutoHint),
+        Triple(DerbisGlassEffects.AlwaysOn, copy.effectsAlwaysOn, copy.effectsAlwaysOnHint),
+        Triple(DerbisGlassEffects.Off, copy.effectsOff, copy.effectsOffHint)
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(GlassTileLastShape)
+            .background(if (enabled) scheme.surfaceContainerHigh else scheme.surfaceContainerHighest)
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            GlassTileIcon(icon = Icons.Rounded.AutoAwesome, enabled = enabled)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    title,
+                    color = if (enabled) scheme.onSurface else scheme.onSurfaceVariant,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    subtitle,
+                    color = if (enabled) scheme.onSurfaceVariant else scheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    lineHeight = DerbisTypeRhythm.lineHeight(13f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+            options.forEach { (value, label, hint) ->
+                val active = selected == value
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (active) scheme.secondaryContainer
+                            else Color.Transparent
+                        )
+                        .then(
+                            if (enabled) {
+                                Modifier.toggleable(
+                                    value = active,
+                                    role = Role.RadioButton,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onValueChange = { onSelect(value) }
+                                ).semantics { stateDescription = if (active) label else "" }
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (active) scheme.primary
+                                else scheme.surfaceContainerHighest
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (active) {
+                            Icon(
+                                Icons.Rounded.Check,
+                                contentDescription = null,
+                                tint = scheme.onPrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            label,
+                            color = if (enabled) scheme.onSurface else scheme.onSurfaceVariant,
+                            fontSize = 15.sp,
+                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            hint,
+                            color = scheme.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
         }
     }
 }

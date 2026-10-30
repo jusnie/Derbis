@@ -11,6 +11,7 @@ All notable, user-visible changes are documented here. Each published Android an
 ### Changed
 - Liquid Glass cost scales with the device: low-RAM and battery-saver devices keep a coarser frost with no lens, while content rows and page surfaces sample a cheaper bucket than chrome.
 - The full-page glass film no longer re-blurs the backdrop every frame, which removes the single most expensive glass surface in the app.
+- Liquid Glass settings add a plain-language **Glass look** choice — Auto, Always on, Off — instead of exposing a technical quality tier.
 
 ## [1.1.0] — 2026-10-27
 

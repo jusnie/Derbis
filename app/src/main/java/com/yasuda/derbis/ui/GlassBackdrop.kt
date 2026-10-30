@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
+import com.yasuda.derbis.domain.DerbisGlassEffects
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
 import com.yasuda.derbis.ui.theme.rememberPowerSaveMode
 import kotlin.math.ceil
@@ -96,8 +97,9 @@ fun rememberDerbisGlassTier(
         context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
     }
     val powerSave = rememberPowerSaveMode()
-    return remember(heavyBlur, lowRam, powerSave) {
-        resolveGlassLensTier(heavyBlur, lowRam, powerSave)
+    val effects = LocalDerbisGlassStyle.current.effects
+    return remember(heavyBlur, lowRam, powerSave, effects) {
+        resolveGlassLensTier(heavyBlur, lowRam, powerSave, effects)
     }
 }
 
@@ -188,10 +190,18 @@ internal enum class GlassLensTier {
 internal fun resolveGlassLensTier(
     heavyBlur: Boolean,
     lowRamDevice: Boolean,
-    powerSaveMode: Boolean
-): GlassLensTier = when {
-    !heavyBlur || lowRamDevice || powerSaveMode -> GlassLensTier.Efficient
-    else -> GlassLensTier.Full
+    powerSaveMode: Boolean,
+    effects: DerbisGlassEffects = DerbisGlassEffects.Automatic
+): GlassLensTier = when (effects) {
+    // The user asked for the fast, plain version: no lens, cheapest frost.
+    DerbisGlassEffects.Off -> GlassLensTier.Efficient
+    // "Always on" is an explicit opt-in, so it outranks the automatic downgrades; it still
+    // respects the app's own visual-performance switch, which can disable glass entirely.
+    DerbisGlassEffects.AlwaysOn -> if (heavyBlur) GlassLensTier.Full else GlassLensTier.Efficient
+    DerbisGlassEffects.Automatic -> when {
+        !heavyBlur || lowRamDevice || powerSaveMode -> GlassLensTier.Efficient
+        else -> GlassLensTier.Full
+    }
 }
 
 /** Picks whichever of the two buckets renders fewer pixels. */
@@ -644,7 +654,9 @@ data class DerbisGlassStyle(
     val blur: Int = DEFAULT_LEVEL,
     val transparency: Int = DEFAULT_LEVEL,
     val tint: Int = DEFAULT_LEVEL,
-    val refraction: Boolean = true
+    val refraction: Boolean = true,
+    /** User-facing Auto / Always on / Off budget for the optical lens. */
+    val effects: DerbisGlassEffects = DerbisGlassEffects.Automatic
 ) {
     val blurScale: Float get() = 0.5f + blur.coerceIn(0, 100) / 100f
     val tintAlphaScale: Float get() = 1.45f - transparency.coerceIn(0, 100) / 100f * 0.9f

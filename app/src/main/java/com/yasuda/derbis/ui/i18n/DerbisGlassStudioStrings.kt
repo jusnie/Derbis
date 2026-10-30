@@ -10,7 +10,16 @@ internal data class GlassStudioCopy(
     val refractionSubtitle: String,
     val performanceNote: String,
     val disabledNote: String,
-    val reset: String
+    val reset: String,
+    /** Plain-language headline for Auto / Always on / Off. No technical tier names. */
+    val effects: String = "Glass look",
+    val effectsSubtitle: String = "How much depth the glass adds",
+    val effectsAuto: String = "Auto",
+    val effectsAutoHint: String = "Matches your phone",
+    val effectsAlwaysOn: String = "Always on",
+    val effectsAlwaysOnHint: String = "Richest, uses more battery",
+    val effectsOff: String = "Off",
+    val effectsOffHint: String = "Fastest and flattest"
 )
 
 internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
@@ -25,6 +34,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Segue Prestazioni visive: sui dispositivi limitati e con il risparmio energetico gli effetti avanzati si disattivano.",
         disabledNote = "Attiva Liquid Glass nelle impostazioni dell'interfaccia per usare questi controlli.",
         reset = "Ripristina"
+        effects = "Aspetto del vetro",
+        effectsSubtitle = "Quanta profondità aggiunge il vetro",
+        effectsAuto = "Auto",
+        effectsAutoHint = "Si adatta al telefono",
+        effectsAlwaysOn = "Sempre attivo",
+        effectsAlwaysOnHint = "Più ricco, consuma più batteria",
+        effectsOff = "Disattivato",
+        effectsOffHint = "Più veloce e più piatto"
     )
     "es" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -37,6 +54,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Sigue Rendimiento visual: en dispositivos limitados y con ahorro de batería se desactivan los efectos avanzados.",
         disabledNote = "Activa Liquid Glass en los ajustes de interfaz para usar estos controles.",
         reset = "Restablecer"
+        effects = "Aspecto del cristal",
+        effectsSubtitle = "Cuánta profundidad añade el cristal",
+        effectsAuto = "Auto",
+        effectsAutoHint = "Se adapta a tu teléfono",
+        effectsAlwaysOn = "Siempre activo",
+        effectsAlwaysOnHint = "Más rico, gasta más batería",
+        effectsOff = "Desactivado",
+        effectsOffHint = "Más rápido y más plano"
     )
     "fr" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -49,6 +74,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Suit Performances visuelles : sur les appareils limités et en économie d'énergie, les effets avancés sont désactivés.",
         disabledNote = "Activez Liquid Glass dans les réglages de l'interface pour utiliser ces commandes.",
         reset = "Réinitialiser"
+        effects = "Aspect du verre",
+        effectsSubtitle = "Profondeur ajoutée par le verre",
+        effectsAuto = "Auto",
+        effectsAutoHint = "S'adapte à votre téléphone",
+        effectsAlwaysOn = "Toujours actif",
+        effectsAlwaysOnHint = "Plus riche, plus gourmand en batterie",
+        effectsOff = "Désactivé",
+        effectsOffHint = "Plus rapide et plus plat"
     )
     "de" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -61,6 +94,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Folgt der visuellen Leistung: Auf schwächeren Geräten und im Energiesparmodus werden erweiterte Effekte deaktiviert.",
         disabledNote = "Aktiviere Liquid Glass in den Oberflächeneinstellungen, um diese Regler zu nutzen.",
         reset = "Zurücksetzen"
+        effects = "Glas-Look",
+        effectsSubtitle = "Wie viel Tiefe das Glas hinzufügt",
+        effectsAuto = "Auto",
+        effectsAutoHint = "Passt sich deinem Gerät an",
+        effectsAlwaysOn = "Immer an",
+        effectsAlwaysOnHint = "Reichhaltiger, mehr Akkuverbrauch",
+        effectsOff = "Aus",
+        effectsOffHint = "Schnellster und flachster Look"
     )
     "pt" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -73,6 +114,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Segue o Desempenho visual: em dispositivos limitados e com poupança de bateria os efeitos avançados são desativados.",
         disabledNote = "Ativa o Liquid Glass nas definições da interface para usar estes controlos.",
         reset = "Repor"
+        effects = "Aparência do vidro",
+        effectsSubtitle = "Quanta profundidade o vidro adiciona",
+        effectsAuto = "Automático",
+        effectsAutoHint = "Adapta-se ao seu telefone",
+        effectsAlwaysOn = "Sempre ativo",
+        effectsAlwaysOnHint = "Mais rico, gasta mais bateria",
+        effectsOff = "Desativado",
+        effectsOffHint = "Mais rápido e mais plano"
     )
     "ja" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -85,6 +134,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "表示パフォーマンスの設定に従います。低スペック端末や省電力モードでは高度な効果をオフにします。",
         disabledNote = "これらの設定を使うには、インターフェース設定で Liquid Glass をオンにしてください。",
         reset = "リセット"
+        effects = "ガラスの見た目",
+        effectsSubtitle = "ガラスが加える奥行きの量",
+        effectsAuto = "自動",
+        effectsAutoHint = "スマートフォンに合わせる",
+        effectsAlwaysOn = "常にオン",
+        effectsAlwaysOnHint = "最も豊か・バッテリー消費多め",
+        effectsOff = "オフ",
+        effectsOffHint = "最速で最も平坦"
     )
     "nl" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -97,6 +154,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Volgt Visuele prestaties: geavanceerde effecten gaan uit op beperkte apparaten en bij batterijbesparing.",
         disabledNote = "Zet Liquid Glass aan in de interface-instellingen om deze opties te gebruiken.",
         reset = "Herstellen"
+        effects = "Glasuiterlijk",
+        effectsSubtitle = "Hoeveel diepte het glas toevoegt",
+        effectsAuto = "Automatisch",
+        effectsAutoHint = "Past zich aan je telefoon aan",
+        effectsAlwaysOn = "Altijd aan",
+        effectsAlwaysOnHint = "Meest rijk, meer batterijgebruik",
+        effectsOff = "Uit",
+        effectsOffHint = "Snelst en vlakst"
     )
     "pl" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -109,6 +174,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Zgodnie z Wydajnością wizualną: zaawansowane efekty wyłączają się na słabszych urządzeniach i w trybie oszczędzania baterii.",
         disabledNote = "Włącz Liquid Glass w ustawieniach interfejsu, aby używać tych opcji.",
         reset = "Przywróć"
+        effects = "Wygląd szkła",
+        effectsSubtitle = "Ile głębi dodaje szkło",
+        effectsAuto = "Auto",
+        effectsAutoHint = "Dopasowuje się do telefonu",
+        effectsAlwaysOn = "Zawsze włączone",
+        effectsAlwaysOnHint = "Najbogatszy, zużywa więcej baterii",
+        effectsOff = "Wyłączone",
+        effectsOffHint = "Najszybszy i najbardziej płaski"
     )
     "ro" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -193,6 +266,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Зависит от Визуальной производительности: расширенные эффекты отключаются на слабых устройствах и в режиме энергосбережения.",
         disabledNote = "Включите Liquid Glass в настройках интерфейса, чтобы пользоваться этими параметрами.",
         reset = "Сбросить"
+        effects = "Вид стекла",
+        effectsSubtitle = "Насколько глубоким будет стекло",
+        effectsAuto = "Авто",
+        effectsAutoHint = "Подстраивается под телефон",
+        effectsAlwaysOn = "Всегда включено",
+        effectsAlwaysOnHint = "Самый богатый, больше расход батареи",
+        effectsOff = "Выкл.",
+        effectsOffHint = "Самый быстрый и плоский"
     )
     "tr" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -205,6 +286,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Görsel performansı izler: gelişmiş efektler sınırlı cihazlarda ve pil tasarrufunda kapanır.",
         disabledNote = "Bu denetimleri kullanmak için arayüz ayarlarından Liquid Glass'ı açın.",
         reset = "Sıfırla"
+        effects = "Cam görünümü",
+        effectsSubtitle = "Camın eklediği derinlik",
+        effectsAuto = "Otomatik",
+        effectsAutoHint = "Telefonuna göre ayarlanır",
+        effectsAlwaysOn = "Her zaman açık",
+        effectsAlwaysOnHint = "En zengin, daha çok pil kullanır",
+        effectsOff = "Kapalı",
+        effectsOffHint = "En hızlı ve en düz"
     )
     "ar" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -217,6 +306,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "يتبع إعداد الأداء المرئي: تتوقف التأثيرات المتقدمة على الأجهزة المحدودة وفي وضع توفير البطارية.",
         disabledNote = "فعّل Liquid Glass في إعدادات الواجهة لاستخدام هذه الخيارات.",
         reset = "إعادة تعيين"
+        effects = "مظهر الزجاج",
+        effectsSubtitle = "مقدار العمق الذي يضيفه الزجاج",
+        effectsAuto = "تلقائي",
+        effectsAutoHint = "يتوافق مع هاتفك",
+        effectsAlwaysOn = "دائم التشغيل",
+        effectsAlwaysOnHint = "الأغنى، يستهلك بطارية أكثر",
+        effectsOff = "إيقاف",
+        effectsOffHint = "الأسرع والأبسط"
     )
     "zh" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -229,6 +326,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "遵循视觉性能设置：在受限设备和省电模式下会关闭高级效果。",
         disabledNote = "请在界面设置中开启 Liquid Glass 以使用这些选项。",
         reset = "重置"
+        effects = "玻璃外观",
+        effectsSubtitle = "玻璃增加的层次感",
+        effectsAuto = "自动",
+        effectsAutoHint = "自动适配手机",
+        effectsAlwaysOn = "始终开启",
+        effectsAlwaysOnHint = "效果最佳，耗电更多",
+        effectsOff = "关闭",
+        effectsOffHint = "最快、最简洁"
     )
     "ko" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -241,6 +346,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "시각 성능 설정을 따릅니다. 제한된 기기와 절전 모드에서는 고급 효과가 꺼집니다.",
         disabledNote = "이 설정을 사용하려면 인터페이스 설정에서 Liquid Glass를 켜세요.",
         reset = "초기화"
+        effects = "유리 스타일",
+        effectsSubtitle = "유리가 더하는 깊이감",
+        effectsAuto = "자동",
+        effectsAutoHint = "휴대폰에 맞춤",
+        effectsAlwaysOn = "항상 켜기",
+        effectsAlwaysOnHint = "가장 풍부함, 배터리 소모 많음",
+        effectsOff = "끄기",
+        effectsOffHint = "가장 빠르고 평평함"
     )
     "hi" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -253,6 +366,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "विज़ुअल परफ़ॉर्मेंस के अनुसार: सीमित डिवाइस और बैटरी सेवर में उन्नत प्रभाव बंद हो जाते हैं।",
         disabledNote = "इन विकल्पों के लिए इंटरफ़ेस सेटिंग में Liquid Glass चालू करें।",
         reset = "रीसेट करें"
+        effects = "ग्लास लुक",
+        effectsSubtitle = "ग्लास कितनी गहराई जोड़ता है",
+        effectsAuto = "स्वतः",
+        effectsAutoHint = "आपके फ़ोन के अनुसार",
+        effectsAlwaysOn = "हमेशा चालू",
+        effectsAlwaysOnHint = "सबसे बढ़िया, बैटरी ज़्यादा लगती है",
+        effectsOff = "बंद",
+        effectsOffHint = "सबसे तेज़ और सपाट"
     )
     "id" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -265,6 +386,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Mengikuti Performa visual: efek lanjutan nonaktif di perangkat terbatas dan saat penghemat baterai.",
         disabledNote = "Aktifkan Liquid Glass di setelan antarmuka untuk memakai kontrol ini.",
         reset = "Atur ulang"
+        effects = "Tampilan kaca",
+        effectsSubtitle = "Seberapa dalam efek kacanya",
+        effectsAuto = "Otomatis",
+        effectsAutoHint = "Menyesuaikan ponsel Anda",
+        effectsAlwaysOn = "Selalu aktif",
+        effectsAlwaysOnHint = "Paling kaya, lebih boros baterai",
+        effectsOff = "Nonaktif",
+        effectsOffHint = "Paling cepat dan datar"
     )
     "vi" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -277,6 +406,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Theo Hiệu năng hình ảnh: hiệu ứng nâng cao sẽ tắt trên thiết bị hạn chế và khi tiết kiệm pin.",
         disabledNote = "Bật Liquid Glass trong cài đặt giao diện để dùng các tùy chọn này.",
         reset = "Đặt lại"
+        effects = "Kiểu kính",
+        effectsSubtitle = "Mức độ chiều sâu của kính",
+        effectsAuto = "Tự động",
+        effectsAutoHint = "Tự phù hợp với máy của bạn",
+        effectsAlwaysOn = "Luôn bật",
+        effectsAlwaysOnHint = "Đẹp nhất, hao pin hơn",
+        effectsOff = "Tắt",
+        effectsOffHint = "Nhanh nhất và phẳng nhất"
     )
     "th" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -289,6 +426,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "เป็นไปตามประสิทธิภาพภาพ: เอฟเฟกต์ขั้นสูงจะปิดในอุปกรณ์สเปกจำกัดและโหมดประหยัดแบตเตอรี่",
         disabledNote = "เปิด Liquid Glass ในการตั้งค่าอินเทอร์เฟซเพื่อใช้ตัวเลือกเหล่านี้",
         reset = "รีเซ็ต"
+        effects = "ลักษณะแก้ว",
+        effectsSubtitle = "ความลึกที่แก้วเพิ่มให้",
+        effectsAuto = "อัตโนมัติ",
+        effectsAutoHint = "ปรับตามโทรศัพท์ของคุณ",
+        effectsAlwaysOn = "เปิดตลอด",
+        effectsAlwaysOnHint = "สวยที่สุด ใช้แบตเตอรี่มากกว่า",
+        effectsOff = "ปิด",
+        effectsOffHint = "เร็วที่สุดและแบนที่สุด"
     )
     "fil" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -301,6 +446,14 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         performanceNote = "Sumusunod sa Visual performance: namamatay ang advanced effects sa limitadong device at sa battery saver.",
         disabledNote = "I-on ang Liquid Glass sa interface settings para magamit ang mga kontrol na ito.",
         reset = "I-reset"
+        effects = "Itsura ng salamin",
+        effectsSubtitle = "Gaano kalalim ang dagdag ng salamin",
+        effectsAuto = "Auto",
+        effectsAutoHint = "Umaangkop sa iyong telepono",
+        effectsAlwaysOn = "Palaging bukas",
+        effectsAlwaysOnHint = "Pinakamayaman, mas mabilis maubos ang baterya",
+        effectsOff = "Naka-off",
+        effectsOffHint = "Pinakamabilis at pinakapayak"
     )
     "he" -> GlassStudioCopy(
         title = "Expressive Glass",

@@ -1839,6 +1839,7 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("glassTransparency", value.glassTransparency)
     .put("glassTint", value.glassTint)
     .put("glassRefraction", value.glassRefraction)
+    .put("glassEffects", value.glassEffects.name)
     .put("dataSaverEnabled", value.dataSaverEnabled)
     .put("motionArtworkWifiOnly", value.motionArtworkWifiOnly)
     .put("motionArtworkEnabled", value.motionArtworkEnabled)
@@ -1903,6 +1904,7 @@ internal fun backupInterfaceSettingsFromJson(
         glassTransparency = json.optInt("glassTransparency", DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassTint = json.optInt("glassTint", DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL),
         glassRefraction = json.optBoolean("glassRefraction", true),
+        glassEffects = com.yasuda.derbis.domain.DerbisGlassEffects.decode(json.optString("glassEffects", null)),
         dataSaverEnabled = json.optBoolean("dataSaverEnabled", false),
         motionArtworkWifiOnly = json.optBoolean("motionArtworkWifiOnly", false),
         motionArtworkEnabled = json.optBoolean("motionArtworkEnabled", false),

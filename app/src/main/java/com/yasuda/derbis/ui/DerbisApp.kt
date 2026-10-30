@@ -3430,7 +3430,8 @@ fun DerbisApp(
                         blur = state.interfaceSettings.glassBlur,
                         transparency = state.interfaceSettings.glassTransparency,
                         tint = state.interfaceSettings.glassTint,
-                        refraction = state.interfaceSettings.glassRefraction
+                        refraction = state.interfaceSettings.glassRefraction,
+                        effects = state.interfaceSettings.glassEffects
                     ),
                     onGlassStyleChange = { glass ->
                         viewModel.setInterfaceSettings(
@@ -3438,7 +3439,8 @@ fun DerbisApp(
                                 glassBlur = glass.blur,
                                 glassTransparency = glass.transparency,
                                 glassTint = glass.tint,
-                                glassRefraction = glass.refraction
+                                glassRefraction = glass.refraction,
+                                glassEffects = glass.effects
                             )
                         )
                     }

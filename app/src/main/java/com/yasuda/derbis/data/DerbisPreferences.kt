@@ -254,6 +254,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_TRANSPARENCY] = normalizedInterface.glassTransparency
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
+            mutable[KEY_UI_GLASS_EFFECTS] = normalizedInterface.glassEffects.name
             mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
@@ -445,6 +446,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
             it[KEY_UI_GLASS_TINT] = normalized.glassTint
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
+            it[KEY_UI_GLASS_EFFECTS] = normalized.glassEffects.name
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
@@ -904,6 +906,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassTransparency = preferences[KEY_UI_GLASS_TRANSPARENCY] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
+            glassEffects = DerbisGlassEffects.decode(preferences[KEY_UI_GLASS_EFFECTS]),
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
@@ -1426,6 +1429,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_GLASS_TRANSPARENCY = intPreferencesKey("ui_glass_transparency")
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
+        val KEY_UI_GLASS_EFFECTS = stringPreferencesKey("ui_glass_effects")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
         val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")

@@ -204,6 +204,31 @@ enum class DerbisSkin {
     }
 }
 
+/**
+ * User-facing budget for the Liquid Glass lens.
+ *
+ * Auto is the only option that needs the user to decide nothing: it follows the device's RAM,
+ * battery-saver state and visual-performance setting. Always on forces the full optical pass on
+ * devices that would otherwise downgrade, and Off keeps the glass but drops the lens entirely.
+ */
+enum class DerbisGlassEffects {
+    Automatic,
+    AlwaysOn,
+    Off;
+
+    val label: String
+        get() = when (this) {
+            Automatic -> "Auto"
+            AlwaysOn -> "Always on"
+            Off -> "Off"
+        }
+
+    companion object {
+        fun decode(raw: String?): DerbisGlassEffects =
+            entries.firstOrNull { it.name.equals(raw?.trim(), ignoreCase = true) } ?: Automatic
+    }
+}
+
 data class DerbisInterfaceSettings(
     val compactHome: Boolean = false,
     val showPersonalOrbit: Boolean = true,
@@ -231,6 +256,11 @@ data class DerbisInterfaceSettings(
     val glassTransparency: Int = DEFAULT_GLASS_LEVEL,
     val glassTint: Int = DEFAULT_GLASS_LEVEL,
     val glassRefraction: Boolean = true,
+    /**
+     * How much optical work the Liquid Glass material is allowed to do. Presented to users as
+     * Auto / Always on / Off — never as a raw quality tier.
+     */
+    val glassEffects: DerbisGlassEffects = DerbisGlassEffects.Automatic,
     /** Suppresses non-essential network work while preserving user-requested playback and search. */
     val dataSaverEnabled: Boolean = false,
     val motionArtworkWifiOnly: Boolean = false,
