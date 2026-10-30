@@ -7,8 +7,12 @@ All notable, user-visible changes are documented here. Each published Android an
 ### What's New
 - Liquid Glass lens now has real chromatic dispersion at the rim, a directional specular highlight and a thickness-shaped bezel instead of a single flat edge warp.
 - The whole app carries the Liquid Glass material: every screen gets a page-level glass film, and the dock mini player now joins the same material as the navigation bar and player panels.
+- Listening Wrapped can share the receipt card from any page, not just the finale: the story header now has a share button that renders the same card as a 1080px PNG.
+- The track story sheet shows the live card in a fitted stage with a light sweep while it renders, format tabs with their export ratio, theme tiles previewing each look, and one consistent button style for share, Instagram, save, copy link and Jam.
 
 ### Changed
+- The track story sheet is translated: share, preparing, save, saved, copy link, link copied and Jam labels follow the app language, and noisy toasts are replaced by in-place button states.
+- Listening Wrapped copy sizes scale with the page height, pages scroll instead of clipping on short screens, and the progress bar reports page position to accessibility services.
 - Liquid Glass cost scales with the device: low-RAM and battery-saver devices keep a coarser frost with no lens, while content rows and page surfaces sample a cheaper bucket than chrome.
 - The full-page glass film no longer re-blurs the backdrop every frame, which removes the single most expensive glass surface in the app.
 - Liquid Glass settings add a plain-language **Glass look** choice — Auto, Always on, Off — instead of exposing a technical quality tier.

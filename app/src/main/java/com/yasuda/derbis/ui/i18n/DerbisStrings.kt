@@ -965,6 +965,25 @@ class DerbisStrings private constructor(
     val wrappedEmpty: String get() = value("wrappedEmpty")
     val wrappedReceiptTitle: String get() = value("wrappedReceiptTitle")
     val shareLyricsPreparing: String get() = value("shareLyricsPreparing")
+    /** Share sheet actions. Kept inline so every locale falls back to a readable label. */
+    val storyCopyLink: String get() = when (code) {
+        "it" -> "Copia link"
+        "es" -> "Copiar enlace"
+        "fr" -> "Copier le lien"
+        "de" -> "Link kopieren"
+        "pt" -> "Copiar link"
+        "ja" -> "リンクをコピー"
+        else -> "Copy link"
+    }
+    val storyLinkCopied: String get() = when (code) {
+        "it" -> "Link copiato"
+        "es" -> "Enlace copiado"
+        "fr" -> "Lien copié"
+        "de" -> "Link kopiert"
+        "pt" -> "Link copiado"
+        "ja" -> "コピーしました"
+        else -> "Link copied"
+    }
     val shareLyricsFailed: String get() = value("shareLyricsFailed")
     val shareLyricsLineSelected: String get() = value("shareLyricsLineSelected")
     val shareLyricsLineNotSelected: String get() = value("shareLyricsLineNotSelected")
