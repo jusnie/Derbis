@@ -751,7 +751,7 @@ import com.yasuda.derbis.ui.lyrics.studio.LyricsStudioOverlay
 import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
-import com.yasuda.derbis.ui.island.IslandLyricStyle
+import com.yasuda.derbis.ui.island.DerbisMusicNotch
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
@@ -2283,7 +2283,6 @@ fun DerbisApp(
             val expansionProvider: () -> Float = { playerExpansion.value }
             val chromeVisible by remember { derivedStateOf { playerExpansion.value < 1f } }
             val playerVisible by remember { derivedStateOf { playerExpansion.value > 0f } }
-            var islandLyricStyle by remember { mutableStateOf(IslandLyricStyle.Default) }
             val morphAllowed = state.animationsEnabled && !state.isVideoMode
             val artworkMorphActive by remember(morphAllowed) {
                 derivedStateOf {
@@ -2707,16 +2706,20 @@ fun DerbisApp(
                 }
             }
 
-            if (!playerVisible && state.currentTrack != null) {
-                com.yasuda.derbis.ui.island.DerbisMusicIsland(
+            if (!playerVisible && state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled) {
+                DerbisMusicNotch(
                     track = state.currentTrack,
                     lyrics = state.lyrics,
                     lyricsSynced = state.lyricsSynced,
                     positionMs = state.positionMs,
                     durationMs = state.durationMs,
                     isPlaying = state.isPlaying,
-                    style = islandLyricStyle,
-                    onStyleChange = { islandLyricStyle = it },
+                    style = state.interfaceSettings.derbisNotchStyle,
+                    onStyleChange = { chosen ->
+                        viewModel.setInterfaceSettings(
+                            state.interfaceSettings.copy(derbisNotchStyle = chosen)
+                        )
+                    },
                     onTogglePlay = viewModel::togglePlay,
                     onPrevious = viewModel::previous,
                     onNext = viewModel::next,
@@ -21530,6 +21533,19 @@ private fun SettingsOverlay(
                                     subtitle = strings.hapticFeedbackSubtitle,
                                     checked = interfaceSettings.hapticFeedback,
                                     onCheckedChange = { onInterfaceSettings(interfaceSettings.copy(hapticFeedback = it)) }
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.PictureInPictureAlt,
+                                    title = strings.derbisNotch,
+                                    subtitle = strings.derbisNotchHint,
+                                    checked = interfaceSettings.derbisNotchEnabled,
+                                    onCheckedChange = {
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(derbisNotchEnabled = it)
+                                        )
+                                    }
                                 )
                             }
                             item {

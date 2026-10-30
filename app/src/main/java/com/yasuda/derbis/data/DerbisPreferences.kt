@@ -268,6 +268,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_TORQUE_ACCENT] = normalizedInterface.torque.accent.name
             mutable[KEY_IVORY_APPEARANCE] = normalizedInterface.ivory.appearance.name
             mutable[KEY_UI_HAPTIC_FEEDBACK] = normalizedInterface.hapticFeedback
+            mutable[KEY_UI_DERBIS_NOTCH] = normalizedInterface.derbisNotchEnabled
+            mutable[KEY_UI_DERBIS_NOTCH_STYLE] = normalizedInterface.derbisNotchStyle.name
             mutable[KEY_UI_PLAYER_VISUAL_MODE] = normalizedInterface.playerVisualMode.name
             mutable[KEY_UI_PLAYER_BACKGROUND] = normalizedInterface.playerBackground.name
             mutable[KEY_UI_REACTIVE_AURA_PRESET] = normalizedInterface.reactiveAuraPreset.name
@@ -460,6 +462,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_TORQUE_ACCENT] = normalized.torque.accent.name
             it[KEY_IVORY_APPEARANCE] = normalized.ivory.appearance.name
             it[KEY_UI_HAPTIC_FEEDBACK] = normalized.hapticFeedback
+            it[KEY_UI_DERBIS_NOTCH] = normalized.derbisNotchEnabled
+            it[KEY_UI_DERBIS_NOTCH_STYLE] = normalized.derbisNotchStyle.name
             it[KEY_UI_PLAYER_VISUAL_MODE] = normalized.playerVisualMode.name
             it[KEY_UI_PLAYER_BACKGROUND] = normalized.playerBackground.name
             it[KEY_UI_REACTIVE_AURA_PRESET] = normalized.reactiveAuraPreset.name
@@ -922,6 +926,10 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             torque = com.yasuda.derbis.domain.TorqueSettings.from(preferences[KEY_TORQUE_ACCENT].orEmpty()),
             ivory = com.yasuda.derbis.domain.IvorySettings.from(preferences[KEY_IVORY_APPEARANCE].orEmpty()),
             hapticFeedback = preferences[KEY_UI_HAPTIC_FEEDBACK] ?: true,
+            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: true,
+            derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
+                preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+            ),
             playerVisualMode = visualMode,
             playerBackground = background,
             reactiveAuraPreset = ReactiveAuraPreset.from(preferences[KEY_UI_REACTIVE_AURA_PRESET].orEmpty()),
@@ -1415,6 +1423,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_TORQUE_ACCENT = stringPreferencesKey("torque_accent")
         val KEY_IVORY_APPEARANCE = stringPreferencesKey("ivory_appearance")
         val KEY_UI_HAPTIC_FEEDBACK = booleanPreferencesKey("ui_haptic_feedback")
+        val KEY_UI_DERBIS_NOTCH = booleanPreferencesKey("ui_derbis_notch")
+        val KEY_UI_DERBIS_NOTCH_STYLE = stringPreferencesKey("ui_derbis_notch_style")
         val KEY_UI_DOUBLE_TAP_SECONDS = intPreferencesKey("ui_double_tap_seconds")
         val KEY_UI_LONG_PRESS_ACTION = stringPreferencesKey("ui_long_press_action")
         val KEY_UI_LONG_PRESS_SPEED = floatPreferencesKey("ui_long_press_speed")

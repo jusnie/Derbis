@@ -31,6 +31,17 @@ enum class DerbisVisualPerformance {
     }
 }
 
+/** Lyric treatment inside the Derbis Notch card. */
+enum class DerbisNotchStyle {
+    Default,
+    Spicy;
+
+    companion object {
+        fun from(value: String): DerbisNotchStyle =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Default
+    }
+}
+
 enum class LibrarySort {
     Recent,
     Title,
@@ -270,6 +281,9 @@ data class DerbisInterfaceSettings(
     val blockAiContent: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
+    /** In-app dynamic island pinned above the app. */
+    val derbisNotchEnabled: Boolean = true,
+    val derbisNotchStyle: DerbisNotchStyle = DerbisNotchStyle.Default,
     val playerVisualMode: PlayerVisualMode = PlayerVisualMode.Flow,
     val playerBackground: PlayerBackgroundMode = PlayerBackgroundMode.Dynamic,
     val reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,

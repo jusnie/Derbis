@@ -1853,6 +1853,8 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("torqueAccent", value.torque.accent.name)
     .put("ivoryAppearance", value.ivory.appearance.name)
     .put("hapticFeedback", value.hapticFeedback)
+    .put("derbisNotchEnabled", value.derbisNotchEnabled)
+    .put("derbisNotchStyle", value.derbisNotchStyle.name)
     .put("playerVisualMode", value.playerVisualMode.name)
     .put("playerBackground", value.playerBackground.name)
     .put("reactiveAuraPreset", value.reactiveAuraPreset.name)
@@ -1920,6 +1922,10 @@ internal fun backupInterfaceSettingsFromJson(
         torque = com.yasuda.derbis.domain.TorqueSettings.from(json.optString("torqueAccent")),
         ivory = com.yasuda.derbis.domain.IvorySettings.from(json.optString("ivoryAppearance")),
         hapticFeedback = json.optBoolean("hapticFeedback", true),
+        derbisNotchEnabled = json.optBoolean("derbisNotchEnabled", true),
+        derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
+            json.optString("derbisNotchStyle")
+        ),
         playerVisualMode = visualMode,
         playerBackground = backgroundMode,
         reactiveAuraPreset = ReactiveAuraPreset.from(json.optString("reactiveAuraPreset")),
