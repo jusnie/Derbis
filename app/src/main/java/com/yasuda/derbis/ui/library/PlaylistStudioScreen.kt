@@ -41,8 +41,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
+import com.yasuda.derbis.ui.icons.Check
+import com.yasuda.derbis.ui.icons.Close
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.OfflinePin
 import androidx.compose.material.icons.rounded.RemoveCircleOutline

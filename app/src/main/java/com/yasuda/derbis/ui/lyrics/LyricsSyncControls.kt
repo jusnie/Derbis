@@ -32,10 +32,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import com.yasuda.derbis.ui.icons.Add
 import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.Tune
+import com.yasuda.derbis.ui.icons.RestartAlt
+import com.yasuda.derbis.ui.icons.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider

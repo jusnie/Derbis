@@ -31,10 +31,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
+import com.yasuda.derbis.ui.icons.Check
 import androidx.compose.material.icons.rounded.DragIndicator
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.RestartAlt
+import com.yasuda.derbis.ui.icons.Lock
+import com.yasuda.derbis.ui.icons.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults

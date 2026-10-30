@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Shuffle
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
+import com.yasuda.derbis.ui.icons.Repeat
+import com.yasuda.derbis.ui.icons.RepeatOne
+import com.yasuda.derbis.ui.icons.Shuffle
+import com.yasuda.derbis.ui.icons.SkipNext
+import com.yasuda.derbis.ui.icons.SkipPrevious
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue

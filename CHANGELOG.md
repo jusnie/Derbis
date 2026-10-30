@@ -15,6 +15,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - The track story sheet shows the live card in a fitted stage with a light sweep while it renders, format tabs with their export ratio, theme tiles previewing each look, and one consistent button style for share, Instagram, save, copy link and Jam.
 
 ### Changed
+- Every screen now draws its chrome from the Derbis glyph set: 62 icons rebuilt on a 2 dp stroke from Lucide by way of Open Symbols, so toolbars and transport rows read like iOS 26 instead of Material. Icons that were not replaced still fall through to Material.
 - The notch's playback indicator is one straight hairline along the bottom edge of the card, square ended and gliding between player ticks instead of stepping.
 - Beat Sync matches half- and double-time pairs, so 62 BPM locks to 128 BPM instead of being refused, and long overlaps now start on a bar line while short ones snap to the nearest beat.
 - The handoff watcher checks the outgoing position every 20 ms instead of 50 ms, so the incoming deck starts on the beat the grid aligned to instead of up to a fifth of a beat late.

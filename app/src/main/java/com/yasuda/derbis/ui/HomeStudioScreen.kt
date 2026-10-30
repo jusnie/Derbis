@@ -34,11 +34,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Close
+import com.yasuda.derbis.ui.icons.CheckCircle
+import com.yasuda.derbis.ui.icons.Close
 import androidx.compose.material.icons.rounded.DragIndicator
-import androidx.compose.material.icons.rounded.RestartAlt
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.RestartAlt
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button

@@ -31,12 +31,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.VolumeDown
-import androidx.compose.material.icons.rounded.CheckCircle
+import com.yasuda.derbis.ui.icons.CheckCircle
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
-import androidx.compose.material.icons.rounded.GraphicEq
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.GraphicEq
+import com.yasuda.derbis.ui.icons.MoreVert
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api

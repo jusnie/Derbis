@@ -9,7 +9,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
+import com.yasuda.derbis.ui.icons.SkipPrevious
+import com.yasuda.derbis.ui.icons.SkipNext
+import com.yasuda.derbis.ui.icons.Shuffle
+import com.yasuda.derbis.ui.icons.RepeatOne
+import com.yasuda.derbis.ui.icons.Repeat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment

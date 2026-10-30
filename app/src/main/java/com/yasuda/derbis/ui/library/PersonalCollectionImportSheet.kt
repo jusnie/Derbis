@@ -28,8 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.FileOpen
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.MusicNote
+import com.yasuda.derbis.ui.icons.Lock
+import com.yasuda.derbis.ui.icons.MusicNote
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api

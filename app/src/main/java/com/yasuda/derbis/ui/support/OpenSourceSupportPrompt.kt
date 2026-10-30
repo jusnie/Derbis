@@ -32,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Code
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.Info
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults

@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.LibraryMusic
+import com.yasuda.derbis.ui.icons.LibraryMusic
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale

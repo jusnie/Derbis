@@ -12,7 +12,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
+import com.yasuda.derbis.ui.icons.Shuffle
+import com.yasuda.derbis.ui.icons.RepeatOne
+import com.yasuda.derbis.ui.icons.Repeat
+import com.yasuda.derbis.ui.icons.PlayArrow
+import com.yasuda.derbis.ui.icons.Pause
+import androidx.compose.material.icons.rounded.FastRewind
+import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
