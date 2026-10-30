@@ -4,7 +4,7 @@ package com.yasuda.derbis.ui.lyrics.studio
 
 import com.yasuda.derbis.domain.LyricsRendererMode
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyStudioLivePreview
-import androidx.compose.material.icons.rounded.MusicNote
+import com.yasuda.derbis.ui.icons.MusicNote
 import androidx.compose.material.icons.rounded.Whatshot
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
@@ -43,14 +43,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Check
+import com.yasuda.derbis.ui.icons.AutoAwesome
+import com.yasuda.derbis.ui.icons.Check
 import androidx.compose.material.icons.rounded.FormatAlignCenter
-import androidx.compose.material.icons.rounded.GraphicEq
-import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.RestartAlt
+import com.yasuda.derbis.ui.icons.GraphicEq
+import com.yasuda.derbis.ui.icons.Palette
+import com.yasuda.derbis.ui.icons.RestartAlt
 import androidx.compose.material.icons.rounded.TextFields
-import androidx.compose.material.icons.rounded.Visibility
+import com.yasuda.derbis.ui.icons.Visibility
 import androidx.compose.material.icons.rounded.Wallpaper
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults

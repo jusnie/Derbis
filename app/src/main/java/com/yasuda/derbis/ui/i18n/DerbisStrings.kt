@@ -965,6 +965,25 @@ class DerbisStrings private constructor(
     val wrappedEmpty: String get() = value("wrappedEmpty")
     val wrappedReceiptTitle: String get() = value("wrappedReceiptTitle")
     val shareLyricsPreparing: String get() = value("shareLyricsPreparing")
+    /** Share sheet actions. Kept inline so every locale falls back to a readable label. */
+    val storyCopyLink: String get() = when (code) {
+        "it" -> "Copia link"
+        "es" -> "Copiar enlace"
+        "fr" -> "Copier le lien"
+        "de" -> "Link kopieren"
+        "pt" -> "Copiar link"
+        "ja" -> "リンクをコピー"
+        else -> "Copy link"
+    }
+    val storyLinkCopied: String get() = when (code) {
+        "it" -> "Link copiato"
+        "es" -> "Enlace copiado"
+        "fr" -> "Lien copié"
+        "de" -> "Link kopiert"
+        "pt" -> "Link copiado"
+        "ja" -> "コピーしました"
+        else -> "Link copied"
+    }
     val shareLyricsFailed: String get() = value("shareLyricsFailed")
     val shareLyricsLineSelected: String get() = value("shareLyricsLineSelected")
     val shareLyricsLineNotSelected: String get() = value("shareLyricsLineNotSelected")
@@ -1357,6 +1376,10 @@ class DerbisStrings private constructor(
     val pureBlackSubtitle: String get() = value("pureBlackSubtitle")
     val hapticFeedback: String get() = value("hapticFeedback")
     val hapticFeedbackSubtitle: String get() = value("hapticFeedbackSubtitle")
+    val derbisNotch: String get() = value("derbisNotch")
+    val derbisNotchHint: String get() = value("derbisNotchHint")
+    val derbisNotchStyleDefault: String get() = value("derbisNotchStyleDefault")
+    val derbisNotchStyleSpicy: String get() = value("derbisNotchStyleSpicy")
     val doubleTapSeek: String get() = value("doubleTapSeek")
     val doubleTapSeekSubtitle: String get() = value("doubleTapSeekSubtitle")
     val longPress: String get() = value("longPress")
@@ -2336,9 +2359,9 @@ class DerbisStrings private constructor(
         }
 
         private fun bundle(code: String, entries: Map<String, String>): DerbisStrings {
-            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code)
+            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code) + derbisNotchLocalizationEntries(code)
             val resolvedEntries = localizedEntries + smartOfflineLocalizationEntries(code, localizedEntries)
-            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys
+            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys + derbisNotchKeys
             val missing = allRequiredKeys - resolvedEntries.keys
             val finalEntries = if (missing.isNotEmpty()) {
                 val fallback = resolvedEntries.toMutableMap()
@@ -2374,7 +2397,7 @@ class DerbisStrings private constructor(
             "animations" to "Animations",
             "animationsSubtitle" to "Effects, transitions and card press feedback",
             "motionArtwork" to "Player Canvas",
-            "motionArtworkSubtitle" to "Show artist videos; turn off to always use the album cover",
+            "motionArtworkSubtitle" to "Animated artwork and canvas from the artist; turn off to always use the album cover",
             "dynamicColor" to "Dynamic color",
             "dynamicColorSubtitle" to "Background and accents from the current cover",
             "sponsorBlock" to "SponsorBlock",

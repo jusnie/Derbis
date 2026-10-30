@@ -2,7 +2,39 @@
 
 All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **What's Fixed**, **What's New**, and **Changed** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
 
+## [Unreleased]
+
+### What's New
+- Liquid Glass lens now has real chromatic dispersion at the rim, a directional specular highlight and a thickness-shaped bezel instead of a single flat edge warp.
+- The whole app carries the Liquid Glass material: every screen gets a page-level glass film, and the dock mini player now joins the same material as the navigation bar and player panels.
+- Listening Wrapped can share the receipt card from any page, not just the finale: the story header now has a share button that renders the same card as a 1080px PNG.
+- The Aura player deck (Beat Sync visual) shows the artwork as a circle inside a neon RGB ring that blooms outward on every detected beat.
+- Mix Studio's Beat Sync is now readable: each handoff shows the detected OUT and IN BPM, the exact tempo correction with a ±10% rail, and whether that pair can actually lock.
+- The Derbis Notch sits at the top of the app: a black capsule that opens into a card with the artwork, the track and the synced lyrics, with a Default or Spicy lyric style.
+- `1eddaeb` Lyrics can go edge to edge from a fullscreen button; the progress bar only slides to the screen edge when fullscreen is on.
+- The track story sheet shows the live card in a fitted stage with a light sweep while it renders, format tabs with their export ratio, theme tiles previewing each look, and one consistent button style for share, Instagram, save, copy link and Jam.
+
+### Changed
+- Every screen now draws its chrome from the Derbis glyph set: 62 icons rebuilt on a 2 dp stroke from Lucide by way of Open Symbols, so toolbars and transport rows read like iOS 26 instead of Material. Icons that were not replaced still fall through to Material.
+- The notch's playback indicator is one straight hairline along the bottom edge of the card, square ended and gliding between player ticks instead of stepping.
+- Beat Sync matches half- and double-time pairs, so 62 BPM locks to 128 BPM instead of being refused, and long overlaps now start on a bar line while short ones snap to the nearest beat.
+- The handoff watcher checks the outgoing position every 20 ms instead of 50 ms, so the incoming deck starts on the beat the grid aligned to instead of up to a fifth of a beat late.
+- The track story sheet is translated: share, preparing, save, saved, copy link, link copied and Jam labels follow the app language, and noisy toasts are replaced by in-place button states.
+- Listening Wrapped copy sizes scale with the page height, pages scroll instead of clipping on short screens, and the progress bar reports page position to accessibility services.
+- Liquid Glass cost scales with the device: low-RAM and battery-saver devices keep a coarser frost with no lens, while content rows and page surfaces sample a cheaper bucket than chrome.
+- The full-page glass film no longer re-blurs the backdrop every frame, which removes the single most expensive glass surface in the app.
+- Liquid Glass settings add a plain-language **Glass look** choice — Auto, Always on, Off — instead of exposing a technical quality tier.
+
 ## [1.1.0] — 2026-10-27
+
+### Removed (project)
+- The Windows desktop client is retired: `desktop/`, its Gradle build, its release workflow and its docs are gone from the repository. Only the Android app ships; the web companion in `website/` is untouched. The client may return later.
+
+### Changed (project)
+- Derbis is now **GPL-3.0** instead of the custom end user agreement, so anyone can read, change, rebuild and share it, and contributions land under the same terms. New `CONTRIBUTING.md`, and `docs/RELICENSING.md` records why the bundled GPL components made the old licence untenable.
+
+### Removed
+- Videos are gone: Derbis is songs only. Search no longer requests or shows a Videos tab, artist pages drop their video shelf, Home drops the video rail and any "music video" feed section, editorial pages skip video shelves, and the player always resolves and presents audio with artwork instead of a video surface.
 
 ### What's Fixed
 - `be712b3` Pausing or stopping a song keeps the player cover at its full presentation size.

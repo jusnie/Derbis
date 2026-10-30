@@ -72,7 +72,7 @@ import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.theme.DerbisType
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.PlayArrow
+import com.yasuda.derbis.ui.icons.PlayArrow
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Shape

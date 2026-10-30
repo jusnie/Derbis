@@ -16,11 +16,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.rounded.Album
+import com.yasuda.derbis.ui.icons.Album
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
-import androidx.compose.material.icons.rounded.PushPin
+import com.yasuda.derbis.ui.icons.PushPin
 import androidx.compose.material.icons.rounded.Recommend
-import androidx.compose.material.icons.rounded.Shuffle
+import com.yasuda.derbis.ui.icons.Shuffle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon

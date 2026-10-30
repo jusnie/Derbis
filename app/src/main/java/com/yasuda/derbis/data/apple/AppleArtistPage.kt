@@ -39,13 +39,13 @@ data class AppleArtistPage(
 
 internal const val APPLE_TOP_VIDEOS_SHELF_ID = "apple-top-videos"
 
+/**
+ * Derbis is songs only, so an artist page never carries a video shelf: both the web supplied
+ * "Music Videos" shelf and the curated "Top Videos" shelf are dropped here. The parameters stay
+ * for source compatibility with the callers that still parse the video payload.
+ */
 internal fun appleArtistShelvesWithTopVideos(shelves: List<AppleArtistShelf>, videos: List<AppleCatalogItem>): List<AppleArtistShelf> {
-    if (videos.isEmpty()) return shelves
-    val topVideos = AppleArtistShelf(APPLE_TOP_VIDEOS_SHELF_ID, "", AppleArtistShelfStyle.Video, videos)
-    val webVideos = shelves.indexOfFirst { shelf -> shelf.style == AppleArtistShelfStyle.Video && shelf.items.any { it.kind == AppleCatalogItemKind.Video } }
-    if (webVideos >= 0) return shelves.toMutableList().apply { set(webVideos, topVideos) }
-    val similar = shelves.indexOfFirst { it.style == AppleArtistShelfStyle.Artists }
-    return shelves.toMutableList().apply { add(if (similar >= 0) similar else size, topVideos) }
+    return shelves.filterNot { it.style == AppleArtistShelfStyle.Video }
 }
 
 internal fun selectAppleArtistCandidate(requested: String, candidates: List<Pair<String, String>>): String? {

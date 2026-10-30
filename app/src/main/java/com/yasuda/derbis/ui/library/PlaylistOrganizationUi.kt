@@ -12,10 +12,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Delete
+import com.yasuda.derbis.ui.icons.Add
+import com.yasuda.derbis.ui.icons.Check
+import com.yasuda.derbis.ui.icons.Edit
+import com.yasuda.derbis.ui.icons.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton

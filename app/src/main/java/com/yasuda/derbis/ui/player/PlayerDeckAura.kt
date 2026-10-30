@@ -31,12 +31,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.VolumeDown
-import androidx.compose.material.icons.rounded.CheckCircle
+import com.yasuda.derbis.ui.icons.CheckCircle
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
-import androidx.compose.material.icons.rounded.GraphicEq
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.GraphicEq
+import com.yasuda.derbis.ui.icons.MoreVert
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +63,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -69,6 +71,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.geometry.Offset
 import com.yasuda.derbis.player.VisualizerAudioProcessor
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
@@ -83,6 +86,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yasuda.derbis.data.DerbisBeatGridStore
+import com.yasuda.derbis.domain.DerbisBeatGrid
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.cast.CastRouteButton
@@ -105,6 +110,8 @@ import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.graphics.graphicsLayer
+import kotlin.math.exp
+import kotlin.math.floor
 
 private val AuraInk = Color.White
 private val AuraInkSoft = Color.White.copy(alpha = 0.64f)
@@ -175,10 +182,13 @@ internal fun PlayerAuraDeck(
                 val sleeveSize = minOf(maxWidth * VelvetSleeveWidth, maxHeight - 16.dp)
                     .coerceAtLeast(152.dp)
                 AuraVelvetSleeve(
+                    track = track,
                     artworkUrl = artworkUrl,
                     motionArtwork = motionArtwork,
                     motionEnabled = motionEnabled,
                     isPlaying = isPlaying,
+                    positionMs = positionMs,
+                    animated = animated,
                     canvasQuality = canvasQuality,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -227,36 +237,171 @@ internal fun PlayerAuraDeck(
 
 @Composable
 private fun AuraVelvetSleeve(
+    track: Track,
     artworkUrl: String,
     motionArtwork: MotionArtwork?,
     motionEnabled: Boolean,
     isPlaying: Boolean,
+    positionMs: Long,
+    animated: Boolean,
     canvasQuality: DerbisCanvasQuality,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(VelvetSleeveCorner))
-            .background(Color.Black.copy(alpha = 0.30f))
-    ) {
-        MotionArtworkLayer(
-            artwork = motionArtwork,
-            enabled = motionEnabled,
-            isPlaying = isPlaying,
-            cornerRadius = VelvetSleeveCorner,
-            presentation = MotionArtworkPresentation.Card,
-            quality = canvasQuality,
-            staticArtworkMotionEnabled = false,
-            modifier = Modifier.fillMaxSize()
+    val context = LocalContext.current
+    val grid = remember(track.id) {
+        runCatching { DerbisBeatGridStore(context).gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
+    }
+    val beats = rememberBeatPosition(
+        grid = grid,
+        positionMs = positionMs,
+        isPlaying = isPlaying,
+        animated = animated
+    )
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        BeatAura(
+            beats = beats,
+            hasGrid = grid?.validBpm != null,
+            modifier = Modifier.matchParentSize()
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize(0.84f)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.30f))
         ) {
-            SeamlessArtworkImage(
-                url = artworkUrl,
-                modifier = Modifier.fillMaxSize(),
-                fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+            MotionArtworkLayer(
+                artwork = motionArtwork,
+                enabled = motionEnabled,
+                isPlaying = isPlaying,
+                cornerRadius = 999.dp,
+                presentation = MotionArtworkPresentation.Card,
+                quality = canvasQuality,
+                staticArtworkMotionEnabled = false,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                SeamlessArtworkImage(
+                    url = artworkUrl,
+                    modifier = Modifier.fillMaxSize(),
+                    fallback = { InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize()) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Continuous beat position of the playing track, restarted from the real playback position on
+ * every update so the glow lands on the beat instead of on an arbitrary clock. Drawing reads it
+ * inside the aura Canvas, which keeps the pulse in the draw phase.
+ */
+@Composable
+private fun rememberBeatPosition(
+    grid: DerbisBeatGrid?,
+    positionMs: Long,
+    isPlaying: Boolean,
+    animated: Boolean
+): MutableFloatState {
+    val beats = remember { mutableFloatStateOf(0f) }
+    val bpm = grid?.validBpm
+    LaunchedEffect(grid, positionMs, isPlaying, animated) {
+        if (bpm == null) {
+            beats.floatValue = 0f
+            return@LaunchedEffect
+        }
+        val anchor = positionMs.coerceAtLeast(0L)
+        if (!isPlaying || !animated) {
+            beats.floatValue = anchor * bpm / 60_000f
+            return@LaunchedEffect
+        }
+        var startNanos = -1L
+        while (true) {
+            withFrameNanos { now ->
+                if (startNanos < 0L) startNanos = now
+                val advanced = anchor + (now - startNanos) / 1_000_000L
+                beats.floatValue = advanced * bpm / 60_000f
+            }
+        }
+    }
+    return beats
+}
+
+/**
+ * Ring of light behind the circular artwork. Every beat swells the ring and pushes the RGB sweep
+ * outward; between beats it settles. Without a beat grid it keeps a slow accent glow only.
+ */
+@Composable
+private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val baseRadius = size.minDimension * 0.415f
+
+        val beat = beats.floatValue
+        val phase = beat - floor(beat)
+        val hit = if (hasGrid) exp(-phase * 3.4f) else 0.32f
+        val rotation = (beat * 26f) % 360f
+
+        val radius = baseRadius + size.minDimension * 0.055f * hit
+        val sweep = Brush.sweepGradient(
+            colors = listOf(
+                AuraCyan,
+                AuraViolet,
+                AuraMagenta,
+                AuraAmber,
+                AuraCyan
+            ),
+            center = center
+        )
+
+        // Wide bloom that carries most of the light.
+        drawCircle(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0.62f to Color.Transparent,
+                    0.84f to AuraViolet.copy(alpha = 0.10f + 0.26f * hit),
+                    0.96f to AuraMagenta.copy(alpha = 0.06f + 0.18f * hit),
+                    1f to Color.Transparent
+                ),
+                center = center,
+                radius = radius * 1.42f
+            ),
+            radius = radius * 1.42f,
+            center = center
+        )
+
+        rotate(degrees = rotation, pivot = center) {
+            drawCircle(
+                brush = sweep,
+                radius = radius,
+                center = center,
+                style = Stroke(width = size.minDimension * 0.020f, cap = StrokeCap.Round),
+                alpha = 0.55f + 0.45f * hit
+            )
+        }
+        rotate(degrees = -rotation * 0.6f, pivot = center) {
+            drawCircle(
+                brush = sweep,
+                radius = radius * 1.075f,
+                center = center,
+                style = Stroke(width = size.minDimension * 0.008f, cap = StrokeCap.Round),
+                alpha = 0.30f + 0.50f * hit
+            )
+        }
+        rotate(degrees = rotation * 1.4f, pivot = center) {
+            drawCircle(
+                brush = sweep,
+                radius = radius * 1.16f,
+                center = center,
+                style = Stroke(width = size.minDimension * 0.004f, cap = StrokeCap.Round),
+                alpha = 0.18f + 0.34f * hit
             )
         }
     }
 }
+
+private val AuraCyan = Color(0xFF00E5FF)
+private val AuraViolet = Color(0xFF7C4DFF)
+private val AuraMagenta = Color(0xFFFF2D95)
+private val AuraAmber = Color(0xFFFFD400)
 
 @Composable
 private fun AuraGrabber(onCollapse: () -> Unit) {

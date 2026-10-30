@@ -254,6 +254,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_TRANSPARENCY] = normalizedInterface.glassTransparency
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
+            mutable[KEY_UI_GLASS_EFFECTS] = normalizedInterface.glassEffects.name
             mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
@@ -267,6 +268,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_TORQUE_ACCENT] = normalizedInterface.torque.accent.name
             mutable[KEY_IVORY_APPEARANCE] = normalizedInterface.ivory.appearance.name
             mutable[KEY_UI_HAPTIC_FEEDBACK] = normalizedInterface.hapticFeedback
+            mutable[KEY_UI_DERBIS_NOTCH] = normalizedInterface.derbisNotchEnabled
+            mutable[KEY_UI_DERBIS_NOTCH_STYLE] = normalizedInterface.derbisNotchStyle.name
             mutable[KEY_UI_PLAYER_VISUAL_MODE] = normalizedInterface.playerVisualMode.name
             mutable[KEY_UI_PLAYER_BACKGROUND] = normalizedInterface.playerBackground.name
             mutable[KEY_UI_REACTIVE_AURA_PRESET] = normalizedInterface.reactiveAuraPreset.name
@@ -445,6 +448,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
             it[KEY_UI_GLASS_TINT] = normalized.glassTint
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
+            it[KEY_UI_GLASS_EFFECTS] = normalized.glassEffects.name
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
@@ -458,6 +462,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_TORQUE_ACCENT] = normalized.torque.accent.name
             it[KEY_IVORY_APPEARANCE] = normalized.ivory.appearance.name
             it[KEY_UI_HAPTIC_FEEDBACK] = normalized.hapticFeedback
+            it[KEY_UI_DERBIS_NOTCH] = normalized.derbisNotchEnabled
+            it[KEY_UI_DERBIS_NOTCH_STYLE] = normalized.derbisNotchStyle.name
             it[KEY_UI_PLAYER_VISUAL_MODE] = normalized.playerVisualMode.name
             it[KEY_UI_PLAYER_BACKGROUND] = normalized.playerBackground.name
             it[KEY_UI_REACTIVE_AURA_PRESET] = normalized.reactiveAuraPreset.name
@@ -904,6 +910,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassTransparency = preferences[KEY_UI_GLASS_TRANSPARENCY] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
+            glassEffects = DerbisGlassEffects.decode(preferences[KEY_UI_GLASS_EFFECTS]),
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
@@ -919,6 +926,10 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             torque = com.yasuda.derbis.domain.TorqueSettings.from(preferences[KEY_TORQUE_ACCENT].orEmpty()),
             ivory = com.yasuda.derbis.domain.IvorySettings.from(preferences[KEY_IVORY_APPEARANCE].orEmpty()),
             hapticFeedback = preferences[KEY_UI_HAPTIC_FEEDBACK] ?: true,
+            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: true,
+            derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
+                preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+            ),
             playerVisualMode = visualMode,
             playerBackground = background,
             reactiveAuraPreset = ReactiveAuraPreset.from(preferences[KEY_UI_REACTIVE_AURA_PRESET].orEmpty()),
@@ -1412,6 +1423,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_TORQUE_ACCENT = stringPreferencesKey("torque_accent")
         val KEY_IVORY_APPEARANCE = stringPreferencesKey("ivory_appearance")
         val KEY_UI_HAPTIC_FEEDBACK = booleanPreferencesKey("ui_haptic_feedback")
+        val KEY_UI_DERBIS_NOTCH = booleanPreferencesKey("ui_derbis_notch")
+        val KEY_UI_DERBIS_NOTCH_STYLE = stringPreferencesKey("ui_derbis_notch_style")
         val KEY_UI_DOUBLE_TAP_SECONDS = intPreferencesKey("ui_double_tap_seconds")
         val KEY_UI_LONG_PRESS_ACTION = stringPreferencesKey("ui_long_press_action")
         val KEY_UI_LONG_PRESS_SPEED = floatPreferencesKey("ui_long_press_speed")
@@ -1426,6 +1439,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_GLASS_TRANSPARENCY = intPreferencesKey("ui_glass_transparency")
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
+        val KEY_UI_GLASS_EFFECTS = stringPreferencesKey("ui_glass_effects")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
         val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")

@@ -57,38 +57,38 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.AutoAwesome
+import com.yasuda.derbis.ui.icons.AutoAwesome
 import androidx.compose.material.icons.rounded.Interests
 import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CloseFullscreen
+import com.yasuda.derbis.ui.icons.Check
+import com.yasuda.derbis.ui.icons.CloseFullscreen
 import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.Download
+import com.yasuda.derbis.ui.icons.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.Album
+import com.yasuda.derbis.ui.icons.Album
 import androidx.compose.material.icons.rounded.BlurOn
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.GraphicEq
+import com.yasuda.derbis.ui.icons.Fullscreen
+import com.yasuda.derbis.ui.icons.GraphicEq
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import com.yasuda.derbis.ui.icons.Info
+import com.yasuda.derbis.ui.icons.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Waves
-import androidx.compose.material.icons.rounded.Nightlight
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.Person
+import com.yasuda.derbis.ui.icons.Nightlight
+import com.yasuda.derbis.ui.icons.Pause
+import com.yasuda.derbis.ui.icons.Person
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
-import androidx.compose.material.icons.rounded.PlayArrow
+import com.yasuda.derbis.ui.icons.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Share
+import com.yasuda.derbis.ui.icons.Refresh
+import com.yasuda.derbis.ui.icons.Share
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Subtitles
-import androidx.compose.material.icons.rounded.Tune
+import com.yasuda.derbis.ui.icons.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -321,9 +321,9 @@ private fun DerbisNowPlayingContent(
         artworkUrl = paletteArtworkUrl,
         fallback = fallbackPalette
     )
-    // Animated artwork and Canvas require active Spotify login and user enable toggle.
-    val isSpotifyConnected = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
-    val motionArtworkAllowed = state.interfaceSettings.motionArtworkEnabled && isSpotifyConnected
+    // Animated artwork and Canvas only need the user toggle. The Spotify canvas provider simply
+    // returns nothing when it has no match, so a Spotify session is not a requirement here.
+    val motionArtworkAllowed = state.interfaceSettings.motionArtworkEnabled
     // Lite Mode stops expensive Canvas decoding and animated artwork before it reaches the player.
     val motionEnabled = animated && !state.interfaceSettings.liteMode && !state.isVideoMode && !motionSuspended && motionArtworkAllowed
     var canvasBackdropPalette by remember(track?.id, state.isVideoMode) {
@@ -946,7 +946,13 @@ private fun DerbisNowPlayingContent(
                     compact = compactPlayer,
                     openArtistLabel = strings.openArtist,
                     favoritesLabel = strings.favoritesPlain,
-                    activeLyric = state.activeLyric,
+                    // Same timeline as the lyrics page: latency, device and per-track offsets
+                    // are already folded into the clock, so this preview cannot drift from it.
+                    activeLyric = if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                    } else {
+                        state.activeLyric
+                    },
                     lyricsLoading = state.lyricsLoading,
                     // Apple Music 13 retains its own word-timed line directly beneath metadata;
                     // other decks show their active preview here while all retain the Lyrics link.

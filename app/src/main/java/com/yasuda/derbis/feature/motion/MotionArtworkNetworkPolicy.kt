@@ -34,7 +34,9 @@ class MotionArtworkNetworkPolicy(context: Context) {
             com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
 
         fun motionArtworkAllowed(): Boolean =
-            enabled && isSpotifyConnected()
+            // Spotify is one provider, not a gate: Apple animated artwork and the bundled canvas
+            // catalog resolve without any Spotify session.
+            enabled
 
         fun canAnimateLocally(context: Context): Boolean {
             val appContext = context.applicationContext

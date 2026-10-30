@@ -31,8 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.DerbisTab
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
+import com.yasuda.derbis.ui.icons.Pause
+import com.yasuda.derbis.ui.icons.PlayArrow
 import com.yasuda.derbis.ui.theme.YouTubeMusicDesign
 
 private val YouTubeMusicTabOrder = listOf(DerbisTab.Home, DerbisTab.Explore, DerbisTab.Library, DerbisTab.Search)

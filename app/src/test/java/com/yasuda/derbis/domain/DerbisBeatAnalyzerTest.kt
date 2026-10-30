@@ -43,6 +43,55 @@ class DerbisBeatAnalyzerTest {
         assertFalse(rejected.aligned)
     }
 
+    @Test
+    fun halfTimeTempoLockMatchesDoubleSpeedPairs() {
+        val reference = DerbisBeatGrid(bpm = 128f, downbeatMs = 0L, confidence = .9f)
+        val halfTime = DerbisBeatGrid(bpm = 62f, downbeatMs = 0L, confidence = .9f)
+        val doubled = DerbisBeatGrid(bpm = 256f, downbeatMs = 0L, confidence = .9f)
+
+        val paired = DerbisMixStudio.beatSync(reference, halfTime)
+        val tooFast = DerbisMixStudio.beatSync(reference, doubled)
+
+        assertTrue(paired.aligned)
+        // 62 BPM doubled is 124 BPM, so the deck only has to run 3% fast.
+        assertEquals(128f / 124f, paired.incomingTempo, .02f)
+        // 256 BPM needs no stretch at all: every second incoming beat lands on the grid.
+        assertTrue(tooFast.aligned)
+        assertEquals(1f, tooFast.incomingTempo, .001f)
+    }
+
+    @Test
+    fun longOverlapsStartOnABarLineAndShortOnesOnABeat() {
+        val grid = DerbisBeatGrid(bpm = 120f, downbeatMs = 0L, confidence = .9f)
+
+        val longStart = DerbisMixStudio.beatAlignedTransitionStartMs(
+            durationMs = 239_300L,
+            desiredTransitionMs = 8_000L,
+            grid = grid
+        )
+        val shortStart = DerbisMixStudio.beatAlignedTransitionStartMs(
+            durationMs = 239_300L,
+            desiredTransitionMs = 1_200L,
+            grid = grid
+        )
+
+        // 120 BPM: 500 ms per beat, 2 s per bar. A long fade may only start on a bar line,
+        // while a 1.2 s overlap is snapped to the nearest beat so it is not stretched by a bar.
+        assertEquals(230_000L, longStart ?: -1L)
+        assertEquals(238_000L, shortStart ?: -1L)
+    }
+
+    @Test
+    fun incomingDeckOpensOnItsFirstBarLine() {
+        val reference = DerbisBeatGrid(bpm = 120f, downbeatMs = 240L, confidence = .9f)
+        val incoming = DerbisBeatGrid(bpm = 122f, downbeatMs = 1_480L, confidence = .9f)
+
+        val plan = DerbisMixStudio.alignIncomingToReference(120_000L, reference, incoming)
+
+        assertTrue(plan.aligned)
+        assertEquals(1_480L, plan.incomingSeekMs)
+    }
+
     private fun clickTrack(sampleRate: Int, seconds: Int, bpm: Float, firstBeatMs: Long): FloatArray {
         val samples = FloatArray(sampleRate * seconds)
         val interval = (sampleRate * 60f / bpm).toInt()

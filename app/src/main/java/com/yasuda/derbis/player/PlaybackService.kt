@@ -82,6 +82,7 @@ import com.yasuda.derbis.data.classifyPlaybackFailureReason
 import com.yasuda.derbis.data.isTerminalPlaybackFailure
 import com.yasuda.derbis.data.playbackRecoveryPlanFor
 import com.yasuda.derbis.data.YoutubeMusicRepository
+import com.yasuda.derbis.data.LyricsLatencyProfiles
 import com.yasuda.derbis.domain.DerbisAudioSettings
 import com.yasuda.derbis.domain.DerbisAutomationSettings
 import com.yasuda.derbis.domain.PlaybackBufferMode
@@ -89,6 +90,7 @@ import com.yasuda.derbis.domain.ReplayGainMetadata
 import com.yasuda.derbis.domain.ReplayGainMode
 import com.yasuda.derbis.domain.selectReplayGain
 import com.yasuda.derbis.domain.LyricLine
+import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
 import com.yasuda.derbis.feature.discord.derbisDiscordPresenceSnapshot
@@ -185,6 +187,12 @@ class PlaybackService : MediaLibraryService() {
     private var memoryGuardHighSamples = 0
     private var lastMemoryRecycleElapsedMs = 0L
     private var lastDiscordPresenceSyncElapsedMs = 0L
+    private val discordLyricsEngine = LyricsEngine()
+    @Volatile private var discordLyricsTrackId: String = ""
+    @Volatile private var discordLyricsLines: List<LyricLine> = emptyList()
+    @Volatile private var discordLyricsSynced: Boolean = false
+    @Volatile private var discordLyricsLatencyProfiles = LyricsLatencyProfiles()
+    private var lastDiscordLyricLine: String = ""
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
@@ -541,6 +549,7 @@ class PlaybackService : MediaLibraryService() {
     }
     private var sleepTimerStateJob: Job? = null
     private var automationSettingsJob: Job? = null
+    private var discordLyricsProfilesJob: Job? = null
 
     @Volatile
     private var automationSettings = DerbisAutomationSettings()
@@ -807,6 +816,14 @@ class PlaybackService : MediaLibraryService() {
         synced: Boolean,
         provider: String
     ) {
+        // Cache for Discord Rich Presence before any ROM-gated early return below, so lyrics
+        // reach the profile status on devices without the OxygenOS lyric metadata channel.
+        discordLyricsTrackId = track.id
+        discordLyricsLines = lines
+        discordLyricsSynced = synced
+        // Lyrics usually arrive after playback starts; republish now so the line shows up
+        // immediately instead of waiting for the next playback tick or the 30 s resync.
+        runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishDiscordLyricLineIfChanged) }
         val mediaId = DerbisMediaItemFactory.mediaId(track)
         val forwardLyrics = { deviceIntegration?.onLyrics(mediaId, track.id, lines, synced) }
         if (deviceIntegrationResolved) forwardLyrics() else pendingDeviceLyrics = { forwardLyrics() }
@@ -1253,6 +1270,13 @@ class PlaybackService : MediaLibraryService() {
             sleepTimer.state.collect { state -> _sleepTimerStateFlow.value = state }
         }
         automationSettingsJob?.cancel()
+        // Keeps the presence lyric line aligned with the user's latency calibration.
+        discordLyricsProfilesJob?.cancel()
+        discordLyricsProfilesJob = serviceScope.launch {
+            prefs.lyricsLatencyProfilesFlow.collect { profiles ->
+                discordLyricsLatencyProfiles = profiles
+            }
+        }
         audioRouteSelectionJob?.cancel()
         audioRouteFeedbackResetJob?.cancel()
         automationSettingsJob = serviceScope.launch {
@@ -1275,6 +1299,9 @@ class PlaybackService : MediaLibraryService() {
                 if (now - lastDiscordPresenceSyncElapsedMs >= 30_000L) {
                     publishDiscordRichPresence(playbackDeck)
                     lastDiscordPresenceSyncElapsedMs = now
+                }
+                if (playbackDeck.isPlaying) {
+                    publishDiscordLyricLineIfChanged(playbackDeck)
                 }
                 delay(2_000L)
             }
@@ -2308,9 +2335,11 @@ class PlaybackService : MediaLibraryService() {
 
             val transitionStartMs = plan.transitionStartMs
                 ?: (primary.duration - plan.transitionMs).coerceAtLeast(0L)
+            // Poll tightly: a beat is ~430-600 ms at club tempo, so a coarse poll would start the
+            // incoming deck visibly off the beat the grid just aligned to.
             while (primary.duration > 0L && primary.currentPosition < transitionStartMs) {
                 if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
-                delay(50L)
+                delay(20L)
             }
             if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
 
@@ -2371,6 +2400,12 @@ class PlaybackService : MediaLibraryService() {
             incomingPromoted = promoteIncomingCrossfadeDeck(outgoing = primary, incoming = secondary)
             if (!incomingPromoted) return
 
+            // A beat-matched deck runs at a corrected speed. Glide back to the listener's own
+            // speed once the outgoing deck is gone, or the new song would play fast forever.
+            if (plan.beatAligned) {
+                serviceScope.launch { restorePlaybackSpeedAfterBeatSync(plan.incomingTempo) }
+            }
+
             queueEngine.updatePosition(secondary.currentPosition.coerceAtLeast(0L))
             if (!isLocalPlaybackTrack(resolved)) prefetchServiceQueueNext()
         } catch (cancelled: CancellationException) {
@@ -2387,6 +2422,28 @@ class PlaybackService : MediaLibraryService() {
                 primary.volume = 1f
                 releaseTransitionPlayer(secondary)
             }
+        }
+    }
+
+    /**
+     * Eases the promoted deck back to the normal playback speed after a beat-matched handoff.
+     * The correction is tapered instead of snapped so the tail of the blend does not jump.
+     */
+    private suspend fun restorePlaybackSpeedAfterBeatSync(appliedRatio: Float) {
+        val base = currentAudioSettings
+        val target = base.playbackSpeed
+        val applied = (target * appliedRatio).coerceIn(.25f, 4f)
+        if (kotlin.math.abs(applied - target) < .0005f) return
+        val steps = 12
+        repeat(steps) { index ->
+            if (currentAudioSettings.playbackSpeed != target) return
+            val progress = (index + 1) / steps.toFloat()
+            val speed = applied + (target - applied) * progress
+            activePlayer?.setPlaybackParameters(PlaybackParameters(speed, base.pitch))
+            delay(90L)
+        }
+        if (currentAudioSettings.playbackSpeed == target) {
+            activePlayer?.setPlaybackParameters(PlaybackParameters(target, base.pitch))
         }
     }
 
@@ -3138,15 +3195,60 @@ class PlaybackService : MediaLibraryService() {
         val playbackDeck = player ?: return
         val currentTrack = queueEngine.state.value.currentTrack
         val duration = playbackDeck.duration.takeIf { it > 0L } ?: currentTrack?.durationMs ?: 0L
+        val positionMs = playbackDeck.currentPosition
         DerbisDiscordRichPresence.publish(
             applicationContext,
             derbisDiscordPresenceSnapshot(
                 track = currentTrack,
-                positionMs = playbackDeck.currentPosition,
+                positionMs = positionMs,
                 durationMs = duration,
-                playing = playbackDeck.isPlaying
+                playing = playbackDeck.isPlaying,
+                lyricLine = discordLyricLineFor(currentTrack, positionMs)
             )
         )
+    }
+
+    /**
+     * The lyric line to publish right now, or blank when the option is off, the track has no
+     * synced lyrics, or the line is an instrumental/metadata marker rather than sung text.
+     */
+    private fun discordLyricLineFor(track: Track?, positionMs: Long): String {
+        if (track == null) return ""
+        if (!DerbisDiscordRichPresence.isLyricsEnabled(this)) return ""
+        if (!discordLyricsSynced || discordLyricsTrackId != track.id) return ""
+        val line = discordLyricsEngine.currentLine(
+            positionMs = discordLyricPositionMs(positionMs, discordLyricsLatencyProfileOffset(track.id)),
+            lines = discordLyricsLines
+        ) ?: return ""
+        if (line.isInstrumental || line.isMetadata) return ""
+        return line.text
+    }
+
+    /**
+     * The user's calibrated lyric delay for the active output route plus this track. Bluetooth
+     * in particular lags the audio clock, so without this the presence line leads the song.
+     */
+    private fun discordLyricsLatencyProfileOffset(trackId: String): Long {
+        val route = runCatching { DerbisAudioOutputRepository.state.value.active }.getOrNull()
+        return runCatching {
+            discordLyricsLatencyProfiles.effectiveOffsetMs(
+                trackId = trackId,
+                routeKey = route?.stableKey,
+                bluetooth = route?.bluetooth == true
+            )
+        }.getOrDefault(0L)
+    }
+
+    /**
+     * Republish as soon as the sung line changes. The presence layer coalesces these into
+     * Discord's 5-per-20-seconds budget, so polling every playback tick stays safe.
+     */
+    private fun publishDiscordLyricLineIfChanged(player: Player) {
+        val track = queueEngine.state.value.currentTrack
+        val line = discordLyricLineFor(track, player.currentPosition)
+        if (line == lastDiscordLyricLine) return
+        lastDiscordLyricLine = line
+        publishDiscordRichPresence(player)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
@@ -3178,6 +3280,7 @@ class PlaybackService : MediaLibraryService() {
         queueTransitionMonitorJob?.cancel()
         sleepTimerStateJob?.cancel()
         automationSettingsJob?.cancel()
+        discordLyricsProfilesJob?.cancel()
         systemMediaActions?.detach()
         systemMediaActions = null
         studioWidgetSync.detach()

@@ -67,6 +67,8 @@ object DerbisMixStudio {
     const val MIN_TRANSITION_MS = 800L
     const val MAX_TRANSITION_MS = 30_000L
     const val DEFAULT_TRANSITION_MS = 6_000L
+    /** Four-four is assumed for bar snapping; the grid itself only carries a beat phase. */
+    const val BEATS_PER_BAR = 4
     private const val MIN_TEMPO_RATIO = .92f
     private const val MAX_TEMPO_RATIO = 1.08f
 
@@ -100,10 +102,8 @@ object DerbisMixStudio {
         if (!reference.isUsable || !incoming.isUsable || referenceBpm == null || incomingBpm == null) {
             return DerbisBeatSyncPlan(incomingTempo = 1f, incomingSeekMs = 0L, aligned = false)
         }
-        val tempo = referenceBpm / incomingBpm
-        if (tempo !in MIN_TEMPO_RATIO..MAX_TEMPO_RATIO) {
-            return DerbisBeatSyncPlan(incomingTempo = 1f, incomingSeekMs = 0L, aligned = false)
-        }
+        val tempo = matchedTempo(referenceBpm, incomingBpm)
+            ?: return DerbisBeatSyncPlan(incomingTempo = 1f, incomingSeekMs = 0L, aligned = false)
         val incomingBeatMs = incoming.beatDurationMs ?: return DerbisBeatSyncPlan(1f, 0L, false)
         val downbeat = incoming.downbeatMs?.coerceAtLeast(0L) ?: 0L
         val seek = nearestBeatAtOrAfter(downbeat, incomingBeatMs, downbeat)
@@ -114,7 +114,11 @@ object DerbisMixStudio {
         )
     }
 
-    /** Returns a phase-aligned seek target for the incoming deck at a chosen outgoing position. */
+    /**
+     * Seek target for the incoming deck so it opens on its own first bar line. The outgoing deck's
+     * fade start is snapped to one of its bar lines as well, so at the instant the incoming deck
+     * starts both decks sit at bar position zero and every beat of the fade lands together.
+     */
     fun alignIncomingToReference(
         referencePositionMs: Long,
         reference: DerbisBeatGrid,
@@ -122,14 +126,9 @@ object DerbisMixStudio {
     ): DerbisBeatSyncPlan {
         val base = beatSync(reference, incoming)
         if (!base.aligned) return base
-        val referenceBeatMs = reference.beatDurationMs ?: return base.copy(aligned = false)
-        val incomingBeatMs = incoming.beatDurationMs ?: return base.copy(aligned = false)
-        val referenceDownbeat = reference.downbeatMs?.coerceAtLeast(0L) ?: 0L
+        if (referencePositionMs < 0L) return base.copy(aligned = false)
         val incomingDownbeat = incoming.downbeatMs?.coerceAtLeast(0L) ?: 0L
-        val beatsFromReferenceDownbeat = ((referencePositionMs - referenceDownbeat).coerceAtLeast(0L) / referenceBeatMs)
-        return base.copy(
-            incomingSeekMs = incomingDownbeat + beatsFromReferenceDownbeat * incomingBeatMs
-        )
+        return base.copy(incomingSeekMs = incomingDownbeat)
     }
 
     /**
@@ -139,15 +138,26 @@ object DerbisMixStudio {
     fun beatAlignedTransitionStartMs(
         durationMs: Long,
         desiredTransitionMs: Long,
-        grid: DerbisBeatGrid
+        grid: DerbisBeatGrid,
+        beatsPerBar: Int = BEATS_PER_BAR
     ): Long? {
         val beatMs = grid.beatDurationMs ?: return null
         if (!grid.isUsable || durationMs <= desiredTransitionMs || beatMs <= 0L) return null
         val target = (durationMs - desiredTransitionMs).coerceAtLeast(0L)
         val origin = grid.downbeatMs?.coerceAtLeast(0L) ?: 0L
         if (target < origin) return null
-        val beatIndex = (target - origin) / beatMs
-        return origin + beatIndex * beatMs
+        val barMs = beatMs * beatsPerBar.coerceIn(2, 8)
+        // Long overlaps start on a bar line so the incoming deck enters on a phrase boundary.
+        // Short ones only need the beat, otherwise a whole bar would be added to a quick cut.
+        val step = if (desiredTransitionMs >= barMs) barMs else beatMs
+        val snapped = origin + ((target - origin) / step) * step
+        // A bar landing late must not stretch the fade past the hard maximum; take the next
+        // boundary instead so the overlap stays inside the allowed range.
+        if (durationMs - snapped > MAX_TRANSITION_MS) {
+            val next = snapped + step
+            return next.takeIf { durationMs - it >= MIN_TRANSITION_MS }
+        }
+        return snapped
     }
 
     /** Reorders a set so adjacent tracks have the least tempo/key/energy discontinuity. */
@@ -219,6 +229,18 @@ object DerbisMixStudio {
         }
         val energyCost = abs(first.energy.coerceIn(0, 100) - second.energy.coerceIn(0, 100)).toFloat() * .35f
         return bpmCost + keyCost + energyCost
+    }
+
+    /**
+     * Tempo ratio that lands the incoming deck on the reference grid. Half and double time are
+     * tried too, so 87 BPM locks onto 174 BPM the way DJ software does instead of giving up.
+     */
+    private fun matchedTempo(referenceBpm: Float, incomingBpm: Float): Float? {
+        if (referenceBpm <= 0f || incomingBpm <= 0f) return null
+        val direct = referenceBpm / incomingBpm
+        return listOf(direct, direct * 2f, direct / 2f)
+            .filter { it in MIN_TEMPO_RATIO..MAX_TEMPO_RATIO }
+            .minByOrNull { abs(it - 1f) }
     }
 
     private fun tempoDistance(first: Float?, second: Float?): Float {

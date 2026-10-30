@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
+import com.yasuda.derbis.ui.icons.Favorite
+import com.yasuda.derbis.ui.icons.FavoriteBorder
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.CheckCircle
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbUp as OutlinedThumbUp

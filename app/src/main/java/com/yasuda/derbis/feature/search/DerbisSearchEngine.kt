@@ -619,13 +619,13 @@ internal class DerbisSearchEngine(
         const val SUGGESTION_CACHE_ENTRIES = 48
         const val RESULT_CACHE_ENTRIES = 24
         const val SECTION_CACHE_ENTRIES = 32
+        // Songs only: the Videos section is never requested, so no video payload is fetched.
         val FALLBACK_SECTION_ORDER = listOf(
             SearchFilter.Lyrics,
             SearchFilter.Songs,
             SearchFilter.Artists,
             SearchFilter.Albums,
-            SearchFilter.Playlists,
-            SearchFilter.Videos
+            SearchFilter.Playlists
         )
     }
 }

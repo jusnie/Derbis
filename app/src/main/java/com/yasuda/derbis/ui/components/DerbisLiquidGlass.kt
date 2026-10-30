@@ -2,12 +2,13 @@ package com.yasuda.derbis.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -19,7 +20,10 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.yasuda.derbis.ui.GlassBackdropQuality
 import com.yasuda.derbis.ui.GlassBackdropState
+import com.yasuda.derbis.ui.GlassLensTier
+import com.yasuda.derbis.ui.LocalDerbisGlassTier
 import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
 import com.yasuda.derbis.ui.LocalGlassBackdrop
@@ -55,7 +59,13 @@ data class DerbisGlassTokens(
     /** Content containers use a quiet translucent material rather than sampling glass again. */
     val samplesBackdrop: Boolean,
     /** Lens distortion is reserved for the larger, directly manipulable chrome pieces. */
-    val allowsRefraction: Boolean
+    val allowsRefraction: Boolean,
+    /**
+     * Frost sampling bucket for this role. Rows and cards ask for a coarser bucket than chrome:
+     * the backdrop is already blurred, so half-resolution frosting is indistinguishable while
+     * costing a quarter of the pixels per panel — which is what keeps long glass lists smooth.
+     */
+    val samplingQuality: GlassBackdropQuality
 )
 
 object DerbisGlassDefaults {
@@ -68,7 +78,8 @@ object DerbisGlassDefaults {
         borderAlpha = 0.30f,
         highlightAlpha = 0.085f,
         samplesBackdrop = true,
-        allowsRefraction = false
+        allowsRefraction = false,
+        samplingQuality = GlassBackdropQuality.Efficient
     )
     // Standard is for one primary functional layer: a dock, sheet header, player transport or
     // a floating search/control group.
@@ -79,7 +90,8 @@ object DerbisGlassDefaults {
         borderAlpha = 0.34f,
         highlightAlpha = 0.11f,
         samplesBackdrop = true,
-        allowsRefraction = false
+        allowsRefraction = false,
+        samplingQuality = GlassBackdropQuality.Balanced
     )
     // Strong is reserved for compact, intentional controls such as transport and primary icon
     // buttons. It supplies the only lensing treatment in the shared vocabulary.
@@ -90,7 +102,10 @@ object DerbisGlassDefaults {
         borderAlpha = 0.46f,
         highlightAlpha = 0.16f,
         samplesBackdrop = true,
-        allowsRefraction = true
+        allowsRefraction = true,
+        // Small controls keep the sharp bucket: at their size the frost layer is cheap, and a
+        // soft edge would blunt the lens.
+        samplingQuality = GlassBackdropQuality.Native
     )
 
     fun tokens(intensity: DerbisGlassIntensity): DerbisGlassTokens = when (intensity) {
@@ -159,7 +174,13 @@ internal fun Modifier.resolvedDerbisGlass(
         .copy(alpha = fallbackAlpha)
     val highlight = Color.White.copy(alpha = if (opaqueMaterial) tokens.highlightAlpha * 0.55f else tokens.highlightAlpha)
     val border = fallbackBorderColor.playerMix(highlight, 0.52f)
-    val shouldFrost = tokens.samplesBackdrop && !opaqueMaterial && backdrop?.enabled == true && backdrop.layer != null
+    // Efficient-tier devices only pay for real frosting on the small chrome controls. Content
+    // rows and page surfaces keep the translucent material, which looks identical at rest and
+    // removes dozens of per-frame layer samples from a scrolling settings or library screen.
+    val tier = LocalDerbisGlassTier.current
+    val tierAllowsFrost = tier != GlassLensTier.Efficient || intensity == DerbisGlassIntensity.Strong
+    val shouldFrost = tokens.samplesBackdrop && tierAllowsFrost && !opaqueMaterial &&
+        backdrop?.enabled == true && backdrop.layer != null
 
     if (shouldFrost) {
         this.glassSurface(
@@ -171,7 +192,10 @@ internal fun Modifier.resolvedDerbisGlass(
             blurRadius = tokens.blurRadius,
             borderWidth = borderWidth,
             highlightAlpha = tokens.highlightAlpha * GlassSheenShare,
-            refraction = tokens.allowsRefraction && !accessibility.increasedContrast
+            refraction = tokens.allowsRefraction &&
+                tier != GlassLensTier.Efficient &&
+                !accessibility.increasedContrast,
+            qualityCeiling = tokens.samplingQuality
         )
     } else {
         this
@@ -179,25 +203,40 @@ internal fun Modifier.resolvedDerbisGlass(
             .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
     }
 }
+
 /**
- * A full-page material used only by the Liquid Glass skin. It puts every screen on the shared
+ * A full-page material used only by the Liquid Glass skin. It seats every screen on the shared
  * atmospheric backdrop before its local cards, rows, controls and sheets add their own glass.
+ *
+ * This deliberately does **not** sample the backdrop: a full-screen frost layer is re-recorded
+ * and re-blurred every frame, which is by far the most expensive glass surface in the app and
+ * buys almost nothing, because what sits behind a page is already a soft gradient. A cheap
+ * translucent film plus a top sheen reads as the same material for free, so every screen can
+ * carry glass without costing a frame.
  */
 internal fun Modifier.derbisSystemGlass(): Modifier = composed {
     if (!LocalDerbisLiquidGlassEnabled.current || !DerbisIsLiquidGlass) {
         this
     } else {
-        this.derbisGlass(
-            shape = RectangleShape,
-            baseTint = DerbisPanel,
-            fallbackColor = DerbisPanel.copy(alpha = 0.76f),
-            fallbackBorderColor = Color.Transparent,
-            intensity = DerbisGlassIntensity.Standard,
-            artworkTint = DerbisActivePalette.cyan,
-            borderWidth = 0.dp
+        // Deliberately light: the page film only needs to seat the atmosphere, not hide it.
+        val film = DerbisPanel.copy(
+            alpha = (DerbisPanel.alpha * PageGlassFilmShare).coerceIn(0.10f, 0.34f)
         )
+        this.drawWithContent {
+            drawRect(film)
+            drawRect(
+                Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = PageGlassSheenAlpha),
+                    0.28f to Color.Transparent
+                )
+            )
+            drawContent()
+        }
     }
 }
+
+private const val PageGlassFilmShare = 0.45f
+private const val PageGlassSheenAlpha = 0.05f
 
 @Composable
 fun DerbisGlassSurface(

@@ -16,7 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.MoreVert
+import com.yasuda.derbis.ui.icons.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -121,7 +121,8 @@ internal fun AppleMusicGenreScreen(
                     }
                 }
             }
-            shelves.forEachIndexed { index, shelf ->
+            // Songs only: editorial pages never render a video shelf.
+            shelves.filter { it.shelf.kind != AppleCatalogShelfKind.Videos }.forEachIndexed { index, shelf ->
                 item(key = "genre-${shelf.shelf.id}-$index", contentType = shelf.role) {
                     if (shelf.role == AppleHomeShelfRole.Hero) {
                         AppleMusicHeroCarousel(remember(shelf) {

@@ -17,8 +17,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.GraphicEq
+import com.yasuda.derbis.ui.icons.Check
+import com.yasuda.derbis.ui.icons.GraphicEq
 import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton

@@ -1,5 +1,14 @@
 package com.yasuda.derbis.ui.insights
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextUnit
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
@@ -32,6 +41,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,11 +52,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
+import com.yasuda.derbis.ui.icons.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import com.yasuda.derbis.ui.icons.Close
+import com.yasuda.derbis.ui.icons.KeyboardArrowDown
+import com.yasuda.derbis.ui.icons.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -71,6 +82,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -83,6 +95,16 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import android.content.Context
+import android.content.Intent
+import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.yasuda.derbis.R
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.ListeningInsightsArtist
@@ -103,6 +125,81 @@ private val WrappedInk = Color.White
 private val WrappedMuted = Color.White.copy(alpha = 0.72f)
 private val WrappedBackground = Color(0xFF040508)
 private val WrappedOnAccent = Color(0xFF07080C)
+
+/**
+ * Hero type in this story is sized for a tall phone. On a short viewport (landscape, split
+ * screen, small phones) a 120sp year or an 84sp counter clips, so every page multiplies its
+ * display sizes by this factor. 1f is the reference height; the floor keeps the words legible
+ * instead of shrinking them into noise.
+ */
+internal fun wrappedTypeScale(availableHeightDp: Float): Float =
+    (availableHeightDp / WRAPPED_REFERENCE_HEIGHT_DP).coerceIn(WRAPPED_MIN_TYPE_SCALE, 1f)
+
+private const val WRAPPED_REFERENCE_HEIGHT_DP = 720f
+private const val WRAPPED_MIN_TYPE_SCALE = 0.74f
+
+private val LocalWrappedTypeScale = staticCompositionLocalOf { 1f }
+
+/**
+ * Height of the page viewport. Pages use it as a minimum height so short content still centres
+ * while tall content scrolls instead of clipping — `Arrangement.Center` alone cannot do that
+ * inside a scroll container, because scrolling measures children with an unbounded height.
+ */
+private val LocalWrappedViewportHeight = staticCompositionLocalOf { 0.dp }
+
+/** Scales one display size by the current page budget. */
+@Composable
+private fun wrappedSp(base: Float): TextUnit = (base * LocalWrappedTypeScale.current).sp
+
+@Composable
+private fun wrappedDp(base: Dp): Dp = (base.value * LocalWrappedTypeScale.current).dp
+
+/**
+ * Shared eyebrow tag ("TOP ARTIST", "TOTAL LISTENING", …). One implementation keeps the pill
+ * radius, hairline and letter-spacing identical across pages instead of drifting per copy.
+ */
+@Composable
+private fun WrappedTag(
+    text: String,
+    accent: Color,
+    icon: ImageVector,
+    tint: Color = accent
+) = WrappedTagContent(text = text) {
+    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+}
+
+@Composable
+private fun WrappedTag(
+    text: String,
+    accent: Color,
+    icon: androidx.compose.ui.graphics.painter.Painter,
+    tint: Color = accent
+) = WrappedTagContent(text = text) {
+    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+}
+
+@Composable
+private fun WrappedTagContent(text: String, icon: @Composable () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.12f))
+            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        icon()
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = text.uppercase(),
+            color = WrappedInk,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 2.sp,
+            maxLines = 1
+        )
+    }
+}
 
 private enum class WrappedPage { Intro, Minutes, Artist, Tracks, Rhythm, Finale }
 
@@ -132,6 +229,33 @@ internal fun ListeningWrappedStory(
 
     var isHolding by remember { mutableStateOf(false) }
     var currentProgress by remember(pageIndex) { mutableFloatStateOf(0f) }
+
+    // The share card is the same listening receipt the Finale renders, built once here so the
+    // share action works from any page of the story instead of only at the end.
+    val receiptContent = remember(snapshot, strings, locale, state.year) {
+        val current = snapshot ?: return@remember null
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        ListeningReceiptModel.content(
+            snapshot = current,
+            labels = receiptLabels(strings, strings.wrappedReceiptTitle, state.year.toString(), locale),
+            locale = locale,
+            nowMs = now,
+            zone = zone,
+            range = ListeningInsightsRanges.year(state.year, now, zone)
+        )
+    }
+    // The card follows whatever receipt style the finale is set to, so sharing never
+    // produces a different look than the one on screen.
+    var receiptStyle by rememberSaveable {
+        mutableStateOf(ListeningReceiptStyle.Aurora)
+    }
+    val shareCard = rememberWrappedCardSharer(
+        content = receiptContent,
+        caption = strings.receiptCaption,
+        failedLabel = strings.shareLyricsFailed,
+        styleOf = { receiptStyle }
+    )
 
     val covers = remember(snapshot) {
         snapshot?.topTracks?.map { it.artworkUrl }?.filter(String::isNotBlank)?.distinct().orEmpty()
@@ -173,11 +297,18 @@ internal fun ListeningWrappedStory(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            WrappedProgress(count = pages.size, current = pageIndex, progress = { currentProgress })
+            WrappedProgress(
+                count = pages.size,
+                current = pageIndex,
+                progress = { currentProgress },
+                accent = accent
+            )
             WrappedTopBar(
                 year = state.year,
                 closeLabel = strings.close,
                 accent = accent,
+                share = shareCard,
+                shareLabel = strings.share,
                 onClose = onClose
             )
             Box(
@@ -198,7 +329,8 @@ internal fun ListeningWrappedStory(
                     strings = strings,
                     locale = locale,
                     accent = accent,
-                    animationsEnabled = animationsEnabled
+                    animationsEnabled = animationsEnabled,
+                    onReceiptStyleChange = { receiptStyle = it }
                 )
             }
         }
@@ -213,25 +345,43 @@ private fun Modifier.wrappedHoldAndTapNavigation(
 ): Modifier = if (!enabled) {
     this
 } else {
-    pointerInput(Unit) {
-        detectTapGestures(
-            onPress = {
-                onHoldChanged(true)
-                try {
-                    tryAwaitRelease()
-                } finally {
-                    onHoldChanged(false)
+    composed {
+        // In RTL the "back" third is on the right, so the edge test has to mirror; otherwise an
+        // Arabic or Hebrew reader taps the left edge expecting "next" and goes back.
+        val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
+        pointerInput(rightToLeft) {
+            detectTapGestures(
+                onPress = {
+                    onHoldChanged(true)
+                    try {
+                        tryAwaitRelease()
+                    } finally {
+                        onHoldChanged(false)
+                    }
+                },
+                onTap = { offset ->
+                    val onTrailingEdge = offset.x >= size.width * 0.7f
+                    val onLeadingEdge = offset.x < size.width * 0.3f
+                    when {
+                        onLeadingEdge -> if (rightToLeft) onNext() else onPrevious()
+                        onTrailingEdge -> if (rightToLeft) onPrevious() else onNext()
+                        else -> onNext()
+                    }
                 }
-            },
-            onTap = { offset ->
-                if (offset.x < size.width * 0.3f) onPrevious() else onNext()
-            }
-        )
+            )
+        }
     }
 }
 
 @Composable
-private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose: () -> Unit) {
+private fun WrappedTopBar(
+    year: Int,
+    closeLabel: String,
+    accent: Color,
+    share: WrappedCardSharer,
+    shareLabel: String,
+    onClose: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -262,6 +412,32 @@ private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose:
             )
         }
         Spacer(Modifier.weight(1f))
+        // Share lives next to Close so the card is one tap away from any page.
+        IconButton(
+            onClick = share::share,
+            enabled = share.canShare && !share.busy,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+        ) {
+            if (share.busy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(15.dp),
+                    strokeWidth = 1.8.dp,
+                    color = WrappedInk
+                )
+            } else {
+                Icon(
+                    Icons.Rounded.IosShare,
+                    contentDescription = shareLabel,
+                    tint = WrappedInk,
+                    modifier = Modifier.size(17.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
         IconButton(
             onClick = onClose,
             modifier = Modifier
@@ -278,6 +454,107 @@ private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose:
             )
         }
     }
+    share.error?.let { message ->
+        Text(
+            text = message,
+            color = accent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 2.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+/**
+ * Owns the share-card coroutine and its progress state for the story's top bar.
+ *
+ * The receipt render is expensive (covers, artist art, a 1080px bitmap), so it runs on demand and
+ * every bitmap is closed again: flipping pages never keeps receipt artwork in memory.
+ */
+@Stable
+internal class WrappedCardSharer(
+    private val context: Context,
+    private val scope: CoroutineScope,
+    private val caption: String,
+    private val failedLabel: String,
+    private val styleOf: () -> ListeningReceiptStyle,
+    private val content: () -> ListeningReceiptContent?
+) {
+    var busy by mutableStateOf(false)
+        private set
+    var error by mutableStateOf<String?>(null)
+        private set
+
+    val canShare: Boolean get() = content() != null
+
+    fun share() {
+        val current = content() ?: return
+        if (busy) return
+        busy = true
+        error = null
+        scope.launch {
+            val launched = runCatching {
+                withContext(Dispatchers.IO) {
+                    val assets = listeningReceiptCovers()
+                    try {
+                        ListeningReceiptCard.loadAssets(
+                            context = context,
+                            urls = current.artworkUrls,
+                            artistUrl = "",
+                            into = assets
+                        )
+                        val palette = ListeningReceiptCard.resolvePalette(assets)
+                        val intent = ListeningReceiptCard.createShareIntent(
+                            context = context,
+                            content = current,
+                            assets = assets,
+                            style = styleOf(),
+                            palette = palette,
+                            caption = caption
+                        ) ?: return@withContext false
+                        withContext(Dispatchers.Main) {
+                            runCatching {
+                                context.startActivity(
+                                    Intent.createChooser(intent, caption).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                )
+                            }.isSuccess
+                        }
+                    } finally {
+                        assets.close()
+                    }
+                }
+            }.getOrDefault(false)
+            busy = false
+            if (!launched) error = failedLabel
+        }
+    }
+}
+
+@Composable
+private fun rememberWrappedCardSharer(
+    content: ListeningReceiptContent?,
+    caption: String,
+    failedLabel: String,
+    styleOf: () -> ListeningReceiptStyle
+): WrappedCardSharer {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val latest by rememberUpdatedState(content)
+    val latestStyle by rememberUpdatedState(styleOf)
+    return remember(context, scope, caption, failedLabel) {
+        WrappedCardSharer(
+            context = context,
+            scope = scope,
+            caption = caption,
+            failedLabel = failedLabel,
+            styleOf = { latestStyle() },
+            content = { latest }
+        )
+    }
 }
 
 @Composable
@@ -288,38 +565,100 @@ private fun BoxScope.WrappedBody(
     strings: DerbisStrings,
     locale: Locale,
     accent: Color,
-    animationsEnabled: Boolean
+    animationsEnabled: Boolean,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
-    when {
-        state.loading -> CircularProgressIndicator(
-            color = accent,
-            strokeWidth = 2.dp,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(32.dp)
+    // Measure the page area rather than the window: the progress bar and top bar already took
+    // their share, and that is what actually has to fit.
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val typeScale = remember(maxHeight) { wrappedTypeScale(maxHeight.value) }
+        CompositionLocalProvider(
+            LocalWrappedTypeScale provides typeScale,
+            LocalWrappedViewportHeight provides maxHeight
+        ) {
+            when {
+                state.loading -> WrappedStatusCard(
+                    title = strings.wrappedYearInMusic,
+                    body = "",
+                    accent = accent,
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    CircularProgressIndicator(color = accent, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
+                }
+                snapshot == null || page == null -> WrappedStatusCard(
+                    title = strings.wrappedYearInMusic,
+                    body = if (state.failed) strings.insightsError else strings.wrappedEmpty.replace("%s", state.year.toString()),
+                    accent = accent,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+                else -> AnimatedContent(
+                    targetState = page,
+                    transitionSpec = { wrappedPageTransition(animationsEnabled) },
+                    label = "wrapped-page"
+                ) { target ->
+                    WrappedPageContent(
+                        page = target,
+                        year = state.year,
+                        snapshot = snapshot,
+                        strings = strings,
+                        locale = locale,
+                        accent = accent,
+                        animationsEnabled = animationsEnabled
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Loading and empty states used to be a bare spinner or a lonely sentence floating in the dark.
+ * A framed card keeps the story from reading as broken while it resolves.
+ */
+@Composable
+private fun WrappedStatusCard(
+    title: String,
+    body: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    content: @Composable (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 28.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(Color.White.copy(alpha = 0.08f))
+            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(28.dp))
+            .padding(horizontal = 24.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (content != null) {
+            content()
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Text(
+            text = title.uppercase(),
+            color = WrappedInk,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 2.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
-        snapshot == null || page == null -> Text(
-            text = if (state.failed) strings.insightsError else strings.wrappedEmpty.replace("%s", state.year.toString()),
-            color = WrappedMuted,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(32.dp)
-        )
-        else -> AnimatedContent(
-            targetState = page,
-            transitionSpec = { wrappedPageTransition(animationsEnabled) },
-            label = "wrapped-page"
-        ) { target ->
-            WrappedPageContent(
-                page = target,
-                year = state.year,
-                snapshot = snapshot,
-                strings = strings,
-                locale = locale,
-                accent = accent,
-                animationsEnabled = animationsEnabled
+        if (body.isNotBlank()) {
+            Text(
+                text = body,
+                color = WrappedMuted,
+                fontSize = 15.sp,
+                lineHeight = 21.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -333,13 +672,20 @@ private fun wrappedPageTransition(animationsEnabled: Boolean): ContentTransform 
 }
 
 @Composable
-private fun WrappedProgress(count: Int, current: Int, progress: () -> Float) {
+private fun WrappedProgress(count: Int, current: Int, progress: () -> Float, accent: Color) {
     if (count <= 0) return
+    val pageProgress = progress().coerceIn(0f, 1f)
+    val completed = (current + pageProgress) / count
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
             .height(3.dp)
+            // The bar is the only progress cue in the story, so expose it instead of leaving
+            // screen-reader users with nothing but "next page" taps.
+            .semantics {
+                progressBarRangeInfo = ProgressBarRangeInfo(completed, 0f..1f, count)
+            }
     ) {
         val gap = 4.dp.toPx()
         val width = (size.width - gap * (count - 1)) / count
@@ -353,7 +699,14 @@ private fun WrappedProgress(count: Int, current: Int, progress: () -> Float) {
                 else -> 0f
             }
             if (fill > 0f) {
-                drawRoundRect(Color.White, Offset(left, 0f), Size(width * fill, size.height), radius)
+                // Finished segments stay neutral; the live one carries the accent so the eye
+                // lands on where the story currently is.
+                val brush = if (index == current) {
+                    Brush.horizontalGradient(listOf(accent, Color.White))
+                } else {
+                    Brush.horizontalGradient(listOf(Color.White, Color.White))
+                }
+                drawRoundRect(brush, Offset(left, 0f), Size(width * fill, size.height), radius)
             }
         }
     }
@@ -541,7 +894,14 @@ private fun WrappedPageContent(
         WrappedPage.Artist -> WrappedArtist(snapshot.topArtists, strings, locale, accent)
         WrappedPage.Tracks -> WrappedTracks(snapshot.topTracks, strings, accent)
         WrappedPage.Rhythm -> WrappedRhythm(snapshot, strings, locale, accent)
-        WrappedPage.Finale -> WrappedFinale(year, snapshot, strings, locale, accent)
+        WrappedPage.Finale -> WrappedFinale(
+            year = year,
+            snapshot = snapshot,
+            strings = strings,
+            locale = locale,
+            accent = accent,
+            onReceiptStyleChange = onReceiptStyleChange
+        )
     }
 }
 
@@ -553,29 +913,11 @@ private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
             .padding(horizontal = 28.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape)
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_sound_wave),
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(15.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "REPLAY",
-                color = WrappedInk,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.5.sp
-            )
-        }
+        WrappedTag(
+            text = "REPLAY",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
         Spacer(Modifier.height(18.dp))
         Text(
             text = strings.wrappedYearInMusic.uppercase(),
@@ -587,11 +929,12 @@ private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
         Text(
             text = year.toString(),
             color = WrappedInk,
-            fontSize = 120.sp,
-            lineHeight = 118.sp,
+            fontSize = wrappedSp(120f),
+            lineHeight = wrappedSp(118f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-4.5).sp,
-            maxLines = 1
+            maxLines = 1,
+            softWrap = false
         )
         Text(
             text = strings.wrappedEntrySubtitle,
@@ -600,7 +943,7 @@ private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
             lineHeight = 22.sp,
             fontWeight = FontWeight.Medium
         )
-        Spacer(Modifier.height(36.dp))
+        Spacer(Modifier.height(wrappedDp(36.dp)))
         Row(
             modifier = Modifier
                 .clip(CircleShape)
@@ -641,38 +984,24 @@ private fun WrappedMinutes(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Centred when it fits, scrollable when it does not, so short viewports never
+            // clip the trend chip or the hero number.
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_sound_wave),
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "TOTAL LISTENING",
-                color = WrappedInk,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
-        }
+        WrappedTag(
+            text = "TOTAL LISTENING",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
         Spacer(Modifier.height(20.dp))
         Text(
             text = strings.wrappedMinutesTitle,
             color = WrappedInk,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
+            fontSize = wrappedSp(28f),
+            lineHeight = wrappedSp(32f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.8).sp
         )
@@ -749,11 +1078,12 @@ private fun CountUpText(target: Long, format: NumberFormat, animate: Boolean, mo
     Text(
         text = format.format(value.value.toLong()),
         color = WrappedInk,
-        fontSize = 84.sp,
-        lineHeight = 88.sp,
+        fontSize = wrappedSp(84f),
+        lineHeight = wrappedSp(88f),
         fontWeight = FontWeight.Black,
         letterSpacing = (-3).sp,
         maxLines = 1,
+        softWrap = false,
         modifier = modifier
     )
 }
@@ -772,45 +1102,30 @@ private fun WrappedArtist(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.AutoAwesome,
-                contentDescription = null,
-                tint = Color(0xFFFFD700),
-                modifier = Modifier.size(15.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "TOP ARTIST",
-                color = WrappedInk,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
-        }
+        WrappedTag(
+            text = "TOP ARTIST",
+            accent = accent,
+            icon = Icons.Rounded.AutoAwesome,
+            tint = Color(0xFFFFD700)
+        )
         Spacer(Modifier.height(20.dp))
         Text(
             text = strings.wrappedArtistTitle,
             color = WrappedInk,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
+            fontSize = wrappedSp(28f),
+            lineHeight = wrappedSp(32f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.8).sp
         )
         Spacer(Modifier.height(24.dp))
         Box(
             modifier = Modifier
-                .size(210.dp)
+                .size(wrappedDp(210.dp))
                 .clip(CircleShape)
                 .background(Brush.linearGradient(listOf(accent, DerbisViolet)))
                 .border(2.dp, Color.White.copy(alpha = 0.25f), CircleShape),
@@ -819,7 +1134,7 @@ private fun WrappedArtist(
             Text(
                 text = ListeningReceiptModel.initial(top.name),
                 color = WrappedOnAccent,
-                fontSize = 80.sp,
+                fontSize = wrappedSp(80f),
                 fontWeight = FontWeight.Black
             )
             if (top.artworkUrl.isNotBlank()) {
@@ -838,8 +1153,8 @@ private fun WrappedArtist(
         Text(
             text = top.name,
             color = WrappedInk,
-            fontSize = 38.sp,
-            lineHeight = 42.sp,
+            fontSize = wrappedSp(38f),
+            lineHeight = wrappedSp(42f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-1.2).sp,
             maxLines = 2,
@@ -892,38 +1207,22 @@ private fun WrappedTracks(tracks: List<ListeningInsightsTrack>, strings: DerbisS
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_sound_wave),
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "TOP SONGS",
-                color = WrappedInk,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
-        }
+        WrappedTag(
+            text = "TOP SONGS",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
         Spacer(Modifier.height(16.dp))
         Text(
             text = strings.wrappedTracksTitle,
             color = WrappedInk,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
+            fontSize = wrappedSp(28f),
+            lineHeight = wrappedSp(32f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.8).sp
         )
@@ -1036,38 +1335,22 @@ private fun WrappedRhythm(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_sound_wave),
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "LISTENING RHYTHM",
-                color = WrappedInk,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
-            )
-        }
+        WrappedTag(
+            text = "LISTENING RHYTHM",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
         Spacer(Modifier.height(16.dp))
         Text(
             text = strings.wrappedRhythmTitle,
             color = WrappedInk,
-            fontSize = 28.sp,
-            lineHeight = 32.sp,
+            fontSize = wrappedSp(28f),
+            lineHeight = wrappedSp(32f),
             fontWeight = FontWeight.Black,
             letterSpacing = (-0.8).sp
         )
@@ -1152,7 +1435,8 @@ private fun WrappedFinale(
     snapshot: ListeningInsightsSnapshot,
     strings: DerbisStrings,
     locale: Locale,
-    accent: Color
+    accent: Color,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     val content = remember(snapshot, strings, locale, year) {
         val now = System.currentTimeMillis()
@@ -1186,7 +1470,8 @@ private fun WrappedFinale(
             accent = accent,
             textColor = WrappedInk,
             mutedColor = WrappedMuted,
-            previewMaxHeight = 460.dp
+            previewMaxHeight = 460.dp,
+            onStyleChange = onReceiptStyleChange
         )
     }
 }

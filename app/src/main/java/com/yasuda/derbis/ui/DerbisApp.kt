@@ -21,7 +21,7 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import androidx.compose.material.icons.rounded.Lock
+import com.yasuda.derbis.ui.icons.Lock
 import androidx.compose.material.icons.rounded.Whatshot
 import com.yasuda.derbis.ui.components.DerbisIonicons
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
@@ -69,7 +69,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
-import androidx.compose.material.icons.rounded.Tune
+import com.yasuda.derbis.ui.icons.Tune
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -331,7 +331,7 @@ import com.yasuda.derbis.ui.theme.Nocturne78Design
 import com.yasuda.derbis.ui.theme.SkinSelector
 import com.yasuda.derbis.ui.i18n.NavStudioText
 import com.yasuda.derbis.ui.i18n.navigationStudioCopy
-import androidx.compose.material.icons.rounded.Public
+import com.yasuda.derbis.ui.icons.Public
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Groups
 import com.yasuda.derbis.ui.i18n.settingsHubCopy
@@ -359,61 +359,63 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.rounded.Album
-import androidx.compose.material.icons.rounded.AutoAwesome
+import com.yasuda.derbis.ui.icons.Album
+import com.yasuda.derbis.ui.icons.AutoAwesome
 import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.Explore
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
-import androidx.compose.material.icons.rounded.GraphicEq
+import com.yasuda.derbis.ui.icons.GraphicEq
 import androidx.compose.material.icons.rounded.Radio
-import androidx.compose.material.icons.rounded.Headphones
-import androidx.compose.material.icons.rounded.Equalizer
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
+import com.yasuda.derbis.ui.icons.Headphones
+import com.yasuda.derbis.ui.icons.Equalizer
+import com.yasuda.derbis.ui.icons.Favorite
+import com.yasuda.derbis.ui.icons.FavoriteBorder
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SmartDisplay
-import androidx.compose.material.icons.rounded.LibraryMusic
+import com.yasuda.derbis.ui.icons.LibraryMusic
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Mood
-import androidx.compose.material.icons.rounded.MusicNote
+import com.yasuda.derbis.ui.icons.MusicNote
 import androidx.compose.material.icons.rounded.SlowMotionVideo
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.BookmarkAdd
-import androidx.compose.material.icons.rounded.Bolt
+import com.yasuda.derbis.ui.icons.Bolt
 import androidx.compose.material.icons.rounded.Block
-import androidx.compose.material.icons.rounded.Close
+import com.yasuda.derbis.ui.icons.Close
+import com.yasuda.derbis.ui.icons.CloseFullscreen
+import com.yasuda.derbis.ui.icons.Fullscreen
 import androidx.compose.material.icons.rounded.ColorLens
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import com.yasuda.derbis.ui.icons.ContentCopy
+import com.yasuda.derbis.ui.icons.CheckCircle
+import com.yasuda.derbis.ui.icons.Delete
+import com.yasuda.derbis.ui.icons.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Translate
-import androidx.compose.material.icons.rounded.Download
+import com.yasuda.derbis.ui.icons.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
+import com.yasuda.derbis.ui.icons.Pause
+import com.yasuda.derbis.ui.icons.PlayArrow
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Repeat
-import androidx.compose.material.icons.rounded.RepeatOne
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.Settings
+import com.yasuda.derbis.ui.icons.Repeat
+import com.yasuda.derbis.ui.icons.RepeatOne
+import com.yasuda.derbis.ui.icons.Search
+import com.yasuda.derbis.ui.icons.AccountCircle
+import com.yasuda.derbis.ui.icons.Settings
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.PersonOff
 import androidx.compose.material.icons.rounded.PlaylistRemove
 import androidx.compose.material3.IconButtonDefaults
 import com.yasuda.derbis.ui.components.DerbisExpressiveIconButton
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Shuffle
+import com.yasuda.derbis.ui.icons.Share
+import com.yasuda.derbis.ui.icons.Shuffle
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.OfflinePin
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
+import com.yasuda.derbis.ui.icons.SkipNext
+import com.yasuda.derbis.ui.icons.SkipPrevious
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.LibraryAdd
@@ -427,38 +429,38 @@ import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.SwipeVertical
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Vibration
-import androidx.compose.material.icons.rounded.Mic
+import com.yasuda.derbis.ui.icons.Mic
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.Recommend
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Nightlight
-import androidx.compose.material.icons.rounded.Person
+import com.yasuda.derbis.ui.icons.MoreVert
+import com.yasuda.derbis.ui.icons.Nightlight
+import com.yasuda.derbis.ui.icons.Person
 import androidx.compose.material.icons.rounded.PersonAdd
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Palette
+import com.yasuda.derbis.ui.icons.Check
+import com.yasuda.derbis.ui.icons.Palette
 import androidx.compose.material.icons.rounded.Verified
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import com.yasuda.derbis.ui.icons.KeyboardArrowDown
+import com.yasuda.derbis.ui.icons.KeyboardArrowUp
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.History
+import com.yasuda.derbis.ui.icons.History
 import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.Info
+import com.yasuda.derbis.ui.icons.Info
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.Schedule
+import com.yasuda.derbis.ui.icons.Schedule
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.PushPin
+import com.yasuda.derbis.ui.icons.PushPin
 import androidx.compose.material.icons.automirrored.rounded.Reply
-import androidx.compose.material.icons.rounded.Refresh
+import com.yasuda.derbis.ui.icons.Refresh
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Visibility
+import com.yasuda.derbis.ui.icons.Visibility
 import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material.icons.rounded.ViewCompact
 import androidx.compose.material.icons.rounded.TextFields
@@ -479,9 +481,9 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material.icons.rounded.Add
+import com.yasuda.derbis.ui.icons.Add
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import androidx.compose.material.icons.rounded.Star
+import com.yasuda.derbis.ui.icons.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
@@ -749,6 +751,7 @@ import com.yasuda.derbis.ui.lyrics.studio.LyricsStudioOverlay
 import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
+import com.yasuda.derbis.ui.island.DerbisMusicNotch
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
@@ -2199,9 +2202,15 @@ fun DerbisApp(
     val glassAccessibility = rememberDerbisGlassAccessibility()
     val glassMaterialIsOpaque = glassAccessibility.prefersOpaqueMaterials ||
         LocalDerbisGlassStyle.current.prefersOpaqueMaterials
+    // Resolved once for the whole app: every glass panel reads this instead of re-querying the
+    // device on each row of a scrolling list.
+    val glassLensTier = com.yasuda.derbis.ui.rememberDerbisGlassTier(
+        heavyBlur = visualCapabilities.heavyBlur
+    )
     CompositionLocalProvider(
         LocalAnimationsEnabled provides state.animationsEnabled,
         LocalDerbisVisualCapabilities provides visualCapabilities,
+        com.yasuda.derbis.ui.LocalDerbisGlassTier provides glassLensTier,
         LocalDerbisStrings provides currentStrings,
         LocalDerbisHaptics provides rememberDerbisHaptics(state.interfaceSettings.hapticFeedback),
         LocalLayoutDirection provides layoutDirection,
@@ -2695,6 +2704,32 @@ fun DerbisApp(
                     }
                 }
                 }
+            }
+
+            if (!playerVisible && state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled) {
+                DerbisMusicNotch(
+                    track = state.currentTrack,
+                    lyrics = state.lyrics,
+                    lyricsSynced = state.lyricsSynced,
+                    positionMs = state.positionMs,
+                    durationMs = state.durationMs,
+                    isPlaying = state.isPlaying,
+                    style = state.interfaceSettings.derbisNotchStyle,
+                    onStyleChange = { chosen ->
+                        viewModel.setInterfaceSettings(
+                            state.interfaceSettings.copy(derbisNotchStyle = chosen)
+                        )
+                    },
+                    onTogglePlay = viewModel::togglePlay,
+                    onPrevious = viewModel::previous,
+                    onNext = viewModel::next,
+                    onOpen = viewModel::openPlayerScreen,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 4.dp)
+                        .zIndex(42f)
+                )
             }
 
             if (playerVisible) {
@@ -3424,7 +3459,8 @@ fun DerbisApp(
                         blur = state.interfaceSettings.glassBlur,
                         transparency = state.interfaceSettings.glassTransparency,
                         tint = state.interfaceSettings.glassTint,
-                        refraction = state.interfaceSettings.glassRefraction
+                        refraction = state.interfaceSettings.glassRefraction,
+                        effects = state.interfaceSettings.glassEffects
                     ),
                     onGlassStyleChange = { glass ->
                         viewModel.setInterfaceSettings(
@@ -3432,7 +3468,8 @@ fun DerbisApp(
                                 glassBlur = glass.blur,
                                 glassTransparency = glass.transparency,
                                 glassTint = glass.tint,
-                                glassRefraction = glass.refraction
+                                glassRefraction = glass.refraction,
+                                glassEffects = glass.effects
                             )
                         )
                     }
@@ -5525,28 +5562,8 @@ private fun ArtistOverlay(
                             )
                         }
                     }
-                    val videoTitle = if (DerbisIsAppleMusic) appleArtistInfoCopy(strings.code).topVideos else strings.video
-                    val videoItems: LazyListScope.() -> Unit = {
-                        if (artist.videos.isNotEmpty()) {
-                            item(key = "artist-videos-title", contentType = "artist-section-title") { Box(modifier = Modifier.padding(horizontal = 20.dp)) { ArtistSectionTitle(videoTitle) } }
-                            item(key = "artist-videos", contentType = "artist-video-row") {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp)
-                                ) {
-                                    val shownVideos = artist.videos.take(20)
-                                    items(shownVideos, key = { "artist-video-${it.id}" }) { track ->
-                                        VideoGlassCard(
-                                            track = track,
-                                            isCurrent = track.id == state.currentTrack?.id,
-                                            isPlaying = state.isPlaying && track.id == state.currentTrack?.id,
-                                            onClick = { onPlayFrom(shownVideos, track) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Songs only: artist pages no longer carry a video shelf.
+                    val videoItems: LazyListScope.() -> Unit = {}
                     val applePage = appleArtist?.takeIf { page -> page.shelves.any { it.style != AppleArtistShelfStyle.Artists } }
                     if (DerbisIsAppleMusic && applePage != null) {
                         appleMusicArtistShelves(
@@ -8136,6 +8153,11 @@ private fun LyricsOverlay(
         requestedLyricIndex = null
     }
 
+    // Lyrics own the whole page already; fullscreen only strips the transport chrome and pushes
+    // the progress strip to the very bottom edge. Nothing changes until the button is pressed.
+    var lyricsFullscreen by rememberSaveable { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = lyricsFullscreen) { lyricsFullscreen = false }
+
     val lyricsActionRow: @Composable (Modifier, Boolean) -> Unit = { rowModifier, includeClose ->
         Row(
             modifier = rowModifier,
@@ -8192,6 +8214,17 @@ private fun LyricsOverlay(
                 onClick = { showLyricsOptions = true },
                 contentDescription = strings.options
             )
+            CircleIconButton(
+                icon = if (lyricsFullscreen) Icons.Rounded.CloseFullscreen else Icons.Rounded.Fullscreen,
+                tint = if (lyricsFullscreen) DerbisCyan else Color.White,
+                background = if (lyricsFullscreen) {
+                    DerbisCyan.copy(alpha = 0.22f)
+                } else {
+                    Color.White.copy(alpha = 0.10f)
+                },
+                onClick = { lyricsFullscreen = !lyricsFullscreen },
+                contentDescription = if (lyricsFullscreen) strings.collapsePlayer else strings.expandPlayer
+            )
             if (includeClose) {
                 CircleIconButton(
                     icon = Icons.Rounded.Close,
@@ -8239,6 +8272,7 @@ private fun LyricsOverlay(
             state = state,
             accentStart = accentStart,
             accentEnd = accentEnd,
+            fullscreen = lyricsFullscreen,
             onSeekToMs = onSeekToMs,
             onPrevious = onPrevious,
             onTogglePlay = onTogglePlay,
@@ -8491,6 +8525,7 @@ private fun AppleMusic13FullscreenLyrics(
     state: DerbisUiState,
     accentStart: Color,
     accentEnd: Color,
+    fullscreen: Boolean = false,
     onSeekToMs: (Long) -> Unit,
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -8925,8 +8960,12 @@ private fun AppleMusic13FullscreenLyrics(
                 // After the listener is idle, retain a quiet progress strip and a single timing
                 // control instead of leaving a completely blank lyric page. A tap still restores
                 // the complete transport and action rail above.
+                val stripBottom by animateDpAsState(
+                    targetValue = if (fullscreen) 2.dp else 22.dp,
+                    label = "lyrics-progress-bottom"
+                )
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !showCluster && !imageShareSelectionMode,
+                    visible = (!showCluster || fullscreen) && !imageShareSelectionMode,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomCenter)
@@ -8934,7 +8973,7 @@ private fun AppleMusic13FullscreenLyrics(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 32.dp, end = 32.dp, bottom = 22.dp)
+                            .padding(start = 32.dp, end = 32.dp, bottom = stripBottom)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Slider(
@@ -8982,7 +9021,7 @@ private fun AppleMusic13FullscreenLyrics(
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
             // grow into the freed room instead of leaving an empty control-shaped band behind.
             AnimatedVisibility(
-                visible = showCluster && !imageShareSelectionMode,
+                visible = showCluster && !fullscreen && !imageShareSelectionMode,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
@@ -9940,21 +9979,8 @@ private fun HomeScreen(
         )
     }
     val rawOtherSections = homeDerivedState.otherSections
-    val freshHomeVideoTracks = remember(state.exploreVideos, rawOtherSections, state.charts, strings.exploreNewVideos) {
-        val sectionVideos = rawOtherSections
-            .filter { section -> isMusicVideoSectionTitle(section.title, strings) }
-            .flatMap { section -> section.tracks }
-        val chartVideos = state.charts.filter { track ->
-            track.counterpartVideoId.isNotBlank() || track.videoUrl.isNotBlank()
-        }
-        DerbisPersonalOrbit.distinctRecordings(state.exploreVideos + sectionVideos + chartVideos)
-            .filter { track ->
-                track.counterpartVideoId.isNotBlank() ||
-                    track.videoType.contains("video", ignoreCase = true) ||
-                    track.videoUrl.isNotBlank()
-            }
-            .take(12)
-    }
+    // Songs only: Home never surfaces a video rail.
+    val freshHomeVideoTracks: List<Track> = emptyList()
     val lastHomeVideoTracks = remember { mutableStateOf<List<Track>>(emptyList()) }
     val homeVideoTracks = if (freshHomeVideoTracks.isEmpty() && state.isLoadingCharts) {
         lastHomeVideoTracks.value
@@ -9964,9 +9990,9 @@ private fun HomeScreen(
     SideEffect {
         if (freshHomeVideoTracks.isNotEmpty()) lastHomeVideoTracks.value = freshHomeVideoTracks
     }
-    val otherSections = remember(rawOtherSections, homeVideoTracks, strings.exploreNewVideos) {
+    val otherSections = remember(rawOtherSections, strings.exploreNewVideos) {
         rawOtherSections.withIndex().filterNot { (_, section) ->
-            homeVideoTracks.isNotEmpty() && isMusicVideoSectionTitle(section.title, strings)
+            isMusicVideoSectionTitle(section.title, strings)
         }
     }
     val spotlightCandidates = homeDerivedState.spotlightCandidates
@@ -11020,9 +11046,8 @@ private fun rememberStudioHomeVideo(
     rawOtherSections: List<com.yasuda.derbis.domain.HomeSection>,
     strings: DerbisStrings
 ): Pair<List<Track>, List<IndexedValue<com.yasuda.derbis.domain.HomeSection>>> {
-    val freshHomeVideoTracks = remember(state.exploreVideos, rawOtherSections, state.charts, strings.exploreNewVideos) {
-        buildStudioHomeVideoTracks(state, rawOtherSections, strings)
-    }
+    // Songs only: Home never surfaces a video rail.
+    val freshHomeVideoTracks: List<Track> = emptyList()
     val lastHomeVideoTracks = remember { mutableStateOf<List<Track>>(emptyList()) }
     val homeVideoTracks = if (freshHomeVideoTracks.isEmpty() && state.isLoadingCharts) {
         lastHomeVideoTracks.value
@@ -11032,9 +11057,9 @@ private fun rememberStudioHomeVideo(
     SideEffect {
         if (freshHomeVideoTracks.isNotEmpty()) lastHomeVideoTracks.value = freshHomeVideoTracks
     }
-    val otherSections = remember(rawOtherSections, homeVideoTracks, strings.exploreNewVideos) {
+    val otherSections = remember(rawOtherSections, strings.exploreNewVideos) {
         rawOtherSections.withIndex().filterNot { (_, section) ->
-            homeVideoTracks.isNotEmpty() && isMusicVideoSectionTitle(section.title, strings)
+            isMusicVideoSectionTitle(section.title, strings)
         }
     }
     return homeVideoTracks to otherSections
@@ -11427,13 +11452,8 @@ private fun buildStudioHomeVideoTracks(
     val chartVideos = state.charts.filter { track ->
         track.counterpartVideoId.isNotBlank() || track.videoUrl.isNotBlank()
     }
-    return DerbisPersonalOrbit.distinctRecordings(state.exploreVideos + sectionVideos + chartVideos)
-        .filter { track ->
-            track.counterpartVideoId.isNotBlank() ||
-                track.videoType.contains("video", ignoreCase = true) ||
-                track.videoUrl.isNotBlank()
-        }
-        .take(12)
+    // Songs only: the studio home rail is retired, so nothing is returned here.
+    return emptyList<Track>()
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -16094,7 +16114,12 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
         viewModel.refreshArtistSuggestions()
     }
 
-    val data = state.searchData
+    // Songs only: video results are dropped before anything renders, which also removes the
+    // Videos filter chip, the section header and the counts built from this list.
+    val data = remember(state.searchData) {
+        val raw = state.searchData
+        if (raw.videos.isEmpty()) raw else raw.copy(videos = emptyList())
+    }
     val filter = state.searchFilter
 
     Column(
@@ -20310,9 +20335,14 @@ private fun PlayerScreen(
         state.artistExclusions.filterTracks(state.similarSongs)
     }
 
+    // Songs only: a video rendition can still resolve, but the player never presents one. The
+    // surface, the pane layout and the video chrome all key off this flag.
+    val presentedState = remember(state) {
+        if (state.isVideoMode) state.copy(isVideoMode = false) else state
+    }
     DerbisNowPlaying(
         viewModel = viewModel,
-        state = state,
+        state = presentedState,
         morphAnchors = morphAnchors,
         morphActive = morphActive,
         collapseActions = collapseActions,
@@ -21478,6 +21508,19 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsToggle(
+                                    icon = Icons.Rounded.PictureInPictureAlt,
+                                    title = strings.derbisNotch,
+                                    subtitle = strings.derbisNotchHint,
+                                    checked = interfaceSettings.derbisNotchEnabled,
+                                    onCheckedChange = {
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(derbisNotchEnabled = it)
+                                        )
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsToggle(
                                     icon = Icons.Rounded.Swipe,
                                     title = strings.playerGestureHorizontalSwipe,
                                     subtitle = strings.playerGestureHorizontalSwipeSubtitle,
@@ -22214,6 +22257,9 @@ private fun DiscordRichPresenceSettingsPanel() {
     var presenceEnabled by remember(context) {
         mutableStateOf(discord.isEnabled(context))
     }
+    var lyricsInPresence by remember(context) {
+        mutableStateOf(discord.isLyricsEnabled(context))
+    }
     var showLoginSheet by remember { mutableStateOf(false) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testDiagnosticMessage by remember { mutableStateOf("") }
@@ -22223,6 +22269,7 @@ private fun DiscordRichPresenceSettingsPanel() {
     }
     LaunchedEffect(connection.status) {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
+        lyricsInPresence = discord.isLyricsEnabled(context)
     }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
@@ -22352,6 +22399,19 @@ private fun DiscordRichPresenceSettingsPanel() {
                     discord.setEnabled(context, value)
                 }
             )
+
+            if (presenceEnabled) {
+                SettingsToggle(
+                    icon = Icons.Rounded.FormatQuote,
+                    title = "Show lyrics in presence",
+                    subtitle = "Publish the current synced lyric line as your activity text (needs synced lyrics; updates at most every 4 seconds)",
+                    checked = lyricsInPresence,
+                    onCheckedChange = { value ->
+                        lyricsInPresence = value
+                        discord.setLyricsEnabled(context, value)
+                    }
+                )
+            }
 
             SettingsButton(
                 icon = Icons.Rounded.Refresh,

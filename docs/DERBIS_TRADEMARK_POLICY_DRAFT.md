@@ -1,7 +1,7 @@
 # Derbis Trademark and Brand Policy — Draft
 
-> **DRAFT — NOT YET EFFECTIVE.** Finalize this policy only with the proprietary-license
-> transition and legal review described in [`PROPRIETARY_MIGRATION.md`](PROPRIETARY_MIGRATION.md).
+> **DRAFT — NOT YET EFFECTIVE.** The code is GPL-3.0 (see [`RELICENSING.md`](RELICENSING.md)); this
+> policy only covers the Derbis name and brand assets, and becomes effective after legal review.
 
 The words **Derbis**, the Derbis logo and icon, word marks, screenshots, artwork,
 marketing images, application identity, official package names, and visual trade dress

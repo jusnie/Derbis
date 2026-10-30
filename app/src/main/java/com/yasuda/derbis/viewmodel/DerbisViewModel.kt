@@ -494,9 +494,11 @@ internal fun shouldStartPlaybackPaused(
     activeRequestId: Long
 ): Boolean = request.id == activeRequestId && request.startPaused
 
+@Suppress("UNUSED_PARAMETER")
 internal fun DerbisUiState.withExplicitPlaybackMode(videoMode: Boolean): DerbisUiState =
-    if (isVideoMode == videoMode && pendingVideoMode == null) this
-    else copy(isVideoMode = videoMode, pendingVideoMode = null)
+    // Songs only: video presentation is retired, so an explicit mode change always lands on audio.
+    if (!isVideoMode && pendingVideoMode == null) this
+    else copy(isVideoMode = false, pendingVideoMode = null)
 
 internal fun releaseRadarAlbumHit(entry: ReleaseRadarEntry): AlbumHit? {
     val release = entry.release

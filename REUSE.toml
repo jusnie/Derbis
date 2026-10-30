@@ -4,16 +4,13 @@ version = 1
 path = "**"
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Yasuda"
-SPDX-License-Identifier = "LicenseRef-Derbis-EULA"
+SPDX-License-Identifier = "GPL-3.0-only"
 
 [[annotations]]
 path = [
   "gradlew",
   "gradlew.bat",
   "gradle/wrapper/**",
-  "desktop/gradlew",
-  "desktop/gradlew.bat",
-  "desktop/gradle/wrapper/**",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2015 the original authors"
