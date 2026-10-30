@@ -33,6 +33,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "it" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Ascolta insieme",
+        "jamListenTogetherSubtitle" to "Ascolta insieme agli amici in tempo reale",
+        "jamStartListenTogether" to "Avvia Ascolta insieme",
+        "jamJoinListenTogether" to "Entra in Ascolta insieme",
+        "jamListeningNow" to "In riproduzione",
+
         "jamSubtitle" to "Ascoltate insieme sulla stessa rete",
         "jamCreate" to "Crea Jam",
         "jamJoin" to "Entra nel Jam",
@@ -58,6 +64,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "es" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Escuchar juntos",
+        "jamListenTogetherSubtitle" to "Escuchad juntos con amigos en tiempo real",
+        "jamStartListenTogether" to "Iniciar Escuchar juntos",
+        "jamJoinListenTogether" to "Unirse a Escuchar juntos",
+        "jamListeningNow" to "Reproduciendo ahora",
+
         "jamSubtitle" to "Escuchad juntos en la misma red",
         "jamCreate" to "Crear Jam",
         "jamJoin" to "Unirse al Jam",
@@ -83,6 +95,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "fr" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Écouter ensemble",
+        "jamListenTogetherSubtitle" to "Écoutez ensemble avec des amis en temps réel",
+        "jamStartListenTogether" to "Démarrer Écouter ensemble",
+        "jamJoinListenTogether" to "Rejoindre Écouter ensemble",
+        "jamListeningNow" to "En cours de lecture",
+
         "jamSubtitle" to "Écoutez ensemble sur le même réseau",
         "jamCreate" to "Créer un Jam",
         "jamJoin" to "Rejoindre le Jam",
@@ -108,6 +126,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "de" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Gemeinsam hören",
+        "jamListenTogetherSubtitle" to "Höre in Echtzeit gemeinsam mit Freunden",
+        "jamStartListenTogether" to "Gemeinsam hören starten",
+        "jamJoinListenTogether" to "Gemeinsam hören beitreten",
+        "jamListeningNow" to "Aktuelle Wiedergabe",
+
         "jamSubtitle" to "Gemeinsam im selben Netzwerk hören",
         "jamCreate" to "Jam erstellen",
         "jamJoin" to "Jam beitreten",
@@ -133,6 +157,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "pt" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Ouvir em conjunto",
+        "jamListenTogetherSubtitle" to "Ouve em tempo real com amigos",
+        "jamStartListenTogether" to "Iniciar Ouvir em conjunto",
+        "jamJoinListenTogether" to "Entrar em Ouvir em conjunto",
+        "jamListeningNow" to "A reproduzir",
+
         "jamSubtitle" to "Ouçam juntos na mesma rede",
         "jamCreate" to "Criar Jam",
         "jamJoin" to "Entrar no Jam",
@@ -158,6 +188,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "nl" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Samen luisteren",
+        "jamListenTogetherSubtitle" to "Luister in realtime samen met vrienden",
+        "jamStartListenTogether" to "Samen luisteren starten",
+        "jamJoinListenTogether" to "Deelnemen aan Samen luisteren",
+        "jamListeningNow" to "Nu aan het afspelen",
+
         "jamSubtitle" to "Luister samen op hetzelfde netwerk",
         "jamCreate" to "Jam maken",
         "jamJoin" to "Deelnemen aan Jam",
@@ -183,6 +219,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "pl" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Słuchaj razem",
+        "jamListenTogetherSubtitle" to "Słuchaj w czasie rzeczywistym ze znajomymi",
+        "jamStartListenTogether" to "Rozpocznij Słuchaj razem",
+        "jamJoinListenTogether" to "Dołącz do Słuchaj razem",
+        "jamListeningNow" to "Teraz odtwarzane",
+
         "jamSubtitle" to "Słuchajcie razem w tej samej sieci",
         "jamCreate" to "Utwórz Jam",
         "jamJoin" to "Dołącz do Jamu",
@@ -208,6 +250,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "ro" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Ascultă împreună",
+        "jamListenTogetherSubtitle" to "Ascultă împreună cu prietenii în timp real",
+        "jamStartListenTogether" to "Pornește Ascultă împreună",
+        "jamJoinListenTogether" to "Alătură-te la Ascultă împreună",
+        "jamListeningNow" to "În redare",
+
         "jamSubtitle" to "Ascultați împreună în aceeași rețea",
         "jamCreate" to "Creează Jam",
         "jamJoin" to "Intră în Jam",
@@ -233,6 +281,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "el" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Ακούστε μαζί",
+        "jamListenTogetherSubtitle" to "Ακούστε μαζί με φίλους σε πραγματικό χρόνο",
+        "jamStartListenTogether" to "Έναρξη Ακούστε μαζί",
+        "jamJoinListenTogether" to "Συμμετοχή στο Ακούστε μαζί",
+        "jamListeningNow" to "Αναπαράγεται τώρα",
+
         "jamSubtitle" to "Ακούστε μαζί στο ίδιο δίκτυο",
         "jamCreate" to "Δημιουργία Jam",
         "jamJoin" to "Συμμετοχή σε Jam",
@@ -258,6 +312,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "sv" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Lyssna tillsammans",
+        "jamListenTogetherSubtitle" to "Lyssna i realtid med vänner",
+        "jamStartListenTogether" to "Starta Lyssna tillsammans",
+        "jamJoinListenTogether" to "Gå med i Lyssna tillsammans",
+        "jamListeningNow" to "Spelas nu",
+
         "jamSubtitle" to "Lyssna tillsammans på samma nätverk",
         "jamCreate" to "Skapa Jam",
         "jamJoin" to "Gå med i Jam",
@@ -283,6 +343,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "da" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Lyt sammen",
+        "jamListenTogetherSubtitle" to "Lyt i realtid sammen med venner",
+        "jamStartListenTogether" to "Start Lyt sammen",
+        "jamJoinListenTogether" to "Deltag i Lyt sammen",
+        "jamListeningNow" to "Afspiller nu",
+
         "jamSubtitle" to "Lyt sammen på samme netværk",
         "jamCreate" to "Opret Jam",
         "jamJoin" to "Deltag i Jam",
@@ -308,6 +374,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "cs" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Poslouchat společně",
+        "jamListenTogetherSubtitle" to "Poslouchejte v reálném čase s přáteli",
+        "jamStartListenTogether" to "Spustit Poslouchat společně",
+        "jamJoinListenTogether" to "Připojit se k Poslouchat společně",
+        "jamListeningNow" to "Nyní hraje",
+
         "jamSubtitle" to "Poslouchejte společně ve stejné síti",
         "jamCreate" to "Vytvořit Jam",
         "jamJoin" to "Připojit se k Jamu",
@@ -333,6 +405,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "uk" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Слухати разом",
+        "jamListenTogetherSubtitle" to "Слухайте в реальному часі разом із друзями",
+        "jamStartListenTogether" to "Почати Слухати разом",
+        "jamJoinListenTogether" to "Приєднатися до Слухати разом",
+        "jamListeningNow" to "Зараз грає",
+
         "jamSubtitle" to "Слухайте разом в одній мережі",
         "jamCreate" to "Створити Jam",
         "jamJoin" to "Приєднатися до Jam",
@@ -358,6 +436,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "ru" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Слушать вместе",
+        "jamListenTogetherSubtitle" to "Слушайте в реальном времени вместе с друзьями",
+        "jamStartListenTogether" to "Начать Слушать вместе",
+        "jamJoinListenTogether" to "Присоединиться к Слушать вместе",
+        "jamListeningNow" to "Сейчас играет",
+
         "jamSubtitle" to "Слушайте вместе в одной сети",
         "jamCreate" to "Создать Jam",
         "jamJoin" to "Присоединиться к Jam",
@@ -383,6 +467,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "tr" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Birlikte Dinle",
+        "jamListenTogetherSubtitle" to "Arkadaşlarınla gerçek zamanlı olarak birlikte dinle",
+        "jamStartListenTogether" to "Birlikte Dinlemeyi Başlat",
+        "jamJoinListenTogether" to "Birlikte Dinlemeye Katıl",
+        "jamListeningNow" to "Şu An Çalıyor",
+
         "jamSubtitle" to "Aynı ağda birlikte dinleyin",
         "jamCreate" to "Jam oluştur",
         "jamJoin" to "Jam'e katıl",
@@ -408,6 +498,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "ar" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "استمعوا معاً",
+        "jamListenTogetherSubtitle" to "استمع في الوقت الفعلي مع الأصدقاء",
+        "jamStartListenTogether" to "بدء استمعوا معاً",
+        "jamJoinListenTogether" to "الانضمام إلى استمعوا معاً",
+        "jamListeningNow" to "يتم تشغيله الآن",
+
         "jamSubtitle" to "استمعوا معًا على الشبكة نفسها",
         "jamCreate" to "إنشاء Jam",
         "jamJoin" to "الانضمام إلى Jam",
@@ -433,6 +529,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "zh" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "一起听",
+        "jamListenTogetherSubtitle" to "与朋友实时同步聆听",
+        "jamStartListenTogether" to "开启一起听",
+        "jamJoinListenTogether" to "加入一起听",
+        "jamListeningNow" to "正在播放",
+
         "jamSubtitle" to "在同一网络下一起听歌",
         "jamCreate" to "创建 Jam",
         "jamJoin" to "加入 Jam",
@@ -458,6 +560,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "ja" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "一緒に聴く",
+        "jamListenTogetherSubtitle" to "友達とリアルタイムで一緒に音楽を聴く",
+        "jamStartListenTogether" to "一緒に聴くを開始",
+        "jamJoinListenTogether" to "一緒に聴くに参加",
+        "jamListeningNow" to "再生中",
+
         "jamSubtitle" to "同じネットワークで一緒に聴く",
         "jamCreate" to "Jam を作成",
         "jamJoin" to "Jam に参加",
@@ -483,6 +591,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "ko" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "함께 듣기",
+        "jamListenTogetherSubtitle" to "친구들과 실시간으로 함께 음악을 들으세요",
+        "jamStartListenTogether" to "함께 듣기 시작",
+        "jamJoinListenTogether" to "함께 듣기 참여",
+        "jamListeningNow" to "현재 재생 중",
+
         "jamSubtitle" to "같은 네트워크에서 함께 듣기",
         "jamCreate" to "Jam 만들기",
         "jamJoin" to "Jam 참여",
@@ -508,6 +622,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "hi" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "साथ सुनें",
+        "jamListenTogetherSubtitle" to "दोस्तों के साथ रियल-टाइम में सुनें",
+        "jamStartListenTogether" to "साथ सुनना शुरू करें",
+        "jamJoinListenTogether" to "साथ सुनने में शामिल हों",
+        "jamListeningNow" to "अभी चल रहा है",
+
         "jamSubtitle" to "एक ही नेटवर्क पर साथ सुनें",
         "jamCreate" to "Jam बनाएँ",
         "jamJoin" to "Jam में शामिल हों",
@@ -533,6 +653,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "id" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Dengarkan Bersama",
+        "jamListenTogetherSubtitle" to "Dengarkan bersama teman secara real-time",
+        "jamStartListenTogether" to "Mulai Dengarkan Bersama",
+        "jamJoinListenTogether" to "Gabung Dengarkan Bersama",
+        "jamListeningNow" to "Sedang Diputar",
+
         "jamSubtitle" to "Dengarkan bersama di jaringan yang sama",
         "jamCreate" to "Buat Jam",
         "jamJoin" to "Gabung Jam",
@@ -558,6 +684,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "vi" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Cùng nghe",
+        "jamListenTogetherSubtitle" to "Cùng nghe nhạc với bạn bè theo thời gian thực",
+        "jamStartListenTogether" to "Bắt đầu Cùng nghe",
+        "jamJoinListenTogether" to "Tham gia Cùng nghe",
+        "jamListeningNow" to "Đang phát",
+
         "jamSubtitle" to "Cùng nghe trên cùng một mạng",
         "jamCreate" to "Tạo Jam",
         "jamJoin" to "Tham gia Jam",
@@ -583,6 +715,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "th" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "ฟังด้วยกัน",
+        "jamListenTogetherSubtitle" to "ฟังเพลงพร้อมกันกับเพื่อนแบบเรียลไทม์",
+        "jamStartListenTogether" to "เริ่มฟังด้วยกัน",
+        "jamJoinListenTogether" to "เข้าร่วมฟังด้วยกัน",
+        "jamListeningNow" to "กำลังเล่นอยู่",
+
         "jamSubtitle" to "ฟังด้วยกันบนเครือข่ายเดียวกัน",
         "jamCreate" to "สร้าง Jam",
         "jamJoin" to "เข้าร่วม Jam",
@@ -608,6 +746,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "fil" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Makinig Nang Sabay",
+        "jamListenTogetherSubtitle" to "Makinig kasama ang mga kaibigan nang real-time",
+        "jamStartListenTogether" to "Simulan ang Makinig Nang Sabay",
+        "jamJoinListenTogether" to "Sumali sa Makinig Nang Sabay",
+        "jamListeningNow" to "Kasalukuyang Tumutugtog",
+
         "jamSubtitle" to "Sabay makinig sa iisang network",
         "jamCreate" to "Gumawa ng Jam",
         "jamJoin" to "Sumali sa Jam",
@@ -633,6 +777,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "he" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "להאזין יחד",
+        "jamListenTogetherSubtitle" to "האזינו יחד עם חברים בזמן אמת",
+        "jamStartListenTogether" to "התחל להאזין יחד",
+        "jamJoinListenTogether" to "הצטרף ללהאזין יחד",
+        "jamListeningNow" to "מתנגן כעת",
+
         "jamSubtitle" to "האזינו יחד באותה רשת",
         "jamCreate" to "צור Jam",
         "jamJoin" to "הצטרף ל-Jam",
@@ -658,6 +808,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "fi" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Kuuntele yhdessä",
+        "jamListenTogetherSubtitle" to "Kuuntele ystävien kanssa reaaliajassa",
+        "jamStartListenTogether" to "Aloita Kuuntele yhdessä",
+        "jamJoinListenTogether" to "Liity Kuuntele yhdessä -sessioon",
+        "jamListeningNow" to "Toistetaan nyt",
+
         "jamSubtitle" to "Kuunnelkaa yhdessä samassa verkossa",
         "jamCreate" to "Luo Jam",
         "jamJoin" to "Liity Jamiin",
@@ -683,6 +839,12 @@ private val jamBundles: Map<String, Map<String, String>> = mapOf(
     ),
     "et" to mapOf(
         "jamTitle" to "Derbis Jam",
+        "jamListenTogether" to "Kuulake koos",
+        "jamListenTogetherSubtitle" to "Kuulake sõpradega reaalajas koos",
+        "jamStartListenTogether" to "Alusta Kuulake koos",
+        "jamJoinListenTogether" to "Liitu Kuulake koos sessiooniga",
+        "jamListeningNow" to "Praegu mängib",
+
         "jamSubtitle" to "Kuulake koos samas võrgus",
         "jamCreate" to "Loo Jam",
         "jamJoin" to "Liitu Jamiga",

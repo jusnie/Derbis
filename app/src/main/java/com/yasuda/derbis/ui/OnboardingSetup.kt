@@ -528,6 +528,7 @@ private fun SetupGlowingBackdrop(
     ) {
         val w = size.width
         val h = size.height
+        if (w <= 0f || h <= 0f) return@Canvas
 
         // Orb 1: Upper-center luminous halo floating behind the emblem and wordmark
         val orb1 = Offset(w * (0.50f + 0.08f * cosT), h * (0.16f + 0.05f * sinT))

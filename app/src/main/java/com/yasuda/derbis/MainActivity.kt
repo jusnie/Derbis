@@ -157,9 +157,13 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = startPalette.isLight
             isAppearanceLightNavigationBars = startPalette.isLight
         }
-        DerbisSpotifyConnection.initialize(applicationContext)
-        DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
-        DerbisDiscordRichPresence.attach(this)
+        runCatching {
+            DerbisSpotifyConnection.initialize(applicationContext)
+            DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+        }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
+        runCatching {
+            DerbisDiscordRichPresence.attach(this)
+        }.onFailure { Timber.w(it, "Discord startup attachment failed") }
         // PlaybackService owns ongoing presence publication. This Activity only supplies the
         // Discord SDK with the foreground engine Activity needed for account linking.
         DerbisLaunchActions.consumeFrom(intent)

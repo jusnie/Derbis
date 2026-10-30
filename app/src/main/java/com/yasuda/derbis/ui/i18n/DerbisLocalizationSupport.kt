@@ -10,7 +10,11 @@ internal fun <T> localizedValueOrEnglish(
 internal fun localizedBundleOrEnglish(
     bundles: Map<String, Map<String, String>>,
     code: String
-): Map<String, String> = localizedValueOrEnglish(bundles, code)
+): Map<String, String> {
+    val en = bundles["en"] ?: emptyMap()
+    val localized = bundles[code] ?: return en
+    return if (code == "en") localized else en + localized
+}
 
 internal fun supportedLocalizationCodes(): Set<String> =
     DerbisLanguageCatalog.languages.map { it.code }.toSet()
