@@ -2397,7 +2397,7 @@ class DerbisStrings private constructor(
             "animations" to "Animations",
             "animationsSubtitle" to "Effects, transitions and card press feedback",
             "motionArtwork" to "Player Canvas",
-            "motionArtworkSubtitle" to "Show artist videos; turn off to always use the album cover",
+            "motionArtworkSubtitle" to "Animated artwork and canvas from the artist; turn off to always use the album cover",
             "dynamicColor" to "Dynamic color",
             "dynamicColorSubtitle" to "Background and accents from the current cover",
             "sponsorBlock" to "SponsorBlock",

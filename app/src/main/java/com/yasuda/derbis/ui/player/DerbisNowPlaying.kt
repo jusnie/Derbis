@@ -321,9 +321,9 @@ private fun DerbisNowPlayingContent(
         artworkUrl = paletteArtworkUrl,
         fallback = fallbackPalette
     )
-    // Animated artwork and Canvas require active Spotify login and user enable toggle.
-    val isSpotifyConnected = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
-    val motionArtworkAllowed = state.interfaceSettings.motionArtworkEnabled && isSpotifyConnected
+    // Animated artwork and Canvas only need the user toggle. The Spotify canvas provider simply
+    // returns nothing when it has no match, so a Spotify session is not a requirement here.
+    val motionArtworkAllowed = state.interfaceSettings.motionArtworkEnabled
     // Lite Mode stops expensive Canvas decoding and animated artwork before it reaches the player.
     val motionEnabled = animated && !state.interfaceSettings.liteMode && !state.isVideoMode && !motionSuspended && motionArtworkAllowed
     var canvasBackdropPalette by remember(track?.id, state.isVideoMode) {
