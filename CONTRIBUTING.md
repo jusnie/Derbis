@@ -9,8 +9,7 @@ under the same terms and that you have the right to submit it.
 - Match the surrounding code: Kotlin, Jetpack Compose, no new dependencies without a reason.
 - No copyrighted audio, artwork, API secrets or signing keys in a commit. `app/derbis-release.jks`
   and anything under `keystore/` must never be pushed.
-- Run `./gradlew assembleDebug` locally before opening the PR. CI builds the release APK, the IPA and
-  the Windows package.
+- Run `./gradlew assembleDebug` locally before opening the PR. CI builds the release APK and the IPA.
 
 ## Third-party code
 

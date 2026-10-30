@@ -53,7 +53,6 @@ shallower reasoning, validation, or review.
 ## Repository map
 
 - `app/`: Android client; apply `app/AGENTS.md`.
-- `desktop/`: Windows client; apply `desktop/AGENTS.md`.
 - `.github/`: CI/release automation; apply `.github/AGENTS.md`.
 - `docs/`: documentation; apply `docs/AGENTS.md`.
 - `docs/project/`: durable requirements, roadmap, and active tasks.
@@ -80,7 +79,7 @@ Core compatibility inventory:
 `derbis-android-performance`, `derbis-r8-proguard`,
 `derbis-android-intent-security`, `derbis-ci-workflows`,
 `derbis-context-efficiency`, `derbis-pr-review`, `derbis-release-check`,
-`derbis-player`, `derbis-extractor`, `derbis-database`, `derbis-desktop`,
+`derbis-player`, `derbis-extractor`, `derbis-database`,
 `derbis-security-review`, `derbis-project-manager`, `derbis-engineering`,
 `derbis-openclaw-orchestrator`, `derbis-motion-artwork`,
 `derbis-android-reverse-engineering`, `derbis-codex-bootstrap`,
@@ -96,7 +95,6 @@ Phase examples:
 - R8/Proguard -> `derbis-r8-proguard`;
 - Intent/component security -> `derbis-android-intent-security` plus
   `derbis-security-review`;
-- Windows Desktop -> `derbis-desktop`;
 - CI/Gradle/Kotlin tooling -> `derbis-ci-workflows`;
 - Claude/Codex agent tooling -> `derbis-codex-bootstrap`;
 - final branch/PR review -> `derbis-pr-review`;
@@ -120,8 +118,8 @@ onboarding, sessions, and backups unless explicitly changed. Keep audio/song and
 native-video modes distinct. Motion artwork is decorative and must never delay
 audible playback. Keep playback, MediaSession, notification, Android Auto,
 queue, and background service synchronized. Do not add account login, cookies,
-private tokens, telemetry, or tracking unless explicitly requested. Android and
-Desktop versions/releases remain independent.
+private tokens, telemetry, or tracking unless explicitly requested. The Windows
+desktop client is retired; the Android app is the only shipped build.
 Android UI follows Derbis's Material 3 Expressive design direction, not generic templates.
 For Kotlin and Android UI work, consult the upstream `kotlin-footguns` and `material-3`
 skills in focused phases per `docs/ai/UPSTREAM_ANDROID_SKILLS.md`; keep the two-skill cap.

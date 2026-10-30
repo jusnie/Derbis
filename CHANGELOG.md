@@ -27,6 +27,9 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ## [1.1.0] — 2026-10-27
 
+### Removed (project)
+- The Windows desktop client is retired: `desktop/`, its Gradle build, its release workflow and its docs are gone from the repository. Only the Android app ships; the web companion in `website/` is untouched. The client may return later.
+
 ### Changed (project)
 - Derbis is now **GPL-3.0** instead of the custom end user agreement, so anyone can read, change, rebuild and share it, and contributions land under the same terms. New `CONTRIBUTING.md`, and `docs/RELICENSING.md` records why the bundled GPL components made the old licence untenable.
 

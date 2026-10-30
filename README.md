@@ -43,7 +43,7 @@
 - 🎵 **Unified Music Experience**: Stream high-quality tracks and play your local audio library seamlessly.
 - 📜 **Synced Lyrics**: Follow along with synchronized timed lyrics and word-by-word playback.
 - 🔒 **Privacy Focused**: No accounts, no data collection, no telemetry.
-- 💻 **Cross-Platform**: Built for Android (`com.derbis.app`) and Desktop (Windows / Linux / macOS).
+- 📱 **Built for Android**: Native Kotlin app (`com.derbis.app`); the Windows desktop client is retired for now and may return later.
 
 ---
 
@@ -52,10 +52,9 @@
 Every release has a version-specific **What's Fixed**, **What's New**, and **Changed** record. Browse the full [GitHub Releases history](https://github.com/jusnie/Derbis/releases) or read the concise [CHANGELOG](CHANGELOG.md).
 
 - **Android (APK):** [Derbis v1.1.0](https://github.com/jusnie/Derbis/releases/tag/v1.1.0)
-- **Windows (recommended MSI):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
-- **Windows (alternative EXE):** [Derbis for Windows v1.0.3](https://github.com/jusnie/Derbis/releases/tag/desktop-v1.0.3)
 
-For the Windows installers, download the matching `.sha256` asset to verify the file integrity. See the [release process](docs/RELEASE_PROCESS.md) for package naming, test-release, and publication rules.
+See the [release process](docs/RELEASE_PROCESS.md) for package naming, test-release, and publication rules.
+The Windows desktop client is no longer built from this repository.
 
 ---
 
@@ -66,12 +65,6 @@ For the Windows installers, download the matching `.sha256` asset to verify the 
 ./gradlew :app:assembleRelease
 ```
 The output APK will be located at `app/build/outputs/apk/release/app-release.apk`.
-
-### Desktop Build
-```bash
-cd desktop
-./gradlew packageDistributionForCurrentOS
-```
 
 ### Website
 The dependency-free responsive web companion lives in [`website/`](website/). It uses browser-native HTML5 audio, so it does **not** need VLC or a desktop helper. Its optional Google/YouTube connection is limited to official Google authorization and YouTube Data API access; setup instructions are in [`website/README.md`](website/README.md).
