@@ -2335,9 +2335,11 @@ class PlaybackService : MediaLibraryService() {
 
             val transitionStartMs = plan.transitionStartMs
                 ?: (primary.duration - plan.transitionMs).coerceAtLeast(0L)
+            // Poll tightly: a beat is ~430-600 ms at club tempo, so a coarse poll would start the
+            // incoming deck visibly off the beat the grid just aligned to.
             while (primary.duration > 0L && primary.currentPosition < transitionStartMs) {
                 if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
-                delay(50L)
+                delay(20L)
             }
             if (!transitionStillValid(snapshot.generation, currentIdentity, targetIdentity, primary)) return
 
@@ -2398,6 +2400,12 @@ class PlaybackService : MediaLibraryService() {
             incomingPromoted = promoteIncomingCrossfadeDeck(outgoing = primary, incoming = secondary)
             if (!incomingPromoted) return
 
+            // A beat-matched deck runs at a corrected speed. Glide back to the listener's own
+            // speed once the outgoing deck is gone, or the new song would play fast forever.
+            if (plan.beatAligned) {
+                serviceScope.launch { restorePlaybackSpeedAfterBeatSync(plan.incomingTempo) }
+            }
+
             queueEngine.updatePosition(secondary.currentPosition.coerceAtLeast(0L))
             if (!isLocalPlaybackTrack(resolved)) prefetchServiceQueueNext()
         } catch (cancelled: CancellationException) {
@@ -2414,6 +2422,28 @@ class PlaybackService : MediaLibraryService() {
                 primary.volume = 1f
                 releaseTransitionPlayer(secondary)
             }
+        }
+    }
+
+    /**
+     * Eases the promoted deck back to the normal playback speed after a beat-matched handoff.
+     * The correction is tapered instead of snapped so the tail of the blend does not jump.
+     */
+    private suspend fun restorePlaybackSpeedAfterBeatSync(appliedRatio: Float) {
+        val base = currentAudioSettings
+        val target = base.playbackSpeed
+        val applied = (target * appliedRatio).coerceIn(.25f, 4f)
+        if (kotlin.math.abs(applied - target) < .0005f) return
+        val steps = 12
+        repeat(steps) { index ->
+            if (currentAudioSettings.playbackSpeed != target) return
+            val progress = (index + 1) / steps.toFloat()
+            val speed = applied + (target - applied) * progress
+            activePlayer?.setPlaybackParameters(PlaybackParameters(speed, base.pitch))
+            delay(90L)
+        }
+        if (currentAudioSettings.playbackSpeed == target) {
+            activePlayer?.setPlaybackParameters(PlaybackParameters(target, base.pitch))
         }
     }
 
