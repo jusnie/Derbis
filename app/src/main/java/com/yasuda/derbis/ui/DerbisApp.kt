@@ -751,6 +751,7 @@ import com.yasuda.derbis.ui.lyrics.studio.LyricsStudioOverlay
 import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
+import com.yasuda.derbis.ui.island.IslandLyricStyle
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
@@ -2282,6 +2283,7 @@ fun DerbisApp(
             val expansionProvider: () -> Float = { playerExpansion.value }
             val chromeVisible by remember { derivedStateOf { playerExpansion.value < 1f } }
             val playerVisible by remember { derivedStateOf { playerExpansion.value > 0f } }
+            var islandLyricStyle by remember { mutableStateOf(IslandLyricStyle.Default) }
             val morphAllowed = state.animationsEnabled && !state.isVideoMode
             val artworkMorphActive by remember(morphAllowed) {
                 derivedStateOf {
@@ -2703,6 +2705,28 @@ fun DerbisApp(
                     }
                 }
                 }
+            }
+
+            if (!playerVisible && state.currentTrack != null) {
+                com.yasuda.derbis.ui.island.DerbisMusicIsland(
+                    track = state.currentTrack,
+                    lyrics = state.lyrics,
+                    lyricsSynced = state.lyricsSynced,
+                    positionMs = state.positionMs,
+                    durationMs = state.durationMs,
+                    isPlaying = state.isPlaying,
+                    style = islandLyricStyle,
+                    onStyleChange = { islandLyricStyle = it },
+                    onTogglePlay = viewModel::togglePlay,
+                    onPrevious = viewModel::previous,
+                    onNext = viewModel::next,
+                    onOpen = viewModel::openPlayerScreen,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 4.dp)
+                        .zIndex(42f)
+                )
             }
 
             if (playerVisible) {
