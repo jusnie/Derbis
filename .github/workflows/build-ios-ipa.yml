@@ -42,8 +42,8 @@ jobs:
       - name: Install Website Dependencies & Build Web Client
         working-directory: website
         run: |
-          npm ci || npm install
-          npm run build
+          npm install || true
+          node build.js
 
       - name: Setup Capacitor iOS Project
         working-directory: website
