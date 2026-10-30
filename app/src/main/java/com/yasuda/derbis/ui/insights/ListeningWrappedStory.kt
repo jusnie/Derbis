@@ -95,6 +95,16 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import android.content.Context
+import android.content.Intent
+import androidx.compose.material.icons.rounded.IosShare
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.yasuda.derbis.R
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.ListeningInsightsArtist
@@ -220,6 +230,33 @@ internal fun ListeningWrappedStory(
     var isHolding by remember { mutableStateOf(false) }
     var currentProgress by remember(pageIndex) { mutableFloatStateOf(0f) }
 
+    // The share card is the same listening receipt the Finale renders, built once here so the
+    // share action works from any page of the story instead of only at the end.
+    val receiptContent = remember(snapshot, strings, locale, state.year) {
+        val current = snapshot ?: return@remember null
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        ListeningReceiptModel.content(
+            snapshot = current,
+            labels = receiptLabels(strings, strings.wrappedReceiptTitle, state.year.toString(), locale),
+            locale = locale,
+            nowMs = now,
+            zone = zone,
+            range = ListeningInsightsRanges.year(state.year, now, zone)
+        )
+    }
+    // The card follows whatever receipt style the finale is set to, so sharing never
+    // produces a different look than the one on screen.
+    var receiptStyle by rememberSaveable {
+        mutableStateOf(ListeningReceiptStyle.Aurora)
+    }
+    val shareCard = rememberWrappedCardSharer(
+        content = receiptContent,
+        caption = strings.receiptCaption,
+        failedLabel = strings.shareLyricsFailed,
+        styleOf = { receiptStyle }
+    )
+
     val covers = remember(snapshot) {
         snapshot?.topTracks?.map { it.artworkUrl }?.filter(String::isNotBlank)?.distinct().orEmpty()
     }
@@ -270,6 +307,8 @@ internal fun ListeningWrappedStory(
                 year = state.year,
                 closeLabel = strings.close,
                 accent = accent,
+                share = shareCard,
+                shareLabel = strings.share,
                 onClose = onClose
             )
             Box(
@@ -290,7 +329,8 @@ internal fun ListeningWrappedStory(
                     strings = strings,
                     locale = locale,
                     accent = accent,
-                    animationsEnabled = animationsEnabled
+                    animationsEnabled = animationsEnabled,
+                    onReceiptStyleChange = { receiptStyle = it }
                 )
             }
         }
@@ -334,7 +374,14 @@ private fun Modifier.wrappedHoldAndTapNavigation(
 }
 
 @Composable
-private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose: () -> Unit) {
+private fun WrappedTopBar(
+    year: Int,
+    closeLabel: String,
+    accent: Color,
+    share: WrappedCardSharer,
+    shareLabel: String,
+    onClose: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -365,6 +412,32 @@ private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose:
             )
         }
         Spacer(Modifier.weight(1f))
+        // Share lives next to Close so the card is one tap away from any page.
+        IconButton(
+            onClick = share::share,
+            enabled = share.canShare && !share.busy,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+        ) {
+            if (share.busy) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(15.dp),
+                    strokeWidth = 1.8.dp,
+                    color = WrappedInk
+                )
+            } else {
+                Icon(
+                    Icons.Rounded.IosShare,
+                    contentDescription = shareLabel,
+                    tint = WrappedInk,
+                    modifier = Modifier.size(17.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
         IconButton(
             onClick = onClose,
             modifier = Modifier
@@ -381,6 +454,107 @@ private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose:
             )
         }
     }
+    share.error?.let { message ->
+        Text(
+            text = message,
+            color = accent,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 2.dp)
+                .align(Alignment.CenterHorizontally)
+        )
+    }
+}
+
+/**
+ * Owns the share-card coroutine and its progress state for the story's top bar.
+ *
+ * The receipt render is expensive (covers, artist art, a 1080px bitmap), so it runs on demand and
+ * every bitmap is closed again: flipping pages never keeps receipt artwork in memory.
+ */
+@Stable
+internal class WrappedCardSharer(
+    private val context: Context,
+    private val scope: CoroutineScope,
+    private val caption: String,
+    private val failedLabel: String,
+    private val styleOf: () -> ListeningReceiptStyle,
+    private val content: () -> ListeningReceiptContent?
+) {
+    var busy by mutableStateOf(false)
+        private set
+    var error by mutableStateOf<String?>(null)
+        private set
+
+    val canShare: Boolean get() = content() != null
+
+    fun share() {
+        val current = content() ?: return
+        if (busy) return
+        busy = true
+        error = null
+        scope.launch {
+            val launched = runCatching {
+                withContext(Dispatchers.IO) {
+                    val assets = listeningReceiptCovers()
+                    try {
+                        ListeningReceiptCard.loadAssets(
+                            context = context,
+                            urls = current.artworkUrls,
+                            artistUrl = "",
+                            into = assets
+                        )
+                        val palette = ListeningReceiptCard.resolvePalette(assets)
+                        val intent = ListeningReceiptCard.createShareIntent(
+                            context = context,
+                            content = current,
+                            assets = assets,
+                            style = styleOf(),
+                            palette = palette,
+                            caption = caption
+                        ) ?: return@withContext false
+                        withContext(Dispatchers.Main) {
+                            runCatching {
+                                context.startActivity(
+                                    Intent.createChooser(intent, caption).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                )
+                            }.isSuccess
+                        }
+                    } finally {
+                        assets.close()
+                    }
+                }
+            }.getOrDefault(false)
+            busy = false
+            if (!launched) error = failedLabel
+        }
+    }
+}
+
+@Composable
+private fun rememberWrappedCardSharer(
+    content: ListeningReceiptContent?,
+    caption: String,
+    failedLabel: String,
+    styleOf: () -> ListeningReceiptStyle
+): WrappedCardSharer {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val latest by rememberUpdatedState(content)
+    val latestStyle by rememberUpdatedState(styleOf)
+    return remember(context, scope, caption, failedLabel) {
+        WrappedCardSharer(
+            context = context,
+            scope = scope,
+            caption = caption,
+            failedLabel = failedLabel,
+            styleOf = { latestStyle() },
+            content = { latest }
+        )
+    }
 }
 
 @Composable
@@ -391,7 +565,8 @@ private fun BoxScope.WrappedBody(
     strings: DerbisStrings,
     locale: Locale,
     accent: Color,
-    animationsEnabled: Boolean
+    animationsEnabled: Boolean,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     // Measure the page area rather than the window: the progress bar and top bar already took
     // their share, and that is what actually has to fit.
@@ -719,7 +894,14 @@ private fun WrappedPageContent(
         WrappedPage.Artist -> WrappedArtist(snapshot.topArtists, strings, locale, accent)
         WrappedPage.Tracks -> WrappedTracks(snapshot.topTracks, strings, accent)
         WrappedPage.Rhythm -> WrappedRhythm(snapshot, strings, locale, accent)
-        WrappedPage.Finale -> WrappedFinale(year, snapshot, strings, locale, accent)
+        WrappedPage.Finale -> WrappedFinale(
+            year = year,
+            snapshot = snapshot,
+            strings = strings,
+            locale = locale,
+            accent = accent,
+            onReceiptStyleChange = onReceiptStyleChange
+        )
     }
 }
 
@@ -1253,7 +1435,8 @@ private fun WrappedFinale(
     snapshot: ListeningInsightsSnapshot,
     strings: DerbisStrings,
     locale: Locale,
-    accent: Color
+    accent: Color,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     val content = remember(snapshot, strings, locale, year) {
         val now = System.currentTimeMillis()
@@ -1287,7 +1470,8 @@ private fun WrappedFinale(
             accent = accent,
             textColor = WrappedInk,
             mutedColor = WrappedMuted,
-            previewMaxHeight = 460.dp
+            previewMaxHeight = 460.dp,
+            onStyleChange = onReceiptStyleChange
         )
     }
 }

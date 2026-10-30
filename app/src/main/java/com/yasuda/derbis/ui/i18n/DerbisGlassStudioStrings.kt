@@ -33,7 +33,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "I bordi delle barre flottanti curvano lo sfondo (Android 13+)",
         performanceNote = "Segue Prestazioni visive: sui dispositivi limitati e con il risparmio energetico gli effetti avanzati si disattivano.",
         disabledNote = "Attiva Liquid Glass nelle impostazioni dell'interfaccia per usare questi controlli.",
-        reset = "Ripristina"
+        reset = "Ripristina",
         effects = "Aspetto del vetro",
         effectsSubtitle = "Quanta profondità aggiunge il vetro",
         effectsAuto = "Auto",
@@ -53,7 +53,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Los bordes de las barras flotantes curvan el fondo (Android 13+)",
         performanceNote = "Sigue Rendimiento visual: en dispositivos limitados y con ahorro de batería se desactivan los efectos avanzados.",
         disabledNote = "Activa Liquid Glass en los ajustes de interfaz para usar estos controles.",
-        reset = "Restablecer"
+        reset = "Restablecer",
         effects = "Aspecto del cristal",
         effectsSubtitle = "Cuánta profundidad añade el cristal",
         effectsAuto = "Auto",
@@ -73,7 +73,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Les bords des barres flottantes courbent l'arrière-plan (Android 13+)",
         performanceNote = "Suit Performances visuelles : sur les appareils limités et en économie d'énergie, les effets avancés sont désactivés.",
         disabledNote = "Activez Liquid Glass dans les réglages de l'interface pour utiliser ces commandes.",
-        reset = "Réinitialiser"
+        reset = "Réinitialiser",
         effects = "Aspect du verre",
         effectsSubtitle = "Profondeur ajoutée par le verre",
         effectsAuto = "Auto",
@@ -93,7 +93,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Die Ränder schwebender Leisten krümmen den Hintergrund (Android 13+)",
         performanceNote = "Folgt der visuellen Leistung: Auf schwächeren Geräten und im Energiesparmodus werden erweiterte Effekte deaktiviert.",
         disabledNote = "Aktiviere Liquid Glass in den Oberflächeneinstellungen, um diese Regler zu nutzen.",
-        reset = "Zurücksetzen"
+        reset = "Zurücksetzen",
         effects = "Glas-Look",
         effectsSubtitle = "Wie viel Tiefe das Glas hinzufügt",
         effectsAuto = "Auto",
@@ -113,7 +113,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "As margens das barras flutuantes curvam o fundo (Android 13+)",
         performanceNote = "Segue o Desempenho visual: em dispositivos limitados e com poupança de bateria os efeitos avançados são desativados.",
         disabledNote = "Ativa o Liquid Glass nas definições da interface para usar estes controlos.",
-        reset = "Repor"
+        reset = "Repor",
         effects = "Aparência do vidro",
         effectsSubtitle = "Quanta profundidade o vidro adiciona",
         effectsAuto = "Automático",
@@ -133,7 +133,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "フローティングバーの縁で背景がわずかに曲がります（Android 13 以降）",
         performanceNote = "表示パフォーマンスの設定に従います。低スペック端末や省電力モードでは高度な効果をオフにします。",
         disabledNote = "これらの設定を使うには、インターフェース設定で Liquid Glass をオンにしてください。",
-        reset = "リセット"
+        reset = "リセット",
         effects = "ガラスの見た目",
         effectsSubtitle = "ガラスが加える奥行きの量",
         effectsAuto = "自動",
@@ -153,7 +153,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Randen van zwevende balken buigen de achtergrond (Android 13+)",
         performanceNote = "Volgt Visuele prestaties: geavanceerde effecten gaan uit op beperkte apparaten en bij batterijbesparing.",
         disabledNote = "Zet Liquid Glass aan in de interface-instellingen om deze opties te gebruiken.",
-        reset = "Herstellen"
+        reset = "Herstellen",
         effects = "Glasuiterlijk",
         effectsSubtitle = "Hoeveel diepte het glas toevoegt",
         effectsAuto = "Automatisch",
@@ -173,7 +173,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Krawędzie pływających pasków lekko zaginają tło (Android 13+)",
         performanceNote = "Zgodnie z Wydajnością wizualną: zaawansowane efekty wyłączają się na słabszych urządzeniach i w trybie oszczędzania baterii.",
         disabledNote = "Włącz Liquid Glass w ustawieniach interfejsu, aby używać tych opcji.",
-        reset = "Przywróć"
+        reset = "Przywróć",
         effects = "Wygląd szkła",
         effectsSubtitle = "Ile głębi dodaje szkło",
         effectsAuto = "Auto",
@@ -193,7 +193,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Marginile barelor flotante curbează fundalul (Android 13+)",
         performanceNote = "Urmează Performanța vizuală: efectele avansate se opresc pe dispozitivele limitate și în economisirea bateriei.",
         disabledNote = "Activează Liquid Glass în setările interfeței pentru a folosi aceste opțiuni.",
-        reset = "Resetează"
+        reset = "Resetează",
     )
     "el" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -205,7 +205,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Οι άκρες των αιωρούμενων γραμμών λυγίζουν απαλά το φόντο (Android 13+)",
         performanceNote = "Ακολουθεί την Οπτική απόδοση: τα προηγμένα εφέ απενεργοποιούνται σε περιορισμένες συσκευές και στην εξοικονόμηση μπαταρίας.",
         disabledNote = "Ενεργοποιήστε το Liquid Glass στις ρυθμίσεις διεπαφής για να χρησιμοποιήσετε αυτές τις επιλογές.",
-        reset = "Επαναφορά"
+        reset = "Επαναφορά",
     )
     "sv" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -217,7 +217,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Kanterna på flytande fält böjer bakgrunden (Android 13+)",
         performanceNote = "Följer Visuell prestanda: avancerade effekter stängs av på begränsade enheter och i batterisparläge.",
         disabledNote = "Slå på Liquid Glass i gränssnittsinställningarna för att använda dessa reglage.",
-        reset = "Återställ"
+        reset = "Återställ",
     )
     "da" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -229,7 +229,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Kanterne på svævende bjælker bøjer baggrunden (Android 13+)",
         performanceNote = "Følger Visuel ydeevne: avancerede effekter slås fra på begrænsede enheder og i batterisparetilstand.",
         disabledNote = "Slå Liquid Glass til i grænsefladeindstillingerne for at bruge disse kontroller.",
-        reset = "Nulstil"
+        reset = "Nulstil",
     )
     "cs" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -241,7 +241,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Okraje plovoucích panelů jemně ohýbají pozadí (Android 13+)",
         performanceNote = "Řídí se Vizuálním výkonem: pokročilé efekty se vypínají na slabších zařízeních a při spořiči baterie.",
         disabledNote = "Pro použití těchto ovládacích prvků zapněte Liquid Glass v nastavení rozhraní.",
-        reset = "Obnovit"
+        reset = "Obnovit",
     )
     "uk" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -253,7 +253,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Краї плаваючих панелей м’яко вигинають тло (Android 13+)",
         performanceNote = "Залежить від Візуальної продуктивності: розширені ефекти вимикаються на слабших пристроях і в режимі енергозбереження.",
         disabledNote = "Увімкніть Liquid Glass у налаштуваннях інтерфейсу, щоб користуватися цими параметрами.",
-        reset = "Скинути"
+        reset = "Скинути",
     )
     "ru" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -265,7 +265,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Края плавающих панелей мягко изгибают фон (Android 13+)",
         performanceNote = "Зависит от Визуальной производительности: расширенные эффекты отключаются на слабых устройствах и в режиме энергосбережения.",
         disabledNote = "Включите Liquid Glass в настройках интерфейса, чтобы пользоваться этими параметрами.",
-        reset = "Сбросить"
+        reset = "Сбросить",
         effects = "Вид стекла",
         effectsSubtitle = "Насколько глубоким будет стекло",
         effectsAuto = "Авто",
@@ -285,7 +285,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Yüzen çubukların kenarları arka planı hafifçe büker (Android 13+)",
         performanceNote = "Görsel performansı izler: gelişmiş efektler sınırlı cihazlarda ve pil tasarrufunda kapanır.",
         disabledNote = "Bu denetimleri kullanmak için arayüz ayarlarından Liquid Glass'ı açın.",
-        reset = "Sıfırla"
+        reset = "Sıfırla",
         effects = "Cam görünümü",
         effectsSubtitle = "Camın eklediği derinlik",
         effectsAuto = "Otomatik",
@@ -305,7 +305,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "تنحني الخلفية برفق عند حواف الأشرطة العائمة (Android 13 والأحدث)",
         performanceNote = "يتبع إعداد الأداء المرئي: تتوقف التأثيرات المتقدمة على الأجهزة المحدودة وفي وضع توفير البطارية.",
         disabledNote = "فعّل Liquid Glass في إعدادات الواجهة لاستخدام هذه الخيارات.",
-        reset = "إعادة تعيين"
+        reset = "إعادة تعيين",
         effects = "مظهر الزجاج",
         effectsSubtitle = "مقدار العمق الذي يضيفه الزجاج",
         effectsAuto = "تلقائي",
@@ -325,7 +325,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "悬浮栏边缘会轻微弯折背景（Android 13 及以上）",
         performanceNote = "遵循视觉性能设置：在受限设备和省电模式下会关闭高级效果。",
         disabledNote = "请在界面设置中开启 Liquid Glass 以使用这些选项。",
-        reset = "重置"
+        reset = "重置",
         effects = "玻璃外观",
         effectsSubtitle = "玻璃增加的层次感",
         effectsAuto = "自动",
@@ -345,7 +345,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "떠 있는 바의 가장자리가 배경을 살짝 굴절시킵니다 (Android 13 이상)",
         performanceNote = "시각 성능 설정을 따릅니다. 제한된 기기와 절전 모드에서는 고급 효과가 꺼집니다.",
         disabledNote = "이 설정을 사용하려면 인터페이스 설정에서 Liquid Glass를 켜세요.",
-        reset = "초기화"
+        reset = "초기화",
         effects = "유리 스타일",
         effectsSubtitle = "유리가 더하는 깊이감",
         effectsAuto = "자동",
@@ -365,7 +365,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "तैरती पट्टियों के किनारे पृष्ठभूमि को हल्का मोड़ते हैं (Android 13+)",
         performanceNote = "विज़ुअल परफ़ॉर्मेंस के अनुसार: सीमित डिवाइस और बैटरी सेवर में उन्नत प्रभाव बंद हो जाते हैं।",
         disabledNote = "इन विकल्पों के लिए इंटरफ़ेस सेटिंग में Liquid Glass चालू करें।",
-        reset = "रीसेट करें"
+        reset = "रीसेट करें",
         effects = "ग्लास लुक",
         effectsSubtitle = "ग्लास कितनी गहराई जोड़ता है",
         effectsAuto = "स्वतः",
@@ -385,7 +385,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Tepi bilah mengambang sedikit membelokkan latar (Android 13+)",
         performanceNote = "Mengikuti Performa visual: efek lanjutan nonaktif di perangkat terbatas dan saat penghemat baterai.",
         disabledNote = "Aktifkan Liquid Glass di setelan antarmuka untuk memakai kontrol ini.",
-        reset = "Atur ulang"
+        reset = "Atur ulang",
         effects = "Tampilan kaca",
         effectsSubtitle = "Seberapa dalam efek kacanya",
         effectsAuto = "Otomatis",
@@ -405,7 +405,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Cạnh các thanh nổi uốn nhẹ hình nền (Android 13+)",
         performanceNote = "Theo Hiệu năng hình ảnh: hiệu ứng nâng cao sẽ tắt trên thiết bị hạn chế và khi tiết kiệm pin.",
         disabledNote = "Bật Liquid Glass trong cài đặt giao diện để dùng các tùy chọn này.",
-        reset = "Đặt lại"
+        reset = "Đặt lại",
         effects = "Kiểu kính",
         effectsSubtitle = "Mức độ chiều sâu của kính",
         effectsAuto = "Tự động",
@@ -425,7 +425,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "ขอบแถบลอยจะดัดพื้นหลังเล็กน้อย (Android 13 ขึ้นไป)",
         performanceNote = "เป็นไปตามประสิทธิภาพภาพ: เอฟเฟกต์ขั้นสูงจะปิดในอุปกรณ์สเปกจำกัดและโหมดประหยัดแบตเตอรี่",
         disabledNote = "เปิด Liquid Glass ในการตั้งค่าอินเทอร์เฟซเพื่อใช้ตัวเลือกเหล่านี้",
-        reset = "รีเซ็ต"
+        reset = "รีเซ็ต",
         effects = "ลักษณะแก้ว",
         effectsSubtitle = "ความลึกที่แก้วเพิ่มให้",
         effectsAuto = "อัตโนมัติ",
@@ -445,7 +445,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Bahagyang binabaluktot ng gilid ng mga floating bar ang background (Android 13+)",
         performanceNote = "Sumusunod sa Visual performance: namamatay ang advanced effects sa limitadong device at sa battery saver.",
         disabledNote = "I-on ang Liquid Glass sa interface settings para magamit ang mga kontrol na ito.",
-        reset = "I-reset"
+        reset = "I-reset",
         effects = "Itsura ng salamin",
         effectsSubtitle = "Gaano kalalim ang dagdag ng salamin",
         effectsAuto = "Auto",
@@ -465,7 +465,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "קצוות הסרגלים הצפים מכופפים מעט את הרקע (Android 13 ומעלה)",
         performanceNote = "תלוי בביצועים החזותיים: אפקטים מתקדמים כבויים במכשירים מוגבלים ובחיסכון בסוללה.",
         disabledNote = "הפעל את Liquid Glass בהגדרות הממשק כדי להשתמש בפקדים האלה.",
-        reset = "איפוס"
+        reset = "איפוס",
     )
     "sk" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -477,7 +477,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Okraje plávajúcich panelov jemne ohýbajú pozadie (Android 13+)",
         performanceNote = "Riadi sa Vizuálnym výkonom: pokročilé efekty sa vypínajú na slabších zariadeniach a pri šetriči batérie.",
         disabledNote = "Na použitie týchto ovládacích prvkov zapnite Liquid Glass v nastaveniach rozhrania.",
-        reset = "Obnoviť"
+        reset = "Obnoviť",
     )
     "bn" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -489,7 +489,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "ভাসমান বারের প্রান্ত পটভূমিকে হালকা বাঁকায় (Android 13+)",
         performanceNote = "ভিজ্যুয়াল পারফরম্যান্স অনুসরণ করে: সীমিত ডিভাইসে ও ব্যাটারি সেভারে উন্নত ইফেক্ট বন্ধ থাকে।",
         disabledNote = "এই নিয়ন্ত্রণগুলো ব্যবহার করতে ইন্টারফেস সেটিংসে Liquid Glass চালু করুন।",
-        reset = "রিসেট"
+        reset = "রিসেট",
     )
     "kk" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -501,7 +501,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Қалқымалы жолақтардың жиектері фонды жұмсақ иеді (Android 13+)",
         performanceNote = "Визуалды өнімділікке бағынады: әлсіз құрылғыларда және батареяны үнемдеу режимінде кеңейтілген әсерлер өшеді.",
         disabledNote = "Бұл параметрлерді пайдалану үшін интерфейс параметрлерінде Liquid Glass-ты қосыңыз.",
-        reset = "Қалпына келтіру"
+        reset = "Қалпына келтіру",
     )
     "sr" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -513,7 +513,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Ivice plutajućih traka blago savijaju pozadinu (Android 13+)",
         performanceNote = "Prati Vizuelne performanse: napredni efekti se isključuju na slabijim uređajima i uz uštedu baterije.",
         disabledNote = "Uključite Liquid Glass u podešavanjima interfejsa da biste koristili ove opcije.",
-        reset = "Resetuj"
+        reset = "Resetuj",
     )
     "sq" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -525,7 +525,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Skajet e shiritave lundrues e përkulin lehtë sfondin (Android 13+)",
         performanceNote = "Ndjek Performancën vizuale: efektet e avancuara fiken në pajisjet e kufizuara dhe në kursimin e baterisë.",
         disabledNote = "Aktivizo Liquid Glass te cilësimet e ndërfaqes për t'i përdorur këto kontrolle.",
-        reset = "Rivendos"
+        reset = "Rivendos",
     )
     "hr" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -537,7 +537,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Rubovi plutajućih traka blago savijaju pozadinu (Android 13+)",
         performanceNote = "Prati Vizualne performanse: napredni efekti isključuju se na slabijim uređajima i uz štednju baterije.",
         disabledNote = "Uključite Liquid Glass u postavkama sučelja za korištenje ovih kontrola.",
-        reset = "Vrati zadano"
+        reset = "Vrati zadano",
     )
     "bg" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -549,7 +549,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Ръбовете на плаващите ленти леко огъват фона (Android 13+)",
         performanceNote = "Следва Визуалната производителност: разширените ефекти се изключват на по-слаби устройства и при пестене на батерията.",
         disabledNote = "Включете Liquid Glass в настройките на интерфейса, за да използвате тези контроли.",
-        reset = "Нулиране"
+        reset = "Нулиране",
     )
     "hu" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -561,7 +561,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "A lebegő sávok szélei finoman meghajlítják a hátteret (Android 13+)",
         performanceNote = "A Vizuális teljesítményt követi: korlátozott eszközökön és energiatakarékos módban a speciális effektusok kikapcsolnak.",
         disabledNote = "A vezérlők használatához kapcsold be a Liquid Glass-t a felület beállításaiban.",
-        reset = "Visszaállítás"
+        reset = "Visszaállítás",
     )
     "nb" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -573,7 +573,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Kantene på flytende felt bøyer bakgrunnen (Android 13+)",
         performanceNote = "Følger Visuell ytelse: avanserte effekter slås av på begrensede enheter og i batterisparing.",
         disabledNote = "Slå på Liquid Glass i grensesnittinnstillingene for å bruke disse kontrollene.",
-        reset = "Tilbakestill"
+        reset = "Tilbakestill",
     )
     "ca" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -585,7 +585,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Les vores de les barres flotants corben el fons (Android 13+)",
         performanceNote = "Segueix el Rendiment visual: els efectes avançats es desactiven en dispositius limitats i amb l'estalvi de bateria.",
         disabledNote = "Activa Liquid Glass a la configuració de la interfície per fer servir aquests controls.",
-        reset = "Restableix"
+        reset = "Restableix",
     )
     "ms" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -597,7 +597,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Tepi bar terapung membengkokkan latar sedikit (Android 13+)",
         performanceNote = "Mengikut Prestasi visual: kesan lanjutan dimatikan pada peranti terhad dan semasa penjimat bateri.",
         disabledNote = "Hidupkan Liquid Glass dalam tetapan antara muka untuk menggunakan kawalan ini.",
-        reset = "Tetapkan semula"
+        reset = "Tetapkan semula",
     )
     "fa" -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -609,7 +609,7 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "لبه‌ی نوارهای شناور پس‌زمینه را کمی خم می‌کند (Android 13 و بالاتر)",
         performanceNote = "از تنظیم عملکرد بصری پیروی می‌کند: جلوه‌های پیشرفته در دستگاه‌های محدود و حالت صرفه‌جویی باتری خاموش می‌شوند.",
         disabledNote = "برای استفاده از این گزینه‌ها، Liquid Glass را در تنظیمات رابط روشن کنید.",
-        reset = "بازنشانی"
+        reset = "بازنشانی",
     )
     else -> GlassStudioCopy(
         title = "Expressive Glass",
@@ -621,6 +621,6 @@ internal fun DerbisStrings.glassStudioCopy(): GlassStudioCopy = when (code) {
         refractionSubtitle = "Floating bar edges gently bend the backdrop (Android 13+)",
         performanceNote = "Follows Visual performance: advanced effects turn off on constrained devices and in battery saver.",
         disabledNote = "Turn on Liquid Glass in interface settings to use these controls.",
-        reset = "Reset"
+        reset = "Reset",
     )
 }

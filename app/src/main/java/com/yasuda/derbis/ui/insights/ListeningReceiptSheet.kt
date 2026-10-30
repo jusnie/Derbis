@@ -145,7 +145,8 @@ internal fun ListeningReceiptComposer(
     accent: Color,
     textColor: Color,
     mutedColor: Color,
-    previewMaxHeight: Dp = 470.dp
+    previewMaxHeight: Dp = 470.dp,
+    onStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     val strings = LocalDerbisStrings.current
     val context = LocalContext.current
@@ -161,6 +162,10 @@ internal fun ListeningReceiptComposer(
     var action by remember { mutableStateOf<ReceiptAction?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
     var messageIsError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(style) {
+        onStyleChange(style)
+    }
 
     DisposableEffect(assets) {
         onDispose { assets.close() }
