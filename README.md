@@ -98,3 +98,13 @@ Copyright © 2026 **Yasuda**.
 You may run it, study it, share it and change it. If you distribute a modified build, it has to stay
 under the GPL and ship its source. Contributions are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md)
 before opening a pull request.
+
+---
+
+<sub>
+
+`#Derbis` `#AndroidMusicPlayer` `#Kotlin` `#JetpackCompose` `#Material3` `#YouTubeMusic` `#AppleMusic`
+`#MusicStreaming` `#SyncedLyrics` `#OfflineMusic` `#LocalMusic` `#LiquidGlass` `#AMOLED` `#ExoPlayer`
+`#DiscordRichPresence` `#AndroidAuto` `#iOS` `#OpenSource` `#GPLv3` `#FOSS`
+
+</sub>
