@@ -1,6 +1,7 @@
 @file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 package com.yasuda.derbis.ui
 
+import com.yasuda.derbis.domain.LyricsProviderId
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.theme.nocturneMiniSettings
 import com.yasuda.derbis.ui.theme.nocturneNavSettings
@@ -21905,6 +21906,22 @@ private fun SettingsOverlay(
                                     title = strings.lyricsStudio,
                                     subtitle = strings.lyricsStudioSubtitle,
                                     onClick = onOpenLyricsStudio
+                                )
+                            }
+                            item {
+                                val betterLyricsEnabled = lyricsProviderOrdering.isEnabled(LyricsProviderId.BETTER_LYRICS)
+                                SettingsToggle(
+                                    icon = Icons.Rounded.GraphicEq,
+                                    title = "BetterLyrics",
+                                    subtitle = if (betterLyricsEnabled) {
+                                        "Word-by-word synchronized lyrics engine enabled"
+                                    } else {
+                                        "Fetch syllable-accurate word-synced lyrics with exact Apple Music timing"
+                                    },
+                                    checked = betterLyricsEnabled,
+                                    onCheckedChange = { enabled ->
+                                        onLyricsProviderOrdering(lyricsProviderOrdering.withEnabled(LyricsProviderId.BETTER_LYRICS, enabled))
+                                    }
                                 )
                             }
                             item {

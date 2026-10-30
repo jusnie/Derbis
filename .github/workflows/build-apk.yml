@@ -21,7 +21,7 @@ on:
         description: "Monotonically increasing Android versionCode"
         required: true
         # Reissued 1.1.1 needs a higher code so Android accepts it over the previous 1.1.1 APK.
-        default: "3000208"
+        default: "3000209"
 
 permissions:
   contents: write

@@ -19,10 +19,15 @@ class LyricsEngine {
         for (index in candidate downTo 0) {
             val line = lines[index]
             if (line.startMs > positionMs) continue
-            if (positionMs <= line.endMs) return line
+            // Allow a short 320ms transition window for natural fadeout
+            if (positionMs <= line.endMs + 320L) return line
             if (candidate - index > 8) break
         }
-        return lines[candidate]
+        val candidateLine = lines[candidate]
+        if (positionMs in candidateLine.startMs..(candidateLine.endMs + 320L)) {
+            return candidateLine
+        }
+        return null
     }
 
     fun syntheticLyrics(track: Track): List<LyricLine> = emptyList()

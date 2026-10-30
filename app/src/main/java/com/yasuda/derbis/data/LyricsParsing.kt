@@ -1088,6 +1088,8 @@ object LyricsResultRanker {
         }
         val providerScore = ordering?.providerScoreFor(result.provider)
             ?: when {
+                result.provider.startsWith("BetterLyrics · Word", ignoreCase = true) -> 10
+                result.provider.startsWith("BetterLyrics", ignoreCase = true) -> 9
                 result.provider.startsWith("Binimum · Word", ignoreCase = true) -> 8
                 result.provider.startsWith("LyricsPlus", ignoreCase = true) && result.lines.any { it.words.isNotEmpty() } -> 7
                 result.provider.startsWith("YouTube Music", ignoreCase = true) -> 6
@@ -1325,7 +1327,7 @@ object LyricsMatcher {
             if (durationDifference != null && durationDifference > MATCH_REJECT_DURATION_SEC) return true
             if (durationClose) return false
             val wrongTitle = titleKnown && titleScore < MATCH_REJECT_TITLE
-            val wrongArtist = artistKnown && artistScore < MATCH_REJECT_ARTIST && titleScore < MATCH_STRONG_TITLE
+            val wrongArtist = artistKnown && artistScore < MATCH_REJECT_ARTIST
             return wrongTitle || wrongArtist
         }
 
@@ -1405,7 +1407,7 @@ private const val MATCH_STRONG_DURATION_SEC = 5L
 private const val MATCH_CLOSE_DURATION_SEC = 3L
 private const val MATCH_REJECT_TITLE = 40
 private const val MATCH_REJECT_ARTIST = 30
-private const val MATCH_REJECT_DURATION_SEC = 60L
+private const val MATCH_REJECT_DURATION_SEC = 24L
 private const val UNKNOWN_SCORE = -1
 private val LYRICS_WHITESPACE = Regex("""\s+""")
 private val LYRICS_PUNCTUATION_SPACING = Regex("""\s+([,.;:!?])""")

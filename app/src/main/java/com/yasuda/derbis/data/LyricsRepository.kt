@@ -482,6 +482,9 @@ class LyricsRepository(context: Context? = null) {
         id: LyricsProviderId,
         query: QuerySpec
     ): Deferred<ProviderAttempt>? = when (id) {
+        LyricsProviderId.BETTER_LYRICS -> async {
+            providerWithin(FAST_PROVIDER_TIMEOUT_MS) { betterLyricsAttempt(query) }
+        }
         LyricsProviderId.LRCLIB_EXACT -> async {
             providerWithin(FAST_PROVIDER_TIMEOUT_MS) { getLrcLibExact(query.queryTitle, query.queryArtist, query.durationSec) }
         }
@@ -814,6 +817,127 @@ class LyricsRepository(context: Context? = null) {
             album = album,
             recordingId = videoId
         )
+    }
+
+    private suspend fun betterLyricsAttempt(query: QuerySpec): ProviderAttempt {
+        val title = query.queryTitle
+        val artist = query.queryArtist
+        val durationSec = query.durationSec
+        val album = query.album
+
+        // 1. Primary: api.betterlyrics.org/getLyrics (Apple Music syllable/word-synced TTML)
+        val apiUrl = buildString {
+            append("https://api.betterlyrics.org/getLyrics?s=")
+            append(enc(title))
+            append("&a=")
+            append(enc(artist))
+            if (album.isNotBlank()) {
+                append("&al=")
+                append(enc(album))
+            }
+            if (durationSec > 0) {
+                append("&d=")
+                append(durationSec)
+            }
+        }
+
+        val apiAttempt = when (val response = httpGet(apiUrl, "application/json")) {
+            is HttpGetResult.Success -> runCatching {
+                val json = JSONObject(response.body)
+                val ttml = json.optString("ttml").trim()
+                if (ttml.isNotBlank()) {
+                    val lines = TtmlLyricsParser.parse(ttml)
+                    if (lines.isNotEmpty()) {
+                        val wordSynced = lines.any { it.words.isNotEmpty() }
+                        val result = LyricsResult(
+                            synced = true,
+                            lines = lines,
+                            provider = if (wordSynced) "BetterLyrics · Word" else "BetterLyrics",
+                            confidence = if (wordSynced) 98 else 92,
+                            cached = false
+                        )
+                        ProviderAttempt(
+                            candidates = listOf(
+                                LyricsCandidate(
+                                    result = result,
+                                    title = title,
+                                    artist = artist,
+                                    durationSec = durationSec,
+                                    album = album
+                                )
+                            ),
+                            attempted = true
+                        )
+                    } else null
+                } else null
+            }.getOrNull()
+            HttpGetResult.NotFound -> null
+            HttpGetResult.Failure -> null
+        }
+
+        if (apiAttempt != null && apiAttempt.candidates.isNotEmpty()) {
+            return apiAttempt
+        }
+
+        // 2. Secondary: unison.betterlyrics.org crowdsourced database
+        val unisonUrl = buildString {
+            append("https://unison.betterlyrics.org/lyrics?song=")
+            append(enc(title))
+            append("&artist=")
+            append(enc(artist))
+            if (album.isNotBlank()) {
+                append("&album=")
+                append(enc(album))
+            }
+            if (durationSec > 0) {
+                append("&duration=")
+                append(durationSec)
+            }
+        }
+
+        val unisonAttempt = when (val response = httpGet(unisonUrl, "application/json")) {
+            is HttpGetResult.Success -> runCatching {
+                val json = JSONObject(response.body)
+                val ttml = json.optString("ttml").takeIf { it.isNotBlank() }
+                val syncedLyrics = json.optString("syncedLyrics").takeIf { it.isMeaningfulLyrics() }
+                    ?: json.optString("lyrics").takeIf { it.isMeaningfulLyrics() }
+                val lines = when {
+                    ttml != null -> TtmlLyricsParser.parse(ttml)
+                    syncedLyrics != null -> UnifiedLyricsParser.parse(syncedLyrics)
+                    else -> emptyList()
+                }
+                if (lines.isNotEmpty()) {
+                    val wordSynced = lines.any { it.words.isNotEmpty() }
+                    val result = LyricsResult(
+                        synced = true,
+                        lines = lines,
+                        provider = if (wordSynced) "BetterLyrics · Unison Word" else "BetterLyrics · Unison",
+                        confidence = if (wordSynced) 96 else 90,
+                        cached = false
+                    )
+                    ProviderAttempt(
+                        candidates = listOf(
+                            LyricsCandidate(
+                                result = result,
+                                title = title,
+                                artist = artist,
+                                durationSec = durationSec,
+                                album = album
+                            )
+                        ),
+                        attempted = true
+                    )
+                } else null
+            }.getOrNull()
+            HttpGetResult.NotFound -> null
+            HttpGetResult.Failure -> null
+        }
+
+        if (unisonAttempt != null && unisonAttempt.candidates.isNotEmpty()) {
+            return unisonAttempt
+        }
+
+        return ProviderAttempt(attempted = true)
     }
 
     private suspend fun getLrcLibExact(title: String, artist: String, durationSec: Long): ProviderAttempt {
@@ -1339,10 +1463,19 @@ class LyricsRepository(context: Context? = null) {
         )
     }
 
-    private fun cleanTitle(title: String): String = title
-        .replace(Regex("(?i)\\s*[(\\[].*?(remaster|radio edit|video|official|lyrics|prod\\.|feat\\.|ft\\.).*?[)\\]]"), "")
-        .replace(Regex("(?i)\\s*-\\s*(official|video|audio|lyrics).*$"), "")
-        .trim()
+    private fun cleanTitle(title: String, artist: String = ""): String {
+        var cleaned = title
+            .replace(Regex("(?i)\\s*[(\\[].*?(remaster|radio edit|video|official|lyrics?|visualizer|prod\\.|feat\\.|ft\\.|mv|hd|4k).*?[)\\]]"), "")
+            .replace(Regex("(?i)\\s*-\\s*(official|video|audio|lyrics?|visualizer|mv).*$"), "")
+            .trim()
+        if (artist.isNotBlank() && cleaned.contains(" - ")) {
+            val parts = cleaned.split(" - ", limit = 2)
+            if (parts.size == 2 && LyricsMatcher.similarity(parts[0], artist) >= 65) {
+                cleaned = parts[1].trim()
+            }
+        }
+        return cleaned
+    }
 
     private fun cleanArtist(artist: String): String = artist
         .replace(Regex("(?i)\\s*VEVO$"), "")
@@ -1362,8 +1495,8 @@ class LyricsRepository(context: Context? = null) {
         languageCode: String,
         translate: Boolean
     ): QuerySpec? {
-        val queryTitle = cleanTitle(title)
         val queryArtist = cleanArtist(artist)
+        val queryTitle = cleanTitle(title, queryArtist)
         val requestedTitle = title.trim().ifBlank { queryTitle }
         val requestedArtist = artist.trim().ifBlank { queryArtist }
         if (queryTitle.length < 2) return null

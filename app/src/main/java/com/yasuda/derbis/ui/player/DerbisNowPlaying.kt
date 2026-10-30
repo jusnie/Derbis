@@ -4,6 +4,9 @@ import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.PlayerAccentPair
 import com.yasuda.derbis.ui.theme.Nocturne78Palette
 import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.domain.LyricsEngine
+import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
+import com.yasuda.derbis.ui.lyrics.rememberLyricsAudioOutputRoute
 import com.yasuda.derbis.ui.lyrics.rememberLyricsPlaybackClock
 import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
 
@@ -272,14 +275,19 @@ private fun DerbisNowPlayingContent(
         }
     }
     val animated = state.animationsEnabled
-    // Keeps the compact Apple Music 13 lyric highlight smooth between player progress updates.
+    val lyricsAudioRoute = rememberLyricsAudioOutputRoute()
+    val lyricsEffectiveOffsetMs = remember(track?.id, lyricsAudioRoute, state.lyricsLatencyProfiles) {
+        state.lyricsLatencyProfiles.effectiveOffsetMs(track?.id, lyricsAudioRoute?.stableKey, lyricsAudioRoute?.bluetooth == true)
+    }
+    // Keeps the compact Apple Music 13 lyric highlight smooth between player progress updates with latency calibration.
     val appleMusicLyricsClock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
-        reportedPositionMs = state.positionMs,
+        reportedPositionMs = lyricsOffsetPosition(state.positionMs, lyricsEffectiveOffsetMs),
         isPlaying = state.isPlaying,
         speed = state.playbackSpeed,
         smoothingEnabled = animated && appleMusicDeck && state.activeLyric != null
     )
+    val lyricsEngine = remember { LyricsEngine() }
     val reactiveAuraStyle = remember(
         state.interfaceSettings.reactiveAuraPreset,
         state.interfaceSettings.reactiveAuraIntensity
@@ -1155,19 +1163,29 @@ private fun DerbisNowPlayingContent(
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = AppleMusicCanvas(state.motionArtwork, motionEnabled && !lyricsFlip.lyricsSettled, state.interfaceSettings.canvasQuality, livingArtwork)
                 )
-            } else             if (appleMusicPlayer) {
+            } else if (appleMusicPlayer) {
+                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
+                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                    } else null
+                } ?: state.activeLyric
                 AppleMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = appleMusicCanvas,
                     video = state.isVideoMode,
-                    activeLyric = state.activeLyric,
+                    activeLyric = compensatedActiveLyric,
                     lyricPositionMs = appleMusicLyricsClock.positionMs
                 )
             } else {
+                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
+                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                    } else null
+                } ?: state.activeLyric
                 PrismPlayerScene(
                     track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying,
-                    activeLyric = state.activeLyric, lyricPositionMs = appleMusicLyricsClock.positionMs
+                    activeLyric = compensatedActiveLyric, lyricPositionMs = appleMusicLyricsClock.positionMs
                 )
             }
         } else if (deckLayout == PlayerDeckLayout.TidalMusic && track != null) {

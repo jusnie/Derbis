@@ -1109,6 +1109,7 @@ class DerbisStrings private constructor(
     val lyricsProviderMoveDown: String get() = value("lyricsProviderMoveDown")
 
     fun lyricsProviderName(id: LyricsProviderId): String = when (id) {
+        LyricsProviderId.BETTER_LYRICS -> entries["lyricsProviderBetterLyrics"] ?: "BetterLyrics"
         LyricsProviderId.YOUTUBE_MUSIC -> value("lyricsProviderYoutubeMusic")
         LyricsProviderId.LRCLIB_EXACT -> value("lyricsProviderLrclibExact")
         LyricsProviderId.LRCLIB_SEARCH -> value("lyricsProviderLrclibSearch")

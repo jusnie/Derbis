@@ -4,6 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class LyricsProviderId(val storageValue: String) {
+    BETTER_LYRICS("better_lyrics"),
     YOUTUBE_MUSIC("youtube_music"),
     LRCLIB_EXACT("lrclib_exact"),
     LRCLIB_SEARCH("lrclib_search"),
@@ -15,6 +16,7 @@ enum class LyricsProviderId(val storageValue: String) {
     fun matches(providerString: String): Boolean {
         val clean = providerString.trim()
         return when (this) {
+            BETTER_LYRICS -> clean.startsWith("BetterLyrics", ignoreCase = true)
             YOUTUBE_MUSIC -> clean.startsWith("YouTube Music", ignoreCase = true)
             LRCLIB_EXACT -> clean.startsWith("LRCLIB Exact", ignoreCase = true)
             LRCLIB_SEARCH -> clean.startsWith("LRCLIB Search", ignoreCase = true)
@@ -27,6 +29,7 @@ enum class LyricsProviderId(val storageValue: String) {
 
     companion object {
         val DEFAULT_ORDER: List<LyricsProviderId> = listOf(
+            BETTER_LYRICS,
             YOUTUBE_MUSIC,
             LRCLIB_EXACT,
             LRCLIB_SEARCH,
@@ -103,10 +106,11 @@ data class LyricsProviderOrdering(
                     parsed += LyricsProviderEntry(id, enabled)
                 }
                 val known = parsed.map { it.id }
-                LyricsProviderId.DEFAULT_ORDER
-                    .filterNot { it in known }
-                    .forEach { parsed += LyricsProviderEntry(it) }
-                LyricsProviderOrdering(parsed.distinctBy { it.id })
+                val missing = LyricsProviderId.DEFAULT_ORDER.filterNot { it in known }
+                val combined = missing.filter { it == LyricsProviderId.BETTER_LYRICS }.map { LyricsProviderEntry(it) } +
+                    parsed +
+                    missing.filterNot { it == LyricsProviderId.BETTER_LYRICS }.map { LyricsProviderEntry(it) }
+                LyricsProviderOrdering(combined.distinctBy { it.id })
             }.getOrDefault(LyricsProviderOrdering())
         }
     }
