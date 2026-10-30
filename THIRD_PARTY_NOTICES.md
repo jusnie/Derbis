@@ -16,5 +16,5 @@ SimpMusic’s `NowPlayingContentAppleMusic.kt`, `AppleMusicShared.kt`, `AppleMus
   retained Derbis’s discrete word-by-word lyric renderer rather than SimpMusic’s sweep renderer,
   while keeping the upstream queue’s flat song rows, source-style layout, and fixed bottom cluster.
 
-Derbis is distributed under the Derbis End User License Agreement (EULA); the complete license text is available in the repository’s
+Derbis is distributed under the GNU General Public License v3.0; the complete license text is available in the repository’s
 [`LICENSE`](LICENSE).

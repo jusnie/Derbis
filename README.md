@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/jusnie/Derbis/releases/latest"><img src="https://img.shields.io/github/v/release/jusnie/Derbis?style=for-the-badge&color=white&labelColor=000000" alt="Latest Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-EULA-white?style=for-the-badge&labelColor=000000" alt="License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-white?style=for-the-badge&labelColor=000000" alt="License"></a>
   <a href="https://github.com/jusnie/Derbis"><img src="https://img.shields.io/badge/Developer-Yasuda-white?style=for-the-badge&labelColor=000000" alt="Developer"></a>
 </p>
 
@@ -99,6 +99,9 @@ The dependency-free responsive web companion lives in [`website/`](website/). It
 
 ## 📄 License
 
-Derbis is proprietary software licensed under the [Derbis End User License Agreement (EULA)](LICENSE).  
-Copyright © 2026 **Yasuda**. All rights reserved.  
-Unauthorized copying, cloning, redistribution, public mirroring, or commercial exploitation is strictly prohibited.
+Derbis is free software under the **GNU General Public License v3.0**. See [LICENSE](LICENSE).  
+Copyright © 2026 **Yasuda**.
+
+You may run it, study it, share it and change it. If you distribute a modified build, it has to stay
+under the GPL and ship its source. Contributions are welcome — read [CONTRIBUTING.md](CONTRIBUTING.md)
+before opening a pull request.

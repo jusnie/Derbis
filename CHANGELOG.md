@@ -27,6 +27,9 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ## [1.1.0] — 2026-10-27
 
+### Changed (project)
+- Derbis is now **GPL-3.0** instead of the custom end user agreement, so anyone can read, change, rebuild and share it, and contributions land under the same terms. New `CONTRIBUTING.md`, and `docs/RELICENSING.md` records why the bundled GPL components made the old licence untenable.
+
 ### Removed
 - Videos are gone: Derbis is songs only. Search no longer requests or shows a Videos tab, artist pages drop their video shelf, Home drops the video rail and any "music video" feed section, editorial pages skip video shelves, and the player always resolves and presents audio with artwork instead of a video surface.
 
