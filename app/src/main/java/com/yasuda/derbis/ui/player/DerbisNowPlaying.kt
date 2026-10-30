@@ -285,7 +285,7 @@ private fun DerbisNowPlayingContent(
         reportedPositionMs = lyricsOffsetPosition(state.positionMs, lyricsEffectiveOffsetMs),
         isPlaying = state.isPlaying,
         speed = state.playbackSpeed,
-        smoothingEnabled = animated && appleMusicDeck && state.activeLyric != null
+        smoothingEnabled = animated && appleMusicDeck && (state.activeLyric != null || state.lyricsSynced)
     )
     val lyricsEngine = remember { LyricsEngine() }
     val reactiveAuraStyle = remember(
