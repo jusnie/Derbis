@@ -35,6 +35,12 @@ object DiscordRpcClient {
     private const val REST_API_USER_ME = "https://discord.com/api/v10/users/@me"
     private const val DEFAULT_APP_ID = "1199347898516045884"
 
+    /** Discord caps both `details` and `state` at 128 characters. */
+    private const val ACTIVITY_TEXT_LIMIT = 128
+
+    private fun String.activityText(): String =
+        trim().replace(Regex("\\s+"), " ").take(ACTIVITY_TEXT_LIMIT)
+
     // Gateway Opcodes
     private const val OP_DISPATCH = 0
     private const val OP_HEARTBEAT = 1
@@ -209,12 +215,27 @@ object DiscordRpcClient {
 
         val activities = JSONArray()
         if (presence.playing && presence.title.isNotBlank()) {
+            // Lyrics mode keeps the track visible on line two while line one carries the
+            // current lyric, mirroring how desktop lyric-presence clients lay it out.
+            val lyricLine = presence.lyricLine
+            val hasLyrics = lyricLine.isNotBlank()
+            val detailsText = if (hasLyrics) lyricLine else presence.title
+            val stateText = if (hasLyrics) {
+                presence.artistTitleLine.ifBlank { "Derbis" }.activityText()
+            } else {
+                presence.artist.ifBlank { "Unknown Artist" }
+            }
             val activity = JSONObject().apply {
                 put("name", "Derbis")
                 put("type", 2) // 2 = Listening to
-                put("details", presence.title)
-                put("state", presence.artist.ifBlank { "Unknown Artist" })
+                put("details", detailsText)
+                put("state", stateText)
                 put("application_id", DEFAULT_APP_ID)
+                if (hasLyrics) {
+                    // 0 = NAME, 1 = STATE, 2 = DETAILS. Showing DETAILS puts the lyric line
+                    // in the member-list status text, so friends see it without expanding.
+                    put("status_display_type", 2)
+                }
 
                 // 1. Working Progress Bar (Requires both start and end timestamps)
                 if (presence.durationMs > 0L) {

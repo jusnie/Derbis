@@ -89,6 +89,7 @@ import com.yasuda.derbis.domain.ReplayGainMetadata
 import com.yasuda.derbis.domain.ReplayGainMode
 import com.yasuda.derbis.domain.selectReplayGain
 import com.yasuda.derbis.domain.LyricLine
+import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
 import com.yasuda.derbis.feature.discord.derbisDiscordPresenceSnapshot
@@ -185,6 +186,11 @@ class PlaybackService : MediaLibraryService() {
     private var memoryGuardHighSamples = 0
     private var lastMemoryRecycleElapsedMs = 0L
     private var lastDiscordPresenceSyncElapsedMs = 0L
+    private val discordLyricsEngine = LyricsEngine()
+    @Volatile private var discordLyricsTrackId: String = ""
+    @Volatile private var discordLyricsLines: List<LyricLine> = emptyList()
+    @Volatile private var discordLyricsSynced: Boolean = false
+    private var lastDiscordLyricLine: String = ""
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
@@ -807,6 +813,11 @@ class PlaybackService : MediaLibraryService() {
         synced: Boolean,
         provider: String
     ) {
+        // Cache for Discord Rich Presence before any ROM-gated early return below, so lyrics
+        // reach the profile status on devices without the OxygenOS lyric metadata channel.
+        discordLyricsTrackId = track.id
+        discordLyricsLines = lines
+        discordLyricsSynced = synced
         val mediaId = DerbisMediaItemFactory.mediaId(track)
         val forwardLyrics = { deviceIntegration?.onLyrics(mediaId, track.id, lines, synced) }
         if (deviceIntegrationResolved) forwardLyrics() else pendingDeviceLyrics = { forwardLyrics() }
@@ -1275,6 +1286,9 @@ class PlaybackService : MediaLibraryService() {
                 if (now - lastDiscordPresenceSyncElapsedMs >= 30_000L) {
                     publishDiscordRichPresence(playbackDeck)
                     lastDiscordPresenceSyncElapsedMs = now
+                }
+                if (playbackDeck.isPlaying) {
+                    publishDiscordLyricLineIfChanged(playbackDeck)
                 }
                 delay(2_000L)
             }
@@ -3138,15 +3152,42 @@ class PlaybackService : MediaLibraryService() {
         val playbackDeck = player ?: return
         val currentTrack = queueEngine.state.value.currentTrack
         val duration = playbackDeck.duration.takeIf { it > 0L } ?: currentTrack?.durationMs ?: 0L
+        val positionMs = playbackDeck.currentPosition
         DerbisDiscordRichPresence.publish(
             applicationContext,
             derbisDiscordPresenceSnapshot(
                 track = currentTrack,
-                positionMs = playbackDeck.currentPosition,
+                positionMs = positionMs,
                 durationMs = duration,
-                playing = playbackDeck.isPlaying
+                playing = playbackDeck.isPlaying,
+                lyricLine = discordLyricLineFor(currentTrack, positionMs)
             )
         )
+    }
+
+    /**
+     * The lyric line to publish right now, or blank when the option is off, the track has no
+     * synced lyrics, or the line is an instrumental/metadata marker rather than sung text.
+     */
+    private fun discordLyricLineFor(track: Track?, positionMs: Long): String {
+        if (track == null) return ""
+        if (!DerbisDiscordRichPresence.isLyricsEnabled(this)) return ""
+        if (!discordLyricsSynced || discordLyricsTrackId != track.id) return ""
+        val line = discordLyricsEngine.currentLine(positionMs, discordLyricsLines) ?: return ""
+        if (line.isInstrumental || line.isMetadata) return ""
+        return line.text
+    }
+
+    /**
+     * Republish as soon as the sung line changes. The presence layer coalesces these into
+     * Discord's 5-per-20-seconds budget, so polling every playback tick stays safe.
+     */
+    private fun publishDiscordLyricLineIfChanged(player: Player) {
+        val track = queueEngine.state.value.currentTrack
+        val line = discordLyricLineFor(track, player.currentPosition)
+        if (line == lastDiscordLyricLine) return
+        lastDiscordLyricLine = line
+        publishDiscordRichPresence(player)
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession

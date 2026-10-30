@@ -102,6 +102,63 @@ class DiscordRichPresenceTest {
     }
 
     @Test
+    fun testLyricLineIsSanitizedAndCappedAtDiscordLimit() {
+        val noisy = "  I   never   wanna\tbe  " + "x".repeat(200)
+        val snapshot = derbisDiscordPresenceSnapshot(
+            track = sampleTrack(),
+            positionMs = 12_000L,
+            durationMs = 213_000L,
+            playing = true,
+            lyricLine = noisy
+        )
+
+        assertTrue(snapshot.lyricLine.startsWith("I never wanna be"))
+        assertFalse(snapshot.lyricLine.contains("  "))
+        assertEquals(128, snapshot.lyricLine.length)
+    }
+
+    @Test
+    fun testLyricLineClearedWhenPausedOrTrackMissing() {
+        val playing = derbisDiscordPresenceSnapshot(sampleTrack(), 1_000L, 213_000L, true, "hello")
+        assertEquals("hello", playing.lyricLine)
+
+        val paused = derbisDiscordPresenceSnapshot(sampleTrack(), 1_000L, 213_000L, false, "hello")
+        assertEquals("", paused.lyricLine)
+
+        val noTrack = derbisDiscordPresenceSnapshot(null, 1_000L, 0L, true, "hello")
+        assertEquals("", noTrack.lyricLine)
+    }
+
+    @Test
+    fun testSyncKeyTracksLyricLineChanges() {
+        val track = sampleTrack()
+        val first = derbisDiscordPresenceSnapshot(track, 5_000L, 213_000L, true, "line one")
+        val second = derbisDiscordPresenceSnapshot(track, 5_000L, 213_000L, true, "line two")
+
+        assertTrue(first.syncKey != second.syncKey)
+    }
+
+    @Test
+    fun testArtistTitleLineKeepsTrackVisibleDuringLyrics() {
+        val snapshot = derbisDiscordPresenceSnapshot(sampleTrack(), 0L, 213_000L, true, "line")
+
+        assertEquals("Rick Astley — Never Gonna Give You Up", snapshot.artistTitleLine)
+    }
+
+    @Test
+    fun testPresenceRateGateHonoursDiscordLimit() {
+        // Nothing sent yet, so the first update goes out immediately.
+        assertTrue(shouldFlushPresenceNow(nowElapsedMs = 90_000L, lastSentElapsedMs = 0L))
+        // Too soon after the last update: coalesce into the trailing flush instead.
+        assertFalse(shouldFlushPresenceNow(nowElapsedMs = 100_000L, lastSentElapsedMs = 97_000L))
+        // Exactly at the interval boundary: allowed.
+        assertTrue(shouldFlushPresenceNow(nowElapsedMs = 101_000L, lastSentElapsedMs = 97_000L))
+        // 4 s spacing yields at most five updates per 20 s window.
+        assertEquals(4_000L, DISCORD_PRESENCE_MIN_INTERVAL_MS)
+        assertEquals(5, (20_000L / DISCORD_PRESENCE_MIN_INTERVAL_MS).toInt())
+    }
+
+    @Test
     fun testSnapshotNullTrackSafety() {
         val snapshot = derbisDiscordPresenceSnapshot(
             track = null,

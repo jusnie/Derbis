@@ -77,6 +77,37 @@ Discord profile viewers can click two interactive buttons on your listening acti
   `0:45 ━━━━━━━●────────── 3:18`
 * When paused, timestamps are cleared to prevent the progress bar from continuing to advance.
 
+### 6. Lyrics in Presence (opt-in)
+
+The current synced lyric line can replace the first activity line, so friends see what is
+being sung without opening anything.
+
+* **Line 1 (`details`)**: the active lyric line, sanitized to Discord's 128-character cap.
+* **Line 2 (`state`)**: `{artist} — {title}`, so the track stays identifiable.
+* **`status_display_type: 2`**: puts that lyric line into the member-list status text
+  ("Listening to *never gonna give you up*"), not just the expanded card.
+* **Opt-in**: `DerbisDiscordRichPresence.isLyricsEnabled` / `setLyricsEnabled`, stored in the
+  `derbis_discord_presence` preferences under `lyrics_in_presence`. Off by default because the
+  exact sung line is more granular than the title and artist already shown.
+* **Only synced lyrics**: the line comes from `LyricsEngine.currentLine(positionMs, lines)`;
+  instrumental and metadata markers are skipped, and lyrics cached for one track never leak
+  onto another.
+
+#### Why the line does not update on every word
+
+Discord accepts only **five presence updates per 20 seconds per session**
+([docs](https://discord.com/developers/docs/events/gateway-events#update-presence)), so
+per-syllable or per-word karaoke text is not possible over Rich Presence. Line-level updates
+therefore go through `shouldFlushPresenceNow`, which spaces sends at least
+`DISCORD_PRESENCE_MIN_INTERVAL_MS` (4 s) apart and coalesces bursts into a single trailing
+update instead of dropping the newest line.
+
+#### Native bridge note
+
+The Android Discord Social SDK activity used by `DiscordRichPresenceBridge.cpp` has no lyric
+field, so the lyric line is stripped before the native dedupe key is computed. Lyrics appear on
+the Gateway path only; the native path keeps showing title and artist.
+
 ---
 
 ## Files Added & Modified
@@ -88,5 +119,5 @@ Discord profile viewers can click two interactive buttons on your listening acti
 | `app/src/main/java/com/yasuda/derbis/feature/discord/DerbisDiscordAccountStore.kt` | Keystore AES-256 GCM storage supporting `userToken`, `username`, `globalName`, and `avatarUrl`. |
 | `app/src/main/java/com/yasuda/derbis/feature/discord/DerbisDiscordRichPresence.kt` | Bridge coordinator integrating Gateway RPC and native SDK, snapshot creation with `durationMs`, `songUrl`, and `artistUrl`. |
 | `app/src/main/java/com/yasuda/derbis/player/PlaybackService.kt` | Passes deck duration to `derbisDiscordPresenceSnapshot` to enable timeline progress bar. |
-| `app/src/main/java/com/yasuda/derbis/ui/DerbisApp.kt` | Redesigned Discord Settings panel with user profile card, avatar, latency badge, Connection Tester, and login sheet trigger. |
-| `app/src/test/java/com/yasuda/derbis/feature/discord/DiscordRichPresenceTest.kt` | Unit tests for snapshot creation, button URLs, progress bar timestamp math, and token session validation. |
+| `app/src/main/java/com/yasuda/derbis/ui/DerbisApp.kt` | Redesigned Discord Settings panel with user profile card, avatar, latency badge, Connection Tester, login sheet trigger, and the "Show lyrics in presence" toggle. |
+| `app/src/test/java/com/yasuda/derbis/feature/discord/DiscordRichPresenceTest.kt` | Unit tests for snapshot creation, button URLs, progress bar timestamp math, token session validation, lyric sanitization, and the presence rate gate. |

@@ -2,6 +2,7 @@ package com.yasuda.derbis.feature.discord
 
 import android.app.Activity
 import android.content.Context
+import android.os.SystemClock
 import com.yasuda.derbis.BuildConfig
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +56,12 @@ internal data class DerbisDiscordPresenceSnapshot(
     val durationMs: Long = 0L,
     val songUrl: String = "",
     val artistUrl: String = "",
-    val playing: Boolean = false
+    val playing: Boolean = false,
+    /**
+     * Current synced lyric line, already sanitized to Discord's 128 character activity limit.
+     * Blank whenever the lyrics-in-presence option is off or the track has no synced lyrics.
+     */
+    val lyricLine: String = ""
 ) {
     /** Re-publish on a track/state change and periodically enough to recover from a seek. */
     val syncKey: String
@@ -68,12 +74,39 @@ internal data class DerbisDiscordPresenceSnapshot(
             artistThumbnailUrl,
             durationMs.toString(),
             playing.toString(),
-            if (playing) (positionMs.coerceAtLeast(0L) / DISCORD_POSITION_RESYNC_MS).toString() else ""
+            if (playing) (positionMs.coerceAtLeast(0L) / DISCORD_POSITION_RESYNC_MS).toString() else "",
+            lyricLine
         ).joinToString(separator = "\u0000")
+
+    /** Second activity line: keeps the track visible while the first line shows lyrics. */
+    val artistTitleLine: String
+        get() = listOf(artist, title)
+            .filter(String::isNotBlank)
+            .joinToString(separator = " — ")
 }
 
 private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
 private const val DISCORD_POSITION_RESYNC_MS = 30_000L
+
+/**
+ * Discord only accepts five game-status updates per 20 seconds per session
+ * (https://discord.com/developers/docs/events/gateway-events#update-presence),
+ * so live lyric lines are spaced at least this far apart and bursts are coalesced
+ * into a single trailing update instead of being dropped.
+ */
+internal const val DISCORD_PRESENCE_MIN_INTERVAL_MS = 4_000L
+
+/**
+ * Pure rate-gate decision for gateway presence updates.
+ *
+ * @param nowElapsedMs monotonic clock reading (never wall-clock, so clock jumps cannot stall it).
+ * @param lastSentElapsedMs when the previous update went out, or 0 when nothing was sent yet.
+ */
+internal fun shouldFlushPresenceNow(
+    nowElapsedMs: Long,
+    lastSentElapsedMs: Long,
+    minIntervalMs: Long = DISCORD_PRESENCE_MIN_INTERVAL_MS
+): Boolean = lastSentElapsedMs <= 0L || nowElapsedMs - lastSentElapsedMs >= minIntervalMs
 
 /**
  * Creates a rate-safe presence snapshot from active playback metadata.
@@ -93,7 +126,8 @@ internal fun derbisDiscordPresenceSnapshot(
     track: Track?,
     positionMs: Long,
     durationMs: Long,
-    playing: Boolean
+    playing: Boolean,
+    lyricLine: String = ""
 ): DerbisDiscordPresenceSnapshot {
     val title = track?.title.orEmpty().discordPresenceText()
     val artist = track?.artist.orEmpty().discordPresenceText()
@@ -117,7 +151,8 @@ internal fun derbisDiscordPresenceSnapshot(
         durationMs = effectiveDuration.coerceAtLeast(0L),
         songUrl = songUrl,
         artistUrl = artistUrl,
-        playing = playing && title.isNotBlank()
+        playing = playing && title.isNotBlank(),
+        lyricLine = if (playing && title.isNotBlank()) lyricLine.discordPresenceText() else ""
     )
 }
 
@@ -134,6 +169,7 @@ private fun String.discordExternalArtworkUrl(): String {
 object DerbisDiscordRichPresence {
     private const val PREFERENCES = "derbis_discord_presence"
     private const val ENABLED_KEY = "enabled"
+    private const val LYRICS_KEY = "lyrics_in_presence"
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -158,6 +194,12 @@ object DerbisDiscordRichPresence {
     @Volatile private var nativePresenceActive = false
     @Volatile private var applicationContext: Context? = null
     private var statePollingJob: Job? = null
+
+    /** Guards the coalescing rate gate below; touched from the player thread and the bridge scope. */
+    private val presenceGateLock = Any()
+    private var pendingGatewayPresence: DerbisDiscordPresenceSnapshot? = null
+    private var pendingFlushJob: Job? = null
+    private var lastGatewaySendElapsedMs = 0L
 
     fun isAvailable(): Boolean = true
 
@@ -312,24 +354,109 @@ object DerbisDiscordRichPresence {
         if (allowed) publishStored(context) else clear()
     }
 
+    /**
+     * Lyrics in presence is opt-in: it publishes the exact line being sung, which is more
+     * granular than the track title and artist that the presence already shows.
+     */
+    fun isLyricsEnabled(context: Context): Boolean =
+        context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .getBoolean(LYRICS_KEY, false)
+
+    fun setLyricsEnabled(context: Context, enabled: Boolean) {
+        applicationContext = context.applicationContext
+        context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(LYRICS_KEY, enabled)
+            .apply()
+        // Drop the line immediately when turning the option off instead of waiting for the
+        // next playback tick; turning it on lets the player republish with the current line.
+        val current = lastPresence
+        if (!enabled && current.lyricLine.isNotBlank()) {
+            lastPresence = current.copy(lyricLine = "")
+            publishStored(context)
+        }
+    }
+
     internal fun publish(context: Context, presence: DerbisDiscordPresenceSnapshot) {
         applicationContext = context.applicationContext
-        lastPresence = presence
-        if (!presence.playing || !isEnabled(context)) {
+        // The preference is authoritative here so a stale snapshot can never leak lyrics.
+        val effective = if (presence.lyricLine.isBlank() || isLyricsEnabled(context)) {
+            presence
+        } else {
+            presence.copy(lyricLine = "")
+        }
+        lastPresence = effective
+        if (!effective.playing || !isEnabled(context)) {
             clear()
             return
         }
 
         // Publish via WebSocket Gateway RPC (clickable buttons, progress bar, dual artwork/artist icon)
-        DiscordRpcClient.updatePresence(presence)
+        enqueueGatewayPresence(effective)
 
-        // Publish via native bridge if loaded
+        // Publish via native bridge if loaded. The Social SDK activity has no lyric field, so
+        // strip it before dedupe to avoid re-sending the same title/artist on every line change.
         if (loadBridge()) {
-            publishNative(presence)
+            publishNative(effective.copy(lyricLine = ""))
+        }
+    }
+
+    /**
+     * Sends a gateway presence update immediately when the 5-per-20-seconds budget allows,
+     * otherwise keeps only the newest snapshot and flushes it once the window reopens.
+     * Without this a rapidly changing lyric line would trip Discord's presence rate limit.
+     */
+    private fun enqueueGatewayPresence(presence: DerbisDiscordPresenceSnapshot) {
+        val now = SystemClock.elapsedRealtime()
+        val sendNow = synchronized(presenceGateLock) {
+            val allowed = shouldFlushPresenceNow(now, lastGatewaySendElapsedMs)
+            if (allowed) {
+                lastGatewaySendElapsedMs = now
+                pendingGatewayPresence = null
+            } else {
+                pendingGatewayPresence = presence
+            }
+            allowed
+        }
+        if (sendNow) {
+            DiscordRpcClient.updatePresence(presence)
+        } else {
+            scheduleTrailingGatewayPresence()
+        }
+    }
+
+    private fun scheduleTrailingGatewayPresence() {
+        synchronized(presenceGateLock) {
+            if (pendingFlushJob?.isActive == true) return
+            val elapsed = SystemClock.elapsedRealtime() - lastGatewaySendElapsedMs
+            val waitMs = (DISCORD_PRESENCE_MIN_INTERVAL_MS - elapsed)
+                .coerceIn(1L, DISCORD_PRESENCE_MIN_INTERVAL_MS)
+            pendingFlushJob = bridgeScope.launch {
+                delay(waitMs)
+                val latest = synchronized(presenceGateLock) {
+                    val pending = pendingGatewayPresence
+                    pendingGatewayPresence = null
+                    if (pending != null) lastGatewaySendElapsedMs = SystemClock.elapsedRealtime()
+                    pending
+                }
+                if (latest != null) DiscordRpcClient.updatePresence(latest)
+            }
+        }
+    }
+
+    private fun resetGatewayPresenceGate() {
+        synchronized(presenceGateLock) {
+            pendingFlushJob?.cancel()
+            pendingFlushJob = null
+            pendingGatewayPresence = null
+            lastGatewaySendElapsedMs = 0L
         }
     }
 
     fun clear() {
+        resetGatewayPresenceGate()
         DiscordRpcClient.clearPresence()
         if (nativePresenceActive && loadBridge()) {
             runCatching { nativeClear() }
@@ -352,9 +479,9 @@ object DerbisDiscordRichPresence {
 
     private fun publishStored(context: Context) {
         if (!lastPresence.playing || !isEnabled(context)) return
-        DiscordRpcClient.updatePresence(lastPresence)
+        enqueueGatewayPresence(lastPresence)
         if (loadBridge()) {
-            publishNative(lastPresence, force = true)
+            publishNative(lastPresence.copy(lyricLine = ""), force = true)
         }
     }
 
