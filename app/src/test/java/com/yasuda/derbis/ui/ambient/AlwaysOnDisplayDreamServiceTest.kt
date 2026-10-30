@@ -27,10 +27,9 @@ class AlwaysOnDisplayDreamServiceTest {
 
         // Auto-dimming active by default
         assertTrue(settings.autoDim)
-        assertEquals(DerbisAmbientSettings.DEFAULT_AUTO_DIM_SECONDS, settings.autoDimAfterSeconds)
+        assertEquals(20, settings.autoDimAfterSeconds)
 
-        // Proximity sensor blackout enabled by default to turn screen off in pocket or face-down
-        assertTrue(settings.proximityBlackout)
+        assertFalse(settings.proximityBlackout)
     }
 
     @Test

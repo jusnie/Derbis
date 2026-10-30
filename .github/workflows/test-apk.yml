@@ -68,9 +68,9 @@ jobs:
             python3 -m unittest discover -s scripts/tests -p "${suite}" -q
           done
 
-      - name: Test and build installable Debug APK
+      - name: Build installable Debug APK
         run: |
-          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace \
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace \
             -PderbisVersionName="${DERBIS_VERSION_NAME}" \
             -PderbisVersionCode="${DERBIS_VERSION_CODE}"
 
@@ -89,6 +89,12 @@ jobs:
           name: Derbis-1.5.0-test-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Run all Android unit tests
+        run: |
+          ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace \
+            -PderbisVersionName="${DERBIS_VERSION_NAME}" \
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}"
 
       - name: Upload unit-test reports
         if: always()

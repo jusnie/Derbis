@@ -21,11 +21,11 @@ class TrackStoryModelTest {
 
     @Test
     fun snapshotCalculatesProgressAndFormattedTimes() {
-        val track = Track(
+        val track = track(
             id = "test-track-1",
             title = "Starboy",
             artist = "The Weeknd",
-            duration = "3:50"
+            durationMs = 230_000L
         )
         val snapshot = TrackStorySnapshot(
             track = track,
@@ -40,7 +40,7 @@ class TrackStoryModelTest {
 
     @Test
     fun snapshotClampsProgress() {
-        val track = Track(id = "test-2", title = "Blinding Lights", artist = "The Weeknd")
+        val track = track(id = "test-2", title = "Blinding Lights", artist = "The Weeknd")
         val overshot = TrackStorySnapshot(track = track, positionMs = 500_000L, durationMs = 200_000L)
         assertEquals(1.0f, overshot.progress, 0.001f)
 
@@ -50,7 +50,7 @@ class TrackStoryModelTest {
 
     @Test
     fun paletteFallbackPreservesColors() {
-        val track = Track(
+        val track = track(
             id = "test-3",
             title = "Midnight City",
             artist = "M83",
@@ -77,4 +77,19 @@ class TrackStoryModelTest {
             assertTrue(theme.subtitle.isNotBlank())
         }
     }
+
+    private fun track(
+        id: String,
+        title: String,
+        artist: String,
+        durationMs: Long = 0L,
+        accentStart: Int = 0,
+        accentEnd: Int = 0
+    ): Track = Track(
+        id = id, title = title, artist = artist, album = "", durationMs = durationMs,
+        streamUrl = "", videoUrl = "", thumbnailUrl = "", largeThumbnailUrl = "", source = "test",
+        moodTags = emptySet(), energy = 0, vocal = 0, replayScore = 0, cacheScore = 0,
+        accentStart = accentStart, accentEnd = accentEnd
+    )
+
 }

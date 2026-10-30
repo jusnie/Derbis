@@ -1,13 +1,20 @@
 package com.yasuda.derbis.ui
 
-import org.junit.Assert.assertEquals
+import java.nio.file.Files
+import java.nio.file.Path
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class SamplesLoadSurfaceStateTest {
     @Test
-    fun onlyActiveLoadingShowsSpinnerState() {
-        assertEquals(SamplesLoadSurfaceState.Loading, samplesLoadSurfaceState(isLoading = true, loadFailed = false))
-        assertEquals(SamplesLoadSurfaceState.Error, samplesLoadSurfaceState(isLoading = false, loadFailed = true))
-        assertEquals(SamplesLoadSurfaceState.Empty, samplesLoadSurfaceState(isLoading = false, loadFailed = false))
+    fun removedSamplesLoadingSurfaceIsNotRestored() {
+        val app = sequenceOf(
+            Path.of("app/src/main/java/com/yasuda/derbis/ui/DerbisApp.kt"),
+            Path.of("src/main/java/com/yasuda/derbis/ui/DerbisApp.kt")
+        ).first(Files::exists).let(Files::readString)
+        assertFalse(app.contains("SamplesLoadSurfaceState"))
+        assertFalse(app.contains("samplesLoadSurfaceState("))
+        assertFalse(app.contains("ExploreSamplesScreen("))
+        assertFalse(ExploreShortcut.entries.any { it.name == "Samples" })
     }
 }
