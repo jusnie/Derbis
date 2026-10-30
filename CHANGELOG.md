@@ -27,6 +27,9 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ## [1.1.0] — 2026-10-27
 
+### Removed
+- Videos are gone: Derbis is songs only. Search no longer requests or shows a Videos tab, artist pages drop their video shelf, Home drops the video rail and any "music video" feed section, editorial pages skip video shelves, and the player always resolves and presents audio with artwork instead of a video surface.
+
 ### What's Fixed
 - `be712b3` Pausing or stopping a song keeps the player cover at its full presentation size.
 - `4bd9a93` and `7ca4f79` keep Endless Listening populated for Quick Picks and allow its small foreground recommendation request on mobile data.

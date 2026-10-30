@@ -121,7 +121,8 @@ internal fun AppleMusicGenreScreen(
                     }
                 }
             }
-            shelves.forEachIndexed { index, shelf ->
+            // Songs only: editorial pages never render a video shelf.
+            shelves.filter { it.shelf.kind != AppleCatalogShelfKind.Videos }.forEachIndexed { index, shelf ->
                 item(key = "genre-${shelf.shelf.id}-$index", contentType = shelf.role) {
                     if (shelf.role == AppleHomeShelfRole.Hero) {
                         AppleMusicHeroCarousel(remember(shelf) {

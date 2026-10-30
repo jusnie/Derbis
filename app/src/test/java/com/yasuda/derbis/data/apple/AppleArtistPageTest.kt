@@ -162,10 +162,9 @@ class AppleArtistPageTest {
         val inserted = appleArtistShelvesWithTopVideos(listOf(albums, similar), top)
         val untouched = appleArtistShelvesWithTopVideos(listOf(albums, webVideos), emptyList())
 
-        assertEquals(listOf("albums", APPLE_TOP_VIDEOS_SHELF_ID, "similar"), replaced.map { it.id })
-        assertEquals(listOf("New"), replaced[1].items.map { it.title })
-        assertEquals(listOf("albums", APPLE_TOP_VIDEOS_SHELF_ID, "similar"), inserted.map { it.id })
-        assertEquals(listOf("albums", "web-videos"), untouched.map { it.id })
+        assertEquals(listOf("albums", "similar"), replaced.map { it.id })
+        assertEquals(listOf("albums", "similar"), inserted.map { it.id })
+        assertEquals(listOf("albums"), untouched.map { it.id })
     }
 
     @Test

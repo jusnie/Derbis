@@ -5562,28 +5562,8 @@ private fun ArtistOverlay(
                             )
                         }
                     }
-                    val videoTitle = if (DerbisIsAppleMusic) appleArtistInfoCopy(strings.code).topVideos else strings.video
-                    val videoItems: LazyListScope.() -> Unit = {
-                        if (artist.videos.isNotEmpty()) {
-                            item(key = "artist-videos-title", contentType = "artist-section-title") { Box(modifier = Modifier.padding(horizontal = 20.dp)) { ArtistSectionTitle(videoTitle) } }
-                            item(key = "artist-videos", contentType = "artist-video-row") {
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp)
-                                ) {
-                                    val shownVideos = artist.videos.take(20)
-                                    items(shownVideos, key = { "artist-video-${it.id}" }) { track ->
-                                        VideoGlassCard(
-                                            track = track,
-                                            isCurrent = track.id == state.currentTrack?.id,
-                                            isPlaying = state.isPlaying && track.id == state.currentTrack?.id,
-                                            onClick = { onPlayFrom(shownVideos, track) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Songs only: artist pages no longer carry a video shelf.
+                    val videoItems: LazyListScope.() -> Unit = {}
                     val applePage = appleArtist?.takeIf { page -> page.shelves.any { it.style != AppleArtistShelfStyle.Artists } }
                     if (DerbisIsAppleMusic && applePage != null) {
                         appleMusicArtistShelves(
@@ -9999,21 +9979,8 @@ private fun HomeScreen(
         )
     }
     val rawOtherSections = homeDerivedState.otherSections
-    val freshHomeVideoTracks = remember(state.exploreVideos, rawOtherSections, state.charts, strings.exploreNewVideos) {
-        val sectionVideos = rawOtherSections
-            .filter { section -> isMusicVideoSectionTitle(section.title, strings) }
-            .flatMap { section -> section.tracks }
-        val chartVideos = state.charts.filter { track ->
-            track.counterpartVideoId.isNotBlank() || track.videoUrl.isNotBlank()
-        }
-        DerbisPersonalOrbit.distinctRecordings(state.exploreVideos + sectionVideos + chartVideos)
-            .filter { track ->
-                track.counterpartVideoId.isNotBlank() ||
-                    track.videoType.contains("video", ignoreCase = true) ||
-                    track.videoUrl.isNotBlank()
-            }
-            .take(12)
-    }
+    // Songs only: Home never surfaces a video rail.
+    val freshHomeVideoTracks: List<Track> = emptyList()
     val lastHomeVideoTracks = remember { mutableStateOf<List<Track>>(emptyList()) }
     val homeVideoTracks = if (freshHomeVideoTracks.isEmpty() && state.isLoadingCharts) {
         lastHomeVideoTracks.value
@@ -10023,9 +9990,9 @@ private fun HomeScreen(
     SideEffect {
         if (freshHomeVideoTracks.isNotEmpty()) lastHomeVideoTracks.value = freshHomeVideoTracks
     }
-    val otherSections = remember(rawOtherSections, homeVideoTracks, strings.exploreNewVideos) {
+    val otherSections = remember(rawOtherSections, strings.exploreNewVideos) {
         rawOtherSections.withIndex().filterNot { (_, section) ->
-            homeVideoTracks.isNotEmpty() && isMusicVideoSectionTitle(section.title, strings)
+            isMusicVideoSectionTitle(section.title, strings)
         }
     }
     val spotlightCandidates = homeDerivedState.spotlightCandidates
@@ -11079,9 +11046,8 @@ private fun rememberStudioHomeVideo(
     rawOtherSections: List<com.yasuda.derbis.domain.HomeSection>,
     strings: DerbisStrings
 ): Pair<List<Track>, List<IndexedValue<com.yasuda.derbis.domain.HomeSection>>> {
-    val freshHomeVideoTracks = remember(state.exploreVideos, rawOtherSections, state.charts, strings.exploreNewVideos) {
-        buildStudioHomeVideoTracks(state, rawOtherSections, strings)
-    }
+    // Songs only: Home never surfaces a video rail.
+    val freshHomeVideoTracks: List<Track> = emptyList()
     val lastHomeVideoTracks = remember { mutableStateOf<List<Track>>(emptyList()) }
     val homeVideoTracks = if (freshHomeVideoTracks.isEmpty() && state.isLoadingCharts) {
         lastHomeVideoTracks.value
@@ -11091,9 +11057,9 @@ private fun rememberStudioHomeVideo(
     SideEffect {
         if (freshHomeVideoTracks.isNotEmpty()) lastHomeVideoTracks.value = freshHomeVideoTracks
     }
-    val otherSections = remember(rawOtherSections, homeVideoTracks, strings.exploreNewVideos) {
+    val otherSections = remember(rawOtherSections, strings.exploreNewVideos) {
         rawOtherSections.withIndex().filterNot { (_, section) ->
-            homeVideoTracks.isNotEmpty() && isMusicVideoSectionTitle(section.title, strings)
+            isMusicVideoSectionTitle(section.title, strings)
         }
     }
     return homeVideoTracks to otherSections
@@ -11486,13 +11452,8 @@ private fun buildStudioHomeVideoTracks(
     val chartVideos = state.charts.filter { track ->
         track.counterpartVideoId.isNotBlank() || track.videoUrl.isNotBlank()
     }
-    return DerbisPersonalOrbit.distinctRecordings(state.exploreVideos + sectionVideos + chartVideos)
-        .filter { track ->
-            track.counterpartVideoId.isNotBlank() ||
-                track.videoType.contains("video", ignoreCase = true) ||
-                track.videoUrl.isNotBlank()
-        }
-        .take(12)
+    // Songs only: the studio home rail is retired, so nothing is returned here.
+    return emptyList<Track>()
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -16153,7 +16114,12 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
         viewModel.refreshArtistSuggestions()
     }
 
-    val data = state.searchData
+    // Songs only: video results are dropped before anything renders, which also removes the
+    // Videos filter chip, the section header and the counts built from this list.
+    val data = remember(state.searchData) {
+        val raw = state.searchData
+        if (raw.videos.isEmpty()) raw else raw.copy(videos = emptyList())
+    }
     val filter = state.searchFilter
 
     Column(
@@ -20369,9 +20335,14 @@ private fun PlayerScreen(
         state.artistExclusions.filterTracks(state.similarSongs)
     }
 
+    // Songs only: a video rendition can still resolve, but the player never presents one. The
+    // surface, the pane layout and the video chrome all key off this flag.
+    val presentedState = remember(state) {
+        if (state.isVideoMode) state.copy(isVideoMode = false) else state
+    }
     DerbisNowPlaying(
         viewModel = viewModel,
-        state = state,
+        state = presentedState,
         morphAnchors = morphAnchors,
         morphActive = morphActive,
         collapseActions = collapseActions,
