@@ -384,6 +384,8 @@ import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.CloseFullscreen
+import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -8144,6 +8146,11 @@ private fun LyricsOverlay(
         requestedLyricIndex = null
     }
 
+    // Lyrics own the whole page already; fullscreen only strips the transport chrome and pushes
+    // the progress strip to the very bottom edge. Nothing changes until the button is pressed.
+    var lyricsFullscreen by rememberSaveable { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = lyricsFullscreen) { lyricsFullscreen = false }
+
     val lyricsActionRow: @Composable (Modifier, Boolean) -> Unit = { rowModifier, includeClose ->
         Row(
             modifier = rowModifier,
@@ -8200,6 +8207,17 @@ private fun LyricsOverlay(
                 onClick = { showLyricsOptions = true },
                 contentDescription = strings.options
             )
+            CircleIconButton(
+                icon = if (lyricsFullscreen) Icons.Rounded.CloseFullscreen else Icons.Rounded.Fullscreen,
+                tint = if (lyricsFullscreen) DerbisCyan else Color.White,
+                background = if (lyricsFullscreen) {
+                    DerbisCyan.copy(alpha = 0.22f)
+                } else {
+                    Color.White.copy(alpha = 0.10f)
+                },
+                onClick = { lyricsFullscreen = !lyricsFullscreen },
+                contentDescription = if (lyricsFullscreen) strings.collapsePlayer else strings.expandPlayer
+            )
             if (includeClose) {
                 CircleIconButton(
                     icon = Icons.Rounded.Close,
@@ -8247,6 +8265,7 @@ private fun LyricsOverlay(
             state = state,
             accentStart = accentStart,
             accentEnd = accentEnd,
+            fullscreen = lyricsFullscreen,
             onSeekToMs = onSeekToMs,
             onPrevious = onPrevious,
             onTogglePlay = onTogglePlay,
@@ -8499,6 +8518,7 @@ private fun AppleMusic13FullscreenLyrics(
     state: DerbisUiState,
     accentStart: Color,
     accentEnd: Color,
+    fullscreen: Boolean = false,
     onSeekToMs: (Long) -> Unit,
     onPrevious: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -8933,8 +8953,12 @@ private fun AppleMusic13FullscreenLyrics(
                 // After the listener is idle, retain a quiet progress strip and a single timing
                 // control instead of leaving a completely blank lyric page. A tap still restores
                 // the complete transport and action rail above.
+                val stripBottom by animateDpAsState(
+                    targetValue = if (fullscreen) 2.dp else 22.dp,
+                    label = "lyrics-progress-bottom"
+                )
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !showCluster && !imageShareSelectionMode,
+                    visible = (!showCluster || fullscreen) && !imageShareSelectionMode,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomCenter)
@@ -8942,7 +8966,7 @@ private fun AppleMusic13FullscreenLyrics(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 32.dp, end = 32.dp, bottom = 22.dp)
+                            .padding(start = 32.dp, end = 32.dp, bottom = stripBottom)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Slider(
@@ -8990,7 +9014,7 @@ private fun AppleMusic13FullscreenLyrics(
             // expand/shrink deliberately changes the lyric viewport, which is what lets the list
             // grow into the freed room instead of leaving an empty control-shaped band behind.
             AnimatedVisibility(
-                visible = showCluster && !imageShareSelectionMode,
+                visible = showCluster && !fullscreen && !imageShareSelectionMode,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
