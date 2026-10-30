@@ -946,7 +946,13 @@ private fun DerbisNowPlayingContent(
                     compact = compactPlayer,
                     openArtistLabel = strings.openArtist,
                     favoritesLabel = strings.favoritesPlain,
-                    activeLyric = state.activeLyric,
+                    // Same timeline as the lyrics page: latency, device and per-track offsets
+                    // are already folded into the clock, so this preview cannot drift from it.
+                    activeLyric = if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                    } else {
+                        state.activeLyric
+                    },
                     lyricsLoading = state.lyricsLoading,
                     // Apple Music 13 retains its own word-timed line directly beneath metadata;
                     // other decks show their active preview here while all retain the Lyrics link.
