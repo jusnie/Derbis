@@ -82,6 +82,7 @@ import com.yasuda.derbis.data.classifyPlaybackFailureReason
 import com.yasuda.derbis.data.isTerminalPlaybackFailure
 import com.yasuda.derbis.data.playbackRecoveryPlanFor
 import com.yasuda.derbis.data.YoutubeMusicRepository
+import com.yasuda.derbis.data.LyricsLatencyProfiles
 import com.yasuda.derbis.domain.DerbisAudioSettings
 import com.yasuda.derbis.domain.DerbisAutomationSettings
 import com.yasuda.derbis.domain.PlaybackBufferMode
@@ -190,6 +191,7 @@ class PlaybackService : MediaLibraryService() {
     @Volatile private var discordLyricsTrackId: String = ""
     @Volatile private var discordLyricsLines: List<LyricLine> = emptyList()
     @Volatile private var discordLyricsSynced: Boolean = false
+    @Volatile private var discordLyricsLatencyProfiles = LyricsLatencyProfiles()
     private var lastDiscordLyricLine: String = ""
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
@@ -547,6 +549,7 @@ class PlaybackService : MediaLibraryService() {
     }
     private var sleepTimerStateJob: Job? = null
     private var automationSettingsJob: Job? = null
+    private var discordLyricsProfilesJob: Job? = null
 
     @Volatile
     private var automationSettings = DerbisAutomationSettings()
@@ -818,6 +821,9 @@ class PlaybackService : MediaLibraryService() {
         discordLyricsTrackId = track.id
         discordLyricsLines = lines
         discordLyricsSynced = synced
+        // Lyrics usually arrive after playback starts; republish now so the line shows up
+        // immediately instead of waiting for the next playback tick or the 30 s resync.
+        runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishDiscordLyricLineIfChanged) }
         val mediaId = DerbisMediaItemFactory.mediaId(track)
         val forwardLyrics = { deviceIntegration?.onLyrics(mediaId, track.id, lines, synced) }
         if (deviceIntegrationResolved) forwardLyrics() else pendingDeviceLyrics = { forwardLyrics() }
@@ -1264,6 +1270,13 @@ class PlaybackService : MediaLibraryService() {
             sleepTimer.state.collect { state -> _sleepTimerStateFlow.value = state }
         }
         automationSettingsJob?.cancel()
+        // Keeps the presence lyric line aligned with the user's latency calibration.
+        discordLyricsProfilesJob?.cancel()
+        discordLyricsProfilesJob = serviceScope.launch {
+            prefs.lyricsLatencyProfilesFlow.collect { profiles ->
+                discordLyricsLatencyProfiles = profiles
+            }
+        }
         audioRouteSelectionJob?.cancel()
         audioRouteFeedbackResetJob?.cancel()
         automationSettingsJob = serviceScope.launch {
@@ -3173,9 +3186,27 @@ class PlaybackService : MediaLibraryService() {
         if (track == null) return ""
         if (!DerbisDiscordRichPresence.isLyricsEnabled(this)) return ""
         if (!discordLyricsSynced || discordLyricsTrackId != track.id) return ""
-        val line = discordLyricsEngine.currentLine(positionMs, discordLyricsLines) ?: return ""
+        val line = discordLyricsEngine.currentLine(
+            positionMs = discordLyricPositionMs(positionMs, discordLyricsLatencyProfileOffset(track.id)),
+            lines = discordLyricsLines
+        ) ?: return ""
         if (line.isInstrumental || line.isMetadata) return ""
         return line.text
+    }
+
+    /**
+     * The user's calibrated lyric delay for the active output route plus this track. Bluetooth
+     * in particular lags the audio clock, so without this the presence line leads the song.
+     */
+    private fun discordLyricsLatencyProfileOffset(trackId: String): Long {
+        val route = runCatching { DerbisAudioOutputRepository.state.value.active }.getOrNull()
+        return runCatching {
+            discordLyricsLatencyProfiles.effectiveOffsetMs(
+                trackId = trackId,
+                routeKey = route?.stableKey,
+                bluetooth = route?.bluetooth == true
+            )
+        }.getOrDefault(0L)
     }
 
     /**
@@ -3219,6 +3250,7 @@ class PlaybackService : MediaLibraryService() {
         queueTransitionMonitorJob?.cancel()
         sleepTimerStateJob?.cancel()
         automationSettingsJob?.cancel()
+        discordLyricsProfilesJob?.cancel()
         systemMediaActions?.detach()
         systemMediaActions = null
         studioWidgetSync.detach()

@@ -109,6 +109,13 @@ internal fun shouldFlushPresenceNow(
 ): Boolean = lastSentElapsedMs <= 0L || nowElapsedMs - lastSentElapsedMs >= minIntervalMs
 
 /**
+ * Shifts the playback clock by the user's calibrated lyric delay before the active line is
+ * resolved, so a Bluetooth output that lags the audio clock does not push the presence ahead.
+ */
+internal fun discordLyricPositionMs(positionMs: Long, offsetMs: Long): Long =
+    (positionMs - offsetMs).coerceAtLeast(0L)
+
+/**
  * Creates a rate-safe presence snapshot from active playback metadata.
  */
 internal fun derbisDiscordPresenceSnapshot(

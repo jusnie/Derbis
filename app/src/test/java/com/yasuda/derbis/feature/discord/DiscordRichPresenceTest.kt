@@ -146,6 +146,17 @@ class DiscordRichPresenceTest {
     }
 
     @Test
+    fun testLyricPositionHonoursLatencyOffset() {
+        // Positive offset = lyrics should trail the audio clock (Bluetooth lag).
+        assertEquals(28_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = 2_000L))
+        // Negative offset = lyrics should lead it.
+        assertEquals(32_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = -2_000L))
+        // Never resolves a line before the track starts.
+        assertEquals(0L, discordLyricPositionMs(positionMs = 500L, offsetMs = 5_000L))
+        assertEquals(30_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = 0L))
+    }
+
+    @Test
     fun testPresenceRateGateHonoursDiscordLimit() {
         // Nothing sent yet, so the first update goes out immediately.
         assertTrue(shouldFlushPresenceNow(nowElapsedMs = 90_000L, lastSentElapsedMs = 0L))

@@ -92,6 +92,10 @@ being sung without opening anything.
 * **Only synced lyrics**: the line comes from `LyricsEngine.currentLine(positionMs, lines)`;
   instrumental and metadata markers are skipped, and lyrics cached for one track never leak
   onto another.
+* **Latency calibrated**: the position handed to `currentLine` is shifted by the user's own
+  lyric delay (`LyricsLatencyProfiles.effectiveOffsetMs` for the active output route plus the
+  per-track offset, via `discordLyricPositionMs`). Bluetooth outputs lag the audio clock, so
+  without this the published line would lead the song the user is hearing.
 
 #### Why the line does not update on every word
 
