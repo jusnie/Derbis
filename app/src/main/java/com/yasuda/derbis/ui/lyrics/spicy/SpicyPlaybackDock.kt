@@ -17,9 +17,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -120,6 +122,11 @@ private fun SpicyPlaybackProgress(
     var dragProgress by remember(trackKey) { mutableStateOf<Float?>(null) }
     val shownProgress = dragProgress ?: spicyTimelineProgress(positionProvider(), durationMs)
     val shownPosition = if (durationMs > 0L) spicySeekPosition(shownProgress, durationMs) else positionProvider()
+    val sliderState = rememberSliderState(value = shownProgress, trackRange = 0f..1f)
+    LaunchedEffect(trackKey, shownProgress) {
+        val next = shownProgress.coerceIn(0f, 1f)
+        if (sliderState.value != next) sliderState.value = next
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(modifier = modifier.fillMaxWidth()) {
@@ -139,8 +146,11 @@ private fun SpicyPlaybackProgress(
                 )
             }
             Slider(
-                value = shownProgress,
-                onValueChange = { dragProgress = it },
+                state = sliderState,
+                onValueChange = { value ->
+                    sliderState.value = value
+                    dragProgress = value
+                },
                 onValueChangeFinished = {
                     dragProgress?.let { onSeekToMs(spicySeekPosition(it, durationMs)) }
                     dragProgress = null

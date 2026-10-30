@@ -88,6 +88,9 @@ class SpicyLyricsContractTest(unittest.TestCase):
     def test_custom_timeline_keeps_native_accessibility_and_touch_targets(self):
         dock = (SPICY / "SpicyPlaybackDock.kt").read_text()
         self.assertIn("Slider(", dock)
+        self.assertIn("rememberSliderState(", dock)
+        self.assertIn("state = sliderState", dock)
+        self.assertIn("sliderState.value = value", dock)
         self.assertIn("SpicyTickTimeline(", dock)
         self.assertIn(".height(48.dp)", dock)
         self.assertIn("contentDescription = strings.playback", dock)
