@@ -2,6 +2,7 @@ import React from "react";
 import { X, Smartphone, ExternalLink, Download, LogOut, RefreshCw, Music2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { isIos } from "../utils/platform";
+import { APP_VERSION } from "../version";
 
 export default function SettingsModal({ isOpen, onClose, onOpenIosInstaller }) {
   const {
@@ -137,12 +138,12 @@ export default function SettingsModal({ isOpen, onClose, onOpenIosInstaller }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <Music2 className="w-3.5 h-3.5 text-cyan-400" />
-                <strong className="text-xs font-bold text-white">Derbis iOS Native</strong>
+                <strong className="text-xs font-bold text-white">Derbis iOS</strong>
               </div>
-              <span className="text-[9px] font-mono text-cyan-400 font-bold">v1.1.1</span>
+              <span className="text-[9px] font-mono text-cyan-400 font-bold">{`v${APP_VERSION}`}</span>
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed">
-              AirPlay, Lock Screen Controls, and Hi-Fi Lossless Engine Active.
+              iOS web client. Playback quality and system controls depend on the selected source.
             </p>
             {onOpenIosInstaller && (
               <button
@@ -164,7 +165,7 @@ export default function SettingsModal({ isOpen, onClose, onOpenIosInstaller }) {
                 <Smartphone className="w-3.5 h-3.5 text-white/70" />
                 <strong className="text-xs font-bold text-white">Derbis Android App</strong>
               </div>
-              <span className="text-[9px] font-mono text-white/40">v1.1.1</span>
+              <span className="text-[9px] font-mono text-white/40">{`v${APP_VERSION}`}</span>
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed">
               Download the native APK for background playback with screen locked and offline downloads.

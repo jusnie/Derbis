@@ -44,6 +44,32 @@ jstring new_jstring(JNIEnv* env, const std::string& value) {
     return env->NewStringUTF(value.c_str());
 }
 
+std::string copy_jstring(JNIEnv* env, jstring value) {
+    if (value == nullptr) return "";
+    const char* chars = env->GetStringUTFChars(value, nullptr);
+    if (chars == nullptr) return "";
+    std::string result(chars);
+    env->ReleaseStringUTFChars(value, chars);
+    return result;
+}
+
+bool presence_link_allowed(const std::string& value) {
+    if (value.empty() || value.size() > 256 || value.find_first_of(" \r\n\t") != std::string::npos) return false;
+    return value.rfind("https://derbis-web.vercel.app/t/", 0) == 0 ||
+        value.rfind("https://music.youtube.com/channel/", 0) == 0;
+}
+
+void add_presence_button(Discord_Activity* activity, const char* label, std::string& url) {
+    if (!presence_link_allowed(url)) return;
+    Discord_ActivityButton button{};
+    Discord_ActivityButton_Init(&button);
+    std::string button_label(label);
+    Discord_ActivityButton_SetLabel(&button, string_view(button_label));
+    Discord_ActivityButton_SetUrl(&button, string_view(url));
+    Discord_Activity_AddButton(activity, &button);
+    Discord_ActivityButton_Drop(&button);
+}
+
 void clear_code_verifier_locked() {
     if (!g_code_verifier_active) return;
     Discord_AuthorizationCodeVerifier_Drop(&g_code_verifier);
@@ -69,16 +95,16 @@ void on_status_changed(
     }
     switch (status) {
         case Discord_Client_Status_Ready:
-        case Discord_Client_Status_Connected:
             g_connection_state = kStateConnected;
             g_error.clear();
             break;
+        case Discord_Client_Status_Connected:
         case Discord_Client_Status_Connecting:
         case Discord_Client_Status_Reconnecting:
-            g_connection_state = kStateConnecting;
+            if (g_connection_state != kStateSigningIn) g_connection_state = kStateConnecting;
             break;
         case Discord_Client_Status_Disconnected:
-            if (g_connection_state != kStateDisconnected) {
+            if (g_connection_state != kStateDisconnected && g_connection_state != kStateSigningIn) {
                 set_error_locked("Discord disconnected");
             }
             break;
@@ -327,7 +353,12 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     jstring title,
     jstring artist,
     jstring artwork_url,
-    jlong started_at_epoch_seconds,
+    jstring artist_thumbnail_url,
+    jstring song_url,
+    jstring artist_url,
+    jstring artwork_text,
+    jlong started_at_epoch_ms,
+    jlong ends_at_epoch_ms,
     jboolean playing
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -336,21 +367,14 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
         return;
     }
 
-    const char* title_chars = title == nullptr ? "" : env->GetStringUTFChars(title, nullptr);
-    const char* artist_chars = artist == nullptr ? "" : env->GetStringUTFChars(artist, nullptr);
-    const char* artwork_chars = artwork_url == nullptr ? "" : env->GetStringUTFChars(artwork_url, nullptr);
-    std::string details = title_chars == nullptr ? "" : title_chars;
-    std::string state = artist_chars == nullptr ? "" : artist_chars;
-    std::string image_key = artwork_chars == nullptr ? "" : artwork_chars;
-    if (title_chars != nullptr) env->ReleaseStringUTFChars(title, title_chars);
-    if (artist_chars != nullptr) env->ReleaseStringUTFChars(artist, artist_chars);
-    if (artwork_chars != nullptr) env->ReleaseStringUTFChars(artwork_url, artwork_chars);
-
-    // Discord Social SDK supports public HTTPS URLs as external Rich Presence assets. Local,
-    // malformed, or unavailable art falls back to the reviewed Derbis portal asset.
+    std::string details = copy_jstring(env, title);
+    std::string state = copy_jstring(env, artist);
+    std::string image_key = copy_jstring(env, artwork_url);
+    std::string small_image = copy_jstring(env, artist_thumbnail_url);
+    std::string listen_url = copy_jstring(env, song_url);
+    std::string profile_url = copy_jstring(env, artist_url);
+    std::string image_text = copy_jstring(env, artwork_text);
     if (image_key.rfind("https://", 0) != 0) image_key = "derbis_listening";
-    std::string image_text = details;
-    if (!state.empty()) image_text += image_text.empty() ? state : " — " + state;
     if (image_text.empty()) image_text = "Listening on Derbis";
 
     Discord_Activity activity{};
@@ -362,15 +386,22 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     auto state_value = string_view(state);
     auto image_key_value = string_view(image_key);
     auto image_text_value = string_view(image_text);
+    auto listen_url_value = string_view(listen_url);
+    auto profile_url_value = string_view(profile_url);
     Discord_Activity_SetName(&activity, name_value);
     if (!details.empty()) Discord_Activity_SetDetails(&activity, &details_value);
     if (!state.empty()) Discord_Activity_SetState(&activity, &state_value);
+    if (presence_link_allowed(listen_url)) Discord_Activity_SetDetailsUrl(&activity, &listen_url_value);
+    if (presence_link_allowed(profile_url)) Discord_Activity_SetStateUrl(&activity, &profile_url_value);
     Discord_Activity_SetSupportedPlatforms(&activity, Discord_ActivityGamePlatforms_Android);
 
-    if (started_at_epoch_seconds > 0) {
+    if (started_at_epoch_ms > 0) {
         Discord_ActivityTimestamps timestamps{};
         Discord_ActivityTimestamps_Init(&timestamps);
-        Discord_ActivityTimestamps_SetStart(&timestamps, static_cast<uint64_t>(started_at_epoch_seconds));
+        Discord_ActivityTimestamps_SetStart(&timestamps, static_cast<uint64_t>(started_at_epoch_ms));
+        if (ends_at_epoch_ms > started_at_epoch_ms) {
+            Discord_ActivityTimestamps_SetEnd(&timestamps, static_cast<uint64_t>(ends_at_epoch_ms));
+        }
         Discord_Activity_SetTimestamps(&activity, &timestamps);
         Discord_ActivityTimestamps_Drop(&timestamps);
     }
@@ -379,7 +410,16 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     Discord_ActivityAssets_Init(&assets);
     Discord_ActivityAssets_SetLargeImage(&assets, &image_key_value);
     Discord_ActivityAssets_SetLargeText(&assets, &image_text_value);
+    if (presence_link_allowed(listen_url)) Discord_ActivityAssets_SetLargeUrl(&assets, &listen_url_value);
+    if (small_image.rfind("https://", 0) == 0) {
+        auto small_image_value = string_view(small_image);
+        Discord_ActivityAssets_SetSmallImage(&assets, &small_image_value);
+        if (!state.empty()) Discord_ActivityAssets_SetSmallText(&assets, &state_value);
+        if (presence_link_allowed(profile_url)) Discord_ActivityAssets_SetSmallUrl(&assets, &profile_url_value);
+    }
     Discord_Activity_SetAssets(&activity, &assets);
+    add_presence_button(&activity, "Listen on Derbis", listen_url);
+    add_presence_button(&activity, "View Artist", profile_url);
     Discord_Client_UpdateRichPresence(&g_client, &activity, update_callback, nullptr, nullptr);
     Discord_ActivityAssets_Drop(&assets);
     Discord_Activity_Drop(&activity);

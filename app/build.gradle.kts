@@ -137,7 +137,7 @@ if (isPrDiagnosticsArtifactTaskRequested() && canvasClientKey.isBlank()) {
 fun normalizedVersionName(value: String): String {
     val clean = value.trim().removePrefix("v").removePrefix("V")
     val match = Regex("\\d+(?:\\.\\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?").find(clean)?.value
-    return match ?: clean.ifBlank { "1.1.1" }
+    return match ?: clean.ifBlank { "1.5.0" }
 }
 
 fun generatedVersionCode(versionName: String): Int {
@@ -168,14 +168,14 @@ val derbisVersionName = normalizedVersionName(
     (findProperty("derbisVersionName") as? String)
         ?: System.getenv("DERBIS_VERSION_NAME")
         ?: githubTagVersionName()
-        ?: "1.1.1"
+        ?: "1.5.0"
 )
 
 val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
     ?: System.getenv("DERBIS_VERSION_CODE"))
     ?.toIntOrNull()
     ?.takeIf { it > 0 }
-    ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_203)
+    ?: maxOf(generatedVersionCode(derbisVersionName), 3_000_210)
 
 android {
     namespace = "com.yasuda.derbis"

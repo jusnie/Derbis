@@ -78,16 +78,36 @@ class DiscordRichPresenceTest {
         val emptySession = DerbisDiscordSession()
         assertFalse(emptySession.hasValidToken)
 
-        val oauthSession = DerbisDiscordSession(accessToken = "oauth_token_123")
-        assertTrue(oauthSession.hasValidToken)
-        assertEquals("oauth_token_123", oauthSession.effectiveToken)
+        val incompleteSession = DerbisDiscordSession(accessToken = "oauth_token_123")
+        assertFalse(incompleteSession.hasValidToken)
 
-        val userTokenSession = DerbisDiscordSession(
-            accessToken = "oauth_token_123",
-            userToken = "direct_user_token_456"
+        val oauthSession = DerbisDiscordSession(accessToken = "oauth_token_123", refreshToken = "refresh_123")
+        assertTrue(oauthSession.hasValidToken)
+        assertEquals("oauth_token_123", oauthSession.accessToken)
+        assertEquals("refresh_123", oauthSession.refreshToken)
+    }
+
+    @Test
+    fun authorizationRequiresBothAnAuthorizedSdkAndApplicationId() {
+        assertFalse(discordAuthorizationAvailable(false, 123L))
+        assertFalse(discordAuthorizationAvailable(true, 0L))
+        assertFalse(discordAuthorizationAvailable(true, -1L))
+        assertTrue(discordAuthorizationAvailable(true, 123L))
+    }
+
+    @Test
+    fun refreshTokenAloneIsNotReportedAsAConnectedSession() {
+        assertFalse(DerbisDiscordSession(refreshToken = "refresh_123").hasValidToken)
+    }
+
+    @Test
+    fun presenceTextNormalizesWhitespaceAndKeepsTheExistingLimit() {
+        val normalized = derbisDiscordPresenceSnapshot(
+            sampleTrack(title = "  Never   Gonna\nGive You Up  ", artist = "Rick\tAstley"), 0L, true
         )
-        assertTrue(userTokenSession.hasValidToken)
-        assertEquals("direct_user_token_456", userTokenSession.effectiveToken)
+        assertEquals("Never Gonna Give You Up", normalized.title)
+        assertEquals("Rick Astley", normalized.artist)
+        assertEquals(128, derbisDiscordPresenceSnapshot(sampleTrack(title = "x".repeat(200)), 0L, true).title.length)
     }
 
     @Test

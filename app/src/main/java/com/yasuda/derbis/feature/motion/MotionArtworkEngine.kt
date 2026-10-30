@@ -551,7 +551,13 @@ internal fun motionArtworkRequestKey(track: Track, source: DerbisCanvasSource): 
 internal fun motionArtworkProviderOrder(
     configuredOrder: List<String>,
     source: DerbisCanvasSource
-): List<String> = configuredOrder.filter { it == DerbisCanvasCatalogProvider.PROVIDER_ID }
+): List<String> = when (source) {
+    DerbisCanvasSource.Auto -> configuredOrder.filter {
+        it == AppleMusicAnimatedArtworkProvider.PROVIDER_ID ||
+            it == SpotifyCanvasProvider.PROVIDER_ID ||
+            it == DerbisCanvasCatalogProvider.PROVIDER_ID
+    }.distinct()
+}
 
 internal data class MotionArtworkRankedCandidate(
     val candidate: MotionArtworkCandidate,

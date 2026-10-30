@@ -9,6 +9,27 @@ import org.junit.Test
 
 class CanonicalTrackMatcherTest {
     @Test
+    fun metadataRankingDoesNotBypassTheMediaHttpsCheck() {
+        val identity = MotionTrackIdentity(
+            title = "Song", artists = listOf("Artist"), album = "Album",
+            durationMs = 180_000L, isrc = "", upc = "", year = "",
+            trackId = "track", albumId = ""
+        )
+        val candidate = MotionArtworkCandidate(
+            provider = SpotifyCanvasProvider.PROVIDER_ID,
+            scope = MotionArtworkScope.TRACK,
+            identity = identity,
+            url = "http://canvaz.scdn.co/loop.mp4",
+            mimeType = "video/mp4",
+            expiresAtMs = Long.MAX_VALUE
+        )
+
+        assertTrue(CanonicalTrackMatcher.matchMetadata(identity, identity, MotionArtworkScope.TRACK).accepted)
+        assertFalse(CanonicalTrackMatcher.match(identity, candidate).accepted)
+        assertTrue(CanonicalTrackMatcher.match(identity, candidate.copy(url = "https://canvaz.scdn.co/loop.mp4")).accepted)
+    }
+
+    @Test
     fun artistMotionIdentityUsesStableBrowseId() {
         assertEquals(
             MotionArtworkIdentityKey.forArtist("Old Name", "UC-artist"),
@@ -109,9 +130,9 @@ class CanonicalTrackMatcherTest {
     }
 
     @Test
-    fun tertiaryArtistMatchingAcceptsUnsplitGroupNames() {
+    fun primaryArtistMatchingAcceptsUnsplitGroupNames() {
         assertTrue(
-            tertiaryArtistsCompatible(
+            primaryMotionArtistMatches(
                 requested = listOf("Earth", "Wind", "Fire"),
                 returned = listOf("Earth, Wind & Fire")
             )
@@ -134,13 +155,13 @@ class CanonicalTrackMatcherTest {
         val candidate = albumCandidate("Brano", "Guest Artist", "Album")
 
         assertFalse(CanonicalTrackMatcher.match(reference, candidate).accepted)
-        assertFalse(tertiaryArtistsCompatible(reference.artists, candidate.identity.artists))
+        assertFalse(primaryMotionArtistMatches(reference.artists, candidate.identity.artists))
     }
 
     @Test
     fun soloArtistDoesNotMatchLargerGroupBySharedAlias() {
         assertFalse(
-            tertiaryArtistsCompatible(
+            primaryMotionArtistMatches(
                 requested = listOf("Earth"),
                 returned = listOf("Earth, Wind & Fire")
             )

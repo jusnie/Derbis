@@ -7,7 +7,7 @@ import org.junit.Test
 
 class MotionArtworkRuntimeTest {
     @Test
-    fun configurationAllowsOnlyTheOwnedCatalogProvider() {
+    fun configurationAllowsOnlyKnownProviders() {
         val normalized = MotionArtworkConfig(
             providerOrder = listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID, DerbisCanvasCatalogProvider.PROVIDER_ID),
             minimumConfidence = 500,
@@ -24,10 +24,16 @@ class MotionArtworkRuntimeTest {
     }
 
     @Test
-    fun autoResolutionUsesOnlyTheOwnedCatalog() {
+    fun autoResolutionKeepsPublicProvidersInConfiguredOrder() {
+        val expected = listOf(
+            AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+            SpotifyCanvasProvider.PROVIDER_ID,
+            DerbisCanvasCatalogProvider.PROVIDER_ID
+        )
+        assertEquals(expected, MotionArtworkConfig().providerOrder)
         assertEquals(
-            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
-            MotionArtworkConfig().providerOrder
+            expected,
+            motionArtworkProviderOrder(expected + "untrusted-provider", DerbisCanvasSource.Auto)
         )
         assertEquals(
             listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
@@ -39,11 +45,16 @@ class MotionArtworkRuntimeTest {
     }
 
     @Test
-    fun legacyStoredSourceValuesMigrateToOwnedCatalogAutoMode() {
+    fun legacyStoredSourceValuesMigrateToUnifiedAutoMode() {
         assertEquals(DerbisCanvasSource.Auto, DerbisCanvasSource.from("community"))
         assertEquals(DerbisCanvasSource.Auto, DerbisCanvasSource.from("apple"))
         assertEquals(DerbisCanvasSource.Auto, DerbisCanvasSource.from("tidal"))
         assertEquals(DerbisCanvasSource.Auto, DerbisCanvasSource.from("anything-else"))
+    }
+
+    @Test
+    fun publicProviderFixInvalidatesOldOwnedOnlyCacheEntries() {
+        assertTrue(MOTION_ARTWORK_CACHE_SCHEMA_EPOCH >= 10L)
     }
 
     @Test

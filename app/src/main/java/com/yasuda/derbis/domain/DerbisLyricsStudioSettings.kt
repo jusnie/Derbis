@@ -166,17 +166,18 @@ data class DerbisLyricsStudioSettings(
         )
         LyricsRendererMode.SPICY -> copy(
             stylePreset = LyricsStylePreset.FOCUS,
+            fontPreset = DerbisFontPreset.Outfit,
             textSize = LyricsTextSize.LARGE,
-            fontWeight = LyricsFontWeightPreset.BLACK,
+            fontWeight = LyricsFontWeightPreset.EXTRA_BOLD,
             alignment = LyricsAlignment.START,
             lineSpacing = LyricsLineSpacing.RELAXED,
-            inactiveOpacity = 0.32f,
-            inactiveScale = 0.92f,
+            inactiveOpacity = 0.66f,
+            inactiveScale = 1f,
             activeColorMode = LyricsActiveColorMode.AUTOMATIC,
-            glowEffect = LyricsGlowEffect.VIBRANT,
-            backgroundMode = LyricsBackgroundMode.GRADIENT,
+            glowEffect = LyricsGlowEffect.OFF,
+            backgroundMode = LyricsBackgroundMode.SOLID,
             progressiveKaraokeEnabled = true,
-            blurEnabled = true
+            blurEnabled = false
         )
     }
 

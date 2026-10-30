@@ -211,12 +211,16 @@ internal class DerbisSearchEngine(
     private suspend fun runSession(request: SearchRequest) {
         val generation = generations.incrementAndGet()
         if (request.key.isEmpty()) {
-            _state.value = SearchSessionSnapshot(generation = generation)
+            _state.update { previous ->
+                SearchSessionSnapshot(generation = generation, filter = retainedQueryFilter(previous.filter))
+            }
             return
         }
         val cachedResults = resultCache.get(request.cacheKey)
         val cachedSuggestions = suggestionCache.get(request.cacheKey)
-        _state.value = openingSnapshot(generation, request, cachedResults, cachedSuggestions)
+        _state.update { previous ->
+            openingSnapshot(generation, request, cachedResults, cachedSuggestions, previous)
+        }
         coroutineScope {
             val session = ActiveSession(
                 generation = generation,
@@ -239,9 +243,9 @@ internal class DerbisSearchEngine(
         generation: Long,
         request: SearchRequest,
         cachedResults: SearchResults?,
-        cachedSuggestions: SearchSuggestionBundle?
+        cachedSuggestions: SearchSuggestionBundle?,
+        previous: SearchSessionSnapshot
     ): SearchSessionSnapshot {
-        val previous = _state.value
         val prefixSuggestions = if (cachedSuggestions == null) {
             suggestionCache.longestPrefix(request.cacheKey)?.let { narrowSuggestionBundle(it, request.query) }
         } else {
@@ -265,7 +269,8 @@ internal class DerbisSearchEngine(
             carriedOver = carryOver,
             topLocked = cachedResults != null,
             verified = cachedResults != null,
-            settled = false
+            settled = false,
+            filter = retainedQueryFilter(previous.filter)
         )
     }
 
@@ -280,12 +285,28 @@ internal class DerbisSearchEngine(
         if (cachedResults != null) {
             session.trace.markVisible(cachedResults)
             if (loadsSuggestions) session.scope.launch { loadSuggestions(session) }
+            loadSelectedLyrics(session)
             settle(session, remoteFailed = false, cacheHit = true)
             schedulePrefetch(session)
             return
         }
         if (loadsSuggestions) awaitFullSearchTrigger(session, session.scope.launch { loadSuggestions(session) })
+        loadSelectedLyrics(session)
         runRemoteSearch(session)
+    }
+
+    private fun retainedQueryFilter(filter: SearchFilter): SearchFilter =
+        if (filter == SearchFilter.Lyrics) SearchFilter.Lyrics else SearchFilter.All
+
+    private fun loadSelectedLyrics(session: ActiveSession) {
+        val snapshot = _state.value
+        if (
+            activeSession === session &&
+            snapshot.generation == session.generation &&
+            snapshot.filter == SearchFilter.Lyrics
+        ) {
+            loadSection(SearchFilter.Lyrics, initial = true)
+        }
     }
 
     private fun isSubmitted(request: SearchRequest): Boolean = submittedIdentity.value == request.identity

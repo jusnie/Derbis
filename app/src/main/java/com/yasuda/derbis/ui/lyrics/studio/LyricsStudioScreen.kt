@@ -4,8 +4,10 @@ package com.yasuda.derbis.ui.lyrics.studio
 
 import com.yasuda.derbis.domain.LyricsRendererMode
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyStudioLivePreview
+import com.yasuda.derbis.ui.lyrics.spicy.SpicyLyricsIcons
+import com.yasuda.derbis.ui.lyrics.spicy.SpicyAccentCoral
+import com.yasuda.derbis.ui.lyrics.spicy.SpicyAccentGold
 import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Whatshot
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import androidx.compose.animation.AnimatedVisibility
@@ -30,10 +32,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -228,9 +232,9 @@ internal fun LyricsStudioOverlay(
                         title = strings.lyricsRendererSpicy,
                         badge = "SPICY",
                         description = strings.lyricsRendererSpicyDesc,
-                        icon = Icons.Rounded.Whatshot,
+                        icon = SpicyLyricsIcons.Flame,
                         selected = settings.isSpicyLyrics,
-                        accentColor = Color(0xFFFF4500),
+                        accentColor = SpicyAccentCoral,
                         onClick = {
                             onUpdateSettings(settings.withRendererMode(LyricsRendererMode.SPICY))
                         }
@@ -670,7 +674,7 @@ private fun LyricsRendererOptionCard(
                             .clip(RoundedCornerShape(99.dp))
                             .background(
                                 if (badge == "SPICY") {
-                                    Brush.horizontalGradient(listOf(Color(0xFFFF2A68), Color(0xFFFF6200)))
+                                    Brush.horizontalGradient(listOf(SpicyAccentCoral, SpicyAccentGold))
                                 } else {
                                     Brush.horizontalGradient(listOf(DerbisCyan.copy(alpha = 0.35f), DerbisViolet.copy(alpha = 0.35f)))
                                 }
@@ -728,6 +732,7 @@ private fun LyricsStudioLivePreview(
     playbackPositionMs: Long,
     isPlaying: Boolean
 ) {
+    val strings = LocalDerbisStrings.current
     val animationsEnabled = LocalAnimationsEnabled.current
     val useLive = currentTrack != null && liveLyrics.isNotEmpty() && lyricsSynced
     val previewLines = if (useLive) liveLyrics else DemoLyrics
@@ -740,18 +745,24 @@ private fun LyricsStudioLivePreview(
         if (index >= 0) index else 0
     }
 
-    var compareMode by remember { mutableStateOf(false) }
+    var compareMode by remember { mutableStateOf(true) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            StudioPreviewHeader(useLive = useLive, currentTrack = currentTrack)
+            StudioPreviewHeader(
+                useLive = useLive,
+                currentTrack = currentTrack,
+                modifier = Modifier.weight(1f)
+            )
 
             Row(
                 modifier = Modifier
+                    .heightIn(min = DerbisPlayerDesign.MinimumTouchTarget)
+                    .widthIn(max = 164.dp)
                     .clip(RoundedCornerShape(99.dp))
                     .background(Color.White.copy(alpha = 0.08f))
                     .clickable { compareMode = !compareMode }
@@ -766,10 +777,12 @@ private fun LyricsStudioLivePreview(
                     modifier = Modifier.size(13.dp)
                 )
                 Text(
-                    text = if (compareMode) "Side-by-Side" else "Active Style",
+                    text = if (compareMode) strings.lyricsRendererCompare else strings.lyricsRendererSelectedStyle,
                     color = if (compareMode) DerbisCyan else DerbisMuted,
                     fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -797,8 +810,8 @@ private fun LyricsStudioLivePreview(
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "Spicy (Spicy Lyrics)",
-                        color = Color(0xFFFF5E3A),
+                        text = strings.lyricsRendererSpicy,
+                        color = SpicyAccentCoral,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(start = 6.dp)
@@ -1104,11 +1117,12 @@ private fun resolveStudioGlowShadow(settings: DerbisLyricsStudioSettings, accent
 @Composable
 private fun StudioPreviewHeader(
     useLive: Boolean,
-    currentTrack: Track?
+    currentTrack: Track?,
+    modifier: Modifier = Modifier
 ) {
     val strings = LocalDerbisStrings.current
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1118,7 +1132,9 @@ private fun StudioPreviewHeader(
             color = DerbisMuted,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 0.4.sp
+            letterSpacing = 0.4.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.weight(1f))
         Box(

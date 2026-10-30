@@ -35,16 +35,23 @@ object CanonicalTrackMatcher {
         reference: MotionTrackIdentity,
         candidate: MotionArtworkCandidate
     ): MotionArtworkMatch {
-        val source = candidate.identity
         if (candidate.url.isBlank() || !candidate.url.startsWith("https://")) return MotionArtworkMatch(false, 0)
+        return matchMetadata(reference, candidate.identity, candidate.scope)
+    }
+
+    internal fun matchMetadata(
+        reference: MotionTrackIdentity,
+        source: MotionTrackIdentity,
+        scope: MotionArtworkScope
+    ): MotionArtworkMatch {
         if (containsUnexpectedUnsafeTerm(reference, source)) return MotionArtworkMatch(false, 0)
-        if (!artistsCompatible(reference.artists, source.artists, candidate.scope)) return MotionArtworkMatch(false, 0)
+        if (!artistsCompatible(reference.artists, source.artists, scope)) return MotionArtworkMatch(false, 0)
         val exactIsrc = reference.isrc.isNotBlank() && source.isrc.isNotBlank() && reference.isrc == source.isrc
         val conflictingIsrc = reference.isrc.isNotBlank() && source.isrc.isNotBlank() && reference.isrc != source.isrc
         if (conflictingIsrc) return MotionArtworkMatch(false, 0)
-        if (!editionsCompatible(reference, source, candidate.scope) && !exactIsrc) return MotionArtworkMatch(false, 0)
+        if (!editionsCompatible(reference, source, scope) && !exactIsrc) return MotionArtworkMatch(false, 0)
         if (
-            candidate.scope == MotionArtworkScope.ALBUM &&
+            scope == MotionArtworkScope.ALBUM &&
             source.title.isNotBlank() &&
             !trackTitleCompatible(reference.title, source.title, exactIsrc)
         ) {
@@ -55,7 +62,7 @@ object CanonicalTrackMatcher {
         if (exactIsrc) score += 38
 
         val artistCoverage = artistCoverage(reference.artists, source.artists)
-        score += if (candidate.scope == MotionArtworkScope.ALBUM) {
+        score += if (scope == MotionArtworkScope.ALBUM) {
             24
         } else {
             when {
@@ -68,7 +75,7 @@ object CanonicalTrackMatcher {
         val titleSimilarity = textSimilarity(reference.title, source.title)
         val albumSimilarity = textSimilarity(reference.album, source.album)
 
-        if (candidate.scope == MotionArtworkScope.TRACK) {
+        if (scope == MotionArtworkScope.TRACK) {
             if (titleSimilarity < 0.72 && !exactIsrc) return MotionArtworkMatch(false, 0)
             score += when {
                 titleSimilarity >= 1.0 -> 24
@@ -97,7 +104,7 @@ object CanonicalTrackMatcher {
         } else {
             if (hasUsableAlbum(reference)) {
                 if (
-                    (albumSimilarity < 0.82 || !editionsCompatible(reference, source, candidate.scope)) &&
+                    (albumSimilarity < 0.82 || !editionsCompatible(reference, source, scope)) &&
                     !sameRecordingReleaseVariant(reference, source, exactIsrc)
                 ) {
                     return MotionArtworkMatch(false, 0)

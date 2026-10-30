@@ -327,8 +327,6 @@ private fun PlayerDeckPreview(
     accent: Color
 ) {
     when (mode) {
-        // Beat Sync is the wavy visualizer deck with moving scrubber stick; Apple Music 13 owns the stretched, full-bleed stage.
-        // Keep these preview assignments aligned with PlayerAuraDeck and AppleMusicPlayer.
         PlayerVisualMode.CanvasImmersive -> BeatSyncPreview(track, artworkUrl, accent)
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
@@ -400,21 +398,25 @@ private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color)
 @Composable
 private fun BeatSyncPreview(track: Track, artworkUrl: String, accent: Color) {
     val field = lerp(accent, Color.Black, 0.58f)
+    val visuals = rememberBeatSyncPreviewState()
+    val wave = remember { Path() }
+    val played = remember { Path() }
+    val waveBrush = remember { Brush.horizontalGradient(listOf(Color(0xFF58F4FF), Color(0xFFD867FF), Color(0xFFFF6BBD))) }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.82f), field, Color.Black)))
     ) {
-        DeckArtwork(
-            track = track,
-            artworkUrl = artworkUrl,
+        BeatSyncArtworkFrame(
+            visuals = visuals,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 14.dp)
                 .fillMaxWidth(0.78f)
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(10.dp))
-        )
+        ) { artworkModifier ->
+            DeckArtwork(track = track, artworkUrl = artworkUrl, modifier = artworkModifier)
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -424,26 +426,25 @@ private fun BeatSyncPreview(track: Track, artworkUrl: String, accent: Color) {
         ) {
             Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // Mini wavy Beat Sync progress bar with stick
             Canvas(modifier = Modifier.fillMaxWidth().height(6.dp)) {
-                val w = size.width
-                val h = size.height
-                val midY = h * 0.5f
-                val headX = w * 0.42f
-                val wavePath = Path().apply {
-                    moveTo(0f, midY)
-                    cubicTo(w * 0.12f, 0f, w * 0.22f, h, headX, midY)
+                wave.reset()
+                played.reset()
+                for (index in 0..64) {
+                    val fraction = index / 64f
+                    val x = size.width * fraction
+                    val y = size.height * (0.5f - visuals.signal.progressOffset(fraction) * 0.4f)
+                    if (index == 0) {
+                        wave.moveTo(x, y)
+                        played.moveTo(x, y)
+                    } else {
+                        wave.lineTo(x, y)
+                        if (fraction <= 0.42f) played.lineTo(x, y)
+                    }
                 }
-                drawPath(wavePath, color = Color(0xFF80DEEA), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f))
-                // Unplayed line
-                drawLine(Color.White.copy(alpha = 0.25f), start = Offset(headX, midY), end = Offset(w, midY), strokeWidth = 1.2f)
-                // Scrubber stick
-                drawRoundRect(
-                    Color.White,
-                    topLeft = Offset(headX - 1f, 0f),
-                    size = Size(2f, h),
-                    cornerRadius = CornerRadius(1f)
-                )
+                val endY = size.height * (0.5f - visuals.signal.progressOffset(0.42f) * 0.4f)
+                played.lineTo(size.width * 0.42f, endY)
+                drawPath(wave, Color.White.copy(alpha = 0.25f), style = Stroke(width = 1.2f, cap = StrokeCap.Round))
+                drawPath(played, waveBrush, style = Stroke(width = 1.8f, cap = StrokeCap.Round))
             }
         }
     }

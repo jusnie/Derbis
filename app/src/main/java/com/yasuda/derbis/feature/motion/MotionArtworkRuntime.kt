@@ -50,5 +50,5 @@ object MotionArtworkRuntime {
     )
 }
 
-internal const val MOTION_ARTWORK_CACHE_SCHEMA_EPOCH = 9L
+internal const val MOTION_ARTWORK_CACHE_SCHEMA_EPOCH = 10L
 internal const val DEFAULT_MOTION_ARTWORK_MINIMUM_CONFIDENCE = 84

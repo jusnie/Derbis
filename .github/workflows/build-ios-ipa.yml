@@ -4,139 +4,121 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: "Version string for iOS build (e.g. 1.1.1)"
+        description: Version embedded in the iOS package
         required: true
-        default: "1.1.1"
+        default: "1.5.0"
       release_build_number:
-        description: "Build number (CFBundleVersion)"
+        description: Monotonically increasing iOS build number
         required: true
-        default: "3000204"
+        default: "3000210"
       publish_release:
-        description: "Attach IPA to GitHub Release (true/false)"
+        description: Attach the unsigned IPA to an explicitly requested GitHub release
         required: false
         default: "false"
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'website/**'
-      - '.github/workflows/build-ios-ipa.yml'
+      - website/**
+      - .github/workflows/build-ios-ipa.yml
 
 permissions:
   contents: write
 
+env:
+  IOS_APP_VERSION: ${{ inputs.release_version || '1.5.0' }}
+  IOS_BUILD_NUMBER: ${{ inputs.release_build_number || '3000210' }}
+
 jobs:
   build-ios:
-    name: Build iOS IPA Package
+    name: Build unsigned iOS IPA from checked-in source
     runs-on: macos-14
+    timeout-minutes: 35
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
+      - name: Validate requested package metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${IOS_APP_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "${IOS_BUILD_NUMBER}" =~ ^[1-9][0-9]*$ ]]
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: 'website/package-lock.json'
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
 
-      - name: Install Website Dependencies & Build Web Client
+      - name: Build current web sources
         working-directory: website
         run: |
-          npm install || true
-          node build.js
-          mkdir -p dist
-          cp -r index.html app.js styles.css assets install.html manifest.plist dist/ 2>/dev/null || true
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm audit --omit=dev --audit-level=high
+          npm run build
+          test -s dist/index.html
+          test -s dist/config.js
+          test -d dist/assets
+          node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json"));if(p.version!==process.env.IOS_APP_VERSION)throw Error("Web/package version differs from IPA version")'
 
-      - name: Setup Capacitor iOS Project
+      - name: Create and sync the pinned Capacitor project
         working-directory: website
         run: |
-          npm install --save-exact @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/ios@^6.0.0
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
-          npx cap sync ios
+          set -euo pipefail
+          npx --no-install cap add ios
+          npx --no-install cap sync ios
 
-      - name: Configure iOS Background Audio & App Metadata (iPhone 12+ Optimized)
+      - name: Configure iPhone 12+ package capabilities
         working-directory: website/ios/App/App
+        shell: bash
         run: |
-          # Inject Background Audio modes into Info.plist for continuous background music on iOS
-          plutil -insert UIBackgroundModes -xml "<array><string>audio</string></array>" Info.plist || true
-          plutil -replace CFBundleDisplayName -string "Derbis" Info.plist || true
-          plutil -replace CFBundleShortVersionString -string "${{ inputs.release_version || '1.1.1' }}" Info.plist || true
-          plutil -replace CFBundleVersion -string "${{ inputs.release_build_number || '3000204' }}" Info.plist || true
-          plutil -replace MinimumOSVersion -string "16.0" Info.plist || true
-          plutil -replace ITSAppUsesNonExemptEncryption -bool NO Info.plist || true
-          # iPhone 12 & Upper Optimizations (120Hz ProMotion, Metal 3, Fullscreen OLED Super Retina XDR)
-          plutil -replace CADisableMinimumFrameDurationOnPhone -bool YES Info.plist || true
-          plutil -replace UIRequiresFullScreen -bool YES Info.plist || true
-          plutil -replace UIStatusBarStyle -string "UIStatusBarStyleLightContent" Info.plist || true
-          plutil -replace UIViewControllerBasedStatusBarAppearance -bool NO Info.plist || true
-          plutil -replace UIRequiredDeviceCapabilities -xml "<array><string>arm64</string><string>metal</string></array>" Info.plist || true
-          plutil -replace NSMicrophoneUsageDescription -string "Derbis uses audio analysis to power the J.A.R.V.I.S. 3D holographic beat sphere and liquid audio visualizers." Info.plist || true
+          set -euo pipefail
+          python3 "${GITHUB_WORKSPACE}/scripts/configure_ios_ipa.py" \
+            --plist Info.plist --version "${IOS_APP_VERSION}" --build-number "${IOS_BUILD_NUMBER}"
 
-      - name: Build Unsigned iOS App Bundle (.app)
+      - name: Compile the unsigned device app
         working-directory: website/ios/App
         run: |
           xcodebuild clean build \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination "generic/platform=iOS" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            -workspace App.xcworkspace -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/derbis-ios-build" \
+            IPHONEOS_DEPLOYMENT_TARGET=16.0 ARCHS=arm64 \
+            MARKETING_VERSION="${IOS_APP_VERSION}" CURRENT_PROJECT_VERSION="${IOS_BUILD_NUMBER}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: Package Sideloadly & AltStore IPA (.ipa)
+      - name: Verify and package unsigned IPA
+        shell: bash
         run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/derbis-ios-build/Build/Products/Release-iphoneos/App.app"
+          test -d "$app"
+          version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Info.plist")"
+          build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist")"
+          [[ "$version" == "$IOS_APP_VERSION" && "$build" == "$IOS_BUILD_NUMBER" ]]
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")"
+          lipo -info "$app/$executable" | grep -F arm64
+          test -s "$app/public/index.html"
           mkdir -p build_output/Payload
-          APP_PATH=$(find website/ios/App -name "*.app" -type d | grep "Release-iphoneos" | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "App.app" -type d | grep "Release-iphoneos" | head -n 1)
-          fi
-          echo "Found compiled app at: $APP_PATH"
-          cp -R "$APP_PATH" build_output/Payload/Derbis.app
-          cd build_output
-          zip -qr9 Derbis.ipa Payload
-          zip -qr9 Derbis-unsigned.ipa Payload
-          rm -rf Payload
-          cd ..
-          ls -la build_output/
+          cp -R "$app" build_output/Payload/Derbis.app
+          (cd build_output && zip -qr9 "Derbis-${IOS_APP_VERSION}-unsigned.ipa" Payload)
+          rm -rf build_output/Payload
+          unzip -tq "build_output/Derbis-${IOS_APP_VERSION}-unsigned.ipa"
+          echo 'Unsigned IPA produced. It must be signed before installation; no signing credentials were consumed.'
 
-      - name: Sign IPA with Certificate (Optional - via zsign)
-        if: ${{ env.IOS_P12_BASE64 != '' && env.IOS_P12_PASSWORD != '' }}
-        env:
-          IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
-          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
-          IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
-        run: |
-          brew install pkg-config openssl
-          git clone https://github.com/zhlynn/zsign.git /tmp/zsign
-          cd /tmp/zsign/build/macos && make
-          sudo cp zsign /usr/local/bin/
-          cd -
-          echo "$IOS_P12_BASE64" | base64 --decode > /tmp/cert.p12
-          if [ -n "$IOS_MOBILEPROVISION_BASE64" ]; then
-            echo "$IOS_MOBILEPROVISION_BASE64" | base64 --decode > /tmp/embedded.mobileprovision
-            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -m /tmp/embedded.mobileprovision -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
-            rm /tmp/embedded.mobileprovision
-          else
-            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
-          fi
-          rm /tmp/cert.p12
-
-      - name: Upload IPA Artifacts
+      - name: Upload unsigned IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-iOS-IPA
+          name: Derbis-iOS-${{ env.IOS_APP_VERSION }}-unsigned
           path: build_output/*.ipa
+          if-no-files-found: error
 
-      - name: Attach IPA to GitHub Release
-        if: ${{ inputs.publish_release == 'true' }}
+      - name: Attach to an explicitly requested release
+        if: inputs.publish_release == 'true' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ inputs.release_version || '1.1.1' }}"
+          tag_name: v${{ env.IOS_APP_VERSION }}
           files: build_output/*.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

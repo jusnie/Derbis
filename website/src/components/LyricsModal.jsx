@@ -1,20 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { X, Mic2, Music } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
-import { SYNCHRONIZED_LYRICS } from "../data/lyrics";
+import { getTrackLyrics } from "../data/lyrics";
 
 export default function LyricsModal() {
   const { isLyricsOpen, setIsLyricsOpen, currentTrack, currentTime, seekTo } = usePlayer();
   const activeLineRef = useRef(null);
 
-  const lyrics = SYNCHRONIZED_LYRICS[currentTrack?.id] || [
-    { time: 0, text: `♪ Listening to ${currentTrack?.title} ♪` },
-    { time: 5, text: `Performed by ${currentTrack?.artist}` },
-    { time: 12, text: "Lyrics synced live with web player engine" },
-    { time: 20, text: "Feel the rhythm in hi-fi lossless quality" },
-    { time: 35, text: "Tap on any line to seek instantly" },
-    { time: 60, text: `♪ ${currentTrack?.title} - ${currentTrack?.artist} ♪` }
-  ];
+  const lyrics = getTrackLyrics(currentTrack);
 
   // Find active line index based on currentTime
   let activeIndex = -1;
@@ -34,7 +27,7 @@ export default function LyricsModal() {
     }
   }, [activeIndex]);
 
-  if (!isLyricsOpen) return null;
+  if (!isLyricsOpen || !currentTrack) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4 sm:p-6">
@@ -70,6 +63,9 @@ export default function LyricsModal() {
 
         {/* Synchronized Lyrics Container */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-6 text-center select-none no-scrollbar">
+          {lyrics.length === 0 && (
+            <div className="py-16 text-white/55 text-sm">No synced lyrics are available for this track.</div>
+          )}
           {lyrics.map((line, idx) => {
             const isActive = idx === activeIndex;
             const isPast = idx < activeIndex;
@@ -96,7 +92,7 @@ export default function LyricsModal() {
         {/* Footer info */}
         <div className="p-3 border-t border-white/10 text-center bg-black/40">
           <span className="text-[11px] text-white/40 tracking-wider">
-            TAP ANY LINE TO JUMP AUDIO • TIME-SYNCED LYRICS
+            {lyrics.length ? "TAP ANY LINE TO JUMP AUDIO • TIME-SYNCED LYRICS" : "LYRICS UNAVAILABLE"}
           </span>
         </div>
 

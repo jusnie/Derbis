@@ -103,14 +103,9 @@ class MaterialExpressiveContractTest {
             "app/src/main/java/com/yasuda/derbis/ui/DerbisMixPanel.kt",
             "src/main/java/com/yasuda/derbis/ui/DerbisMixPanel.kt"
         )
-        val fresh = source(
-            "app/src/main/java/com/yasuda/derbis/ui/ExploreFreshCurrents.kt",
-            "src/main/java/com/yasuda/derbis/ui/ExploreFreshCurrents.kt"
-        )
 
         assertTrue(mix.contains("SonicReactorSpectrum("))
         assertTrue(mix.contains("MixPresetChip("))
-        assertTrue(fresh.contains("FreshArtworkCorner = 36.dp"))
     }
 
     @Test

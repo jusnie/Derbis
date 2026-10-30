@@ -6,6 +6,22 @@ import org.junit.Test
 
 class MotionArtworkNetworkPolicyTest {
     @Test
+    fun publicArtworkUsesOnlyTheExplicitOptInNotSpotifyConnection() {
+        try {
+            MotionArtworkNetworkPolicy.updateEnabled(false)
+            assertFalse(MotionArtworkNetworkPolicy.motionArtworkAllowed())
+
+            MotionArtworkNetworkPolicy.updateEnabled(true)
+            assertTrue(MotionArtworkNetworkPolicy.motionArtworkAllowed())
+
+            MotionArtworkNetworkPolicy.updateEnabled(false)
+            assertFalse(MotionArtworkNetworkPolicy.motionArtworkAllowed())
+        } finally {
+            MotionArtworkNetworkPolicy.updateEnabled(false)
+        }
+    }
+
+    @Test
     fun wifiOnlyAllowsOnlyValidatedUnmeteredNetworks() {
         assertTrue(MotionArtworkNetworkPolicy.canResolve(wifiOnly = true, network = online(unmetered = true)))
         assertFalse(MotionArtworkNetworkPolicy.canResolve(wifiOnly = true, network = online(unmetered = false)))

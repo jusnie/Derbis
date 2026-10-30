@@ -119,6 +119,9 @@ class DerbisStrings private constructor(
     val lyricsRendererDefaultDesc: String get() = value("lyricsRendererDefaultDesc")
     val lyricsRendererSpicy: String get() = value("lyricsRendererSpicy")
     val lyricsRendererSpicyDesc: String get() = value("lyricsRendererSpicyDesc")
+    val lyricsRendererCompare: String get() = value("lyricsRendererCompare")
+    val lyricsRendererSelectedStyle: String get() = value("lyricsRendererSelectedStyle")
+    val spicyLyricsBackToLive: String get() = value("spicyLyricsBackToLive")
     val lyricsRendererPreviewTitle: String get() = value("lyricsRendererPreviewTitle")
     val lyricsRendererPreviewSubtitle: String get() = value("lyricsRendererPreviewSubtitle")
     val lyricsStudioPresets: String get() = value("lyricsStudioPresets")
@@ -427,9 +430,8 @@ class DerbisStrings private constructor(
     val app: String get() = value("app")
     val animations: String get() = value("animations")
     val animationsSubtitle: String get() = value("animationsSubtitle")
-    // Animated artwork is intentionally catalog-owned; it is never fetched from third-party music services.
     val motionArtwork: String get() = "Animated artwork"
-    val motionArtworkSubtitle: String get() = "Show verified animated album artwork from your configured Derbis Canvas Catalog. Unmatched tracks keep the static cover."
+    val motionArtworkSubtitle: String get() = motionArtworkEnabledSubtitle
     val canvasQuality: String get() = value("canvasQuality")
     val canvasQualitySubtitle: String get() = value("canvasQualitySubtitle")
     val canvasQualityAuto: String get() = value("audioQualityAuto")

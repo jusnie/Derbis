@@ -59,6 +59,7 @@ import com.yasuda.derbis.R
 import com.yasuda.derbis.domain.AlbumHit
 import com.yasuda.derbis.domain.ArtistHit
 import com.yasuda.derbis.domain.LyricsSearchMatch
+import com.yasuda.derbis.feature.search.lyricsSearchMatches
 import com.yasuda.derbis.domain.PlaylistHit
 import com.yasuda.derbis.domain.SearchFilter
 import com.yasuda.derbis.domain.SearchResults
@@ -133,7 +134,7 @@ internal fun youTubeMusicFilteredEntries(
     SearchFilter.Artists -> data.artists.map { YouTubeMusicSearchEntry.Artist(it) }
     SearchFilter.Playlists -> data.playlists.map { YouTubeMusicSearchEntry.Playlist(it) }
     SearchFilter.Albums -> data.albums.map { YouTubeMusicSearchEntry.Album(it) }
-    SearchFilter.Lyrics -> data.lyricsMatches.ifEmpty { songs.map { LyricsSearchMatch(it, "") } }
+    SearchFilter.Lyrics -> lyricsSearchMatches(data)
         .map { YouTubeMusicSearchEntry.Lyrics(it) }
 }.distinctBy { it.key }
 

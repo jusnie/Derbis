@@ -30,11 +30,7 @@ class MotionArtworkNetworkPolicy(context: Context) {
             enabled = value
         }
 
-        fun isSpotifyConnected(): Boolean =
-            com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
-
-        fun motionArtworkAllowed(): Boolean =
-            enabled && isSpotifyConnected()
+        fun motionArtworkAllowed(): Boolean = enabled
 
         fun canAnimateLocally(context: Context): Boolean {
             val appContext = context.applicationContext

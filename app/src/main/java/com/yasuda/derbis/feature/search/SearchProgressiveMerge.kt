@@ -77,6 +77,7 @@ internal fun mergeFastSearchResults(
         artists = provisionalSearchArtists(query, mergeSearchArtists(existing.artists, incoming.artists)),
         albums = mergeSearchAlbums(existing.albums, incoming.albums),
         playlists = mergeSearchPlaylists(existing.playlists, incoming.playlists),
+        lyricsMatches = (existing.lyricsMatches + incoming.lyricsMatches).distinctBy { it.track.id },
         failedSections = existing.failedSections + incoming.failedSections,
         discography = existing.discography ?: incoming.discography
     )
@@ -199,7 +200,7 @@ internal fun SearchSessionSnapshot.withSectionPage(
     nextContinuation: String
 ): SearchSessionSnapshot {
     val continuations = sectionContinuations + (filter to nextContinuation)
-    if (carriedOver && page.isEmpty) {
+    if (carriedOver && page.isEmpty && (filter != SearchFilter.Lyrics || this.filter != SearchFilter.Lyrics)) {
         return copy(sectionContinuations = continuations, pendingSectionFailures = pendingSectionFailures - filter)
     }
     val merged = mergeSectionPage(freshResults, filter, page)

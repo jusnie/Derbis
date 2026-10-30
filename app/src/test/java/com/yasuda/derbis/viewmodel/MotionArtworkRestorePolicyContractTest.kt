@@ -14,14 +14,20 @@ class MotionArtworkRestorePolicyContractTest {
             .substringBefore("fun setLanguage(")
             .filterNot(Char::isWhitespace)
         val policyUpdate = restore.indexOf(
-            "MotionArtworkNetworkPolicy.updateWifiOnly(snapshot.interfaceSettings.motionArtworkWifiOnly)"
+            "MotionArtworkNetworkPolicy.updateWifiOnly(snapshot.interfaceSettings.motionArtworkWifiOnly||snapshot.interfaceSettings.dataSaverEnabled)"
+        )
+        val enableUpdate = restore.indexOf(
+            "MotionArtworkNetworkPolicy.updateEnabled(snapshot.motionArtworkEnabled)"
         )
         val stateRestore = restore.indexOf("interfaceSettings=snapshot.interfaceSettings")
         val motionRestart = restore.indexOf("refreshMotionArtworkAround")
 
         assertTrue(policyUpdate >= 0)
+        assertTrue(enableUpdate >= 0)
         assertTrue(stateRestore > policyUpdate)
+        assertTrue(stateRestore > enableUpdate)
         assertTrue(motionRestart > policyUpdate)
+        assertTrue(motionRestart > enableUpdate)
     }
 
     @Test
@@ -30,8 +36,8 @@ class MotionArtworkRestorePolicyContractTest {
             .substringAfter("private fun startPlayback(playable: Track, request: PlaybackResolveRequest)")
             .substringBefore("private fun handlePlaybackStartSideEffects(")
             .filterNot(Char::isWhitespace)
-        val stateUpdate = start.indexOf("currentTrack=playable")
-        val motionRefresh = start.indexOf("refreshMotionArtworkAround(playable)")
+        val stateUpdate = start.indexOf("currentTrack=resolved")
+        val motionRefresh = start.indexOf("refreshMotionArtworkAround(resolved)")
 
         assertTrue(stateUpdate >= 0)
         assertTrue(motionRefresh > stateUpdate)

@@ -640,7 +640,9 @@ import com.yasuda.derbis.domain.DownloadOwnership
 import com.yasuda.derbis.domain.DownloadedTrack
 import com.yasuda.derbis.domain.FollowedArtist
 import com.yasuda.derbis.domain.PlaylistHit
-import com.yasuda.derbis.domain.LyricsSearchMatch
+import com.yasuda.derbis.feature.search.LyricsSearchContent
+import com.yasuda.derbis.feature.search.lyricsSearchContent
+import com.yasuda.derbis.feature.search.lyricsSearchMatches
 import com.yasuda.derbis.domain.SearchFilter
 import com.yasuda.derbis.domain.SearchAlbumKind
 import com.yasuda.derbis.domain.SearchResults
@@ -8204,7 +8206,7 @@ private fun LyricsOverlay(
         }
     }
 
-    if (isSpicyLyrics && !landscapeLayout) {
+    if (isSpicyLyrics) {
         SpicyFullscreenLyrics(
             state = state,
             accentStart = accentStart,
@@ -8219,6 +8221,7 @@ private fun LyricsOverlay(
             },
             onOpenQueue = onOpenQueue,
             onOpenOptions = { showLyricsOptions = true },
+            onClose = onClose,
             lyricsOffsetMs = lyricsOffsetMs,
             showTranslation = showTranslation,
             showRomanization = showRomanization,
@@ -16096,6 +16099,18 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
 
     val data = state.searchData
     val filter = state.searchFilter
+    val lyricsLoaded = state.searchSectionContinuations.containsKey(SearchFilter.Lyrics)
+    val visibleLyricsMatches = remember(data.lyricsMatches, lyricsLoaded) {
+        lyricsSearchMatches(data, loaded = lyricsLoaded)
+    }
+    val lyricsContent = lyricsSearchContent(
+        query = queryClean,
+        matchCount = visibleLyricsMatches.size,
+        loaded = lyricsLoaded,
+        loading = SearchFilter.Lyrics in state.searchSectionLoading,
+        failed = SearchFilter.Lyrics in data.failedSections,
+        pending = state.searchPending || state.isSearching
+    )
 
     Column(
         modifier = Modifier
@@ -16182,12 +16197,12 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
             data.albums.filter { effectiveAlbumKind.accepts(it.releaseType) }
         }
         val searchGridColumnCount = searchGridColumns(LocalConfiguration.current.screenWidthDp - 36)
-        val selectableTracks = remember(topResultTracks, visibleSongs, data.videos, filter, data.lyricsMatches) {
+        val selectableTracks = remember(topResultTracks, visibleSongs, data.videos, filter, visibleLyricsMatches) {
             buildList {
                 if (filter == SearchFilter.All) addAll(topResultTracks.take(3))
                 if (filter == SearchFilter.All || filter == SearchFilter.Songs) addAll(visibleSongs)
                 if (filter == SearchFilter.All || filter == SearchFilter.Videos) addAll(data.videos)
-                if (filter == SearchFilter.Lyrics) addAll(data.lyricsMatches.map { it.track }.ifEmpty { visibleSongs })
+                if (filter == SearchFilter.Lyrics) addAll(visibleLyricsMatches.map { it.track })
             }.distinctBy(::trackSelectionKey)
         }
         val selectableIds = remember(selectableTracks) { selectableTracks.map(::trackSelectionKey) }
@@ -16207,7 +16222,7 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
             contentPadding = PaddingValues(bottom = derbisTabContentBottomPadding(state.currentTrack != null)),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            if (queryClean.isEmpty()) {
+            if (queryClean.isEmpty() && filter != SearchFilter.Lyrics) {
                 item(key = "search-taste-hints", contentType = "search-taste-hints") {
                     SearchTasteHints(
                         suggestions = tasteHintQueries,
@@ -16286,6 +16301,66 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
                     }
                 }
                 when {
+                    filter == SearchFilter.Lyrics -> {
+                        item(key = "search-filters", contentType = "search-filters") {
+                            SearchSectionGap()
+                            SearchFilterChips(
+                                selected = filter,
+                                hasArtists = data.artists.isNotEmpty(),
+                                hasAlbums = data.albums.isNotEmpty(),
+                                hasPlaylists = data.playlists.isNotEmpty(),
+                                hasVideos = data.videos.isNotEmpty(),
+                                onSelect = viewModel::setSearchFilter
+                            )
+                        }
+                        item(key = "search-lyrics-header", contentType = "search-section-header") {
+                            SearchSectionGap()
+                            SearchSectionHeader(title = strings.lyrics, showAll = false, onShowAll = {})
+                        }
+                        when (lyricsContent) {
+                            LyricsSearchContent.Prompt -> Unit
+                            LyricsSearchContent.Loading -> item(key = "search-lyrics-loading", contentType = "search-skeleton") {
+                                SearchSectionGap()
+                                SearchLoadingSkeleton()
+                            }
+                            LyricsSearchContent.Failed -> item(key = "search-lyrics-failed", contentType = "search-message") {
+                                SearchSectionGap()
+                                GlassMessage(strings.searchFailed, DerbisOrange)
+                            }
+                            LyricsSearchContent.Empty -> item(key = "search-lyrics-empty", contentType = "search-message") {
+                                SearchSectionGap()
+                                EmptyState(strings.formatNoSearchResults(queryClean))
+                            }
+                            LyricsSearchContent.Matches -> {
+                                itemsIndexed(visibleLyricsMatches, key = { _, match -> "search-lyrics-${match.track.id}" }, contentType = { _, _ -> "search-lyrics-match" }) { rowIndex, match ->
+                                    SearchGroupedRow(rowIndex, visibleLyricsMatches.size) {
+                                        YouTubeMusicLyricsMatchRow(
+                                            match = match,
+                                            current = match.track.id == state.currentTrack?.id,
+                                            onClick = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                                viewModel.play(match.track)
+                                            },
+                                            onMore = { onTrackActions(match.track) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (lyricsContent == LyricsSearchContent.Matches || lyricsContent == LyricsSearchContent.Empty) {
+                            item(key = "search-section-footer", contentType = "search-section-footer") {
+                                SearchSectionGap()
+                                SearchSectionFooter(
+                                    loading = SearchFilter.Lyrics in state.searchSectionLoading,
+                                    failed = SearchFilter.Lyrics in data.failedSections,
+                                    canLoadMore = state.searchSectionContinuations[SearchFilter.Lyrics].orEmpty().isNotBlank(),
+                                    autoLoadKey = visibleLyricsMatches.size,
+                                    onLoadMore = { viewModel.loadMoreSearchSection(SearchFilter.Lyrics) }
+                                )
+                            }
+                        }
+                    }
                     !data.isEmpty && DerbisIsYouTubeMusic -> {
                         item(key = "search-filters", contentType = "search-filters") {
                             SearchSectionGap()
@@ -16654,33 +16729,6 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
                                         onAddToPlaylist = { addTarget = track },
                                         onDownload = { viewModel.exportTrack(track) }
                                     )
-                                    }
-                                }
-                            }
-                        }
-                        if (filter == SearchFilter.Lyrics) {
-                            val matches = data.lyricsMatches.ifEmpty { visibleSongs.map { LyricsSearchMatch(it, "") } }
-                            if (matches.isNotEmpty()) {
-                                item(key = "search-lyrics-header", contentType = "search-section-header") {
-                                    SearchSectionGap()
-                                    SearchSectionHeader(
-                                        title = strings.lyrics,
-                                        showAll = false,
-                                        onShowAll = {}
-                                    )
-                                }
-                                itemsIndexed(matches, key = { _, match -> "search-lyrics-${match.track.id}" }, contentType = { _, _ -> "search-lyrics-match" }) { rowIndex, match ->
-                                    SearchGroupedRow(rowIndex, matches.size) {
-                                        YouTubeMusicLyricsMatchRow(
-                                            match = match,
-                                            current = match.track.id == state.currentTrack?.id,
-                                            onClick = {
-                                                focusManager.clearFocus()
-                                                keyboardController?.hide()
-                                                viewModel.play(match.track)
-                                            },
-                                            onMore = { onTrackActions(match.track) }
-                                        )
                                     }
                                 }
                             }
@@ -22209,179 +22257,54 @@ private fun SettingsSearchResultRow(title: String, description: String, category
 @Composable
 private fun DiscordRichPresenceSettingsPanel() {
     val context = LocalContext.current
+    val strings = LocalDerbisStrings.current
+    val copy = remember(strings.code) { com.yasuda.derbis.ui.i18n.discordAuthorizationCopy(strings.code) }
     val discord = com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
     val connection by discord.connectionState.collectAsStateWithLifecycle()
-    var presenceEnabled by remember(context) {
-        mutableStateOf(discord.isEnabled(context))
-    }
-    var showLoginSheet by remember { mutableStateOf(false) }
-    var isTestingConnection by remember { mutableStateOf(false) }
-    var testDiagnosticMessage by remember { mutableStateOf("") }
+    var presenceEnabled by remember(context) { mutableStateOf(discord.isEnabled(context)) }
 
-    LaunchedEffect(context) {
-        discord.initialize(context)
-    }
+    LaunchedEffect(context) { discord.initialize(context) }
     LaunchedEffect(connection.status) {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
     }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
-
-    when (connection.status) {
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable,
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Disconnected -> {
-            SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Connect Discord",
-                subtitle = "Sign in via Normal Web Login or User Token for Rich Presence",
-                onClick = { showLoginSheet = true }
-            )
-            SettingsButton(
-                icon = Icons.Rounded.Refresh,
-                title = "Test Connection",
-                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Run diagnostic test on Discord reachability",
-                onClick = {
-                    isTestingConnection = true
-                    discord.testConnection(context) { res ->
-                        isTestingConnection = false
-                        testDiagnosticMessage = res.message
-                    }
-                }
-            )
-        }
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn,
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting -> {
-            SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Connecting Discord",
-                subtitle = connection.detail.ifBlank { "Verifying session with Discord..." },
-                enabled = false,
-                onClick = {}
-            )
-        }
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Error -> {
-            SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Reconnect Discord",
-                subtitle = connection.detail.ifBlank { "Discord connection failed. Tap to reconnect." },
-                onClick = { showLoginSheet = true }
-            )
-            SettingsButton(
-                icon = Icons.Rounded.Refresh,
-                title = "Test Connection",
-                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Diagnose connection issue",
-                onClick = {
-                    isTestingConnection = true
-                    discord.testConnection(context) { res ->
-                        isTestingConnection = false
-                        testDiagnosticMessage = res.message
-                    }
-                }
-            )
-        }
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connected -> {
-            // User profile card
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF16181F))
-                    .border(1.dp, Color(0xFF262835), RoundedCornerShape(16.dp))
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (connection.avatarUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = connection.avatarUrl,
-                        contentDescription = "Discord Avatar",
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2C2E38)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Rounded.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = connection.globalName.ifBlank { connection.username.ifBlank { "Discord User" } },
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = if (connection.username.isNotBlank()) "@${connection.username}" else "Connected",
-                        color = Color.LightGray,
-                        fontSize = 12.sp
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1B3D2F))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = if (connection.latencyMs > 0L) "${connection.latencyMs} ms" else "Active",
-                        color = Color(0xFF4CAF50),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+    if (connection.isConnected) {
+        SettingsToggle(
+            icon = Icons.Rounded.AccountCircle,
+            title = copy.presence,
+            subtitle = copy.presenceHint,
+            checked = presenceEnabled,
+            onCheckedChange = { value ->
+                discord.setEnabled(context, value)
+                presenceEnabled = discord.isEnabled(context)
             }
-
-            SettingsToggle(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Discord Rich Presence",
-                subtitle = "Show current track, cover art, artist icon, progress bar, and clickable links",
-                checked = presenceEnabled,
-                onCheckedChange = { value ->
-                    presenceEnabled = value
-                    discord.setEnabled(context, value)
-                }
-            )
-
-            SettingsButton(
-                icon = Icons.Rounded.Refresh,
-                title = "Test Connection",
-                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Test Discord Gateway & REST ping latency",
-                onClick = {
-                    isTestingConnection = true
-                    discord.testConnection(context) { res ->
-                        isTestingConnection = false
-                        testDiagnosticMessage = res.message
-                    }
-                }
-            )
-
-            SettingsButton(
-                icon = Icons.Rounded.Close,
-                title = "Disconnect Discord",
-                subtitle = "Disconnect this account from Derbis",
-                onClick = { discord.disconnect(context) }
-            )
-        }
-    }
-
-    if (showLoginSheet) {
-        com.yasuda.derbis.feature.discord.DiscordLoginSheet(
-            onDismiss = { showLoginSheet = false },
-            onSuccess = {
-                showLoginSheet = false
-                presenceEnabled = true
-            }
+        )
+        SettingsButton(
+            icon = Icons.Rounded.Close,
+            title = copy.disconnect,
+            subtitle = copy.disconnectHint,
+            onClick = { discord.disconnect(context) }
+        )
+    } else {
+        val busy = connection.status == com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn ||
+            connection.status == com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting
+        val failed = connection.status == com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Error
+        SettingsButton(
+            icon = Icons.Rounded.AccountCircle,
+            title = when {
+                busy -> copy.connecting
+                failed -> copy.reconnect
+                else -> copy.connect
+            },
+            subtitle = when {
+                !discord.isAvailable() -> copy.unavailable
+                busy -> copy.continueAuthorization
+                failed -> connection.detail.ifBlank { copy.failed }
+                else -> copy.authorize
+            },
+            enabled = discord.isAvailable() && !busy,
+            onClick = { discord.beginSignIn(context) }
         )
     }
 }
@@ -22430,109 +22353,13 @@ private fun SpotifyConnectionSettingsPanel(
         }
     }
 
-    val isConnected = spotifyState.isConnected
-    val motionSubtitle = when {
-        !isConnected -> strings.motionArtworkSpotifyRequired
-        motionArtworkEnabled -> strings.motionArtworkUnlocked
-        else -> "Disabled · Static album covers only"
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
-            )
-            .border(
-                1.dp,
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(18.dp)
-            )
-            .clickable(enabled = !isConnected) {
-                val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-                if (authorizationUri != null) {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
-                    }
-                }
-            }
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isConnected) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isConnected) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
-                    contentDescription = null,
-                    tint = if (isConnected) Color(0xFF1ED760) else DerbisMuted,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = strings.motionArtworkEnabled,
-                        color = if (isConnected) DerbisText else DerbisMuted,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(
-                                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.20f)
-                                else Color(0xFFFF5E3A).copy(alpha = 0.15f)
-                            )
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (isConnected) "UNLOCKED" else "LOGIN REQUIRED",
-                            color = if (isConnected) Color(0xFF1ED760) else Color(0xFFFF5E3A),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
-                }
-
-                Text(
-                    text = motionSubtitle,
-                    color = if (isConnected) DerbisMuted else Color.White.copy(alpha = 0.45f),
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
-            }
-
-            Switch(
-                checked = isConnected && motionArtworkEnabled,
-                onCheckedChange = { onToggleMotionArtwork(it) },
-                enabled = isConnected,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = DerbisInk,
-                    checkedTrackColor = Color(0xFF1ED760),
-                    disabledCheckedTrackColor = Color.White.copy(alpha = 0.12f),
-                    disabledUncheckedTrackColor = Color.White.copy(alpha = 0.06f),
-                    disabledUncheckedThumbColor = DerbisMuted.copy(alpha = 0.4f)
-                )
-            )
-        }
-    }
+    SettingsToggle(
+        icon = Icons.Rounded.AutoAwesome,
+        title = strings.motionArtworkEnabled,
+        subtitle = strings.motionArtworkEnabledSubtitle,
+        checked = motionArtworkEnabled,
+        onCheckedChange = onToggleMotionArtwork
+    )
 }
 
 @Composable
@@ -26156,7 +25983,7 @@ private fun SearchResults.sectionSize(filter: SearchFilter): Int = when (filter)
     SearchFilter.Albums -> albums.size
     SearchFilter.Artists -> artists.size
     SearchFilter.Playlists -> playlists.size
-    SearchFilter.Lyrics -> lyricsMatches.ifEmpty { songs }.size
+    SearchFilter.Lyrics -> lyricsMatches.size
     SearchFilter.All -> 0
 }
 
@@ -27087,38 +26914,7 @@ private fun ExploreScreen(
     val selectedZone = remember(zones, state.exploreZoneId) {
         zones.firstOrNull { zone -> zone.id == state.exploreZoneId }
     }
-    val localFreshTracks = state.exploreFreshTracks
-    val worldFreshTracks = state.exploreWorldFreshTracks
-    var freshScope by rememberSaveable { mutableStateOf(ExploreFreshScope.Local) }
-    val freshScopes = remember(localFreshTracks, worldFreshTracks) {
-        exploreFreshScopes(localFreshTracks, worldFreshTracks)
-    }
-    val freshFeed = remember(freshScope, localFreshTracks, worldFreshTracks) {
-        exploreFreshFeed(freshScope, localFreshTracks, worldFreshTracks)
-    }
-    val freshTracks = remember(freshFeed) { freshFeed.spotlight + freshFeed.moment }
-    val momentPages = remember(freshFeed) { exploreMomentPages(freshFeed.moment) }
-    val freshRegionLabel = remember(state.languageCode) {
-        ChartsCatalog.defaultRegionForLanguage(state.languageCode).label
-    }
-    val freshSection = remember(freshScopes, freshFeed, momentPages, freshRegionLabel) {
-        ExploreFreshSection(freshScopes, freshFeed, momentPages, freshRegionLabel)
-    }
-    val rows = remember(
-        zones,
-        state.isFreshCurrentsLoading,
-        freshFeed.spotlight.isNotEmpty(),
-        freshScopes.size > 1,
-        momentPages.isNotEmpty()
-    ) {
-        buildExploreRows(
-            zones = zones,
-            isFreshLoading = state.isFreshCurrentsLoading,
-            hasFreshTracks = freshFeed.spotlight.isNotEmpty(),
-            hasFreshScopes = freshScopes.size > 1,
-            hasFreshMoment = momentPages.isNotEmpty()
-        )
-    }
+    val rows = remember(zones) { buildExploreRows(zones) }
     val availableAnchors = remember(rows) { exploreAvailableAnchors(rows) }
 
     val onShortcut: (ExploreShortcut) -> Unit = { shortcut ->
@@ -27127,33 +26923,7 @@ private fun ExploreScreen(
             ExploreShortcut.Moods -> exploreDestination = ExploreMoodsDestination
         }
     }
-    val onPlayFresh: (() -> Unit)? = freshTracks.firstOrNull()?.let { first ->
-        { viewModel.playFrom(freshTracks, first) }
-    }
-
     val exploreMixAccent = rememberNowPlayingAccent(state.currentTrack, DerbisCyan)
-    var trackStoryShareTarget by remember { mutableStateOf<Track?>(null) }
-    val shareFreshTrack: (Track) -> Unit = { track ->
-        trackStoryShareTarget = track
-    }
-    val onPlayFreshTrack: (Track) -> Unit = { track ->
-        if (track.id == state.currentTrack?.id) viewModel.togglePlay()
-        else viewModel.playFrom(freshTracks, track)
-    }
-    val freshTrackActions: @Composable (Track) -> Unit = { track ->
-        DiscoveryTrackActions(
-            trackTitle = track.title,
-            isFavorite = track.id in state.favoriteIds,
-            onFavorite = { viewModel.toggleFavorite(track) },
-            onAddToPlaylist = { addToPlaylistTarget = track },
-            onShare = { shareFreshTrack(track) },
-            onOpenAlbum = if (track.album.isNotBlank()) {
-                { viewModel.openAlbum(trackAlbumHit(track)) }
-            } else {
-                null
-            }
-        )
-    }
     val exploreBottomInset = tabBarBottomContentInset(
         miniPlayerVisible = state.currentTrack != null,
         animationsEnabled = state.animationsEnabled
@@ -27186,12 +26956,9 @@ private fun ExploreScreen(
                     row = row,
                     state = state,
                     viewModel = viewModel,
-                    fresh = freshSection,
                     availableAnchors = availableAnchors,
                     mixAccent = exploreMixAccent,
                     onShortcut = onShortcut,
-                    onPlayFresh = onPlayFresh,
-                    onSelectFreshScope = { scope -> freshScope = scope },
                     onOpenJam = onOpenJam,
                     onOpenRadio = { onLiveRadioOpenChange(true) },
                     onOpenMoods = {
@@ -27202,9 +26969,7 @@ private fun ExploreScreen(
                         viewModel.selectExploreZone(zone)
                         exploreMoodReturn = null
                         exploreDestination = exploreMoodDestination(zone.id)
-                    },
-                    onPlayTrack = onPlayFreshTrack,
-                    trackActions = freshTrackActions
+                    }
                 )
             }
         }
@@ -27224,41 +26989,21 @@ private fun ExploreScreen(
             onMoodReturnChange = { exploreMoodReturn = it },
             onLiveRadioOpenChange = onLiveRadioOpenChange
         )
-
-        trackStoryShareTarget?.let { track ->
-            TrackStoryShareSheet(
-                track = track,
-                onDismiss = { trackStoryShareTarget = null }
-            )
-        }
     }
 }
-
-@Immutable
-private class ExploreFreshSection(
-    val scopes: List<ExploreFreshScope>,
-    val feed: ExploreFreshFeed,
-    val momentPages: List<List<Track>>,
-    val regionLabel: String
-)
 
 @Composable
 private fun ExploreContentRow(
     row: ExploreRow,
     state: DerbisUiState,
     viewModel: ExploreViewModel,
-    fresh: ExploreFreshSection,
     availableAnchors: Set<ExploreAnchor>,
     mixAccent: Color,
     onShortcut: (ExploreShortcut) -> Unit,
-    onPlayFresh: (() -> Unit)?,
-    onSelectFreshScope: (ExploreFreshScope) -> Unit,
     onOpenJam: () -> Unit,
     onOpenRadio: () -> Unit,
     onOpenMoods: () -> Unit,
-    onOpenZone: (ExploreZone) -> Unit,
-    onPlayTrack: (Track) -> Unit,
-    trackActions: @Composable (Track) -> Unit
+    onOpenZone: (ExploreZone) -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     when (row) {
@@ -27295,49 +27040,8 @@ private fun ExploreContentRow(
         }
         is ExploreRow.Header -> ExploreAnchorHeader(
             anchor = row.anchor,
-            onPlayFresh = onPlayFresh,
             onOpenMoods = onOpenMoods
         )
-        ExploreRow.FreshLoading -> Box(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            DiscoveryLoadingIndicator(modifier = Modifier.size(40.dp), color = MaterialTheme.colorScheme.primary)
-        }
-        ExploreRow.FreshEmpty -> Box(modifier = Modifier.padding(horizontal = HomeHorizontalInset)) {
-            EmptyState(strings.exploreEmpty)
-        }
-        ExploreRow.FreshScopes -> ExploreFreshScopeRail(
-            scopes = fresh.scopes,
-            selected = fresh.feed.scope,
-            localLabel = fresh.regionLabel,
-            onSelect = onSelectFreshScope
-        )
-        ExploreRow.FreshSpotlight -> ExploreFreshSpotlight(
-            tracks = fresh.feed.spotlight,
-            currentTrackId = state.currentTrack?.id,
-            isPlaying = state.isPlaying,
-            isResolving = state.isResolving,
-            onPlay = onPlayTrack,
-            onOpenAlbum = { track -> viewModel.openAlbum(trackAlbumHit(track)) },
-            actions = { track -> trackActions(track) }
-        )
-        ExploreRow.FreshMoment -> Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            ExploreFreshMomentHeader(
-                title = strings.freshMomentTitle,
-                onShowAll = { onShortcut(ExploreShortcut.NewReleases) }
-            )
-            ExploreFreshMomentRail(
-                pages = fresh.momentPages,
-                currentTrackId = state.currentTrack?.id,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                onPlay = onPlayTrack,
-                actions = { track -> trackActions(track) }
-            )
-        }
         is ExploreRow.MoodRail -> ExploreMoodRailRow(
             zones = row.zones,
             selectedZoneId = state.exploreZoneId,
@@ -27357,15 +27061,10 @@ private fun ExploreContentRow(
 @Composable
 private fun ExploreAnchorHeader(
     anchor: ExploreAnchor,
-    onPlayFresh: (() -> Unit)?,
     onOpenMoods: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     when (anchor) {
-        ExploreAnchor.Fresh -> ExploreFreshSectionHeader(
-            title = strings.exploreFresh,
-            onPlayAll = onPlayFresh
-        )
         ExploreAnchor.Moods -> ExploreSectionHeader(
             title = strings.exploreMoods,
             onShowAll = onOpenMoods
@@ -27639,20 +27338,6 @@ private fun exploreDestinationBottomInset(state: DerbisUiState): Dp = tabBarBott
 )
 
 @Composable
-private fun ExploreFreshSectionHeader(
-    title: String,
-    onPlayAll: (() -> Unit)?
-) {
-    DerbisSectionHeader(
-        title = remember(title) { cleanHomeSectionTitle(title) },
-        titleColor = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(horizontal = HomeHorizontalInset, vertical = 2.dp)
-    ) {
-        onPlayAll?.let { action -> DerbisSectionPlayAll(onClick = action) }
-    }
-}
-
-@Composable
 private fun ExploreSectionHeader(
     title: String,
     subtitle: String? = null,
@@ -27712,9 +27397,7 @@ internal fun ExplorePrimaryShortcuts(
     val radioStrings = com.yasuda.derbis.ui.i18n.DerbisLiveRadioCatalog.forCode(strings.code)
     val colors = MaterialTheme.colorScheme
     val entries = buildList {
-        if (ExploreAnchor.Fresh in availableAnchors) {
-            add(ExploreShortcutEntry("releases", Icons.Rounded.AutoAwesome, strings.exploreNewReleases, MaterialShapes.Sunny, colors.primaryContainer, colors.onPrimaryContainer) { onSelect(ExploreShortcut.NewReleases) })
-        }
+        add(ExploreShortcutEntry("releases", Icons.Rounded.AutoAwesome, strings.exploreNewReleases, MaterialShapes.Sunny, colors.primaryContainer, colors.onPrimaryContainer) { onSelect(ExploreShortcut.NewReleases) })
         if (ExploreAnchor.Moods in availableAnchors) {
             add(ExploreShortcutEntry("moods", Icons.Rounded.Mood, strings.exploreMoods, MaterialShapes.Clover4Leaf, colors.secondaryContainer, colors.onSecondaryContainer) { onSelect(ExploreShortcut.Moods) })
         }

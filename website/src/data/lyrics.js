@@ -69,23 +69,5 @@ export const SYNCHRONIZED_LYRICS = {
 export function getTrackLyrics(track) {
   if (!track) return [];
   const id = track.id || track.videoId || "";
-  if (SYNCHRONIZED_LYRICS[id]) return SYNCHRONIZED_LYRICS[id];
-
-  const titleLower = (track.title || "").toLowerCase();
-  if (titleLower.includes("akap") || titleLower.includes("imago")) {
-    return SYNCHRONIZED_LYRICS["akap"];
-  }
-
-  // Synthesize rhythmic karaoke lines matching track context
-  const artist = track.artist || "Derbis";
-  const title = track.title || "Soundtrack";
-  return [
-    { time: 4, text: `♪ Listening to ${title} ♪` },
-    { time: 12, text: `Performed by ${artist}` },
-    { time: 20, text: "Feel the lossless rhythm flowing" },
-    { time: 28, text: "Synesthesia audio wave moving in harmony" },
-    { time: 36, text: `Every heartbeat sings ${title}` },
-    { time: 45, text: "Endless listening continuous sound" },
-    { time: 54, text: `♪ ${title} — ${artist} ♪` }
-  ];
+  return SYNCHRONIZED_LYRICS[id] || [];
 }

@@ -134,6 +134,11 @@ private fun sharedPreferencesStore(context: Context): DerbisPreferencesStore =
         ).also { sharedPreferencesStore = it }
     }
 
+internal fun resolveMotionArtworkEnabled(
+    masterEnabled: Boolean?,
+    interfaceEnabled: Boolean?
+): Boolean = masterEnabled ?: interfaceEnabled ?: false
+
 internal fun preloadDerbisPreferences(context: Context) {
     sharedPreferencesStore(context)
 }
@@ -146,7 +151,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
     suspend fun restoreSnapshot(snapshot: DerbisPreferencesSnapshot) {
         val normalizedLanguage = DerbisLanguageCatalog.normalize(snapshot.languageCode)
         val normalizedAudio = snapshot.audioSettings.normalized()
-        val normalizedInterface = snapshot.interfaceSettings.normalized()
+        val normalizedInterface = snapshot.interfaceSettings.copy(
+            motionArtworkEnabled = snapshot.motionArtworkEnabled
+        ).normalized()
         val normalizedAmbient = snapshot.ambientSettings.normalized()
         val normalizedDownloads = snapshot.downloadSettings.normalized()
         val normalizedSmartOffline = snapshot.smartOfflineSettings.normalized()
@@ -346,7 +353,10 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
 
     suspend fun setMotionArtworkEnabled(value: Boolean) {
         try {
-            store.commit { it[KEY_MOTION_ARTWORK] = value }
+            store.commit {
+                it[KEY_MOTION_ARTWORK] = value
+                it[KEY_UI_MOTION_ARTWORK_ENABLED] = value
+            }
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -448,6 +458,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
+            it[KEY_MOTION_ARTWORK] = normalized.motionArtworkEnabled
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
             it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
             it[KEY_UI_PURE_BLACK] = normalized.pureBlack
@@ -821,7 +832,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             userName = preferences[KEY_USER_NAME].orEmpty(),
             languageCode = normalizedLanguage,
             animationsEnabled = preferences[KEY_ANIMATIONS] ?: true,
-            motionArtworkEnabled = preferences[KEY_MOTION_ARTWORK] ?: false,
+            motionArtworkEnabled = resolveMotionArtworkEnabled(
+                preferences[KEY_MOTION_ARTWORK], preferences[KEY_UI_MOTION_ARTWORK_ENABLED]
+            ),
             dynamicColor = preferences[KEY_DYNAMIC_COLOR] ?: true,
             sponsorBlock = preferences[KEY_SPONSORBLOCK] ?: DEFAULT_SPONSORBLOCK_ENABLED,
             skipSilence = preferences[KEY_SKIP_SILENCE] ?: false,
@@ -906,7 +919,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
-            motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
+            motionArtworkEnabled = resolveMotionArtworkEnabled(
+                preferences[KEY_MOTION_ARTWORK], preferences[KEY_UI_MOTION_ARTWORK_ENABLED]
+            ),
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
             blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
             pureBlack = preferences[KEY_UI_PURE_BLACK] ?: false,

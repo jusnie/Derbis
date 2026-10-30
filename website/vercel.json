@@ -49,5 +49,12 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "git": {
+    "deploymentEnabled": {
+      "agent/validation-1.5.0": false
+    }
+  }
 }

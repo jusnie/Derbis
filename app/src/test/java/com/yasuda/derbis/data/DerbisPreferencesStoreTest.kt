@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.toMutablePreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.yasuda.derbis.domain.ChartsCatalog
@@ -97,6 +98,95 @@ class DerbisPreferencesStoreTest {
     private fun reopen(): DerbisPreferences = open().second
 
     private fun flush(store: DerbisPreferencesStore) = runBlocking { store.commit { } }
+
+    @Test
+    fun masterArtworkTogglePersistsBothFlagsAcrossStoreRecreation() = runBlocking {
+        val (_, preferences) = open()
+        assertFalse(preferences.snapshot().motionArtworkEnabled)
+        assertFalse(preferences.interfaceSettings().motionArtworkEnabled)
+
+        preferences.setMotionArtworkEnabled(true)
+        assertTrue(preferences.snapshot().motionArtworkEnabled)
+        assertTrue(preferences.interfaceSettings().motionArtworkEnabled)
+        assertTrue(reopen().snapshot().motionArtworkEnabled)
+        assertTrue(reopen().interfaceSettings().motionArtworkEnabled)
+
+        preferences.setMotionArtworkEnabled(false)
+        assertFalse(reopen().snapshot().motionArtworkEnabled)
+        assertFalse(reopen().interfaceSettings().motionArtworkEnabled)
+    }
+
+    @Test
+    fun interfaceArtworkTogglePersistsTheMasterFlagToo() {
+        val (store, preferences) = open()
+        preferences.setInterfaceSettings(DerbisInterfaceSettings(motionArtworkEnabled = true))
+        assertTrue(preferences.snapshot().motionArtworkEnabled)
+        flush(store)
+        assertTrue(reopen().snapshot().motionArtworkEnabled)
+        assertTrue(reopen().interfaceSettings().motionArtworkEnabled)
+
+        preferences.setInterfaceSettings(DerbisInterfaceSettings(motionArtworkEnabled = false))
+        flush(store)
+        assertFalse(reopen().snapshot().motionArtworkEnabled)
+        assertFalse(reopen().interfaceSettings().motionArtworkEnabled)
+    }
+
+    @Test
+    fun oldMasterOptInIsSharedBySnapshotAndInterface() = runBlocking {
+        disk.updateData { current ->
+            current.toMutablePreferences().also {
+                it[booleanPreferencesKey("motion_artwork_enabled")] = true
+                it[booleanPreferencesKey("ui_motion_artwork_enabled")] = false
+            }
+        }
+        val preferences = reopen()
+        assertTrue(preferences.snapshot().motionArtworkEnabled)
+        assertTrue(preferences.interfaceSettings().motionArtworkEnabled)
+    }
+
+    @Test
+    fun oldExplicitMasterOptOutRemainsAuthoritative() = runBlocking {
+        disk.updateData { current ->
+            current.toMutablePreferences().also {
+                it[booleanPreferencesKey("motion_artwork_enabled")] = false
+                it[booleanPreferencesKey("ui_motion_artwork_enabled")] = true
+            }
+        }
+        val preferences = reopen()
+        assertFalse(preferences.snapshot().motionArtworkEnabled)
+        assertFalse(preferences.interfaceSettings().motionArtworkEnabled)
+    }
+
+    @Test
+    fun interfaceOnlyArtworkPreferenceMigratesWithoutLosingOptIn() = runBlocking {
+        disk.updateData { current ->
+            current.toMutablePreferences().also {
+                it[booleanPreferencesKey("ui_motion_artwork_enabled")] = true
+            }
+        }
+        val preferences = reopen()
+        assertTrue(preferences.snapshot().motionArtworkEnabled)
+        assertTrue(preferences.interfaceSettings().motionArtworkEnabled)
+    }
+
+    @Test
+    fun restoredArtworkFlagsAreNormalizedToTheMasterChoice() = runBlocking {
+        val (_, preferences) = open()
+        val enabled = preferences.snapshot().copy(
+            motionArtworkEnabled = true,
+            interfaceSettings = DerbisInterfaceSettings(motionArtworkEnabled = false)
+        )
+        preferences.restoreSnapshot(enabled)
+        assertTrue(reopen().snapshot().motionArtworkEnabled)
+        assertTrue(reopen().interfaceSettings().motionArtworkEnabled)
+
+        preferences.restoreSnapshot(enabled.copy(
+            motionArtworkEnabled = false,
+            interfaceSettings = DerbisInterfaceSettings(motionArtworkEnabled = true)
+        ))
+        assertFalse(reopen().snapshot().motionArtworkEnabled)
+        assertFalse(reopen().interfaceSettings().motionArtworkEnabled)
+    }
 
     @Test
     fun prismConfigurationSurvivesSkinSwitchAndStoreRecreation() {

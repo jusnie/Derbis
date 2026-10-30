@@ -1,22 +1,9 @@
 package com.yasuda.derbis.ui.lyrics.spicy
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,40 +12,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
-import androidx.compose.material.icons.rounded.Timer
-import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,197 +38,35 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import com.yasuda.derbis.data.KanjiFurigana
-import com.yasuda.derbis.ui.lyrics.FuriganaRubyLine
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
 import com.yasuda.derbis.domain.LyricLine
-import com.yasuda.derbis.domain.LyricWord
 import com.yasuda.derbis.domain.Track
-import com.yasuda.derbis.viewmodel.DerbisUiState
-import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.centerLyricsItem
+import com.yasuda.derbis.ui.components.DerbisIonicons
+import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.lyricsSyncCopy
-import com.yasuda.derbis.ui.lyrics.activeLyricIndex
+import com.yasuda.derbis.ui.lyrics.LYRICS_SHARE_MAX_LINES
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
 import com.yasuda.derbis.ui.lyrics.rememberLyricsPlaybackClock
 import com.yasuda.derbis.ui.lyrics.toggleLyricsShareSelection
-import com.yasuda.derbis.ui.theme.DerbisMotion
+import com.yasuda.derbis.ui.theme.OutfitFont
+import com.yasuda.derbis.viewmodel.DerbisUiState
 import kotlinx.coroutines.delay
 
-private const val SPICY_SHARE_MAX_LINES = 5
-
-val SpicyGradientBrush: Brush = Brush.horizontalGradient(
-    listOf(
-        Color(0xFFFF2A68),
-        Color(0xFFFF5E3A),
-        Color(0xFFFF9500)
-    )
-)
-
-val SpicyFlameColor: Color = Color(0xFFFF4500)
-val SpicyAccentCoral: Color = Color(0xFFFF2A68)
-val SpicyAccentGold: Color = Color(0xFFFF9500)
-
-/**
- * Spicy Lyrics Brand Badge: distinctive fiery pill highlighting the Spicy renderer.
- */
-@Composable
-fun SpicyBrandBadge(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(99.dp))
-            .background(
-                Brush.horizontalGradient(
-                    listOf(
-                        Color(0xFFFF2A68),
-                        Color(0xFFFF6200)
-                    )
-                )
-            )
-            .padding(horizontal = 9.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Whatshot,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(12.dp)
-        )
-        Text(
-            text = "SPICY",
-            color = Color.White,
-            fontSize = 9.5.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.1.sp
-        )
-    }
-}
-
-/**
- * Immersive dynamic ambient mesh backdrop for Spicy Lyrics.
- * Combines obsidian deeps with warm spicy ember blooms and track cover highlights.
- */
-@Composable
-fun SpicyLyricsBackdrop(
-    track: Track?,
-    accentStart: Color,
-    accentEnd: Color,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFF09090E))
-    ) {
-        val artworkUrl = track?.largeThumbnailUrl?.ifBlank { track.thumbnailUrl }.orEmpty()
-        if (artworkUrl.isNotBlank()) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(artworkUrl)
-                    .build(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(64.dp)
-                    .graphicsLayer { alpha = 0.22f }
-            )
-        }
-
-        // Primary vibrant fiery orb (top-left)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            SpicyAccentCoral.copy(alpha = 0.36f),
-                            Color.Transparent
-                        ),
-                        center = Offset(180f, 280f),
-                        radius = 820f
-                    )
-                )
-        )
-
-        // Secondary track-accent orb (bottom-right)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            accentStart.copy(alpha = 0.32f),
-                            accentEnd.copy(alpha = 0.18f),
-                            Color.Transparent
-                        ),
-                        center = Offset(840f, 1300f),
-                        radius = 960f
-                    )
-                )
-        )
-
-        // Ember warm glow (center-bottom)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            SpicyAccentGold.copy(alpha = 0.22f),
-                            Color.Transparent
-                        ),
-                        center = Offset(500f, 950f),
-                        radius = 700f
-                    )
-                )
-        )
-
-        // Contrast vignette ensuring maximum lyric legibility
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color(0xFF09090E).copy(alpha = 0.45f),
-                        0.48f to Color.Transparent,
-                        1f to Color(0xFF09090E).copy(alpha = 0.78f)
-                    )
-                )
-        )
-    }
-}
-
-/**
- * Spicy Fullscreen Lyrics: Bold typography, active verse magnification (1.16x),
- * progressive depth blur on past/upcoming verses, dynamic fiery glow, and fluid auto-scroll.
- */
 @Composable
 fun SpicyFullscreenLyrics(
     state: DerbisUiState,
@@ -271,6 +80,7 @@ fun SpicyFullscreenLyrics(
     onShareLyrics: (List<LyricLine>) -> Unit,
     onOpenQueue: () -> Unit,
     onOpenOptions: () -> Unit,
+    onClose: () -> Unit,
     lyricsOffsetMs: Long,
     showTranslation: Boolean,
     showRomanization: Boolean,
@@ -281,8 +91,7 @@ fun SpicyFullscreenLyrics(
     val strings = LocalDerbisStrings.current
     val track = state.currentTrack
     val lyrics = state.lyrics
-    val listState = rememberLazyListState()
-
+    val listState = key(track?.id) { rememberLazyListState() }
     val clock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
@@ -290,808 +99,285 @@ fun SpicyFullscreenLyrics(
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = state.lyricsSynced && state.animationsEnabled
     )
-
     val latestLyricsOffsetMs by rememberUpdatedState(lyricsOffsetMs)
-    val activeIndex by remember(lyrics, state.lyricsSynced, clock) {
-        derivedStateOf {
-            if (state.lyricsSynced) {
-                activeLyricIndex(lyricsOffsetPosition(clock.positionMs, latestLyricsOffsetMs), lyrics)
-            } else {
-                -1
-            }
-        }
+    val lyricPositionProvider: () -> Long = remember(clock) {
+        { lyricsOffsetPosition(clock.positionMs, latestLyricsOffsetMs) }
     }
-
-    LaunchedEffect(activeIndex, lyrics.size) {
-        if (activeIndex >= 0 && lyrics.isNotEmpty()) {
-            centerLyricsItem(
-                listState = listState,
-                index = activeIndex,
-                animate = state.animationsEnabled,
-                anchorFraction = 0.36f
-            )
-        }
+    val audioPositionProvider: () -> Long = remember(clock) { { clock.positionMs } }
+    val activeIndex by remember(lyrics, state.lyricsSynced, lyricPositionProvider) {
+        derivedStateOf { spicyFocusedLyricIndex(lyricPositionProvider(), lyrics, state.lyricsSynced) }
     }
-
-    var showCluster by rememberSaveable(track?.id) { mutableStateOf(true) }
-    var interactionTick by remember(track?.id) { mutableIntStateOf(0) }
-    LaunchedEffect(showCluster, interactionTick) {
-        if (showCluster) {
-            delay(8_000L)
-            showCluster = false
-        }
-    }
-    val wakeCluster: () -> Unit = {
-        showCluster = true
-        interactionTick++
-    }
-    val scrollWakesCluster = remember {
+    var selectionMode by rememberSaveable(track?.id) { mutableStateOf(false) }
+    var shareRange by remember(track?.id, lyrics) { mutableStateOf<IntRange?>(null) }
+    val selectedLines = remember(lyrics, shareRange) { lyricsShareSelectedLines(shareRange, lyrics) }
+    val canShare = remember(track?.id, lyrics) { track != null && lyrics.any(::isLyricsShareSelectable) }
+    var followingLyrics by rememberSaveable(track?.id) { mutableStateOf(true) }
+    var scrollGeneration by remember(track?.id) { mutableIntStateOf(0) }
+    val scrollConnection = remember(track?.id) {
         object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y != 0f) wakeCluster()
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && consumed.y != 0f) {
+                    followingLyrics = false
+                    scrollGeneration++
+                }
                 return Offset.Zero
             }
         }
     }
-
-    var dragProgress by remember(track?.id) { mutableStateOf<Float?>(null) }
-    val progress = if (state.durationMs > 0L) {
-        (state.positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
+    LaunchedEffect(scrollGeneration, listState.isScrollInProgress, selectionMode, followingLyrics) {
+        if (!followingLyrics && !listState.isScrollInProgress && !selectionMode) {
+            delay(5_000L)
+            followingLyrics = true
+        }
     }
-    val shownProgress = dragProgress ?: progress
-    val shownPosition = (state.durationMs * shownProgress).toLong()
-
-    var imageShareSelectionMode by rememberSaveable(track?.id) { mutableStateOf(false) }
-    var imageShareRange by remember(track?.id, lyrics) { mutableStateOf<IntRange?>(null) }
-    val selectedImageShareLines = remember(lyrics, imageShareRange) {
-        lyricsShareSelectedLines(imageShareRange, lyrics)
+    LaunchedEffect(track?.id, activeIndex, lyrics.size, followingLyrics, selectionMode) {
+        if (activeIndex >= 0 && followingLyrics && !selectionMode) {
+            centerLyricsItem(listState, activeIndex, state.animationsEnabled, anchorFraction = 0.38f)
+        }
     }
-    fun beginImageShareSelection() {
-        imageShareSelectionMode = true
-        imageShareRange = activeIndex
-            .takeIf { index -> lyrics.getOrNull(index)?.let(::isLyricsShareSelectable) == true }
-            ?.let { index -> toggleLyricsShareSelection(null, index, lyrics) }
+    fun beginSelection() {
+        selectionMode = true
+        shareRange = activeIndex
+            .takeIf { lyrics.getOrNull(it)?.let(::isLyricsShareSelectable) == true }
+            ?.let { toggleLyricsShareSelection(null, it, lyrics) }
+    }
+    fun finishSelection() {
+        selectionMode = false
+        shareRange = null
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) {
-                showCluster = !showCluster
-                interactionTick++
-            }
-    ) {
-        // Dynamic Backdrop
-        SpicyLyricsBackdrop(
-            track = track,
-            accentStart = accentStart,
-            accentEnd = accentEnd
-        )
-
-        Column(
+    Box(Modifier.fillMaxSize()) {
+        SpicyLyricsBackdrop(accentStart, accentEnd)
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(top = if (imageShareSelectionMode) 44.dp else 0.dp)
+                .navigationBarsPadding(),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            val compact = maxHeight < 480.dp
+            val wideDock = compact && maxWidth >= 600.dp
+            Column(
+                Modifier
+                    .widthIn(max = 840.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = if (wideDock) 24.dp else 16.dp)
             ) {
-                if (track != null) {
-                    val thumbUrl = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl }
-                    AsyncImage(
-                        model = thumbUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(12.dp))
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = track?.title ?: strings.lyrics,
-                            color = Color.White,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                        SpicyBrandBadge()
-                    }
+                SpicyTrackHeader(
+                    track = track,
+                    favorite = track?.id in state.favoriteIds,
+                    compact = wideDock,
+                    selectionMode = selectionMode,
+                    onFavorite = { track?.let(onToggleFavorite) },
+                    onOptions = onOpenOptions,
+                    onClose = { if (selectionMode) finishSelection() else onClose() }
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 7.dp, end = 8.dp, top = if (compact) 2.dp else 14.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = track?.artist.orEmpty(),
-                        color = Color.White.copy(alpha = 0.70f),
-                        fontSize = 13.sp,
+                        text = when {
+                            selectionMode -> strings.selectVerses
+                            calibrateMode -> lyricsSyncCopy(strings.code).title
+                            else -> strings.lyrics
+                        },
+                        color = SpicyAccentGold,
+                        fontFamily = OutfitFont,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = if (selectionMode) "${selectedLines.size}/$LYRICS_SHARE_MAX_LINES ${strings.linesLabel}"
+                            else if (activeIndex >= 0) "${(activeIndex + 1).toString().padStart(2, '0')} / ${lyrics.size.toString().padStart(2, '0')}"
+                            else if (state.lyricsSynced) strings.lyricsSyncedStatus else strings.lyricsUnsyncedStatus,
+                        color = SpicyMuted,
+                        fontFamily = if (activeIndex >= 0 && !selectionMode) FontFamily.Monospace else OutfitFont,
+                        fontSize = 11.sp,
+                        modifier = Modifier.widthIn(max = 180.dp)
                     )
                 }
-
-                IconButton(
-                    onClick = {
-                        wakeCluster()
-                        track?.let(onToggleFavorite)
-                    },
-                    enabled = track != null
-                ) {
-                    Icon(
-                        imageVector = if (track?.id in state.favoriteIds) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = strings.favorite,
-                        tint = if (track?.id in state.favoriteIds) SpicyAccentCoral else Color.White,
-                        modifier = Modifier.size(23.dp)
-                    )
-                }
-
-                IconButton(onClick = { wakeCluster(); onOpenOptions() }) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = strings.options,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            // Lyric Verses List
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .nestedScroll(scrollWakesCluster)
-            ) {
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = if (imageShareSelectionMode) 20.dp else 36.dp,
-                        bottom = if (imageShareSelectionMode) 100.dp else 36.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(28.dp)
-                ) {
+                Spacer(Modifier.fillMaxWidth().height(1.dp).background(SpicyPaper.copy(alpha = 0.07f)))
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    val listHeight = maxHeight
                     if (lyrics.isEmpty()) {
-                        item {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Icon(DerbisIonicons.Lyrics, null, Modifier.size(30.dp), tint = SpicyAccentCoral)
                             Text(
                                 text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
-                                color = Color.White.copy(alpha = 0.58f),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Black
+                                color = SpicyMuted,
+                                fontFamily = OutfitFont,
+                                fontSize = 18.sp
                             )
                         }
                     } else {
-                        itemsIndexed(
-                            lyrics,
-                            key = { index, line -> "spicy-lyrics-${line.startMs}-${line.role}-$index" }
-                        ) { index, line ->
-                            val isLineActive = !imageShareSelectionMode && index == activeIndex
-                            val imageShareSelected = imageShareRange?.contains(index) == true && isLyricsShareSelectable(line)
-                            val imageSelectionActive = imageShareSelectionMode && imageShareSelected
-
-                            SpicyLyricLineRow(
-                                line = line,
-                                isActive = isLineActive,
-                                isImageSelection = imageSelectionActive,
-                                playbackPositionMs = lyricsOffsetPosition(clock.positionMs, latestLyricsOffsetMs),
-                                showRomanization = showRomanization,
-                                showTranslation = showTranslation,
-                                showFurigana = showFurigana,
-                                accentColor = accentEnd,
-                                animationsEnabled = state.animationsEnabled,
-                                onClick = {
-                                    wakeCluster()
-                                    when {
-                                        imageShareSelectionMode -> {
-                                            if (isLyricsShareSelectable(line)) {
-                                                imageShareRange = toggleLyricsShareSelection(imageShareRange, index, lyrics)
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize().nestedScroll(scrollConnection),
+                            contentPadding = PaddingValues(
+                                top = (listHeight * 0.15f).coerceIn(12.dp, 72.dp),
+                                bottom = (listHeight * 0.60f).coerceAtLeast(64.dp)
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+                        ) {
+                            itemsIndexed(lyrics, key = { index, line -> "spicy-${line.startMs}-${line.role}-$index" }) { index, line ->
+                                val selectable = isLyricsShareSelectable(line)
+                                SpicyVerseCard(
+                                    line = line,
+                                    lineNumber = index + 1,
+                                    isActive = !selectionMode && index == activeIndex,
+                                    isPast = activeIndex >= 0 && index < activeIndex,
+                                    isSelected = shareRange?.contains(index) == true && selectable,
+                                    selectionMode = selectionMode,
+                                    positionProvider = lyricPositionProvider,
+                                    synced = state.lyricsSynced,
+                                    progressiveKaraoke = state.lyricsStudioSettings.progressiveKaraokeEnabled,
+                                    showRomanization = showRomanization,
+                                    showTranslation = showTranslation,
+                                    showFurigana = showFurigana,
+                                    animationsEnabled = state.animationsEnabled,
+                                    compact = compact,
+                                    onClick = if (selectable && (selectionMode || state.lyricsSynced)) {
+                                        {
+                                            when {
+                                                selectionMode -> shareRange = toggleLyricsShareSelection(shareRange, index, lyrics)
+                                                calibrateMode -> onCalibrateLine(line.startMs)
+                                                else -> {
+                                                    followingLyrics = true
+                                                    onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
+                                                }
                                             }
                                         }
-                                        calibrateMode -> onCalibrateLine(line.startMs)
-                                        else -> onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Floating Actions (Share, Queue, Sync)
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = showCluster && !imageShareSelectionMode,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomEnd)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(end = 20.dp, bottom = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        if (track != null && lyrics.any(::isLyricsShareSelectable)) {
-                            SpicyFloatingButton(
-                                icon = Icons.Rounded.Image,
-                                label = if (imageShareSelectionMode) {
-                                    "${selectedImageShareLines.size}/$SPICY_SHARE_MAX_LINES ${strings.linesLabel}"
-                                } else {
-                                    strings.shareLyrics
-                                },
-                                onClick = {
-                                    wakeCluster()
-                                    if (imageShareSelectionMode) {
-                                        imageShareSelectionMode = false
-                                        imageShareRange = null
-                                    } else {
-                                        beginImageShareSelection()
-                                    }
-                                }
-                            )
-                        }
-                        if (state.lyricsSynced) {
-                            SpicyFloatingButton(
-                                icon = Icons.Rounded.Timer,
-                                label = lyricsSyncCopy(strings.code).title,
-                                onClick = { wakeCluster(); onOpenOptions() }
-                            )
-                        }
-                        SpicyFloatingButton(
-                            icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                            label = strings.queue,
-                            onClick = { wakeCluster(); onOpenQueue() }
-                        )
-                    }
-                }
-
-                // Share Sheet Continue Button
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = imageShareSelectionMode,
-                    enter = fadeIn() + slideInVertically { it / 2 },
-                    exit = fadeOut() + slideOutVertically { it / 2 },
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 20.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            onShareLyrics(selectedImageShareLines)
-                            imageShareSelectionMode = false
-                            imageShareRange = null
-                        },
-                        enabled = selectedImageShareLines.isNotEmpty(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SpicyAccentCoral,
-                            contentColor = Color.White,
-                            disabledContainerColor = SpicyAccentCoral.copy(alpha = 0.34f),
-                            disabledContentColor = Color.White.copy(alpha = 0.55f)
-                        ),
-                        shape = RoundedCornerShape(28.dp),
-                        modifier = Modifier
-                            .height(56.dp)
-                            .widthIn(min = 180.dp)
-                    ) {
-                        Text(
-                            text = strings.shareLyricsContinue,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // Idle Progress Strip
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = !showCluster && !imageShareSelectionMode,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 32.dp, end = 32.dp, bottom = 22.dp)
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Slider(
-                                value = shownProgress,
-                                onValueChange = { dragProgress = it },
-                                onValueChangeFinished = {
-                                    dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
-                                    dragProgress = null
-                                },
-                                enabled = state.durationMs > 0L,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = SpicyAccentCoral,
-                                    activeTrackColor = SpicyAccentCoral,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.25f)
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(24.dp)
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = formatSpicySeekMillis(shownPosition),
-                                    color = Color.White.copy(alpha = 0.72f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = if (state.durationMs > 0L) formatSpicySeekMillis(state.durationMs) else "--:--",
-                                    color = Color.White.copy(alpha = 0.72f),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
+                                    } else null
                                 )
                             }
                         }
                     }
+                    if (!followingLyrics && !selectionMode && state.lyricsSynced) {
+                        OutlinedButton(
+                            onClick = { followingLyrics = true },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = SpicySurface, contentColor = SpicyPaper),
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp).height(48.dp)
+                        ) {
+                            Icon(SpicyLyricsIcons.Focus, null, Modifier.size(18.dp), tint = SpicyAccentCoral)
+                            Text(strings.spicyLyricsBackToLive, fontFamily = OutfitFont, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
                 }
-            }
-
-            // Expanded Bottom Playback Cluster
-            AnimatedVisibility(
-                visible = showCluster && !imageShareSelectionMode,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 6.dp, bottom = 14.dp)
-                ) {
-                    Slider(
-                        value = shownProgress,
-                        onValueChange = {
-                            dragProgress = it
-                            wakeCluster()
-                        },
-                        onValueChangeFinished = {
-                            dragProgress?.let { onSeekToMs((state.durationMs * it).toLong()) }
-                            dragProgress = null
-                            wakeCluster()
-                        },
-                        enabled = state.durationMs > 0L,
-                        colors = SliderDefaults.colors(
-                            thumbColor = SpicyAccentCoral,
-                            activeTrackColor = SpicyAccentCoral,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.28f)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(28.dp)
+                if (selectionMode) {
+                    Button(
+                        onClick = { onShareLyrics(selectedLines); finishSelection() },
+                        enabled = selectedLines.isNotEmpty(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SpicyAccentCoral, contentColor = SpicyInk),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).height(52.dp)
+                    ) {
+                        Text(strings.shareLyricsContinue, fontFamily = OutfitFont, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    SpicyPlaybackDock(
+                        trackKey = track?.id.orEmpty(),
+                        durationMs = state.durationMs,
+                        positionProvider = audioPositionProvider,
+                        isPlaying = state.isPlaying,
+                        compact = wideDock,
+                        shareEnabled = canShare,
+                        onSeekToMs = onSeekToMs,
+                        onPrevious = onPrevious,
+                        onTogglePlay = onTogglePlay,
+                        onNext = onNext,
+                        onOpenQueue = onOpenQueue,
+                        onShare = { beginSelection() },
+                        modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = formatSpicySeekMillis(shownPosition),
-                            color = Color.White.copy(alpha = 0.75f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = if (state.durationMs > 0L) formatSpicySeekMillis(state.durationMs) else "--:--",
-                            color = Color.White.copy(alpha = 0.75f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { wakeCluster(); onPrevious() },
-                            modifier = Modifier.size(52.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.SkipPrevious,
-                                contentDescription = strings.previous,
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(SpicyGradientBrush)
-                                .clickable { wakeCluster(); onTogglePlay() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = if (state.isPlaying) strings.pause else strings.play,
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { wakeCluster(); onNext() },
-                            modifier = Modifier.size(52.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.SkipNext,
-                                contentDescription = strings.next,
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
                 }
             }
         }
     }
 }
 
-/**
- * Individual Lyric Verse in Spicy Lyrics style:
- * Active: 1.16x magnification, bold black font, pure white text with dynamic glowing shadow.
- * Inactive: 0.92x scale, dimmed opacity (0.32f), progressive depth blur (2.5.dp).
- */
 @Composable
-fun SpicyLyricLineRow(
-    line: LyricLine,
-    isActive: Boolean,
-    isImageSelection: Boolean,
-    playbackPositionMs: Long,
-    showRomanization: Boolean,
-    showTranslation: Boolean,
-    showFurigana: Boolean = true,
-    accentColor: Color,
-    animationsEnabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun SpicyTrackHeader(
+    track: Track?,
+    favorite: Boolean,
+    compact: Boolean,
+    selectionMode: Boolean,
+    onFavorite: () -> Unit,
+    onOptions: () -> Unit,
+    onClose: () -> Unit
 ) {
-    val lineScale by animateFloatAsState(
-        targetValue = if (isActive) 1.16f else 0.92f,
-        animationSpec = DerbisMotion.spec(animationsEnabled, tween(240, easing = FastOutSlowInEasing)),
-        label = "spicy-scale"
-    )
-
-    val lineAlpha by animateFloatAsState(
-        targetValue = when {
-            isImageSelection -> 1f
-            isActive -> 1f
-            else -> 0.32f
-        },
-        animationSpec = DerbisMotion.spec(animationsEnabled, tween(200)),
-        label = "spicy-alpha"
-    )
-
-    val blurRadius = if (!isActive && !isImageSelection) 2.5.dp else 0.dp
-
-    val glowShadow = if (isActive) {
-        Shadow(
-            color = SpicyAccentCoral.copy(alpha = 0.65f),
-            blurRadius = 22f,
-            offset = Offset(0f, 2f)
-        )
-    } else {
-        Shadow.None
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = lineScale
-                scaleY = lineScale
-                transformOrigin = TransformOrigin(0f, 0.5f)
-                alpha = lineAlpha
-            }
-            .blur(blurRadius)
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (isImageSelection) Color.White.copy(alpha = 0.18f) else Color.Transparent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
-    ) {
-        val hasKanji = remember(line.text) { KanjiFurigana.containsKanji(line.text) }
-        if (hasKanji) {
-            FuriganaRubyLine(
-                lineText = line.text,
-                baseColor = Color.White,
-                rubyColor = Color.White.copy(alpha = 0.85f),
-                fontSize = 28.sp,
-                lineHeight = 35.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.SansSerif,
-                shadow = glowShadow
-            )
-        } else {
-            // High-impact bold verse
+    val strings = LocalDerbisStrings.current
+    val metadata: @Composable (Modifier) -> Unit = { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                text = line.text,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 28.sp,
-                    lineHeight = 35.sp,
-                    fontWeight = FontWeight.Black,
-                    fontFamily = FontFamily.SansSerif,
-                    shadow = glowShadow
-                )
+                text = track?.title ?: strings.lyrics,
+                color = SpicyPaper,
+                fontFamily = OutfitFont,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-        }
-
-        if (showRomanization && line.romanized.isNotBlank()) {
             Text(
-                text = line.romanized,
-                color = Color.White.copy(alpha = 0.72f),
-                fontSize = 15.sp,
-                lineHeight = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 3.dp)
-            )
-        }
-
-        if (showTranslation && line.translated.isNotBlank()) {
-            Text(
-                text = line.translated,
-                color = SpicyAccentGold.copy(alpha = 0.88f),
-                fontSize = 16.sp,
-                lineHeight = 21.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(top = 4.dp)
+                text = track?.artist.orEmpty(),
+                color = SpicyMuted,
+                fontFamily = OutfitFont,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
-}
-
-/**
- * Compact Studio live preview of Spicy Lyrics.
- * Renders the exact same demo verses or live track with Spicy bold typography,
- * verse magnification, depth blur, and fiery accent.
- */
-@Composable
-fun SpicyStudioLivePreview(
-    currentTrack: Track?,
-    previewLines: List<LyricLine>,
-    activeIndex: Int,
-    playbackPositionMs: Long,
-    animationsEnabled: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val accentStart = currentTrack?.let { Color(it.accentStart) } ?: SpicyAccentCoral
-    val accentEnd = currentTrack?.let { Color(it.accentEnd) } ?: SpicyAccentGold
-    val shape = RoundedCornerShape(26.dp)
-
-    val visibleIndices = (activeIndex - 1..activeIndex + 1)
-        .map { it.coerceIn(0, previewLines.lastIndex) }
-        .distinct()
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(230.dp)
-            .clip(shape)
-            .border(1.dp, Color.White.copy(alpha = 0.16f), shape)
-            .background(Color(0xFF09090E))
-    ) {
-        // Spicy radial blooms
+    val artwork: @Composable () -> Unit = {
+        val artworkUrl = track?.largeThumbnailUrl?.ifBlank { track.thumbnailUrl }.orEmpty()
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            SpicyAccentCoral.copy(alpha = 0.40f),
-                            Color.Transparent
-                        ),
-                        center = Offset(140f, 160f),
-                        radius = 420f
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            accentStart.copy(alpha = 0.35f),
-                            Color.Transparent
-                        ),
-                        center = Offset(520f, 480f),
-                        radius = 480f
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.10f),
-                        0.5f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.55f)
-                    )
-                )
-        )
-
-        // Top Preview Header
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 14.dp, top = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier
+                .size(if (compact) 40.dp else 48.dp)
+                .clip(RoundedCornerShape(14.dp, 5.dp, 14.dp, 5.dp))
+                .background(SpicySurface),
+            contentAlignment = Alignment.Center
         ) {
-            val artworkUrl = currentTrack?.largeThumbnailUrl?.ifBlank { currentTrack.thumbnailUrl }.orEmpty()
             if (artworkUrl.isNotBlank()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current).data(artworkUrl).build(),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                )
+                AsyncImage(model = artworkUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             } else {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(SpicyGradientBrush)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Text(
-                        text = currentTrack?.title ?: "Now Playing",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    SpicyBrandBadge()
-                }
-                Text(
-                    text = currentTrack?.artist.orEmpty().ifBlank { "Yasuda Music" },
-                    color = Color.White.copy(alpha = 0.70f),
-                    fontSize = 9.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-
-        // Lyric Verses
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 20.dp, top = 44.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            visibleIndices.forEach { index ->
-                val line = previewLines[index]
-                val isActive = index == activeIndex
-                val lineScale by animateFloatAsState(
-                    targetValue = if (isActive) 1.15f else 0.92f,
-                    animationSpec = DerbisMotion.spec(animationsEnabled, tween(180)),
-                    label = "preview-spicy-scale"
-                )
-                val lineAlpha by animateFloatAsState(
-                    targetValue = if (isActive) 1f else 0.32f,
-                    animationSpec = DerbisMotion.spec(animationsEnabled, tween(180)),
-                    label = "preview-spicy-alpha"
-                )
-
-                Text(
-                    text = line.text,
-                    style = TextStyle(
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        lineHeight = 22.sp,
-                        fontWeight = if (isActive) FontWeight.Black else FontWeight.Bold,
-                        shadow = if (isActive) Shadow(SpicyAccentCoral.copy(alpha = 0.7f), blurRadius = 14f) else Shadow.None
-                    ),
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = lineScale
-                            scaleY = lineScale
-                            transformOrigin = TransformOrigin(0f, 0.5f)
-                            alpha = lineAlpha
-                        }
-                        .blur(if (isActive) 0.dp else 2.dp)
-                )
-            }
-        }
-
-        // Bottom progress bar strip
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.25f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.48f)
-                        .height(2.5.dp)
-                        .background(SpicyGradientBrush)
-                )
+                Icon(DerbisIonicons.Lyrics, null, Modifier.size(22.dp), tint = SpicyAccentCoral)
             }
         }
     }
-}
-
-@Composable
-private fun SpicyFloatingButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.Black.copy(alpha = 0.65f))
-            .border(1.dp, SpicyAccentCoral.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = label,
-            color = Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold
-        )
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        if (!compact) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                SpicyBrandBadge(Modifier.padding(start = 6.dp))
+                Spacer(Modifier.weight(1f))
+                SpicyIconAction(SpicyLyricsIcons.Close, if (selectionMode) strings.cancel else strings.closeLyrics, onClose)
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = if (compact) 0.dp else 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (compact) SpicyBrandBadge()
+            artwork()
+            metadata(Modifier.weight(1f).padding(start = 4.dp))
+            SpicyIconAction(
+                icon = if (favorite) DerbisIonicons.Heart else DerbisIonicons.HeartOutline,
+                label = if (favorite) strings.removeFromFavorites else strings.addToFavorites,
+                onClick = onFavorite,
+                enabled = track != null,
+                selected = favorite
+            )
+            SpicyIconAction(DerbisIonicons.Equalizer, strings.options, onOptions)
+            if (compact) SpicyIconAction(SpicyLyricsIcons.Close, if (selectionMode) strings.cancel else strings.closeLyrics, onClose)
+        }
     }
-}
-
-private fun formatSpicySeekMillis(ms: Long): String {
-    val totalSeconds = (ms / 1000).coerceAtLeast(0)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%02d:%02d", minutes, seconds)
 }

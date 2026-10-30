@@ -574,7 +574,8 @@ internal fun shouldContinueMotionPrefetch(
 internal fun shouldRefreshMotionArtworkOwnership(
     previous: DerbisInterfaceSettings,
     next: DerbisInterfaceSettings
-): Boolean = previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly ||
+): Boolean = previous.motionArtworkEnabled != next.motionArtworkEnabled ||
+    previous.motionArtworkWifiOnly != next.motionArtworkWifiOnly ||
     previous.dataSaverEnabled != next.dataSaverEnabled
 
 internal fun resumeStartPositionMs(pendingSeekMs: Long, durationMs: Long): Long =
@@ -1631,7 +1632,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             startupSettings.interfaceSettings.motionArtworkWifiOnly || startupSettings.interfaceSettings.dataSaverEnabled
         )
         com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(
-            startupSettings.interfaceSettings.motionArtworkEnabled
+            startupSettings.motionArtworkEnabled
         )
         viewModelScope.launch(Dispatchers.IO) {
             applyAutomationSettings(startupSettings.automationSettings, persist = false)
@@ -5753,27 +5754,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setMotionArtworkEnabled(value: Boolean) {
-        // Canvas is a deliberate opt-in. Turning it off clears every resolved loop immediately;
-        // turning it on resolves only provider-supplied artwork and always falls back to the cover.
-        _state.update {
-            it.copy(
-                motionArtworkEnabled = value,
-                motionArtwork = if (value) it.motionArtwork else null,
-                motionArtworkLoading = value && it.motionArtworkLoading,
-                artistMotionArtwork = if (value) it.artistMotionArtwork else null,
-                albumMotionArtwork = if (value) it.albumMotionArtwork else null
-            )
-        }
-        viewModelScope.launch { preferences.setMotionArtworkEnabled(value) }
-        if (value && _state.value.animationsEnabled) {
-            _state.value.currentTrack?.let(::refreshMotionArtworkAround)
-            refreshPageMotionArtwork()
-        } else {
-            motionArtworkJob?.cancel()
-            motionArtworkRequestKey = null
-            motionArtworkPrefetchJob?.cancel()
-            cancelPageMotion()
-        }
+        setInterfaceSettings(_state.value.interfaceSettings.copy(motionArtworkEnabled = value))
     }
 
     fun setDynamicColor(value: Boolean) {
@@ -5792,7 +5773,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             normalized.motionArtworkEnabled
         )
         DerbisTypographyController.apply(normalized.fontPreset)
-        _state.update { it.copy(interfaceSettings = normalized) }
+        _state.update {
+            it.copy(
+                interfaceSettings = normalized,
+                motionArtworkEnabled = normalized.motionArtworkEnabled
+            )
+        }
         if (!previous.blockAiContent && normalized.blockAiContent &&
             _state.value.currentTrack?.let(AiContentFilter::blocks) == true
         ) {
@@ -6191,7 +6177,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             snapshot.interfaceSettings.motionArtworkWifiOnly || snapshot.interfaceSettings.dataSaverEnabled
         )
         com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(
-            snapshot.interfaceSettings.motionArtworkEnabled
+            snapshot.motionArtworkEnabled
         )
         _state.update {
             it.copy(

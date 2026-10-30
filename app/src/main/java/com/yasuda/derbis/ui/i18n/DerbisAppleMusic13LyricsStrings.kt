@@ -9,7 +9,10 @@ internal val appleMusic13LyricsKeys: Set<String> = setOf(
     "lyricsRendererSpicy",
     "lyricsRendererSpicyDesc",
     "lyricsRendererPreviewTitle",
-    "lyricsRendererPreviewSubtitle"
+    "lyricsRendererPreviewSubtitle",
+    "lyricsRendererCompare",
+    "lyricsRendererSelectedStyle",
+    "spicyLyricsBackToLive"
 )
 
 private val appleMusic13LyricsBundles: Map<String, Map<String, String>> = mapOf(
@@ -19,9 +22,12 @@ private val appleMusic13LyricsBundles: Map<String, Map<String, String>> = mapOf(
         "lyricsRendererDefault" to "Default",
         "lyricsRendererDefaultDesc" to "Apple Music 13 style · Liquid Glass aesthetic, real-time karaoke highlight and kinetic swipe-up transitions.",
         "lyricsRendererSpicy" to "Spicy",
-        "lyricsRendererSpicyDesc" to "Spicy Lyrics style · Bold typography, active verse magnification, progressive depth blur and dynamic fiery glow.",
+        "lyricsRendererSpicyDesc" to "Derbis original · Ink-dark stage, numbered verse cards, warm word highlights and a sculpted playback dock.",
         "lyricsRendererPreviewTitle" to "Live Preview",
-        "lyricsRendererPreviewSubtitle" to "Synchronized real-time preview of your selected lyrics style."
+        "lyricsRendererPreviewSubtitle" to "Synchronized real-time preview of your selected lyrics style.",
+        "lyricsRendererCompare" to "Compare styles",
+        "lyricsRendererSelectedStyle" to "Selected style",
+        "spicyLyricsBackToLive" to "Back to live"
     )
 )
 

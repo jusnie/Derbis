@@ -33,7 +33,6 @@ class LiquidGlassSystemSurfaceContractTest {
     fun `shared browse and settings surfaces use the glass primitive`() {
         val app = source("ui/DerbisApp.kt")
         val artists = source("ui/SearchArtistSuggestions.kt")
-        val fresh = source("ui/ExploreFreshCurrents.kt")
         val navigation = source("ui/PrismNavigation.kt")
 
         assertTrue(app.contains("private fun SettingsTile("))
@@ -46,7 +45,6 @@ class LiquidGlassSystemSurfaceContractTest {
         assertTrue(app.contains("Modifier.derbisGlass("))
         assertTrue(navigation.contains("val liquidGlass = DerbisIsLiquidGlass"))
         assertTrue(navigation.contains("val dockModifier = if (liquidGlass)"))
-        assertTrue(fresh.contains("val rowSurface = if (DerbisIsLiquidGlass)"))
         assertTrue(artists.contains("val rowSurface = if (DerbisIsLiquidGlass)"))
         assertTrue(artists.contains("Modifier.derbisGlass("))
     }

@@ -1,0 +1,101 @@
+name: Validate Derbis 1.5.0 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/validation-1.5.0
+
+permissions:
+  contents: read
+
+concurrency:
+  group: derbis-apk-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DERBIS_VERSION_NAME: "1.5.0"
+  DERBIS_VERSION_CODE: "3000210"
+
+jobs:
+  test-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-37" "build-tools;36.0.0" \
+            "ndk;28.2.13676358" "cmake;3.22.1"
+          chmod +x gradlew
+
+      - name: Fetch owner-authorized optional Discord SDK
+        env:
+          DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${DISCORD_SOCIAL_SDK_URL}" ]]; then
+            [[ "${DISCORD_SOCIAL_SDK_URL}" == https://* ]] || { echo "Discord SDK URL must use HTTPS"; exit 1; }
+            mkdir -p app/libs
+            curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --retry 2 \
+              --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}"
+            unzip -tq app/libs/discord_partner_sdk.aar
+          else
+            echo "No optional Discord SDK configured; Discord must remain unavailable in this test build."
+          fi
+
+      - name: Run focused source regression checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          for suite in \
+            test_motion_artwork_opt_in_contract.py test_spicy_lyrics_contract.py \
+            test_beat_sync_deck_contract.py test_fresh_currents_removal_contract.py \
+            test_lyrics_search_mode_contract.py test_lyrics_strict_results_contract.py \
+            test_lyrics_studio_spacing_contract.py test_discord_oauth_cast_contract.py \
+            test_discord_clickable_presence_contract.py test_build_150_contract.py; do
+            python3 -m unittest discover -s scripts/tests -p "${suite}" -q
+          done
+
+      - name: Test and build installable Debug APK
+        run: |
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace \
+            -PderbisVersionName="${DERBIS_VERSION_NAME}" \
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}"
+
+      - name: Verify test package identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          [[ -s "${apk}" ]]
+          "${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging "${apk}" | \
+            grep -F "package: name='com.derbis.app.debug' versionCode='${DERBIS_VERSION_CODE}' versionName='${DERBIS_VERSION_NAME}-debug'"
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Derbis-1.5.0-test-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload unit-test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Derbis-1.5.0-test-reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
