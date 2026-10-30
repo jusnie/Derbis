@@ -40,3 +40,14 @@
 }
 
 -keep class io.github.dovecoteescapee.byedpi.core.** { *; }
+
+# Preserve all native JNI methods and their enclosing classes from renaming or removal
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+
+# Preserve Discord Rich Presence engine and optional proprietary partner SDK
+-keep class com.yasuda.derbis.feature.discord.** { *; }
+-keep class com.discord.socialsdk.** { *; }
+-dontwarn com.discord.socialsdk.**
+

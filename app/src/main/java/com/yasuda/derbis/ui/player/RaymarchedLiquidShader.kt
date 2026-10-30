@@ -51,7 +51,6 @@ uniform float uTime;
 uniform float uBass;
 uniform float uMid;
 uniform float uTreble;
-uniform float uEnergy;
 layout(color) uniform half4 uBase;
 layout(color) uniform half4 uPrimary;
 layout(color) uniform half4 uSecondary;
@@ -251,26 +250,32 @@ internal fun RaymarchedLiquidBackdrop(
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        val shader = remember { createRaymarchedLiquidShader() }
-        if (shader != null) {
-            val brush = remember(shader) { ShaderBrush(shader) }
+        val shaderHolder = remember { AgslLiquidShaderCompat.createShader() }
+        if (shaderHolder != null) {
             Canvas(modifier = modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                if (w <= 0f || h <= 0f) return@Canvas
-
-                shader.setFloatUniform("uResolution", w, h)
-                shader.setFloatUniform("uTime", time)
-                shader.setFloatUniform("uBass", smoothedBass * presence)
-                shader.setFloatUniform("uMid", smoothedMid * presence)
-                shader.setFloatUniform("uTreble", smoothedTreble * presence)
-                shader.setFloatUniform("uEnergy", smoothedEnergy * presence)
-                shader.setColorUniform("uBase", base.value.toArgb())
-                shader.setColorUniform("uPrimary", primary.value.toArgb())
-                shader.setColorUniform("uSecondary", secondary.value.toArgb())
-                shader.setColorUniform("uAccent", accent.value.toArgb())
-
-                drawRect(brush)
+                val rendered = AgslLiquidShaderCompat.render(
+                    scope = this,
+                    holder = shaderHolder,
+                    time = time,
+                    bass = smoothedBass * presence,
+                    mid = smoothedMid * presence,
+                    treble = smoothedTreble * presence,
+                    baseColor = base.value.toArgb(),
+                    primaryColor = primary.value.toArgb(),
+                    secondaryColor = secondary.value.toArgb(),
+                    accentColor = accent.value.toArgb()
+                )
+                if (!rendered) {
+                    drawProceduralLiquidFallback(
+                        primary = primary.value,
+                        secondary = secondary.value,
+                        accent = accent.value,
+                        base = base.value,
+                        time = time,
+                        bass = smoothedBass * presence,
+                        mid = smoothedMid * presence
+                    )
+                }
             }
             return
         }
@@ -294,10 +299,54 @@ internal fun RaymarchedLiquidBackdrop(
     )
 }
 
+/**
+ * Isolated AGSL runtime shader compatibility wrapper for Android 13+ (API 33).
+ * Keeping [RuntimeShader] references isolated within this class prevents ART
+ * class verification errors ([NoClassDefFoundError]) on Android 8-12 (API 26-32).
+ */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-private fun createRaymarchedLiquidShader(): RuntimeShader? = runCatching {
-    RuntimeShader(RAYMARCHED_LIQUID_AGSL)
-}.getOrNull()
+private object AgslLiquidShaderCompat {
+    class ShaderHolder(
+        val shader: RuntimeShader,
+        val brush: ShaderBrush
+    )
+
+    fun createShader(): ShaderHolder? = runCatching {
+        val shader = RuntimeShader(RAYMARCHED_LIQUID_AGSL)
+        val brush = ShaderBrush(shader)
+        ShaderHolder(shader, brush)
+    }.getOrNull()
+
+    fun render(
+        scope: DrawScope,
+        holder: ShaderHolder,
+        time: Float,
+        bass: Float,
+        mid: Float,
+        treble: Float,
+        baseColor: Int,
+        primaryColor: Int,
+        secondaryColor: Int,
+        accentColor: Int
+    ): Boolean = runCatching {
+        val w = scope.size.width
+        val h = scope.size.height
+        if (w <= 0f || h <= 0f) return@runCatching false
+
+        holder.shader.setFloatUniform("uResolution", w, h)
+        holder.shader.setFloatUniform("uTime", time)
+        holder.shader.setFloatUniform("uBass", bass)
+        holder.shader.setFloatUniform("uMid", mid)
+        holder.shader.setFloatUniform("uTreble", treble)
+        holder.shader.setColorUniform("uBase", baseColor)
+        holder.shader.setColorUniform("uPrimary", primaryColor)
+        holder.shader.setColorUniform("uSecondary", secondaryColor)
+        holder.shader.setColorUniform("uAccent", accentColor)
+
+        scope.drawRect(holder.brush)
+        true
+    }.getOrDefault(false)
+}
 
 internal data class LiquidAudioSignal(
     val bass: Float,

@@ -193,16 +193,18 @@ object DerbisDiscordRichPresence {
             }
         }
 
-        // Try native bridge if configured
-        if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L && loadBridge()) {
-            if (!initialized) {
-                initialized = nativeInitialize(applicationId)
+        // Only restore native bridge if the user specifically saved a native refresh token
+        if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L && savedSession != null && savedSession.refreshToken.isNotBlank()) {
+            if (loadBridge()) {
+                if (!initialized) {
+                    initialized = runCatching { nativeInitialize(applicationId) }.getOrDefault(false)
+                }
+                if (initialized && !restoreAttempted) {
+                    restoreAttempted = true
+                    runCatching { nativeRestoreSession(savedSession.refreshToken) }
+                }
+                ensureStatePolling()
             }
-            if (savedSession != null && savedSession.refreshToken.isNotBlank() && !restoreAttempted) {
-                restoreAttempted = true
-                nativeRestoreSession(savedSession.refreshToken)
-            }
-            ensureStatePolling()
         }
     }
 
@@ -265,23 +267,29 @@ object DerbisDiscordRichPresence {
 
     fun beginSignIn(context: Context) {
         initialize(context)
-        if (loadBridge() && nativeBeginSignIn()) {
-            _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
-            ensureStatePolling()
-        } else {
-            // Provide feedback for manual token or web flow
-            _connectionState.value = DerbisDiscordConnectionState(
-                DerbisDiscordConnectionStatus.Disconnected,
-                "Enter your Discord token or log in below"
-            )
+        if (loadBridge()) {
+            if (!initialized) {
+                initialized = runCatching { nativeInitialize(applicationId) }.getOrDefault(false)
+            }
+            if (initialized && runCatching { nativeBeginSignIn() }.getOrDefault(false)) {
+                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
+                ensureStatePolling()
+                return
+            }
         }
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Disconnected,
+            "Enter your Discord token or log in below"
+        )
     }
 
     fun disconnect(context: Context) {
         setEnabled(context, false)
         DerbisDiscordAccountStore.clear(context)
         DiscordRpcClient.disconnect()
-        if (loadBridge()) nativeDisconnect()
+        if (loadBridge()) {
+            runCatching { nativeDisconnect() }
+        }
         restoreAttempted = false
         _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
     }
@@ -323,7 +331,9 @@ object DerbisDiscordRichPresence {
 
     fun clear() {
         DiscordRpcClient.clearPresence()
-        if (nativePresenceActive && loadBridge()) nativeClear()
+        if (nativePresenceActive && loadBridge()) {
+            runCatching { nativeClear() }
+        }
         nativePresenceActive = false
         lastPublishedPresenceKey = ""
     }
@@ -333,7 +343,9 @@ object DerbisDiscordRichPresence {
         statePollingJob = null
         clear()
         DiscordRpcClient.disconnect()
-        if (loadBridge()) nativeRelease()
+        if (loadBridge()) {
+            runCatching { nativeRelease() }
+        }
         initialized = false
         restoreAttempted = false
     }
@@ -351,15 +363,19 @@ object DerbisDiscordRichPresence {
         val startedAtEpochSeconds = (
             System.currentTimeMillis() - presence.positionMs.coerceAtLeast(0L)
         ).coerceAtLeast(0L) / 1_000L
-        nativeUpdate(
-            title = presence.title,
-            artist = presence.artist,
-            artworkUrl = presence.artworkUrl,
-            startedAtEpochSeconds = startedAtEpochSeconds,
-            playing = presence.playing
-        )
-        nativePresenceActive = true
-        lastPublishedPresenceKey = presence.syncKey
+        runCatching {
+            nativeUpdate(
+                title = presence.title,
+                artist = presence.artist,
+                artworkUrl = presence.artworkUrl,
+                startedAtEpochSeconds = startedAtEpochSeconds,
+                playing = presence.playing
+            )
+            nativePresenceActive = true
+            lastPublishedPresenceKey = presence.syncKey
+        }.onFailure {
+            Timber.w(it, "Discord native presence update failed")
+        }
     }
 
     private fun ensureStatePolling() {
@@ -375,7 +391,7 @@ object DerbisDiscordRichPresence {
     private fun synchronizeNativeState(context: Context) {
         if (!initialized || !loadBridge()) return
         val previous = _connectionState.value.status
-        val nativeStatus = nativeConnectionState()
+        val nativeStatus = runCatching { nativeConnectionState() }.getOrDefault(NATIVE_DISCONNECTED)
         when (nativeStatus) {
             NATIVE_DISCONNECTED -> if (!DiscordRpcClient.isConnected) {
                 _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
@@ -383,12 +399,13 @@ object DerbisDiscordRichPresence {
             NATIVE_SIGNING_IN -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
             NATIVE_CONNECTING -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting)
             NATIVE_CONNECTED -> {
-                val accessToken = nativeTakeAccessToken()
-                val refreshToken = nativeTakeRefreshToken()
+                val accessToken = runCatching { nativeTakeAccessToken() }.getOrDefault("")
+                val refreshToken = runCatching { nativeTakeRefreshToken() }.getOrDefault("")
+                val tokenType = runCatching { nativeTakeTokenType() }.getOrDefault(0)
                 if (accessToken.isNotBlank() && refreshToken.isNotBlank()) {
                     DerbisDiscordAccountStore.save(
                         context,
-                        DerbisDiscordSession(accessToken, refreshToken, nativeTakeTokenType())
+                        DerbisDiscordSession(accessToken, refreshToken, tokenType)
                     )
                     DiscordRpcClient.connect(accessToken)
                 }
@@ -396,9 +413,10 @@ object DerbisDiscordRichPresence {
             }
             NATIVE_ERROR -> {
                 if (!DiscordRpcClient.isConnected) {
+                    val err = runCatching { nativeConnectionError() }.getOrDefault("Discord connection failed")
                     _connectionState.value = DerbisDiscordConnectionState(
                         DerbisDiscordConnectionStatus.Error,
-                        nativeConnectionError().ifBlank { "Discord connection failed" }
+                        err.ifBlank { "Discord connection failed" }
                     )
                 }
             }

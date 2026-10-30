@@ -13,9 +13,18 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathNode
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import timber.log.Timber
+
+private fun safeParsePathNodes(rawPath: String): List<PathNode> = runCatching {
+    PathParser().parsePathString(rawPath).toNodes()
+}.getOrElse { error ->
+    Timber.w(error, "Vector path parse error for: %s", rawPath.take(32))
+    emptyList()
+}
 
 /**
  * Pristine, mathematically exact modern vector rendering of the Derbis 3-diamond mark.
@@ -62,9 +71,9 @@ internal val ModernAudioEngineVector: ImageVector by lazy {
         viewportWidth = 24f,
         viewportHeight = 24f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M3 9v6 M6 6v12 M9 4v16 M12 2v20 M15 5v14 M18 7v10 M21 10v4"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 3,9 v 6 M 6,6 v 12 M 9,4 v 16 M 12,2 v 20 M 15,5 v 14 M 18,7 v 10 M 21,10 v 4"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.2f,
@@ -84,9 +93,9 @@ internal val ModernSyncedLyricsVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Modern rounded dialogue lyrics card
-        pathData = PathParser().parsePathString(
-            "M5 4h14a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-4l-3.5 2.5a.8.8 0 0 1-1.3-.6V19H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 5,4 h 14 a 3,3 0 0 1 3,3 v 9 a 3,3 0 0 1 -3,3 h -4 l -3.5,2.5 a 0.8,0.8 0 0 1 -1.3,-0.6 V 19 H 5 a 3,3 0 0 1 -3,-3 V 7 a 3,3 0 0 1 3,-3 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.9f,
@@ -94,9 +103,9 @@ internal val ModernSyncedLyricsVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Synced rhythmic lyric bars
-        pathData = PathParser().parsePathString(
-            "M8 8.5h8 M8 12.5h5 M8 15.5h7"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 8,8.5 h 8 M 8,12.5 h 5 M 8,15.5 h 7"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.8f,
@@ -116,9 +125,9 @@ internal val ModernOfflineDownloadVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Modern downward arrow
-        pathData = PathParser().parsePathString(
-            "M12 4v10 M7.5 10.5L12 15l4.5-4.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 12,4 v 10 M 7.5,10.5 L 12,15 l 4.5,-4.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.1f,
@@ -126,9 +135,9 @@ internal val ModernOfflineDownloadVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Storage cradle
-        pathData = PathParser().parsePathString(
-            "M5 16.5v1.5a2.5 2.5 0 0 0 2.5 2.5h9a2.5 2.5 0 0 0 2.5-2.5v-1.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 5,16.5 v 1.5 a 2.5,2.5 0 0 0 2.5,2.5 h 9 a 2.5,2.5 0 0 0 2.5,-2.5 v -1.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.1f,
@@ -148,9 +157,9 @@ internal val ModernChevronRightVector: ImageVector by lazy {
         viewportWidth = 20f,
         viewportHeight = 20f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M7.5 4.5l5.5 5.5-5.5 5.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 7.5,4.5 l 5.5,5.5 l -5.5,5.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.Black),
         strokeLineWidth = 2.4f,
@@ -171,9 +180,9 @@ internal val ModernStoryCardVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Phone / vertical story frame
-        pathData = PathParser().parsePathString(
-            "M7 3h10a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 7,3 h 10 a 3,3 0 0 1 3,3 v 12 a 3,3 0 0 1 -3,3 H 7 a 3,3 0 0 1 -3,-3 V 6 a 3,3 0 0 1 3,-3 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f,
@@ -181,9 +190,9 @@ internal val ModernStoryCardVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Audio wave bars inside card
-        pathData = PathParser().parsePathString(
-            "M9 12v2 M12 10v6 M15 11v4"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 9,12 v 2 M 12,10 v 6 M 15,11 v 4"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.1f,
@@ -203,9 +212,9 @@ internal val ModernInstagramStoryVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Rounded camera square
-        pathData = PathParser().parsePathString(
-            "M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 7,3 h 10 a 4,4 0 0 1 4,4 v 10 a 4,4 0 0 1 -4,4 H 7 a 4,4 0 0 1 -4,-4 V 7 a 4,4 0 0 1 4,-4 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f,
@@ -213,17 +222,17 @@ internal val ModernInstagramStoryVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Center lens circle
-        pathData = PathParser().parsePathString(
-            "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 12,8.5 a 3.5,3.5 0 1 0 0,7 a 3.5,3.5 0 0 0 0,-7 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f
     ).addPath(
         // Top right flash dot
-        pathData = PathParser().parsePathString(
-            "M17.5 6.5h.01"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 17.5,6.5 h 0.01"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.6f,
@@ -243,9 +252,9 @@ internal val ModernSaveGalleryVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Downward arrow
-        pathData = PathParser().parsePathString(
-            "M12 4v10 M7.5 10.5L12 15l4.5-4.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 12,4 v 10 M 7.5,10.5 L 12,15 l 4.5,-4.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.1f,
@@ -253,9 +262,9 @@ internal val ModernSaveGalleryVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Gallery tray
-        pathData = PathParser().parsePathString(
-            "M5 16.5v1.5a2.5 2.5 0 0 0 2.5 2.5h9a2.5 2.5 0 0 0 2.5-2.5v-1.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 5,16.5 v 1.5 a 2.5,2.5 0 0 0 2.5,2.5 h 9 a 2.5,2.5 0 0 0 2.5,-2.5 v -1.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.1f,
@@ -276,9 +285,9 @@ internal val ModernShareSparkleVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // 4-point star sparkle
-        pathData = PathParser().parsePathString(
-            "M12 3c0 4.5-3.5 8-8 8 4.5 0 8 3.5 8 8 0-4.5 3.5-8 8-8-4.5 0-8-3.5-8-8z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 12,3 c 0,4.5 -3.5,8 -8,8 c 4.5,0 8,3.5 8,8 c 0,-4.5 3.5,-8 8,-8 c -4.5,0 -8,-3.5 -8,-8 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.Black),
         strokeLineWidth = 1.9f,
@@ -286,9 +295,9 @@ internal val ModernShareSparkleVector: ImageVector by lazy {
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
         // Small accent sparkle
-        pathData = PathParser().parsePathString(
-            "M19 4c0 1.5-1 2.5-2.5 2.5 1.5 0 2.5 1 2.5 2.5 0-1.5 1-2.5 2.5-2.5-1.5 0-2.5-1-2.5-2.5z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 19,4 c 0,1.5 -1,2.5 -2.5,2.5 c 1.5,0 2.5,1 2.5,2.5 c 0,-1.5 1,-2.5 2.5,-2.5 c -1.5,0 -2.5,-1 -2.5,-2.5 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.Black),
         strokeLineWidth = 1.5f,
@@ -308,18 +317,18 @@ internal val ModernCopyLinkVector: ImageVector by lazy {
         viewportWidth = 24f,
         viewportHeight = 24f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 10,13 a 5,5 0 0 0 7.54,0.54 l 3,-3 a 5,5 0 0 0 -7.07,-7.07 l -1.72,1.71"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round,
         strokeLineJoin = StrokeJoin.Round
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 14,11 a 5,5 0 0 0 -7.54,-0.54 l -3,3 a 5,5 0 0 0 7.07,7.07 l 1.71,-1.71"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f,
@@ -339,9 +348,9 @@ internal val ModernAspectStoryVector: ImageVector by lazy {
         viewportWidth = 20f,
         viewportHeight = 20f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M6 2.5h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 6,2.5 h 8 a 2,2 0 0 1 2,2 v 11 a 2,2 0 0 1 -2,2 H 6 a 2,2 0 0 1 -2,-2 v -11 a 2,2 0 0 1 2,-2 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.8f,
@@ -358,9 +367,9 @@ internal val ModernAspectCardVector: ImageVector by lazy {
         viewportWidth = 20f,
         viewportHeight = 20f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M4.5 3h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 4.5,3 h 11 a 2,2 0 0 1 2,2 v 10 a 2,2 0 0 1 -2,2 h -11 a 2,2 0 0 1 -2,-2 V 5 a 2,2 0 0 1 2,-2 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.8f,
@@ -377,9 +386,9 @@ internal val ModernAspectSquareVector: ImageVector by lazy {
         viewportWidth = 20f,
         viewportHeight = 20f
     ).addPath(
-        pathData = PathParser().parsePathString(
-            "M3.5 3.5h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 3.5,3.5 h 13 a 2,2 0 0 1 2,2 v 13 a 2,2 0 0 1 -2,2 h -13 a 2,2 0 0 1 -2,-2 v -13 a 2,2 0 0 1 2,-2 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.8f,
@@ -400,48 +409,46 @@ internal val ModernListenTogetherVector: ImageVector by lazy {
         viewportHeight = 24f
     ).addPath(
         // Left listener head
-        pathData = PathParser().parsePathString(
-            "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 8,11 a 3,3 0 1 0 0,-6 a 3,3 0 0 0 0,6 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.9f
     ).addPath(
         // Left listener shoulders
-        pathData = PathParser().parsePathString(
-            "M3.5 19.5c0-2.8 2.2-4.5 4.5-4.5s4.5 1.7 4.5 4.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 3.5,19.5 c 0,-2.8 2.2,-4.5 4.5,-4.5 s 4.5,1.7 4.5,4.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.9f,
         strokeLineCap = StrokeCap.Round
     ).addPath(
         // Right listener head
-        pathData = PathParser().parsePathString(
-            "M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 16,11 a 3,3 0 1 0 0,-6 a 3,3 0 0 0 0,6 z"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.9f
     ).addPath(
         // Right listener shoulders
-        pathData = PathParser().parsePathString(
-            "M11.5 19.5c0-2.8 2.2-4.5 4.5-4.5s4.5 1.7 4.5 4.5"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 11.5,19.5 c 0,-2.8 2.2,-4.5 4.5,-4.5 s 4.5,1.7 4.5,4.5"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 1.9f,
         strokeLineCap = StrokeCap.Round
     ).addPath(
         // Synchronized sound wave arc overhead
-        pathData = PathParser().parsePathString(
-            "M9.5 3.5a3.5 3.5 0 0 1 5 0"
-        ).toNodes(),
+        pathData = safeParsePathNodes(
+            "M 9.5,3.5 a 3.5,3.5 0 0 1 5,0"
+        ),
         fill = null,
         stroke = SolidColor(Color.White),
         strokeLineWidth = 2.0f,
         strokeLineCap = StrokeCap.Round
     ).build()
 }
-
-
