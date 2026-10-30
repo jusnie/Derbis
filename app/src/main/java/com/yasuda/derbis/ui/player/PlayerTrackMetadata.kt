@@ -137,14 +137,16 @@ internal fun PlayerTrackMetadata(
                     )
                 }
             }
-            PlayerInlineLyricsLink(
-                line = activeLyric,
-                loading = lyricsLoading,
-                showLinePreview = showLyricPreview,
-                label = lyricsLabel,
-                color = surfaces.activeContent,
-                onOpenLyrics = onOpenLyrics
-            )
+            if (showLyricPreview && activeLyric?.text?.isNotBlank() == true) {
+                PlayerInlineLyricsLink(
+                    line = activeLyric,
+                    loading = lyricsLoading,
+                    showLinePreview = showLyricPreview,
+                    label = lyricsLabel,
+                    color = surfaces.activeContent,
+                    onOpenLyrics = onOpenLyrics
+                )
+            }
         }
         Spacer(modifier = Modifier.width(DerbisPlayerDesign.SpaceMd))
         PlayerFavoriteButton(
@@ -163,7 +165,7 @@ internal fun PlayerTrackMetadata(
  * fade rather than jump as the active lyric moves; tapping it opens the full lyrics page.
  */
 internal fun playerInlineLyricsText(line: LyricLine?, label: String): String =
-    line?.text?.trim()?.takeIf { it.isNotEmpty() } ?: label
+    line?.text?.trim()?.takeIf { it.isNotEmpty() }.orEmpty()
 
 @Composable
 private fun PlayerInlineLyricsLink(
@@ -174,8 +176,9 @@ private fun PlayerInlineLyricsLink(
     color: Color,
     onOpenLyrics: () -> Unit
 ) {
-    val lyricText = if (showLinePreview) playerInlineLyricsText(line, label) else label
-    val accessibilityLabel = if (showLinePreview && line?.text?.isNotBlank() == true) "$label: $lyricText" else label
+    if (!showLinePreview) return
+    val lyricText = line?.text?.trim()?.takeIf { it.isNotEmpty() } ?: return
+    val accessibilityLabel = "$label: $lyricText"
     AnimatedContent(
         targetState = lyricText,
         transitionSpec = {
@@ -186,7 +189,7 @@ private fun PlayerInlineLyricsLink(
     ) { shownLyric ->
         Text(
             text = shownLyric,
-            color = color.copy(alpha = if (loading && line == null) 0.74f else 0.96f),
+            color = color.copy(alpha = 0.96f),
             style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.1).sp
