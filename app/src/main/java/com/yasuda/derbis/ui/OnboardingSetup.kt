@@ -1,11 +1,17 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
+import com.yasuda.derbis.ui.components.DerbisVectorLogo
+import com.yasuda.derbis.ui.components.ModernAudioEngineVector
+import com.yasuda.derbis.ui.components.ModernSyncedLyricsVector
+import com.yasuda.derbis.ui.components.ModernOfflineDownloadVector
+import com.yasuda.derbis.ui.components.ModernChevronRightVector
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -171,24 +177,24 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.runtime.State
 
-private val SetupBase: Color get() = if (DerbisIsLight) Color(0xFFF5F7FB) else Color(0xFF07070B)
-private val SetupInk: Color get() = if (DerbisIsLight) Color(0xFF10141C) else Color(0xFFF4F4F8)
-private val SetupMuted: Color get() = if (DerbisIsLight) Color(0xFF59606E) else Color(0xFFA6A8B5)
-private val SetupSurface: Color get() = if (DerbisIsLight) Color(0xFFFFFFFF) else Color(0xFF15151D)
-private val SetupSurfaceHigh: Color get() = if (DerbisIsLight) Color(0xFFE6EBF3) else Color(0xFF1F1F2A)
-private val SetupOnAccent: Color get() = if (DerbisIsLight) Color(0xFFFFFFFF) else Color(0xFF0A0A10)
-private val SetupVeil: Color get() = if (DerbisIsLight) Color.Black else Color.White
-private val SetupLilac: Color get() = if (DerbisIsLight) Color(0xFF6346D0) else Color(0xFFB7A2FF)
-private val SetupMint: Color get() = if (DerbisIsLight) Color(0xFF2F7A47) else Color(0xFFA6E3B5)
-private val SetupCoral: Color get() = if (DerbisIsLight) Color(0xFFB8442B) else Color(0xFFFF9B85)
-private val SetupSun: Color get() = if (DerbisIsLight) Color(0xFF8A6100) else Color(0xFFFFD36E)
-private val SetupSky: Color get() = if (DerbisIsLight) Color(0xFF1767A8) else Color(0xFF8FD3FF)
-private val SetupPeach: Color get() = if (DerbisIsLight) Color(0xFF9C4317) else Color(0xFFFFB693)
-private val SetupRose: Color get() = if (DerbisIsLight) Color(0xFF9E2F66) else Color(0xFFFFAFD2)
-private val SetupLavender: Color get() = if (DerbisIsLight) Color(0xFF5B43C2) else Color(0xFFCDBDFF)
-private val SetupOnHero: Color get() = if (DerbisIsLight) Color.White else Color(0xFF2A1220)
+private val SetupBase: Color get() = Color.Black
+private val SetupInk: Color get() = Color.White
+private val SetupMuted: Color get() = Color(0xFFA2A4B2)
+private val SetupSurface: Color get() = Color(0xFF131317)
+private val SetupSurfaceHigh: Color get() = Color(0xFF1E1E24)
+private val SetupOnAccent: Color get() = Color.Black
+private val SetupVeil: Color get() = Color.White
+private val SetupLilac: Color get() = Color(0xFFB7A2FF)
+private val SetupMint: Color get() = Color(0xFFA6E3B5)
+private val SetupCoral: Color get() = Color(0xFFFF9B85)
+private val SetupSun: Color get() = Color(0xFFFFD36E)
+private val SetupSky: Color get() = Color(0xFF8FD3FF)
+private val SetupPeach: Color get() = Color(0xFFFFB693)
+private val SetupRose: Color get() = Color(0xFFFFAFD2)
+private val SetupLavender: Color get() = Color(0xFFCDBDFF)
+private val SetupOnHero: Color get() = Color(0xFF08080C)
 private val SetupHeroGradient: Brush
-    get() = Brush.linearGradient(listOf(SetupPeach, SetupRose, SetupLavender))
+    get() = Brush.linearGradient(listOf(Color.White, Color(0xFFECEEF4)))
 private val SetupError: Color get() = if (DerbisIsLight) Color(0xFFBA1A1A) else Color(0xFFFFB4AB)
 private val SetupContentMaxWidth = 560.dp
 private val SetupHeroIntroSize = 112.dp
@@ -196,14 +202,7 @@ private val SetupHeroStepSize = 88.dp
 private const val SetupHeroTurnDegrees = 45f
 private const val SetupLogoSpinMillis = 36_000
 
-private fun onboardingAccent(step: OnboardingStep): Color = when (step) {
-    OnboardingStep.Intro -> SetupRose
-    OnboardingStep.Language -> SetupLilac
-    OnboardingStep.Appearance -> SetupMint
-    OnboardingStep.Profile -> SetupCoral
-    OnboardingStep.Taste -> SetupSun
-    OnboardingStep.YoutubeMusic -> SetupSky
-}
+private fun onboardingAccent(step: OnboardingStep): Color = Color.White
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun onboardingHeroPolygon(step: OnboardingStep): RoundedPolygon = when (step) {
@@ -259,9 +258,11 @@ internal fun OnboardingOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SetupBase)
-                .setupAmbience(accent) { introLevel.value }
+                .background(Color.Black)
         ) {
+            SetupGlowingBackdrop(
+                animated = animated
+            )
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -471,46 +472,128 @@ private fun onboardingYoutubeMusicErrorText(copy: OnboardingYoutubeMusicCopy, er
         else -> copy.genericError
     }
 
-private fun Modifier.setupAmbience(accent: Color, hero: () -> Float): Modifier = drawBehind {
-    val heroLevel = hero().coerceIn(0f, 1f)
-    if (heroLevel > 0f) {
-        val strength = if (DerbisIsLight) 0.20f else 0.30f
-        drawRect(
-            Brush.radialGradient(
-                colors = listOf(SetupLavender.copy(alpha = strength * heroLevel), Color.Transparent),
-                center = Offset(size.width * 0.04f, size.height * 0.08f),
-                radius = size.maxDimension * 0.58f
-            )
+@Composable
+private fun SetupGlowingBackdrop(
+    animated: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!animated) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black)
         )
-        drawRect(
-            Brush.radialGradient(
-                colors = listOf(SetupRose.copy(alpha = strength * 0.9f * heroLevel), Color.Transparent),
-                center = Offset(size.width * 0.98f, size.height * 0.30f),
-                radius = size.maxDimension * 0.5f
-            )
+        return
+    }
+
+    val transition = rememberInfiniteTransition(label = "setup-ambient-glow")
+    val time by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(24_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ambient-time"
+    )
+    val pulse by transition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6_500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ambient-pulse"
+    )
+    val breathe by transition.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4_800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ambient-breathe"
+    )
+
+    val rad = Math.toRadians(time.toDouble())
+    val sinT = Math.sin(rad).toFloat()
+    val cosT = Math.cos(rad).toFloat()
+    val sin2T = Math.sin(rad * 2.0).toFloat()
+    val cos2T = Math.cos(rad * 2.0).toFloat()
+
+    Canvas(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        val w = size.width
+        val h = size.height
+
+        // Orb 1: Upper-center luminous halo floating behind the emblem and wordmark
+        val orb1 = Offset(w * (0.50f + 0.08f * cosT), h * (0.16f + 0.05f * sinT))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.20f * breathe),
+                    Color(0xFFBAC0D2).copy(alpha = 0.09f * breathe),
+                    Color(0xFF454958).copy(alpha = 0.03f),
+                    Color.Transparent
+                ),
+                center = orb1,
+                radius = (w * 0.72f) * pulse
+            ),
+            center = orb1,
+            radius = (w * 0.72f) * pulse
         )
-        drawRect(
-            Brush.radialGradient(
-                colors = listOf(SetupPeach.copy(alpha = strength * 0.75f * heroLevel), Color.Transparent),
-                center = Offset(size.width * 0.5f, size.height * 1.02f),
-                radius = size.maxDimension * 0.6f
-            )
+
+        // Orb 2: Mid-right drifting glowing atmospheric aura
+        val orb2 = Offset(w * (0.84f - 0.12f * sinT), h * (0.42f + 0.10f * cosT))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFE2E6F5).copy(alpha = 0.15f * (2f - pulse)),
+                    Color(0xFF70768A).copy(alpha = 0.06f),
+                    Color.Transparent
+                ),
+                center = orb2,
+                radius = (w * 0.82f) * (2f - pulse)
+            ),
+            center = orb2,
+            radius = (w * 0.82f) * (2f - pulse)
+        )
+
+        // Orb 3: Mid-left floating ambient cloud
+        val orb3 = Offset(w * (0.16f + 0.10f * cos2T), h * (0.56f - 0.08f * sin2T))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFD2D7EA).copy(alpha = 0.12f * breathe),
+                    Color(0xFF656B80).copy(alpha = 0.04f),
+                    Color.Transparent
+                ),
+                center = orb3,
+                radius = (w * 0.76f) * pulse
+            ),
+            center = orb3,
+            radius = (w * 0.76f) * pulse
+        )
+
+        // Orb 4: Bottom glowing illumination under the primary action button
+        val orb4 = Offset(w * (0.50f + 0.10f * sin2T), h * (0.92f - 0.04f * cos2T))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.16f * breathe),
+                    Color(0xFF9096AA).copy(alpha = 0.05f),
+                    Color.Transparent
+                ),
+                center = orb4,
+                radius = (w * 0.80f) * pulse
+            ),
+            center = orb4,
+            radius = (w * 0.80f) * pulse
         )
     }
-    val stepLevel = 1f - heroLevel
-    if (stepLevel <= 0f) return@drawBehind
-    val glow = Brush.radialGradient(
-        colors = listOf(accent.copy(alpha = 0.26f * stepLevel), accent.copy(alpha = 0.06f * stepLevel), Color.Transparent),
-        center = Offset(size.width * 0.82f, size.height * 0.06f),
-        radius = size.maxDimension * 0.62f
-    )
-    drawRect(glow)
-    val depth = Brush.radialGradient(
-        colors = listOf(SetupLilac.copy(alpha = 0.12f * stepLevel), Color.Transparent),
-        center = Offset(size.width * 0.08f, size.height * 0.96f),
-        radius = size.maxDimension * 0.55f
-    )
-    drawRect(depth)
 }
 
 @Composable
@@ -603,7 +686,7 @@ private fun SetupHero(
                 .drawBehind {
                     drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(accent.copy(alpha = 0.42f), Color.Transparent),
+                            colors = listOf(Color.White.copy(alpha = 0.28f), Color.Transparent),
                             radius = this.size.minDimension * 0.82f
                         ),
                         radius = this.size.minDimension * 0.82f
@@ -611,7 +694,20 @@ private fun SetupHero(
                 }
                 .graphicsLayer { rotationZ = turn }
                 .clip(shape)
-                .background(Brush.linearGradient(listOf(accent, accent.copy(alpha = 0.72f), SetupLilac.copy(alpha = 0.85f)))),
+                .background(Brush.linearGradient(listOf(Color(0xFF24242B), Color(0xFF16161C))))
+                .border(
+                    width = 1.5.dp,
+                    brush = Brush.sweepGradient(
+                        listOf(
+                            Color.White,
+                            Color.White.copy(alpha = 0.35f),
+                            Color(0xFF8E94A6),
+                            Color.White.copy(alpha = 0.20f),
+                            Color.White
+                        )
+                    ),
+                    shape = shape
+                ),
             contentAlignment = Alignment.Center
         ) {
             AnimatedContent(
@@ -658,6 +754,20 @@ private fun SetupLogoBloom(accent: Color, animated: Boolean) {
         modifier = Modifier.size(SetupHeroIntroSize * 1.55f),
         contentAlignment = Alignment.Center
     ) {
+        // Subtle ambient glowing halo behind the emblem
+        Box(
+            modifier = Modifier
+                .fillMaxSize(1.22f)
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.24f), Color.Transparent),
+                            radius = size.minDimension * 0.52f
+                        )
+                    )
+                }
+        )
+        // Outer rotating soft-burst star ring in crisp monochrome silver/white gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -670,10 +780,19 @@ private fun SetupLogoBloom(accent: Color, animated: Boolean) {
                 }
                 .border(
                     width = 1.5.dp,
-                    brush = Brush.sweepGradient(listOf(SetupPeach, SetupRose, SetupLavender, SetupPeach.copy(alpha = 0.2f), SetupPeach)),
+                    brush = Brush.sweepGradient(
+                        listOf(
+                            Color.White,
+                            Color.White.copy(alpha = 0.35f),
+                            Color(0xFF8E94A6),
+                            Color.White.copy(alpha = 0.18f),
+                            Color.White
+                        )
+                    ),
                     shape = outerShape
                 )
         )
+        // Inner rotating shape in dark translucent glass with crisp white hairline
         Box(
             modifier = Modifier
                 .fillMaxSize(0.76f)
@@ -684,13 +803,10 @@ private fun SetupLogoBloom(accent: Color, animated: Boolean) {
                     alpha = value.coerceIn(0f, 1f)
                     rotationZ = -(spin?.value ?: 0f) * 1.6f + 60f * (1f - value)
                 }
-                .background(
-                    Brush.linearGradient(
-                        listOf(SetupPeach.copy(alpha = 0.16f), SetupRose.copy(alpha = 0.10f), SetupLavender.copy(alpha = 0.16f))
-                    ),
-                    innerShape
-                )
+                .background(Color(0xFF141418).copy(alpha = 0.88f), innerShape)
+                .border(1.dp, Color.White.copy(alpha = 0.18f), innerShape)
         )
+        // Central modern SVG Derbis vector mark in pure crisp white
         Box(
             modifier = Modifier.graphicsLayer {
                 val value = ((bloom.value - 0.25f) / 0.75f).coerceIn(0f, 1.15f)
@@ -699,7 +815,7 @@ private fun SetupLogoBloom(accent: Color, animated: Boolean) {
                 alpha = value.coerceIn(0f, 1f)
             }
         ) {
-            DerbisLogoMark(size = SetupHeroIntroSize)
+            DerbisVectorLogo(size = SetupHeroIntroSize, tint = Color.White)
         }
     }
 }
@@ -711,29 +827,29 @@ private fun SetupHeroGlyph(step: OnboardingStep, initial: String, selectedTasteC
         OnboardingStep.Language -> Icon(
             Icons.Rounded.Translate,
             contentDescription = null,
-            tint = SetupOnAccent,
+            tint = Color.White,
             modifier = Modifier.size(36.dp)
         )
         OnboardingStep.Appearance -> Icon(
             Icons.Rounded.Contrast,
             contentDescription = null,
-            tint = SetupOnAccent,
+            tint = Color.White,
             modifier = Modifier.size(36.dp)
         )
         OnboardingStep.Profile -> if (initial.isBlank()) {
-            Icon(Icons.Rounded.Person, contentDescription = null, tint = SetupOnAccent, modifier = Modifier.size(38.dp))
+            Icon(Icons.Rounded.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(38.dp))
         } else {
-            Text(initial, color = SetupOnAccent, fontSize = 38.sp, fontWeight = FontWeight.Black)
+            Text(initial, color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Black)
         }
         OnboardingStep.Taste -> if (selectedTasteCount >= 3) {
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = SetupOnAccent, modifier = Modifier.size(38.dp))
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(38.dp))
         } else {
-            Text("$selectedTasteCount/3", color = SetupOnAccent, fontSize = 24.sp, fontWeight = FontWeight.Black)
+            Text("$selectedTasteCount/3", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
         }
         OnboardingStep.YoutubeMusic -> Icon(
             if (youtubeMusicConnected) Icons.Rounded.Check else Icons.Rounded.Link,
             contentDescription = null,
-            tint = SetupOnAccent,
+            tint = Color.White,
             modifier = Modifier.size(38.dp)
         )
     }
@@ -782,16 +898,16 @@ private fun SetupTitle(text: String, modifier: Modifier = Modifier, textAlign: T
 private fun SetupIntroStage(strings: DerbisStrings, accent: Color) {
     val features = remember(strings) {
         listOf(
-            SetupFeature(Icons.Rounded.GraphicEq, strings.introFeatureSound, MaterialShapes.Cookie4Sided, SetupFeatureTone.Peach),
-            SetupFeature(Icons.Rounded.TextFields, strings.introFeatureLyrics, MaterialShapes.Clover4Leaf, SetupFeatureTone.Rose),
-            SetupFeature(Icons.Rounded.Download, strings.introFeatureOffline, MaterialShapes.Sunny, SetupFeatureTone.Lavender)
+            SetupFeature(ModernAudioEngineVector, strings.introFeatureSound, MaterialShapes.Cookie4Sided, SetupFeatureTone.Monochrome),
+            SetupFeature(ModernSyncedLyricsVector, strings.introFeatureLyrics, MaterialShapes.Clover4Leaf, SetupFeatureTone.Monochrome),
+            SetupFeature(ModernOfflineDownloadVector, strings.introFeatureOffline, MaterialShapes.Sunny, SetupFeatureTone.Monochrome)
         )
     }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 4.dp),
+            .padding(horizontal = 24.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         DerbisWordmark(fontSize = 24.sp)
@@ -800,22 +916,22 @@ private fun SetupIntroStage(strings: DerbisStrings, accent: Color) {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = strings.introBody,
-            color = SetupMuted,
+            color = Color(0xFFB0B0BC),
             fontSize = 16.sp,
             lineHeight = 23.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(22.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             features.forEachIndexed { index, feature ->
                 SetupFeatureTile(
                     feature = feature,
-                    accent = feature.tone.color,
-                    shape = derbisGroupedListShape(index, features.size)
+                    accent = Color.White,
+                    shape = RoundedCornerShape(20.dp)
                 )
             }
         }
@@ -825,13 +941,15 @@ private fun SetupIntroStage(strings: DerbisStrings, accent: Color) {
 private enum class SetupFeatureTone {
     Peach,
     Rose,
-    Lavender;
+    Lavender,
+    Monochrome;
 
     val color: Color
         get() = when (this) {
             Peach -> SetupPeach
             Rose -> SetupRose
             Lavender -> SetupLavender
+            Monochrome -> Color.White
         }
 }
 
@@ -839,7 +957,7 @@ private class SetupFeature(
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val label: String,
     val polygon: RoundedPolygon,
-    val tone: SetupFeatureTone
+    val tone: SetupFeatureTone = SetupFeatureTone.Monochrome
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -849,22 +967,31 @@ private fun SetupFeatureTile(feature: SetupFeature, accent: Color, shape: Shape,
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(accent.copy(alpha = if (DerbisIsLight) 0.10f else 0.12f).compositeOver(SetupSurface), shape)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
+            .clip(shape)
+            .background(Color(0xFF131317).copy(alpha = 0.88f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .background(accent, badgeShape),
+                .clip(badgeShape)
+                .background(Color(0xFF222228))
+                .border(1.dp, Color.White.copy(alpha = 0.16f), badgeShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(feature.icon, contentDescription = null, tint = SetupOnHero, modifier = Modifier.size(24.dp))
+            Icon(
+                imageVector = feature.icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
         }
         Text(
             text = feature.label,
-            color = SetupInk,
+            color = Color.White,
             fontSize = 15.sp,
             lineHeight = DerbisTypeRhythm.lineHeight(15.sp),
             fontWeight = FontWeight.SemiBold,
@@ -1673,17 +1800,21 @@ private fun SetupYoutubeMusicLink(accent: Color, connected: Boolean, animated: B
         ) {
             DerbisLogoMark(size = 42.dp, contentDescription = null)
         }
-        SetupLinkConnector(accent = accent, link = { link }, pulse = { pulse?.value }, mirrored = rtl)
+        SetupLinkConnector(accent = Color.White, link = { link }, pulse = { pulse?.value }, mirrored = rtl)
         Box(
             modifier = Modifier
                 .size(76.dp)
-                .background(targetColor, MaterialShapes.SoftBurst.toShape()),
+                .background(
+                    if (connected) Color.White else Color(0xFF1E1E24),
+                    MaterialShapes.SoftBurst.toShape()
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.16f), MaterialShapes.SoftBurst.toShape()),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 if (connected) Icons.Rounded.Check else Icons.Rounded.LibraryMusic,
                 contentDescription = null,
-                tint = if (connected) SetupOnAccent else accent,
+                tint = if (connected) Color.Black else Color.White,
                 modifier = Modifier.size(34.dp)
             )
         }
@@ -1703,27 +1834,31 @@ private fun SetupYoutubeMusicInfoRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SetupSurface, shape)
+            .clip(shape)
+            .background(Color(0xFF131317).copy(alpha = 0.88f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .background(accent.copy(alpha = 0.18f), polygon.toShape()),
+                .clip(polygon.toShape())
+                .background(Color(0xFF222228))
+                .border(1.dp, Color.White.copy(alpha = 0.16f), polygon.toShape()),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = title,
-                color = SetupInk,
+                color = Color.White,
                 fontSize = 15.sp,
                 lineHeight = DerbisTypeRhythm.lineHeight(15.sp),
                 fontWeight = FontWeight.Bold
             )
-            Text(text = body, color = SetupMuted, fontSize = 14.sp, lineHeight = 20.sp)
+            Text(text = body, color = Color(0xFFA0A2B2), fontSize = 14.sp, lineHeight = 20.sp)
         }
     }
 }
@@ -1851,33 +1986,62 @@ private fun SetupFooter(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(
             onClick = onPrimary,
             enabled = enabled,
-            shapes = if (hero) ButtonDefaults.shapes(shape = CircleShape, pressedShape = CircleShape) else ButtonDefaults.shapes(),
+            shapes = ButtonDefaults.shapes(shape = CircleShape, pressedShape = CircleShape),
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (hero) Color.Transparent else accent,
-                contentColor = if (hero) SetupOnHero else SetupOnAccent,
-                disabledContainerColor = SetupVeil.copy(alpha = 0.10f),
-                disabledContentColor = SetupMuted
+                containerColor = if (enabled) Color.White else Color(0xFF1E1E24),
+                contentColor = if (enabled) Color(0xFF08080C) else Color(0xFF6E7280),
+                disabledContainerColor = Color(0xFF18181E),
+                disabledContentColor = Color(0xFF5E6270)
             ),
             contentPadding = PaddingValues(horizontal = 28.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .then(if (hero && enabled) Modifier.background(SetupHeroGradient, CircleShape) else Modifier)
+                .then(
+                    if (enabled) {
+                        Modifier
+                            .drawBehind {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(Color.White.copy(alpha = 0.28f), Color.Transparent),
+                                        center = Offset(size.width / 2f, size.height / 2f),
+                                        radius = size.width * 0.55f
+                                    )
+                                )
+                            }
+                            .background(
+                                Brush.linearGradient(listOf(Color.White, Color(0xFFECEEF4))),
+                                CircleShape
+                            )
+                    } else Modifier
+                )
         ) {
-            Text(text = label, fontSize = 17.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text = label,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                color = if (enabled) Color(0xFF08080C) else Color(0xFF5E6270),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(22.dp))
+            Icon(
+                imageVector = ModernChevronRightVector,
+                contentDescription = null,
+                tint = if (enabled) Color(0xFF08080C) else Color(0xFF5E6270),
+                modifier = Modifier.size(20.dp)
+            )
         }
         Box(modifier = Modifier.height(48.dp), contentAlignment = Alignment.Center) {
             if (skipLabel != null) {
                 TextButton(onClick = onSkip) {
-                    Text(skipLabel, color = SetupMuted, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(skipLabel, color = Color(0xFFA0A2B2), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

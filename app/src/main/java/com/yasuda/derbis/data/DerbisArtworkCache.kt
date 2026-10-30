@@ -82,8 +82,8 @@ internal fun isLikelyArtworkBytes(bytes: ByteArray): Boolean {
 }
 
 object DerbisArtworkCache {
-    private const val SMALL_SIZE = 192
-    private const val LARGE_SIZE = 512
+    private const val SMALL_SIZE = 512
+    private const val LARGE_SIZE = 1200
     private const val MAX_FILE_BYTES = 6L * 1024L * 1024L
     private const val MAX_PERSISTENT_FILES = 220
     private const val INDEX_PRIME_DELAY_MS = 1_200L
@@ -323,24 +323,20 @@ object DerbisArtworkCache {
     }
 
     internal fun artworkUrlCandidates(track: Track, highRes: Boolean): List<String> {
-        val ordered = when {
-            highRes -> sequenceOf(
-                track.largeThumbnailUrl,
-                track.thumbnailUrl,
-                DerbisPersonalOrbit.youtubeFallbackArtwork(track).orEmpty()
-            )
-            else -> sequenceOf(
-                track.thumbnailUrl,
-                track.largeThumbnailUrl,
-                DerbisPersonalOrbit.youtubeFallbackArtwork(track).orEmpty()
-            )
-        }
+        val preferredPrimary = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl }
+        val preferredSecondary = track.thumbnailUrl.ifBlank { track.largeThumbnailUrl }
+        val ordered = sequenceOf(
+            preferredPrimary,
+            preferredSecondary,
+            DerbisPersonalOrbit.youtubeHeroArtwork(track).orEmpty(),
+            DerbisPersonalOrbit.youtubeFallbackArtwork(track).orEmpty()
+        )
         return ordered
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .flatMap { raw ->
-                val resized = if (highRes) large(raw) else small(raw)
-                sequenceOf(resized, raw)
+                val resized = if (highRes) large(raw) else resize(raw, SMALL_SIZE)
+                sequenceOf(resized, fullResolutionArtworkUrl(raw), raw)
             }
             .distinct()
             .take(6)
@@ -398,7 +394,7 @@ object DerbisArtworkCache {
     private fun resize(url: String, size: Int): String {
         val clean = url.trim()
         if (clean.isBlank()) return clean
-        val square = size.coerceIn(96, 1024)
+        val square = size.coerceIn(96, 2048)
         return when {
             youtubeWidthHeight.containsMatchIn(clean) -> clean.replace(youtubeWidthHeight, "=w${square}-h${square}-l90-rj")
             youtubeSquare.containsMatchIn(clean) -> clean.replace(youtubeSquare, "=s${square}")

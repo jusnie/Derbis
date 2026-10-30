@@ -37,6 +37,7 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicInteger
+import com.yasuda.derbis.domain.LyricsSearchMatch
 import java.util.concurrent.atomic.AtomicLong
 
 internal data class SearchSectionPage(
@@ -45,10 +46,11 @@ internal data class SearchSectionPage(
     val albums: List<AlbumHit> = emptyList(),
     val artists: List<ArtistHit> = emptyList(),
     val playlists: List<PlaylistHit> = emptyList(),
+    val lyricsMatches: List<LyricsSearchMatch> = emptyList(),
     val continuation: String = ""
 ) {
     val isEmpty: Boolean
-        get() = songs.isEmpty() && videos.isEmpty() && albums.isEmpty() && artists.isEmpty() && playlists.isEmpty()
+        get() = songs.isEmpty() && videos.isEmpty() && albums.isEmpty() && artists.isEmpty() && playlists.isEmpty() && lyricsMatches.isEmpty()
 }
 
 internal interface SearchBackend {
@@ -618,6 +620,7 @@ internal class DerbisSearchEngine(
         const val RESULT_CACHE_ENTRIES = 24
         const val SECTION_CACHE_ENTRIES = 32
         val FALLBACK_SECTION_ORDER = listOf(
+            SearchFilter.Lyrics,
             SearchFilter.Songs,
             SearchFilter.Artists,
             SearchFilter.Albums,

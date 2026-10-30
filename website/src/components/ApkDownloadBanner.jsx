@@ -1,7 +1,10 @@
 import React from "react";
 import { Download, Smartphone, Zap, ShieldCheck, Music2, ExternalLink } from "lucide-react";
+import { isIos } from "../utils/platform";
 
 export default function ApkDownloadBanner() {
+  // Hide completely when running on iOS devices or inside the iOS IPA
+  if (isIos) return null;
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-12">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-accent/20 via-purple-900/30 to-blue-900/20 border border-white/15 p-8 sm:p-12 shadow-2xl backdrop-blur-3xl">
@@ -44,26 +47,38 @@ export default function ApkDownloadBanner() {
           </div>
 
           <div className="lg:col-span-4 flex flex-col items-center lg:items-end justify-center space-y-3">
-            <a
-              href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-              download
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-accent to-pink-600 hover:from-pink-600 hover:to-accent text-white font-bold text-base shadow-xl shadow-accent/40 hover:scale-105 active:scale-95 transition-all text-center"
-            >
-              <Download className="w-5 h-5" />
-              <span>Download APK v1.1.1</span>
-            </a>
+            <div className="w-full flex flex-col gap-2.5">
+              <a
+                href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
+                download
+                className="w-full inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-accent to-pink-600 hover:from-pink-600 hover:to-accent text-white font-bold text-sm shadow-xl shadow-accent/40 hover:scale-102 active:scale-98 transition-all text-center"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Android APK</span>
+              </a>
 
-            <div className="flex items-center gap-4 text-xs text-white/50">
-              <span>Universal APK (~71 MB)</span>
+              <a
+                href="https://drive.google.com/file/d/1hucL-P0hiR2mkccxsT9hzB_Ik9kT4w6K/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600/50 hover:to-blue-600/50 text-white font-semibold text-xs border border-cyan-400/30 hover:scale-102 active:scale-98 transition-all text-center"
+              >
+                <Download className="w-4 h-4 text-cyan-400" />
+                <span>Download iOS IPA (iPhone 12 & Newer)</span>
+              </a>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center lg:justify-end gap-3 text-xs text-white/50 pt-1">
+              <span>APK (~71 MB)</span>
+              <span>•</span>
+              <span>IPA (iPhone 12+, iOS 16+)</span>
               <span>•</span>
               <a
-                href="https://github.com/jusnie/Derbis"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-white flex items-center gap-1 transition-colors"
+                href="?install=ios"
+                className="text-cyan-400/90 hover:text-cyan-300 font-medium transition-colors underline decoration-cyan-400/40"
+                title="Launch Over-The-Air iOS Web Installer"
               >
-                <span>GitHub Source</span>
-                <ExternalLink className="w-3 h-3" />
+                1-Tap iOS Web Installer
               </a>
             </div>
           </div>

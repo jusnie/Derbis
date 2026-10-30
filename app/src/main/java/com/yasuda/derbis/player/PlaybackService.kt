@@ -226,7 +226,9 @@ class PlaybackService : MediaLibraryService() {
         val targetIdentity: String,
         val targetTrackId: String,
         val resolved: Track,
-        val preparedAtElapsedMs: Long
+        val preparedAtElapsedMs: Long,
+        val streamPreloaded: Boolean = false,
+        val preloadedBytes: Long = 0L
     )
 
     private val platformMediaAudioAttributes by lazy {
@@ -314,7 +316,9 @@ class PlaybackService : MediaLibraryService() {
         private const val TRANSITION_PREPARE_TIMEOUT_MS = 8_000L
         private const val PREPARED_QUEUE_WAIT_MS = 2_000L
         private const val PREPARED_QUEUE_MAX_AGE_MS = 15L * 60L * 1_000L
-        private const val PREPARED_QUEUE_PRIME_BYTES = 384L * 1024L
+        private const val PREPARED_QUEUE_INITIAL_PRIME_BYTES = 384L * 1024L
+        private const val PREPARED_QUEUE_PRIME_BYTES = 1536L * 1024L
+        private const val STREAM_PRELOAD_TRIGGER_REMAINING_MS = 30_000L
         private const val PRIMARY_HANDOFF_WARN_MS = 5_000L
         private const val PRIMARY_HANDOFF_SYNC_TIMEOUT_MS = 2_500L
         private const val RECOVERY_CONNECTIVITY_WAIT_MS = 15_000L
@@ -1933,7 +1937,7 @@ class PlaybackService : MediaLibraryService() {
         prepareQueueNextInternal(target)
     }
 
-    private fun prepareQueueNextInternal(target: Track): Boolean {
+    private fun prepareQueueNextInternal(target: Track, deepStreamPreload: Boolean = false): Boolean {
         if (!currentAudioSettings.preloadNextTrack) return false
         val snapshot = queueEngine.state.value
         val current = snapshot.currentTrack ?: return false
@@ -1944,27 +1948,57 @@ class PlaybackService : MediaLibraryService() {
 
         val now = SystemClock.elapsedRealtime()
         preparedQueueNext?.let { prepared ->
-            if (queuePrecacheMatchesTransition(
-                    preparedSourceIdentity = prepared.sourceIdentity,
-                    preparedTargetIdentity = prepared.targetIdentity,
-                    currentSourceIdentity = sourceIdentity,
-                    currentTargetIdentity = targetIdentity,
-                    preparedAtElapsedMs = prepared.preparedAtElapsedMs,
-                    nowElapsedMs = now,
-                    maxAgeMs = PREPARED_QUEUE_MAX_AGE_MS
-                ) && prepared.resolved.streamUrl.isNotBlank()
-            ) {
-                return true
-            }
-            if (queuePrecacheMatchesTarget(
-                    preparedTargetIdentity = prepared.targetIdentity,
-                    requestedTargetIdentity = targetIdentity,
-                    preparedAtElapsedMs = prepared.preparedAtElapsedMs,
-                    nowElapsedMs = now,
-                    maxAgeMs = PREPARED_QUEUE_MAX_AGE_MS
-                ) && prepared.resolved.streamUrl.isNotBlank()
-            ) {
-                preparedQueueNext = prepared.copy(sourceIdentity = sourceIdentity)
+            val matches = queuePrecacheMatchesTransition(
+                preparedSourceIdentity = prepared.sourceIdentity,
+                preparedTargetIdentity = prepared.targetIdentity,
+                currentSourceIdentity = sourceIdentity,
+                currentTargetIdentity = targetIdentity,
+                preparedAtElapsedMs = prepared.preparedAtElapsedMs,
+                nowElapsedMs = now,
+                maxAgeMs = PREPARED_QUEUE_MAX_AGE_MS
+            ) || queuePrecacheMatchesTarget(
+                preparedTargetIdentity = prepared.targetIdentity,
+                requestedTargetIdentity = targetIdentity,
+                preparedAtElapsedMs = prepared.preparedAtElapsedMs,
+                nowElapsedMs = now,
+                maxAgeMs = PREPARED_QUEUE_MAX_AGE_MS
+            )
+            if (matches && prepared.resolved.streamUrl.isNotBlank()) {
+                if (!deepStreamPreload || prepared.streamPreloaded) {
+                    if (prepared.sourceIdentity != sourceIdentity) {
+                        preparedQueueNext = prepared.copy(sourceIdentity = sourceIdentity)
+                    }
+                    return true
+                }
+                // Track already resolved, perform deep stream preloading (1.5 MB ArchiveTune chunk)
+                if (servicePrefetchJob?.isActive == true && servicePrefetchTargetIdentity == targetIdentity) return true
+                if (!isLocalPlaybackTrack(prepared.resolved) && !hasInternetCapableNetwork()) return false
+
+                cancelServicePrefetch()
+                val requestToken = ++servicePrefetchRequestToken
+                servicePrefetchTargetIdentity = targetIdentity
+                servicePrefetchJob = serviceScope.launch {
+                    try {
+                        val warmed = if (!isLocalPlaybackTrack(prepared.resolved)) {
+                            withContext(Dispatchers.IO) {
+                                runCatching { playbackWarmup.prime(prepared.resolved, PREPARED_QUEUE_PRIME_BYTES) }
+                                    .onFailure { Timber.d(it, "Stream preloading warmup skipped") }
+                                    .getOrDefault(false)
+                            }
+                        } else true
+                        if (!queuePairStillCurrent(sourceIdentity, targetIdentity)) return@launch
+                        preparedQueueNext = prepared.copy(
+                            sourceIdentity = sourceIdentity,
+                            streamPreloaded = warmed,
+                            preloadedBytes = if (warmed) PREPARED_QUEUE_PRIME_BYTES else 0L
+                        )
+                    } finally {
+                        if (servicePrefetchRequestToken == requestToken) {
+                            servicePrefetchTargetIdentity = null
+                            servicePrefetchJob = null
+                        }
+                    }
+                }
                 return true
             }
         }
@@ -1984,19 +2018,24 @@ class PlaybackService : MediaLibraryService() {
                 } ?: return@launch
                 if (!queuePairStillCurrent(sourceIdentity, targetIdentity)) return@launch
 
+                val primeBytes = if (deepStreamPreload) PREPARED_QUEUE_PRIME_BYTES else PREPARED_QUEUE_INITIAL_PRIME_BYTES
+                val warmed = if (!isLocalPlaybackTrack(resolved)) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { playbackWarmup.prime(resolved, primeBytes) }
+                            .onFailure { Timber.d(it, "Prepared queue warmup skipped") }
+                            .getOrDefault(false)
+                    }
+                } else true
+
                 preparedQueueNext = PreparedQueueNext(
                     sourceIdentity = sourceIdentity,
                     targetIdentity = targetIdentity,
                     targetTrackId = target.id,
                     resolved = resolved,
-                    preparedAtElapsedMs = SystemClock.elapsedRealtime()
+                    preparedAtElapsedMs = SystemClock.elapsedRealtime(),
+                    streamPreloaded = (deepStreamPreload && warmed) || isLocalPlaybackTrack(resolved),
+                    preloadedBytes = if (warmed) primeBytes else 0L
                 )
-                if (!isLocalPlaybackTrack(resolved)) {
-                    withContext(Dispatchers.IO) {
-                        runCatching { playbackWarmup.prime(resolved, PREPARED_QUEUE_PRIME_BYTES) }
-                            .onFailure { Timber.d(it, "Prepared queue warmup skipped") }
-                    }
-                }
             } finally {
                 if (servicePrefetchRequestToken == requestToken) {
                     servicePrefetchTargetIdentity = null
@@ -2188,8 +2227,29 @@ class PlaybackService : MediaLibraryService() {
     private fun maybePrepareQueueTransition(player: ExoPlayer) {
         if (isLiveRadioMediaItem(player.currentMediaItem)) return
         if (sleepTimer.isEndOfTrackActive()) return
-        if (queueTransitionJob?.isActive == true || !player.isPlaying || player.playbackState != Player.STATE_READY) return
+        if (!player.isPlaying || player.playbackState != Player.STATE_READY) return
         val duration = player.duration.takeIf { it > 0L && it != C.TIME_UNSET } ?: return
+        val position = player.currentPosition
+
+        // Next-Song Stream Preloading (ArchiveTune sliding-window trigger):
+        // Proactively caches 1.5 MB of the upcoming song into Media3 cache before track ends
+        if (currentAudioSettings.preloadNextTrack) {
+            val nextUpcoming = queueEngine.upcoming(1).firstOrNull()
+            if (nextUpcoming != null && !isLocalPlaybackTrack(nextUpcoming)) {
+                val nextIdentity = playbackQueueIdentity(nextUpcoming)
+                val now = SystemClock.elapsedRealtime()
+                val isAlreadyPreloaded = preparedQueueNext?.let { prepared ->
+                    prepared.targetIdentity == nextIdentity &&
+                        prepared.streamPreloaded &&
+                        isQueuePrecacheFresh(prepared.preparedAtElapsedMs, now, PREPARED_QUEUE_MAX_AGE_MS)
+                } == true
+                if (shouldTriggerStreamPreload(duration, position, true, isAlreadyPreloaded, STREAM_PRELOAD_TRIGGER_REMAINING_MS)) {
+                    prepareQueueNextInternal(nextUpcoming, deepStreamPreload = true)
+                }
+            }
+        }
+
+        if (queueTransitionJob?.isActive == true) return
         val snapshot = queueEngine.state.value
         val current = snapshot.currentTrack ?: return
         val nextIndex = queueTransitionTargetIndex(snapshot) ?: return
@@ -2201,7 +2261,7 @@ class PlaybackService : MediaLibraryService() {
         val handoffAtMs = mixStudioSetting?.outgoingStartMs
             ?.coerceIn(0L, (duration - DerbisMixStudio.MIN_TRANSITION_MS).coerceAtLeast(0L))
             ?: duration
-        val remaining = handoffAtMs - player.currentPosition
+        val remaining = handoffAtMs - position
         if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
@@ -3076,11 +3136,14 @@ class PlaybackService : MediaLibraryService() {
     /** Keeps Discord activity aligned with the active media service; task removal clears it. */
     private fun publishDiscordRichPresence(player: Player? = mediaSession?.player ?: activePlayer) {
         val playbackDeck = player ?: return
+        val currentTrack = queueEngine.state.value.currentTrack
+        val duration = playbackDeck.duration.takeIf { it > 0L } ?: currentTrack?.durationMs ?: 0L
         DerbisDiscordRichPresence.publish(
             applicationContext,
             derbisDiscordPresenceSnapshot(
-                track = queueEngine.state.value.currentTrack,
+                track = currentTrack,
                 positionMs = playbackDeck.currentPosition,
+                durationMs = duration,
                 playing = playbackDeck.isPlaying
             )
         )

@@ -12,30 +12,37 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Keeps the Discord OAuth session encrypted at rest with an Android Keystore key.
+ * Keeps the Discord OAuth & User Token session encrypted at rest with an Android Keystore key.
  *
- * A Discord client secret never belongs in an installed application. The Social SDK public-client
- * PKCE flow returns short-lived user and refresh tokens instead; only this encrypted local record
- * is retained so a user stays linked between launches.
+ * Supports both normal login (OAuth PKCE) and token login with profile metadata.
  */
 internal data class DerbisDiscordSession(
-    val accessToken: String,
-    val refreshToken: String,
-    val tokenType: Int
-)
+    val accessToken: String = "",
+    val refreshToken: String = "",
+    val tokenType: Int = 0,
+    val userToken: String = "",
+    val username: String = "",
+    val globalName: String = "",
+    val avatarUrl: String = ""
+) {
+    val effectiveToken: String
+        get() = userToken.ifBlank { accessToken }
+
+    val hasValidToken: Boolean
+        get() = effectiveToken.isNotBlank()
+}
 
 internal object DerbisDiscordAccountStore {
     private const val PREFS = "derbis_discord_account"
-    private const val SESSION = "encrypted_session_v1"
+    private const val SESSION = "encrypted_session_v2"
+    private const val SESSION_LEGACY = "encrypted_session_v1"
     private const val KEYSTORE = "AndroidKeyStore"
     private const val KEY_ALIAS = "derbis_discord_account_key_v1"
     private const val TRANSFORMATION = "AES/GCM/NoPadding"
 
     fun read(context: Context): DerbisDiscordSession? = runCatching {
-        val encoded = context.applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(SESSION, null)
-            .orEmpty()
+        val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val encoded = prefs.getString(SESSION, null) ?: prefs.getString(SESSION_LEGACY, null).orEmpty()
         if (encoded.isBlank()) return null
         val separator = encoded.indexOf(':')
         if (separator <= 0 || separator == encoded.lastIndex) throw IllegalStateException("Invalid Discord session")
@@ -48,22 +55,28 @@ internal object DerbisDiscordAccountStore {
         DerbisDiscordSession(
             accessToken = json.optString("access_token"),
             refreshToken = json.optString("refresh_token"),
-            tokenType = json.optInt("token_type", 0)
-        ).takeIf { it.accessToken.isNotBlank() && it.refreshToken.isNotBlank() }
+            tokenType = json.optInt("token_type", 0),
+            userToken = json.optString("user_token"),
+            username = json.optString("username"),
+            globalName = json.optString("global_name"),
+            avatarUrl = json.optString("avatar_url")
+        ).takeIf { it.hasValidToken }
             ?: throw IllegalStateException("Incomplete Discord session")
     }.getOrElse {
-        // Android backups do not include Keystore keys. A restored or corrupted encrypted record
-        // cannot be safely reused, so require a fresh explicit sign-in rather than retaining junk.
         clear(context)
         null
     }
 
     fun save(context: Context, session: DerbisDiscordSession) {
-        if (session.accessToken.isBlank() || session.refreshToken.isBlank()) return
+        if (!session.hasValidToken) return
         val plaintext = JSONObject().apply {
             put("access_token", session.accessToken)
             put("refresh_token", session.refreshToken)
             put("token_type", session.tokenType)
+            put("user_token", session.userToken)
+            put("username", session.username)
+            put("global_name", session.globalName)
+            put("avatar_url", session.avatarUrl)
         }.toString().toByteArray(Charsets.UTF_8)
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
             init(Cipher.ENCRYPT_MODE, key())
@@ -80,6 +93,7 @@ internal object DerbisDiscordAccountStore {
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(SESSION)
+            .remove(SESSION_LEGACY)
             .apply()
     }
 

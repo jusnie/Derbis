@@ -56,6 +56,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yasuda.derbis.data.KanjiFurigana
+import com.yasuda.derbis.ui.lyrics.KaraokeFuriganaWordTimedText
 import com.yasuda.derbis.player.PlaybackService
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.RepeatMode
@@ -510,27 +512,51 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
     ) { currentLine ->
         if (currentLine != null) {
             val words = remember(currentLine) { resolveOrSynthesizeLineWords(currentLine) }
+            val hasKanji = remember(currentLine.text) { KanjiFurigana.containsKanji(currentLine.text) }
             Box(modifier = Modifier.fillMaxWidth()) {
-                KaraokeWordTimedText(
-                    lineText = currentLine.text,
-                    words = words,
-                    positionProvider = { positionMs },
-                    isActive = true,
-                    fontSize = 17.sp,
-                    lineHeight = 23.sp,
-                    textAlign = TextAlign.Start,
-                    inactiveColor = Color.White.copy(alpha = 0.45f),
-                    completedColor = Color.White,
-                    activeColor = Color.White,
-                    pendingColor = Color.White.copy(alpha = 0.45f),
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = AppleMusic13SfProFallbackFont,
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.28f),
-                        offset = Offset(0f, 1f),
-                        blurRadius = 6f
+                if (hasKanji) {
+                    KaraokeFuriganaWordTimedText(
+                        lineText = currentLine.text,
+                        words = words,
+                        positionProvider = { positionMs },
+                        isActive = true,
+                        fontSize = 17.sp,
+                        lineHeight = 23.sp,
+                        textAlign = TextAlign.Start,
+                        inactiveColor = Color.White.copy(alpha = 0.45f),
+                        completedColor = Color.White,
+                        activeColor = Color.White,
+                        pendingColor = Color.White.copy(alpha = 0.45f),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = AppleMusic13SfProFallbackFont,
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.28f),
+                            offset = Offset(0f, 1f),
+                            blurRadius = 6f
+                        )
                     )
-                )
+                } else {
+                    KaraokeWordTimedText(
+                        lineText = currentLine.text,
+                        words = words,
+                        positionProvider = { positionMs },
+                        isActive = true,
+                        fontSize = 17.sp,
+                        lineHeight = 23.sp,
+                        textAlign = TextAlign.Start,
+                        inactiveColor = Color.White.copy(alpha = 0.45f),
+                        completedColor = Color.White,
+                        activeColor = Color.White,
+                        pendingColor = Color.White.copy(alpha = 0.45f),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = AppleMusic13SfProFallbackFont,
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.28f),
+                            offset = Offset(0f, 1f),
+                            blurRadius = 6f
+                        )
+                    )
+                }
             }
         }
     }

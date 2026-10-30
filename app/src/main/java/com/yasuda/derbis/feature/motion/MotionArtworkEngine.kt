@@ -41,6 +41,12 @@ class MotionArtworkEngine(context: Context) {
     private val urlVerifier = MotionArtworkUrlVerifier(appContext)
     private val metadataResolver = ChartOfficialArtworkResolver(appContext)
     private val providerFactories: Map<String, (MotionArtworkConfig) -> MotionArtworkProvider> = mapOf(
+        AppleMusicAnimatedArtworkProvider.PROVIDER_ID to { _: MotionArtworkConfig ->
+            AppleMusicAnimatedArtworkProvider(appContext)
+        },
+        SpotifyCanvasProvider.PROVIDER_ID to { _: MotionArtworkConfig ->
+            SpotifyCanvasProvider(appContext)
+        },
         DerbisCanvasCatalogProvider.PROVIDER_ID to { _: MotionArtworkConfig ->
             DerbisCanvasCatalogProvider(appContext)
         }
@@ -64,9 +70,7 @@ class MotionArtworkEngine(context: Context) {
         track: Track,
         source: DerbisCanvasSource = DerbisCanvasSource.Auto
     ): Flow<MotionArtwork> = flow {
-        // A release without its own catalog is deliberately static-only: do not do metadata
-        // enrichment or touch any third-party artwork path before confirming configuration.
-        if (!isDerbisCanvasCatalogConfigured() || !networkPolicy.canResolveCurrent()) return@flow
+        if (!networkPolicy.canResolveCurrent()) return@flow
         val runtime = MotionArtworkRuntime.snapshot()
         val lookupTrack = prepareLookupTrackWithinBudget(track)
         if (!networkPolicy.canResolveCurrent()) return@flow

@@ -6,15 +6,21 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,34 +42,35 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -94,7 +101,7 @@ import kotlin.math.abs
 private const val WRAPPED_PAGE_MS = 6_500
 private val WrappedInk = Color.White
 private val WrappedMuted = Color.White.copy(alpha = 0.72f)
-private val WrappedBackground = Color(0xFF050608)
+private val WrappedBackground = Color(0xFF040508)
 private val WrappedOnAccent = Color(0xFF07080C)
 
 private enum class WrappedPage { Intro, Minutes, Artist, Tracks, Rhythm, Finale }
@@ -122,7 +129,10 @@ internal fun ListeningWrappedStory(
     var pageIndex by rememberSaveable(state.year) { mutableIntStateOf(0) }
     val lastIndex = (pages.size - 1).coerceAtLeast(0)
     val page = pages.getOrNull(pageIndex.coerceIn(0, lastIndex))
-    val progress = remember { Animatable(0f) }
+
+    var isHolding by remember { mutableStateOf(false) }
+    var currentProgress by remember(pageIndex) { mutableFloatStateOf(0f) }
+
     val covers = remember(snapshot) {
         snapshot?.topTracks?.map { it.artworkUrl }?.filter(String::isNotBlank)?.distinct().orEmpty()
     }
@@ -131,14 +141,24 @@ internal fun ListeningWrappedStory(
         if (pageIndex > 0) pageIndex-- else onClose()
     }
 
-    LaunchedEffect(pageIndex, pages.size, animationsEnabled) {
-        progress.snapTo(0f)
+    LaunchedEffect(pageIndex, animationsEnabled, pages.size) {
         if (!animationsEnabled || pages.isEmpty() || pageIndex >= lastIndex) {
-            progress.snapTo(1f)
+            currentProgress = 1f
             return@LaunchedEffect
         }
-        progress.animateTo(1f, tween(WRAPPED_PAGE_MS, easing = LinearEasing))
-        pageIndex = (pageIndex + 1).coerceAtMost(lastIndex)
+        val durationMs = WRAPPED_PAGE_MS.toFloat()
+        var lastTimeNanos = withFrameNanos { it }
+        while (currentProgress < 1f) {
+            val frameNanos = withFrameNanos { it }
+            val dtMs = (frameNanos - lastTimeNanos) / 1_000_000f
+            lastTimeNanos = frameNanos
+            if (!isHolding) {
+                currentProgress = (currentProgress + dtMs / durationMs).coerceAtMost(1f)
+            }
+        }
+        if (!isHolding && currentProgress >= 1f) {
+            pageIndex = (pageIndex + 1).coerceAtMost(lastIndex)
+        }
     }
 
     Box(
@@ -153,19 +173,20 @@ internal fun ListeningWrappedStory(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            WrappedProgress(count = pages.size, current = pageIndex, progress = { progress.value })
+            WrappedProgress(count = pages.size, current = pageIndex, progress = { currentProgress })
             WrappedTopBar(
-                label = if (page == WrappedPage.Intro) "" else strings.wrappedYearInMusic,
+                year = state.year,
                 closeLabel = strings.close,
+                accent = accent,
                 onClose = onClose
             )
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .wrappedTapNavigation(
+                    .wrappedHoldAndTapNavigation(
                         enabled = page != null && page != WrappedPage.Finale,
-                        pageCount = pages.size,
+                        onHoldChanged = { isHolding = it },
                         onPrevious = { pageIndex = (pageIndex - 1).coerceAtLeast(0) },
                         onNext = { pageIndex = (pageIndex + 1).coerceAtMost(lastIndex) }
                     )
@@ -184,41 +205,77 @@ internal fun ListeningWrappedStory(
     }
 }
 
-private fun Modifier.wrappedTapNavigation(
+private fun Modifier.wrappedHoldAndTapNavigation(
     enabled: Boolean,
-    pageCount: Int,
+    onHoldChanged: (Boolean) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit
 ): Modifier = if (!enabled) {
     this
 } else {
-    pointerInput(pageCount) {
-        detectTapGestures { offset ->
-            if (offset.x < size.width * 0.3f) onPrevious() else onNext()
-        }
+    pointerInput(Unit) {
+        detectTapGestures(
+            onPress = {
+                onHoldChanged(true)
+                try {
+                    tryAwaitRelease()
+                } finally {
+                    onHoldChanged(false)
+                }
+            },
+            onTap = { offset ->
+                if (offset.x < size.width * 0.3f) onPrevious() else onNext()
+            }
+        )
     }
 }
 
 @Composable
-private fun WrappedTopBar(label: String, closeLabel: String, onClose: () -> Unit) {
+private fun WrappedTopBar(year: Int, closeLabel: String, accent: Color, onClose: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            color = WrappedMuted,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.6.sp,
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .padding(start = 8.dp)
-        )
-        IconButton(onClick = onClose) {
-            Icon(Icons.Rounded.Close, contentDescription = closeLabel, tint = WrappedInk)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(13.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "REPLAY '$year",
+                color = WrappedInk,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.8.sp
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        IconButton(
+            onClick = onClose,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+        ) {
+            Icon(
+                Icons.Rounded.Close,
+                contentDescription = closeLabel,
+                tint = WrappedInk,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -282,14 +339,14 @@ private fun WrappedProgress(count: Int, current: Int, progress: () -> Float) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            .height(4.dp)
+            .height(3.dp)
     ) {
         val gap = 4.dp.toPx()
         val width = (size.width - gap * (count - 1)) / count
         val radius = CornerRadius(size.height / 2f, size.height / 2f)
         repeat(count) { index ->
             val left = index * (width + gap)
-            drawRoundRect(Color.White.copy(alpha = 0.24f), Offset(left, 0f), Size(width, size.height), radius)
+            drawRoundRect(Color.White.copy(alpha = 0.22f), Offset(left, 0f), Size(width, size.height), radius)
             val fill = when {
                 index < current -> 1f
                 index == current -> progress().coerceIn(0f, 1f)
@@ -302,13 +359,137 @@ private fun WrappedProgress(count: Int, current: Int, progress: () -> Float) {
     }
 }
 
+private fun hsvColor(hue: Float, saturation: Float, value: Float): Color {
+    val h = ((hue % 360f) + 360f) % 360f
+    val s = saturation.coerceIn(0f, 1f)
+    val v = value.coerceIn(0f, 1f)
+    val c = v * s
+    val x = c * (1f - abs((h / 60f) % 2f - 1f))
+    val m = v - c
+    val (r1, g1, b1) = when {
+        h < 60f -> Triple(c, x, 0f)
+        h < 120f -> Triple(x, c, 0f)
+        h < 180f -> Triple(0f, c, x)
+        h < 240f -> Triple(0f, x, c)
+        h < 300f -> Triple(x, 0f, c)
+        else -> Triple(c, 0f, x)
+    }
+    return Color(r = r1 + m, g = g1 + m, b = b1 + m)
+}
+
 @Composable
 private fun WrappedBackdrop(covers: List<String>, accent: Color, intro: Boolean) {
     val context = LocalContext.current
-    Box(modifier = Modifier.fillMaxSize()) {
+    val infiniteTransition = rememberInfiniteTransition(label = "wrapped-ambient-blur")
+    val time by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(22_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ambient-time"
+    )
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.88f,
+        targetValue = 1.14f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(6_500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ambient-pulse"
+    )
+
+    val rad = Math.toRadians(time.toDouble())
+    val sinT = Math.sin(rad).toFloat()
+    val cosT = Math.cos(rad).toFloat()
+    val sin2T = Math.sin(rad * 2.0).toFloat()
+    val cos2T = Math.cos(rad * 2.0).toFloat()
+
+    // Apple Music Replay continuously shifting vibrant hues (HSV color wheel rotation)
+    val color1 = remember(time) { hsvColor((time * 0.85f + 330f) % 360f, 0.88f, 0.95f) } // Neon magenta / electric rose
+    val color2 = remember(time) { hsvColor((time * 0.70f + 195f) % 360f, 0.85f, 0.92f) } // Bright cyan / electric blue
+    val color3 = remember(time) { hsvColor((time * 0.90f + 40f) % 360f, 0.92f, 0.98f) }  // Vibrant sunset amber / coral
+    val color4 = remember(time) { hsvColor((time * 0.75f + 265f) % 360f, 0.86f, 0.90f) } // Deep royal violet / indigo
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF040508))
+    ) {
+        // Living dynamic ambient blur canvas with multi-orb fluid mesh gradients
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+
+            // Base gradient wash
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        color4.copy(alpha = 0.35f),
+                        Color(0xFF040508),
+                        color1.copy(alpha = 0.28f)
+                    )
+                )
+            )
+
+            // Orb 1 (Top-Left drifting glowing sphere)
+            val orb1 = Offset(w * (0.28f + 0.18f * cosT), h * (0.22f + 0.14f * sinT))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color1.copy(alpha = 0.65f), color1.copy(alpha = 0.25f), Color.Transparent),
+                    center = orb1,
+                    radius = (w * 0.82f) * pulse
+                ),
+                center = orb1,
+                radius = (w * 0.82f) * pulse
+            )
+
+            // Orb 2 (Right-Center drifting glowing sphere)
+            val orb2 = Offset(w * (0.78f - 0.20f * sinT), h * (0.46f + 0.16f * cosT))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color2.copy(alpha = 0.60f), color2.copy(alpha = 0.20f), Color.Transparent),
+                    center = orb2,
+                    radius = (w * 0.88f) * (2f - pulse)
+                ),
+                center = orb2,
+                radius = (w * 0.88f) * (2f - pulse)
+            )
+
+            // Orb 3 (Bottom-Left drifting glowing sphere)
+            val orb3 = Offset(w * (0.34f + 0.20f * sin2T), h * (0.78f - 0.14f * cos2T))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color3.copy(alpha = 0.55f), color3.copy(alpha = 0.18f), Color.Transparent),
+                    center = orb3,
+                    radius = (w * 0.76f) * pulse
+                ),
+                center = orb3,
+                radius = (w * 0.76f) * pulse
+            )
+
+            // Orb 4 (Center Accent floating orb)
+            val orb4 = Offset(w * (0.50f - 0.16f * cos2T), h * (0.38f + 0.18f * sin2T))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(color4.copy(alpha = 0.52f), color4.copy(alpha = 0.15f), Color.Transparent),
+                    center = orb4,
+                    radius = (w * 0.70f)
+                ),
+                center = orb4,
+                radius = (w * 0.70f)
+            )
+        }
+
+        // Subdued album mosaic overlay for personalized music texture
         if (covers.isNotEmpty()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                repeat(5) { row ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = if (intro) 0.12f else 0.06f }
+            ) {
+                repeat(4) { row ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         repeat(3) { column ->
                             val url = covers[(row * 3 + column + row) % covers.size]
@@ -319,7 +500,6 @@ private fun WrappedBackdrop(covers: List<String>, accent: Color, intro: Boolean)
                                 model = request,
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
-                                alpha = if (intro) 0.55f else 0.16f,
                                 modifier = Modifier
                                     .weight(1f)
                                     .aspectRatio(1f)
@@ -329,24 +509,16 @@ private fun WrappedBackdrop(covers: List<String>, accent: Color, intro: Boolean)
                 }
             }
         }
+
+        // Apple Music dark frosted glass overlay
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to WrappedBackground.copy(alpha = if (intro) 0.15f else 0.55f),
-                        0.45f to WrappedBackground.copy(alpha = if (intro) 0.55f else 0.8f),
-                        1f to WrappedBackground
-                    )
-                )
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.55f to Color.Transparent,
-                        1f to accent.copy(alpha = 0.22f)
+                        0f to Color(0xFF040508).copy(alpha = 0.40f),
+                        0.45f to Color(0xFF040508).copy(alpha = 0.58f),
+                        1f to Color(0xFF040508).copy(alpha = 0.88f)
                     )
                 )
         )
@@ -364,7 +536,7 @@ private fun WrappedPageContent(
     animationsEnabled: Boolean
 ) {
     when (page) {
-        WrappedPage.Intro -> WrappedIntro(year, strings)
+        WrappedPage.Intro -> WrappedIntro(year, strings, accent)
         WrappedPage.Minutes -> WrappedMinutes(snapshot, strings, locale, accent, animationsEnabled)
         WrappedPage.Artist -> WrappedArtist(snapshot.topArtists, strings, locale, accent)
         WrappedPage.Tracks -> WrappedTracks(snapshot.topTracks, strings, accent)
@@ -374,59 +546,86 @@ private fun WrappedPageContent(
 }
 
 @Composable
-private fun WrappedIntro(year: Int, strings: DerbisStrings) {
+private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 28.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(R.drawable.derbis_logo),
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
                 contentDescription = null,
-                modifier = Modifier.size(44.dp)
+                tint = accent,
+                modifier = Modifier.size(15.dp)
             )
+            Spacer(Modifier.width(8.dp))
             Text(
-                text = "DERBIS",
+                text = "REPLAY",
                 color = WrappedInk,
-                fontSize = 15.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 4.sp
+                letterSpacing = 2.5.sp
             )
         }
         Spacer(Modifier.height(18.dp))
         Text(
-            text = strings.wrappedYearInMusic,
+            text = strings.wrappedYearInMusic.uppercase(),
             color = WrappedMuted,
             fontSize = 13.sp,
             fontWeight = FontWeight.Black,
-            letterSpacing = 2.sp
+            letterSpacing = 2.2.sp
         )
         Text(
             text = year.toString(),
             color = WrappedInk,
-            fontSize = 128.sp,
-            lineHeight = 128.sp,
+            fontSize = 120.sp,
+            lineHeight = 118.sp,
             fontWeight = FontWeight.Black,
-            letterSpacing = (-5).sp,
+            letterSpacing = (-4.5).sp,
             maxLines = 1
         )
         Text(
             text = strings.wrappedEntrySubtitle,
             color = WrappedMuted,
-            fontSize = 15.sp,
+            fontSize = 16.sp,
+            lineHeight = 22.sp,
             fontWeight = FontWeight.Medium
         )
-        Spacer(Modifier.height(32.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = strings.wrappedTapToBegin, color = WrappedInk, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = WrappedInk)
+        Spacer(Modifier.height(36.dp))
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.15f))
+                .border(1.dp, Color.White.copy(alpha = 0.22f), CircleShape)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = strings.wrappedTapToBegin,
+                color = WrappedInk,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = WrappedInk,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WrappedMinutes(
     snapshot: ListeningInsightsSnapshot,
@@ -445,39 +644,78 @@ private fun WrappedMinutes(
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = strings.wrappedMinutesTitle, color = WrappedInk, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(18.dp))
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(270.dp)
-                    .rotate(12f)
-                    .clip(MaterialShapes.Cookie12Sided.toShape())
-                    .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.55f), DerbisViolet.copy(alpha = 0.35f))))
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(14.dp)
             )
-            CountUpText(
-                target = minutes,
-                format = number,
-                animate = animationsEnabled
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "TOTAL LISTENING",
+                color = WrappedInk,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
             )
         }
+        Spacer(Modifier.height(20.dp))
         Text(
-            text = strings.wrappedMinutesUnit.uppercase(locale),
-            color = accent,
-            fontSize = 16.sp,
+            text = strings.wrappedMinutesTitle,
+            color = WrappedInk,
+            fontSize = 28.sp,
+            lineHeight = 32.sp,
             fontWeight = FontWeight.Black,
-            letterSpacing = 3.sp
+            letterSpacing = (-0.8).sp
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(24.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(28.dp))
+                .padding(vertical = 28.dp, horizontal = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CountUpText(
+                    target = minutes,
+                    format = number,
+                    animate = animationsEnabled
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = strings.wrappedMinutesUnit.uppercase(locale),
+                    color = accent,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.sp
+                )
+            }
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = strings.wrappedHours.replace("%s", decimal.format(hours)),
             color = WrappedMuted,
             fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.SemiBold
         )
         snapshot.metrics.trendPercent?.let { trend ->
             Spacer(Modifier.height(16.dp))
-            Surface(color = WrappedInk.copy(alpha = 0.12f), shape = CircleShape) {
+            Surface(
+                color = Color.White.copy(alpha = 0.12f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f))
+            ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -488,6 +726,7 @@ private fun WrappedMinutes(
                         tint = accent,
                         modifier = Modifier.size(18.dp)
                     )
+                    Spacer(Modifier.width(4.dp))
                     val template = if (trend >= 0) strings.wrappedTrendUp else strings.wrappedTrendDown
                     Text(
                         text = template.replace("%s", number.format(abs(trend))),
@@ -510,8 +749,8 @@ private fun CountUpText(target: Long, format: NumberFormat, animate: Boolean, mo
     Text(
         text = format.format(value.value.toLong()),
         color = WrappedInk,
-        fontSize = 88.sp,
-        lineHeight = 92.sp,
+        fontSize = 84.sp,
+        lineHeight = 88.sp,
         fontWeight = FontWeight.Black,
         letterSpacing = (-3).sp,
         maxLines = 1,
@@ -519,7 +758,6 @@ private fun CountUpText(target: Long, format: NumberFormat, animate: Boolean, mo
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun WrappedArtist(
     artists: List<ListeningInsightsArtist>,
@@ -537,19 +775,51 @@ private fun WrappedArtist(
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = strings.wrappedArtistTitle, color = WrappedInk, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Rounded.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFFFFD700),
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "TOP ARTIST",
+                color = WrappedInk,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = strings.wrappedArtistTitle,
+            color = WrappedInk,
+            fontSize = 28.sp,
+            lineHeight = 32.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.8).sp
+        )
         Spacer(Modifier.height(24.dp))
         Box(
             modifier = Modifier
-                .size(240.dp)
-                .clip(MaterialShapes.Cookie9Sided.toShape())
-                .background(Brush.linearGradient(listOf(accent, DerbisViolet))),
+                .size(210.dp)
+                .clip(CircleShape)
+                .background(Brush.linearGradient(listOf(accent, DerbisViolet)))
+                .border(2.dp, Color.White.copy(alpha = 0.25f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = ListeningReceiptModel.initial(top.name),
                 color = WrappedOnAccent,
-                fontSize = 84.sp,
+                fontSize = 80.sp,
                 fontWeight = FontWeight.Black
             )
             if (top.artworkUrl.isNotBlank()) {
@@ -564,17 +834,19 @@ private fun WrappedArtist(
                 )
             }
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(22.dp))
         Text(
             text = top.name,
             color = WrappedInk,
-            fontSize = 40.sp,
-            lineHeight = 44.sp,
+            fontSize = 38.sp,
+            lineHeight = 42.sp,
             fontWeight = FontWeight.Black,
+            letterSpacing = (-1.2).sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
         if (top.plays > 0) {
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "${number.format(top.plays)} ${strings.statPlays}",
                 color = accent,
@@ -582,16 +854,35 @@ private fun WrappedArtist(
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
         named.drop(1).take(2).forEachIndexed { index, artist ->
-            Text(
-                text = "${index + 2}  ${artist.name}",
-                color = WrappedMuted,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "#${index + 2}",
+                    color = accent,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.width(32.dp)
+                )
+                Text(
+                    text = artist.name,
+                    color = WrappedInk,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -604,8 +895,39 @@ private fun WrappedTracks(tracks: List<ListeningInsightsTrack>, strings: DerbisS
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = strings.wrappedTracksTitle, color = WrappedInk, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(20.dp))
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "TOP SONGS",
+                color = WrappedInk,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = strings.wrappedTracksTitle,
+            color = WrappedInk,
+            fontSize = 28.sp,
+            lineHeight = 32.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.8).sp
+        )
+        Spacer(Modifier.height(18.dp))
         tracks.take(ListeningReceiptModel.MAX_TRACKS).forEachIndexed { index, track ->
             WrappedTrackRow(rank = index + 1, track = track, accent = accent)
         }
@@ -619,28 +941,33 @@ private fun WrappedTrackRow(rank: Int, track: ListeningInsightsTrack, accent: Co
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(if (first) 28.dp else 18.dp))
-            .background(if (first) accent.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.06f))
-            .padding(10.dp),
+            .clip(RoundedCornerShape(if (first) 22.dp else 16.dp))
+            .background(if (first) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.06f))
+            .border(
+                1.dp,
+                if (first) accent.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.10f),
+                RoundedCornerShape(if (first) 22.dp else 16.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = rank.toString(),
             color = if (first) accent else WrappedMuted,
-            fontSize = if (first) 28.sp else 20.sp,
+            fontSize = if (first) 22.sp else 16.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.width(34.dp)
+            modifier = Modifier.width(28.dp)
         )
-        WrappedTrackCover(track = track, accent = accent, size = if (first) 64.dp else 52.dp)
+        WrappedTrackCover(track = track, accent = accent, size = if (first) 56.dp else 46.dp)
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 14.dp)
+                .padding(start = 12.dp)
         ) {
             Text(
                 text = track.title,
                 color = WrappedInk,
-                fontSize = if (first) 19.sp else 16.sp,
+                fontSize = if (first) 17.sp else 15.sp,
                 fontWeight = if (first) FontWeight.Black else FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -649,11 +976,19 @@ private fun WrappedTrackRow(rank: Int, track: ListeningInsightsTrack, accent: Co
                 Text(
                     text = track.artist,
                     color = WrappedMuted,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+        if (first) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(20.dp).padding(start = 4.dp)
+            )
         }
     }
 }
@@ -664,14 +999,14 @@ private fun WrappedTrackCover(track: ListeningInsightsTrack, accent: Color, size
     Box(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(Brush.linearGradient(listOf(accent, DerbisViolet))),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = ListeningReceiptModel.initial(track.title),
             color = WrappedOnAccent,
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Black
         )
         if (track.artworkUrl.isNotBlank()) {
@@ -704,7 +1039,38 @@ private fun WrappedRhythm(
             .padding(horizontal = 28.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = strings.wrappedRhythmTitle, color = WrappedInk, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_sound_wave),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "LISTENING RHYTHM",
+                color = WrappedInk,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = strings.wrappedRhythmTitle,
+            color = WrappedInk,
+            fontSize = 28.sp,
+            lineHeight = 32.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.8).sp
+        )
         if (peak >= 0) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -722,32 +1088,35 @@ private fun WrappedRhythm(
                 number.format(snapshot.metrics.countedPlays) to strings.statPlays,
                 number.format(snapshot.metrics.distinctTracks) to strings.statTracks,
                 number.format(snapshot.metrics.distinctArtists) to strings.statArtists
-            ),
-            accent = accent
+            )
         )
     }
 }
 
 @Composable
 private fun WrappedHourChart(buckets: List<Long>, peak: Int, accent: Color) {
-    val maxValue = buckets.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+    val max = (buckets.maxOrNull() ?: 1L).coerceAtLeast(1L).toFloat()
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(170.dp)
+            .height(130.dp)
     ) {
         val count = buckets.size.coerceAtLeast(1)
-        val step = size.width / count
-        val barWidth = step * 0.62f
-        buckets.forEachIndexed { index, value ->
-            val fraction = (value.toFloat() / maxValue).coerceIn(0f, 1f)
-            val height = (size.height * fraction).coerceAtLeast(barWidth)
-            drawRoundRect(
-                color = if (index == peak) accent else Color.White.copy(alpha = if (value > 0L) 0.42f else 0.14f),
-                topLeft = Offset(index * step + (step - barWidth) / 2f, size.height - height),
-                size = Size(barWidth, height),
-                cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
-            )
+        val gap = 3.dp.toPx()
+        val barWidth = (size.width - gap * (count - 1)) / count
+        val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
+        buckets.forEachIndexed { hour, countVal ->
+            val ratio = (countVal / max).coerceIn(0.08f, 1f)
+            val barHeight = size.height * ratio
+            val left = hour * (barWidth + gap)
+            val top = size.height - barHeight
+            val isPeak = hour == peak
+            val brush = if (isPeak) {
+                Brush.verticalGradient(listOf(accent, Color.White), top, size.height)
+            } else {
+                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.15f)), top, size.height)
+            }
+            drawRoundRect(brush, Offset(left, top), Size(barWidth, barHeight), radius)
         }
     }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -758,32 +1127,23 @@ private fun WrappedHourChart(buckets: List<Long>, peak: Int, accent: Color) {
 }
 
 @Composable
-private fun WrappedStatTiles(stats: List<Pair<String, String>>, accent: Color) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        stats.forEachIndexed { index, (value, label) ->
+private fun WrappedStatTiles(stats: List<Pair<String, String>>) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        stats.forEach { (value, label) ->
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(wrappedTileShape(first = index == 0, last = index == stats.lastIndex))
-                    .background(accent.copy(alpha = 0.2f))
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 16.dp)
             ) {
                 Text(text = value, color = WrappedInk, fontSize = 24.sp, fontWeight = FontWeight.Black, maxLines = 1)
-                Text(text = label, color = WrappedMuted, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Spacer(Modifier.height(2.dp))
+                Text(text = label, color = WrappedMuted, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
     }
-}
-
-private fun wrappedTileShape(first: Boolean, last: Boolean): RoundedCornerShape {
-    val outer = 26.dp
-    val inner = 8.dp
-    return RoundedCornerShape(
-        topStart = if (first) outer else inner,
-        bottomStart = if (first) outer else inner,
-        topEnd = if (last) outer else inner,
-        bottomEnd = if (last) outer else inner
-    )
 }
 
 @Composable

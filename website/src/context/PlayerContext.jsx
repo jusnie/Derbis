@@ -332,6 +332,47 @@ export function PlayerProvider({ children }) {
     }
   }, [playTrack, ensureRadioTail, endlessListening]);
 
+  // Automatically play track from universal shared web link (?play=<id> or ?t=<id>)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const playId = params.get("play") || params.get("t");
+    if (playId && /^[A-Za-z0-9_-]{6,20}$/.test(playId)) {
+      fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${playId}&format=json`)
+        .then(r => r.json())
+        .then(data => {
+          let title = data.title || "Shared Track";
+          let artist = data.author_name ? data.author_name.replace(/ - Topic$/i, "").trim() : "YouTube Music";
+          if (title.includes(" - ")) {
+            const parts = title.split(" - ");
+            artist = parts[0].trim();
+            title = parts.slice(1).join(" - ").trim();
+          }
+          const track = {
+            id: playId,
+            videoId: playId,
+            title,
+            artist,
+            thumbnail: `https://i.ytimg.com/vi/${playId}/hqdefault.jpg`,
+            highResThumbnail: `https://i.ytimg.com/vi/${playId}/maxresdefault.jpg`
+          };
+          playTrack(track, []);
+          ensureRadioTail(track);
+        })
+        .catch(() => {
+          const track = {
+            id: playId,
+            videoId: playId,
+            title: "Shared Track",
+            artist: "Derbis Audio",
+            thumbnail: `https://i.ytimg.com/vi/${playId}/hqdefault.jpg`
+          };
+          playTrack(track, []);
+          ensureRadioTail(track);
+        });
+    }
+  }, [playTrack, ensureRadioTail]);
+
   // Toggle play/pause
   const togglePlayPause = useCallback(() => {
     if (!ytPlayerRef.current) return;
@@ -440,6 +481,66 @@ export function PlayerProvider({ children }) {
       seekTo(0);
     }
   }, [currentTime, history, currentTrack, playTrack, seekTo]);
+
+  // iOS Lock Screen & Control Center MediaSession Integration
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator) || !currentTrack) return;
+
+    try {
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: currentTrack.title || "Derbis Audio",
+        artist: currentTrack.artist || "Derbis",
+        album: currentTrack.genre || "Derbis Hi-Fi",
+        artwork: [
+          {
+            src: currentTrack.highResThumbnail || currentTrack.thumbnail || "https://i.ytimg.com/vi/gNi_6U5Pm_o/hqdefault.jpg",
+            sizes: "512x512",
+            type: "image/jpeg"
+          }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => {
+        if (ytPlayerRef.current && ytPlayerRef.current.playVideo) {
+          ytPlayerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("pause", () => {
+        if (ytPlayerRef.current && ytPlayerRef.current.pauseVideo) {
+          ytPlayerRef.current.pauseVideo();
+          setIsPlaying(false);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler("previoustrack", () => {
+        previousTrack();
+      });
+
+      navigator.mediaSession.setActionHandler("nexttrack", () => {
+        nextTrack();
+      });
+
+      navigator.mediaSession.setActionHandler("seekto", (details) => {
+        if (details.seekTime !== undefined && ytPlayerRef.current && ytPlayerRef.current.seekTo) {
+          ytPlayerRef.current.seekTo(details.seekTime, true);
+          setCurrentTime(details.seekTime);
+        }
+      });
+    } catch (e) {
+      // Ignored if browser does not support specific action handlers
+    }
+  }, [currentTrack, nextTrack, previousTrack]);
+
+  // Update MediaSession playback state for iOS Lock Screen
+  useEffect(() => {
+    if (typeof window !== "undefined" && "mediaSession" in navigator) {
+      try {
+        navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+      } catch (e) {}
+    }
+  }, [isPlaying]);
 
   const addToQueue = useCallback((track) => {
     setQueue(prev => [...prev, track]);

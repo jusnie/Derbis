@@ -9,9 +9,11 @@ import {
   Heart,
   Users,
   Download,
-  X
+  X,
+  Music2
 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
+import { isIos } from "../utils/platform";
 
 export default function TidalSidebar({ isMobileOpen, setIsMobileOpen, onOpenSettings }) {
   const { activeTab, setActiveTab } = usePlayer();
@@ -161,30 +163,47 @@ export default function TidalSidebar({ isMobileOpen, setIsMobileOpen, onOpenSett
           </button>
         </div>
 
-        {/* Android App Promotion Card */}
+        {/* App Status Card */}
         <div className="mt-6 px-1">
-          <a
-            href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-            download
-            className="block p-3 rounded-xl bg-[#0e0e12] hover:bg-[#141418] border border-[#1f1f26] transition-all group"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black tracking-wider text-white uppercase">
-                ANDROID APP
-              </span>
-              <span className="text-[9px] font-bold text-white/40">v1.1.1</span>
+          {isIos ? (
+            <div className="p-3 rounded-xl bg-[#0e0e12] border border-white/10">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-black tracking-wider text-cyan-400 uppercase">
+                  DERBIS IOS
+                </span>
+                <span className="text-[9px] font-bold text-white/40">v1.1.1</span>
+              </div>
+              <p className="text-xs font-bold text-white leading-tight">
+                Lossless Audio
+              </p>
+              <p className="text-[10px] text-white/40 mt-0.5">
+                Native iOS Player Active
+              </p>
             </div>
-            <p className="text-xs font-bold text-white leading-tight">
-              Derbis Companion
-            </p>
-            <p className="text-[10px] text-white/40 mt-0.5">
-              Offline & background playback
-            </p>
-            <div className="mt-2.5 flex items-center justify-between text-[11px] font-bold text-white/80 group-hover:text-white transition-colors">
-              <span>Get APK (~71 MB)</span>
-              <Download className="w-3.5 h-3.5" />
-            </div>
-          </a>
+          ) : (
+            <a
+              href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
+              download
+              className="block p-3 rounded-xl bg-[#0e0e12] hover:bg-[#141418] border border-[#1f1f26] transition-all group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-black tracking-wider text-white uppercase">
+                  ANDROID APP
+                </span>
+                <span className="text-[9px] font-bold text-white/40">v1.1.1</span>
+              </div>
+              <p className="text-xs font-bold text-white leading-tight">
+                Derbis Companion
+              </p>
+              <p className="text-[10px] text-white/40 mt-0.5">
+                Offline & background playback
+              </p>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] font-bold text-white/80 group-hover:text-white transition-colors">
+                <span>Get APK (~71 MB)</span>
+                <Download className="w-3.5 h-3.5" />
+              </div>
+            </a>
+          )}
         </div>
 
         {/* Profile Card at Bottom */}

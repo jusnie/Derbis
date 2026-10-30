@@ -153,7 +153,12 @@ internal fun YouTubeMusicChipRow(
 }
 
 @Composable
-internal fun YouTubeMusicChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun YouTubeMusicChip(
+    label: String,
+    selected: Boolean,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
     Box(
         Modifier.height(YouTubeMusicDesign.chipHeight).clip(YouTubeMusicDesign.chipShape)
             .background(if (selected) Color.White else YouTubeMusicDesign.chipFill)
@@ -162,10 +167,18 @@ internal fun YouTubeMusicChip(label: String, selected: Boolean, onClick: () -> U
             .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            label, color = if (selected) Color.Black else YouTubeMusicDesign.text,
-            style = MaterialTheme.typography.labelMedium, maxLines = 1
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (leadingIcon != null) {
+                leadingIcon()
+            }
+            Text(
+                label, color = if (selected) Color.Black else YouTubeMusicDesign.text,
+                style = MaterialTheme.typography.labelMedium, maxLines = 1
+            )
+        }
     }
 }
 

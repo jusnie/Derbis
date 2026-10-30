@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Search, Music, Disc, Sparkles, Download, ListMusic, Mic2, Compass, Radio, ExternalLink } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
+import { isIos } from "../utils/platform";
 
 export default function Header() {
   const {
@@ -174,15 +175,17 @@ export default function Header() {
             )}
           </button>
 
-          {/* Direct APK Download Button */}
-          <a
-            href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-accent to-pink-600 hover:from-pink-600 hover:to-accent text-white text-xs font-semibold shadow-lg shadow-accent/25 hover:shadow-accent/40 transition-all"
-            download
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Get APK</span>
-          </a>
+          {/* Direct APK Download Button (Hidden on iOS) */}
+          {!isIos && (
+            <a
+              href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-accent to-pink-600 hover:from-pink-600 hover:to-accent text-white text-xs font-semibold shadow-lg shadow-accent/25 hover:shadow-accent/40 transition-all"
+              download
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Get APK</span>
+            </a>
+          )}
         </div>
       </div>
     </header>

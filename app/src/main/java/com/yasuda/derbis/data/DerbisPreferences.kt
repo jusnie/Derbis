@@ -256,6 +256,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
             mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
+            mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
             mutable[KEY_UI_ENHANCE_VIDEO_METADATA] = normalizedInterface.enhanceVideoMetadata
             mutable[KEY_UI_BLOCK_AI_CONTENT] = normalizedInterface.blockAiContent
             mutable[KEY_UI_PURE_BLACK] = normalizedInterface.pureBlack
@@ -446,6 +447,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
+            it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
             it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
             it[KEY_UI_PURE_BLACK] = normalized.pureBlack
@@ -904,6 +906,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
+            motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
             blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
             pureBlack = preferences[KEY_UI_PURE_BLACK] ?: false,
@@ -1424,6 +1427,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
+        val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")
         val KEY_UI_BLOCK_AI_CONTENT = booleanPreferencesKey("ui_block_ai_content")
         val KEY_UI_PLAYER_VISUAL_MODE = stringPreferencesKey("ui_player_visual_mode")

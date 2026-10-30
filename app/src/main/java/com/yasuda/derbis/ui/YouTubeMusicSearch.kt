@@ -40,19 +40,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yasuda.derbis.R
 import com.yasuda.derbis.domain.AlbumHit
 import com.yasuda.derbis.domain.ArtistHit
+import com.yasuda.derbis.domain.LyricsSearchMatch
 import com.yasuda.derbis.domain.PlaylistHit
 import com.yasuda.derbis.domain.SearchFilter
 import com.yasuda.derbis.domain.SearchResults
@@ -86,6 +92,10 @@ internal sealed interface YouTubeMusicSearchEntry {
 
     data class Album(val hit: AlbumHit) : YouTubeMusicSearchEntry {
         override val key: String get() = "album-${hit.browseId.ifBlank { hit.title + "|" + hit.artist }}"
+    }
+
+    data class Lyrics(val match: LyricsSearchMatch) : YouTubeMusicSearchEntry {
+        override val key: String get() = "lyrics-${match.track.id}"
     }
 }
 
@@ -123,6 +133,8 @@ internal fun youTubeMusicFilteredEntries(
     SearchFilter.Artists -> data.artists.map { YouTubeMusicSearchEntry.Artist(it) }
     SearchFilter.Playlists -> data.playlists.map { YouTubeMusicSearchEntry.Playlist(it) }
     SearchFilter.Albums -> data.albums.map { YouTubeMusicSearchEntry.Album(it) }
+    SearchFilter.Lyrics -> data.lyricsMatches.ifEmpty { songs.map { LyricsSearchMatch(it, "") } }
+        .map { YouTubeMusicSearchEntry.Lyrics(it) }
 }.distinctBy { it.key }
 
 internal class YouTubeMusicSearchActions(
@@ -300,6 +312,89 @@ private fun YouTubeMusicSearchEntryRow(
             moreLabel = strings.options,
             onClick = { actions.openAlbum(entry.hit) }
         )
+        is YouTubeMusicSearchEntry.Lyrics -> YouTubeMusicLyricsMatchRow(
+            match = entry.match,
+            current = entry.match.track.id == currentTrackId,
+            onClick = { actions.playSong(songs.ifEmpty { listOf(entry.match.track) }, entry.match.track) },
+            onMore = { actions.trackActions(entry.match.track) }
+        )
+    }
+}
+
+@Composable
+internal fun YouTubeMusicLyricsMatchRow(
+    match: LyricsSearchMatch,
+    current: Boolean,
+    onClick: () -> Unit,
+    onMore: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val track = match.track
+    val strings = LocalDerbisStrings.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (current) Color.White.copy(alpha = 0.08f) else Color.Transparent)
+            .derbisPressable(onClick = onClick, onLongClick = onMore, role = Role.Button, pressedScale = DerbisPressScale.Row)
+            .padding(horizontal = YouTubeMusicDesign.gutter, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        YouTubeMusicSearchArtwork(
+            track.thumbnailUrl.ifBlank { track.largeThumbnailUrl },
+            YouTubeMusicDesign.thumbShape,
+            YouTubeMusicDesign.listArtwork
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                track.title,
+                color = if (current) MaterialTheme.colorScheme.primary else YouTubeMusicDesign.text,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                track.artist,
+                color = YouTubeMusicDesign.textSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (match.matchedLine.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_studio_lyrics),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "“${match.matchedLine}”",
+                        color = Color.White.copy(alpha = 0.95f),
+                        fontSize = 12.sp,
+                        fontStyle = FontStyle.Italic,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        YouTubeMusicIconAction(Icons.Rounded.MoreVert, strings.options, onMore, iconSize = 22.dp)
     }
 }
 
@@ -350,6 +445,8 @@ internal fun YouTubeMusicSearchHeader(
     isSearching: Boolean,
     recognitionAvailable: Boolean,
     recognitionBusy: Boolean,
+    lyricsActive: Boolean = false,
+    onToggleLyrics: () -> Unit = {},
     onQuery: (String) -> Unit,
     onSearch: (String) -> Unit,
     onClear: () -> Unit,
@@ -385,7 +482,13 @@ internal fun YouTubeMusicSearchHeader(
                 decorationBox = { field ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
-                            Text(placeholder, color = YouTubeMusicDesign.textSecondary, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                if (lyricsActive) "${strings.lyrics}..." else placeholder,
+                                color = YouTubeMusicDesign.textSecondary,
+                                fontSize = 18.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                         field()
                     }
@@ -396,10 +499,32 @@ internal fun YouTubeMusicSearchHeader(
                 query.isNotEmpty() -> YouTubeMusicIconAction(Icons.Rounded.Close, strings.clear, onClear, iconSize = 22.dp)
             }
         }
+        YouTubeMusicSearchCircle(
+            painter = painterResource(R.drawable.ic_studio_lyrics),
+            label = strings.lyrics,
+            active = lyricsActive,
+            onClick = onToggleLyrics
+        )
         YouTubeMusicSearchCircle(Icons.Rounded.Mic, strings.voice, active = false, onClick = onVoice)
         if (recognitionAvailable) {
             YouTubeMusicSearchCircle(Icons.Rounded.GraphicEq, strings.recognizeMusic, active = recognitionBusy, onClick = onRecognize)
         }
+    }
+}
+
+@Composable
+private fun YouTubeMusicSearchCircle(painter: Painter, label: String, active: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(YouTubeMusicSearchFieldHeight)
+            .clip(CircleShape)
+            .background(if (active) Color.White else YouTubeMusicDesign.surfaceHigh)
+            .border(1.dp, if (active) Color.Transparent else Color.White.copy(alpha = 0.08f), CircleShape)
+            .derbisPressable(onClick = onClick, role = Role.Button, pressedScale = DerbisPressScale.Control)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(painter, null, tint = if (active) Color.Black else YouTubeMusicDesign.text, modifier = Modifier.size(20.dp))
     }
 }
 

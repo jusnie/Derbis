@@ -221,6 +221,10 @@ private fun mergeSectionPage(base: SearchResults, filter: SearchFilter, page: Se
         SearchFilter.Albums -> base.copy(albums = mergeSearchAlbums(base.albums, page.albums))
         SearchFilter.Artists -> base.copy(artists = mergeSearchArtists(base.artists, page.artists))
         SearchFilter.Playlists -> base.copy(playlists = mergeSearchPlaylists(base.playlists, page.playlists))
+        SearchFilter.Lyrics -> base.copy(
+            songs = mergeSearchSongs(base.songs, page.songs),
+            lyricsMatches = if (base.lyricsMatches.isEmpty()) page.lyricsMatches else (base.lyricsMatches + page.lyricsMatches).distinctBy { it.track.id }
+        )
         SearchFilter.All -> base
     }
 

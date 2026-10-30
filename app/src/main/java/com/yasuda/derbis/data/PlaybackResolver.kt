@@ -411,10 +411,10 @@ class PlaybackResolver private constructor(private val context: Context) {
     @Volatile
     private var streamProbeClient: OkHttpClient? = null
     private val searchFallbackClient: OkHttpClient = youtubeHttpClient.newBuilder()
-        .connectTimeout(800, TimeUnit.MILLISECONDS)
-        .readTimeout(2_000, TimeUnit.MILLISECONDS)
-        .writeTimeout(500, TimeUnit.MILLISECONDS)
-        .callTimeout(2_400, TimeUnit.MILLISECONDS)
+        .connectTimeout(3_000, TimeUnit.MILLISECONDS)
+        .readTimeout(6_000, TimeUnit.MILLISECONDS)
+        .writeTimeout(2_000, TimeUnit.MILLISECONDS)
+        .callTimeout(8_000, TimeUnit.MILLISECONDS)
         .build()
 
     @Volatile
@@ -2025,7 +2025,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         identity: YoutubeStreamClientIdentity
     ): Triple<JSONObject, String, Int>? {
         for (candidate in candidates) {
-            if (verifyDirectAudioUrlFast(candidate.second, identity = identity)) return candidate
+            if (verifyDirectAudioUrlFast(candidate.second, identity = identity, trustAttestedGoogleVideo = true)) return candidate
         }
         return null
     }
@@ -2645,7 +2645,7 @@ class PlaybackResolver private constructor(private val context: Context) {
                         .getOrNull()
                         ?.takeIf { stream ->
                             val accepted = acceptResolvedStream(stream, isVideoMode, "${profile.label} probe", errors)
-                            if (!accepted) recordClientFailure(profile, null, IllegalStateException("Stream non valido o URL scaduto"))
+                            if (!accepted) recordClientFailure(profile, null, IllegalStateException("Connessione stream non riuscita per ${profile.label}"))
                             accepted
                         }
                 }
@@ -2687,7 +2687,7 @@ class PlaybackResolver private constructor(private val context: Context) {
                 val attempt = runCatchingPreservingCancellation { resolveWithInnerTube(track, profile, isVideoMode, preferMp4Audio, audioQuality) }
                 attempt.onSuccess { stream ->
                     if (!acceptResolvedStream(stream, isVideoMode, "${profile.label} probe", errors)) {
-                        recordClientFailure(profile, null, IllegalStateException("Stream non valido o URL scaduto"))
+                        recordClientFailure(profile, null, IllegalStateException("Connessione stream non riuscita per ${profile.label}"))
                         return@onSuccess
                     }
                     if (!isVideoMode && preferMp4Audio) {
@@ -3046,8 +3046,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         if (SabrStreamSpec.isSabrUri(url)) return SabrStreamSpec.parse(url) != null
         if (
             trustAttestedGoogleVideo &&
-            YoutubeStreamCapability.isTrustedGoogleVideoMedia(url) &&
-            url.containsQueryParameter("pot")
+            YoutubeStreamCapability.isTrustedGoogleVideoMedia(url)
         ) return true
         val requestBuilder = Request.Builder()
             .url(url)
@@ -3071,7 +3070,14 @@ class PlaybackResolver private constructor(private val context: Context) {
                 val sample = response.peekBody(32L).bytes()
                 sample.isNotEmpty()
             }
-        }.getOrDefault(false)
+        }.getOrElse { probeError ->
+            if (YoutubeStreamCapability.isTrustedGoogleVideoMedia(url) && streamStillFresh(url)) {
+                Timber.d(probeError, "Direct audio URL probe encountered transient network condition; accepting fresh Google Video URL")
+                true
+            } else {
+                false
+            }
+        }
         currentCoroutineContext().ensureActive()
         return result
     }
@@ -3083,10 +3089,10 @@ class PlaybackResolver private constructor(private val context: Context) {
             streamProbeClient?.takeIf { streamProbeClientGeneration == generation } ?: DerbisHttpClientFactory
                 .streaming(context)
                 .newBuilder()
-                .connectTimeout(450, TimeUnit.MILLISECONDS)
-                .readTimeout(800, TimeUnit.MILLISECONDS)
-                .writeTimeout(350, TimeUnit.MILLISECONDS)
-                .callTimeout(950, TimeUnit.MILLISECONDS)
+                .connectTimeout(3_000, TimeUnit.MILLISECONDS)
+                .readTimeout(5_000, TimeUnit.MILLISECONDS)
+                .writeTimeout(2_000, TimeUnit.MILLISECONDS)
+                .callTimeout(6_000, TimeUnit.MILLISECONDS)
                 .build()
                 .also {
                     streamProbeClient = it
@@ -3778,7 +3784,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         val completeAudioStreams = info.audioStreams.filter {
             it.isUrl &&
                 it.content.isNotBlank() &&
-                YoutubeStreamCapability.servesCompleteStream(it.content) &&
+                (!preferMp4Audio || YoutubeStreamCapability.servesCompleteStream(it.content)) &&
                 !isPlaybackUrlBlocked(it.content) &&
                 streamStillFresh(it.content)
         }
@@ -3787,10 +3793,9 @@ class PlaybackResolver private constructor(private val context: Context) {
             info.videoStreams.firstOrNull {
                 it.isUrl &&
                     it.content.isNotBlank() &&
-                    YoutubeStreamCapability.servesCompleteStream(it.content) &&
+                    (!preferMp4Audio || (isMuxedMp4ExportUrl(it.content) && YoutubeStreamCapability.servesCompleteStream(it.content))) &&
                     !isPlaybackUrlBlocked(it.content) &&
-                    streamStillFresh(it.content) &&
-                    (!preferMp4Audio || isMuxedMp4ExportUrl(it.content))
+                    streamStillFresh(it.content)
             }
         } else {
             null
@@ -3872,7 +3877,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         cacheYoutubeEngagement(sourceVideoId, info.likeCount, info.viewCount)
         val durationMs = if (info.duration > 0L) info.duration * 1000L else metadataTrack.durationMs
         val completeAudioStreams = info.audioStreams.filter {
-            it.isUrl && YoutubeStreamCapability.servesCompleteStream(it.content)
+            it.isUrl && it.content.isNotBlank() && streamStillFresh(it.content)
         }
         val selectedAudio = selectAudioStream(completeAudioStreams, preferMp4Audio = false, audioQuality = audioQuality)
         val bestAudio = selectedAudio?.content.orEmpty()

@@ -5,6 +5,7 @@ import com.yasuda.derbis.ui.PlayerAccentPair
 import com.yasuda.derbis.ui.theme.Nocturne78Palette
 import com.yasuda.derbis.ui.theme.DerbisIsNocturne
 import com.yasuda.derbis.ui.lyrics.rememberLyricsPlaybackClock
+import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
 
 import android.app.Activity
 import android.content.Context
@@ -146,6 +147,7 @@ import com.yasuda.derbis.ui.MotionBackdropPalette
 import com.yasuda.derbis.ui.artwork.ArtworkPreviewOverlay
 import com.yasuda.derbis.ui.artwork.livingArtworkColors
 import com.yasuda.derbis.ui.artwork.rememberArtworkPalette
+import com.yasuda.derbis.ui.components.ModernListenTogetherVector
 import com.yasuda.derbis.ui.components.PlayerControlLabels
 import com.yasuda.derbis.ui.components.PlayerGlassIconButton
 import com.yasuda.derbis.ui.components.PlayerIcon
@@ -311,8 +313,11 @@ private fun DerbisNowPlayingContent(
         artworkUrl = paletteArtworkUrl,
         fallback = fallbackPalette
     )
+    // Animated artwork and Canvas require active Spotify login and user enable toggle.
+    val isSpotifyConnected = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
+    val motionArtworkAllowed = state.interfaceSettings.motionArtworkEnabled && isSpotifyConnected
     // Lite Mode stops expensive Canvas decoding and animated artwork before it reaches the player.
-    val motionEnabled = animated && !state.interfaceSettings.liteMode && !state.isVideoMode && !motionSuspended
+    val motionEnabled = animated && !state.interfaceSettings.liteMode && !state.isVideoMode && !motionSuspended && motionArtworkAllowed
     var canvasBackdropPalette by remember(track?.id, state.isVideoMode) {
         mutableStateOf<MotionBackdropPalette?>(null)
     }
@@ -355,6 +360,7 @@ private fun DerbisNowPlayingContent(
         )
     }
     var showActions by remember { mutableStateOf(false) }
+    var showTrackStoryShare by remember(track?.id) { mutableStateOf(false) }
     var showTechnicalAudioInfo by remember(track?.id) { mutableStateOf(false) }
     var showTrackCredits by remember(track?.id) { mutableStateOf(false) }
     var creditWriters by remember { mutableStateOf<Pair<String, List<String>>?>(null) }
@@ -1682,7 +1688,14 @@ private fun DerbisNowPlayingContent(
                     viewModel.openQueue()
                     hapticFeedback.perform(DerbisHapticAction.Confirm)
                 },
-                onShare = { shareTrack(playerContext, track, strings) },
+                onShare = {
+                    showActions = false
+                    showTrackStoryShare = true
+                },
+                onOpenJam = {
+                    showActions = false
+                    viewModel.openJam()
+                },
                 onSleepTimer = viewModel::openSleepTimer,
                 onSpeed = viewModel::cycleSpeed,
                 onNormalization = viewModel::toggleAudioNormalization,
@@ -1785,6 +1798,19 @@ private fun DerbisNowPlayingContent(
                 surfaces = surfaces,
                 animated = animated,
                 onDismiss = { showAudioRouteCenter = false }
+            )
+        }
+
+        if (showTrackStoryShare && track != null) {
+            TrackStoryShareSheet(
+                track = track,
+                currentPositionMs = state.positionMs,
+                durationMs = state.durationMs,
+                onOpenJam = {
+                    showTrackStoryShare = false
+                    viewModel.openJam()
+                },
+                onDismiss = { showTrackStoryShare = false }
             )
         }
 
@@ -2094,6 +2120,7 @@ private fun playerSheetActions(
     onAddToPlaylist: () -> Unit,
     onStartRadio: () -> Unit,
     onShare: () -> Unit,
+    onOpenJam: () -> Unit,
     onSleepTimer: () -> Unit,
     onSpeed: () -> Unit,
     onNormalization: () -> Unit,
@@ -2198,6 +2225,12 @@ private fun playerSheetActions(
             label = strings.share,
             onClick = onShare
         ),
+        PlayerSheetAction(
+            key = "listen_together",
+            icon = ModernListenTogetherVector,
+            label = strings.jamListenTogether,
+            onClick = onOpenJam
+        ),
         sleepAction,
         PlayerSheetAction(
             key = "speed",
@@ -2245,7 +2278,9 @@ private fun shareTrack(context: Context, track: Track, strings: DerbisStrings) {
     val text = buildString {
         append(track.title)
         if (track.artist.isNotBlank()) append(" — ").append(track.artist)
-        if (videoId.isNotBlank()) append("\n").append(youtubeWatchUrl(videoId))
+        if (videoId.isNotBlank()) {
+            append("\nhttps://derbis-web.vercel.app/t/").append(videoId)
+        }
     }
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"

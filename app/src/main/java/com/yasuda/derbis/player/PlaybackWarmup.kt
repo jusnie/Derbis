@@ -63,6 +63,16 @@ class PlaybackWarmup(context: Context) {
         bytes = bytes
     )
 
+    suspend fun streamPreload(track: Track, bytes: Long = STREAM_PRELOAD_BYTES): Boolean =
+        prime(track, bytes)
+
+    fun isStreamPreloaded(track: Track, bytes: Long = STREAM_PRELOAD_BYTES): Boolean {
+        val cacheKey = DerbisPlaybackCacheKey.stream(track)
+        val cache = DerbisMediaCache.get(appContext)
+        val targetBytes = bytes.coerceIn(MIN_PRIME_BYTES, MAX_PRIME_BYTES)
+        return cache.isCached(cacheKey, 0L, targetBytes)
+    }
+
     suspend fun primeVideo(track: Track): Boolean = coroutineScope {
         val plan = videoWarmupPlan(track)
         val jobs = buildList {
@@ -249,12 +259,13 @@ class PlaybackWarmup(context: Context) {
     }
 
     companion object {
+        const val STREAM_PRELOAD_BYTES = 1536L * 1024L
         private const val MIN_PRIME_BYTES = 64L * 1024L
         private const val DEFAULT_PRIME_BYTES = 384L * 1024L
         private const val VIDEO_AUDIO_PRIME_BYTES = 256L * 1024L
         private const val VIDEO_PROBE_BYTES = 96L * 1024L
         private const val VIDEO_PROBE_BUFFER_BYTES = 32 * 1024
-        private const val MAX_PRIME_BYTES = 1536L * 1024L
+        private const val MAX_PRIME_BYTES = 2048L * 1024L
         private const val PRIME_FRAGMENT_BYTES = 256L * 1024L
         private const val PRIME_BUFFER_BYTES = 128 * 1024
     }

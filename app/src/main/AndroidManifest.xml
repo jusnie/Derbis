@@ -148,8 +148,19 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="derbis" android:host="playlist" />
                 <data android:scheme="derbis" android:host="jam" />
-                <data android:scheme="derbis" android:host="playlist" />
-                <data android:scheme="derbis" android:host="jam" />
+                <data android:scheme="derbis" android:host="track" />
+                <data android:scheme="derbis" android:host="play" />
+            </intent-filter>
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="derbis-web.vercel.app" android:pathPrefix="/t/" />
+                <data android:scheme="https" android:host="derbis-web.vercel.app" android:pathPrefix="/track/" />
+                <data android:scheme="https" android:host="derbis-web.vercel.app" android:pathPrefix="/jam/" />
+                <data android:scheme="https" android:host="derbis-web-jusnies-projects.vercel.app" android:pathPrefix="/t/" />
+                <data android:scheme="https" android:host="derbis-web-jusnies-projects.vercel.app" android:pathPrefix="/track/" />
+                <data android:scheme="https" android:host="derbis-web-jusnies-projects.vercel.app" android:pathPrefix="/jam/" />
             </intent-filter>
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />

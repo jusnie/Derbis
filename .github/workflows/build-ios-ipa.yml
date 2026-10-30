@@ -1,0 +1,140 @@
+name: Build Derbis iOS IPA (Sideloadly & AltStore Ready)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Version string for iOS build (e.g. 1.1.1)"
+        required: true
+        default: "1.1.1"
+      release_build_number:
+        description: "Build number (CFBundleVersion)"
+        required: true
+        default: "3000204"
+      publish_release:
+        description: "Attach IPA to GitHub Release (true/false)"
+        required: false
+        default: "false"
+  push:
+    branches: [ main ]
+    paths:
+      - 'website/**'
+      - '.github/workflows/build-ios-ipa.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: Build iOS IPA Package
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'website/package-lock.json'
+
+      - name: Install Website Dependencies & Build Web Client
+        working-directory: website
+        run: |
+          npm ci || npm install
+          npm run build
+
+      - name: Setup Capacitor iOS Project
+        working-directory: website
+        run: |
+          npm install --save-exact @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/ios@^6.0.0
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
+
+      - name: Configure iOS Background Audio & App Metadata (iPhone 12+ Optimized)
+        working-directory: website/ios/App/App
+        run: |
+          # Inject Background Audio modes into Info.plist for continuous background music on iOS
+          plutil -insert UIBackgroundModes -xml "<array><string>audio</string></array>" Info.plist || true
+          plutil -replace CFBundleDisplayName -string "Derbis" Info.plist || true
+          plutil -replace CFBundleShortVersionString -string "${{ inputs.release_version || '1.1.1' }}" Info.plist || true
+          plutil -replace CFBundleVersion -string "${{ inputs.release_build_number || '3000204' }}" Info.plist || true
+          plutil -replace MinimumOSVersion -string "16.0" Info.plist || true
+          plutil -replace ITSAppUsesNonExemptEncryption -bool NO Info.plist || true
+          # iPhone 12 & Upper Optimizations (120Hz ProMotion, Metal 3, Fullscreen OLED Super Retina XDR)
+          plutil -replace CADisableMinimumFrameDurationOnPhone -bool YES Info.plist || true
+          plutil -replace UIRequiresFullScreen -bool YES Info.plist || true
+          plutil -replace UIStatusBarStyle -string "UIStatusBarStyleLightContent" Info.plist || true
+          plutil -replace UIViewControllerBasedStatusBarAppearance -bool NO Info.plist || true
+          plutil -replace UIRequiredDeviceCapabilities -xml "<array><string>arm64</string><string>metal</string></array>" Info.plist || true
+          plutil -replace NSMicrophoneUsageDescription -string "Derbis uses audio analysis to power the J.A.R.V.I.S. 3D holographic beat sphere and liquid audio visualizers." Info.plist || true
+
+      - name: Build Unsigned iOS App Bundle (.app)
+        working-directory: website/ios/App
+        run: |
+          xcodebuild clean build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
+
+      - name: Package Sideloadly & AltStore IPA (.ipa)
+        run: |
+          mkdir -p build_output/Payload
+          APP_PATH=$(find website/ios/App -name "*.app" -type d | grep "Release-iphoneos" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "App.app" -type d | grep "Release-iphoneos" | head -n 1)
+          fi
+          echo "Found compiled app at: $APP_PATH"
+          cp -R "$APP_PATH" build_output/Payload/Derbis.app
+          cd build_output
+          zip -qr9 Derbis.ipa Payload
+          zip -qr9 Derbis-unsigned.ipa Payload
+          rm -rf Payload
+          cd ..
+          ls -la build_output/
+
+      - name: Sign IPA with Certificate (Optional - via zsign)
+        if: ${{ env.IOS_P12_BASE64 != '' && env.IOS_P12_PASSWORD != '' }}
+        env:
+          IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
+          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
+          IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
+        run: |
+          brew install pkg-config openssl
+          git clone https://github.com/zhlynn/zsign.git /tmp/zsign
+          cd /tmp/zsign/build/macos && make
+          sudo cp zsign /usr/local/bin/
+          cd -
+          echo "$IOS_P12_BASE64" | base64 --decode > /tmp/cert.p12
+          if [ -n "$IOS_MOBILEPROVISION_BASE64" ]; then
+            echo "$IOS_MOBILEPROVISION_BASE64" | base64 --decode > /tmp/embedded.mobileprovision
+            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -m /tmp/embedded.mobileprovision -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
+            rm /tmp/embedded.mobileprovision
+          else
+            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
+          fi
+          rm /tmp/cert.p12
+
+      - name: Upload IPA Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Derbis-iOS-IPA
+          path: build_output/*.ipa
+
+      - name: Attach IPA to GitHub Release
+        if: ${{ inputs.publish_release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ inputs.release_version || '1.1.1' }}"
+          files: build_output/*.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

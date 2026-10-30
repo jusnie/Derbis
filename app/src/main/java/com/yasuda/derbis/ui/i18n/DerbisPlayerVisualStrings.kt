@@ -15,6 +15,7 @@ internal val playerVisualKeys = setOf(
     "playerBackgroundAurora",
     "playerBackgroundGradient",
     "playerBackgroundReactiveAura",
+    "playerBackgroundLiquidFerrofluid",
     "reactiveAuraPresetCalm",
     "reactiveAuraPresetFlow",
     "reactiveAuraPresetPulse",
@@ -55,47 +56,47 @@ private fun playerVisual(
 )
 
 private val playerVisualBundles: Map<String, Map<String, String>> = mapOf(
-    "en" to playerVisual("Visual mode", "Choose how artwork and motion canvas appear", "Gallery", "Sleeve", "Velvet", "Player background", "Background style behind the player", "Adaptive", "Blur", "Dark", "Pure black", "Enter immersive", "Exit immersive"),
-    "it" to playerVisual("Modalità visiva", "Scegli come visualizzare copertina e Canvas dinamico", "Gallery", "Sleeve", "Velvet", "Sfondo del player", "Stile dello sfondo dietro al player", "Adattivo", "Sfocato", "Scuro", "Nero puro", "Entra in immersivo", "Esci da immersivo"),
-    "es" to playerVisual("Modo visual", "Elige cómo se muestran la portada y el Canvas en movimiento", "Gallery", "Sleeve", "Velvet", "Fondo del reproductor", "Estilo de fondo detrás del reproductor", "Adaptativo", "Desenfoque", "Oscuro", "Negro puro", "Modo inmersivo", "Salir de inmersivo"),
-    "fr" to playerVisual("Mode visuel", "Choisissez l'affichage de la pochette et du Canvas animé", "Gallery", "Sleeve", "Velvet", "Arrière-plan du lecteur", "Style d'arrière-plan derrière le lecteur", "Adaptatif", "Flou", "Sombre", "Noir absolu", "Mode immersif", "Quitter le mode immersif"),
-    "de" to playerVisual("Visueller Modus", "Wähle, wie Cover und bewegtes Canvas angezeigt werden", "Gallery", "Sleeve", "Velvet", "Player-Hintergrund", "Hintergrundstil hinter dem Player", "Adaptiv", "Weichzeichner", "Dunkel", "Reines Schwarz", "Immersiv starten", "Immersiv beenden"),
-    "pt" to playerVisual("Modo visual", "Escolhe como a capa e o Canvas em movimento são apresentados", "Gallery", "Sleeve", "Velvet", "Fundo do leitor", "Estilo de fundo por trás do leitor", "Adaptativo", "Desfocado", "Escuro", "Preto puro", "Modo imersivo", "Sair do modo imersivo"),
-    "nl" to playerVisual("Visuele modus", "Kies hoe hoes en bewegend Canvas worden weergegeven", "Gallery", "Sleeve", "Velvet", "Speler-achtergrond", "Achtergrondstijl achter de speler", "Adaptief", "Vervaagd", "Donker", "Puur zwart", "Meeslepende modus openen", "Meeslepende modus verlaten"),
-    "pl" to playerVisual("Tryb wizualny", "Wybierz, jak wyświetlać okładkę i animowane Canvas", "Gallery", "Sleeve", "Velvet", "Tło odtwarzacza", "Styl tła za odtwarzaczem", "Adaptacyjne", "Rozmycie", "Ciemne", "Czysta czerń", "Włącz tryb imersyjny", "Wyłącz tryb imersyjny"),
-    "ro" to playerVisual("Mod vizual", "Alege cum se afișează coperta și Canvasul animat", "Gallery", "Sleeve", "Velvet", "Fundal player", "Stilul de fundal din spatele playerului", "Adaptiv", "Estompat", "Întunecat", "Negru pur", "Mod imersiv", "Ieșire din mod imersiv"),
-    "el" to playerVisual("Οπτική λειτουργία", "Επίλεξε πώς εμφανίζονται το εξώφυλλο και το κινούμενο Canvas", "Gallery", "Sleeve", "Velvet", "Φόντο αναπαραγωγής", "Στυλ φόντου πίσω από το πρόγραμμα αναπαραγωγής", "Προσαρμοστικό", "Θόλωμα", "Σκούρο", "Καθαρό μαύρο", "Είσοδος σε καθηλωτικό", "Έξοδος από καθηλωτικό"),
-    "sv" to playerVisual("Visuellt läge", "Välj hur omslag och rörlig Canvas visas", "Gallery", "Sleeve", "Velvet", "Spelarbakgrund", "Bakgrundsstil bakom spelaren", "Adaptiv", "Oskärpa", "Mörk", "Rent svart", "Öppna helskärmsläge", "Avsluta helskärmsläge"),
-    "da" to playerVisual("Visuel tilstand", "Vælg, hvordan cover og levende Canvas vises", "Gallery", "Sleeve", "Velvet", "Afspillerbaggrund", "Baggrundsstil bag afspilleren", "Adaptiv", "Sløring", "Mørk", "Rent sort", "Åbn immersiv tilstand", "Luk immersiv tilstand"),
-    "cs" to playerVisual("Vizuální režim", "Zvol si, jak se zobrazuje obal a pohyblivý Canvas", "Gallery", "Sleeve", "Velvet", "Pozadí přehrávače", "Styl pozadí za přehrávačem", "Adaptivní", "Rozostření", "Tmavé", "Čistá černá", "Spustit imerzivní režim", "Ukončit imerzivní režim"),
-    "uk" to playerVisual("Візуальний режим", "Оберіть, як відображати обкладинку та динамічний Canvas", "Gallery", "Sleeve", "Velvet", "Фон плеєра", "Стиль фону позаду плеєра", "Адаптивний", "Розмиття", "Темний", "Чистий чорний", "Увійти в імерсивний режим", "Вийти з імерсивного режиму"),
-    "ru" to playerVisual("Визуальный режим", "Выберите, как отображать обложку и динамический Canvas", "Gallery", "Sleeve", "Velvet", "Фон плеера", "Стиль фона за плеером", "Адаптивный", "Размытие", "Тёмный", "Чистый чёрный", "В иммерсивный режим", "Выйти из иммерсивного"),
-    "tr" to playerVisual("Görsel mod", "Kapak ve hareketli Canvas görünümünü seç", "Gallery", "Sleeve", "Velvet", "Oynatıcı arka planı", "Oynatıcı arkasındaki arka plan stili", "Uyarlanabilir", "Bulanık", "Koyu", "Saf siyah", "Sürükleyici moda geç", "Sürükleyici moddan çık"),
-    "ar" to playerVisual("الوضع المرئي", "اختر كيفية عرض الغلاف ورسوم Canvas المتحركة", "Gallery", "Sleeve", "Velvet", "خلفية المشغل", "نمط الخلفية خلف المشغل", "تكيفي", "ضبابي", "داكن", "أسود نقي", "دخول الوضع الغامر", "خروج من الوضع الغامر"),
-    "zh" to playerVisual("视觉模式", "选择封面与动态 Canvas 的呈现方式", "Gallery", "Sleeve", "Velvet", "播放器背景", "播放器背后的背景样式", "自适应", "模糊", "深色", "纯黑", "进入沉浸模式", "退出沉浸模式"),
-    "ja" to playerVisual("ビジュアルモード", "アートワークとモーション Canvas の表示方法を選択します", "Gallery", "Sleeve", "Velvet", "プレーヤーの背景", "プレーヤー背面の背景スタイル", "アダプティブ", "ブラー", "ダーク", "ピュアブラック", "イマーシブ表示", "イマーシブ終了"),
-    "ko" to playerVisual("비주얼 모드", "아트워크와 모션 Canvas 표시 방식을 선택하세요", "Gallery", "Sleeve", "Velvet", "플레이어 배경", "플레이어 뒤쪽 배경 스타일", "적응형", "블러", "다크", "퓨어 블랙", "몰입형 모드 시작", "몰입형 모드 종료"),
-    "hi" to playerVisual("विज़ुअल मोड", "चुनें कि आर्टवर्क और मोशन Canvas कैसे दिखाई दें", "Gallery", "Sleeve", "Velvet", "प्लेयर पृष्ठभूमि", "प्लेयर के पीछे पृष्ठभूमि शैली", "एडेप्टिव", "ब्लर", "डार्क", "प्योर ब्लैक", "इमर्सिव मोड शुरू करें", "इमर्सिव मोड से बाहर निकलें"),
-    "id" to playerVisual("Mode visual", "Pilih cara tampilan artwork dan Canvas bergerak", "Gallery", "Sleeve", "Velvet", "Latar belakang pemutar", "Gaya latar belakang di belakang pemutar", "Adaptif", "Buram", "Gelap", "Hitam pekat", "Masuk mode imersif", "Keluar dari mode imersif"),
-    "vi" to playerVisual("Chế độ hiển thị", "Chọn cách hiển thị ảnh bìa và Canvas động", "Gallery", "Sleeve", "Velvet", "Hình nền trình phát", "Kiểu hình nền phía sau trình phát", "Thích ứng", "Mờ nhòe", "Tối", "Đen thuần", "Vào chế độ đắm chìm", "Thoát chế độ đắm chìm"),
-    "th" to playerVisual("โหมดภาพ", "เลือกวิธีแสดงภาพหน้าปกและ Canvas เคลื่อนไหว", "Gallery", "Sleeve", "Velvet", "พื้นหลังโปรแกรมเล่น", "สไตล์พื้นหลังด้านหลังโปรแกรมเล่น", "ปรับเปลี่ยนตามเนื้อหา", "เบลอ", "มืด", "ดำสนิท", "เข้าสู่โหมดเต็มตา", "ออกจากโหมดเต็มตา"),
-    "fil" to playerVisual("Visual mode", "Piliin kung paano ipapakita ang artwork at motion Canvas", "Gallery", "Sleeve", "Velvet", "Background ng player", "Estilo ng background sa likod ng player", "Adaptive", "Blur", "Madilim", "Purong itim", "Pumasok sa immersive", "Lumabas sa immersive"),
-    "he" to playerVisual("מצב חזותי", "בחר כיצד יוצגו העטיפה וה-Canvas המונפש", "Gallery", "Sleeve", "Velvet", "רקע הנגן", "סגנון הרקע מאחורי הנגן", "אדפטיבי", "טשטוש", "כהה", "שחור מוחלט", "כניסה למצב סוחף", "יציאה ממצב סוחף"),
-    "fi" to playerVisual("Visuaalinen tila", "Valitse, miten kansikuva ja liikkuva Canvas näkyvät", "Gallery", "Sleeve", "Velvet", "Soittimen tausta", "Taustatyyli soittimen takana", "Mukautuva", "Sumeus", "Tumma", "Puhdas musta", "Siirry immersiiviseen tilaan", "Poistu immersiivisestä tilasta"),
-    "et" to playerVisual("Visuaalne režiim", "Vali, kuidas kaanepilt ja liikuv Canvas ilmuvad", "Gallery", "Sleeve", "Velvet", "Mängija taust", "Taustastiil mängija taga", "Kohanduv", "Hägu", "Tume", "Puhas must", "Ava kaasahaarav režiim", "Välju kaasahaaravast režiimist"),
-    "sk" to playerVisual("Vizuálny režim", "Zvoľ si, ako sa zobrazuje obal a pohyblivý Canvas", "Gallery", "Sleeve", "Velvet", "Pozadie prehrávača", "Štýl pozadia za prehrávačom", "Adaptívne", "Rozostrenie", "Tmavé", "Čistá čierna", "Spustiť imerzívny režim", "Ukončiť imerzívny režim"),
-    "hr" to playerVisual("Vizualni način", "Odaberite način prikaza omota i animiranog Canvasa", "Gallery", "Sleeve", "Velvet", "Pozadina playera", "Stil pozadine iza playera", "Prilagodljivo", "Zamućenje", "Tamno", "Čista crna", "Uđi u imerzivni način", "Izađi iz imerzivnog načina"),
-    "sr" to playerVisual("Визуелни режим", "Изаберите начин приказа омота и анимираног Canvas-а", "Gallery", "Sleeve", "Velvet", "Позадина плејера", "Стил позадине иза плејера", "Прилагодљиво", "Замућење", "Тамно", "Чиста црна", "Уђи у имерзивни режим", "Изађи из имерзивног режима"),
-    "sq" to playerVisual("Modaliteti vizual", "Zgjidhni mënyrën se si shfaqen kopertina dhe Canvas i animuar", "Gallery", "Sleeve", "Velvet", "Sfondi i luajtësit", "Stili i sfondit pas luajtësit", "Përshtatës", "Turbullim", "E errët", "E zezë e pastër", "Hyr në modalitetin imersiv", "Dil nga modaliteti imersiv"),
-    "bg" to playerVisual("Визуален режим", "Изберете как да се показват обложката и анимираният Canvas", "Gallery", "Sleeve", "Velvet", "Фон на плейъра", "Стил на фона зад плейъра", "Адаптивен", "Размазване", "Тъмен", "Чисто черно", "Влез в потапящ режим", "Излез от потапящ режим"),
-    "hu" to playerVisual("Vizuális mód", "Válaszd ki a borító és a mozgó Canvas megjelenítését", "Gallery", "Sleeve", "Velvet", "Lejátszó háttere", "Háttérstílus a lejátszó mögött", "Alkalmazkodó", "Elmosás", "Sötét", "Tiszta fekete", "Belépés az elmélyülő módba", "Kilépés az elmélyülő módból"),
-    "nb" to playerVisual("Visuell modus", "Velg hvordan omslag og animert Canvas vises", "Gallery", "Sleeve", "Velvet", "Spillerbakgrunn", "Bakgrunnsstil bak spilleren", "Tilpasset", "Uklarhet", "Mørk", "Helt svart", "Åpne immersiv modus", "Avslutt immersiv modus"),
-    "ca" to playerVisual("Mode visual", "Tria com es mostren la portada i el Canvas animat", "Gallery", "Sleeve", "Velvet", "Fons del reproductor", "Estil de fons darrere del reproductor", "Adaptatiu", "Desenfocament", "Fosc", "Negre pur", "Entra en mode immersiu", "Surt del mode immersiu"),
-    "kk" to playerVisual("Көрнекі режим", "Мұқаба мен қозғалыстағы Canvas көрінісін таңдаңыз", "Gallery", "Sleeve", "Velvet", "Ойнатқыш фоны", "Ойнатқыш артындағы фон стилі", "Бейімделгіш", "Бұлыңғырлық", "Күңгірт", "Таза қара", "Иммерсивті режимге кіру", "Иммерсивті режимнен шығу"),
-    "fa" to playerVisual("حالت بصری", "نحوه نمایش کاور و Canvas متحرک را انتخاب کنید", "Gallery", "Sleeve", "Velvet", "پس‌زمینه پخش‌کننده", "سبک پس‌زمینه پشت پخش‌کننده", "انطباقی", "محو", "تاریک", "سیاه خالص", "ورود به حالت فراگیر", "خروج از حالت فراگیر"),
-    "zh-Hant" to playerVisual("視覺模式", "選擇封面與動態 Canvas 的呈現方式", "Gallery", "Sleeve", "Velvet", "播放器背景", "播放器背後的背景樣式", "自適應", "模糊", "深色", "純黑", "進入沉浸模式", "退出沉浸模式"),
-    "bn" to playerVisual("ভিজ্যুয়াল মোড", "অ্যালবাম আর্ট এবং গতিশীল Canvas কীভাবে প্রদর্শিত হবে তা চয়ন করুন", "Gallery", "Sleeve", "Velvet", "প্লেয়ার ব্যাকগ্রাউন্ড", "প্লেয়ারের পেছনের ব্যাকগ্রাউন্ড শৈলী", "অভিযোজিত", "ব্লার", "অন্ধকার", "খাঁটি কালো", "ইমার্সিভ মোডে প্রবেশ", "ইমার্সিভ মোড ত্যাগ"),
-    "ms" to playerVisual("Mod visual", "Pilih cara paparan seni album dan Canvas bergerak", "Gallery", "Sleeve", "Velvet", "Latar belakang pemain", "Gaya latar belakang di belakang pemain", "Adaptif", "Kabur", "Gelap", "Hitam tulen", "Masuk mod imersif", "Keluar dari mod imersif")
+    "en" to playerVisual("Visual mode", "Choose how artwork and motion canvas appear", "Gallery", "Sleeve", "Beat Sync", "Player background", "Background style behind the player", "Adaptive", "Blur", "Dark", "Pure black", "Enter immersive", "Exit immersive"),
+    "it" to playerVisual("Modalità visiva", "Scegli come visualizzare copertina e Canvas dinamico", "Gallery", "Sleeve", "Beat Sync", "Sfondo del player", "Stile dello sfondo dietro al player", "Adattivo", "Sfocato", "Scuro", "Nero puro", "Entra in immersivo", "Esci da immersivo"),
+    "es" to playerVisual("Modo visual", "Elige cómo se muestran la portada y el Canvas en movimiento", "Gallery", "Sleeve", "Beat Sync", "Fondo del reproductor", "Estilo de fondo detrás del reproductor", "Adaptativo", "Desenfoque", "Oscuro", "Negro puro", "Modo inmersivo", "Salir de inmersivo"),
+    "fr" to playerVisual("Mode visuel", "Choisissez l'affichage de la pochette et du Canvas animé", "Gallery", "Sleeve", "Beat Sync", "Arrière-plan du lecteur", "Style d'arrière-plan derrière le lecteur", "Adaptatif", "Flou", "Sombre", "Noir absolu", "Mode immersif", "Quitter le mode immersif"),
+    "de" to playerVisual("Visueller Modus", "Wähle, wie Cover und bewegtes Canvas angezeigt werden", "Gallery", "Sleeve", "Beat Sync", "Player-Hintergrund", "Hintergrundstil hinter dem Player", "Adaptiv", "Weichzeichner", "Dunkel", "Reines Schwarz", "Immersiv starten", "Immersiv beenden"),
+    "pt" to playerVisual("Modo visual", "Escolhe como a capa e o Canvas em movimento são apresentados", "Gallery", "Sleeve", "Beat Sync", "Fundo do leitor", "Estilo de fundo por trás do leitor", "Adaptativo", "Desfocado", "Escuro", "Preto puro", "Modo imersivo", "Sair do modo imersivo"),
+    "nl" to playerVisual("Visuele modus", "Kies hoe hoes en bewegend Canvas worden weergegeven", "Gallery", "Sleeve", "Beat Sync", "Speler-achtergrond", "Achtergrondstijl achter de speler", "Adaptief", "Vervaagd", "Donker", "Puur zwart", "Meeslepende modus openen", "Meeslepende modus verlaten"),
+    "pl" to playerVisual("Tryb wizualny", "Wybierz, jak wyświetlać okładkę i animowane Canvas", "Gallery", "Sleeve", "Beat Sync", "Tło odtwarzacza", "Styl tła za odtwarzaczem", "Adaptacyjne", "Rozmycie", "Ciemne", "Czysta czerń", "Włącz tryb imersyjny", "Wyłącz tryb imersyjny"),
+    "ro" to playerVisual("Mod vizual", "Alege cum se afișează coperta și Canvasul animat", "Gallery", "Sleeve", "Beat Sync", "Fundal player", "Stilul de fundal din spatele playerului", "Adaptiv", "Estompat", "Întunecat", "Negru pur", "Mod imersiv", "Ieșire din mod imersiv"),
+    "el" to playerVisual("Οπτική λειτουργία", "Επίλεξε πώς εμφανίζονται το εξώφυλλο και το κινούμενο Canvas", "Gallery", "Sleeve", "Beat Sync", "Φόντο αναπαραγωγής", "Στυλ φόντου πίσω από το πρόγραμμα αναπαραγωγής", "Προσαρμοστικό", "Θόλωμα", "Σκούρο", "Καθαρό μαύρο", "Είσοδος σε καθηλωτικό", "Έξοδος από καθηλωτικό"),
+    "sv" to playerVisual("Visuellt läge", "Välj hur omslag och rörlig Canvas visas", "Gallery", "Sleeve", "Beat Sync", "Spelarbakgrund", "Bakgrundsstil bakom spelaren", "Adaptiv", "Oskärpa", "Mörk", "Rent svart", "Öppna helskärmsläge", "Avsluta helskärmsläge"),
+    "da" to playerVisual("Visuel tilstand", "Vælg, hvordan cover og levende Canvas vises", "Gallery", "Sleeve", "Beat Sync", "Afspillerbaggrund", "Baggrundsstil bag afspilleren", "Adaptiv", "Sløring", "Mørk", "Rent sort", "Åbn immersiv tilstand", "Luk immersiv tilstand"),
+    "cs" to playerVisual("Vizuální režim", "Zvol si, jak se zobrazuje obal a pohyblivý Canvas", "Gallery", "Sleeve", "Beat Sync", "Pozadí přehrávače", "Styl pozadí za přehrávačem", "Adaptivní", "Rozostření", "Tmavé", "Čistá černá", "Spustit imerzivní režim", "Ukončit imerzivní režim"),
+    "uk" to playerVisual("Візуальний режим", "Оберіть, як відображати обкладинку та динамічний Canvas", "Gallery", "Sleeve", "Beat Sync", "Фон плеєра", "Стиль фону позаду плеєра", "Адаптивний", "Розмиття", "Темний", "Чистий чорний", "Увійти в імерсивний режим", "Вийти з імерсивного режиму"),
+    "ru" to playerVisual("Визуальный режим", "Выберите, как отображать обложку и динамический Canvas", "Gallery", "Sleeve", "Beat Sync", "Фон плеера", "Стиль фона за плеером", "Адаптивный", "Размытие", "Тёмный", "Чистый чёрный", "В иммерсивный режим", "Выйти из иммерсивного"),
+    "tr" to playerVisual("Görsel mod", "Kapak ve hareketli Canvas görünümünü seç", "Gallery", "Sleeve", "Beat Sync", "Oynatıcı arka planı", "Oynatıcı arkasındaki arka plan stili", "Uyarlanabilir", "Bulanık", "Koyu", "Saf siyah", "Sürükleyici moda geç", "Sürükleyici moddan çık"),
+    "ar" to playerVisual("الوضع المرئي", "اختر كيفية عرض الغلاف ورسوم Canvas المتحركة", "Gallery", "Sleeve", "Beat Sync", "خلفية المشغل", "نمط الخلفية خلف المشغل", "تكيفي", "ضبابي", "داكن", "أسود نقي", "دخول الوضع الغامر", "خروج من الوضع الغامر"),
+    "zh" to playerVisual("视觉模式", "选择封面与动态 Canvas 的呈现方式", "Gallery", "Sleeve", "Beat Sync", "播放器背景", "播放器背后的背景样式", "自适应", "模糊", "深色", "纯黑", "进入沉浸模式", "退出沉浸模式"),
+    "ja" to playerVisual("ビジュアルモード", "アートワークとモーション Canvas の表示方法を選択します", "Gallery", "Sleeve", "Beat Sync", "プレーヤーの背景", "プレーヤー背面の背景スタイル", "アダプティブ", "ブラー", "ダーク", "ピュアブラック", "イマーシブ表示", "イマーシブ終了"),
+    "ko" to playerVisual("비주얼 모드", "아트워크와 모션 Canvas 표시 방식을 선택하세요", "Gallery", "Sleeve", "Beat Sync", "플레이어 배경", "플레이어 뒤쪽 배경 스타일", "적응형", "블러", "다크", "퓨어 블랙", "몰입형 모드 시작", "몰입형 모드 종료"),
+    "hi" to playerVisual("विज़ुअल मोड", "चुनें कि आर्टवर्क और मोशन Canvas कैसे दिखाई दें", "Gallery", "Sleeve", "Beat Sync", "प्लेयर पृष्ठभूमि", "प्लेयर के पीछे पृष्ठभूमि शैली", "एडेप्टिव", "ब्लर", "डार्क", "प्योर ब्लैक", "इमर्सिव मोड शुरू करें", "इमर्सिव मोड से बाहर निकलें"),
+    "id" to playerVisual("Mode visual", "Pilih cara tampilan artwork dan Canvas bergerak", "Gallery", "Sleeve", "Beat Sync", "Latar belakang pemutar", "Gaya latar belakang di belakang pemutar", "Adaptif", "Buram", "Gelap", "Hitam pekat", "Masuk mode imersif", "Keluar dari mode imersif"),
+    "vi" to playerVisual("Chế độ hiển thị", "Chọn cách hiển thị ảnh bìa và Canvas động", "Gallery", "Sleeve", "Beat Sync", "Hình nền trình phát", "Kiểu hình nền phía sau trình phát", "Thích ứng", "Mờ nhòe", "Tối", "Đen thuần", "Vào chế độ đắm chìm", "Thoát chế độ đắm chìm"),
+    "th" to playerVisual("โหมดภาพ", "เลือกวิธีแสดงภาพหน้าปกและ Canvas เคลื่อนไหว", "Gallery", "Sleeve", "Beat Sync", "พื้นหลังโปรแกรมเล่น", "สไตล์พื้นหลังด้านหลังโปรแกรมเล่น", "ปรับเปลี่ยนตามเนื้อหา", "เบลอ", "มืด", "ดำสนิท", "เข้าสู่โหมดเต็มตา", "ออกจากโหมดเต็มตา"),
+    "fil" to playerVisual("Visual mode", "Piliin kung paano ipapakita ang artwork at motion Canvas", "Gallery", "Sleeve", "Beat Sync", "Background ng player", "Estilo ng background sa likod ng player", "Adaptive", "Blur", "Madilim", "Purong itim", "Pumasok sa immersive", "Lumabas sa immersive"),
+    "he" to playerVisual("מצב חזותי", "בחר כיצד יוצגו העטיפה וה-Canvas המונפש", "Gallery", "Sleeve", "Beat Sync", "רקע הנגן", "סגנון הרקע מאחורי הנגן", "אדפטיבי", "טשטוש", "כהה", "שחור מוחלט", "כניסה למצב סוחף", "יציאה ממצב סוחף"),
+    "fi" to playerVisual("Visuaalinen tila", "Valitse, miten kansikuva ja liikkuva Canvas näkyvät", "Gallery", "Sleeve", "Beat Sync", "Soittimen tausta", "Taustatyyli soittimen takana", "Mukautuva", "Sumeus", "Tumma", "Puhdas musta", "Siirry immersiiviseen tilaan", "Poistu immersiivisestä tilasta"),
+    "et" to playerVisual("Visuaalne režiim", "Vali, kuidas kaanepilt ja liikuv Canvas ilmuvad", "Gallery", "Sleeve", "Beat Sync", "Mängija taust", "Taustastiil mängija taga", "Kohanduv", "Hägu", "Tume", "Puhas must", "Ava kaasahaarav režiim", "Välju kaasahaaravast režiimist"),
+    "sk" to playerVisual("Vizuálny režim", "Zvoľ si, ako sa zobrazuje obal a pohyblivý Canvas", "Gallery", "Sleeve", "Beat Sync", "Pozadie prehrávača", "Štýl pozadia za prehrávačom", "Adaptívne", "Rozostrenie", "Tmavé", "Čistá čierna", "Spustiť imerzívny režim", "Ukončiť imerzívny režim"),
+    "hr" to playerVisual("Vizualni način", "Odaberite način prikaza omota i animiranog Canvasa", "Gallery", "Sleeve", "Beat Sync", "Pozadina playera", "Stil pozadine iza playera", "Prilagodljivo", "Zamućenje", "Tamno", "Čista crna", "Uđi u imerzivni način", "Izađi iz imerzivnog načina"),
+    "sr" to playerVisual("Визуелни режим", "Изаберите начин приказа омота и анимираног Canvas-а", "Gallery", "Sleeve", "Beat Sync", "Позадина плејера", "Стил позадине иза плејера", "Прилагодљиво", "Замућење", "Тамно", "Чиста црна", "Уђи у имерзивни режим", "Изађи из имерзивног режима"),
+    "sq" to playerVisual("Modaliteti vizual", "Zgjidhni mënyrën se si shfaqen kopertina dhe Canvas i animuar", "Gallery", "Sleeve", "Beat Sync", "Sfondi i luajtësit", "Stili i sfondit pas luajtësit", "Përshtatës", "Turbullim", "E errët", "E zezë e pastër", "Hyr në modalitetin imersiv", "Dil nga modaliteti imersiv"),
+    "bg" to playerVisual("Визуален режим", "Изберете как да се показват обложката и анимираният Canvas", "Gallery", "Sleeve", "Beat Sync", "Фон на плейъра", "Стил на фона зад плейъра", "Адаптивен", "Размазване", "Тъмен", "Чисто черно", "Влез в потапящ режим", "Излез от потапящ режим"),
+    "hu" to playerVisual("Vizuális mód", "Válaszd ki a borító és a mozgó Canvas megjelenítését", "Gallery", "Sleeve", "Beat Sync", "Lejátszó háttere", "Háttérstílus a lejátszó mögött", "Alkalmazkodó", "Elmosás", "Sötét", "Tiszta fekete", "Belépés az elmélyülő módba", "Kilépés az elmélyülő módból"),
+    "nb" to playerVisual("Visuell modus", "Velg hvordan omslag og animert Canvas vises", "Gallery", "Sleeve", "Beat Sync", "Spillerbakgrunn", "Bakgrunnsstil bak spilleren", "Tilpasset", "Uklarhet", "Mørk", "Helt svart", "Åpne immersiv modus", "Avslutt immersiv modus"),
+    "ca" to playerVisual("Mode visual", "Tria com es mostren la portada i el Canvas animat", "Gallery", "Sleeve", "Beat Sync", "Fons del reproductor", "Estil de fons darrere del reproductor", "Adaptatiu", "Desenfocament", "Fosc", "Negre pur", "Entra en mode immersiu", "Surt del mode immersiu"),
+    "kk" to playerVisual("Көрнекі режим", "Мұқаба мен қозғалыстағы Canvas көрінісін таңдаңыз", "Gallery", "Sleeve", "Beat Sync", "Ойнатқыш фоны", "Ойнатқыш артындағы фон стилі", "Бейімделгіш", "Бұлыңғырлық", "Күңгірт", "Таза қара", "Иммерсивті режимге кіру", "Иммерсивті режимнен шығу"),
+    "fa" to playerVisual("حالت بصری", "نحوه نمایش کاور و Canvas متحرک را انتخاب کنید", "Gallery", "Sleeve", "Beat Sync", "پس‌زمینه پخش‌کننده", "سبک پس‌زمینه پشت پخش‌کننده", "انطباقی", "محو", "تاریک", "سیاه خالص", "ورود به حالت فراگیر", "خروج از حالت فراگیر"),
+    "zh-Hant" to playerVisual("視覺模式", "選擇封面與動態 Canvas 的呈現方式", "Gallery", "Sleeve", "Beat Sync", "播放器背景", "播放器背後的背景樣式", "自適應", "模糊", "深色", "純黑", "進入沉浸模式", "退出沉浸模式"),
+    "bn" to playerVisual("ভিজ্যুয়াল মোড", "অ্যালবাম আর্ট এবং গতিশীল Canvas কীভাবে প্রদর্শিত হবে তা চয়ন করুন", "Gallery", "Sleeve", "Beat Sync", "প্লেয়ার ব্যাকগ্রাউন্ড", "প্লেয়ারের পেছনের ব্যাকগ্রাউন্ড শৈলী", "অভিযোজিত", "ব্লার", "অন্ধকার", "খাঁটি কালো", "ইমার্সিভ মোডে প্রবেশ", "ইমার্সিভ মোড ত্যাগ"),
+    "ms" to playerVisual("Mod visual", "Pilih cara paparan seni album dan Canvas bergerak", "Gallery", "Sleeve", "Beat Sync", "Latar belakang pemain", "Gaya latar belakang di belakang pemain", "Adaptif", "Kabur", "Gelap", "Hitam tulen", "Masuk mod imersif", "Keluar dari mod imersif")
 )
 
 private val playerBackgroundExtraLabels: Map<String, Pair<String, String>> = mapOf(
@@ -195,15 +196,27 @@ private val reactiveAuraLabels: Map<String, ReactiveAuraLabels> = mapOf(
 
 private const val ReactiveAuraName = "Reactive Aura"
 private const val ReactiveAuraFlowName = "Flow"
+private const val LiquidFerrofluidName = "Liquid Ferrofluid"
 
 internal fun playerVisualLocalizationEntries(code: String): Map<String, String> {
     val extra = playerBackgroundExtraLabels[code] ?: playerBackgroundExtraLabels.getValue("en")
     val aura = reactiveAuraLabels[code] ?: reactiveAuraLabels.getValue("en")
+    val liquidName = when (code) {
+        "it" -> "Ferrofluido liquido"
+        "es" -> "Ferrofluido líquido"
+        "fr" -> "Ferrofluide liquide"
+        "de" -> "Flüssiges Ferrofluid"
+        "ja" -> "液体強磁性体 (リキッド)"
+        "zh" -> "流体铁磁流体"
+        "ko" -> "리퀴드 페로플루이드"
+        else -> LiquidFerrofluidName
+    }
     return localizedBundleOrEnglish(playerVisualBundles, code) + liveChatLocalizationEntries(code) +
         diagnosticsLocalizationEntries(code) + playerColorLocalizationEntries(code) + mapOf(
             "playerBackgroundAurora" to extra.first,
             "playerBackgroundGradient" to extra.second,
             "playerBackgroundReactiveAura" to ReactiveAuraName,
+            "playerBackgroundLiquidFerrofluid" to liquidName,
             "reactiveAuraPresetCalm" to aura.calm,
             "reactiveAuraPresetFlow" to ReactiveAuraFlowName,
             "reactiveAuraPresetPulse" to aura.pulse,

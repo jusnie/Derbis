@@ -17,6 +17,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,20 +35,18 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -83,6 +84,7 @@ import com.yasuda.derbis.feature.motion.MotionArtwork
 import com.yasuda.derbis.domain.ambientPixelShiftOffset
 import com.yasuda.derbis.ui.MotionArtworkLayer
 import com.yasuda.derbis.ui.MotionArtworkPresentation
+import com.yasuda.derbis.ui.components.DerbisIonicons
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import java.util.Calendar
@@ -143,18 +145,40 @@ internal fun AmbientScreen(
     )
     val resting = dimmed && !controlsVisible
     val palette = rememberAmbientPalette(state.accentStart, state.accentEnd, settings.amoledBlack)
-    val rootInteractionSource = remember { MutableInteractionSource() }
     val onInteract = { lastInteractionAt = SystemClock.elapsedRealtime() }
+
+    var swipeDeltaX by remember { mutableFloatStateOf(0f) }
+    val swipeModifier = Modifier.pointerInput(state.hasTrack) {
+        detectHorizontalDragGestures(
+            onDragStart = { swipeDeltaX = 0f },
+            onDragEnd = {
+                if (swipeDeltaX < -100f) {
+                    onInteract()
+                    onNext()
+                } else if (swipeDeltaX > 100f) {
+                    onInteract()
+                    onPrevious()
+                }
+                swipeDeltaX = 0f
+            },
+            onDragCancel = { swipeDeltaX = 0f },
+            onHorizontalDrag = { change, dragAmount ->
+                change.consume()
+                swipeDeltaX += dragAmount
+            }
+        )
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(palette.background)
-            .clickable(
-                interactionSource = rootInteractionSource,
-                indication = null,
-                onClick = onInteract
-            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onInteract() },
+                    onDoubleTap = { onExit?.invoke() }
+                )
+            }
     ) {
         if (covered) return@Box
 
@@ -190,6 +214,7 @@ internal fun AmbientScreen(
                         resting = resting,
                         controlsVisible = controlsVisible,
                         motionAllowed = motionAllowed,
+                        modifier = swipeModifier,
                         onInteract = onInteract,
                         onTogglePlay = onTogglePlay,
                         onNext = onNext,
@@ -202,6 +227,7 @@ internal fun AmbientScreen(
                         resting = resting,
                         controlsVisible = controlsVisible,
                         motionAllowed = motionAllowed,
+                        modifier = swipeModifier,
                         onInteract = onInteract,
                         onTogglePlay = onTogglePlay,
                         onNext = onNext,
@@ -239,6 +265,7 @@ private fun AmbientPortraitContent(
     resting: Boolean,
     controlsVisible: Boolean,
     motionAllowed: Boolean,
+    modifier: Modifier = Modifier,
     onInteract: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
@@ -246,7 +273,7 @@ private fun AmbientPortraitContent(
 ) {
     val settings = state.settings
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -334,6 +361,7 @@ private fun AmbientLandscapeContent(
     resting: Boolean,
     controlsVisible: Boolean,
     motionAllowed: Boolean,
+    modifier: Modifier = Modifier,
     onInteract: () -> Unit,
     onTogglePlay: () -> Unit,
     onNext: () -> Unit,
@@ -341,7 +369,7 @@ private fun AmbientLandscapeContent(
 ) {
     val settings = state.settings
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(40.dp)
     ) {
@@ -576,17 +604,45 @@ private fun AmbientClock(color: Color, compact: Boolean, centered: Boolean = tru
         }
     }
     val time = remember(minuteToken, context) { ambientClockLabel(context) }
+    val battery = remember(minuteToken, context) { ambientBatteryInfo(context) }
     val size = if (compact) 34f else 64f
-    Text(
-        text = time,
-        color = color,
-        fontSize = size.sp,
-        lineHeight = DerbisTypeRhythm.lineHeight(size),
-        fontWeight = FontWeight.Light,
-        letterSpacing = 1.sp,
-        textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+    Column(
+        horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
         modifier = if (centered) Modifier.fillMaxWidth() else Modifier
-    )
+    ) {
+        Text(
+            text = time,
+            color = color,
+            fontSize = size.sp,
+            lineHeight = DerbisTypeRhythm.lineHeight(size),
+            fontWeight = FontWeight.Light,
+            letterSpacing = 1.sp,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Start
+        )
+        if (battery.percentage != null) {
+            Spacer(modifier = Modifier.height(3.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (centered) Arrangement.Center else Arrangement.Start
+            ) {
+                Text(
+                    text = "${battery.percentage}%",
+                    color = color.copy(alpha = 0.50f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.5.sp
+                )
+                if (battery.isCharging) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "⚡",
+                        color = color.copy(alpha = 0.75f),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -663,21 +719,53 @@ private fun AmbientProgress(
     } else {
         0f
     }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth(widthFraction)
-            .height(2.dp)
-            .clip(RoundedCornerShape(1.dp))
-            .background(palette.track)
-            .clearAndSetSemantics { }
+    Column(
+        modifier = Modifier.fillMaxWidth(widthFraction),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(progress)
+                .fillMaxWidth()
                 .height(2.dp)
-                .background(palette.accent)
-        )
+                .clip(RoundedCornerShape(1.dp))
+                .background(palette.track)
+                .clearAndSetSemantics { }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .height(2.dp)
+                    .background(palette.accent)
+            )
+        }
+        if (durationMs > 0L) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatAmbientTime(positionMs),
+                    color = palette.muted.copy(alpha = 0.55f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal
+                )
+                Text(
+                    text = formatAmbientTime(durationMs),
+                    color = palette.muted.copy(alpha = 0.55f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+        }
     }
+}
+
+private fun formatAmbientTime(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+    val minutes = totalSeconds / 60L
+    val seconds = totalSeconds % 60L
+    return "%d:%02d".format(Locale.US, minutes, seconds)
 }
 
 @Composable
@@ -695,7 +783,7 @@ private fun AmbientControls(
         horizontalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         AmbientIconButton(
-            icon = Icons.Rounded.SkipPrevious,
+            icon = DerbisIonicons.SkipPrevious,
             contentDescription = strings.previous,
             size = 30.dp,
             tint = palette.text,
@@ -705,7 +793,7 @@ private fun AmbientControls(
             }
         )
         AmbientIconButton(
-            icon = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            icon = if (isPlaying) DerbisIonicons.Pause else DerbisIonicons.Play,
             contentDescription = if (isPlaying) strings.pause else strings.play,
             size = 42.dp,
             tint = palette.text,
@@ -715,7 +803,7 @@ private fun AmbientControls(
             }
         )
         AmbientIconButton(
-            icon = Icons.Rounded.SkipNext,
+            icon = DerbisIonicons.SkipNext,
             contentDescription = strings.next,
             size = 30.dp,
             tint = palette.text,
@@ -860,6 +948,22 @@ private fun millisUntilNextMinute(): Long {
 
 private fun ambientClockLabel(context: Context): String =
     DateFormat.getTimeFormat(context).format(Calendar.getInstance().time)
+
+private data class AmbientBatteryInfo(val percentage: Int?, val isCharging: Boolean)
+
+private fun ambientBatteryInfo(context: Context): AmbientBatteryInfo {
+    return runCatching {
+        val filter = android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED)
+        val intent = context.registerReceiver(null, filter)
+        val level = intent?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = intent?.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val status = intent?.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val isCharging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING ||
+            status == android.os.BatteryManager.BATTERY_STATUS_FULL
+        val pct = if (level >= 0 && scale > 0) (level * 100) / scale else null
+        AmbientBatteryInfo(pct, isCharging)
+    }.getOrDefault(AmbientBatteryInfo(null, false))
+}
 
 private val LANDSCAPE_CONTENT_MAX_WIDTH = 520.dp
 private const val PROXIMITY_NEAR_CM = 5f

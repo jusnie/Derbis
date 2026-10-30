@@ -115,6 +115,12 @@ class DerbisStrings private constructor(
     val lyricsStudioSubtitle: String get() = value("lyricsStudioSubtitle")
     val appleMusic13Lyrics: String get() = value("appleMusic13Lyrics")
     val appleMusic13LyricsSubtitle: String get() = value("appleMusic13LyricsSubtitle")
+    val lyricsRendererDefault: String get() = value("lyricsRendererDefault")
+    val lyricsRendererDefaultDesc: String get() = value("lyricsRendererDefaultDesc")
+    val lyricsRendererSpicy: String get() = value("lyricsRendererSpicy")
+    val lyricsRendererSpicyDesc: String get() = value("lyricsRendererSpicyDesc")
+    val lyricsRendererPreviewTitle: String get() = value("lyricsRendererPreviewTitle")
+    val lyricsRendererPreviewSubtitle: String get() = value("lyricsRendererPreviewSubtitle")
     val lyricsStudioPresets: String get() = value("lyricsStudioPresets")
     val lyricsStyleOriginal: String get() = value("lyricsStyleOriginal")
     val lyricsStyleOriginalDesc: String get() = value("lyricsStyleOriginalDesc")
@@ -329,6 +335,7 @@ class DerbisStrings private constructor(
     val playerBackgroundAurora: String get() = value("playerBackgroundAurora")
     val playerBackgroundGradient: String get() = value("playerBackgroundGradient")
     val playerBackgroundReactiveAura: String get() = value("playerBackgroundReactiveAura")
+    val playerBackgroundLiquidFerrofluid: String get() = value("playerBackgroundLiquidFerrofluid")
     val reactiveAuraPresetCalm: String get() = value("reactiveAuraPresetCalm")
     val reactiveAuraPresetFlow: String get() = value("reactiveAuraPresetFlow")
     val reactiveAuraPresetPulse: String get() = value("reactiveAuraPresetPulse")
@@ -436,6 +443,11 @@ class DerbisStrings private constructor(
     val canvasSourceTidal: String get() = "Derbis Canvas Catalog"
     val motionArtworkWifiOnly: String get() = value("motionArtworkWifiOnly")
     val motionArtworkWifiOnlySubtitle: String get() = value("motionArtworkWifiOnlySubtitle")
+    val motionArtworkEnabled: String get() = value("motionArtworkEnabled")
+    val motionArtworkEnabledSubtitle: String get() = value("motionArtworkEnabledSubtitle")
+    val motionArtworkSpotifyRequired: String get() = value("motionArtworkSpotifyRequired")
+    val motionArtworkUnlocked: String get() = value("motionArtworkUnlocked")
+    val motionArtworkLocked: String get() = value("motionArtworkLocked")
     val sharePlaylist: String get() = value("sharePlaylist")
     val enhanceVideoMetadata: String get() = value("enhanceVideoMetadata")
     val enhanceVideoMetadataSubtitle: String get() = value("enhanceVideoMetadataSubtitle")
@@ -1399,6 +1411,11 @@ class DerbisStrings private constructor(
     val recognitionCatalogMatch: String get() = value("recognitionCatalogMatch")
     val recognitionCatalogMissing: String get() = value("recognitionCatalogMissing")
     val jamTitle: String get() = value("jamTitle")
+    val jamListenTogether: String get() = value("jamListenTogether").ifBlank { "Listen Together" }
+    val jamListenTogetherSubtitle: String get() = value("jamListenTogetherSubtitle").ifBlank { "Listen together in real time with friends" }
+    val jamStartListenTogether: String get() = value("jamStartListenTogether").ifBlank { "Start Listen Together" }
+    val jamJoinListenTogether: String get() = value("jamJoinListenTogether").ifBlank { "Join Listen Together" }
+    val jamListeningNow: String get() = value("jamListeningNow").ifBlank { "Currently Playing" }
     val jamSubtitle: String get() = value("jamSubtitle")
     val jamCreate: String get() = value("jamCreate")
     val jamJoin: String get() = value("jamJoin")
@@ -2118,6 +2135,11 @@ class DerbisStrings private constructor(
             "canvasSourceCommunity",
             "motionArtworkWifiOnly",
             "motionArtworkWifiOnlySubtitle",
+            "motionArtworkEnabled",
+            "motionArtworkEnabledSubtitle",
+            "motionArtworkSpotifyRequired",
+            "motionArtworkUnlocked",
+            "motionArtworkLocked",
             "sharePlaylist",
             "enhanceVideoMetadata",
             "enhanceVideoMetadataSubtitle",
@@ -2153,6 +2175,11 @@ class DerbisStrings private constructor(
 
         private val jamKeys = setOf(
             "jamTitle",
+            "jamListenTogether",
+            "jamListenTogetherSubtitle",
+            "jamStartListenTogether",
+            "jamJoinListenTogether",
+            "jamListeningNow",
             "jamSubtitle",
             "jamCreate",
             "jamJoin",

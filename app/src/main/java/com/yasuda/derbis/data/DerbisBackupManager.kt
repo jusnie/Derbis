@@ -1841,6 +1841,7 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("glassRefraction", value.glassRefraction)
     .put("dataSaverEnabled", value.dataSaverEnabled)
     .put("motionArtworkWifiOnly", value.motionArtworkWifiOnly)
+    .put("motionArtworkEnabled", value.motionArtworkEnabled)
     .put("enhanceVideoMetadata", value.enhanceVideoMetadata)
     .put("blockAiContent", value.blockAiContent)
     .put("pureBlack", value.pureBlack)
@@ -1904,6 +1905,7 @@ internal fun backupInterfaceSettingsFromJson(
         glassRefraction = json.optBoolean("glassRefraction", true),
         dataSaverEnabled = json.optBoolean("dataSaverEnabled", false),
         motionArtworkWifiOnly = json.optBoolean("motionArtworkWifiOnly", false),
+        motionArtworkEnabled = json.optBoolean("motionArtworkEnabled", false),
         enhanceVideoMetadata = json.optBoolean("enhanceVideoMetadata", false),
         blockAiContent = json.optBoolean("blockAiContent", false),
         pureBlack = json.optBoolean("pureBlack", false),

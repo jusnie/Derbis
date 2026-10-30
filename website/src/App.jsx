@@ -17,6 +17,7 @@ import TidalFullScreenPlayer from "./components/TidalFullScreenPlayer";
 import TidalQueueDrawer from "./components/TidalQueueDrawer";
 import LyricsModal from "./components/LyricsModal";
 import SettingsModal from "./components/SettingsModal";
+import IosWebInstallerModal from "./components/IosWebInstallerModal";
 import { X } from "lucide-react";
 
 function MainShell() {
@@ -31,6 +32,17 @@ function MainShell() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isIosInstallerOpen, setIsIosInstallerOpen] = useState(false);
+
+  // Automatically open iOS installer modal if URL has ?install=ios or ?ota=true
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("install") === "ios" || p.get("ota") === "true" || p.get("ios") === "true") {
+        setIsIosInstallerOpen(true);
+      }
+    }
+  }, []);
 
   // If user is actively typing in the search bar, automatically present search view
   const isSearchActive = activeTab === "search" || searchQuery.trim().length > 0;
@@ -136,6 +148,13 @@ function MainShell() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        onOpenIosInstaller={() => setIsIosInstallerOpen(true)}
+      />
+
+      {/* iOS Over-The-Air Web Installer Modal */}
+      <IosWebInstallerModal
+        isOpen={isIosInstallerOpen}
+        onClose={() => setIsIosInstallerOpen(false)}
       />
 
     </div>

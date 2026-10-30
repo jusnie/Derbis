@@ -1630,6 +1630,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
             startupSettings.interfaceSettings.motionArtworkWifiOnly || startupSettings.interfaceSettings.dataSaverEnabled
         )
+        com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(
+            startupSettings.interfaceSettings.motionArtworkEnabled
+        )
         viewModelScope.launch(Dispatchers.IO) {
             applyAutomationSettings(startupSettings.automationSettings, persist = false)
         }
@@ -5785,6 +5788,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
             normalized.motionArtworkWifiOnly || normalized.dataSaverEnabled
         )
+        com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(
+            normalized.motionArtworkEnabled
+        )
         DerbisTypographyController.apply(normalized.fontPreset)
         _state.update { it.copy(interfaceSettings = normalized) }
         if (!previous.blockAiContent && normalized.blockAiContent &&
@@ -6183,6 +6189,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         motionArtworkPrefetchJob?.cancel()
         com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateWifiOnly(
             snapshot.interfaceSettings.motionArtworkWifiOnly || snapshot.interfaceSettings.dataSaverEnabled
+        )
+        com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(
+            snapshot.interfaceSettings.motionArtworkEnabled
         )
         _state.update {
             it.copy(

@@ -53,6 +53,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,9 +62,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import com.yasuda.derbis.player.VisualizerAudioProcessor
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -196,6 +202,8 @@ internal fun PlayerAuraDeck(
             AuraLine(
                 fraction = if (durationMs > 0L) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f,
                 enabled = durationMs > 0L,
+                isPlaying = isPlaying,
+                animated = animated,
                 onCommit = onSeek
             )
             AuraTimes(positionMs = positionMs, durationMs = durationMs)
@@ -348,19 +356,53 @@ private fun AuraIconButton(icon: ImageVector, label: String, size: Dp, tint: Col
 }
 
 @Composable
-private fun AuraLine(fraction: Float, enabled: Boolean, onCommit: (Float) -> Unit, onLive: ((Float) -> Unit)? = null) {
+private fun AuraLine(
+    fraction: Float,
+    enabled: Boolean,
+    isPlaying: Boolean = false,
+    animated: Boolean = true,
+    onCommit: (Float) -> Unit,
+    onLive: ((Float) -> Unit)? = null
+) {
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     val latestCommit by rememberUpdatedState(onCommit)
     val latestLive by rememberUpdatedState(onLive)
     val shown = dragFraction ?: fraction
-    val barHeight by animateDpAsState(
-        targetValue = if (dragFraction != null) AuraBarActive else AuraBarIdle,
-        label = "aura-line-height"
-    )
+
+    var waveTime by remember { mutableFloatStateOf(0f) }
+    var waveBass by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(isPlaying, animated) {
+        if (!animated) return@LaunchedEffect
+        var lastNanos = 0L
+        while (true) {
+            withFrameNanos { now ->
+                if (lastNanos != 0L) {
+                    val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
+                    waveTime += dt * (if (isPlaying) 1.6f else 0.35f)
+
+                    val waveform = if (isPlaying) VisualizerAudioProcessor.waveformState.value else FloatArray(0)
+                    var bassSample = 0f
+                    val sampleCount = minOf(8, waveform.size)
+                    for (i in 0 until sampleCount) {
+                        bassSample += waveform[i]
+                    }
+                    val targetBass = if (sampleCount > 0) (bassSample / sampleCount) * 1.5f else 0f
+                    waveBass += (targetBass - waveBass) * (if (targetBass > waveBass) 0.35f else 0.12f)
+                }
+                lastNanos = now
+            }
+        }
+    }
+
+    val wavePlayedPath = remember { Path() }
+    val waveUnplayedPath = remember { Path() }
+    val waveFillPath = remember { Path() }
+
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(26.dp)
+            .height(38.dp)
             .semantics {
                 progressBarRangeInfo = ProgressBarRangeInfo(shown, 0f..1f)
                 setProgress { target ->
@@ -393,15 +435,127 @@ private fun AuraLine(fraction: Float, enabled: Boolean, onCommit: (Float) -> Uni
                 )
             }
     ) {
-        val height = barHeight.toPx()
-        val top = (size.height - height) / 2f
-        val radius = CornerRadius(height / 2f)
-        drawRoundRect(color = AuraInkFaint, topLeft = Offset(0f, top), size = Size(size.width, height), cornerRadius = radius)
+        val w = size.width
+        val h = size.height
+        if (w <= 0f || h <= 0f) return@Canvas
+
+        val midY = h * 0.52f
+        val amp = (h * 0.34f + waveBass * 3.5.dp.toPx()).coerceAtMost(h * 0.46f)
+        val xHead = (w * shown.coerceIn(0f, 1f))
+
+        wavePlayedPath.reset()
+        waveUnplayedPath.reset()
+        waveFillPath.reset()
+
+        val steps = 54
+        val dx = w / steps
+
+        fun computeY(x: Float): Float {
+            val progressPhase = (x / w) * 9.5f
+            val wave1 = kotlin.math.sin(progressPhase - waveTime * 1.3f) * 0.72f
+            val wave2 = kotlin.math.cos(progressPhase * 1.5f + waveTime * 0.85f) * 0.28f
+            return midY - (wave1 + wave2) * amp
+        }
+
+        var startedUnplayed = false
+        wavePlayedPath.moveTo(0f, computeY(0f))
+        waveFillPath.moveTo(0f, h)
+        waveFillPath.lineTo(0f, computeY(0f))
+
+        for (i in 1..steps) {
+            val x = i * dx
+            val y = computeY(x)
+
+            if (x <= xHead) {
+                wavePlayedPath.lineTo(x, y)
+                waveFillPath.lineTo(x, y)
+            } else {
+                if (!startedUnplayed) {
+                    val yAtHead = computeY(xHead)
+                    wavePlayedPath.lineTo(xHead, yAtHead)
+                    waveFillPath.lineTo(xHead, yAtHead)
+                    waveFillPath.lineTo(xHead, h)
+                    waveFillPath.close()
+
+                    waveUnplayedPath.moveTo(xHead, yAtHead)
+                    startedUnplayed = true
+                }
+                waveUnplayedPath.lineTo(x, y)
+            }
+        }
+
+        if (!startedUnplayed) {
+            waveFillPath.lineTo(w, h)
+            waveFillPath.close()
+        }
+
+        // 1. Draw soft vertical gradient fill underneath the played wave
+        drawPath(
+            path = waveFillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF80DEEA).copy(alpha = 0.34f),
+                    Color(0xFF26C6DA).copy(alpha = 0.10f),
+                    Color.Transparent
+                ),
+                startY = midY - amp,
+                endY = h
+            )
+        )
+
+        // 2. Draw unplayed wave line (dim translucent)
+        drawPath(
+            path = waveUnplayedPath,
+            color = Color.White.copy(alpha = 0.20f),
+            style = Stroke(
+                width = 2.4.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+
+        // 3. Draw played wave line (vibrant cyan/white glow)
+        // Outer soft glow
+        drawPath(
+            path = wavePlayedPath,
+            color = Color(0xFF4DD0E1).copy(alpha = 0.35f),
+            style = Stroke(
+                width = 6.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+        // Core bright line
+        drawPath(
+            path = wavePlayedPath,
+            color = Color(0xFFE0F7FA),
+            style = Stroke(
+                width = 2.8.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            )
+        )
+
+        // 4. Draw moving scrubber stick ("move this stick on progress bar")
+        val isDragging = dragFraction != null
+        val stickWidth = if (isDragging) 4.5.dp.toPx() else 3.dp.toPx()
+        val stickHeight = if (isDragging) 34.dp.toPx() else 28.dp.toPx()
+        val stickTop = (h - stickHeight) / 2f
+        val stickRadius = CornerRadius(stickWidth / 2f)
+
+        // Outer glow on stick
         drawRoundRect(
-            color = AuraInk.copy(alpha = if (dragFraction != null) 1f else 0.86f),
-            topLeft = Offset(0f, top),
-            size = Size((size.width * shown).coerceAtLeast(height), height),
-            cornerRadius = radius
+            color = Color(0xFF4DD0E1).copy(alpha = 0.55f),
+            topLeft = Offset(xHead - stickWidth * 1.5f, stickTop - 2.dp.toPx()),
+            size = Size(stickWidth * 3f, stickHeight + 4.dp.toPx()),
+            cornerRadius = CornerRadius(stickWidth * 1.5f)
+        )
+        // Core white stick
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(xHead - stickWidth / 2f, stickTop),
+            size = Size(stickWidth, stickHeight),
+            cornerRadius = stickRadius
         )
     }
 }

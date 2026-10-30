@@ -70,8 +70,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.FilterQuality
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
@@ -325,9 +327,9 @@ private fun PlayerDeckPreview(
     accent: Color
 ) {
     when (mode) {
-        // Velvet is a rounded sleeve; Apple Music 13 owns the stretched, full-bleed stage.
+        // Beat Sync is the wavy visualizer deck with moving scrubber stick; Apple Music 13 owns the stretched, full-bleed stage.
         // Keep these preview assignments aligned with PlayerAuraDeck and AppleMusicPlayer.
-        PlayerVisualMode.CanvasImmersive -> VelvetPreview(track, artworkUrl, accent)
+        PlayerVisualMode.CanvasImmersive -> BeatSyncPreview(track, artworkUrl, accent)
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
@@ -346,10 +348,11 @@ private fun DeckArtwork(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val url = artworkUrl.ifBlank { track.thumbnailUrl }
-    val request = remember(context, url) {
+    val url = artworkUrl.ifBlank { track.largeThumbnailUrl.ifBlank { track.thumbnailUrl } }
+    val highQualityUrl = remember(url) { fullResolutionArtworkUrl(url) }
+    val request = remember(context, highQualityUrl) {
         ImageRequest.Builder(context)
-            .data(DerbisArtworkCache.small(url))
+            .data(highQualityUrl)
             .build()
     }
     Box(
@@ -362,6 +365,7 @@ private fun DeckArtwork(
                 model = request,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                filterQuality = FilterQuality.High,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -394,7 +398,7 @@ private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color)
 }
 
 @Composable
-private fun VelvetPreview(track: Track, artworkUrl: String, accent: Color) {
+private fun BeatSyncPreview(track: Track, artworkUrl: String, accent: Color) {
     val field = lerp(accent, Color.Black, 0.58f)
     Box(
         modifier = Modifier
@@ -415,12 +419,32 @@ private fun VelvetPreview(track: Track, artworkUrl: String, accent: Color) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 9.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(Modifier.fillMaxWidth().height(2.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.40f)))
+            // Mini wavy Beat Sync progress bar with stick
+            Canvas(modifier = Modifier.fillMaxWidth().height(6.dp)) {
+                val w = size.width
+                val h = size.height
+                val midY = h * 0.5f
+                val headX = w * 0.42f
+                val wavePath = Path().apply {
+                    moveTo(0f, midY)
+                    cubicTo(w * 0.12f, 0f, w * 0.22f, h, headX, midY)
+                }
+                drawPath(wavePath, color = Color(0xFF80DEEA), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f))
+                // Unplayed line
+                drawLine(Color.White.copy(alpha = 0.25f), start = Offset(headX, midY), end = Offset(w, midY), strokeWidth = 1.2f)
+                // Scrubber stick
+                drawRoundRect(
+                    Color.White,
+                    topLeft = Offset(headX - 1f, 0f),
+                    size = Size(2f, h),
+                    cornerRadius = CornerRadius(1f)
+                )
+            }
         }
     }
 }
@@ -822,6 +846,7 @@ private fun PlayerBackgroundPicker(
     val strings = LocalDerbisStrings.current
     val options = listOf(
         PlayerBackgroundMode.Dynamic to strings.playerBackgroundDynamic,
+        PlayerBackgroundMode.LiquidFerrofluid to strings.playerBackgroundLiquidFerrofluid,
         PlayerBackgroundMode.ReactiveAura to strings.playerBackgroundReactiveAura,
         PlayerBackgroundMode.Aurora to strings.playerBackgroundAurora,
         PlayerBackgroundMode.Gradient to strings.playerBackgroundGradient,
@@ -983,6 +1008,26 @@ private fun DrawScope.drawBackgroundPreview(mode: PlayerBackgroundMode, accent: 
                 Brush.radialGradient(listOf(accent.copy(alpha = 0.6f), Color.Transparent), Offset(size.width / 2f, size.height * 0.35f), size.width),
                 radius = size.width,
                 center = Offset(size.width / 2f, size.height * 0.35f)
+            )
+        }
+        PlayerBackgroundMode.LiquidFerrofluid -> {
+            drawRect(Color(0xFF070709))
+            // Glossy liquid droplet preview
+            val center = Offset(size.width * 0.5f, size.height * 0.52f)
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(accent.copy(alpha = 0.95f), accent.copy(alpha = 0.4f), Color.Transparent),
+                    center,
+                    size.width * 0.48f
+                ),
+                radius = size.width * 0.48f,
+                center = center
+            )
+            // Specular glint
+            drawCircle(
+                Color.White.copy(alpha = 0.75f),
+                radius = size.width * 0.08f,
+                center = Offset(size.width * 0.42f, size.height * 0.40f)
             )
         }
     }

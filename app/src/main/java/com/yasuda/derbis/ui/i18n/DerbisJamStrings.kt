@@ -3,7 +3,12 @@ package com.yasuda.derbis.ui.i18n
 private val jamBundles: Map<String, Map<String, String>> = mapOf(
     "en" to mapOf(
         "jamTitle" to "Derbis Jam",
-        "jamSubtitle" to "Listen together on the same network",
+        "jamListenTogether" to "Listen Together",
+        "jamListenTogetherSubtitle" to "Listen together with friends in real time",
+        "jamStartListenTogether" to "Start Listen Together",
+        "jamJoinListenTogether" to "Join Listen Together",
+        "jamListeningNow" to "Currently Playing",
+        "jamSubtitle" to "Listen together in real time with friends",
         "jamCreate" to "Create Jam",
         "jamJoin" to "Join Jam",
         "jamLeave" to "Leave Jam",

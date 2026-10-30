@@ -551,6 +551,12 @@ fun PlaylistHitPreview.resolvedWith(
         )
     }
 
+data class LyricsSearchMatch(
+    val track: Track,
+    val matchedLine: String = "",
+    val snippet: String = ""
+)
+
 data class SearchResults(
     val topTrack: Track? = null,
     val songs: List<Track> = emptyList(),
@@ -558,6 +564,7 @@ data class SearchResults(
     val albums: List<AlbumHit> = emptyList(),
     val playlists: List<PlaylistHit> = emptyList(),
     val videos: List<Track> = emptyList(),
+    val lyricsMatches: List<LyricsSearchMatch> = emptyList(),
     val failedSections: Set<SearchFilter> = emptySet(),
     val discography: SearchArtistDiscography? = null
 ) {
@@ -567,7 +574,8 @@ data class SearchResults(
             artists.isEmpty() &&
             albums.isEmpty() &&
             playlists.isEmpty() &&
-            videos.isEmpty()
+            videos.isEmpty() &&
+            lyricsMatches.isEmpty()
 }
 
 enum class SearchDiscographyShelf {
@@ -627,7 +635,8 @@ enum class SearchFilter {
     Artists,
     Albums,
     Playlists,
-    Videos
+    Videos,
+    Lyrics
 }
 
 data class SearchPage<T>(

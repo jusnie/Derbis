@@ -3,13 +3,11 @@ package com.yasuda.derbis.ui
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 
 internal val DerbisStrings.preloadNextTrack: String
-    get() = if (code == "it") "Precarica il brano successivo" else "Preload next track"
+    get() = if (code == "it") "Precaricamento flusso brano successivo (ArchiveTune)" else "Next-Song Stream Preloading"
 
 internal val DerbisStrings.preloadNextTrackSubtitle: String
     get() = if (code == "it") {
-        "Prepara in anticipo il brano successivo per passaggi più rapidi. " +
-            "Disattiva per ridurre l'attività di rete in background."
+        "Pre-carica in anticipo 1.5 MB di flusso audio prima del termine del brano per transizioni gapless istantanee e crossfade senza interruzioni."
     } else {
-        "Prepare the next track in advance for faster transitions. " +
-            "Disable to reduce background network activity."
+        "Pre-buffers audio stream before current song ends for instant gapless transitions and stutter-free crossfading."
     }

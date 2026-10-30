@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +26,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.yasuda.derbis.data.DerbisArtworkCache
+import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import kotlinx.coroutines.delay
 
 internal enum class ArtworkDissolveEdge {
@@ -132,9 +134,10 @@ internal fun SeamlessArtworkImage(
     val memory = remember { SeamlessArtworkMemory() }
     var phase by remember(url) { mutableStateOf(SeamlessArtworkPhase.Loading) }
     val bridged = remember(url) { memory.lastKey != null }
-    val request = remember(context, url) {
+    val highQualityUrl = remember(url) { fullResolutionArtworkUrl(url) }
+    val request = remember(context, highQualityUrl) {
         ImageRequest.Builder(context)
-            .data(DerbisArtworkCache.large(url))
+            .data(highQualityUrl)
             .placeholderMemoryCacheKey(memory.lastKey)
             .crossfade(SEAMLESS_ARTWORK_CROSSFADE_MS)
             .diskCachePolicy(CachePolicy.ENABLED)
@@ -168,6 +171,7 @@ internal fun SeamlessArtworkImage(
             model = request,
             contentDescription = contentDescription,
             contentScale = ContentScale.Crop,
+            filterQuality = FilterQuality.High,
             onSuccess = { success ->
                 memory.lastKey = success.result.memoryCacheKey
                 phase = SeamlessArtworkPhase.Ready

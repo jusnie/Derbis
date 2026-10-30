@@ -9,17 +9,32 @@ import android.os.PowerManager
 class MotionArtworkNetworkPolicy(context: Context) {
     private val appContext = context.applicationContext
 
-    fun canResolveCurrent(): Boolean = currentNetworkState(appContext)?.let(::canResolve) == true
+    fun canResolveCurrent(): Boolean =
+        motionArtworkAllowed() && currentNetworkState(appContext)?.let(::canResolve) == true
 
-    fun canPrefetchNext(): Boolean = currentNetworkState(appContext)?.let(::canPrefetch) == true
+    fun canPrefetchNext(): Boolean =
+        motionArtworkAllowed() && currentNetworkState(appContext)?.let(::canPrefetch) == true
 
     companion object {
         @Volatile
         private var wifiOnly: Boolean = false
 
+        @Volatile
+        private var enabled: Boolean = false
+
         fun updateWifiOnly(value: Boolean) {
             wifiOnly = value
         }
+
+        fun updateEnabled(value: Boolean) {
+            enabled = value
+        }
+
+        fun isSpotifyConnected(): Boolean =
+            com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.value.isConnected
+
+        fun motionArtworkAllowed(): Boolean =
+            enabled && isSpotifyConnected()
 
         fun canAnimateLocally(context: Context): Boolean {
             val appContext = context.applicationContext
@@ -44,7 +59,7 @@ class MotionArtworkNetworkPolicy(context: Context) {
         }
 
         fun canUseMotionArtwork(context: Context): Boolean =
-            currentNetworkState(context)?.let(::canResolve) == true
+            motionArtworkAllowed() && currentNetworkState(context)?.let(::canResolve) == true
 
         internal fun canResolve(network: MotionArtworkNetworkState): Boolean =
             canResolve(wifiOnly = wifiOnly, network = network)

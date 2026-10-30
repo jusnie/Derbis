@@ -117,7 +117,8 @@ enum class PlayerBackgroundMode {
     PureBlack,
     Aurora,
     Gradient,
-    ReactiveAura;
+    ReactiveAura,
+    LiquidFerrofluid;
 
     companion object {
         fun from(value: String): PlayerBackgroundMode =
@@ -128,6 +129,7 @@ enum class PlayerBackgroundMode {
                     "dark" -> Dark
                     "pure_black", "pureblack", "black" -> PureBlack
                     "reactive_aura", "reactive-aura" -> ReactiveAura
+                    "liquid_ferrofluid", "liquidferrofluid", "ferrofluid", "liquid" -> LiquidFerrofluid
                     else -> Dynamic
                 }
     }
@@ -232,6 +234,7 @@ data class DerbisInterfaceSettings(
     /** Suppresses non-essential network work while preserving user-requested playback and search. */
     val dataSaverEnabled: Boolean = false,
     val motionArtworkWifiOnly: Boolean = false,
+    val motionArtworkEnabled: Boolean = false,
     val enhanceVideoMetadata: Boolean = false,
     /** Hides tracks and videos explicitly identified as AI-generated. */
     val blockAiContent: Boolean = false,

@@ -4,7 +4,11 @@ import com.yasuda.derbis.core.config.RuntimeConfigSnapshot
 import com.yasuda.derbis.core.config.VersionedRuntimeConfig
 
 data class MotionArtworkConfig(
-    val providerOrder: List<String> = listOf("derbis-canvas-catalog"),
+    val providerOrder: List<String> = listOf(
+        AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+        SpotifyCanvasProvider.PROVIDER_ID,
+        DerbisCanvasCatalogProvider.PROVIDER_ID
+    ),
     val minimumConfidence: Int = DEFAULT_MOTION_ARTWORK_MINIMUM_CONFIDENCE,
     val requestTimeoutMs: Long = 6_500L,
     val positiveTtlMs: Long = MOTION_ARTWORK_POSITIVE_TTL_MS,
@@ -12,9 +16,20 @@ data class MotionArtworkConfig(
 ) {
     fun normalized(): MotionArtworkConfig = copy(
         providerOrder = providerOrder
-            .filter { it == DerbisCanvasCatalogProvider.PROVIDER_ID }
+            .filter {
+                it in setOf(
+                    AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                    SpotifyCanvasProvider.PROVIDER_ID,
+                    DerbisCanvasCatalogProvider.PROVIDER_ID
+                )
+            }
             .distinct()
-            .ifEmpty { listOf(DerbisCanvasCatalogProvider.PROVIDER_ID) },
+            .ifEmpty {
+                listOf(
+                    AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                    SpotifyCanvasProvider.PROVIDER_ID
+                )
+            },
         minimumConfidence = minimumConfidence.coerceIn(70, 100),
         requestTimeoutMs = requestTimeoutMs.coerceIn(2_500L, 12_000L),
         positiveTtlMs = positiveTtlMs.coerceIn(60L * 60L * 1000L, 7L * 24L * 60L * 60L * 1000L),

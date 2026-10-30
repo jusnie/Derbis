@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.jam.DerbisJamRelay
 import com.yasuda.derbis.feature.jam.JamConnectionState
 import com.yasuda.derbis.feature.jam.JamFailure
@@ -79,8 +80,18 @@ import com.yasuda.derbis.feature.jam.JamSessionCode
 import com.yasuda.derbis.feature.jam.JamTrack
 import com.yasuda.derbis.feature.jam.JamTransportMode
 import com.yasuda.derbis.feature.jam.JamUiState
+import com.yasuda.derbis.ui.components.ModernListenTogetherVector
+import com.yasuda.derbis.ui.components.ModernCopyLinkVector
+import com.yasuda.derbis.ui.components.ModernShareSparkleVector
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import android.widget.Toast
 
 private val JamPermissionOptions = listOf(
     JamGuestPermission.HostOnly,
@@ -92,6 +103,7 @@ private val JamPermissionOptions = listOf(
 internal fun DerbisJamOverlay(
     jam: JamUiState,
     displayName: String,
+    currentTrack: Track? = null,
     onDisplayNameChange: (String) -> Unit,
     onCreate: (JamTransportMode, JamGuestPermission, Boolean) -> Unit,
     onJoin: (String) -> Unit,
@@ -150,12 +162,18 @@ internal fun DerbisJamOverlay(
                 JamHeader(
                     title = strings.jamTitle,
                     subtitle = if (remoteJamConfigured) {
-                        "Choose LAN Jam or Server Jam when you create a room."
+                        "Listen together on local Wi-Fi or through the remote room relay."
                     } else {
                         strings.jamSubtitle
                     },
                     onClose = onClose
                 )
+            }
+
+            if (!jam.isActive && currentTrack != null) {
+                item(contentType = "jam-current-track") {
+                    JamCurrentTrackCard(track = currentTrack, strings = strings)
+                }
             }
 
             jam.failure?.let { failure ->
@@ -202,7 +220,7 @@ internal fun DerbisJamOverlay(
                             onCheckedChange = { pendingApproval = it }
                         )
                         JamPrimaryButton(
-                            label = "Create ${jamTransportLabel(selectedTransportMode)}",
+                            label = "Start ${jamTransportLabel(selectedTransportMode)}",
                             onClick = { onCreate(selectedTransportMode, selectedPermission, pendingApproval) }
                         )
                     }
@@ -226,15 +244,15 @@ internal fun DerbisJamOverlay(
                             modifier = Modifier.fillMaxWidth()
                         )
                         JamPrimaryButton(
-                            label = strings.jamJoin,
+                            label = "Join Listen Together",
                             enabled = joinCode.length == JamSessionCode.ENCODED_LENGTH,
                             onClick = { onJoin(joinCode) }
                         )
                         Text(
                             if (remoteJamConfigured) {
-                                "Paste a LAN Jam or Server Jam code. Derbis detects the room type automatically; everyone plays from their own available music source."
+                                "Paste a Listen Together session code. Derbis detects the room type automatically; everyone syncs playback from their music source."
                             } else {
-                                "Paste a LAN Jam code. Server Jam is unavailable until this build is connected to the Derbis Jam relay."
+                                "Paste a LAN Jam code. Remote Listen Together is unavailable until this build is connected to the Derbis Jam relay."
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall
@@ -243,10 +261,13 @@ internal fun DerbisJamOverlay(
                 }
             } else {
                 item(contentType = "jam-hero") {
+                    val trackInfo = currentTrack?.let { "🎶 ${it.title} — ${it.artist}\n" }.orEmpty()
+                    val invitePayload = "🎧 Listen Together on Derbis Jam!\n${trackInfo}Session Code: ${jam.code}\nJoin: https://derbis-web.vercel.app/jam/${jam.code}"
                     JamSessionHero(
                         jam = jam,
                         strings = strings,
-                        onShare = { onShare(jam.deepLink.ifBlank { jam.code }) }
+                        currentTrack = currentTrack,
+                        onShare = { onShare(invitePayload) }
                     )
                 }
 
@@ -376,8 +397,8 @@ private fun JamAmbientBackdrop() {
 @Composable
 private fun JamHeader(title: String, subtitle: String, onClose: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -385,24 +406,49 @@ private fun JamHeader(title: String, subtitle: String, onClose: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             DerbisBackButton(onClick = onClose, contentDescription = LocalDerbisStrings.current.back, size = 52.dp)
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialShapes.Cookie9Sided.toShape()
-                    ),
-                contentAlignment = Alignment.Center
+            Surface(
+                color = Color.White.copy(alpha = 0.08f),
+                shape = CircleShape,
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)),
+                modifier = Modifier.size(54.dp)
             ) {
-                Icon(
-                    Icons.Rounded.MusicNote,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(28.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        ModernListenTogetherVector,
+                        contentDescription = "Listen Together",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(
+                color = Color.White.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(9999.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        ModernListenTogetherVector,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        "LISTEN TOGETHER",
+                        color = Color.White,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.1.sp
+                    )
+                }
+            }
+
             Text(
                 title,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -412,14 +458,76 @@ private fun JamHeader(title: String, subtitle: String, onClose: () -> Unit) {
             Text(
                 subtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
 }
 
 @Composable
-private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () -> Unit) {
+private fun JamCurrentTrackCard(track: Track, strings: DerbisStrings) {
+    Surface(
+        color = Color.White.copy(alpha = 0.06f),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black)
+            ) {
+                AsyncImage(
+                    model = track.artworkUrl,
+                    contentDescription = track.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    strings.jamListeningNow.uppercase(),
+                    color = Color.White.copy(alpha = 0.50f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+                Text(
+                    track.title,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    track.artist,
+                    color = Color.White.copy(alpha = 0.70f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun JamSessionHero(
+    jam: JamUiState,
+    strings: DerbisStrings,
+    currentTrack: Track? = null,
+    onShare: () -> Unit
+) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val connected = jam.connection == JamConnectionState.Connected
     val statusColor by animateColorAsState(
         targetValue = if (connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -461,6 +569,20 @@ private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () 
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
+                Surface(
+                    color = Color.White.copy(alpha = 0.16f),
+                    shape = RoundedCornerShape(9999.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(ModernListenTogetherVector, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                        Text("SYNC", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    }
+                }
                 jam.transportMode?.let { transportMode ->
                     JamBadge(label = jamTransportLabel(transportMode))
                 }
@@ -473,6 +595,10 @@ private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () 
                 color = statusColor,
                 style = MaterialTheme.typography.labelLarge
             )
+
+            if (currentTrack != null) {
+                JamCurrentTrackCard(track = currentTrack, strings = strings)
+            }
 
             Surface(
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.34f),
@@ -502,7 +628,7 @@ private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () 
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(strings.jamSessionCode, style = MaterialTheme.typography.labelMedium)
                         Text(
@@ -511,10 +637,25 @@ private fun JamSessionHero(jam: JamUiState, strings: DerbisStrings, onShare: () 
                             letterSpacing = 2.sp,
                             fontWeight = FontWeight.Black
                         )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    clipboardManager.setText(AnnotatedString(jam.code))
+                                    Toast.makeText(context, "Session code copied!", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Icon(ModernCopyLinkVector, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Copy Code", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
                 JamPrimaryButton(
-                    label = strings.jamShareInvite,
+                    label = "Invite to Listen Together",
                     icon = Icons.Rounded.IosShare,
                     onClick = onShare
                 )
@@ -1051,16 +1192,16 @@ private fun jamPermissionLabel(permission: JamGuestPermission, strings: DerbisSt
 }
 
 private fun jamTransportLabel(mode: JamTransportMode): String = when (mode) {
-    JamTransportMode.Lan -> "LAN Jam"
-    JamTransportMode.Server -> "Server Jam"
+    JamTransportMode.Lan -> "Local Listen Together (LAN)"
+    JamTransportMode.Server -> "Remote Listen Together (Relay)"
 }
 
 private fun jamTransportDescription(mode: JamTransportMode, serverAvailable: Boolean): String = when (mode) {
-    JamTransportMode.Lan -> "For people connected to the same Wi-Fi network."
+    JamTransportMode.Lan -> "Synchronize playback with friends on the same Wi-Fi with ultra-low latency."
     JamTransportMode.Server -> if (serverAvailable) {
-        "Hosted through the Derbis Jam server so friends can join from anywhere."
+        "Hosted room relay so friends can listen together from anywhere across the internet."
     } else {
-        "Unavailable because this build has no Derbis Jam server configured."
+        "Requires a configured Derbis Jam relay server."
     }
 }
 

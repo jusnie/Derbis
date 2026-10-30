@@ -13,6 +13,7 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
+import { isIos } from "../utils/platform";
 
 export default function Sidebar({ isMobileOpen, setIsMobileOpen, onOpenSettings }) {
   const { activeTab, setActiveTab } = usePlayer();
@@ -145,27 +146,29 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, onOpenSettings 
           </button>
         </div>
 
-        {/* APK Download Button */}
-        <div className="mt-4 px-2">
-          <a
-            href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-            download
-            className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-white transition-all group"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
-                <Download className="w-4 h-4" />
+        {/* APK Download Button (Hidden on iOS) */}
+        {!isIos && (
+          <div className="mt-4 px-2">
+            <a
+              href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
+              download
+              className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 border border-blue-500/30 text-white transition-all group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                  <Download className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold leading-tight">Derbis Android</span>
+                  <span className="text-[10px] text-white/50">v1.1.1 APK</span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-bold leading-tight">Derbis Android</span>
-                <span className="text-[10px] text-white/50">v1.1.1 APK</span>
-              </div>
-            </div>
-            <span className="text-[10px] font-bold text-blue-400 group-hover:translate-x-0.5 transition-transform">
-              Get
-            </span>
-          </a>
-        </div>
+              <span className="text-[10px] font-bold text-blue-400 group-hover:translate-x-0.5 transition-transform">
+                Get
+              </span>
+            </a>
+          </div>
+        )}
 
         {/* Bottom Sidebar: Profile Card & GitHub */}
         <div className="mt-auto pt-4 flex flex-col gap-3">

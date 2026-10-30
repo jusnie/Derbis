@@ -235,6 +235,7 @@ class DerbisPreferencesDefaultsTest {
     fun defaultPlayerVisualModeIsFlow() {
         assertEquals(PlayerVisualMode.Flow, DerbisInterfaceSettings().playerVisualMode)
         assertFalse(DerbisInterfaceSettings().motionArtworkWifiOnly)
+        assertFalse(DerbisInterfaceSettings().motionArtworkEnabled)
     }
 
     @Test
@@ -251,7 +252,13 @@ class DerbisPreferencesDefaultsTest {
     @Test
     fun legacyBackupWithoutMotionArtworkWifiOnlyDefaultsToFalse() {
         assertFalse(backupInterfaceSettingsFromJson(JSONObject()).motionArtworkWifiOnly)
+        assertFalse(backupInterfaceSettingsFromJson(JSONObject()).motionArtworkEnabled)
         assertFalse(backupInterfaceSettingsFromJson(JSONObject()).releaseNotificationsEnabled)
+        assertTrue(
+            backupInterfaceSettingsFromJson(
+                backupInterfaceSettingsToJson(DerbisInterfaceSettings(motionArtworkEnabled = true))
+            ).motionArtworkEnabled
+        )
     }
 
     @Test

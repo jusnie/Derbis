@@ -220,6 +220,19 @@ internal fun PlayerBackdrop(
                 modifier = modifier
             )
         }
+        PlayerBackgroundMode.LiquidFerrofluid -> {
+            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-liquid-base")
+            val accent = animateColorAsState(ambience.accent, colorSpec, label = "player-backdrop-liquid-accent")
+            RaymarchedLiquidBackdrop(
+                primary = primary,
+                secondary = secondary,
+                accent = accent,
+                base = base,
+                isPlaying = isPlaying,
+                animationsEnabled = animationsEnabled,
+                modifier = modifier
+            )
+        }
     }
 }
 

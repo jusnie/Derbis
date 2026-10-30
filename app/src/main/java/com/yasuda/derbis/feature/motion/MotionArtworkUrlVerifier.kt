@@ -31,19 +31,39 @@ internal object MotionArtworkDestinationPolicy {
         catalogEndpoint: HttpUrl? = configuredDerbisCanvasCatalogEndpoint()
     ): Boolean {
         if (
-            provider != DerbisCanvasCatalogProvider.PROVIDER_ID ||
             url.scheme != "https" ||
             url.port != 443 ||
             url.username.isNotEmpty() ||
-            url.password.isNotEmpty() ||
-            catalogEndpoint == null ||
-            !isValidDerbisCatalogEndpoint(catalogEndpoint)
+            url.password.isNotEmpty()
         ) {
             return false
         }
-        return url.host.equals(catalogEndpoint.host, ignoreCase = true) &&
-            url.encodedPath.startsWith("/media/") &&
-            (url.encodedPath.endsWith(".mp4", true) || url.encodedPath.endsWith(".m3u8", true))
+        val isVideoFormat = url.encodedPath.endsWith(".mp4", true) ||
+            url.encodedPath.endsWith(".m3u8", true) ||
+            url.encodedPath.contains(".mp4") ||
+            url.encodedPath.contains(".m3u8")
+        if (!isVideoFormat) return false
+
+        val host = url.host.lowercase(Locale.ROOT)
+        return when (provider) {
+            AppleMusicAnimatedArtworkProvider.PROVIDER_ID -> {
+                host.endsWith(".apple.com") ||
+                    host.endsWith(".itunes.apple.com") ||
+                    host == "artwork.m8tec.top" ||
+                    host == "amaa.tromme.app"
+            }
+            SpotifyCanvasProvider.PROVIDER_ID -> {
+                host.endsWith(".scdn.co") ||
+                    host == "canvaz.scdn.co" ||
+                    host.endsWith(".slnode.spicylyrics.org") ||
+                    host == "regional.canvasstore.slnode.spicylyrics.org"
+            }
+            DerbisCanvasCatalogProvider.PROVIDER_ID -> {
+                if (catalogEndpoint == null || !isValidDerbisCatalogEndpoint(catalogEndpoint)) false
+                else url.host.equals(catalogEndpoint.host, ignoreCase = true) && url.encodedPath.startsWith("/media/")
+            }
+            else -> false
+        }
     }
 
     fun isPublicAddress(address: InetAddress): Boolean {

@@ -11,7 +11,12 @@ private fun canvasStrings(
     enhanceVideoMetadataSubtitle: String,
     recognizeMusic: String,
     motionArtworkWifiOnly: String = "Load Canvas on Wi-Fi only",
-    motionArtworkWifiOnlySubtitle: String = "Limit Canvas animation loading to Wi-Fi networks."
+    motionArtworkWifiOnlySubtitle: String = "Limit Canvas animation loading to Wi-Fi networks.",
+    motionArtworkEnabled: String = "Animated Artwork & Canvas",
+    motionArtworkEnabledSubtitle: String = "Stream official Apple Music animated covers and Spotify Canvas video loops.",
+    motionArtworkSpotifyRequired: String = "Sign in to Spotify to unlock animated artwork and Canvas.",
+    motionArtworkUnlocked: String = "Unlocked · Streaming Apple Music & Spotify motion covers",
+    motionArtworkLocked: String = "Locked · Requires Spotify Login"
 ): Map<String, String> = mapOf(
     "canvasQuality" to quality,
     "canvasQualitySubtitle" to qualitySubtitle,
@@ -20,6 +25,11 @@ private fun canvasStrings(
     "canvasSourceCommunity" to community,
     "motionArtworkWifiOnly" to motionArtworkWifiOnly,
     "motionArtworkWifiOnlySubtitle" to motionArtworkWifiOnlySubtitle,
+    "motionArtworkEnabled" to motionArtworkEnabled,
+    "motionArtworkEnabledSubtitle" to motionArtworkEnabledSubtitle,
+    "motionArtworkSpotifyRequired" to motionArtworkSpotifyRequired,
+    "motionArtworkUnlocked" to motionArtworkUnlocked,
+    "motionArtworkLocked" to motionArtworkLocked,
     "sharePlaylist" to sharePlaylist,
     "enhanceVideoMetadata" to enhanceVideoMetadata,
     "enhanceVideoMetadataSubtitle" to enhanceVideoMetadataSubtitle,

@@ -1,8 +1,9 @@
 import React from "react";
-import { X, Smartphone, ExternalLink, Download, LogOut, RefreshCw } from "lucide-react";
+import { X, Smartphone, ExternalLink, Download, LogOut, RefreshCw, Music2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
+import { isIos } from "../utils/platform";
 
-export default function SettingsModal({ isOpen, onClose }) {
+export default function SettingsModal({ isOpen, onClose, onOpenIosInstaller }) {
   const {
     userProfile,
     youtubeData,
@@ -130,27 +131,54 @@ export default function SettingsModal({ isOpen, onClose }) {
           </div>
         )}
 
-        {/* Android App Promotion */}
-        <div className="p-3.5 rounded-xl bg-[#0e0e12] border border-[#1e1e24] space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-white/70" />
-              <strong className="text-xs font-bold text-white">Derbis Android App</strong>
+        {/* Native iOS App Info or Android App Promotion */}
+        {isIos ? (
+          <div className="p-3.5 rounded-xl bg-[#0e0e12] border border-cyan-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Music2 className="w-3.5 h-3.5 text-cyan-400" />
+                <strong className="text-xs font-bold text-white">Derbis iOS Native</strong>
+              </div>
+              <span className="text-[9px] font-mono text-cyan-400 font-bold">v1.1.1</span>
             </div>
-            <span className="text-[9px] font-mono text-white/40">v1.1.1</span>
+            <p className="text-[11px] text-white/60 leading-relaxed">
+              AirPlay, Lock Screen Controls, and Hi-Fi Lossless Engine Active.
+            </p>
+            {onOpenIosInstaller && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenIosInstaller();
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold transition-all"
+              >
+                <span>Launch iOS Web Installer (OTA)</span>
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <p className="text-[11px] text-white/60 leading-relaxed">
-            Download the native APK for background playback with screen locked and offline downloads.
-          </p>
-          <a
-            href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
-            download
-            className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all"
-          >
-            <span>Download APK (~71 MB)</span>
-            <Download className="w-3.5 h-3.5" />
-          </a>
-        </div>
+        ) : (
+          <div className="p-3.5 rounded-xl bg-[#0e0e12] border border-[#1e1e24] space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Smartphone className="w-3.5 h-3.5 text-white/70" />
+                <strong className="text-xs font-bold text-white">Derbis Android App</strong>
+              </div>
+              <span className="text-[9px] font-mono text-white/40">v1.1.1</span>
+            </div>
+            <p className="text-[11px] text-white/60 leading-relaxed">
+              Download the native APK for background playback with screen locked and offline downloads.
+            </p>
+            <a
+              href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk"
+              download
+              className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all"
+            >
+              <span>Download APK (~71 MB)</span>
+              <Download className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 text-[11px] text-white/40 border-t border-white/10">

@@ -8,8 +8,12 @@ import org.junit.Test
 class DerbisLyricsStudioSettingsTest {
 
     @Test
-    fun defaultSettingsMatchesDerbisOriginal() {
+    fun defaultSettingsMatchesAppleMusic13Default() {
         val settings = DerbisLyricsStudioSettings()
+        assertEquals(LyricsRendererMode.DEFAULT, settings.rendererMode)
+        assertTrue(settings.isDefaultLyrics)
+        assertFalse(settings.isSpicyLyrics)
+        assertTrue(settings.appleMusic13LyricsEnabled)
         assertEquals(LyricsStylePreset.DERBIS_ORIGINAL, settings.stylePreset)
         assertEquals(LyricsBackgroundMode.ORIGINAL, settings.backgroundMode)
         assertEquals(LyricsAlignment.START, settings.alignment)
@@ -20,7 +24,22 @@ class DerbisLyricsStudioSettingsTest {
         assertEquals(LyricsGlowEffect.OFF, settings.glowEffect)
         assertTrue(settings.progressiveKaraokeEnabled)
         assertTrue(settings.blurEnabled)
-        assertFalse(settings.appleMusic13LyricsEnabled)
+    }
+
+    @Test
+    fun spicyRendererModeRoundTripsAndActivates() {
+        val defaultSettings = DerbisLyricsStudioSettings()
+        val spicy = defaultSettings.withRendererMode(LyricsRendererMode.SPICY)
+        assertEquals(LyricsRendererMode.SPICY, spicy.rendererMode)
+        assertTrue(spicy.isSpicyLyrics)
+        assertFalse(spicy.isDefaultLyrics)
+        assertFalse(spicy.appleMusic13LyricsEnabled)
+
+        val json = spicy.encode()
+        val decoded = DerbisLyricsStudioSettings.decode(json)
+        assertEquals(LyricsRendererMode.SPICY, decoded.rendererMode)
+        assertTrue(decoded.isSpicyLyrics)
+        assertFalse(decoded.isDefaultLyrics)
     }
 
     @Test
@@ -106,9 +125,14 @@ class DerbisLyricsStudioSettingsTest {
     }
 
     @Test
-    fun decodingLegacyLyricsSettingsDefaultsAppleMusic13RendererOff() {
+    fun decodingLegacyLyricsSettingsDefaultsToDefaultRenderer() {
         val legacy = DerbisLyricsStudioSettings.decode("""{"stylePreset":"CINEMATIC"}""")
-        assertFalse(legacy.appleMusic13LyricsEnabled)
+        assertEquals(LyricsRendererMode.DEFAULT, legacy.rendererMode)
+        assertTrue(legacy.appleMusic13LyricsEnabled)
+
+        val legacyExplicitFalse = DerbisLyricsStudioSettings.decode("""{"appleMusic13LyricsEnabled":false}""")
+        assertEquals(LyricsRendererMode.SPICY, legacyExplicitFalse.rendererMode)
+        assertFalse(legacyExplicitFalse.appleMusic13LyricsEnabled)
     }
 
     @Test

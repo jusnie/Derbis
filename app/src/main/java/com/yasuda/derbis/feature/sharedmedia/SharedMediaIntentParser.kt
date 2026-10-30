@@ -55,7 +55,7 @@ object SharedMediaIntentParser {
         }
         val uri = runCatching { Uri.parse(rawUrl) }.getOrNull() ?: return null
         val host = uri.host.orEmpty().lowercase().removePrefix("www.")
-        if (host !in supportedHosts) {
+        if (uri.scheme != "derbis" && host !in supportedHosts) {
             val external = PlaylistInputDetector.detectUrl(rawUrl)
             val kind = if (
                 external is DetectedPlaylistInput.RemotePlaylist || external is DetectedPlaylistInput.UnsupportedRemote
@@ -110,6 +110,20 @@ object SharedMediaIntentParser {
     private fun extractVideoId(host: String, uri: Uri, segments: List<String>): String {
         val candidate = when {
             host == "youtu.be" -> segments.firstOrNull().orEmpty()
+            host in setOf("derbis-web.vercel.app", "derbis-web-jusnies-projects.vercel.app", "derbis.app") -> {
+                if (segments.firstOrNull() in setOf("t", "track", "song", "play")) {
+                    segments.getOrNull(1).orEmpty()
+                } else {
+                    uri.getQueryParameter("id") ?: uri.getQueryParameter("v").orEmpty()
+                }
+            }
+            uri.scheme.equals("derbis", ignoreCase = true) -> {
+                if (host in setOf("t", "track", "play", "song")) {
+                    uri.getQueryParameter("id") ?: segments.firstOrNull().orEmpty()
+                } else {
+                    uri.getQueryParameter("id").orEmpty()
+                }
+            }
             segments.firstOrNull() in setOf("shorts", "live", "embed") -> segments.getOrNull(1).orEmpty()
             else -> uri.getQueryParameter("v").orEmpty()
         }
@@ -142,6 +156,9 @@ object SharedMediaIntentParser {
         "m.youtube.com",
         "music.youtube.com",
         "youtu.be",
-        "youtube-nocookie.com"
+        "youtube-nocookie.com",
+        "derbis-web.vercel.app",
+        "derbis-web-jusnies-projects.vercel.app",
+        "derbis.app"
     )
 }

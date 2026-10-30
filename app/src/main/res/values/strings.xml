@@ -76,8 +76,8 @@
     <string name="notification_repeat_one">Repeat one</string>
     <string name="tile_recognize_music">Recognize music</string>
     <string name="tile_playback">Playback</string>
-    <string name="tile_ambient" translatable="false">Ambient</string>
-    <string name="ambient_dream_label" translatable="false">Derbis Ambient</string>
+    <string name="tile_ambient" translatable="false">Derbis AOD</string>
+    <string name="ambient_dream_label" translatable="false">Derbis Always-On Display (AOD)</string>
     <string name="recognition_notification_channel" translatable="false">Music recognition</string>
     <string name="shortcut_search">Search</string>
     <string name="shortcut_library">Library</string>

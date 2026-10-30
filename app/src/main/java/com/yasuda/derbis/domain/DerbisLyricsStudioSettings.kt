@@ -6,6 +6,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.json.JSONObject
 
+enum class LyricsRendererMode {
+    DEFAULT,
+    SPICY;
+
+    companion object {
+        fun from(value: String?): LyricsRendererMode =
+            entries.firstOrNull { it.name.equals(value?.trim(), ignoreCase = true) } ?: DEFAULT
+    }
+}
+
 enum class LyricsStylePreset {
     DERBIS_ORIGINAL,
     EXPRESSIVE_KARAOKE,
@@ -104,6 +114,7 @@ enum class LyricsGlowEffect {
 }
 
 data class DerbisLyricsStudioSettings(
+    val rendererMode: LyricsRendererMode = LyricsRendererMode.DEFAULT,
     val stylePreset: LyricsStylePreset = LyricsStylePreset.DERBIS_ORIGINAL,
     val fontPreset: DerbisFontPreset = DerbisFontPreset.Outfit,
     val textSize: LyricsTextSize = LyricsTextSize.STANDARD,
@@ -118,20 +129,28 @@ data class DerbisLyricsStudioSettings(
     val backgroundMode: LyricsBackgroundMode = LyricsBackgroundMode.ORIGINAL,
     val progressiveKaraokeEnabled: Boolean = true,
     val blurEnabled: Boolean = true,
-    /** Uses the dedicated Apple Music 13-inspired lyrics renderer, not Derbis lyrics styling. */
-    val appleMusic13LyricsEnabled: Boolean = false
+    /** Uses the dedicated Apple Music 13-inspired lyrics renderer (Default). */
+    val appleMusic13LyricsEnabled: Boolean = true
 ) {
+    val isSpicyLyrics: Boolean get() = rendererMode == LyricsRendererMode.SPICY
+    val isDefaultLyrics: Boolean get() = rendererMode == LyricsRendererMode.DEFAULT
+
+    fun withRendererMode(mode: LyricsRendererMode): DerbisLyricsStudioSettings = copy(
+        rendererMode = mode,
+        appleMusic13LyricsEnabled = (mode == LyricsRendererMode.DEFAULT)
+    )
+
     fun normalized(): DerbisLyricsStudioSettings = copy(
         inactiveOpacity = inactiveOpacity.coerceIn(0.15f, 0.90f),
-        inactiveScale = inactiveScale.coerceIn(0.70f, 1.0f)
+        inactiveScale = inactiveScale.coerceIn(0.70f, 1.0f),
+        appleMusic13LyricsEnabled = (rendererMode == LyricsRendererMode.DEFAULT)
     )
 
     /**
-     * Resolves the one renderer that may draw in the full-screen overlay.  The saved Derbis
-     * Studio choices are kept intact for when the user explicitly switches this renderer off.
+     * Resolves settings for the active lyrics renderer.
      */
-    fun settingsForActiveLyricsRenderer(): DerbisLyricsStudioSettings =
-        if (!appleMusic13LyricsEnabled) this else copy(
+    fun settingsForActiveLyricsRenderer(): DerbisLyricsStudioSettings = when (rendererMode) {
+        LyricsRendererMode.DEFAULT -> copy(
             stylePreset = LyricsStylePreset.EXPRESSIVE_KARAOKE,
             textSize = LyricsTextSize.LARGE,
             fontWeight = LyricsFontWeightPreset.BOLD,
@@ -145,6 +164,21 @@ data class DerbisLyricsStudioSettings(
             progressiveKaraokeEnabled = true,
             blurEnabled = true
         )
+        LyricsRendererMode.SPICY -> copy(
+            stylePreset = LyricsStylePreset.FOCUS,
+            textSize = LyricsTextSize.LARGE,
+            fontWeight = LyricsFontWeightPreset.BLACK,
+            alignment = LyricsAlignment.START,
+            lineSpacing = LyricsLineSpacing.RELAXED,
+            inactiveOpacity = 0.32f,
+            inactiveScale = 0.92f,
+            activeColorMode = LyricsActiveColorMode.AUTOMATIC,
+            glowEffect = LyricsGlowEffect.VIBRANT,
+            backgroundMode = LyricsBackgroundMode.GRADIENT,
+            progressiveKaraokeEnabled = true,
+            blurEnabled = true
+        )
+    }
 
     fun applyPreset(preset: LyricsStylePreset): DerbisLyricsStudioSettings = when (preset) {
         LyricsStylePreset.DERBIS_ORIGINAL -> DerbisLyricsStudioSettings(
@@ -230,6 +264,7 @@ data class DerbisLyricsStudioSettings(
     }.copy(appleMusic13LyricsEnabled = appleMusic13LyricsEnabled)
 
     fun encode(): String = JSONObject().apply {
+        put("rendererMode", rendererMode.name)
         put("stylePreset", stylePreset.name)
         put("fontPreset", fontPreset.name)
         put("textSize", textSize.name)
@@ -252,22 +287,35 @@ data class DerbisLyricsStudioSettings(
             if (raw.isNullOrBlank()) return DerbisLyricsStudioSettings()
             return runCatching {
                 val json = JSONObject(raw)
+                val rawRenderer = json.optString("rendererMode")
+                val rendererMode = if (rawRenderer.isNotBlank()) {
+                    LyricsRendererMode.from(rawRenderer)
+                } else if (json.has("appleMusic13LyricsEnabled")) {
+                    if (json.optBoolean("appleMusic13LyricsEnabled", true)) {
+                        LyricsRendererMode.DEFAULT
+                    } else {
+                        LyricsRendererMode.SPICY
+                    }
+                } else {
+                    LyricsRendererMode.DEFAULT
+                }
                 DerbisLyricsStudioSettings(
+                    rendererMode = rendererMode,
                     stylePreset = LyricsStylePreset.from(json.optString("stylePreset")),
                     fontPreset = DerbisFontPreset.from(json.optString("fontPreset")),
                     textSize = LyricsTextSize.from(json.optString("textSize")),
                     fontWeight = LyricsFontWeightPreset.from(json.optString("fontWeight")),
                     alignment = LyricsAlignment.from(json.optString("alignment")),
                     lineSpacing = LyricsLineSpacing.from(json.optString("lineSpacing")),
-                    inactiveOpacity = json.optDouble("inactiveOpacity", 0.52).toFloat(),
-                    inactiveScale = json.optDouble("inactiveScale", 1.0).toFloat(),
+                    inactiveOpacity = json.optDouble("inactiveOpacity", 0.52).toDouble().toFloat(),
+                    inactiveScale = json.optDouble("inactiveScale", 1.0).toDouble().toFloat(),
                     activeColorMode = LyricsActiveColorMode.from(json.optString("activeColorMode")),
                     customAccentColor = json.optInt("customAccentColor", 0xFF64D2FF.toInt()),
                     glowEffect = LyricsGlowEffect.from(json.optString("glowEffect")),
                     backgroundMode = LyricsBackgroundMode.from(json.optString("backgroundMode")),
                     progressiveKaraokeEnabled = json.optBoolean("progressiveKaraokeEnabled", true),
                     blurEnabled = json.optBoolean("blurEnabled", true),
-                    appleMusic13LyricsEnabled = json.optBoolean("appleMusic13LyricsEnabled", false)
+                    appleMusic13LyricsEnabled = (rendererMode == LyricsRendererMode.DEFAULT)
                 ).normalized()
             }.getOrDefault(DerbisLyricsStudioSettings())
         }

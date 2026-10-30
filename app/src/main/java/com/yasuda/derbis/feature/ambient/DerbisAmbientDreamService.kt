@@ -75,7 +75,7 @@ class DerbisAmbientDreamService :
                             onTogglePlay = sessionPresenter::togglePlay,
                             onNext = sessionPresenter::next,
                             onPrevious = sessionPresenter::previous,
-                            onExit = null
+                            onExit = { finish() }
                         )
                     }
                 }

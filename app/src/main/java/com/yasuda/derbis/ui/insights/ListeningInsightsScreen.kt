@@ -85,6 +85,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -103,6 +104,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.yasuda.derbis.R
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.ListeningInsightsActivityPoint
 import com.yasuda.derbis.domain.ListeningInsightsArtist
@@ -697,32 +699,63 @@ private fun ListeningShareEntries(
                 .weight(1.15f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp, topEnd = 8.dp, bottomEnd = 8.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF0B0C12), accent.copy(alpha = 0.55f).compositeOverDark())))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            Color(0xFF0A0C14),
+                            accent.copy(alpha = 0.52f).compositeOverDark(),
+                            Color(0xFF1E0C28)
+                        )
+                    )
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.14f),
+                    RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp, topEnd = 8.dp, bottomEnd = 8.dp)
+                )
                 .derbisPressable(onClick = onOpenWrapped, role = Role.Button, onClickLabel = wrappedTitle)
                 .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_sound_wave),
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(13.dp)
+                )
+                Text(
+                    "REPLAY",
+                    color = accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.6.sp
+                )
+            }
             Text(
                 year.toString(),
                 color = Color.White,
-                fontSize = 34.sp,
-                lineHeight = 36.sp,
+                fontSize = 32.sp,
+                lineHeight = 34.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-1.2).sp
             )
             Text(
                 strings.wrappedYearInMusic,
-                color = Color.White,
+                color = Color.White.copy(alpha = 0.88f),
                 fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.2.sp,
-                maxLines = 2,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 strings.wrappedTapToBegin,
-                color = Color.White.copy(alpha = 0.72f),
-                fontSize = 11.5.sp,
+                color = Color.White.copy(alpha = 0.65f),
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -734,6 +767,11 @@ private fun ListeningShareEntries(
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 28.dp, bottomEnd = 28.dp))
                 .background(scheme.surfaceContainerHigh)
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.08f),
+                    RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 28.dp, bottomEnd = 28.dp)
+                )
                 .derbisPressable(onClick = onOpenReceipt, role = Role.Button, onClickLabel = strings.receiptEntryTitle)
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)

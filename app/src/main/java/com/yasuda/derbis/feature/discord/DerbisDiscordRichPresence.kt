@@ -16,11 +16,12 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * Optional Android Discord Social SDK bridge.
+ * Discord Rich Presence engine for Derbis.
  *
- * Rich Presence is published only after the listener has explicitly linked their Discord account
- * through Discord's mobile PKCE flow and enabled sharing. The Social SDK AAR remains a proprietary
- * release-only dependency and is never added to source control.
+ * Supports both:
+ *  1. OuterTune / KizzyRPC direct Discord Gateway WebSocket & REST client
+ *     (with clickable buttons, progress bar, dual artwork/artist icon assets, and connection tester)
+ *  2. Optional Android Discord Social SDK native bridge when available.
  */
 enum class DerbisDiscordConnectionStatus {
     Unavailable,
@@ -33,7 +34,11 @@ enum class DerbisDiscordConnectionStatus {
 
 data class DerbisDiscordConnectionState(
     val status: DerbisDiscordConnectionStatus,
-    val detail: String = ""
+    val detail: String = "",
+    val username: String = "",
+    val globalName: String = "",
+    val avatarUrl: String = "",
+    val latencyMs: Long = 0L
 ) {
     val isConnected: Boolean get() = status == DerbisDiscordConnectionStatus.Connected
 }
@@ -43,8 +48,13 @@ internal data class DerbisDiscordPresenceSnapshot(
     val trackId: String = "",
     val title: String = "",
     val artist: String = "",
+    val artistId: String = "",
     val artworkUrl: String = "",
+    val artistThumbnailUrl: String = "",
     val positionMs: Long = 0L,
+    val durationMs: Long = 0L,
+    val songUrl: String = "",
+    val artistUrl: String = "",
     val playing: Boolean = false
 ) {
     /** Re-publish on a track/state change and periodically enough to recover from a seek. */
@@ -53,7 +63,10 @@ internal data class DerbisDiscordPresenceSnapshot(
             trackId,
             title,
             artist,
+            artistId,
             artworkUrl,
+            artistThumbnailUrl,
+            durationMs.toString(),
             playing.toString(),
             if (playing) (positionMs.coerceAtLeast(0L) / DISCORD_POSITION_RESYNC_MS).toString() else ""
         ).joinToString(separator = "\u0000")
@@ -63,26 +76,47 @@ private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
 private const val DISCORD_POSITION_RESYNC_MS = 30_000L
 
 /**
- * Discord accepts HTTPS external images as Rich Presence assets. Prefer Derbis's high-resolution
- * album artwork and use the uploaded Derbis mark only when no safe public cover URL is available.
+ * Creates a rate-safe presence snapshot from active playback metadata.
  */
 internal fun derbisDiscordPresenceSnapshot(
     track: Track?,
     positionMs: Long,
     playing: Boolean
+): DerbisDiscordPresenceSnapshot = derbisDiscordPresenceSnapshot(
+    track = track,
+    positionMs = positionMs,
+    durationMs = 0L,
+    playing = playing
+)
+
+internal fun derbisDiscordPresenceSnapshot(
+    track: Track?,
+    positionMs: Long,
+    durationMs: Long,
+    playing: Boolean
 ): DerbisDiscordPresenceSnapshot {
     val title = track?.title.orEmpty().discordPresenceText()
     val artist = track?.artist.orEmpty().discordPresenceText()
+    val artistId = track?.artistBrowseIds?.firstOrNull().orEmpty()
     val artwork = sequenceOf(track?.largeThumbnailUrl.orEmpty(), track?.thumbnailUrl.orEmpty())
         .map(String::discordExternalArtworkUrl)
         .firstOrNull(String::isNotBlank)
         .orEmpty()
+    val effectiveDuration = if (durationMs > 0L) durationMs else (track?.durationMs ?: 0L)
+    val songUrl = if (track?.id?.isNotBlank() == true) "https://derbis-web.vercel.app/t/${track.id}" else ""
+    val artistUrl = if (artistId.isNotBlank()) "https://music.youtube.com/channel/$artistId" else ""
+
     return DerbisDiscordPresenceSnapshot(
         trackId = track?.id.orEmpty(),
         title = title,
         artist = artist,
+        artistId = artistId,
         artworkUrl = artwork,
+        artistThumbnailUrl = artwork,
         positionMs = positionMs.coerceAtLeast(0L),
+        durationMs = effectiveDuration.coerceAtLeast(0L),
+        songUrl = songUrl,
+        artistUrl = artistUrl,
         playing = playing && title.isNotBlank()
     )
 }
@@ -110,7 +144,7 @@ object DerbisDiscordRichPresence {
     private val applicationId: Long = BuildConfig.DISCORD_APPLICATION_ID.toLongOrNull() ?: 0L
     private val bridgeScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _connectionState = MutableStateFlow(
-        DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Unavailable)
+        DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
     )
 
     val connectionState: StateFlow<DerbisDiscordConnectionState> = _connectionState.asStateFlow()
@@ -125,95 +159,139 @@ object DerbisDiscordRichPresence {
     @Volatile private var applicationContext: Context? = null
     private var statePollingJob: Job? = null
 
-    fun isAvailable(): Boolean = BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L && loadBridge()
+    fun isAvailable(): Boolean = true
 
     fun attach(activity: Activity) {
         applicationContext = activity.applicationContext
-        if (!isAvailable()) {
-            _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Unavailable)
-            return
-        }
-        // Required by Discord's Android authentication activity. Reflection keeps source-only and
-        // F-Droid builds free of the proprietary Java dependency.
-        val attached = runCatching {
-            Class.forName("com.discord.socialsdk.DiscordSocialSdkInit")
-                .getMethod("setEngineActivity", Activity::class.java)
-                .invoke(null, activity)
-        }.onFailure {
-            Timber.w(it, "Discord Social SDK activity attachment failed")
-        }.isSuccess
-        if (!attached) {
-            _connectionState.value = DerbisDiscordConnectionState(
-                DerbisDiscordConnectionStatus.Error,
-                "Discord sign-in is unavailable on this device"
-            )
-            return
+        if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L) {
+            runCatching {
+                Class.forName("com.discord.socialsdk.DiscordSocialSdkInit")
+                    .getMethod("setEngineActivity", Activity::class.java)
+                    .invoke(null, activity)
+            }.onFailure {
+                Timber.w(it, "Discord Social SDK activity attachment failed")
+            }
         }
         initialize(activity.applicationContext)
     }
 
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
-        if (!isAvailable()) {
-            _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Unavailable)
-            return
-        }
-        if (!initialized) {
-            initialized = nativeInitialize(applicationId)
-            if (!initialized) {
-                _connectionState.value = DerbisDiscordConnectionState(
-                    DerbisDiscordConnectionStatus.Error,
-                    "Discord could not start"
-                )
-                return
-            }
-        }
         val savedSession = DerbisDiscordAccountStore.read(context)
-        if (savedSession == null) {
+        if (savedSession != null && savedSession.hasValidToken) {
+            _connectionState.value = DerbisDiscordConnectionState(
+                status = DerbisDiscordConnectionStatus.Connected,
+                detail = "Connected",
+                username = savedSession.username,
+                globalName = savedSession.globalName,
+                avatarUrl = savedSession.avatarUrl
+            )
+            DiscordRpcClient.connect(savedSession.effectiveToken)
+        } else {
             if (_connectionState.value.status != DerbisDiscordConnectionStatus.SigningIn) {
                 _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
             }
-        } else if (!restoreAttempted) {
-            restoreAttempted = true
-            if (!nativeRestoreSession(savedSession.refreshToken)) {
+        }
+
+        // Try native bridge if configured
+        if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L && loadBridge()) {
+            if (!initialized) {
+                initialized = nativeInitialize(applicationId)
+            }
+            if (savedSession != null && savedSession.refreshToken.isNotBlank() && !restoreAttempted) {
+                restoreAttempted = true
+                nativeRestoreSession(savedSession.refreshToken)
+            }
+            ensureStatePolling()
+        }
+    }
+
+    /**
+     * Token login (OuterTune pattern): directly verifies and connects using user token.
+     */
+    fun loginWithToken(context: Context, token: String, onResult: (DiscordDiagnosticResult) -> Unit) {
+        applicationContext = context.applicationContext
+        _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting, "Verifying token...")
+        bridgeScope.launch {
+            val diagnostic = DiscordRpcClient.testConnection(token)
+            if (diagnostic.success) {
+                val session = DerbisDiscordSession(
+                    userToken = token.trim(),
+                    username = diagnostic.username,
+                    globalName = diagnostic.globalName,
+                    avatarUrl = diagnostic.avatarUrl
+                )
+                DerbisDiscordAccountStore.save(context, session)
                 _connectionState.value = DerbisDiscordConnectionState(
-                    DerbisDiscordConnectionStatus.Error,
-                    "Discord could not restore the saved sign-in"
+                    status = DerbisDiscordConnectionStatus.Connected,
+                    detail = "Connected as @${diagnostic.username}",
+                    username = diagnostic.username,
+                    globalName = diagnostic.globalName,
+                    avatarUrl = diagnostic.avatarUrl,
+                    latencyMs = diagnostic.latencyMs
+                )
+                setEnabled(context, true)
+                DiscordRpcClient.connect(token.trim())
+                publishStored(context)
+            } else {
+                _connectionState.value = DerbisDiscordConnectionState(
+                    status = DerbisDiscordConnectionStatus.Error,
+                    detail = diagnostic.message
                 )
             }
+            onResult(diagnostic)
         }
-        ensureStatePolling()
-        synchronizeNativeState(context.applicationContext)
+    }
+
+    /**
+     * Connection tester: runs 4-phase diagnostics to troubleshoot any connection issues.
+     */
+    fun testConnection(context: Context, onResult: (DiscordDiagnosticResult) -> Unit) {
+        val session = DerbisDiscordAccountStore.read(context)
+        val token = session?.effectiveToken.orEmpty()
+        bridgeScope.launch {
+            val diagnostic = DiscordRpcClient.testConnection(token)
+            if (diagnostic.success) {
+                _connectionState.value = _connectionState.value.copy(
+                    username = diagnostic.username,
+                    globalName = diagnostic.globalName,
+                    avatarUrl = diagnostic.avatarUrl,
+                    latencyMs = diagnostic.latencyMs
+                )
+            }
+            onResult(diagnostic)
+        }
     }
 
     fun beginSignIn(context: Context) {
         initialize(context)
-        if (!isAvailable() || !initialized) return
-        if (!nativeBeginSignIn()) {
+        if (loadBridge() && nativeBeginSignIn()) {
+            _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
+            ensureStatePolling()
+        } else {
+            // Provide feedback for manual token or web flow
             _connectionState.value = DerbisDiscordConnectionState(
-                DerbisDiscordConnectionStatus.Error,
-                nativeConnectionError().ifBlank { "Discord sign-in could not start" }
+                DerbisDiscordConnectionStatus.Disconnected,
+                "Enter your Discord token or log in below"
             )
-            return
         }
-        _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
-        ensureStatePolling()
     }
 
     fun disconnect(context: Context) {
         setEnabled(context, false)
         DerbisDiscordAccountStore.clear(context)
+        DiscordRpcClient.disconnect()
         if (loadBridge()) nativeDisconnect()
         restoreAttempted = false
         _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
     }
 
     fun isEnabled(context: Context): Boolean =
-        isAvailable() && connectionState.value.isConnected &&
+        connectionState.value.isConnected &&
             DerbisDiscordAccountStore.read(context) != null &&
             context.applicationContext
                 .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-                .getBoolean(ENABLED_KEY, false)
+                .getBoolean(ENABLED_KEY, true) // Enabled by default once connected
 
     fun setEnabled(context: Context, enabled: Boolean) {
         val allowed = enabled && connectionState.value.isConnected &&
@@ -233,10 +311,18 @@ object DerbisDiscordRichPresence {
             clear()
             return
         }
-        publishNative(presence)
+
+        // Publish via WebSocket Gateway RPC (clickable buttons, progress bar, dual artwork/artist icon)
+        DiscordRpcClient.updatePresence(presence)
+
+        // Publish via native bridge if loaded
+        if (loadBridge()) {
+            publishNative(presence)
+        }
     }
 
     fun clear() {
+        DiscordRpcClient.clearPresence()
         if (nativePresenceActive && loadBridge()) nativeClear()
         nativePresenceActive = false
         lastPublishedPresenceKey = ""
@@ -246,20 +332,22 @@ object DerbisDiscordRichPresence {
         statePollingJob?.cancel()
         statePollingJob = null
         clear()
+        DiscordRpcClient.disconnect()
         if (loadBridge()) nativeRelease()
         initialized = false
         restoreAttempted = false
     }
 
     private fun publishStored(context: Context) {
-        if (!lastPresence.playing || !isEnabled(context) || !loadBridge()) return
-        publishNative(lastPresence, force = true)
+        if (!lastPresence.playing || !isEnabled(context)) return
+        DiscordRpcClient.updatePresence(lastPresence)
+        if (loadBridge()) {
+            publishNative(lastPresence, force = true)
+        }
     }
 
     private fun publishNative(presence: DerbisDiscordPresenceSnapshot, force: Boolean = false) {
         if (!force && nativePresenceActive && lastPublishedPresenceKey == presence.syncKey) return
-        // Discord renders the elapsed-runtime line itself from this absolute start timestamp;
-        // there is no once-per-second presence traffic from Derbis.
         val startedAtEpochSeconds = (
             System.currentTimeMillis() - presence.positionMs.coerceAtLeast(0L)
         ).coerceAtLeast(0L) / 1_000L
@@ -288,10 +376,12 @@ object DerbisDiscordRichPresence {
         if (!initialized || !loadBridge()) return
         val previous = _connectionState.value.status
         val nativeStatus = nativeConnectionState()
-        val state = when (nativeStatus) {
-            NATIVE_DISCONNECTED -> DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
-            NATIVE_SIGNING_IN -> DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
-            NATIVE_CONNECTING -> DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting)
+        when (nativeStatus) {
+            NATIVE_DISCONNECTED -> if (!DiscordRpcClient.isConnected) {
+                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
+            }
+            NATIVE_SIGNING_IN -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
+            NATIVE_CONNECTING -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting)
             NATIVE_CONNECTED -> {
                 val accessToken = nativeTakeAccessToken()
                 val refreshToken = nativeTakeRefreshToken()
@@ -300,30 +390,27 @@ object DerbisDiscordRichPresence {
                         context,
                         DerbisDiscordSession(accessToken, refreshToken, nativeTakeTokenType())
                     )
+                    DiscordRpcClient.connect(accessToken)
                 }
-                if (DerbisDiscordAccountStore.read(context) == null) {
-                    DerbisDiscordConnectionState(
+                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connected, "Connected")
+            }
+            NATIVE_ERROR -> {
+                if (!DiscordRpcClient.isConnected) {
+                    _connectionState.value = DerbisDiscordConnectionState(
                         DerbisDiscordConnectionStatus.Error,
-                        "Discord did not return a secure session"
+                        nativeConnectionError().ifBlank { "Discord connection failed" }
                     )
-                } else {
-                    DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connected, "Connected")
                 }
             }
-            NATIVE_ERROR -> DerbisDiscordConnectionState(
-                DerbisDiscordConnectionStatus.Error,
-                nativeConnectionError().ifBlank { "Discord connection failed" }
-            )
-            NATIVE_UNAVAILABLE -> DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Unavailable)
-            else -> DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Error, "Discord returned an unknown state")
+            else -> {}
         }
-        _connectionState.value = state
-        if (previous != DerbisDiscordConnectionStatus.Connected && state.isConnected && isEnabled(context)) {
+        if (previous != DerbisDiscordConnectionStatus.Connected && _connectionState.value.isConnected && isEnabled(context)) {
             publishStored(context)
         }
     }
 
     private fun loadBridge(): Boolean {
+        if (!BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) return false
         if (loadAttempted) return libraryLoaded
         synchronized(this) {
             if (loadAttempted) return libraryLoaded

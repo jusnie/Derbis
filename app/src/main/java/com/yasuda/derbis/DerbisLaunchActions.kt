@@ -76,11 +76,20 @@ object DerbisLaunchActions {
             intent.removeExtra(EXTRA_RELEASE_YEAR)
             intent.removeExtra(EXTRA_ARTIST)
         }
-        val jamLink = intent.takeIf { it.action == Intent.ACTION_VIEW }?.data
+        val dataUri = intent.takeIf { it.action == Intent.ACTION_VIEW }?.data
+        val webJamCode = dataUri?.let { uri ->
+            if ((uri.host.equals("derbis-web.vercel.app", ignoreCase = true) || uri.host.equals("derbis-web-jusnies-projects.vercel.app", ignoreCase = true)) &&
+                uri.path?.startsWith("/jam/") == true
+            ) {
+                uri.path?.removePrefix("/jam/")?.trim()
+            } else null
+        }
+        val jamLink = dataUri
             ?.takeIf { it.scheme.equals("derbis", ignoreCase = true) && it.host.equals("jam", ignoreCase = true) }
             ?.toString()
-        if (jamLink != null && JamSessionCode.parse(jamLink) != null) {
-            pendingJamCode.value = jamLink
+        val effectiveJamCode = jamLink ?: webJamCode?.let { "derbis://jam/$it" }
+        if (effectiveJamCode != null && JamSessionCode.parse(effectiveJamCode) != null) {
+            pendingJamCode.value = effectiveJamCode
             intent.setDataAndType(null, null)
             return
         }

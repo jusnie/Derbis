@@ -99,14 +99,14 @@ object PlaybackNetworkStack {
                 .setStoragePath(context.getDir("cronet_transport", Context.MODE_PRIVATE).absolutePath)
                 .enableHttpCache(CronetEngine.Builder.HTTP_CACHE_DISK_NO_HTTP, TRANSPORT_CACHE_BYTES)
                 .enableHttp2(true)
-                .enableQuic(true)
+                .enableQuic(false)
                 .enableBrotli(true)
                 .build()
         }.getOrElse { cachedEngineError ->
             Timber.w(cachedEngineError, "Cronet transport cache unavailable; retrying without disk state")
             CronetEngine.Builder(context)
                 .enableHttp2(true)
-                .enableQuic(true)
+                .enableQuic(false)
                 .enableBrotli(true)
                 .build()
         }
@@ -226,10 +226,10 @@ object PlaybackNetworkStack {
                 activeTransport = Transport.CRONET
                 try {
                     return cronetSource.open(dataSpec)
-                } catch (error: HttpDataSource.HttpDataSourceException) {
+                } catch (error: Throwable) {
                     closeActiveQuietly()
-                    if (!isTransportFailure(error)) throw error
                     reportCronetFailure(error)
+                    Timber.w(error, "Cronet data source open failed; falling back to OkHttp")
                 }
             }
             val okHttpSource = prepareSource(prepareFactory(createOkHttpFactory()).createDataSource())
@@ -247,11 +247,13 @@ object PlaybackNetworkStack {
                         reportCronetSuccess()
                     }
                 }
-            } catch (error: HttpDataSource.HttpDataSourceException) {
-                if (activeTransport == Transport.CRONET && isTransportFailure(error)) {
+            } catch (error: Throwable) {
+                if (activeTransport == Transport.CRONET) {
                     reportCronetFailure(error)
                 }
-                throw error
+                if (error is HttpDataSource.HttpDataSourceException) throw error
+                if (error is java.io.IOException) throw error
+                throw java.io.IOException(error)
             }
         }
 

@@ -117,6 +117,7 @@ import com.yasuda.derbis.ui.lyrics.LYRICS_SHARE_MAX_LINES
 import com.yasuda.derbis.ui.lyrics.lyricsProviderDisplayName
 import com.yasuda.derbis.ui.lyrics.lyricsShouldFollowActiveLine
 import com.yasuda.derbis.ui.lyrics.LyricsShareSheet
+import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
 import com.yasuda.derbis.ui.lyrics.LyricsShareSnapshot
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
@@ -154,6 +155,9 @@ import com.yasuda.derbis.ui.lyrics.LyricsLandscapeBackdrop
 import com.yasuda.derbis.ui.lyrics.LyricsLandscapeChromeScrim
 import com.yasuda.derbis.ui.lyrics.lyricsLandscapeLayoutActive
 import com.yasuda.derbis.ui.lyrics.lyricsLandscapeMetrics
+import com.yasuda.derbis.data.KanjiFurigana
+import com.yasuda.derbis.ui.lyrics.FuriganaRubyLine
+import com.yasuda.derbis.ui.i18n.lyricsFurigana
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerShapes
@@ -631,6 +635,7 @@ import com.yasuda.derbis.domain.DownloadOwnership
 import com.yasuda.derbis.domain.DownloadedTrack
 import com.yasuda.derbis.domain.FollowedArtist
 import com.yasuda.derbis.domain.PlaylistHit
+import com.yasuda.derbis.domain.LyricsSearchMatch
 import com.yasuda.derbis.domain.SearchFilter
 import com.yasuda.derbis.domain.SearchAlbumKind
 import com.yasuda.derbis.domain.SearchResults
@@ -738,6 +743,8 @@ import com.yasuda.derbis.ui.theme.DerbisThemeStudioOverlay
 import com.yasuda.derbis.ui.lyrics.studio.LyricsStudioOverlay
 import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
+import com.yasuda.derbis.domain.LyricsRendererMode
+import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
 import com.yasuda.derbis.domain.LyricsLineSpacing
@@ -1463,7 +1470,7 @@ private val DerbisWideArtworkAlignment = BiasAlignment(0f, -0.35f)
 internal fun CoverImage(
     track: Track,
     modifier: Modifier,
-    highRes: Boolean = false,
+    highRes: Boolean = true,
     zoom: Float = 1f,
     alignment: Alignment = Alignment.Center,
     onImageLoaded: ((CoilImage) -> Unit)? = null
@@ -1536,6 +1543,7 @@ internal fun CoverImage(
                 contentDescription = track.title,
                 contentScale = ContentScale.Crop,
                 alignment = alignment,
+                filterQuality = FilterQuality.High,
                 onLoading = { DerbisArtworkStartupMetrics.recordArtworkLoading(artworkKey) },
                 onSuccess = { state ->
                     artworkSucceeded = true
@@ -3157,6 +3165,7 @@ fun DerbisApp(
                     onUndo = viewModel::undoQueueRemoval,
                     onToggleRadio = viewModel::toggleEndlessListening,
                     onLoadMoreEndless = viewModel::loadMoreEndlessRecommendations,
+                    onOpenJam = viewModel::openJam,
                     onPrepareQueuePlaylist = viewModel::prepareQueueSpacePlaylist,
                     onDismissQueuePlaylist = viewModel::dismissQueuePlaylistDraft,
                     onTrackActions = { target ->
@@ -3369,6 +3378,7 @@ fun DerbisApp(
                 DerbisJamOverlay(
                     jam = state.jam,
                     displayName = state.jamDisplayName,
+                    currentTrack = state.currentTrack,
                     onDisplayNameChange = viewModel::setJamDisplayName,
                     onCreate = viewModel::createJam,
                     onJoin = viewModel::joinJam,
@@ -7024,6 +7034,7 @@ private fun QueueOverlay(
     onUndo: () -> Unit,
     onToggleRadio: () -> Unit,
     onLoadMoreEndless: () -> Unit,
+    onOpenJam: () -> Unit = {},
     onPrepareQueuePlaylist: (String) -> Unit,
     onDismissQueuePlaylist: () -> Unit,
     onTrackActions: (QueueRemovalTarget) -> Unit,
@@ -7324,6 +7335,7 @@ private fun QueueOverlay(
                         endlessEnabled = state.radioEnabled,
                         undoAvailable = state.queueUndoAvailable,
                         onToggleEndless = onToggleRadio,
+                        onOpenJam = onOpenJam,
                         onUndo = onUndo
                     )
                 }
@@ -7549,6 +7561,7 @@ private fun QueueReferenceHeading(
     endlessEnabled: Boolean,
     undoAvailable: Boolean,
     onToggleEndless: () -> Unit,
+    onOpenJam: (() -> Unit)? = null,
     onUndo: () -> Unit
 ) {
     Row(
@@ -7558,6 +7571,34 @@ private fun QueueReferenceHeading(
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(label, color = Color.White.copy(alpha = 0.64f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text(title, color = Color.White, fontSize = 23.sp, lineHeight = 28.sp, fontWeight = FontWeight.Black, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (onOpenJam != null) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.20f)),
+                onClick = onOpenJam,
+                modifier = Modifier.padding(end = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        com.yasuda.derbis.ui.components.ModernListenTogetherVector,
+                        contentDescription = "Listen Together",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        "Listen Together",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
         if (undoAvailable) {
             IconButton(onClick = onUndo) { Icon(Icons.AutoMirrored.Rounded.Undo, contentDescription = null, tint = Color.White) }
@@ -7852,15 +7893,15 @@ private fun LyricsOverlay(
     )
     val trackLyricsOffsetMs = latencyProfiles.trackOffsetMs(track?.id)
     val lyricsOffsetMs = latencyOffsetMs + trackLyricsOffsetMs
-    // Full-screen lyrics inherit the active Apple Music 13 deck automatically; the Studio toggle
-    // keeps the same renderer available from every other player style.
-    val appleMusic13Lyrics = state.lyricsStudioSettings.appleMusic13LyricsEnabled ||
-        DerbisIsAppleMusic || state.interfaceSettings.playerVisualMode == PlayerVisualMode.AppleMusic13
+    // The lyrics surface provides two modern choices: Default (Apple Music 13) and Spicy.
+    val isSpicyLyrics = state.lyricsStudioSettings.isSpicyLyrics
+    val appleMusic13Lyrics = !isSpicyLyrics
     var viewMode by remember(track?.id, appleMusic13Lyrics) { mutableStateOf(LyricsViewMode.CINEMA) }
     LaunchedEffect(appleMusic13Lyrics) {
         if (appleMusic13Lyrics) viewMode = LyricsViewMode.CINEMA
     }
     var showRomanization by rememberSaveable { mutableStateOf(true) }
+    var showFurigana by rememberSaveable { mutableStateOf(true) }
     val showTranslation = state.lyricsTranslationEnabled
     val translationContext = LocalContext.current
     var awaitingTranslationLanguage by rememberSaveable { mutableStateOf(false) }
@@ -7992,6 +8033,7 @@ private fun LyricsOverlay(
     }.value
     val lyricsStartIndex = 3
     val hasRomanization = state.lyrics.any { it.romanized.isNotBlank() || it.words.any { word -> word.romanized.isNotBlank() } }
+    val hasFurigana = remember(state.lyrics) { state.lyrics.any { KanjiFurigana.containsKanji(it.text) } }
     val hasMultipleVoices = state.lyrics.any { it.role != LyricVocalRole.MAIN }
     val sectionStarts = remember(state.lyricsSections, visibleLyrics) {
         val mapped = LinkedHashMap<Int, LyricSection>()
@@ -8157,8 +8199,8 @@ private fun LyricsOverlay(
         }
     }
 
-    if (appleMusic13Lyrics && !landscapeLayout) {
-        AppleMusic13FullscreenLyrics(
+    if (isSpicyLyrics && !landscapeLayout) {
+        SpicyFullscreenLyrics(
             state = state,
             accentStart = accentStart,
             accentEnd = accentEnd,
@@ -8168,8 +8210,6 @@ private fun LyricsOverlay(
             onNext = onNext,
             onToggleFavorite = onToggleFavorite,
             onShareLyrics = { selectedLines ->
-                // The Apple Music 13 image action deliberately enters line selection first;
-                // this opens the existing image-card flow only with the listener's chosen verses.
                 shareSnapshot = lyricsShareSnapshot(track, selectedLines)
             },
             onOpenQueue = onOpenQueue,
@@ -8177,6 +8217,7 @@ private fun LyricsOverlay(
             lyricsOffsetMs = lyricsOffsetMs,
             showTranslation = showTranslation,
             showRomanization = showRomanization,
+            showFurigana = showFurigana,
             calibrateMode = calibrateMode,
             onCalibrateLine = { lineStartMs ->
                 track?.id?.let { trackId ->
@@ -8189,406 +8230,35 @@ private fun LyricsOverlay(
             }
         )
     } else {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .consumeOverlayTouches()
-    ) {
-        // Exactly one renderer is resolved here. Apple Music 13 settings intentionally override
-        // dormant Derbis Studio visuals until the user switches the renderer back off.
-        val studioSettings = state.lyricsStudioSettings.settingsForActiveLyricsRenderer()
-        if (studioSettings.spotifyLyricsApplies()) {
-            SpotifyLyricsBackdrop(track)
-        } else if (landscapeLayout && studioSettings.backgroundMode !in setOf(
-                LyricsBackgroundMode.AMOLED, LyricsBackgroundMode.SOLID, LyricsBackgroundMode.GRADIENT
-            )) {
-            LyricsLandscapeBackdrop(
-                track = track,
-                accentStart = accentStart,
-                accentEnd = accentEnd,
-                artworkAlpha = lyricsBackdropAlpha(lyricsFocusMode, cinema = true)
-            )
-        } else if (studioSettings.backgroundMode == LyricsBackgroundMode.AMOLED) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-            )
-        } else if (studioSettings.backgroundMode == LyricsBackgroundMode.SOLID) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF16161A))
-            )
-        } else if (studioSettings.backgroundMode == LyricsBackgroundMode.GRADIENT) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                accentStart.copy(alpha = 0.35f),
-                                Color(0xFF0F0F14),
-                                Color(0xFF0A0A0E)
-                            )
-                        )
-                    )
-            )
-        } else {
-            DerbisBackground()
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Color.Black.copy(
-                            alpha = when {
-                                studioSettings.backgroundMode == LyricsBackgroundMode.BLURRED_ARTWORK -> 0.55f
-                                studioSettings.backgroundMode == LyricsBackgroundMode.CINEMATIC -> 0.60f
-                                viewMode == LyricsViewMode.CINEMA -> 0.68f
-                                viewMode == LyricsViewMode.PAGE -> 0.76f
-                                else -> 0.86f
-                            }
-                        )
-                    )
-            )
-            if (viewMode == LyricsViewMode.CINEMA || studioSettings.backgroundMode == LyricsBackgroundMode.BLURRED_ARTWORK || studioSettings.backgroundMode == LyricsBackgroundMode.CINEMATIC) {
-                val backdropAlpha = lyricsBackdropAlpha(lyricsFocusMode, cinema = true)
-                if (track != null && backdropAlpha > 0f) {
-                    val backdropContext = LocalContext.current
-                    val backdropRequest = remember(backdropContext, track.id, track.largeThumbnailUrl, track.thumbnailUrl) {
-                        ImageRequest.Builder(backdropContext)
-                            .data(track.largeThumbnailUrl.ifBlank { track.thumbnailUrl })
-                            .size(LYRICS_BACKDROP_DECODE_PX, LYRICS_BACKDROP_DECODE_PX)
-                            .crossfade(false)
-                            .build()
-                    }
-                    AsyncImage(
-                        model = backdropRequest,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        filterQuality = FilterQuality.High,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                alpha = backdropAlpha
-                                scaleX = 1.22f
-                                scaleY = 1.22f
-                            }
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.Black.copy(alpha = 0.62f),
-                                        Color.Black.copy(alpha = 0.40f),
-                                        Color.Black.copy(alpha = 0.78f)
-                                    )
-                                )
-                            )
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(accentStart.copy(alpha = 0.12f), Color.Transparent),
-                                radius = 1_250f
-                            )
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Black.copy(alpha = 0.18f), Color.Transparent, Color.Black.copy(alpha = 0.55f))
-                            )
-                        )
-                )
-            }
-        }
-
-        if (landscapeMetrics != null) {
-            LyricsLandscapeArtworkPane(
-                track = track,
-                fallbackTitle = strings.lyrics,
-                artworkSize = landscapeMetrics.artworkSizeDp.dp,
-                motionArtwork = state.motionArtwork,
-                motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && !state.isVideoMode,
-                isPlaying = state.isPlaying,
-                canvasQuality = state.interfaceSettings.canvasQuality,
-                accent = accentStart,
-                animationsEnabled = lyricsAnimationsEnabled,
-                onPrevious = onPrevious,
-                onTogglePlay = onTogglePlay,
-                onNext = onNext,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Start))
-                    .width(landscapeMetrics.artworkPaneWidthDp.dp)
-            )
-        }
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (landscapeMetrics != null) {
-                        Modifier
-                            .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-                            .padding(start = landscapeMetrics.artworkPaneWidthDp.dp)
-                    } else {
-                        Modifier.statusBarsPadding()
-                    }
-                )
-                .nestedScroll(userScrollConnection),
-            contentPadding = when {
-                landscapeMetrics != null -> PaddingValues(
-                    start = LYRICS_LANDSCAPE_PANE_GAP_DP.dp,
-                    end = 28.dp,
-                    top = LYRICS_LANDSCAPE_CHROME_HEIGHT_DP.dp,
-                    bottom = 120.dp
-                )
-                else -> PaddingValues(
-                    start = if (viewMode == LyricsViewMode.COMPACT) 18.dp else 22.dp,
-                    end = if (viewMode == LyricsViewMode.COMPACT) 18.dp else 22.dp,
-                    top = if (viewMode == LyricsViewMode.COMPACT) 8.dp else 14.dp,
-                    bottom = if (viewMode == LyricsViewMode.COMPACT) 96.dp else 150.dp
-                )
+        AppleMusic13FullscreenLyrics(
+            state = state,
+            accentStart = accentStart,
+            accentEnd = accentEnd,
+            onSeekToMs = onSeekToMs,
+            onPrevious = onPrevious,
+            onTogglePlay = onTogglePlay,
+            onNext = onNext,
+            onToggleFavorite = onToggleFavorite,
+            onShareLyrics = { selectedLines ->
+                shareSnapshot = lyricsShareSnapshot(track, selectedLines)
             },
-            verticalArrangement = Arrangement.spacedBy(
-                when (viewMode) {
-                    LyricsViewMode.CINEMA -> 14.dp
-                    LyricsViewMode.PAGE -> 11.dp
-                    LyricsViewMode.COMPACT -> 6.dp
-                } + studioSettings.lineSpacing.spacingDp - LyricsLineSpacing.STANDARD.spacingDp
-            )
-        ) {
-            item {
-                if (!landscapeLayout) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(if (viewMode == LyricsViewMode.COMPACT) 9.dp else 12.dp)
-                    ) {
-                        if (track != null) {
-                            AsyncImage(
-                                model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(
-                                        when (viewMode) {
-                                            LyricsViewMode.CINEMA -> 62.dp
-                                            LyricsViewMode.PAGE -> 52.dp
-                                            LyricsViewMode.COMPACT -> 44.dp
-                                        }
-                                    )
-                                    .clip(RoundedCornerShape(if (viewMode == LyricsViewMode.COMPACT) 12.dp else 16.dp))
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = track?.title ?: strings.lyrics,
-                                color = Color.White,
-                                fontSize = when (viewMode) {
-                                    LyricsViewMode.CINEMA -> 23.sp
-                                    LyricsViewMode.PAGE -> 21.sp
-                                    LyricsViewMode.COMPACT -> 18.sp
-                                },
-                                fontWeight = FontWeight.Black,
-                                maxLines = if (viewMode == LyricsViewMode.COMPACT) 1 else 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = track?.artist.orEmpty(),
-                                color = Color.White.copy(alpha = 0.67f),
-                                fontSize = if (viewMode == LyricsViewMode.COMPACT) 12.sp else 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        CircleIconButton(
-                            icon = Icons.Rounded.Close,
-                            tint = Color.White,
-                            background = Color.White.copy(alpha = 0.13f),
-                            onClick = onClose,
-                            contentDescription = strings.closeLyrics
-                        )
-                    }
-                }
-            }
-            item {
-                if (!landscapeLayout) lyricsActionRow(Modifier.fillMaxWidth(), false)
-            }
-            item {
-                Spacer(
-                    modifier = Modifier.height(
-                        when {
-                            landscapeLayout -> 4.dp
-                            viewMode == LyricsViewMode.CINEMA -> 30.dp
-                            viewMode == LyricsViewMode.PAGE -> 6.dp
-                            else -> 2.dp
-                        }
-                    )
-                )
-            }
-            if (visibleLyrics.isEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 28.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        if (state.lyricsLoading) {
-                            DerbisLoadingIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White.copy(alpha = 0.82f)
-                            )
-                        }
-                        Text(
-                            text = if (state.lyricsLoading) strings.searchingLyrics else strings.lyricsUnavailable,
-                            color = Color.White.copy(alpha = 0.68f),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            } else {
-                itemsIndexed(
-                    items = visibleLyrics,
-                    key = { index, line -> "${line.startMs}-${line.role.name}-$index" }
-                ) { index, line ->
-                    val selected = selectedRange?.contains(index) == true && isLyricsShareSelectable(line)
-                    val timedActive = syncedLyrics && (index == timedActiveIndex || index == backgroundActiveIndex)
-                    val lineInstrumentalGap = instrumentalGap?.takeIf { it.nextLineIndex == index }
-                    KaraokeLyricLine(
-                        line = line,
-                        positionProvider = lyricsPositionProvider,
-                        instrumentalGap = lineInstrumentalGap,
-                        isActive = timedActive,
-                        isPrimaryActive = index == visualActiveIndex,
-                        synced = state.lyricsSynced,
-                        viewMode = viewMode,
-                        distanceFromActive = when {
-                            !followActiveLine -> 0
-                            lineInstrumentalGap != null -> 0
-                            visualActiveIndex >= 0 -> kotlin.math.abs(index - visualActiveIndex)
-                            else -> 0
-                        },
-                        focusMode = lyricsFocusMode,
-                        layoutWidthDp = landscapeMetrics?.lyricsPaneWidthDp?.toInt(),
-                        blurEnabled = lyricsAnimationsEnabled,
-                        animationsEnabled = lyricsAnimationsEnabled,
-                        sectionLabel = sectionStarts[index]?.let { lyricSectionLabel(strings, it) },
-                        showRomanization = showRomanization,
-                        showTranslation = showTranslation,
-                        accentEnd = accentEnd,
-                        selectionMode = selectionMode,
-                        selected = selected,
-                        selectable = isLyricsShareSelectable(line),
-                        studioSettings = studioSettings,
-                        onClick = {
-                            if (selectionMode) {
-                                selectedRange = toggleLyricsShareSelection(selectedRange, index, visibleLyrics)
-                                haptics.perform(DerbisHapticAction.TrackSwipe)
-                            } else if (calibrateMode && state.lyricsSynced) {
-                                track?.id?.let { trackId ->
-                                    onSetTrackOffset(
-                                        trackId,
-                                        calibratedLyricsTrackOffset(state.positionMs, line.startMs, latencyOffsetMs)
-                                    )
-                                }
-                                calibrateMode = false
-                                haptics.perform(DerbisHapticAction.TrackSwipe)
-                                autoScrollEnabled = true
-                            } else if (state.lyricsSynced) {
-                                onSeekToMs((line.startMs + lyricsOffsetMs).coerceAtLeast(0L))
-                                autoScrollEnabled = true
-                            }
-                        },
-                        onLongClick = {
-                            if (isLyricsShareSelectable(line)) {
-                                selectionMode = true
-                                calibrateMode = false
-                                selectedRange = toggleLyricsShareSelection(selectedRange, index, visibleLyrics)
-                                haptics.perform(DerbisHapticAction.TrackSwipe)
-                            }
-                        }
+            onOpenQueue = onOpenQueue,
+            onOpenOptions = { showLyricsOptions = true },
+            lyricsOffsetMs = lyricsOffsetMs,
+            showTranslation = showTranslation,
+            showRomanization = showRomanization,
+            showFurigana = showFurigana,
+            calibrateMode = calibrateMode,
+            onCalibrateLine = { lineStartMs ->
+                track?.id?.let { trackId ->
+                    onSetTrackOffset(
+                        trackId,
+                        calibratedLyricsTrackOffset(state.positionMs, lineStartMs, latencyOffsetMs)
                     )
                 }
+                calibrateMode = false
             }
-        }
-        if (landscapeMetrics != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.End))
-                    .width(landscapeMetrics.lyricsPaneWidthDp.dp)
-                    .height((LYRICS_LANDSCAPE_CHROME_HEIGHT_DP + 18).dp)
-            ) {
-                LyricsLandscapeChromeScrim(modifier = Modifier.matchParentSize())
-                lyricsActionRow(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = LYRICS_LANDSCAPE_PANE_GAP_DP.dp, end = 20.dp, top = 8.dp),
-                    true
-                )
-            }
-        }
-        AnimatedVisibility(
-            visible = showSyncBar && state.lyricsSynced && track != null && !selectionMode,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(start = landscapeMetrics?.artworkPaneWidthDp?.dp ?: 0.dp)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            LyricsSyncQuickBar(
-                offsetMs = trackLyricsOffsetMs,
-                accent = DerbisCyan,
-                onAdjust = { delta -> track?.id?.let { trackId -> onAdjustTrackOffset(trackId, delta) } },
-                onReset = { track?.id?.let { trackId -> onSetTrackOffset(trackId, 0L) } },
-                onOpenAdvanced = { showSyncSheet = true }
-            )
-        }
-        AnimatedVisibility(
-            visible = selectionMode,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(start = landscapeMetrics?.artworkPaneWidthDp?.dp ?: 0.dp)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-        ) {
-            LyricsShareBar(
-                selectedCount = selectedLines.size,
-                maxCount = LYRICS_SHARE_MAX_LINES,
-                canContinue = selectedLines.isNotEmpty() && !state.lyricsLoading,
-                accent = accentEnd,
-                onCopy = {
-                    val text = selectedLyricsText()
-                    clipboardScope.launch {
-                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("lyrics", text)))
-                    }
-                },
-                onCancel = {
-                    selectedRange = null
-                    selectionMode = false
-                },
-                onContinue = { shareSnapshot = lyricsShareSnapshot(track, selectedLines) }
-            )
-        }
-    }
+        )
     }
 
     if (showIntelligenceDialog) {
@@ -8640,43 +8310,23 @@ private fun LyricsOverlay(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 LyricsControlChip(
-                    label = strings.appleMusic13Lyrics,
-                    selected = appleMusic13Lyrics,
+                    label = strings.lyricsRendererDefault,
+                    selected = !isSpicyLyrics,
                     icon = Icons.Rounded.MusicNote,
                     onClick = {
                         onUpdateLyricsStudioSettings(
-                            state.lyricsStudioSettings.copy(
-                                appleMusic13LyricsEnabled = !appleMusic13Lyrics
-                            )
+                            state.lyricsStudioSettings.withRendererMode(LyricsRendererMode.DEFAULT)
                         )
-                        if (!appleMusic13Lyrics) {
-                            viewMode = LyricsViewMode.CINEMA
-                            lyricsFocusMode = true
-                        }
                     }
                 )
-                if (!appleMusic13Lyrics) {
-                val modeLabel = when (viewMode) {
-                    LyricsViewMode.CINEMA -> strings.lyricsCinema
-                    LyricsViewMode.PAGE -> strings.lyricsPage
-                    LyricsViewMode.COMPACT -> strings.lyricsCompact
-                }
-                val modeIcon = when (viewMode) {
-                    LyricsViewMode.CINEMA -> Icons.Rounded.GraphicEq
-                    LyricsViewMode.PAGE -> Icons.AutoMirrored.Rounded.Subject
-                    LyricsViewMode.COMPACT -> Icons.Rounded.ViewCompact
-                }
                 LyricsControlChip(
-                    label = modeLabel,
-                    selected = true,
-                    icon = modeIcon,
+                    label = strings.lyricsRendererSpicy,
+                    selected = isSpicyLyrics,
+                    icon = Icons.Rounded.Whatshot,
                     onClick = {
-                        viewMode = when (viewMode) {
-                            LyricsViewMode.CINEMA -> LyricsViewMode.PAGE
-                            LyricsViewMode.PAGE -> LyricsViewMode.COMPACT
-                            LyricsViewMode.COMPACT -> LyricsViewMode.CINEMA
-                        }
-                        initialLyricsPositioned = false
+                        onUpdateLyricsStudioSettings(
+                            state.lyricsStudioSettings.withRendererMode(LyricsRendererMode.SPICY)
+                        )
                     }
                 )
                 LyricsControlChip(
@@ -8688,13 +8338,6 @@ private fun LyricsOverlay(
                         onOpenLyricsStudio()
                     }
                 )
-                LyricsControlChip(
-                    label = strings.lyricsFocus,
-                    selected = lyricsFocusMode,
-                    icon = Icons.Rounded.Visibility,
-                    onClick = { lyricsFocusMode = !lyricsFocusMode }
-                )
-                }
                 val translationLabel = when (state.lyricsTranslationState) {
                     LyricsTranslationState.ON_DEVICE -> "${strings.automaticTranslation} · ${strings.offline}"
                     LyricsTranslationState.MODEL_DOWNLOAD_REQUIRED -> "${strings.automaticTranslation} · ${strings.download}"
@@ -8743,6 +8386,14 @@ private fun LyricsOverlay(
                         selected = showRomanization,
                         icon = Icons.Rounded.Language,
                         onClick = { showRomanization = !showRomanization }
+                    )
+                }
+                if (hasFurigana) {
+                    LyricsControlChip(
+                        label = strings.lyricsFurigana,
+                        selected = showFurigana,
+                        icon = DerbisIonicons.Lyrics,
+                        onClick = { showFurigana = !showFurigana }
                     )
                 }
                 if (hasMultipleVoices) {
@@ -8846,6 +8497,7 @@ private fun AppleMusic13FullscreenLyrics(
     lyricsOffsetMs: Long,
     showTranslation: Boolean,
     showRomanization: Boolean,
+    showFurigana: Boolean = true,
     calibrateMode: Boolean,
     onCalibrateLine: (Long) -> Unit
 ) {
@@ -9129,16 +8781,29 @@ private fun AppleMusic13FullscreenLyrics(
                             ) {
                                 // Full lines, not individual words, follow the sync clock: the current
                                 // line is bright white while surrounding lyrics stay monochrome and blurred.
-                                Text(
-                                    text = line.text,
-                                    color = lineColor,
-                                    style = AppleMusic13Typography.headlineLarge.copy(
-                                        fontFamily = AppleMusic13SfProFallbackFont,
+                                val hasKanji = remember(line.text) { KanjiFurigana.containsKanji(line.text) }
+                                if (showFurigana && hasKanji) {
+                                    FuriganaRubyLine(
+                                        lineText = line.text,
+                                        baseColor = lineColor,
+                                        rubyColor = lineColor.copy(alpha = 0.85f),
                                         fontSize = 31.sp,
                                         lineHeight = 38.sp,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontFamily = AppleMusic13SfProFallbackFont
                                     )
-                                )
+                                } else {
+                                    Text(
+                                        text = line.text,
+                                        color = lineColor,
+                                        style = AppleMusic13Typography.headlineLarge.copy(
+                                            fontFamily = AppleMusic13SfProFallbackFont,
+                                            fontSize = 31.sp,
+                                            lineHeight = 38.sp,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    )
+                                }
                                 if (showRomanization && line.romanized.isNotBlank()) {
                                     Text(
                                         text = line.romanized,
@@ -14350,12 +14015,12 @@ internal fun StableRemoteArtwork(
     contentDescription: String?,
     modifier: Modifier,
     contentScale: ContentScale,
-    highRes: Boolean = false,
+    highRes: Boolean = true,
     alignment: Alignment = Alignment.Center
 ) {
     val context = LocalContext.current
     val resizedUrl = remember(url, highRes) {
-        if (highRes) DerbisArtworkCache.large(url) else DerbisArtworkCache.small(url)
+        if (highRes) fullResolutionArtworkUrl(url) else DerbisArtworkCache.large(url)
     }
     val request = remember(context, resizedUrl) {
         ImageRequest.Builder(context)
@@ -14371,6 +14036,7 @@ internal fun StableRemoteArtwork(
         contentDescription = contentDescription,
         contentScale = contentScale,
         alignment = alignment,
+        filterQuality = FilterQuality.High,
         modifier = modifier
     )
 }
@@ -16423,6 +16089,9 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
         viewModel.refreshArtistSuggestions()
     }
 
+    val data = state.searchData
+    val filter = state.searchFilter
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -16432,12 +16101,16 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
     ) {
         SearchHeader(
             query = state.query,
-            placeholder = activePlaceholder,
+            placeholder = if (filter == SearchFilter.Lyrics) "${strings.lyrics}..." else activePlaceholder,
             animatePlaceholder = state.animationsEnabled,
             isSearching = state.isSearching,
             recognitionAvailable = state.recognitionAvailable,
             recognitionBusy = state.recognitionState is RecognitionState.Listening ||
                 state.recognitionState is RecognitionState.Identifying,
+            lyricsActive = filter == SearchFilter.Lyrics,
+            onToggleLyrics = {
+                viewModel.setSearchFilter(if (filter == SearchFilter.Lyrics) SearchFilter.All else SearchFilter.Lyrics)
+            },
             onRecognize = viewModel::startMusicRecognition,
             onCancelRecognition = viewModel::cancelMusicRecognition,
             onQuery = viewModel::setQuery,
@@ -16452,8 +16125,6 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
             onBack = { viewModel.navigateBack() }
         )
 
-        val data = state.searchData
-        val filter = state.searchFilter
         val topResultTracks = remember(data.topTrack, data.songs, filter) {
             if (filter == SearchFilter.All) selectSearchTopResultTracks(data.topTrack, data.songs) else emptyList()
         }
@@ -16506,11 +16177,12 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
             data.albums.filter { effectiveAlbumKind.accepts(it.releaseType) }
         }
         val searchGridColumnCount = searchGridColumns(LocalConfiguration.current.screenWidthDp - 36)
-        val selectableTracks = remember(topResultTracks, visibleSongs, data.videos, filter) {
+        val selectableTracks = remember(topResultTracks, visibleSongs, data.videos, filter, data.lyricsMatches) {
             buildList {
                 if (filter == SearchFilter.All) addAll(topResultTracks.take(3))
                 if (filter == SearchFilter.All || filter == SearchFilter.Songs) addAll(visibleSongs)
                 if (filter == SearchFilter.All || filter == SearchFilter.Videos) addAll(data.videos)
+                if (filter == SearchFilter.Lyrics) addAll(data.lyricsMatches.map { it.track }.ifEmpty { visibleSongs })
             }.distinctBy(::trackSelectionKey)
         }
         val selectableIds = remember(selectableTracks) { selectableTracks.map(::trackSelectionKey) }
@@ -16970,13 +16642,40 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
                                             } else {
                                                 focusManager.clearFocus()
                                                 keyboardController?.hide()
-                                                viewModel.playFrom(data.songs, track)
+                                                viewModel.play(track)
                                             }
                                         },
                                         onFavorite = { viewModel.toggleFavorite(track) },
                                         onAddToPlaylist = { addTarget = track },
                                         onDownload = { viewModel.exportTrack(track) }
                                     )
+                                    }
+                                }
+                            }
+                        }
+                        if (filter == SearchFilter.Lyrics) {
+                            val matches = data.lyricsMatches.ifEmpty { visibleSongs.map { LyricsSearchMatch(it, "") } }
+                            if (matches.isNotEmpty()) {
+                                item(key = "search-lyrics-header", contentType = "search-section-header") {
+                                    SearchSectionGap()
+                                    SearchSectionHeader(
+                                        title = strings.lyrics,
+                                        showAll = false,
+                                        onShowAll = {}
+                                    )
+                                }
+                                itemsIndexed(matches, key = { _, match -> "search-lyrics-${match.track.id}" }, contentType = { _, _ -> "search-lyrics-match" }) { rowIndex, match ->
+                                    SearchGroupedRow(rowIndex, matches.size) {
+                                        YouTubeMusicLyricsMatchRow(
+                                            match = match,
+                                            current = match.track.id == state.currentTrack?.id,
+                                            onClick = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                                viewModel.play(match.track)
+                                            },
+                                            onMore = { onTrackActions(match.track) }
+                                        )
                                     }
                                 }
                             }
@@ -17108,6 +16807,8 @@ private fun SearchHeader(
     isSearching: Boolean,
     recognitionAvailable: Boolean,
     recognitionBusy: Boolean,
+    lyricsActive: Boolean = false,
+    onToggleLyrics: () -> Unit = {},
     onRecognize: () -> Unit,
     onCancelRecognition: () -> Unit,
     onQuery: (String) -> Unit,
@@ -17166,6 +16867,8 @@ private fun SearchHeader(
             isSearching = isSearching,
             recognitionAvailable = recognitionAvailable,
             recognitionBusy = recognitionBusy,
+            lyricsActive = lyricsActive,
+            onToggleLyrics = onToggleLyrics,
             onQuery = onQuery,
             onSearch = { text ->
                 focusManager.clearFocus()
@@ -17349,6 +17052,18 @@ private fun SearchHeader(
                         .background(scheme.surfaceContainerHighest.copy(alpha = if (fieldFocused) 0.9f else 0.6f)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                IconButton(
+                    onClick = onToggleLyrics,
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_studio_lyrics),
+                        contentDescription = strings.lyrics,
+                        tint = if (lyricsActive) scheme.primary else scheme.onSurfaceVariant,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
                 IconButton(
                     onClick = launchVoiceSearch,
                     modifier = Modifier.size(38.dp)
@@ -21389,7 +21104,11 @@ private fun SettingsOverlay(
                                     onSaveListenBrainz,
                                     onClearListenBrainz,
                                     onSaveAudD,
-                                    onClearAudD
+                                    onClearAudD,
+                                    motionArtworkEnabled = interfaceSettings.motionArtworkEnabled,
+                                    onToggleMotionArtwork = {
+                                        onInterfaceSettings(interfaceSettings.copy(motionArtworkEnabled = it))
+                                    }
                                 )
                             }
                         }
@@ -21692,6 +21411,7 @@ private fun SettingsOverlay(
                                     subtitle = strings.playerBackgroundSubtitle,
                                     options = listOf(
                                         PlayerBackgroundMode.Dynamic.name to strings.playerBackgroundDynamic,
+                                        PlayerBackgroundMode.LiquidFerrofluid.name to strings.playerBackgroundLiquidFerrofluid,
                                         PlayerBackgroundMode.ReactiveAura.name to strings.playerBackgroundReactiveAura,
                                         PlayerBackgroundMode.Blur.name to strings.playerBackgroundBlur,
                                         PlayerBackgroundMode.Dark.name to strings.playerBackgroundDark,
@@ -22473,6 +22193,9 @@ private fun DiscordRichPresenceSettingsPanel() {
     var presenceEnabled by remember(context) {
         mutableStateOf(discord.isEnabled(context))
     }
+    var showLoginSheet by remember { mutableStateOf(false) }
+    var isTestingConnection by remember { mutableStateOf(false) }
+    var testDiagnosticMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(context) {
         discord.initialize(context)
@@ -22482,22 +22205,27 @@ private fun DiscordRichPresenceSettingsPanel() {
     }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+
     when (connection.status) {
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable -> {
-            SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Discord unavailable",
-                subtitle = "Discord Social SDK is unavailable in this build",
-                enabled = false,
-                onClick = {}
-            )
-        }
+        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable,
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Disconnected -> {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Connect Discord",
-                subtitle = "Sign in securely through the Discord app to enable Rich Presence",
-                onClick = { discord.beginSignIn(context) }
+                subtitle = "Sign in via Normal Web Login or User Token for Rich Presence",
+                onClick = { showLoginSheet = true }
+            )
+            SettingsButton(
+                icon = Icons.Rounded.Refresh,
+                title = "Test Connection",
+                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Run diagnostic test on Discord reachability",
+                onClick = {
+                    isTestingConnection = true
+                    discord.testConnection(context) { res ->
+                        isTestingConnection = false
+                        testDiagnosticMessage = res.message
+                    }
+                }
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn,
@@ -22505,7 +22233,7 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Connecting Discord",
-                subtitle = connection.detail.ifBlank { "Finish the approval in Discord" },
+                subtitle = connection.detail.ifBlank { "Verifying session with Discord..." },
                 enabled = false,
                 onClick = {}
             )
@@ -22514,34 +22242,136 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Reconnect Discord",
-                subtitle = connection.detail.ifBlank { "Discord connection failed. Try again." },
-                onClick = { discord.beginSignIn(context) }
+                subtitle = connection.detail.ifBlank { "Discord connection failed. Tap to reconnect." },
+                onClick = { showLoginSheet = true }
+            )
+            SettingsButton(
+                icon = Icons.Rounded.Refresh,
+                title = "Test Connection",
+                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Diagnose connection issue",
+                onClick = {
+                    isTestingConnection = true
+                    discord.testConnection(context) { res ->
+                        isTestingConnection = false
+                        testDiagnosticMessage = res.message
+                    }
+                }
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connected -> {
-            SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Disconnect Discord",
-                subtitle = "Disconnect this Discord account from Derbis",
-                onClick = { discord.disconnect(context) }
-            )
+            // User profile card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF16181F))
+                    .border(1.dp, Color(0xFF262835), RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (connection.avatarUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = connection.avatarUrl,
+                        contentDescription = "Discord Avatar",
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2C2E38)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = connection.globalName.ifBlank { connection.username.ifBlank { "Discord User" } },
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = if (connection.username.isNotBlank()) "@${connection.username}" else "Connected",
+                        color = Color.LightGray,
+                        fontSize = 12.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1B3D2F))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (connection.latencyMs > 0L) "${connection.latencyMs} ms" else "Active",
+                        color = Color(0xFF4CAF50),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
             SettingsToggle(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Discord Rich Presence",
-                subtitle = "Show your current Derbis track, artist, and Derbis artwork in Discord",
+                subtitle = "Show current track, cover art, artist icon, progress bar, and clickable links",
                 checked = presenceEnabled,
                 onCheckedChange = { value ->
                     presenceEnabled = value
                     discord.setEnabled(context, value)
                 }
             )
+
+            SettingsButton(
+                icon = Icons.Rounded.Refresh,
+                title = "Test Connection",
+                subtitle = if (testDiagnosticMessage.isNotBlank()) testDiagnosticMessage else "Test Discord Gateway & REST ping latency",
+                onClick = {
+                    isTestingConnection = true
+                    discord.testConnection(context) { res ->
+                        isTestingConnection = false
+                        testDiagnosticMessage = res.message
+                    }
+                }
+            )
+
+            SettingsButton(
+                icon = Icons.Rounded.Close,
+                title = "Disconnect Discord",
+                subtitle = "Disconnect this account from Derbis",
+                onClick = { discord.disconnect(context) }
+            )
         }
+    }
+
+    if (showLoginSheet) {
+        com.yasuda.derbis.feature.discord.DiscordLoginSheet(
+            onDismiss = { showLoginSheet = false },
+            onSuccess = {
+                showLoginSheet = false
+                presenceEnabled = true
+            }
+        )
     }
 }
 
 @Composable
-private fun SpotifyConnectionSettingsPanel() {
+private fun SpotifyConnectionSettingsPanel(
+    motionArtworkEnabled: Boolean,
+    onToggleMotionArtwork: (Boolean) -> Unit
+) {
     val context = LocalContext.current
+    val strings = LocalDerbisStrings.current
     val spotifyState by com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
     LaunchedEffect(context) {
         com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.initialize(context)
@@ -22578,6 +22408,110 @@ private fun SpotifyConnectionSettingsPanel() {
             }
         }
     }
+
+    val isConnected = spotifyState.isConnected
+    val motionSubtitle = when {
+        !isConnected -> strings.motionArtworkSpotifyRequired
+        motionArtworkEnabled -> strings.motionArtworkUnlocked
+        else -> "Disabled · Static album covers only"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
+            )
+            .border(
+                1.dp,
+                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
+                RoundedCornerShape(18.dp)
+            )
+            .clickable(enabled = !isConnected) {
+                val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
+                if (authorizationUri != null) {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
+                    }
+                }
+            }
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isConnected) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isConnected) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
+                    contentDescription = null,
+                    tint = if (isConnected) Color(0xFF1ED760) else DerbisMuted,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = strings.motionArtworkEnabled,
+                        color = if (isConnected) DerbisText else DerbisMuted,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(99.dp))
+                            .background(
+                                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.20f)
+                                else Color(0xFFFF5E3A).copy(alpha = 0.15f)
+                            )
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (isConnected) "UNLOCKED" else "LOGIN REQUIRED",
+                            color = if (isConnected) Color(0xFF1ED760) else Color(0xFFFF5E3A),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = motionSubtitle,
+                    color = if (isConnected) DerbisMuted else Color.White.copy(alpha = 0.45f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
+
+            Switch(
+                checked = isConnected && motionArtworkEnabled,
+                onCheckedChange = { onToggleMotionArtwork(it) },
+                enabled = isConnected,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = DerbisInk,
+                    checkedTrackColor = Color(0xFF1ED760),
+                    disabledCheckedTrackColor = Color.White.copy(alpha = 0.12f),
+                    disabledUncheckedTrackColor = Color.White.copy(alpha = 0.06f),
+                    disabledUncheckedThumbColor = DerbisMuted.copy(alpha = 0.4f)
+                )
+            )
+        }
+    }
 }
 
 @Composable
@@ -22586,7 +22520,9 @@ private fun IntegrationSettingsPanel(
     listenBrainzConfigured: Boolean, audDConfigured: Boolean,
     onBeginLastFm: (String, String) -> Unit, onCompleteLastFm: () -> Unit, onClearLastFm: () -> Unit,
     onSaveListenBrainz: (String) -> Unit, onClearListenBrainz: () -> Unit,
-    onSaveAudD: (String) -> Unit, onClearAudD: () -> Unit
+    onSaveAudD: (String) -> Unit, onClearAudD: () -> Unit,
+    motionArtworkEnabled: Boolean,
+    onToggleMotionArtwork: (Boolean) -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     var lastFmKey by remember { mutableStateOf("") }
@@ -22595,7 +22531,10 @@ private fun IntegrationSettingsPanel(
     var audDToken by remember { mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         DiscordRichPresenceSettingsPanel()
-        SpotifyConnectionSettingsPanel()
+        SpotifyConnectionSettingsPanel(
+            motionArtworkEnabled = motionArtworkEnabled,
+            onToggleMotionArtwork = onToggleMotionArtwork
+        )
         Text("Last.fm", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
         OutlinedTextField(
             lastFmKey,
@@ -23854,17 +23793,9 @@ internal fun DerbisLogoMark(
     size: Dp = 58.dp,
     contentDescription: String? = "Derbis"
 ) {
-    Image(
-        painter = painterResource(id = R.drawable.derbis_logo),
-        contentDescription = contentDescription,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .size(size)
-            .graphicsLayer {
-                // The PNG already has transparent padding around the white diamond mark.
-                scaleX = 1.32f
-                scaleY = 1.32f
-            }
+    com.yasuda.derbis.ui.components.DerbisVectorLogo(
+        size = size,
+        tint = Color.White
     )
 }
 
@@ -23885,16 +23816,9 @@ internal fun HomeLogoBadge() {
         modifier = Modifier.size(DerbisHomeDesign.SettingsControlHeight),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.derbis_logo),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = 1.32f
-                    scaleY = 1.32f
-                }
+        com.yasuda.derbis.ui.components.DerbisVectorLogo(
+            size = DerbisHomeDesign.SettingsControlHeight * 0.72f,
+            tint = Color.White
         )
     }
 }
@@ -25288,6 +25212,7 @@ private fun SearchFilterChips(
     val strings = LocalDerbisStrings.current
     if (DerbisIsYouTubeMusic) {
         val chips = buildList {
+            add(SearchFilter.Lyrics to strings.lyrics)
             if (hasArtists) add(SearchFilter.Artists to strings.artistsLabelPlural)
             add(SearchFilter.Songs to strings.songsPlain)
             if (hasVideos) add(SearchFilter.Videos to strings.video)
@@ -25302,13 +25227,29 @@ private fun SearchFilterChips(
             horizontalArrangement = Arrangement.spacedBy(YouTubeMusicDesign.chipGap)
         ) {
             chips.forEach { (filter, label) ->
-                YouTubeMusicChip(label, filter == selected) { onSelect(if (filter == selected) SearchFilter.All else filter) }
+                YouTubeMusicChip(
+                    label = label,
+                    selected = filter == selected,
+                    leadingIcon = if (filter == SearchFilter.Lyrics) {
+                        {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_studio_lyrics),
+                                contentDescription = null,
+                                tint = if (filter == selected) Color.Black else YouTubeMusicDesign.text,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    } else null
+                ) {
+                    onSelect(if (filter == selected) SearchFilter.All else filter)
+                }
             }
         }
         return
     }
     val chips = buildList {
         add(SearchFilter.All to strings.all)
+        add(SearchFilter.Lyrics to strings.lyrics)
         add(SearchFilter.Songs to strings.songsPlain)
         if (hasArtists) add(SearchFilter.Artists to strings.artistsLabelPlural)
         if (hasAlbums) add(SearchFilter.Albums to strings.albumsPlain)
@@ -26194,6 +26135,7 @@ private fun SearchResults.sectionSize(filter: SearchFilter): Int = when (filter)
     SearchFilter.Albums -> albums.size
     SearchFilter.Artists -> artists.size
     SearchFilter.Playlists -> playlists.size
+    SearchFilter.Lyrics -> lyricsMatches.ifEmpty { songs }.size
     SearchFilter.All -> 0
 }
 
@@ -27169,19 +27111,9 @@ private fun ExploreScreen(
     }
 
     val exploreMixAccent = rememberNowPlayingAccent(state.currentTrack, DerbisCyan)
+    var trackStoryShareTarget by remember { mutableStateOf<Track?>(null) }
     val shareFreshTrack: (Track) -> Unit = { track ->
-        val shareText = buildString {
-            append(track.title)
-            if (track.artist.isNotBlank()) append(" - ").append(track.artist)
-            val link = track.videoUrl.ifBlank { track.streamUrl }
-            if (link.isNotBlank()) append("\n").append(link)
-        }
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, track.title)
-            putExtra(Intent.EXTRA_TEXT, shareText)
-        }
-        context.startActivity(Intent.createChooser(intent, strings.shareVia))
+        trackStoryShareTarget = track
     }
     val onPlayFreshTrack: (Track) -> Unit = { track ->
         if (track.id == state.currentTrack?.id) viewModel.togglePlay()
@@ -27271,6 +27203,13 @@ private fun ExploreScreen(
             onMoodReturnChange = { exploreMoodReturn = it },
             onLiveRadioOpenChange = onLiveRadioOpenChange
         )
+
+        trackStoryShareTarget?.let { track ->
+            TrackStoryShareSheet(
+                track = track,
+                onDismiss = { trackStoryShareTarget = null }
+            )
+        }
     }
 }
 

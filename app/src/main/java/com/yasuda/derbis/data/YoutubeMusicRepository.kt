@@ -2674,7 +2674,7 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
                 title = title,
                 artist = artist,
                 year = "",
-                thumbnailUrl = findBestThumbnail(renderer),
+                thumbnailUrl = upgradeThumbnail(findBestThumbnail(renderer)),
                 query = "$title $artist",
                 browseId = browseId,
                 artistBrowseId = artistRuns.firstNotNullOfOrNull { run -> pageTypeOf(run).second.takeIf(String::isNotBlank) }.orEmpty()
@@ -3291,14 +3291,15 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
 
     private fun watchTrackToTrack(item: YoutubeMusicWatchTrack, seed: Track, query: String): Track {
         val thumbnail = item.thumbnailUrl.ifBlank { seed.thumbnailUrl }
+        val upgraded = upgradeThumbnail(thumbnail)
         return buildTrack(
             id = item.videoId,
             title = item.title,
             artist = item.artists.joinToString(", ") { it.name }.ifBlank { seed.artist },
             album = item.albumTitle,
             durationMs = item.durationMs,
-            thumbnailUrl = thumbnail,
-            largeThumbnailUrl = upgradeThumbnail(thumbnail),
+            thumbnailUrl = upgraded,
+            largeThumbnailUrl = upgraded,
             videoUrl = "https://www.youtube.com/watch?v=${item.videoId}",
             query = query,
             source = "YouTube Music Watch",
@@ -3399,14 +3400,15 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
         val artistReferences = extractYoutubeMusicArtistReferences(two, fallbackArtist)
         val artist = artistReferences.creditLabel(fallbackArtist)
         val thumbnail = findBestThumbnail(two)
+        val upgraded = upgradeThumbnail(thumbnail)
         return buildTrack(
             id = videoId,
             title = title,
             artist = artist,
             album = "YouTube Music",
             durationMs = 0L,
-            thumbnailUrl = thumbnail,
-            largeThumbnailUrl = upgradeThumbnail(thumbnail),
+            thumbnailUrl = upgraded,
+            largeThumbnailUrl = upgraded,
             videoUrl = "https://www.youtube.com/watch?v=$videoId",
             query = "home",
             source = "YouTube Music",
@@ -3567,14 +3569,15 @@ open class YoutubeMusicRepository(private val context: Context? = null) {
             }
             ?: ""
         val thumbnail = findBestThumbnail(renderer)
+        val upgradedThumbnail = upgradeThumbnail(thumbnail)
         return buildTrack(
             id = videoId,
             title = title,
             artist = artist,
             album = album,
             durationMs = duration,
-            thumbnailUrl = thumbnail,
-            largeThumbnailUrl = upgradeThumbnail(thumbnail),
+            thumbnailUrl = upgradedThumbnail,
+            largeThumbnailUrl = upgradedThumbnail,
             videoUrl = "https://www.youtube.com/watch?v=$videoId",
             query = query,
             source = "YouTube Music",

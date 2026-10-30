@@ -970,7 +970,7 @@ class ArtistRepository(private val music: YoutubeMusicRepository, private val co
                     durationMs = durationOf(renderer.toString()),
                     streamUrl = "",
                     videoUrl = "https://www.youtube.com/watch?v=$videoId",
-                    thumbnailUrl = thumb,
+                    thumbnailUrl = upgradeThumbnail(thumb),
                     largeThumbnailUrl = upgradeThumbnail(thumb),
                     source = "YouTube Music",
                     moodTags = setOf("hit"),

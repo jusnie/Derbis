@@ -42,8 +42,8 @@ private fun organization(vararg values: String): Map<String, String> {
 
 private val organizationBundles: Map<String, Map<String, String>> = mapOf(
     "en" to organization(
-        "Ambient", "OLED-friendly screen for quiet listening", "Open Ambient", "Exit Ambient",
-        "Ambient screen", "Brightness", "Auto dimming", "Pixel shift", "Proximity blackout",
+        "AOD", "OLED-friendly Always-On Display (DreamService) for desk & night listening", "Open AOD", "Exit AOD",
+        "AOD screen", "Brightness", "Auto dimming", "Pixel shift", "Proximity blackout",
         "Show lyrics", "Show Canvas", "Nothing is playing",
         "Rediscover", "Favourites you have not played in a while",
         "Do not recommend this artist", "Recommend again", "Excluded artists",
@@ -53,8 +53,8 @@ private val organizationBundles: Map<String, Map<String, String>> = mapOf(
         "Hide from library", "Show in library", "Hidden playlists", "No hidden playlists."
     ),
     "it" to organization(
-        "Ambient", "Schermata OLED-friendly per l'ascolto tranquillo", "Apri Ambient", "Esci da Ambient",
-        "Schermata Ambient", "Luminosità", "Attenuazione automatica", "Spostamento pixel",
+        "AOD", "Schermata Always-On Display (DreamService) OLED per l'ascolto tranquillo", "Apri AOD", "Esci da AOD",
+        "Schermata AOD", "Luminosità", "Attenuazione automatica", "Spostamento pixel",
         "Blackout di prossimità",
         "Mostra i testi", "Mostra Canvas", "Nessun brano in riproduzione",
         "Riscoprili", "Preferiti che non ascolti da un po'",

@@ -158,6 +158,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.text.NumberFormat
+import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
+import com.yasuda.derbis.ui.theme.DerbisHapticAction
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -222,6 +224,7 @@ internal fun AudioSettingsPanel(
     onClose: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
+    val haptics = LocalDerbisHaptics.current
     val replayGainCopy = strings.replayGainCopy()
     val parametricCopy = strings.parametricEqCopy()
     val parametricProfileCopy = strings.parametricProfileCopy()
@@ -413,6 +416,8 @@ internal fun AudioSettingsPanel(
                         valueLabel = decibels(audioSettings.preampDb),
                         value = audioSettings.preampDb,
                         range = -12f..3f,
+                        defaultValue = 0f,
+                        onReset = { onPreamp(0f) },
                         onValue = { onPreamp((it * 2f).roundToInt() / 2f) }
                     )
                 }
@@ -422,6 +427,8 @@ internal fun AudioSettingsPanel(
                         valueLabel = "${audioSettings.bassBoost}%",
                         value = audioSettings.bassBoost.toFloat(),
                         range = 0f..100f,
+                        defaultValue = 0f,
+                        onReset = { onBassBoost(0) },
                         onValue = { onBassBoost(it.roundToInt()) }
                     )
                 }
@@ -578,6 +585,8 @@ internal fun AudioSettingsPanel(
                             valueLabel = decibels(audioSettings.replayGainPreampDb),
                             value = audioSettings.replayGainPreampDb,
                             range = -12f..12f,
+                            defaultValue = 0f,
+                            onReset = { onReplayGainPreamp(0f) },
                             onValue = { onReplayGainPreamp((it * 2f).roundToInt() / 2f) }
                         )
                     }
@@ -598,6 +607,8 @@ internal fun AudioSettingsPanel(
                         valueLabel = "${audioSettings.crossfadeSeconds}s",
                         value = audioSettings.crossfadeSeconds.toFloat(),
                         range = 0f..30f,
+                        defaultValue = 0f,
+                        onReset = { onCrossfade(0) },
                         onValue = { onCrossfade(it.roundToInt()) }
                     )
                 }
@@ -747,6 +758,8 @@ internal fun AudioSettingsPanel(
                         valueLabel = "${trimAudioSpeed(audioSettings.playbackSpeed)}x",
                         value = audioSettings.playbackSpeed,
                         range = 0.5f..2.0f,
+                        defaultValue = 1.0f,
+                        onReset = { onTempo(1.0f) },
                         onValue = { onTempo((it * 100f).roundToInt() / 100f) }
                     )
                 }
@@ -756,11 +769,52 @@ internal fun AudioSettingsPanel(
                         valueLabel = "${trimAudioSpeed(audioSettings.pitch)}x",
                         value = audioSettings.pitch,
                         range = 0.5f..2.0f,
+                        defaultValue = 1.0f,
+                        onReset = { onPitch(1.0f) },
                         onValue = { onPitch((it * 100f).roundToInt() / 100f) }
                     )
                 }
                 item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    val hasSpeedOrPitchModifications =
+                        abs(audioSettings.playbackSpeed - 1.0f) > 0.005f ||
+                        abs(audioSettings.pitch - 1.0f) > 0.005f
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            color = if (hasSpeedOrPitchModifications) DerbisAdaptiveChip else DerbisAdaptiveChip.copy(alpha = 0.35f),
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier
+                                .heightIn(min = 52.dp)
+                                .clickable(enabled = hasSpeedOrPitchModifications) {
+                                    haptics.perform(DerbisHapticAction.Confirm)
+                                    onTempo(1.0f)
+                                    onPitch(1.0f)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.RestartAlt,
+                                    contentDescription = strings.audioResetEqualizer,
+                                    tint = if (hasSpeedOrPitchModifications) DerbisCyan else DerbisMuted.copy(alpha = 0.5f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    strings.audioResetEqualizer,
+                                    color = if (hasSpeedOrPitchModifications) DerbisText else DerbisMuted.copy(alpha = 0.5f),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
                         Surface(
                             color = DerbisCyan,
                             shape = RoundedCornerShape(18.dp),
@@ -1895,8 +1949,13 @@ private fun AudioSliderRow(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     icon: Boolean = false,
+    defaultValue: Float? = null,
+    onReset: (() -> Unit)? = null,
     onValue: (Float) -> Unit
 ) {
+    val haptics = LocalDerbisHaptics.current
+    val isModified = defaultValue != null && abs(value - defaultValue) > 0.005f
+
     Surface(
         color = AudioCardSurface,
         shape = CardShape,
@@ -1917,22 +1976,49 @@ private fun AudioSliderRow(
                     }
                     Text(title, color = DerbisText, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
-                Text(
-                    valueLabel,
-                    color = DerbisCyan,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier
-                        .clip(ChipShape)
-                        .background(DerbisCyan.copy(alpha = 0.14f))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (isModified && onReset != null) {
+                        IconButton(
+                            onClick = {
+                                haptics.perform(DerbisHapticAction.Confirm)
+                                onReset()
+                            },
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.RestartAlt,
+                                contentDescription = "Reset $title",
+                                tint = DerbisCyan,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        valueLabel,
+                        color = if (isModified) DerbisCyan else DerbisText.copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier
+                            .clip(ChipShape)
+                            .background(if (isModified) DerbisCyan.copy(alpha = 0.16f) else DerbisAdaptiveChip)
+                            .clickable(enabled = isModified && onReset != null) {
+                                haptics.perform(DerbisHapticAction.Confirm)
+                                onReset?.invoke()
+                            }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
             AudioLevelSlider(
                 value = value,
                 range = range,
                 label = title,
                 valueLabel = valueLabel,
+                defaultValue = defaultValue,
+                onReset = onReset,
                 onValue = onValue
             )
         }
@@ -2315,8 +2401,11 @@ private fun AudioLevelSlider(
     range: ClosedFloatingPointRange<Float>,
     label: String,
     valueLabel: String,
+    defaultValue: Float? = null,
+    onReset: (() -> Unit)? = null,
     onValue: (Float) -> Unit
 ) {
+    val haptics = LocalDerbisHaptics.current
     val span = (range.endInclusive - range.start).takeIf { it > 0f } ?: 1f
     val bounded = value.coerceIn(range.start, range.endInclusive)
     val origin = 0f.coerceIn(range.start, range.endInclusive)
@@ -2328,14 +2417,29 @@ private fun AudioLevelSlider(
     val handleWidth = with(density) { 4.dp.toPx() }
     val handleHeight = with(density) { 36.dp.toPx() }
     val handleGap = with(density) { 5.dp.toPx() }
+    val touchCatchRadius = with(density) { 44.dp.toPx() }
     val activeColor = DerbisCyan
     val inactiveColor = DerbisAdaptiveTrack
     val ringColor = AudioCardSurface
+
+    fun xOf(level: Float, width: Int): Float {
+        val usable = width - thumbRadius * 2f
+        val fraction = ((level - range.start) / span).coerceIn(0f, 1f)
+        return thumbRadius + usable * if (rtl) 1f - fraction else fraction
+    }
+
     fun valueAt(x: Float, width: Int): Float {
         val usable = (width - thumbRadius * 2f).coerceAtLeast(1f)
         val raw = ((x - thumbRadius) / usable).coerceIn(0f, 1f)
         val fraction = if (rtl) 1f - raw else raw
-        return range.start + fraction * span
+        val rawValue = range.start + fraction * span
+        if (defaultValue != null) {
+            val magneticTolerance = 0.045f * span
+            if (abs(rawValue - defaultValue) <= magneticTolerance) {
+                return defaultValue
+            }
+        }
+        return rawValue
     }
     Box(
         modifier = Modifier
@@ -2350,25 +2454,57 @@ private fun AudioLevelSlider(
                     true
                 }
             }
-            .pointerInput(range, rtl) {
-                detectTapGestures(onTap = { offset -> onValue(valueAt(offset.x, size.width)) })
+            .pointerInput(range, rtl, defaultValue) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        if (onReset != null) {
+                            haptics.perform(DerbisHapticAction.Confirm)
+                            onReset()
+                        }
+                    }
+                    // Deliberately no single-tap: eliminates misclicks & accidental jumping when scrolling
+                )
             }
-            .pointerInput(range, rtl) {
-                detectHorizontalDragGestures { change, _ ->
-                    onValue(valueAt(change.position.x, size.width))
-                    change.consume()
-                }
+            .pointerInput(range, rtl, defaultValue, bounded) {
+                var isInteracting = false
+                var wasSnapped = defaultValue != null && abs(bounded - defaultValue) < 0.005f
+
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        val currentHandleX = xOf(bounded, size.width)
+                        // Reduce sensitivity: ONLY engage drag when gesture starts near the thumb handle
+                        if (abs(offset.x - currentHandleX) <= touchCatchRadius) {
+                            isInteracting = true
+                        } else {
+                            isInteracting = false
+                        }
+                    },
+                    onDragEnd = { isInteracting = false },
+                    onDragCancel = { isInteracting = false },
+                    onHorizontalDrag = { change, _ ->
+                        if (isInteracting) {
+                            val computed = valueAt(change.position.x, size.width)
+                            val isSnappedNow = defaultValue != null && abs(computed - defaultValue) < 0.005f
+                            if (isSnappedNow && !wasSnapped) {
+                                haptics.perform(DerbisHapticAction.SeekSnap)
+                            }
+                            wasSnapped = isSnappedNow
+                            onValue(computed)
+                            change.consume()
+                        }
+                    }
+                )
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val usable = size.width - thumbRadius * 2f
-            fun xOf(level: Float): Float {
+            fun xOfCanvas(level: Float): Float {
                 val fraction = (level - range.start) / span
                 return thumbRadius + usable * if (rtl) 1f - fraction else fraction
             }
             val centerY = size.height / 2f
-            val handleX = xOf(bounded)
-            val originX = xOf(origin)
+            val handleX = xOfCanvas(bounded)
+            val originX = xOfCanvas(origin)
             val trackLeft = thumbRadius - trackHeight / 2f
             val trackRight = size.width - thumbRadius + trackHeight / 2f
             val corner = CornerRadius(trackHeight / 2f, trackHeight / 2f)
@@ -2395,6 +2531,11 @@ private fun AudioLevelSlider(
             }
             if (origin > range.start) {
                 drawCircle(ringColor, trackHeight / 5f, Offset(originX, centerY))
+            }
+            val defaultMarker = defaultValue?.takeIf { it in range && it > range.start }
+            if (defaultMarker != null) {
+                val defaultX = xOfCanvas(defaultMarker)
+                drawCircle(activeColor.copy(alpha = 0.5f), trackHeight / 4.5f, Offset(defaultX, centerY))
             }
             val stopX = if (rtl) trackLeft + trackHeight / 2f else trackRight - trackHeight / 2f
             drawCircle(activeColor, trackHeight / 7f, Offset(stopX, centerY))

@@ -158,7 +158,7 @@ private const val PLAYLIST_DRAG_EDGE_FACTOR = 1.35f
 private const val PLAYLIST_DRAG_SCROLL_FACTOR = 0.38f
 private const val DEVICE_LIBRARY_PARENT_LEADING_ITEMS = 4
 private val LibraryCategoriesGutter = 16.dp
-private val LibraryBrowseCategories = LibraryCategory.entries.filter { it != LibraryCategory.Overview }
+private val LibraryBrowseCategories = LibraryCategory.entries.filter { it != LibraryCategory.Overview && it != LibraryCategory.Collections }
 
 private fun Modifier.libraryCategoriesBleed(gutter: Dp): Modifier = layout { measurable, constraints ->
     val gutterPx = gutter.roundToPx()
@@ -304,7 +304,7 @@ internal fun DerbisLibraryScreen(
     }
 
     var categoryName by rememberSaveable { mutableStateOf(LibraryCategory.Overview.name) }
-    val category = LibraryCategory.entries.firstOrNull { it.name == categoryName } ?: LibraryCategory.Overview
+    val category = LibraryCategory.entries.firstOrNull { it.name == categoryName && it != LibraryCategory.Collections } ?: LibraryCategory.Overview
     var layoutName by rememberSaveable { mutableStateOf(LibraryLayout.List.name) }
     val layout = LibraryLayout.entries.firstOrNull { it.name == layoutName } ?: LibraryLayout.List
     val sort = state.interfaceSettings.librarySort

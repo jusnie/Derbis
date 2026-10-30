@@ -42,5 +42,57 @@ function get(url) {
   if (files["assets/derbis-logo.png"]) {
     fs.writeFileSync(path.resolve(__dirname, "assets/derbis-logo.png"), Buffer.from(files["assets/derbis-logo.png"], "base64"));
   }
+
+  // Apply iOS & IPA platform adaptations to bundled JS
+  const jsBundlePath = path.resolve(__dirname, "assets/index-rTq1BDYL.js");
+  if (fs.existsSync(jsBundlePath)) {
+    let js = fs.readFileSync(jsBundlePath, "utf8");
+    const iosCheck = "(/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform===\"MacIntel\"&&navigator.maxTouchPoints>1)||window.Capacitor?.getPlatform?.()===\"ios\")";
+
+    const oldSidebarCard = "(0,T.jsx)(`div`,{className:`mt-6 px-1`,children:(0,T.jsxs)(`a`,{href:`https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk`,download:!0";
+    const newSidebarCard = iosCheck + "?null:(0,T.jsx)(`div`,{className:`mt-6 px-1`,children:(0,T.jsxs)(`a`,{href:`https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk`,download:!0";
+    if (js.includes(oldSidebarCard)) {
+      js = js.replace(oldSidebarCard, newSidebarCard);
+    }
+
+    const oldSettingsCard = "(0,T.jsxs)(`div`,{className:`p-3.5 rounded-xl bg-[#0e0e12] border border-[#1e1e24] space-y-2`,children:[(0,T.jsxs)(`div`,{className:`flex items-center justify-between`,children:[(0,T.jsxs)(`div`,{className:`flex items-center gap-1.5`,children:[(0,T.jsx)(Ot,{className:`w-3.5 h-3.5 text-white/70`}),(0,T.jsx)(`strong`,{className:`text-xs font-bold text-white`,children:`Derbis Android App`})";
+    const newSettingsCard = iosCheck + "?(0,T.jsxs)(`div`,{className:`p-3.5 rounded-xl bg-[#0e0e12] border border-cyan-500/20 space-y-1.5`,children:[(0,T.jsxs)(`div`,{className:`flex items-center justify-between`,children:[(0,T.jsx)(`strong`,{className:`text-xs font-bold text-white`,children:`Derbis iOS Native`}),(0,T.jsx)(`span`,{className:`text-[9px] font-mono text-cyan-400 font-bold`,children:`v1.1.1`})]}),(0,T.jsx)(`p`,{className:`text-[11px] text-white/60 leading-relaxed`,children:`Lock Screen Controls, AirPlay & Hi-Fi Lossless Audio Active.`})]}):" + oldSettingsCard;
+    if (js.includes(oldSettingsCard)) {
+      js = js.replace(oldSettingsCard, newSettingsCard);
+    }
+
+    fs.writeFileSync(jsBundlePath, js, "utf8");
+    console.log("Applied iOS platform adaptations to bundle");
+  }
+
+  // Ensure vercel.json rewrites for /install, /ios, /t/:id universal track links, and manifest.plist
+  const vercelConfig = {
+    cleanUrls: true,
+    rewrites: [
+      { source: "/install", destination: "/install.html" },
+      { source: "/ios", destination: "/install.html" },
+      { source: "/t/:id", destination: "/api/track?id=:id" },
+      { source: "/track/:id", destination: "/api/track?id=:id" },
+      { source: "/jam/:code", destination: "/api/jam?code=:code" },
+      { source: "/jam", destination: "/api/jam" }
+    ],
+    headers: [
+      {
+        source: "/manifest.plist",
+        headers: [
+          { key: "Content-Type", value: "application/xml" }
+        ]
+      },
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }
+        ]
+      }
+    ]
+  };
+  fs.writeFileSync(path.resolve(__dirname, "vercel.json"), JSON.stringify(vercelConfig, null, 2), "utf8");
+
   console.log("DERBIS SEARCH SELECTION & ENDLESS RADIO BUNDLE DEPLOYED SUCCESSFULLY");
 })();
