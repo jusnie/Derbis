@@ -374,7 +374,7 @@ private fun hsvColor(hue: Float, saturation: Float, value: Float): Color {
         h < 300f -> Triple(x, 0f, c)
         else -> Triple(c, 0f, x)
     }
-    return Color(r = r1 + m, g = g1 + m, b = b1 + m)
+    return Color(red = (r1 + m).coerceIn(0f, 1f), green = (g1 + m).coerceIn(0f, 1f), blue = (b1 + m).coerceIn(0f, 1f))
 }
 
 @Composable

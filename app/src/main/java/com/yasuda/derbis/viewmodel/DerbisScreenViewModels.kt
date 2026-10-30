@@ -512,6 +512,7 @@ class PlayerViewModel(root: DerbisViewModel) : DerbisScreenViewModel(root, ::pla
     }
     fun openArtist(hit: ArtistHit) = root.openArtistFromPlayer(hit)
     fun openAudioQualityPanel() = root.openAudioQualityPanel()
+    fun openJam() = root.openJam()
     fun openLyrics() = root.openLyrics()
     fun openQueue() = root.openQueue()
     fun openYoutubeComments() = root.openYoutubeComments()

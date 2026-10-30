@@ -68,8 +68,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.Track
-import com.yasuda.derbis.feature.player.domain.PlaybackSourceIdentity
-import com.yasuda.derbis.feature.player.domain.youtubeWatchUrl
+import com.yasuda.derbis.data.PlaybackSourceIdentity
+import com.yasuda.derbis.data.youtubeWatchUrl
 import com.yasuda.derbis.ui.components.DerbisVectorLogo
 import com.yasuda.derbis.ui.components.ModernChevronRightVector
 import com.yasuda.derbis.ui.components.ModernCopyLinkVector

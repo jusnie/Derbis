@@ -20,6 +20,10 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Whatshot
+import com.yasuda.derbis.ui.components.DerbisIonicons
+import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import androidx.compose.material.icons.rounded.FormatQuote
 import androidx.graphics.shapes.RoundedPolygon
 import com.yasuda.derbis.ui.components.derbisCookieLandingShape
@@ -9373,7 +9377,7 @@ private fun LyricsVersionDialog(
 private const val LYRICS_AUTO_SCROLL_RESUME_MS = 3_500L
 private const val LYRICS_BACKDROP_DECODE_PX = 96
 
-private suspend fun centerLyricsItem(
+internal suspend fun centerLyricsItem(
     listState: LazyListState,
     index: Int,
     animate: Boolean,

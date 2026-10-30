@@ -203,7 +203,7 @@ object DiscordRpcClient {
     /**
      * Updates Discord Rich Presence with buttons, progress bar, and dual artwork assets.
      */
-    fun updatePresence(presence: DerbisDiscordPresenceSnapshot) {
+    internal fun updatePresence(presence: DerbisDiscordPresenceSnapshot) {
         lastPresence = presence
         if (!isGatewayConnected.get()) return
 

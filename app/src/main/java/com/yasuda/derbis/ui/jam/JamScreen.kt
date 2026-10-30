@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -85,7 +86,7 @@ import com.yasuda.derbis.ui.components.ModernCopyLinkVector
 import com.yasuda.derbis.ui.components.ModernShareSparkleVector
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -484,7 +485,7 @@ private fun JamCurrentTrackCard(track: Track, strings: DerbisStrings) {
                     .background(Color.Black)
             ) {
                 AsyncImage(
-                    model = track.artworkUrl,
+                    model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
                     contentDescription = track.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

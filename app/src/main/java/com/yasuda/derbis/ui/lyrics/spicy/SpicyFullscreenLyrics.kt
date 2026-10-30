@@ -96,11 +96,11 @@ import coil3.request.ImageRequest
 import com.yasuda.derbis.domain.LyricLine
 import com.yasuda.derbis.domain.LyricWord
 import com.yasuda.derbis.domain.Track
-import com.yasuda.derbis.ui.DerbisUiState
-import com.yasuda.derbis.ui.LocalDerbisStrings
+import com.yasuda.derbis.viewmodel.DerbisUiState
+import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import com.yasuda.derbis.ui.centerLyricsItem
 import com.yasuda.derbis.ui.i18n.lyricsSyncCopy
 import com.yasuda.derbis.ui.lyrics.activeLyricIndex
-import com.yasuda.derbis.ui.lyrics.centerLyricsItem
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
@@ -516,7 +516,7 @@ fun SpicyFullscreenLyrics(
                 }
 
                 // Floating Actions (Share, Queue, Sync)
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = showCluster && !imageShareSelectionMode,
                     enter = fadeIn(),
                     exit = fadeOut(),
@@ -562,7 +562,7 @@ fun SpicyFullscreenLyrics(
                 }
 
                 // Share Sheet Continue Button
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = imageShareSelectionMode,
                     enter = fadeIn() + slideInVertically { it / 2 },
                     exit = fadeOut() + slideOutVertically { it / 2 },
@@ -597,7 +597,7 @@ fun SpicyFullscreenLyrics(
                 }
 
                 // Idle Progress Strip
-                AnimatedVisibility(
+                androidx.compose.animation.AnimatedVisibility(
                     visible = !showCluster && !imageShareSelectionMode,
                     enter = fadeIn(),
                     exit = fadeOut(),

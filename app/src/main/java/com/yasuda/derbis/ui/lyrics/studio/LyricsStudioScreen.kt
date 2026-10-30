@@ -262,8 +262,8 @@ internal fun LyricsStudioOverlay(
                         )
 
                         StudioToggleRow(
-                            label = "Word-by-Word Karaoke Sync",
-                            description = "Progressive real-time word highlight fill on synced verses",
+                            title = "Word-by-Word Karaoke Sync",
+                            subtitle = "Progressive real-time word highlight fill on synced verses",
                             checked = settings.progressiveKaraokeEnabled,
                             onCheckedChange = {
                                 onUpdateSettings(settings.copy(progressiveKaraokeEnabled = it))
@@ -271,8 +271,8 @@ internal fun LyricsStudioOverlay(
                         )
 
                         StudioToggleRow(
-                            label = "Dynamic Depth Blur",
-                            description = "Progressive depth-of-field blur on background and inactive verses",
+                            title = "Dynamic Depth Blur",
+                            subtitle = "Progressive depth-of-field blur on background and inactive verses",
                             checked = settings.blurEnabled,
                             onCheckedChange = {
                                 onUpdateSettings(settings.copy(blurEnabled = it))
@@ -623,7 +623,7 @@ private fun LyricsRendererOptionCard(
 ) {
     val borderColor = if (selected) accentColor else Color.White.copy(alpha = 0.12f)
     val borderWidth = if (selected) 2.dp else 1.dp
-    val cardBackground = if (selected) accentColor.copy(alpha = 0.12f) else DerbisPlayerDesign.CardSurfaceElevated
+    val cardBackground = if (selected) accentColor.copy(alpha = 0.12f) else Color(0xFF16161A)
 
     Box(
         modifier = modifier

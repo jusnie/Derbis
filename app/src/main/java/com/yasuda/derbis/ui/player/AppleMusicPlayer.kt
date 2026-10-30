@@ -9,7 +9,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -677,7 +676,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 3200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            repeatMode = androidx.compose.animation.core.RepeatMode.Restart
         ),
         label = "apple-crossfade-hue"
     )
@@ -718,12 +717,13 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                                 .fillMaxHeight()
                                 .drawBehind {
                                     val glowH = 12.dp.toPx()
+                                    val barHeightPx = barHeight.toPx()
                                     // Outer soft neon spectrum glow
                                     drawRoundRect(
                                         brush = rgbBrush,
                                         topLeft = Offset(-4.dp.toPx(), -glowH * 0.6f),
                                         size = Size(size.width + 8.dp.toPx(), size.height + glowH * 1.2f),
-                                        cornerRadius = CornerRadius((barHeight + glowH).toPx() / 2),
+                                        cornerRadius = CornerRadius((barHeightPx + glowH) / 2f),
                                         alpha = crossfadeAlpha * 0.50f
                                     )
                                     // Inner core bloom
@@ -731,7 +731,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                                         color = rgbGlowColor,
                                         topLeft = Offset(-2.dp.toPx(), -3.dp.toPx()),
                                         size = Size(size.width + 4.dp.toPx(), size.height + 6.dp.toPx()),
-                                        cornerRadius = CornerRadius((barHeight + 6.dp).toPx() / 2),
+                                        cornerRadius = CornerRadius((barHeightPx + 6.dp.toPx()) / 2f),
                                         alpha = crossfadeAlpha * 0.40f
                                     )
                                 }
