@@ -38,10 +38,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -58,7 +61,9 @@ import com.yasuda.derbis.domain.DerbisBeatGrid
 import com.yasuda.derbis.domain.DerbisMixStudio
 import com.yasuda.derbis.domain.DerbisMixTransitionPreset
 import com.yasuda.derbis.domain.Track
+import com.yasuda.derbis.ui.LocalAnimationsEnabled
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import com.yasuda.derbis.viewmodel.DerbisMixStudioController
@@ -288,6 +293,8 @@ private fun BeatSyncPanel(
     val incomingBpm = incomingGrid?.validBpm
     val aligned = sync?.aligned == true
     val ratio = sync?.takeIf { it.aligned }?.incomingTempo
+    val animationsEnabled = LocalAnimationsEnabled.current
+    val clock = rememberBeatClock(animationsEnabled)
     val statusColor = when {
         !available -> MixMuted
         aligned -> MixSync
@@ -360,11 +367,103 @@ private fun BeatSyncPanel(
             }
             if (aligned) {
                 TempoRail(ratio = ratio ?: 1f, accent = if (enabled) MixSync else MixMuted)
+                // The two decks drawn as two rows of beats: they tick together only when the
+                // tempo really locks, so the sync is visible instead of just claimed.
+                BeatLanes(
+                    outgoingBpm = outgoingBpm,
+                    incomingBpm = incomingBpm?.takeIf { it > 0f }?.times(ratio ?: 1f),
+                    clock = clock,
+                    outgoingAccent = MixText,
+                    incomingAccent = if (enabled) MixSync else MixMuted
+                )
             }
             Text(detail, color = MixMuted, fontSize = 11.sp, lineHeight = 15.sp)
         }
     }
 }
+
+/**
+ * Frame clock for the beat lanes. Reading it inside a Canvas draw keeps the animation in the
+ * draw phase, so a pulsing bar never recomposes the sheet.
+ */
+@Composable
+private fun rememberBeatClock(enabled: Boolean): MutableFloatState {
+    val clock = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(enabled) {
+        if (!enabled) {
+            clock.floatValue = 0f
+            return@LaunchedEffect
+        }
+        var previous = 0L
+        var elapsed = clock.floatValue
+        while (true) {
+            withFrameNanos { now ->
+                if (previous != 0L) elapsed += (now - previous) / 1_000_000_000f
+                previous = now
+                clock.floatValue = elapsed
+            }
+        }
+    }
+    return clock
+}
+
+@Composable
+private fun BeatLanes(
+    outgoingBpm: Float?,
+    incomingBpm: Float?,
+    clock: MutableFloatState,
+    outgoingAccent: Color,
+    incomingAccent: Color
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        BeatLane(
+            label = "OUT",
+            bpm = outgoingBpm,
+            clock = clock,
+            accent = outgoingAccent
+        )
+        BeatLane(
+            label = "IN",
+            bpm = incomingBpm,
+            clock = clock,
+            accent = incomingAccent
+        )
+    }
+}
+
+/** One bar of four beats; the pip under the playhead swells and fades on every beat. */
+@Composable
+private fun BeatLane(label: String, bpm: Float?, clock: MutableFloatState, accent: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            label,
+            color = MixMuted,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+            modifier = Modifier.width(26.dp)
+        )
+        Canvas(modifier = Modifier.weight(1f).height(16.dp)) {
+            val beatsPerSecond = (bpm ?: 0f) / 60f
+            val continuous = clock.floatValue * beatsPerSecond
+            val phase = continuous - floor(continuous)
+            val activeSlot = (floor(continuous).toInt() % SLOTS + SLOTS) % SLOTS
+            val slotWidth = size.width / SLOTS
+            val centerY = size.height / 2f
+            for (index in 0 until SLOTS) {
+                val isActive = index == activeSlot && bpm != null
+                val pulse = if (isActive) (1f - phase).coerceIn(0f, 1f) else 0f
+                drawCircle(
+                    color = if (isActive) accent.copy(alpha = .30f + .70f * pulse) else MixLine,
+                    radius = (2.4f + 3.4f * pulse) * density,
+                    center = Offset(slotWidth * index + slotWidth / 2f, centerY)
+                )
+            }
+        }
+    }
+}
+
+private const val SLOTS = 4
 
 @Composable
 private fun BpmReadout(label: String, bpm: Float?) {
