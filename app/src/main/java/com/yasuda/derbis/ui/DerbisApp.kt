@@ -2199,9 +2199,15 @@ fun DerbisApp(
     val glassAccessibility = rememberDerbisGlassAccessibility()
     val glassMaterialIsOpaque = glassAccessibility.prefersOpaqueMaterials ||
         LocalDerbisGlassStyle.current.prefersOpaqueMaterials
+    // Resolved once for the whole app: every glass panel reads this instead of re-querying the
+    // device on each row of a scrolling list.
+    val glassLensTier = com.yasuda.derbis.ui.rememberDerbisGlassTier(
+        heavyBlur = visualCapabilities.heavyBlur
+    )
     CompositionLocalProvider(
         LocalAnimationsEnabled provides state.animationsEnabled,
         LocalDerbisVisualCapabilities provides visualCapabilities,
+        com.yasuda.derbis.ui.LocalDerbisGlassTier provides glassLensTier,
         LocalDerbisStrings provides currentStrings,
         LocalDerbisHaptics provides rememberDerbisHaptics(state.interfaceSettings.hapticFeedback),
         LocalLayoutDirection provides layoutDirection,

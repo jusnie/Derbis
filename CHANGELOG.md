@@ -2,6 +2,16 @@
 
 All notable, user-visible changes are documented here. Each published Android and Windows package also has its own **What's Fixed**, **What's New**, and **Changed** notes on the [Derbis Releases page](https://github.com/jusnie/Derbis/releases).
 
+## [Unreleased]
+
+### What's New
+- Liquid Glass lens now has real chromatic dispersion at the rim, a directional specular highlight and a thickness-shaped bezel instead of a single flat edge warp.
+- The whole app carries the Liquid Glass material: every screen gets a page-level glass film, and the dock mini player now joins the same material as the navigation bar and player panels.
+
+### Changed
+- Liquid Glass cost scales with the device: low-RAM and battery-saver devices keep a coarser frost with no lens, while content rows and page surfaces sample a cheaper bucket than chrome.
+- The full-page glass film no longer re-blurs the backdrop every frame, which removes the single most expensive glass surface in the app.
+
 ## [1.1.0] — 2026-10-27
 
 ### What's Fixed
