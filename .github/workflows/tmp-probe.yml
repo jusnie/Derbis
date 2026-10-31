@@ -5,21 +5,39 @@ on:
       - arena/b05b2e2f-derbis
 permissions:
   contents: write
+  pull-requests: write
+env:
+  DERBIS_VERSION_NAME: "1.5.0"
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Probe release write
+      - name: Replay the publish step
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           set +e
-          echo "token perms via repo field:"
-          gh api repos/jusnie/Derbis --jq '.permissions' || true
-          tag="probe-$(date +%s)"
-          out=$(gh release create "$tag" --draft --target "$GITHUB_SHA" --title "probe" --notes "probe" 2>&1)
-          code=$?
-          echo "exit=$code out=$out"
-          msg=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-280)
-          echo "::error::PROBE exit=$code msg=$msg"
+          mkdir -p build_output
+          echo dummy > build_output/derbis.apk
+          sha256sum build_output/derbis.apk > build_output/derbis.apk.sha256
+          tag="probe-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
+          echo "tag=$tag"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" build_output/derbis.apk build_output/derbis.apk.sha256 --clobber 2>&1 | tail -3
+          else
+            gh release create "${tag}" \
+              build_output/derbis.apk build_output/derbis.apk.sha256 \
+              --prerelease \
+              --target "${GITHUB_SHA}" \
+              --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" \
+              --notes "Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release." 2>&1 | tail -5
+          fi
+          echo "exit=$?"
+          echo "::error::PUBLISH_PROBE done tag=$tag"
+      - name: Report
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release list --limit 3 || true
