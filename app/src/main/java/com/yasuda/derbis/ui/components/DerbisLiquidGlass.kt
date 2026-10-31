@@ -158,8 +158,15 @@ internal fun Modifier.resolvedDerbisGlass(
     // The fallback is intentionally more opaque than the frosted version. It protects type,
     // icon contrast and focus rings on API levels without RenderEffect, Low Power mode and when
     // the user chooses the low-transparency end of the Glass controls.
-    val fallbackAlpha = (tokens.fallbackTintAlpha + if (opaqueMaterial) 0.18f else 0f)
-        .coerceIn(0.42f, 0.96f)
+    // Under the skin the fallback is the same glass film as the palette panels, not the old
+    // near-opaque material: without this the surfaces that cannot sample the page came out
+    // darker and flatter than the ones around them.
+    val glassSkin = LocalDerbisLiquidGlassEnabled.current
+    val fallbackAlpha = if (glassSkin && !opaqueMaterial) {
+        (tokens.fallbackTintAlpha * 0.58f).coerceIn(0.32f, 0.50f)
+    } else {
+        (tokens.fallbackTintAlpha + if (opaqueMaterial) 0.18f else 0f).coerceIn(0.42f, 0.96f)
+    }
     val glassTint = harmonizedTint.copy(
         alpha = if (opaqueMaterial) fallbackAlpha else (tokens.tintAlpha * style.tintAlphaScale).coerceIn(0.08f, 0.42f)
     )
@@ -179,9 +186,12 @@ internal fun Modifier.resolvedDerbisGlass(
     // content rows keep the cheap translucent material, because sampling the backdrop
     // per list row is what would cost frames while scrolling.
     val backdropShape = shape as? CornerBasedShape
+    // Every intensity is glass on this skin, not just the chrome-strength ones: a row that
+    // samples the page is the whole point, and the engine already refuses to sample the layer
+    // it is drawn into, so a card inside the recorded page lands on the lightweight material
+    // rather than on a flat panel.
     val backdropReady = backdropShape != null &&
         !opaqueMaterial &&
-        intensity != DerbisGlassIntensity.Subtle &&
         LocalDerbisAppBackdrop.current != null
     if (backdropReady && backdropShape != null) {
         val lensAllowed = tokens.allowsRefraction &&
