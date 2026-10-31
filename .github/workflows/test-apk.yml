@@ -7,6 +7,12 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
+  # TEMPORARY: only exists so this branch can start the 1.5.0 test build, because the
+  # CI integration is not allowed to dispatch workflows (HTTP 403). Removed immediately
+  # after the run is queued.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
