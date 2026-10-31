@@ -4,11 +4,9 @@ name: Derbis Prebuild APK
 # build (com.derbis.app), is published as a GitHub pre-release, and never moves
 # the "latest" pointer. Use the Release APK workflow for real releases.
 
+# Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
@@ -25,8 +23,6 @@ env:
 jobs:
   prebuild-apk:
     name: Build Prebuild APK
-    # Pushes only exist to cancel an in-flight build; a real APK is built on demand.
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
