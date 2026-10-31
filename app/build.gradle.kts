@@ -111,6 +111,10 @@ val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
 val discordSocialSdkAvailable = !isFdroidBuild && discordSocialSdkAar.isFile
 val discordApplicationId = if (isFdroidBuild) "" else envOrProperty("DISCORD_APPLICATION_ID", "discordApplicationId")
     .ifBlank { "1563840846372012102" }
+// Must be registered as an allowed redirect on the Discord application. The implicit grant
+// returns the access token straight to this custom scheme, so no client secret ships in the APK.
+val discordRedirectUri = if (isFdroidBuild) "" else envOrProperty("DISCORD_REDIRECT_URI", "discordRedirectUri")
+    .ifBlank { "derbis-discord://callback" }
 val releaseStoreFilePath = envOrProperty("DERBIS_KEYSTORE_FILE", "derbisStoreFile").ifBlank { "app/derbis-release.jks" }
 val releaseStorePassword = envOrProperty("DERBIS_KEYSTORE_PASSWORD", "derbisStorePassword").ifBlank { "derbis123" }
 val releaseKeyAlias = envOrProperty("DERBIS_KEY_ALIAS", "derbisKeyAlias").ifBlank { "derbis" }
@@ -205,6 +209,7 @@ android {
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", buildConfigString(spotifyRedirectUri))
         buildConfigField("boolean", "DISCORD_SOCIAL_SDK_AVAILABLE", discordSocialSdkAvailable.toString())
         buildConfigField("String", "DISCORD_APPLICATION_ID", buildConfigString(discordApplicationId))
+        buildConfigField("String", "DISCORD_REDIRECT_URI", buildConfigString(discordRedirectUri))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

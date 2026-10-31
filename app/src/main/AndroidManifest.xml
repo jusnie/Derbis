@@ -167,6 +167,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="derbis-spotify" android:host="callback" />
+                <data android:scheme="derbis-discord" android:host="callback" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

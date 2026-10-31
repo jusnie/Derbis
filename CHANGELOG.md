@@ -15,6 +15,7 @@ All notable, user-visible changes are documented here. Each published Android an
 - The track story sheet shows the live card in a fitted stage with a light sweep while it renders, format tabs with their export ratio, theme tiles previewing each look, and one consistent button style for share, Instagram, save, copy link and Jam.
 
 ### Changed
+- Discord sign-in is one tap: the login sheet, its Normal/Token tabs and the embedded browser are gone, and **Connect Discord** now opens Discord's own authorization page in the Discord app, falling back to the browser. The account comes back through `derbis-discord://callback`, so no password or token is ever typed into Derbis.
 - Discord Rich Presence is down to the essentials: the activity now carries only the track title, the artist, the cover art and the artist icon. The clickable Play/Artist buttons, the live progress bar and the current lyric line are gone, along with the "Show lyrics in presence" switch.
 - The "Like Derbis?" star prompt is monochrome now: one hairline ring and a flat star replace the gold sticker, the floating mini stars and the gold glow, and the call to action is white on black in dark theme (black on white in light theme).
 - Every screen now draws its chrome from the Derbis glyph set: 62 icons rebuilt on a 2 dp stroke from Lucide by way of Open Symbols, so toolbars and transport rows read like iOS 26 instead of Material. Icons that were not replaced still fall through to Material.

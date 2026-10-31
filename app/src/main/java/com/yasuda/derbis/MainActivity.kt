@@ -164,6 +164,7 @@ class MainActivity : ComponentActivity() {
         }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
         runCatching {
             DerbisDiscordRichPresence.attach(this)
+            DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
         }.onFailure { Timber.w(it, "Discord startup attachment failed") }
         // PlaybackService owns ongoing presence publication. This Activity only supplies the
         // Discord SDK with the foreground engine Activity needed for account linking.
@@ -352,6 +353,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+        DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
         DerbisLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
     }

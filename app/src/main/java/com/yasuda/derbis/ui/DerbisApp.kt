@@ -22249,6 +22249,20 @@ private fun SettingsSearchResultRow(title: String, description: String, category
     }
 }
 
+/**
+ * Opens the Discord authorization page in the Discord app, so the user approves Derbis where
+ * they are already signed in. Falls back to a browser when Discord is missing or refuses it.
+ */
+private fun openDiscordAuthorization(context: Context, uri: Uri) {
+    val inDiscord = Intent(Intent.ACTION_VIEW, uri)
+        .setPackage("com.discord")
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    if (runCatching { context.startActivity(inDiscord) }.isSuccess) return
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
 @Composable
 private fun DiscordRichPresenceSettingsPanel() {
     val context = LocalContext.current
@@ -22257,7 +22271,6 @@ private fun DiscordRichPresenceSettingsPanel() {
     var presenceEnabled by remember(context) {
         mutableStateOf(discord.isEnabled(context))
     }
-    var showLoginSheet by remember { mutableStateOf(false) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testDiagnosticMessage by remember { mutableStateOf("") }
 
@@ -22266,6 +22279,9 @@ private fun DiscordRichPresenceSettingsPanel() {
     }
     LaunchedEffect(connection.status) {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
+    }
+    val authorizeDiscord: () -> Unit = {
+        discord.beginAuthorization(context)?.let { uri -> openDiscordAuthorization(context, uri) }
     }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
@@ -22276,8 +22292,8 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Connect Discord",
-                subtitle = "Sign in with your Discord account to show what you're listening to",
-                onClick = { showLoginSheet = true }
+                subtitle = connection.detail.ifBlank { "Sign in with your Discord account inside the Discord app" },
+                onClick = authorizeDiscord
             )
             SettingsButton(
                 icon = Icons.Rounded.Refresh,
@@ -22307,7 +22323,7 @@ private fun DiscordRichPresenceSettingsPanel() {
                 icon = Icons.Rounded.AccountCircle,
                 title = "Reconnect Discord",
                 subtitle = connection.detail.ifBlank { "Discord connection failed. Tap to reconnect." },
-                onClick = { showLoginSheet = true }
+                onClick = authorizeDiscord
             )
             SettingsButton(
                 icon = Icons.Rounded.Refresh,
@@ -22385,16 +22401,26 @@ private fun DiscordRichPresenceSettingsPanel() {
                 }
             }
 
-            SettingsToggle(
-                icon = Icons.Rounded.AccountCircle,
-                title = "Discord Rich Presence",
-                subtitle = "Show the current track, cover art and artist on your Discord profile",
-                checked = presenceEnabled,
-                onCheckedChange = { value ->
-                    presenceEnabled = value
-                    discord.setEnabled(context, value)
-                }
-            )
+            if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
+                SettingsToggle(
+                    icon = Icons.Rounded.AccountCircle,
+                    title = "Discord Rich Presence",
+                    subtitle = "Show the current track, cover art and artist on your Discord profile",
+                    checked = presenceEnabled,
+                    onCheckedChange = { value ->
+                        presenceEnabled = value
+                        discord.setEnabled(context, value)
+                    }
+                )
+            } else {
+                SettingsButton(
+                    icon = Icons.Rounded.AccountCircle,
+                    title = "Rich Presence is unavailable in this build",
+                    subtitle = "Discord only publishes presence through its official Social SDK, which this build does not bundle. Your account stays connected.",
+                    enabled = false,
+                    onClick = {}
+                )
+            }
 
             SettingsButton(
                 icon = Icons.Rounded.Refresh,
@@ -22418,15 +22444,6 @@ private fun DiscordRichPresenceSettingsPanel() {
         }
     }
 
-    if (showLoginSheet) {
-        com.yasuda.derbis.feature.discord.DiscordLoginSheet(
-            onDismiss = { showLoginSheet = false },
-            onSuccess = {
-                showLoginSheet = false
-                presenceEnabled = true
-            }
-        )
-    }
 }
 
 @Composable
