@@ -2,6 +2,7 @@ package com.yasuda.derbis.ui.player
 
 import android.content.Context
 import android.database.ContentObserver
+import android.graphics.Color as AndroidColor
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -72,6 +73,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -183,8 +185,11 @@ internal fun PlayerAuraDeck(
         animated = animated
     )
     val hasBeatGrid = beatGrid?.validBpm != null
-    val accentStart = remember(track.id, track.accentStart) { Color(track.accentStart) }
-    val accentEnd = remember(track.id, track.accentEnd) { Color(track.accentEnd) }
+    // Everything that pulses reads this, so the ring, the bloom and the bar cannot disagree
+    // about which colours belong to the sleeve.
+    val beatColors = remember(track.id, track.accentStart, track.accentEnd) {
+        beatPalette(track.accentStart, track.accentEnd)
+    }
 
     Box(
         modifier = modifier.background(
@@ -193,7 +198,7 @@ internal fun PlayerAuraDeck(
     ) {
         AuraBackdrop(
             artworkUrl = artworkUrl,
-            accent = accentStart,
+            accent = beatColors[0],
             beats = beats,
             hasGrid = hasBeatGrid,
             isPlaying = isPlaying,
@@ -222,6 +227,7 @@ internal fun PlayerAuraDeck(
                     isPlaying = isPlaying,
                     beats = beats,
                     hasGrid = hasBeatGrid,
+                    beatColors = beatColors,
                     animated = animated,
                     canvasQuality = canvasQuality,
                     modifier = Modifier
@@ -246,8 +252,8 @@ internal fun PlayerAuraDeck(
             AuraProgress(
                 fraction = if (durationMs > 0L) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f,
                 enabled = durationMs > 0L,
-                accentStart = accentStart,
-                accentEnd = accentEnd,
+                accentStart = beatColors[0],
+                accentEnd = beatColors[2],
                 animated = animated,
                 onCommit = onSeek
             )
@@ -278,6 +284,7 @@ private fun AuraVelvetSleeve(
     isPlaying: Boolean,
     beats: MutableFloatState,
     hasGrid: Boolean,
+    beatColors: List<Color>,
     animated: Boolean,
     canvasQuality: DerbisCanvasQuality,
     modifier: Modifier = Modifier
@@ -286,6 +293,7 @@ private fun AuraVelvetSleeve(
         BeatAura(
             beats = beats,
             hasGrid = hasGrid,
+            colors = beatColors,
             modifier = Modifier.matchParentSize()
         )
         Box(
@@ -355,7 +363,12 @@ private fun rememberBeatPosition(
  * outward; between beats it settles. Without a beat grid it keeps a slow accent glow only.
  */
 @Composable
-private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modifier = Modifier) {
+private fun BeatAura(
+    beats: MutableFloatState,
+    hasGrid: Boolean,
+    colors: List<Color>,
+    modifier: Modifier = Modifier
+) {
     Canvas(modifier = modifier) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val baseRadius = size.minDimension * 0.415f
@@ -367,13 +380,7 @@ private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modif
 
         val radius = baseRadius + size.minDimension * 0.055f * hit
         val sweep = Brush.sweepGradient(
-            colors = listOf(
-                AuraCyan,
-                AuraViolet,
-                AuraMagenta,
-                AuraAmber,
-                AuraCyan
-            ),
+            colors = listOf(colors[0], colors[1], colors[2], colors[3], colors[0]),
             center = center
         )
 
@@ -382,8 +389,8 @@ private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modif
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
                     0.62f to Color.Transparent,
-                    0.84f to AuraViolet.copy(alpha = 0.10f + 0.26f * hit),
-                    0.96f to AuraMagenta.copy(alpha = 0.06f + 0.18f * hit),
+                    0.84f to colors[1].copy(alpha = 0.10f + 0.26f * hit),
+                    0.96f to colors[2].copy(alpha = 0.06f + 0.18f * hit),
                     1f to Color.Transparent
                 ),
                 center = center,
@@ -427,6 +434,48 @@ private val AuraCyan = Color(0xFF00E5FF)
 private val AuraViolet = Color(0xFF7C4DFF)
 private val AuraMagenta = Color(0xFFFF2D95)
 private val AuraAmber = Color(0xFFFFD400)
+
+/** Used when a track carries no artwork palette — offline rows, forced silence, imported files. */
+private val AuraNeonDefault = listOf(AuraCyan, AuraViolet, AuraMagenta, AuraAmber)
+
+/**
+ * The four stops the beat ring sweeps through, taken from the sleeve.
+ *
+ * The deck already extracts two accents from the artwork — they paint the velvet, the progress
+ * fill and the bloom behind the cover. The ring used to ignore them and sweep a fixed
+ * cyan → violet → magenta → amber; now it starts from those two colours and pushes each one part
+ * of the way round the wheel, so the ring keeps four stops and a neon range, but the hues are the
+ * cover's instead of the app's.
+ */
+private fun beatPalette(accentStart: Int, accentEnd: Int): List<Color> {
+    val hasStart = (accentStart ushr 24) != 0
+    val hasEnd = (accentEnd ushr 24) != 0
+    if (!hasStart && !hasEnd) return AuraNeonDefault
+    val start = Color(if (hasStart) accentStart else 0xFF00E5FF.toInt())
+    val end = Color(if (hasEnd) accentEnd else 0xFF7C4DFF.toInt())
+    return listOf(
+        neonOf(start, hueShift = 0f),
+        neonOf(start, hueShift = 34f),
+        neonOf(end, hueShift = 0f),
+        neonOf(end, hueShift = -34f)
+    )
+}
+
+/**
+ * Lifts a tone-mapped accent back to neon without touching its hue.
+ *
+ * The palette extractor deliberately returns dim colours (they are meant to sit under black
+ * chrome); a ring drawn at that value vanishes on black. Saturation is only floored, never
+ * replaced, so a muted cover stays muted-ish instead of being forced into a rainbow.
+ */
+private fun neonOf(color: Color, hueShift: Float): Color {
+    val hsv = FloatArray(3)
+    AndroidColor.colorToHSV(color.toArgb(), hsv)
+    hsv[0] = (hsv[0] + hueShift + 360f) % 360f
+    hsv[1] = hsv[1].coerceAtLeast(0.62f)
+    hsv[2] = hsv[2].coerceAtLeast(0.92f)
+    return Color(AndroidColor.HSVToColor(hsv))
+}
 
 @Composable
 private fun AuraGrabber(onCollapse: () -> Unit) {
