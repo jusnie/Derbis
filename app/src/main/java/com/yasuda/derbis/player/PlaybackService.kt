@@ -25,6 +25,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
@@ -129,6 +130,8 @@ import com.yasuda.derbis.player.sabr.SabrStreamSpec
 import com.yasuda.derbis.runtime.RuntimeHooks
 import com.yasuda.derbis.runtime.RuntimeSignal
 import com.yasuda.derbis.player.enhanced.EnhancedAudioMetrics
+import com.yasuda.derbis.player.audio.DerbisAudioOutputPolicy
+import com.yasuda.derbis.player.audio.DerbisLosslessOutput
 import com.yasuda.derbis.player.enhanced.EnhancedAudioProcessor
 import com.yasuda.derbis.player.enhanced.EnhancedAudioSourceFormatListener
 import com.yasuda.derbis.widget.DerbisWidgetBridge
@@ -198,6 +201,10 @@ class PlaybackService : MediaLibraryService() {
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
     private var currentAudioSettings = DerbisAudioSettings()
+
+    /** Skip-silence forces PCM16 downstream, so it also decides whether float output is safe. */
+    @Volatile
+    private var currentSkipSilence = false
     private var activeCustomBufferProfile: PlaybackBufferProfile? = null
 
     @Volatile
@@ -985,22 +992,28 @@ class PlaybackService : MediaLibraryService() {
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
+                // 24-bit float only on a route that can actually take it; the PCM16 stage
+                // would otherwise truncate a lossless source before the DAC sees it.
+                val losslessOutput = DerbisAudioOutputPolicy.plan(
+                    state = DerbisLosslessOutput.state(context),
+                    skipSilenceEnabled = currentSkipSilence
+                )
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(false)
+                    .setEnableFloatOutput(losslessOutput.floatOutput)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
-                        arrayOf(
-                            enhancedAudioProcessor,
-                            normalizationProcessor,
-                            equalizerProcessor,
-                            parametricEqualizerProcessor,
-                            spatialAudioProcessor,
-                            eightDAudioProcessor,
-                            limiterProcessor,
-                            visualizerProcessor,
-                            beatGridProcessor,
-                            pcm16OutputProcessor
-                        )
+                        buildList<AudioProcessor> {
+                            add(enhancedAudioProcessor)
+                            add(normalizationProcessor)
+                            add(equalizerProcessor)
+                            add(parametricEqualizerProcessor)
+                            add(spatialAudioProcessor)
+                            add(eightDAudioProcessor)
+                            add(limiterProcessor)
+                            add(visualizerProcessor)
+                            add(beatGridProcessor)
+                            if (!losslessOutput.bypassPcm16Stage) add(pcm16OutputProcessor)
+                        }.toTypedArray()
                     )
                     .withDerbisAudioOutput(context)
                     .build()
@@ -1040,6 +1053,7 @@ class PlaybackService : MediaLibraryService() {
         currentAudioSettings = snapshot.audioSettings.normalized()
         currentAudioNormalization = snapshot.audioNormalization
         player.skipSilenceEnabled = snapshot.skipSilence
+        currentSkipSilence = snapshot.skipSilence
         applyPremiumAudioSettingsInternal(snapshot.audioSettings, snapshot.audioNormalization)
         RuntimeHooks.dsp(RuntimeSignal.DSP_CREATED)
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
@@ -2811,23 +2825,29 @@ class PlaybackService : MediaLibraryService() {
                 context: Context,
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
-            ): AudioSink = DefaultAudioSink.Builder(context)
-                .setEnableFloatOutput(false)
-                .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
-                .setAudioProcessors(
-                    arrayOf(
-                        enhancedAudio,
-                        normalization,
-                        equalizer,
-                        parametricEqualizer,
-                        spatial,
-                        eightD,
-                        limiter,
-                        Pcm16OutputAudioProcessor()
-                    )
+            ): AudioSink {
+                val losslessOutput = DerbisAudioOutputPolicy.plan(
+                    state = DerbisLosslessOutput.state(context),
+                    skipSilenceEnabled = currentSkipSilence
                 )
-                .withDerbisAudioOutput(context)
-                .build()
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(losslessOutput.floatOutput)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(
+                        buildList<AudioProcessor> {
+                            add(enhancedAudio)
+                            add(normalization)
+                            add(equalizer)
+                            add(parametricEqualizer)
+                            add(spatial)
+                            add(eightD)
+                            add(limiter)
+                            if (!losslessOutput.bypassPcm16Stage) add(Pcm16OutputAudioProcessor())
+                        }.toTypedArray()
+                    )
+                    .withDerbisAudioOutput(context)
+                    .build()
+            }
         }.apply {
             setEnableDecoderFallback(true)
             setMediaCodecSelector(NativeAudioIntegration.mediaCodecSelector)

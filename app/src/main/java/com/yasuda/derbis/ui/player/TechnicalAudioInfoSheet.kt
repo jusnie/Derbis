@@ -2,6 +2,7 @@
 
 package com.yasuda.derbis.ui.player
 
+import android.media.AudioFormat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import com.yasuda.derbis.feature.audio.rememberDerbisAudioOutputState
 import com.yasuda.derbis.feature.cast.RemotePlaybackState
 import com.yasuda.derbis.player.NativeAudioIntegration
 import com.yasuda.derbis.player.PlaybackService
+import com.yasuda.derbis.player.audio.DerbisLosslessOutput
 import com.yasuda.derbis.player.enhanced.EnhancedAudioMetrics
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import kotlin.math.roundToInt
@@ -297,8 +299,24 @@ internal fun buildTechnicalOutputRows(
         copy.volume to "${output.volumePercent}%",
         copy.engine to "Media3 · ExoPlayer",
         copy.path to technicalOutputPath(settings, copy),
-        copy.processing to buildProcessingLabel(settings, audioNormalization, copy)
+        copy.processing to buildProcessingLabel(settings, audioNormalization, copy),
+        copy.lossless to technicalLosslessOutputLabel(route)
     )
+}
+
+/**
+ * Whether the connected route can carry the source's samples without a lossy step, and whether
+ * the sink is able to keep them above 16-bit. Same rule the player itself applies when it picks
+ * float or PCM16 output.
+ */
+internal fun technicalLosslessOutputLabel(route: DerbisAudioOutputRoute?): String {
+    if (route == null) return "Unavailable"
+    val decision = DerbisLosslessOutput.decide(setOf(route.type))
+    return when {
+        !decision.capable -> "No · 16-bit path"
+        route.encodings.contains(AudioFormat.ENCODING_PCM_FLOAT) -> "Yes · 24-bit capable"
+        else -> "Yes · 16-bit path"
+    }
 }
 
 internal fun selectedAudioDescriptor(track: Track): PlaybackStreamDescriptor? {
