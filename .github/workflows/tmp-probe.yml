@@ -1,0 +1,43 @@
+name: tmp probe
+on:
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
+permissions:
+  contents: write
+env:
+  DERBIS_VERSION_NAME: "1.5.0"
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish via REST
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p build_output
+          echo dummy-apk > build_output/derbis.apk
+          sha256sum build_output/derbis.apk > build_output/derbis.apk.sha256
+          tag="probe-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
+          api="https://api.github.com/repos/jusnie/Derbis"
+          payload=$(jq -n --arg tag "$tag" --arg target "$GITHUB_SHA" \
+            --arg name "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --arg body "probe body" \
+            '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
+          resp=$(curl -sS -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" -d "$payload" "${api}/releases" 2>&1)
+          code=$?
+          id=$(printf '%s' "$resp" | jq -r '.id // empty' 2>/dev/null)
+          echo "create exit=${code} id=${id}"
+          if [[ -z "${id}" ]]; then
+            echo "::error::CREATE_FAILED $(printf '%s' "$resp" | tr '\n' ' ' | cut -c1-350)"
+            exit 1
+          fi
+          up=$(curl -sS -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Content-Type: application/octet-stream" \
+            --data-binary @build_output/derbis.apk \
+            "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=derbis.apk" 2>&1)
+          astate=$(printf '%s' "$up" | jq -r '.state // .message // "?"' 2>/dev/null)
+          echo "asset state=${astate}"
+          echo "::error::PROBE_OK tag=${tag} id=${id} asset=${astate}"
