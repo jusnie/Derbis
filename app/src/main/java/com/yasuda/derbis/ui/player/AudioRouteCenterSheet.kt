@@ -22,10 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.ExpandMore
-import com.yasuda.derbis.ui.icons.Headphones
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material3.CircularProgressIndicator
