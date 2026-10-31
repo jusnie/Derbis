@@ -21275,10 +21275,9 @@ private fun SettingsOverlay(
                                     onClearListenBrainz,
                                     onSaveAudD,
                                     onClearAudD,
-                                    motionArtworkEnabled = interfaceSettings.motionArtworkEnabled,
-                                    onToggleMotionArtwork = {
-                                        onInterfaceSettings(interfaceSettings.copy(motionArtworkEnabled = it))
-                                    },
+                                    // The panel reads the live state flag, which the Interface
+                                    // toggle keeps in step with the interface snapshot.
+                                    motionArtworkEnabled = motionArtworkEnabled,
                                     onRefreshMotionArtwork = onRefreshMotionArtwork
                                 )
                             }
@@ -22576,7 +22575,6 @@ private fun DiscordRichPresenceSettingsPanel() {
 @Composable
 private fun SpotifyConnectionSettingsPanel(
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit,
     onRefreshMotionArtwork: () -> Unit
 ) {
     val context = LocalContext.current
@@ -22666,7 +22664,7 @@ private fun SpotifyConnectionSettingsPanel(
     val motionSubtitle = when {
         !canvasUnlocked -> strings.motionArtworkSpotifyRequired
         motionArtworkEnabled -> strings.motionArtworkUnlocked
-        else -> "Disabled · Static album covers only"
+        else -> "Session ready · turn on Animated Artwork in Settings → Interface"
     }
 
     Box(
@@ -22756,18 +22754,10 @@ private fun SpotifyConnectionSettingsPanel(
                 )
             }
 
-            Switch(
-                checked = canvasUnlocked && motionArtworkEnabled,
-                onCheckedChange = { onToggleMotionArtwork(it) },
-                enabled = canvasUnlocked,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = DerbisInk,
-                    checkedTrackColor = Color(0xFF1ED760),
-                    disabledCheckedTrackColor = Color.White.copy(alpha = 0.12f),
-                    disabledUncheckedTrackColor = Color.White.copy(alpha = 0.06f),
-                    disabledUncheckedThumbColor = DerbisMuted.copy(alpha = 0.4f)
-                )
-            )
+            // No switch here on purpose. Animated Artwork has one control only — the toggle in
+            // Settings → Interface — so a second switch could never disagree with it. This panel
+            // reports whether a Spotify session is in place (the sp_dc that unlocks official
+            // Canvas lookups) and leaves the on/off decision to that single toggle.
         }
     }
 
@@ -22787,7 +22777,6 @@ private fun IntegrationSettingsPanel(
     onSaveListenBrainz: (String) -> Unit, onClearListenBrainz: () -> Unit,
     onSaveAudD: (String) -> Unit, onClearAudD: () -> Unit,
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit,
     onRefreshMotionArtwork: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
@@ -22799,7 +22788,6 @@ private fun IntegrationSettingsPanel(
         DiscordRichPresenceSettingsPanel()
         SpotifyConnectionSettingsPanel(
             motionArtworkEnabled = motionArtworkEnabled,
-            onToggleMotionArtwork = onToggleMotionArtwork,
             onRefreshMotionArtwork = onRefreshMotionArtwork
         )
         Text("Last.fm", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
