@@ -17,8 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DERBIS_VERSION_NAME: "1.6.0-prebuild.1"
-  DERBIS_VERSION_CODE: "3000211"
+  # Test builds report the requested version name, but keep a version code above the
+  # previous prebuild so the APK installs over it instead of failing as a downgrade.
+  DERBIS_VERSION_NAME: "1.5.0"
+  DERBIS_VERSION_CODE: "3000212"
 
 jobs:
   prebuild-apk:
