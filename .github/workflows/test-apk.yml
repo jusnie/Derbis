@@ -7,10 +7,6 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
-  # TEMPORARY: push-triggered so this branch can start the run (dispatch is 403 here).
-  push:
-    branches:
-      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
