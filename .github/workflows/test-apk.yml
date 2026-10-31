@@ -7,6 +7,10 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
+  # TEMPORARY: start this run by push; removed as soon as it is queued.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
@@ -111,6 +115,21 @@ jobs:
             build_output/derbis.apk.sha256
           if-no-files-found: error
 
+  publish:
+    # A separate, short job on purpose. Every attempt to create the release at the end of the
+    # 14 minute build job failed while the same request from a fresh job succeeds, so publishing
+    # lives here: it only has to download the artifact and push it. If it does fail, re-running
+    # this job alone is enough — it does not rebuild anything.
+    name: Publish pre-release
+    needs: prebuild-apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download derbis.apk
+        uses: actions/download-artifact@v4
+        with:
+          name: derbis-apk
+          path: build_output
+
       - name: Publish pre-release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -127,73 +146,54 @@ jobs:
           - Verify the file with derbis.apk.sha256 before installing.
 
           #Derbis #Prebuild #Android #APK #TestBuild"
-
-          # Publish through the REST API rather than `gh release create`: the CLI pushes the
-          # ~100 MB asset itself, so one hiccup loses the whole call, and the runner's shell runs
-          # with -e, which aborts the step before any error can be reported.
           log=publish.log
           : > "${log}"
-          note() { echo "$1" | tr '\n' ' ' | cut -c1-320; }
+          note() { echo "$1" | tr '\n' ' ' | cut -c1-300; }
 
-          id=""
-          existing=$(curl -sS "${auth[@]}" -w '\n%{http_code}' "${api}/releases/tags/${tag}" 2>>"${log}")
-          status=$(printf '%s' "${existing}" | tail -n1)
-          echo "lookup http=${status}" >> "${log}"
-          if [[ "${status}" == "200" ]]; then
-            id=$(printf '%s' "${existing}" | sed '$d' | jq -r '.id // empty' 2>>"${log}")
-          fi
-
+          id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}" || true)
           if [[ -z "${id}" ]]; then
             payload=$(jq -n --arg tag "${tag}" --arg target "${GITHUB_SHA}" \
               --arg name "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --arg body "${body}" \
               '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
             for attempt in 1 2 3; do
               resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/json" -X POST -d "${payload}" \
-                -w '\n%{http_code}' "${api}/releases" 2>>"${log}")
+                -w '\n%{http_code}' "${api}/releases" 2>>"${log}" || true)
               code=$(printf '%s' "${resp}" | tail -n1)
               json=$(printf '%s' "${resp}" | sed '$d')
-              id=$(printf '%s' "${json}" | jq -r '.id // empty' 2>>"${log}")
+              id=$(printf '%s' "${json}" | jq -r '.id // empty' 2>>"${log}" || true)
               echo "create attempt ${attempt}: http=${code} body=$(note "${json}")" >> "${log}"
               [[ -n "${id}" ]] && break
               sleep 10
             done
           fi
-
-          # Second opinion: if the API refused, let the CLI try once so the annotation shows
-          # whichever error is the real one.
-          if [[ -z "${id}" ]]; then
-            cli=$(gh release create "${tag}" --prerelease --target "${GITHUB_SHA}" \
-              --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --notes "${body}" 2>&1)
-            echo "gh fallback: $(note "${cli}")" >> "${log}"
-            id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" | jq -r '.id // empty' 2>>"${log}")
-          fi
-
           cat "${log}"
           if [[ -z "${id}" ]]; then
-            echo "::error::Could not create pre-release ${tag}. $(note "$(tail -n 4 "${log}")")"
+            echo "::error::Could not create pre-release ${tag}. $(note "$(tail -n 3 "${log}")")"
             exit 1
           fi
-
-          upload() {
-            local file="$1" name="$2"
-            for attempt in 1 2 3; do
-              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/octet-stream" -X POST \
-                --data-binary "@${file}" -w '\n%{http_code}' \
-                "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" 2>>"${log}")
-              state=$(printf '%s' "${resp}" | sed '$d' | jq -r '.state // .message // "unknown"' 2>>"${log}")
-              [[ "${state}" == "uploaded" ]] && { echo "${name} uploaded on attempt ${attempt}" >> "${log}"; return 0; }
-              echo "${name} attempt ${attempt}: ${state}" >> "${log}"
-              sleep 15
-            done
-            return 1
-          }
+          echo "release id ${id}"
 
           ok=1
-          upload build_output/derbis.apk derbis.apk || ok=0
-          upload build_output/derbis.apk.sha256 derbis.apk.sha256 || ok=0
-          cat "${log}"
+          for name in derbis.apk derbis.apk.sha256; do
+            uploaded=0
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/octet-stream" -X POST \
+                --data-binary "@build_output/${name}" -w '\n%{http_code}' \
+                "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" \
+                2>>"${log}" || true)
+              state=$(printf '%s' "${resp}" | sed '$d' | jq -r '.state // .message // "unknown"' 2>>"${log}" || true)
+              if [[ "${state}" == "uploaded" ]]; then
+                echo "${name} uploaded (attempt ${attempt})"
+                uploaded=1
+                break
+              fi
+              echo "${name} attempt ${attempt}: ${state}"
+              sleep 15
+            done
+            [[ "${uploaded}" -eq 1 ]] || ok=0
+          done
           if [[ "${ok}" -ne 1 ]]; then
-            echo "::error::Could not upload the APK to ${tag}. $(note "$(tail -n 4 "${log}")")"
+            echo "::error::Could not upload the APK to ${tag}."
             exit 1
           fi
           echo "Published ${tag}"
