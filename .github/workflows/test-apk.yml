@@ -9,8 +9,6 @@ on:
   push:
     branches:
       - arena/b05b2e2f-derbis
-    paths:
-      - '.github/workflows/test-apk.yml'
 
 permissions:
   contents: write
