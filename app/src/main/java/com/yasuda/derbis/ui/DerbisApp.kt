@@ -22271,6 +22271,9 @@ private fun DiscordRichPresenceSettingsPanel() {
     var presenceEnabled by remember(context) {
         mutableStateOf(discord.isEnabled(context))
     }
+    var lyricsInPresence by remember(context) {
+        mutableStateOf(discord.isLyricsEnabled(context))
+    }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testDiagnosticMessage by remember { mutableStateOf("") }
 
@@ -22279,6 +22282,7 @@ private fun DiscordRichPresenceSettingsPanel() {
     }
     LaunchedEffect(connection.status) {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
+        lyricsInPresence = discord.isLyricsEnabled(context)
     }
     val authorizeDiscord: () -> Unit = {
         discord.beginAuthorization(context)?.let { uri -> openDiscordAuthorization(context, uri) }
@@ -22401,24 +22405,27 @@ private fun DiscordRichPresenceSettingsPanel() {
                 }
             }
 
-            if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
+            SettingsToggle(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Discord Rich Presence",
+                subtitle = "Show Listening in Derbis on your profile: track, cover art, artist icon, progress bar and links",
+                checked = presenceEnabled,
+                onCheckedChange = { value ->
+                    presenceEnabled = value
+                    discord.setEnabled(context, value)
+                }
+            )
+
+            if (presenceEnabled) {
                 SettingsToggle(
-                    icon = Icons.Rounded.AccountCircle,
-                    title = "Discord Rich Presence",
-                    subtitle = "Show the current track, cover art and artist on your Discord profile",
-                    checked = presenceEnabled,
+                    icon = Icons.Rounded.FormatQuote,
+                    title = "Show lyrics in presence",
+                    subtitle = "Publish the current synced lyric line as your activity text (needs synced lyrics; updates at most every 4 seconds)",
+                    checked = lyricsInPresence,
                     onCheckedChange = { value ->
-                        presenceEnabled = value
-                        discord.setEnabled(context, value)
+                        lyricsInPresence = value
+                        discord.setLyricsEnabled(context, value)
                     }
-                )
-            } else {
-                SettingsButton(
-                    icon = Icons.Rounded.AccountCircle,
-                    title = "Rich Presence is unavailable in this build",
-                    subtitle = "Discord only publishes presence through its official Social SDK, which this build does not bundle. Your account stays connected.",
-                    enabled = false,
-                    onClick = {}
                 )
             }
 
