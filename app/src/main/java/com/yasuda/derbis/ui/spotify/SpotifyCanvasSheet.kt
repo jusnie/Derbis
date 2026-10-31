@@ -85,7 +85,11 @@ private const val SPOTIFY_ORIGIN = "https://open.spotify.com"
 private const val SPOTIFY_LOGIN_URL =
     "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
 
-/** A track that has carried a Canvas for years — used by the session test. */
+/**
+ * The sheet's session test uses a well-known track. It does not matter whether this one still has
+ * a Canvas: a miss is reported as "the session works, this track has none", which is exactly the
+ * difference the test exists to show.
+ */
 private const val CANVAS_TEST_TRACK_ID = "0VjIjW4GlUZAMYd2vXMi3b"
 
 private val SpotifyGreen = Color(0xFF1ED760)
