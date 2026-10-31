@@ -94,6 +94,8 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.yasuda.derbis.data.ArtworkPalette
+import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisBeatGridStore
 import com.yasuda.derbis.domain.DerbisBeatGrid
@@ -105,6 +107,7 @@ import com.yasuda.derbis.ui.InstantArtworkPlaceholder
 import com.yasuda.derbis.ui.MotionArtworkLayer
 import com.yasuda.derbis.ui.MotionArtworkPresentation
 import com.yasuda.derbis.ui.artwork.SeamlessArtworkImage
+import com.yasuda.derbis.ui.artwork.rememberArtworkPalette
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
@@ -166,11 +169,30 @@ internal fun PlayerAuraDeck(
     modifier: Modifier = Modifier,
     headlineModifier: Modifier = Modifier
 ) {
-    val velvetTop = remember(track.id, track.accentStart) {
-        androidx.compose.ui.graphics.lerp(Color(track.accentStart), Color.Black, 0.72f)
+    // The cover's own palette, read from the artwork the same way the mini player and the nav bar
+    // read it. The catalog accents go stale and are plain zero for most streams, so the deck asks
+    // for the bitmap, keeps the accents as the fallback while it is being quantised, and lets the
+    // cache answer instantly the next time the track is opened.
+    val paletteKey = remember(track.id, track.thumbnailUrl, track.largeThumbnailUrl) {
+        ArtworkPaletteCache.key(
+            trackId = track.id,
+            thumbnailUrl = track.thumbnailUrl,
+            largeThumbnailUrl = track.largeThumbnailUrl
+        )
     }
-    val velvetMid = remember(track.id, track.accentEnd) {
-        androidx.compose.ui.graphics.lerp(Color(track.accentEnd), Color.Black, 0.86f)
+    val paletteFallback = remember(track.accentStart, track.accentEnd) {
+        ArtworkPalette(track.accentStart, track.accentEnd)
+    }
+    val artworkPalette by rememberArtworkPalette(
+        paletteKey = paletteKey,
+        artworkUrl = artworkUrl,
+        fallback = paletteFallback
+    )
+    val velvetTop = remember(artworkPalette) {
+        androidx.compose.ui.graphics.lerp(Color(artworkPalette.start), Color.Black, 0.72f)
+    }
+    val velvetMid = remember(artworkPalette) {
+        androidx.compose.ui.graphics.lerp(Color(artworkPalette.end), Color.Black, 0.86f)
     }
     // One beat clock for the whole deck: the ring around the artwork and the backdrop behind it
     // must swell on the same frame, and two independent clocks drift apart within a bar.
@@ -187,8 +209,8 @@ internal fun PlayerAuraDeck(
     val hasBeatGrid = beatGrid?.validBpm != null
     // Everything that pulses reads this, so the ring, the bloom and the bar cannot disagree
     // about which colours belong to the sleeve.
-    val beatColors = remember(track.id, track.accentStart, track.accentEnd) {
-        beatPalette(track.accentStart, track.accentEnd)
+    val beatColors = remember(artworkPalette) {
+        beatPalette(artworkPalette.start, artworkPalette.end)
     }
 
     Box(
