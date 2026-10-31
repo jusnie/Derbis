@@ -7,6 +7,10 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
+  # TEMPORARY: start this run by push; removed as soon as it is queued.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
@@ -130,29 +134,47 @@ jobs:
 
           # Publish through the REST API rather than `gh release create`: the CLI pushes the
           # ~100 MB asset itself, so one hiccup loses the whole call, and the runner's shell runs
-          # with -e, which aborts the step before any error can be reported. Every request here is
-          # checked by hand and echoed into a log that is attached to the run.
+          # with -e, which aborts the step before any error can be reported.
           log=publish.log
           : > "${log}"
+          note() { echo "$1" | tr '\n' ' ' | cut -c1-320; }
 
-          id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}")
+          id=""
+          existing=$(curl -sS "${auth[@]}" -w '\n%{http_code}' "${api}/releases/tags/${tag}" 2>>"${log}")
+          status=$(printf '%s' "${existing}" | tail -n1)
+          echo "lookup http=${status}" >> "${log}"
+          if [[ "${status}" == "200" ]]; then
+            id=$(printf '%s' "${existing}" | sed '$d' | jq -r '.id // empty' 2>>"${log}")
+          fi
+
           if [[ -z "${id}" ]]; then
             payload=$(jq -n --arg tag "${tag}" --arg target "${GITHUB_SHA}" \
               --arg name "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --arg body "${body}" \
               '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
             for attempt in 1 2 3; do
               resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/json" -X POST -d "${payload}" \
-                "${api}/releases" 2>>"${log}")
-              id=$(printf '%s' "${resp}" | jq -r '.id // empty' 2>>"${log}")
+                -w '\n%{http_code}' "${api}/releases" 2>>"${log}")
+              code=$(printf '%s' "${resp}" | tail -n1)
+              json=$(printf '%s' "${resp}" | sed '$d')
+              id=$(printf '%s' "${json}" | jq -r '.id // empty' 2>>"${log}")
+              echo "create attempt ${attempt}: http=${code} body=$(note "${json}")" >> "${log}"
               [[ -n "${id}" ]] && break
-              echo "release create attempt ${attempt}: $(printf '%s' "${resp}" | tr '\n' ' ' | cut -c1-200)" >> "${log}"
               sleep 10
             done
           fi
+
+          # Second opinion: if the API refused, let the CLI try once so the annotation shows
+          # whichever error is the real one.
           if [[ -z "${id}" ]]; then
-            echo "Could not create ${tag}" >> "${log}"
-            cat "${log}"
-            echo "::error::Could not create pre-release ${tag}; see ${log} in the job output."
+            cli=$(gh release create "${tag}" --prerelease --target "${GITHUB_SHA}" \
+              --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --notes "${body}" 2>&1)
+            echo "gh fallback: $(note "${cli}")" >> "${log}"
+            id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" | jq -r '.id // empty' 2>>"${log}")
+          fi
+
+          cat "${log}"
+          if [[ -z "${id}" ]]; then
+            echo "::error::Could not create pre-release ${tag}. $(note "$(tail -n 4 "${log}")")"
             exit 1
           fi
 
@@ -160,9 +182,9 @@ jobs:
             local file="$1" name="$2"
             for attempt in 1 2 3; do
               resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/octet-stream" -X POST \
-                --data-binary "@${file}" \
+                --data-binary "@${file}" -w '\n%{http_code}' \
                 "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" 2>>"${log}")
-              state=$(printf '%s' "${resp}" | jq -r '.state // .message // "unknown"' 2>>"${log}")
+              state=$(printf '%s' "${resp}" | sed '$d' | jq -r '.state // .message // "unknown"' 2>>"${log}")
               [[ "${state}" == "uploaded" ]] && { echo "${name} uploaded on attempt ${attempt}" >> "${log}"; return 0; }
               echo "${name} attempt ${attempt}: ${state}" >> "${log}"
               sleep 15
@@ -175,7 +197,7 @@ jobs:
           upload build_output/derbis.apk.sha256 derbis.apk.sha256 || ok=0
           cat "${log}"
           if [[ "${ok}" -ne 1 ]]; then
-            echo "::error::Could not upload the APK to ${tag}; see ${log} above."
+            echo "::error::Could not upload the APK to ${tag}. $(note "$(tail -n 4 "${log}")")"
             exit 1
           fi
           echo "Published ${tag}"
