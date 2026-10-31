@@ -1,0 +1,24 @@
+name: tmp probe
+on:
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe release write
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          echo "token perms via repo field:"
+          gh api repos/jusnie/Derbis --jq '.permissions' || true
+          tag="probe-$(date +%s)"
+          out=$(gh release create "$tag" --draft --target "$GITHUB_SHA" --title "probe" --notes "probe" 2>&1)
+          code=$?
+          echo "exit=$code out=$out"
+          msg=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-280)
+          echo "::error::PROBE exit=$code msg=$msg"
