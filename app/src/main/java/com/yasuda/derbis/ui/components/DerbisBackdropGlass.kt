@@ -35,6 +35,8 @@ import com.yasuda.derbis.ui.components.backdrop.effects.blur
 import com.yasuda.derbis.ui.components.backdrop.effects.colorControls
 import com.yasuda.derbis.ui.components.backdrop.effects.lens
 import com.yasuda.derbis.ui.components.backdrop.highlight.Highlight
+import com.yasuda.derbis.ui.components.backdrop.highlight.HighlightElement
+import com.yasuda.derbis.ui.components.backdrop.internal.ShapeProvider
 import com.yasuda.derbis.ui.components.backdrop.shadow.Shadow
 
 /**
@@ -164,15 +166,37 @@ internal val DerbisGlassEdgeWidth = 0.5.dp
 internal val DerbisGlassEdgeColor = Color.White.copy(alpha = 0.10f)
 
 /**
- * BitChord's lightweight glass: the surface tint and the edge hairline, with no sample of the
- * page behind. This is what a surface draws when the backdrop engine cannot run — Android 11
- * and older, high-contrast materials — and it replaces the old blurred RenderEffect frost that
- * used to sit underneath the real glass.
+ * BitChord's lightweight glass: the surface tint, the edge hairline and, when [rim] is set, the
+ * directional [Highlight] that catches the light along a glass edge — with no sample of the page
+ * behind. This is what a content row, a card or a control draws when it must not sample the
+ * layer it is being recorded into, and what every surface draws when the backdrop engine cannot
+ * run at all (Android 11 and older, high-contrast materials).
  */
-fun Modifier.derbisLightweightGlass(shape: Shape, fill: Color): Modifier =
-    this.clip(shape)
+fun Modifier.derbisLightweightGlass(
+    shape: Shape,
+    fill: Color,
+    rim: Boolean = false,
+    hairline: Boolean = true
+): Modifier {
+    val corner = shape as? CornerBasedShape
+    return this
+        .clip(shape)
         .background(fill, shape)
-        .border(DerbisGlassEdgeWidth, DerbisGlassEdgeColor, shape)
+        .then(
+            if (rim && corner != null) {
+                HighlightElement(
+                    shapeProvider = ShapeProvider { corner },
+                    highlight = { Highlight.Default }
+                )
+            } else {
+                Modifier
+            }
+        )
+        .then(
+            if (hairline) Modifier.border(DerbisGlassEdgeWidth, DerbisGlassEdgeColor, shape) else Modifier
+        )
+}
+
 
 /** The tint a glass surface is filled with when the caller does not supply one. */
 internal fun defaultGlassSurfaceTint(isLight: Boolean): Color =

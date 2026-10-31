@@ -841,7 +841,7 @@ private fun Modifier.miniBackground(
         derbisChromeGlass(
             shape = shape,
             tint = defaultGlassSurfaceTint(isLight = !palette.onDark),
-            fallback = Modifier.derbisLightweightGlass(shape, fill)
+            fallback = Modifier.derbisLightweightGlass(shape, fill, rim = true)
         ).drawBehind { drawRect(sheen) }
     }
     MiniPlayerStyle.Floating, MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,

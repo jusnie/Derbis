@@ -476,7 +476,7 @@ private fun Modifier.navBackground(
         derbisChromeGlass(
             shape = RectangleShape,
             tint = defaultGlassSurfaceTint(colors.isLight),
-            fallback = Modifier.derbisLightweightGlass(RectangleShape, fallback)
+            fallback = Modifier.derbisLightweightGlass(RectangleShape, fallback, rim = true)
         )
     }
 }
@@ -502,7 +502,7 @@ private fun Modifier.navLiquidGlass(
     val material = derbisChromeGlass(
         shape = shape,
         tint = defaultGlassSurfaceTint(colors.isLight),
-        fallback = Modifier.derbisLightweightGlass(shape, fallback)
+        fallback = Modifier.derbisLightweightGlass(shape, fallback, rim = true)
     ).drawBehind { drawRect(sheen) }
     return shadow(
         elevation = (8f + 10f * depth).dp,

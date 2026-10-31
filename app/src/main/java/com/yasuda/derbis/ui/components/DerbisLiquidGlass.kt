@@ -196,10 +196,16 @@ internal fun Modifier.resolvedDerbisGlass(
         )
     }
     // No frost layer any more: a surface either samples the page backdrop with the real
-    // glass, or it is a flat translucent material. The old blurred RenderEffect sample was
-    // a second, weaker glass stacked under the real one.
+    // glass, or it is BitChord's lightweight material — the same tint with the edge light —
+    // because a card drawn inside the recorded page must not sample that page. The old
+    // blurred RenderEffect sample was a second, weaker glass stacked under the real one.
     this
-        .background(materialFallback, shape)
+        .derbisLightweightGlass(
+            shape = shape,
+            fill = materialFallback,
+            rim = !opaqueMaterial && tier != GlassLensTier.Efficient,
+            hairline = false
+        )
         .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
 }
 
