@@ -1,0 +1,37 @@
+name: tmp probe
+on:
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
+permissions:
+  contents: write
+  pull-requests: write
+env:
+  DERBIS_VERSION_NAME: "1.5.0"
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replay publish verbatim with stderr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          tag="prebuild-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
+          notes="Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release.
+
+          - Package stays \`com.derbis.app\`, app name stays Derbis, version name reads ${DERBIS_VERSION_NAME}.
+          - Signed with the CI debug key; unreleased and unsupported.
+          - Verify the file with derbis.apk.sha256 before installing.
+
+          #Derbis #Prebuild #Android #APK #TestBuild"
+          out=$(gh release create "${tag}" \
+            --prerelease \
+            --target "${GITHUB_SHA}" \
+            --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" \
+            --notes "${notes}" 2>&1)
+          code=$?
+          msg=$(printf '%s' "$out" | tr '\n' ' ' | cut -c1-420)
+          echo "::error::CREATE tag=${tag} exit=${code} out=${msg}"
