@@ -441,6 +441,31 @@ class DerbisStrings private constructor(
     val canvasSourceAuto: String get() = "Owned catalog"
     val canvasSourceApple: String get() = "Derbis Canvas Catalog"
     val canvasSourceTidal: String get() = "Derbis Canvas Catalog"
+    val spotifyCanvasTitle: String get() = value("spotifyCanvasTitle")
+    val spotifyCanvasSubtitle: String get() = value("spotifyCanvasSubtitle")
+    val spotifyCanvasOpenBrowser: String get() = value("spotifyCanvasOpenBrowser")
+    val spotifyCanvasDeveloper: String get() = value("spotifyCanvasDeveloper")
+    val spotifyCanvasCookieLabel: String get() = value("spotifyCanvasCookieLabel")
+    val spotifyCanvasNoSession: String get() = value("spotifyCanvasNoSession")
+    val spotifyCanvasUnlocked: String get() = value("spotifyCanvasUnlocked")
+    val spotifyCanvasLocked: String get() = value("spotifyCanvasLocked")
+    val spotifyCanvasTest: String get() = value("spotifyCanvasTest")
+    val spotifyCanvasTestOk: String get() = value("spotifyCanvasTestOk")
+    val spotifyCanvasTestNoCanvas: String get() = value("spotifyCanvasTestNoCanvas")
+    val spotifyCanvasSaved: String get() = value("spotifyCanvasSaved")
+    val spotifyCanvasRemoved: String get() = value("spotifyCanvasRemoved")
+    val spotifyCanvasCopied: String get() = value("spotifyCanvasCopied")
+    val spotifyCanvasReveal: String get() = value("spotifyCanvasReveal")
+    val spotifyCanvasCopy: String get() = value("spotifyCanvasCopy")
+    val spotifyCanvasPaste: String get() = value("spotifyCanvasPaste")
+    val spotifyCanvasPasteLabel: String get() = value("spotifyCanvasPasteLabel")
+    val spotifyCanvasUseDetected: String get() = value("spotifyCanvasUseDetected")
+    val spotifyCanvasRemove: String get() = value("spotifyCanvasRemove")
+    val spotifyCanvasDeveloperHint: String get() = value("spotifyCanvasDeveloperHint")
+    val spotifyCanvasDetected: String get() = value("spotifyCanvasDetected")
+    val spotifyCanvasSigningIn: String get() = value("spotifyCanvasSigningIn")
+    val spotifyCanvasUseAccount: String get() = value("spotifyCanvasUseAccount")
+    val spotifyCanvasWebError: String get() = value("spotifyCanvasWebError")
     val motionArtworkWifiOnly: String get() = value("motionArtworkWifiOnly")
     val motionArtworkWifiOnlySubtitle: String get() = value("motionArtworkWifiOnlySubtitle")
     val motionArtworkEnabled: String get() = value("motionArtworkEnabled")
@@ -2187,6 +2212,31 @@ class DerbisStrings private constructor(
             "motionArtworkSpotifyRequired",
             "motionArtworkUnlocked",
             "motionArtworkLocked",
+            "spotifyCanvasTitle",
+            "spotifyCanvasSubtitle",
+            "spotifyCanvasOpenBrowser",
+            "spotifyCanvasDeveloper",
+            "spotifyCanvasCookieLabel",
+            "spotifyCanvasNoSession",
+            "spotifyCanvasUnlocked",
+            "spotifyCanvasLocked",
+            "spotifyCanvasTest",
+            "spotifyCanvasTestOk",
+            "spotifyCanvasTestNoCanvas",
+            "spotifyCanvasSaved",
+            "spotifyCanvasRemoved",
+            "spotifyCanvasCopied",
+            "spotifyCanvasReveal",
+            "spotifyCanvasCopy",
+            "spotifyCanvasPaste",
+            "spotifyCanvasPasteLabel",
+            "spotifyCanvasUseDetected",
+            "spotifyCanvasRemove",
+            "spotifyCanvasDeveloperHint",
+            "spotifyCanvasDetected",
+            "spotifyCanvasSigningIn",
+            "spotifyCanvasUseAccount",
+            "spotifyCanvasWebError",
             "sharePlaylist",
             "enhanceVideoMetadata",
             "enhanceVideoMetadataSubtitle",

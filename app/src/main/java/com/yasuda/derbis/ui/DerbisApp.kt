@@ -126,6 +126,7 @@ import com.yasuda.derbis.ui.lyrics.lyricsProviderDisplayName
 import com.yasuda.derbis.ui.lyrics.lyricsShouldFollowActiveLine
 import com.yasuda.derbis.ui.lyrics.LyricsShareSheet
 import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
+import com.yasuda.derbis.ui.spotify.SpotifyCanvasSheet
 import com.yasuda.derbis.ui.lyrics.LyricsShareSnapshot
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
@@ -388,6 +389,7 @@ import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.CloseFullscreen
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ColorLens
@@ -628,6 +630,9 @@ import com.yasuda.derbis.data.filterSearchSongsExcludingTopResult
 import com.yasuda.derbis.data.findVerifiedTopResultArtist
 import com.yasuda.derbis.data.deduplicateSearchSongs
 import com.yasuda.derbis.data.selectSearchTopResultTracks
+import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
+import com.yasuda.derbis.data.spotify.SpotifyCookie
 import com.yasuda.derbis.player.NativeAudioIntegration
 import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
@@ -2961,6 +2966,8 @@ fun DerbisApp(
                     },
                     onOpenAudioSettings = viewModel::openAudioQualityPanel,
                     onInterfaceSettings = viewModel::setInterfaceSettings,
+                    // A fresh Spotify session invalidates whatever Canvas was refused before it.
+                    onRefreshMotionArtwork = viewModel::refreshCurrentMotionArtwork,
                     onAmbientSettings = viewModel::updateAmbientSettings,
                     onOpenAmbient = {
                         viewModel.closeSettings()
@@ -20808,6 +20815,7 @@ private fun SettingsOverlay(
     onOpenNavigationStudio: () -> Unit = {},
     onOpenAudioSettings: () -> Unit,
     onInterfaceSettings: (DerbisInterfaceSettings) -> Unit,
+    onRefreshMotionArtwork: () -> Unit,
     onAmbientSettings: (DerbisAmbientSettings) -> Unit,
     onOpenAmbient: () -> Unit,
     onIncludeArtist: (ExcludedArtist) -> Unit,
@@ -21138,7 +21146,8 @@ private fun SettingsOverlay(
                                     motionArtworkEnabled = interfaceSettings.motionArtworkEnabled,
                                     onToggleMotionArtwork = {
                                         onInterfaceSettings(interfaceSettings.copy(motionArtworkEnabled = it))
-                                    }
+                                    },
+                                    onRefreshMotionArtwork = onRefreshMotionArtwork
                                 )
                             }
                         }
@@ -22471,13 +22480,17 @@ private fun DiscordRichPresenceSettingsPanel() {
 @Composable
 private fun SpotifyConnectionSettingsPanel(
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit
+    onToggleMotionArtwork: (Boolean) -> Unit,
+    onRefreshMotionArtwork: () -> Unit
 ) {
     val context = LocalContext.current
     val strings = LocalDerbisStrings.current
     val spotifyState by com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
+    val spotifySession by DerbisSpotifySession.state.collectAsStateWithLifecycle()
+    var showSpotifyCanvasSheet by remember { mutableStateOf(false) }
     LaunchedEffect(context) {
-        com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.initialize(context)
+        DerbisSpotifyConnection.initialize(context)
+        DerbisSpotifySession.initialize(context)
     }
     val subtitle = when (spotifyState.status) {
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connected ->
@@ -22491,7 +22504,46 @@ private fun SpotifyConnectionSettingsPanel(
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Disconnected ->
             "Connect your account with Spotify’s official sign-in"
     }
-    Text("Spotify", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    // The developer door sits in the upper right of the section, where a session is advertised
+    // without giving it a whole row of its own.
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Spotify",
+            color = DerbisText,
+            fontWeight = FontWeight.Black,
+            fontSize = 17.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(99.dp))
+                .clickable { showSpotifyCanvasSheet = true }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Code,
+                contentDescription = strings.spotifyCanvasDeveloper,
+                tint = if (spotifySession.hasCookie) Color(0xFF1ED760) else DerbisMuted,
+                modifier = Modifier.size(15.dp)
+            )
+            Text(
+                text = if (spotifySession.hasCookie) {
+                    SpotifyCookie.masked(DerbisSpotifySession.cookie())
+                } else {
+                    strings.spotifyCanvasDeveloper
+                },
+                color = if (spotifySession.hasCookie) Color(0xFF1ED760) else DerbisMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+        }
+    }
     SettingsButton(
         icon = Icons.Rounded.AccountCircle,
         title = if (spotifyState.isConnected) "Disconnect Spotify" else "Connect Spotify",
@@ -22512,9 +22564,11 @@ private fun SpotifyConnectionSettingsPanel(
         }
     }
 
-    val isConnected = spotifyState.isConnected
+    // Canvas needs a Spotify session, and there are two ways to have one: the official OAuth
+    // connection (when the build carries a client id) or the web session held by the sheet.
+    val canvasUnlocked = spotifyState.isConnected || spotifySession.hasCookie
     val motionSubtitle = when {
-        !isConnected -> strings.motionArtworkSpotifyRequired
+        !canvasUnlocked -> strings.motionArtworkSpotifyRequired
         motionArtworkEnabled -> strings.motionArtworkUnlocked
         else -> "Disabled · Static album covers only"
     }
@@ -22524,18 +22578,23 @@ private fun SpotifyConnectionSettingsPanel(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
+                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
             )
             .border(
                 1.dp,
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
+                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
                 RoundedCornerShape(18.dp)
             )
-            .clickable(enabled = !isConnected) {
-                val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-                if (authorizationUri != null) {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
+            .clickable(enabled = !canvasUnlocked) {
+                // Locked: the old web-login card opened OAuth. That path is unavailable in builds
+                // without a client id, so it opens the session sheet, which has the browser.
+                showSpotifyCanvasSheet = true
+                if (!spotifySession.hasCookie) {
+                    val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
+                    if (authorizationUri != null) {
+                        runCatching {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
+                        }
                     }
                 }
             }
@@ -22551,14 +22610,14 @@ private fun SpotifyConnectionSettingsPanel(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isConnected) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
+                        if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isConnected) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
+                    imageVector = if (canvasUnlocked) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
                     contentDescription = null,
-                    tint = if (isConnected) Color(0xFF1ED760) else DerbisMuted,
+                    tint = if (canvasUnlocked) Color(0xFF1ED760) else DerbisMuted,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -22570,7 +22629,7 @@ private fun SpotifyConnectionSettingsPanel(
                 ) {
                     Text(
                         text = strings.motionArtworkEnabled,
-                        color = if (isConnected) DerbisText else DerbisMuted,
+                        color = if (canvasUnlocked) DerbisText else DerbisMuted,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -22578,14 +22637,14 @@ private fun SpotifyConnectionSettingsPanel(
                         modifier = Modifier
                             .clip(RoundedCornerShape(99.dp))
                             .background(
-                                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.20f)
+                                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
                                 else Color(0xFFFF5E3A).copy(alpha = 0.15f)
                             )
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = if (isConnected) "UNLOCKED" else "LOGIN REQUIRED",
-                            color = if (isConnected) Color(0xFF1ED760) else Color(0xFFFF5E3A),
+                            text = if (canvasUnlocked) "UNLOCKED" else "LOGIN REQUIRED",
+                            color = if (canvasUnlocked) Color(0xFF1ED760) else Color(0xFFFF5E3A),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.6.sp
@@ -22595,16 +22654,16 @@ private fun SpotifyConnectionSettingsPanel(
 
                 Text(
                     text = motionSubtitle,
-                    color = if (isConnected) DerbisMuted else Color.White.copy(alpha = 0.45f),
+                    color = if (canvasUnlocked) DerbisMuted else Color.White.copy(alpha = 0.45f),
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
             }
 
             Switch(
-                checked = isConnected && motionArtworkEnabled,
+                checked = canvasUnlocked && motionArtworkEnabled,
                 onCheckedChange = { onToggleMotionArtwork(it) },
-                enabled = isConnected,
+                enabled = canvasUnlocked,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = DerbisInk,
                     checkedTrackColor = Color(0xFF1ED760),
@@ -22614,6 +22673,13 @@ private fun SpotifyConnectionSettingsPanel(
                 )
             )
         }
+    }
+
+    if (showSpotifyCanvasSheet) {
+        SpotifyCanvasSheet(
+            onDismiss = { showSpotifyCanvasSheet = false },
+            onSessionSaved = onRefreshMotionArtwork
+        )
     }
 }
 
@@ -22625,7 +22691,8 @@ private fun IntegrationSettingsPanel(
     onSaveListenBrainz: (String) -> Unit, onClearListenBrainz: () -> Unit,
     onSaveAudD: (String) -> Unit, onClearAudD: () -> Unit,
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit
+    onToggleMotionArtwork: (Boolean) -> Unit,
+    onRefreshMotionArtwork: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     var lastFmKey by remember { mutableStateOf("") }
@@ -22636,7 +22703,8 @@ private fun IntegrationSettingsPanel(
         DiscordRichPresenceSettingsPanel()
         SpotifyConnectionSettingsPanel(
             motionArtworkEnabled = motionArtworkEnabled,
-            onToggleMotionArtwork = onToggleMotionArtwork
+            onToggleMotionArtwork = onToggleMotionArtwork,
+            onRefreshMotionArtwork = onRefreshMotionArtwork
         )
         Text("Last.fm", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
         OutlinedTextField(

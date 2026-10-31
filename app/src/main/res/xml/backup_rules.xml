@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <include domain="sharedpref" path="." />
+    <!-- Spotify credentials are Keystore-encrypted per device; never ship them to a backup. -->
+    <exclude domain="sharedpref" path="derbis_spotify_session.xml" />
+    <exclude domain="sharedpref" path="derbis_spotify_connection.xml" />
 </full-backup-content>
