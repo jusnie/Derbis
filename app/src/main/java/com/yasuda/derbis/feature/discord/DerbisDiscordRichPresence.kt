@@ -21,7 +21,7 @@ import timber.log.Timber
  *
  * Supports both:
  *  1. OuterTune / KizzyRPC direct Discord Gateway WebSocket & REST client
- *     (with clickable buttons, progress bar, dual artwork/artist icon assets, and connection tester)
+ *     (track title, artist, cover art and artist icon, plus a connection tester)
  *  2. Optional Android Discord Social SDK native bridge when available.
  */
 enum class DerbisDiscordConnectionStatus {
@@ -54,14 +54,7 @@ internal data class DerbisDiscordPresenceSnapshot(
     val artistThumbnailUrl: String = "",
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
-    val songUrl: String = "",
-    val artistUrl: String = "",
-    val playing: Boolean = false,
-    /**
-     * Current synced lyric line, already sanitized to Discord's 128 character activity limit.
-     * Blank whenever the lyrics-in-presence option is off or the track has no synced lyrics.
-     */
-    val lyricLine: String = ""
+    val playing: Boolean = false
 ) {
     /** Re-publish on a track/state change and periodically enough to recover from a seek. */
     val syncKey: String
@@ -72,27 +65,17 @@ internal data class DerbisDiscordPresenceSnapshot(
             artistId,
             artworkUrl,
             artistThumbnailUrl,
-            durationMs.toString(),
-            playing.toString(),
-            if (playing) (positionMs.coerceAtLeast(0L) / DISCORD_POSITION_RESYNC_MS).toString() else "",
-            lyricLine
+            playing.toString()
         ).joinToString(separator = "\u0000")
-
-    /** Second activity line: keeps the track visible while the first line shows lyrics. */
-    val artistTitleLine: String
-        get() = listOf(artist, title)
-            .filter(String::isNotBlank)
-            .joinToString(separator = " — ")
 }
 
 private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
-private const val DISCORD_POSITION_RESYNC_MS = 30_000L
 
 /**
  * Discord only accepts five game-status updates per 20 seconds per session
  * (https://discord.com/developers/docs/events/gateway-events#update-presence),
- * so live lyric lines are spaced at least this far apart and bursts are coalesced
- * into a single trailing update instead of being dropped.
+ * so updates are spaced at least this far apart and bursts are coalesced into a
+ * single trailing update instead of being dropped.
  */
 internal const val DISCORD_PRESENCE_MIN_INTERVAL_MS = 4_000L
 
@@ -107,13 +90,6 @@ internal fun shouldFlushPresenceNow(
     lastSentElapsedMs: Long,
     minIntervalMs: Long = DISCORD_PRESENCE_MIN_INTERVAL_MS
 ): Boolean = lastSentElapsedMs <= 0L || nowElapsedMs - lastSentElapsedMs >= minIntervalMs
-
-/**
- * Shifts the playback clock by the user's calibrated lyric delay before the active line is
- * resolved, so a Bluetooth output that lags the audio clock does not push the presence ahead.
- */
-internal fun discordLyricPositionMs(positionMs: Long, offsetMs: Long): Long =
-    (positionMs - offsetMs).coerceAtLeast(0L)
 
 /**
  * Creates a rate-safe presence snapshot from active playback metadata.
@@ -133,8 +109,7 @@ internal fun derbisDiscordPresenceSnapshot(
     track: Track?,
     positionMs: Long,
     durationMs: Long,
-    playing: Boolean,
-    lyricLine: String = ""
+    playing: Boolean
 ): DerbisDiscordPresenceSnapshot {
     val title = track?.title.orEmpty().discordPresenceText()
     val artist = track?.artist.orEmpty().discordPresenceText()
@@ -144,8 +119,6 @@ internal fun derbisDiscordPresenceSnapshot(
         .firstOrNull(String::isNotBlank)
         .orEmpty()
     val effectiveDuration = if (durationMs > 0L) durationMs else (track?.durationMs ?: 0L)
-    val songUrl = if (track?.id?.isNotBlank() == true) "https://derbis-web.vercel.app/t/${track.id}" else ""
-    val artistUrl = if (artistId.isNotBlank()) "https://music.youtube.com/channel/$artistId" else ""
 
     return DerbisDiscordPresenceSnapshot(
         trackId = track?.id.orEmpty(),
@@ -156,10 +129,7 @@ internal fun derbisDiscordPresenceSnapshot(
         artistThumbnailUrl = artwork,
         positionMs = positionMs.coerceAtLeast(0L),
         durationMs = effectiveDuration.coerceAtLeast(0L),
-        songUrl = songUrl,
-        artistUrl = artistUrl,
-        playing = playing && title.isNotBlank(),
-        lyricLine = if (playing && title.isNotBlank()) lyricLine.discordPresenceText() else ""
+        playing = playing && title.isNotBlank()
     )
 }
 
@@ -176,7 +146,6 @@ private fun String.discordExternalArtworkUrl(): String {
 object DerbisDiscordRichPresence {
     private const val PREFERENCES = "derbis_discord_presence"
     private const val ENABLED_KEY = "enabled"
-    private const val LYRICS_KEY = "lyrics_in_presence"
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -361,59 +330,26 @@ object DerbisDiscordRichPresence {
         if (allowed) publishStored(context) else clear()
     }
 
-    /**
-     * Lyrics in presence is opt-in: it publishes the exact line being sung, which is more
-     * granular than the track title and artist that the presence already shows.
-     */
-    fun isLyricsEnabled(context: Context): Boolean =
-        context.applicationContext
-            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-            .getBoolean(LYRICS_KEY, false)
-
-    fun setLyricsEnabled(context: Context, enabled: Boolean) {
-        applicationContext = context.applicationContext
-        context.applicationContext
-            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(LYRICS_KEY, enabled)
-            .apply()
-        // Drop the line immediately when turning the option off instead of waiting for the
-        // next playback tick; turning it on lets the player republish with the current line.
-        val current = lastPresence
-        if (!enabled && current.lyricLine.isNotBlank()) {
-            lastPresence = current.copy(lyricLine = "")
-            publishStored(context)
-        }
-    }
-
     internal fun publish(context: Context, presence: DerbisDiscordPresenceSnapshot) {
         applicationContext = context.applicationContext
-        // The preference is authoritative here so a stale snapshot can never leak lyrics.
-        val effective = if (presence.lyricLine.isBlank() || isLyricsEnabled(context)) {
-            presence
-        } else {
-            presence.copy(lyricLine = "")
-        }
-        lastPresence = effective
-        if (!effective.playing || !isEnabled(context)) {
+        lastPresence = presence
+        if (!presence.playing || !isEnabled(context)) {
             clear()
             return
         }
 
-        // Publish via WebSocket Gateway RPC (clickable buttons, progress bar, dual artwork/artist icon)
-        enqueueGatewayPresence(effective)
+        // Publish via WebSocket Gateway RPC (cover art, artist icon, title and artist only)
+        enqueueGatewayPresence(presence)
 
-        // Publish via native bridge if loaded. The Social SDK activity has no lyric field, so
-        // strip it before dedupe to avoid re-sending the same title/artist on every line change.
+        // Publish via native bridge if loaded.
         if (loadBridge()) {
-            publishNative(effective.copy(lyricLine = ""))
+            publishNative(presence)
         }
     }
 
     /**
      * Sends a gateway presence update immediately when the 5-per-20-seconds budget allows,
      * otherwise keeps only the newest snapshot and flushes it once the window reopens.
-     * Without this a rapidly changing lyric line would trip Discord's presence rate limit.
      */
     private fun enqueueGatewayPresence(presence: DerbisDiscordPresenceSnapshot) {
         val now = SystemClock.elapsedRealtime()
@@ -488,7 +424,7 @@ object DerbisDiscordRichPresence {
         if (!lastPresence.playing || !isEnabled(context)) return
         enqueueGatewayPresence(lastPresence)
         if (loadBridge()) {
-            publishNative(lastPresence.copy(lyricLine = ""), force = true)
+            publishNative(lastPresence, force = true)
         }
     }
 

@@ -53,24 +53,7 @@ class DiscordRichPresenceTest {
         assertEquals("https://lh3.googleusercontent.com/large_thumbnail.jpg", snapshot.artworkUrl)
         assertEquals(45_000L, snapshot.positionMs)
         assertEquals(213_000L, snapshot.durationMs)
-        assertEquals("https://derbis-web.vercel.app/t/dQw4w9WgXcQ", snapshot.songUrl)
-        assertEquals("https://music.youtube.com/channel/UCuAXFkgsw1L7xaCfnd5JJOw", snapshot.artistUrl)
         assertTrue(snapshot.playing)
-    }
-
-    @Test
-    fun testProgressBarTimestampMath() {
-        val now = 1_700_000_000_000L
-        val positionMs = 30_000L
-        val durationMs = 180_000L
-
-        val startMs = now - positionMs
-        val endMs = startMs + durationMs
-
-        assertEquals(now - 30_000L, startMs)
-        assertEquals(startMs + 180_000L, endMs)
-        assertEquals(durationMs, endMs - startMs)
-        assertTrue("End timestamp must be strictly greater than start timestamp", endMs > startMs)
     }
 
     @Test
@@ -99,61 +82,6 @@ class DiscordRichPresenceTest {
         val snap2 = derbisDiscordPresenceSnapshot(track2, 10_000L, 200_000L, true)
 
         assertTrue(snap1.syncKey != snap2.syncKey)
-    }
-
-    @Test
-    fun testLyricLineIsSanitizedAndCappedAtDiscordLimit() {
-        val noisy = "  I   never   wanna\tbe  " + "x".repeat(200)
-        val snapshot = derbisDiscordPresenceSnapshot(
-            track = sampleTrack(),
-            positionMs = 12_000L,
-            durationMs = 213_000L,
-            playing = true,
-            lyricLine = noisy
-        )
-
-        assertTrue(snapshot.lyricLine.startsWith("I never wanna be"))
-        assertFalse(snapshot.lyricLine.contains("  "))
-        assertEquals(128, snapshot.lyricLine.length)
-    }
-
-    @Test
-    fun testLyricLineClearedWhenPausedOrTrackMissing() {
-        val playing = derbisDiscordPresenceSnapshot(sampleTrack(), 1_000L, 213_000L, true, "hello")
-        assertEquals("hello", playing.lyricLine)
-
-        val paused = derbisDiscordPresenceSnapshot(sampleTrack(), 1_000L, 213_000L, false, "hello")
-        assertEquals("", paused.lyricLine)
-
-        val noTrack = derbisDiscordPresenceSnapshot(null, 1_000L, 0L, true, "hello")
-        assertEquals("", noTrack.lyricLine)
-    }
-
-    @Test
-    fun testSyncKeyTracksLyricLineChanges() {
-        val track = sampleTrack()
-        val first = derbisDiscordPresenceSnapshot(track, 5_000L, 213_000L, true, "line one")
-        val second = derbisDiscordPresenceSnapshot(track, 5_000L, 213_000L, true, "line two")
-
-        assertTrue(first.syncKey != second.syncKey)
-    }
-
-    @Test
-    fun testArtistTitleLineKeepsTrackVisibleDuringLyrics() {
-        val snapshot = derbisDiscordPresenceSnapshot(sampleTrack(), 0L, 213_000L, true, "line")
-
-        assertEquals("Rick Astley — Never Gonna Give You Up", snapshot.artistTitleLine)
-    }
-
-    @Test
-    fun testLyricPositionHonoursLatencyOffset() {
-        // Positive offset = lyrics should trail the audio clock (Bluetooth lag).
-        assertEquals(28_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = 2_000L))
-        // Negative offset = lyrics should lead it.
-        assertEquals(32_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = -2_000L))
-        // Never resolves a line before the track starts.
-        assertEquals(0L, discordLyricPositionMs(positionMs = 500L, offsetMs = 5_000L))
-        assertEquals(30_000L, discordLyricPositionMs(positionMs = 30_000L, offsetMs = 0L))
     }
 
     @Test

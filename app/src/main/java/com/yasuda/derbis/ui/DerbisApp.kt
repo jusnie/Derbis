@@ -22257,9 +22257,6 @@ private fun DiscordRichPresenceSettingsPanel() {
     var presenceEnabled by remember(context) {
         mutableStateOf(discord.isEnabled(context))
     }
-    var lyricsInPresence by remember(context) {
-        mutableStateOf(discord.isLyricsEnabled(context))
-    }
     var showLoginSheet by remember { mutableStateOf(false) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testDiagnosticMessage by remember { mutableStateOf("") }
@@ -22269,7 +22266,6 @@ private fun DiscordRichPresenceSettingsPanel() {
     }
     LaunchedEffect(connection.status) {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
-        lyricsInPresence = discord.isLyricsEnabled(context)
     }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
@@ -22280,7 +22276,7 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Connect Discord",
-                subtitle = "Sign in via Normal Web Login or User Token for Rich Presence",
+                subtitle = "Sign in with your Discord account to show what you're listening to",
                 onClick = { showLoginSheet = true }
             )
             SettingsButton(
@@ -22392,26 +22388,13 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsToggle(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Discord Rich Presence",
-                subtitle = "Show current track, cover art, artist icon, progress bar, and clickable links",
+                subtitle = "Show the current track, cover art and artist on your Discord profile",
                 checked = presenceEnabled,
                 onCheckedChange = { value ->
                     presenceEnabled = value
                     discord.setEnabled(context, value)
                 }
             )
-
-            if (presenceEnabled) {
-                SettingsToggle(
-                    icon = Icons.Rounded.FormatQuote,
-                    title = "Show lyrics in presence",
-                    subtitle = "Publish the current synced lyric line as your activity text (needs synced lyrics; updates at most every 4 seconds)",
-                    checked = lyricsInPresence,
-                    onCheckedChange = { value ->
-                        lyricsInPresence = value
-                        discord.setLyricsEnabled(context, value)
-                    }
-                )
-            }
 
             SettingsButton(
                 icon = Icons.Rounded.Refresh,

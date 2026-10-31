@@ -24,11 +24,12 @@ import java.util.concurrent.atomic.AtomicInteger
  * Pure Kotlin Discord Gateway & RPC client (OuterTune / KizzyRPC pattern).
  *
  * Implements Discord Rich Presence over Discord Gateway v10 WebSocket, supporting:
- *  1. Clickable song and artist buttons (`buttons` + `metadata.button_urls`)
- *  2. Dual assets: high-res song album cover (`large_image`) and artist avatar icon (`small_image`)
- *  3. Live working progress bar with accurate `start` and `end` timestamps
- *  4. Real-time Connection Tester with 4-phase diagnostics (Network, REST API, Profile, Gateway)
- *  5. Direct token login and improved normal login session management
+ *  1. Dual assets: high-res song album cover (`large_image`) and artist avatar icon (`small_image`)
+ *  2. Real-time Connection Tester with 4-phase diagnostics (Network, REST API, Profile, Gateway)
+ *  3. Direct token login and improved normal login session management
+ *
+ * The activity deliberately carries no buttons, timestamps or lyric line: only the track
+ * title, the artist and the two artwork assets.
  */
 object DiscordRpcClient {
     private const val GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
@@ -207,7 +208,7 @@ object DiscordRpcClient {
     }
 
     /**
-     * Updates Discord Rich Presence with buttons, progress bar, and dual artwork assets.
+     * Updates Discord Rich Presence with the track title, artist and dual artwork assets.
      */
     internal fun updatePresence(presence: DerbisDiscordPresenceSnapshot) {
         lastPresence = presence
@@ -215,41 +216,15 @@ object DiscordRpcClient {
 
         val activities = JSONArray()
         if (presence.playing && presence.title.isNotBlank()) {
-            // Lyrics mode keeps the track visible on line two while line one carries the
-            // current lyric, mirroring how desktop lyric-presence clients lay it out.
-            val lyricLine = presence.lyricLine
-            val hasLyrics = lyricLine.isNotBlank()
-            val detailsText = if (hasLyrics) lyricLine else presence.title
-            val stateText = if (hasLyrics) {
-                presence.artistTitleLine.ifBlank { "Derbis" }.activityText()
-            } else {
-                presence.artist.ifBlank { "Unknown Artist" }
-            }
             val activity = JSONObject().apply {
                 put("name", "Derbis")
                 put("type", 2) // 2 = Listening to
-                put("details", detailsText)
-                put("state", stateText)
+                put("details", presence.title.activityText())
+                put("state", presence.artist.ifBlank { "Unknown Artist" }.activityText())
                 put("application_id", DEFAULT_APP_ID)
-                if (hasLyrics) {
-                    // 0 = NAME, 1 = STATE, 2 = DETAILS. Showing DETAILS puts the lyric line
-                    // in the member-list status text, so friends see it without expanding.
-                    put("status_display_type", 2)
-                }
 
-                // 1. Working Progress Bar (Requires both start and end timestamps)
-                if (presence.durationMs > 0L) {
-                    val now = System.currentTimeMillis()
-                    val startMs = (now - presence.positionMs.coerceAtLeast(0L)).coerceAtLeast(0L)
-                    val endMs = startMs + presence.durationMs
-                    put("timestamps", JSONObject().apply {
-                        put("start", startMs)
-                        put("end", endMs)
-                    })
-                }
-
-                // 2. Song Cover and Artist Icon (Dual-Asset)
-                val assets = JSONObject().apply {
+                // Song cover and artist icon (dual-asset)
+                put("assets", JSONObject().apply {
                     if (presence.artworkUrl.isNotBlank()) {
                         put("large_image", presence.artworkUrl)
                         put("large_text", presence.title)
@@ -264,31 +239,6 @@ object DiscordRpcClient {
                         put("small_image", "derbis_listening")
                         put("small_text", "Derbis Music")
                     }
-                }
-                put("assets", assets)
-
-                // 3. Clickable Song and Artist Buttons
-                val songLink = presence.songUrl.ifBlank {
-                    if (presence.trackId.isNotBlank()) "https://derbis-web.vercel.app/t/${presence.trackId}"
-                    else "https://derbis-web.vercel.app"
-                }
-                val artistLink = presence.artistUrl.ifBlank {
-                    if (presence.artistId.isNotBlank()) "https://music.youtube.com/channel/${presence.artistId}"
-                    else "https://derbis-web.vercel.app"
-                }
-
-                val buttonsArray = JSONArray().apply {
-                    put("Play on Derbis")
-                    put("Artist Profile")
-                }
-                val buttonUrls = JSONArray().apply {
-                    put(songLink)
-                    put(artistLink)
-                }
-
-                put("buttons", buttonsArray)
-                put("metadata", JSONObject().apply {
-                    put("button_urls", buttonUrls)
                 })
             }
             activities.put(activity)
