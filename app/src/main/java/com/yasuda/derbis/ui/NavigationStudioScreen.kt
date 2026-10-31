@@ -760,7 +760,6 @@ private fun NavStudioStage(
     modifier: Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val glass = rememberGlassBackdropState(enabled = false)
     Column(
         modifier = modifier
             .clip(NavStudioStageShape)
@@ -783,7 +782,7 @@ private fun NavStudioStage(
                 )
             }
         }
-        NavStylePreview(style = style, tuning = tuning, selected = selected, onSelect = onSelect, glass = glass)
+        NavStylePreview(style = style, tuning = tuning, selected = selected, onSelect = onSelect)
     }
 }
 
@@ -793,12 +792,11 @@ private fun NavStylePreview(
     tuning: NavTuning,
     selected: DerbisTab,
     onSelect: (DerbisTab) -> Unit,
-    glass: GlassBackdropState,
     modifier: Modifier = Modifier
 ) {
     val artworkSeed = LocalNavArtworkSeed.current ?: NavArtworkDemoSeed
     CompositionLocalProvider(LocalNavArtworkSeed provides artworkSeed) {
-        NavStylePreviewBar(style, tuning, selected, onSelect, glass, modifier)
+        NavStylePreviewBar(style, tuning, selected, onSelect, modifier)
     }
 }
 
@@ -808,12 +806,11 @@ private fun NavStylePreviewBar(
     tuning: NavTuning,
     selected: DerbisTab,
     onSelect: (DerbisTab) -> Unit,
-    glass: GlassBackdropState,
     modifier: Modifier
 ) {
     Box(modifier = modifier) {
         if (style == NavStyle.Original) {
-            DerbisAdaptiveDockSurface(glass = glass, modifier = Modifier.fillMaxWidth()) {
+            DerbisAdaptiveDockSurface(modifier = Modifier.fillMaxWidth()) {
                 BottomTabs(selected = selected, compaction = { 0f }, onSelect = onSelect)
             }
         } else {
@@ -824,7 +821,7 @@ private fun NavStylePreviewBar(
                     null
                 }
             }
-            StyledDockSurface(style = style, tuning = tuning, glass = null, modifier = Modifier.fillMaxWidth()) {
+            StyledDockSurface(style = style, tuning = tuning, modifier = Modifier.fillMaxWidth()) {
                 if (previewLink != null) ConnectedDockPreviewSlab(tuning)
                 StyledBottomTabs(
                     style = style,
@@ -832,7 +829,6 @@ private fun NavStylePreviewBar(
                     selected = selected,
                     compaction = { 0f },
                     onSelect = onSelect,
-                    glass = null,
                     applySystemInset = false,
                     link = previewLink
                 )
@@ -854,7 +850,6 @@ private fun NavStyleCard(
     val isDefault = style == NavStyle.Original
     val selectedLabel = copy[NavStudioText.Selected]
     val defaultLabel = copy[NavStudioText.DefaultBadge]
-    val glass = rememberGlassBackdropState(enabled = false)
     Column(
         modifier = Modifier
             .width(184.dp)
@@ -890,7 +885,7 @@ private fun NavStyleCard(
                         transformOrigin = TransformOrigin(0.5f, 1f)
                     }
             ) {
-                NavStylePreview(style = style, tuning = tuning, selected = DerbisTab.Home, onSelect = {}, glass = glass)
+                NavStylePreview(style = style, tuning = tuning, selected = DerbisTab.Home, onSelect = {})
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -16,11 +16,14 @@
 package com.yasuda.derbis.ui.components
 
 import android.os.Build
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
@@ -155,6 +158,21 @@ fun Modifier.derbisChromeGlass(
         this.then(fallback)
     }
 }
+
+/** BitChord's edge hairline, drawn where the glass rim itself is not rendered. */
+internal val DerbisGlassEdgeWidth = 0.5.dp
+internal val DerbisGlassEdgeColor = Color.White.copy(alpha = 0.10f)
+
+/**
+ * BitChord's lightweight glass: the surface tint and the edge hairline, with no sample of the
+ * page behind. This is what a surface draws when the backdrop engine cannot run — Android 11
+ * and older, high-contrast materials — and it replaces the old blurred RenderEffect frost that
+ * used to sit underneath the real glass.
+ */
+fun Modifier.derbisLightweightGlass(shape: Shape, fill: Color): Modifier =
+    this.clip(shape)
+        .background(fill, shape)
+        .border(DerbisGlassEdgeWidth, DerbisGlassEdgeColor, shape)
 
 /** The tint a glass surface is filled with when the caller does not supply one. */
 internal fun defaultGlassSurfaceTint(isLight: Boolean): Color =

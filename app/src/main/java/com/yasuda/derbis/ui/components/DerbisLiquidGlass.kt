@@ -21,14 +21,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.ui.GlassBackdropQuality
-import com.yasuda.derbis.ui.GlassBackdropState
 import com.yasuda.derbis.ui.GlassLensTier
 import com.yasuda.derbis.ui.LocalDerbisGlassTier
 import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
-import com.yasuda.derbis.ui.LocalGlassBackdrop
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
-import com.yasuda.derbis.ui.glassSurface
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisActivePalette
 import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
@@ -131,7 +128,6 @@ fun Modifier.derbisGlass(
             .border(borderWidth, fallbackBorderColor, shape)
     }
     this.resolvedDerbisGlass(
-        backdrop = LocalGlassBackdrop.current,
         shape = shape,
         baseTint = baseTint,
         fallbackColor = fallbackColor,
@@ -144,7 +140,6 @@ fun Modifier.derbisGlass(
 }
 
 internal fun Modifier.resolvedDerbisGlass(
-    backdrop: GlassBackdropState?,
     shape: Shape,
     baseTint: Color,
     fallbackColor: Color,
@@ -194,34 +189,18 @@ internal fun Modifier.resolvedDerbisGlass(
             !accessibility.increasedContrast
         return@composed this.derbisBackdropGlass(
             shape = backdropShape,
-            tint = glassTint.copy(alpha = (tokens.tintAlpha * 2.2f).coerceIn(0.18f, 0.42f)),
+            // BitChord's surface film: a neutral near-black (or near-white) at 40%, not a
+            // tint of the artwork. Anything stronger hides the page it is supposed to show.
+            tint = defaultGlassSurfaceTint(DerbisActivePalette.isLight),
             lensEnabled = lensAllowed
         )
     }
-    val tierAllowsFrost = tier != GlassLensTier.Efficient || intensity == DerbisGlassIntensity.Strong
-    val shouldFrost = tokens.samplesBackdrop && tierAllowsFrost && !opaqueMaterial &&
-        backdrop?.enabled == true && backdrop.layer != null
-
-    if (shouldFrost) {
-        this.glassSurface(
-            state = checkNotNull(backdrop),
-            shape = shape,
-            tint = glassTint,
-            fallbackColor = materialFallback,
-            borderColor = border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)),
-            blurRadius = tokens.blurRadius,
-            borderWidth = borderWidth,
-            highlightAlpha = tokens.highlightAlpha * GlassSheenShare,
-            refraction = tokens.allowsRefraction &&
-                tier != GlassLensTier.Efficient &&
-                !accessibility.increasedContrast,
-            qualityCeiling = tokens.samplingQuality
-        )
-    } else {
-        this
-            .background(materialFallback, shape)
-            .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
-    }
+    // No frost layer any more: a surface either samples the page backdrop with the real
+    // glass, or it is a flat translucent material. The old blurred RenderEffect sample was
+    // a second, weaker glass stacked under the real one.
+    this
+        .background(materialFallback, shape)
+        .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
 }
 
 /**

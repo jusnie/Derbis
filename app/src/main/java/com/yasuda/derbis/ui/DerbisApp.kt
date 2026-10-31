@@ -2240,15 +2240,6 @@ fun DerbisApp(
                     .background(DerbisBlack)
             ) {
             val dockState = rememberDerbisDockState()
-            val glassBlurAllowed = rememberGlassBlurAllowed()
-            val dockGlass = rememberGlassBackdropState(
-                enabled = (state.interfaceSettings.liquidGlassEnabled ||
-                    state.interfaceSettings.skin == DerbisSkin.LiquidGlass) &&
-                    !glassMaterialIsOpaque &&
-                    glassBlurAllowed &&
-                    (!DerbisSkinManagesLayout || state.interfaceSettings.skin == DerbisSkin.LiquidGlass)
-            )
-
             val homeListState = rememberLazyListState()
             val homeDeferredSectionsRevealed = remember { mutableStateOf(false) }
             val rootDensity = LocalDensity.current
@@ -2409,16 +2400,13 @@ fun DerbisApp(
                 DerbisHomeAtmosphere(
                     isLight = DerbisIsLight,
                     accent = yourSoundAccent,
-                    modifier = Modifier.glassBackdropSource(dockGlass)
+                    modifier = Modifier
                 )
                 // Everything inside this box is recorded into the backdrop layer, so it must
                 // not sample that same layer: drawing a GraphicsLayer while it is being
                 // recorded throws. Page-level glass keeps the cheap material; only the chrome
                 // outside this box (dock, mini player, sheets, player) reads the real backdrop.
-                CompositionLocalProvider(
-                    LocalGlassBackdrop provides dockGlass,
-                    LocalDerbisAppBackdrop provides null
-                ) {
+                CompositionLocalProvider(LocalDerbisAppBackdrop provides null) {
             val homeSaveableState = rememberSaveableStateHolder()
             AnimatedContent(
                 targetState = backgroundTab,
@@ -2647,7 +2635,6 @@ fun DerbisApp(
                                             artworkHidden = { artworkMorphActive },
                                             playbackActions = miniPlaybackActions,
                                             expansionActions = miniExpansionActions,
-                                            glass = dockGlass,
                                             link = dockLink.takeIf { miniStudio.style == MiniPlayerStyle.Connected && !state.showSettings }
                                         )
                                     }
@@ -2681,7 +2668,6 @@ fun DerbisApp(
                                     selected = backgroundTab,
                                     compaction = compactionProvider,
                                     onSelect = selectDockTab,
-                                    glass = dockGlass,
                                     link = dockLink.takeIf { navStudio.style == NavStyle.ConnectedDock }
                                 )
                             }
@@ -2713,12 +2699,11 @@ fun DerbisApp(
                             }
                         }
                         if (skinNavigationSettings(navigationStudio.settings).style == NavStyle.Original) {
-                            DerbisAdaptiveDockSurface(glass = dockGlass, modifier = dockModifier, content = dockContent)
+                            DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
                         } else {
                             StyledDockSurface(
                                 style = skinNavigationSettings(navigationStudio.settings).style,
                                 tuning = skinNavigationSettings(navigationStudio.settings).activeTuning(),
-                                glass = dockGlass,
                                 modifier = dockModifier,
                                 content = dockContent
                             )

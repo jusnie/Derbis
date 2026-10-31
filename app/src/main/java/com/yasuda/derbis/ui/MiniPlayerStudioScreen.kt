@@ -407,7 +407,6 @@ private fun MiniStudioStage(
                     style = shownStyle,
                     tuning = if (shownStyle == style) tuning else DerbisMiniPlayerStudioSettings.spec(shownStyle).defaults,
                     model = model,
-                    glass = null,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -945,7 +944,6 @@ private fun MiniStyleCard(
                 style = style,
                 tuning = tuning,
                 model = model,
-                glass = null,
                 modifier = Modifier
                     .requiredWidth(320.dp)
                     .graphicsLayer {

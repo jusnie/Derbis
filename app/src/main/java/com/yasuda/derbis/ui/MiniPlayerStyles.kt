@@ -103,7 +103,9 @@ import com.yasuda.derbis.domain.MiniTypography
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.radio.isLiveRadio
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
+import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
 import com.yasuda.derbis.ui.components.derbisChromeGlass
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.dockFoldHeight
@@ -390,7 +392,6 @@ internal fun StyledMiniPlayer(
     artworkHidden: () -> Boolean,
     playbackActions: MiniPlayerPlaybackActions,
     expansionActions: MiniPlayerExpansionActions,
-    glass: GlassBackdropState?,
     interactive: Boolean = true,
     link: DockLink? = null
 ) {
@@ -445,7 +446,7 @@ internal fun StyledMiniPlayer(
                             .clip(containerShape)
                     }
                 )
-                .miniBackground(style, tuning, palette, glass, containerShape)
+                .miniBackground(style, tuning, palette, containerShape)
                 .miniOutline(style, palette, containerShape)
                 .then(interaction)
         ) {
@@ -828,30 +829,19 @@ private fun Modifier.miniBackground(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     palette: MiniPlayerPalette,
-    glass: GlassBackdropState?,
     shape: Shape
 ): Modifier = when (style) {
     MiniPlayerStyle.LiquidGlass -> {
         val tint = palette.surface.playerMix(palette.accent, 0.10f)
         val alpha = tuning.opacity / 100f
-        val solidAlpha = (alpha + 0.32f).coerceAtMost(0.96f)
+        val fill = tint.copy(alpha = (alpha + 0.32f).coerceAtMost(0.96f))
         val sheen = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent))
-        // Real backdrop glass when the Liquid Glass skin is on; the frosted layer, or a
-        // solid tint, otherwise.
+        // Real page glass on the Liquid Glass skin; BitChord's lightweight material — same
+        // tint, same edge, no backdrop sample — everywhere else. No frost layer.
         derbisChromeGlass(
             shape = shape,
-            tint = tint.copy(alpha = (alpha + 0.18f).coerceIn(0.18f, 0.44f)),
-            fallback = if (glass != null) {
-                Modifier.glassFrost(
-                    state = glass,
-                    blurRadius = 24.dp,
-                    refractionShape = shape,
-                    onDrawFrosted = { drawRect(tint.copy(alpha = alpha)) },
-                    onDrawFallback = { drawRect(tint.copy(alpha = solidAlpha)) }
-                )
-            } else {
-                Modifier.drawBehind { drawRect(tint.copy(alpha = (alpha + 0.12f).coerceAtMost(0.96f))) }
-            }
+            tint = defaultGlassSurfaceTint(isLight = !palette.onDark),
+            fallback = Modifier.derbisLightweightGlass(shape, fill)
         ).drawBehind { drawRect(sheen) }
     }
     MiniPlayerStyle.Floating, MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,
@@ -1381,7 +1371,6 @@ internal fun MiniPlayerStylePreview(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     model: MiniPlayerModel,
-    glass: GlassBackdropState?,
     modifier: Modifier = Modifier
 ) {
     val playback = remember { MiniPlayerPlaybackActions({}, {}, {}, {}, {}) }
@@ -1407,7 +1396,6 @@ internal fun MiniPlayerStylePreview(
                 artworkHidden = { false },
                 playbackActions = playback,
                 expansionActions = expansion,
-                glass = glass,
                 interactive = false
             )
         }

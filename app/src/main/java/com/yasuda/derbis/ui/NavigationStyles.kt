@@ -103,7 +103,9 @@ import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.NavSurfaceTone
 import com.yasuda.derbis.domain.NavTuning
 import androidx.compose.foundation.shape.RectangleShape
+import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
 import com.yasuda.derbis.ui.components.derbisChromeGlass
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import com.yasuda.derbis.ui.components.dockClipHeight
 import com.yasuda.derbis.ui.components.dockLerpHeight
 import com.yasuda.derbis.ui.components.dockLerpSize
@@ -434,7 +436,6 @@ private fun navMotionSpec(motion: NavMotion, intensity: Int, animationsEnabled: 
 internal fun StyledDockSurface(
     style: NavStyle,
     tuning: NavTuning,
-    glass: GlassBackdropState?,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -454,7 +455,7 @@ internal fun StyledDockSurface(
     Column(
         modifier = modifier
             .clip(shape)
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
             .drawBehind {
                 if (wash.alpha > 0f) drawRect(Brush.verticalGradient(0f to wash, 0.5f to Color.Transparent))
             }
@@ -467,26 +468,15 @@ private fun Modifier.navBackground(
     background: NavBackground,
     colors: NavColors,
     opacity: Int,
-    glass: GlassBackdropState?
 ): Modifier = when (background) {
     NavBackground.Solid -> background(colors.surface)
     NavBackground.Gradient -> background(Brush.verticalGradient(listOf(colors.raised, colors.surface)))
     NavBackground.Translucent -> {
-        val frosted = colors.surface.copy(alpha = opacity / 100f * 0.82f)
         val fallback = colors.surface.copy(alpha = maxOf(opacity / 100f, 0.92f))
         derbisChromeGlass(
             shape = RectangleShape,
-            tint = frosted,
-            fallback = if (glass != null) {
-                Modifier.glassFrost(
-                    state = glass,
-                    blurRadius = 24.dp,
-                    onDrawFrosted = { drawRect(frosted) },
-                    onDrawFallback = { drawRect(fallback) }
-                )
-            } else {
-                Modifier.background(fallback)
-            }
+            tint = defaultGlassSurfaceTint(colors.isLight),
+            fallback = Modifier.derbisLightweightGlass(RectangleShape, fallback)
         )
     }
 }
@@ -494,7 +484,6 @@ private fun Modifier.navBackground(
 private fun Modifier.navLiquidGlass(
     colors: NavColors,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float
 ): Modifier {
@@ -509,22 +498,11 @@ private fun Modifier.navLiquidGlass(
         0f to Color.White.copy(alpha = if (colors.isLight) 0.70f else 0.30f),
         1f to Color.White.copy(alpha = if (colors.isLight) 0.18f else 0.05f)
     )
-    // Real backdrop glass on the Liquid Glass skin; the old frosted layer, or a solid
-    // tint, everywhere else.
+    // Real page glass on the Liquid Glass skin; BitChord's lightweight material otherwise.
     val material = derbisChromeGlass(
         shape = shape,
-        tint = frosted.copy(alpha = (opacity / 100f * 0.9f).coerceIn(0.20f, 0.46f)),
-        fallback = if (glass != null) {
-            Modifier.glassFrost(
-                state = glass,
-                blurRadius = 32.dp,
-                refractionShape = shape,
-                onDrawFrosted = { drawRect(frosted) },
-                onDrawFallback = { drawRect(fallback) }
-            )
-        } else {
-            Modifier.background(fallback)
-        }
+        tint = defaultGlassSurfaceTint(colors.isLight),
+        fallback = Modifier.derbisLightweightGlass(shape, fallback)
     ).drawBehind { drawRect(sheen) }
     return shadow(
         elevation = (8f + 10f * depth).dp,
@@ -541,7 +519,6 @@ private fun Modifier.navCapsule(
     colors: NavColors,
     background: NavBackground,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float
 ): Modifier = shadow(
@@ -551,7 +528,7 @@ private fun Modifier.navCapsule(
     spotColor = Color.Black.copy(alpha = 0.32f)
 )
     .clip(shape)
-    .navBackground(background, colors, opacity, glass)
+    .navBackground(background, colors, opacity)
     .border(DerbisPlayerDesign.Hairline, colors.rim, shape)
 
 private fun navLabelRoom(mode: NavLabelMode): Dp = when (mode) {
@@ -602,17 +579,16 @@ private fun navDockSurface(
     colors: NavColors,
     background: NavBackground,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float,
     link: DockLink?,
     outer: Dp
 ): Modifier = when {
-    style == NavStyle.LiquidGlass -> Modifier.navLiquidGlass(colors, opacity, glass, shape, depth)
+    style == NavStyle.LiquidGlass -> Modifier.navLiquidGlass(colors, opacity, shape, depth)
     style == NavStyle.ConnectedDock -> Modifier
         .dockLinkedClip((6f + 10f * depth).dp, colors.rim) { connectedNavShape(outer, link) }
-        .navBackground(background, colors, opacity, glass)
-    style.floating -> Modifier.navCapsule(colors, background, opacity, glass, shape, depth)
+        .navBackground(background, colors, opacity)
+    style.floating -> Modifier.navCapsule(colors, background, opacity, shape, depth)
     else -> Modifier
 }
 
@@ -661,7 +637,6 @@ internal fun StyledBottomTabs(
     selected: DerbisTab,
     compaction: () -> Float,
     onSelect: (DerbisTab) -> Unit,
-    glass: GlassBackdropState?,
     applySystemInset: Boolean = true,
     link: DockLink? = null
 ) {
@@ -722,7 +697,6 @@ internal fun StyledBottomTabs(
                 motion = motion,
                 geometry = geometry,
                 compaction = compaction,
-                glass = glass,
                 depth = depth,
                 outer = outer,
                 expansion = expansion,
@@ -730,8 +704,8 @@ internal fun StyledBottomTabs(
             )
         } else {
             val shape = remember(outer) { RoundedCornerShape(outer) }
-            val surface = remember(style, colors, tuning.background, tuning.opacity, glass, shape, depth, link, outer) {
-                navDockSurface(style, colors, tuning.background, tuning.opacity, glass, shape, depth, link, outer)
+            val surface = remember(style, colors, tuning.background, tuning.opacity, shape, depth, link, outer) {
+                navDockSurface(style, colors, tuning.background, tuning.opacity, shape, depth, link, outer)
             }
             StyledTabCapsule(
                 modifier = Modifier
@@ -855,7 +829,6 @@ private fun SplitDockRow(
     motion: NavMotionSpec,
     geometry: NavDockGeometry,
     compaction: () -> Float,
-    glass: GlassBackdropState?,
     depth: Float,
     outer: Dp,
     expansion: NavExpansion?,
@@ -867,10 +840,10 @@ private fun SplitDockRow(
         animationSpec = motion.position,
         label = "split-dock-detach"
     )
-    val capsuleSurface = remember(colors, tuning.background, tuning.opacity, glass, depth, outer, detach) {
+    val capsuleSurface = remember(colors, tuning.background, tuning.opacity, depth, outer, detach) {
         Modifier
             .dockLinkedClip((6f + 12f * depth).dp, colors.rim) { splitCapsuleShape(outer, detach.value) }
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
     }
     Row(
         modifier = Modifier
@@ -911,7 +884,6 @@ private fun SplitDockRow(
             motion = motion,
             geometry = geometry,
             compaction = compaction,
-            glass = glass,
             depth = depth,
             onSelect = onSelect
         )
@@ -928,7 +900,6 @@ private fun SplitSearchOrb(
     motion: NavMotionSpec,
     geometry: NavDockGeometry,
     compaction: () -> Float,
-    glass: GlassBackdropState?,
     depth: Float,
     onSelect: (DerbisTab) -> Unit
 ) {
@@ -955,10 +926,10 @@ private fun SplitSearchOrb(
         animationSpec = motion.scale,
         label = "split-orb-bloom"
     )
-    val surface = remember(colors, tuning.background, tuning.opacity, glass, depth, detach) {
+    val surface = remember(colors, tuning.background, tuning.opacity, depth, detach) {
         Modifier
             .dockLinkedClip((6f + 12f * depth).dp, colors.rim) { splitOrbShape(detach.value) }
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
     }
     val filled = tuning.indicator.filled
     Box(
