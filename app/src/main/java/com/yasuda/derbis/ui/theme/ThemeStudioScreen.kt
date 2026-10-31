@@ -99,12 +99,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yasuda.derbis.domain.DerbisCustomTheme
 import com.yasuda.derbis.domain.DerbisCustomThemes
-import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.i18n.ColorPickerText
 import com.yasuda.derbis.ui.i18n.ThemeLibraryCopy
 import com.yasuda.derbis.ui.i18n.ThemeLibraryText
 import com.yasuda.derbis.ui.i18n.colorPickerCopy
-import com.yasuda.derbis.ui.i18n.glassStudioCopy
 import com.yasuda.derbis.ui.i18n.themeLibraryCopy
 import kotlin.math.roundToInt
 
@@ -133,10 +131,7 @@ internal fun DerbisThemeStudioOverlay(
     onSaveCustomTheme: (DerbisCustomTheme, Boolean) -> Unit = { _, _ -> },
     onDuplicateCustomTheme: (String, String) -> Unit = { _, _ -> },
     onDeleteCustomTheme: (String) -> Unit = {},
-    onRestoreDefault: () -> Unit = {},
-    glassEnabled: Boolean = false,
-    glassStyle: DerbisGlassStyle = DerbisGlassStyle(),
-    onGlassStyleChange: (DerbisGlassStyle) -> Unit = {}
+    onRestoreDefault: () -> Unit = {}
 ) {
     val strings = LocalDerbisStrings.current
     val library = strings.themeLibraryCopy
@@ -349,14 +344,6 @@ internal fun DerbisThemeStudioOverlay(
                 }
             }
 
-            item(contentType = "studio-glass") {
-                ThemeStudioGlassSection(
-                    copy = strings.glassStudioCopy(),
-                    enabled = glassEnabled,
-                    style = glassStyle,
-                    onStyleChange = onGlassStyleChange
-                )
-            }
         }
     }
 

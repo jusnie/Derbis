@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Whatshot
-import com.yasuda.derbis.domain.DerbisGlassEffects
 import com.yasuda.derbis.ui.components.LocalDerbisAppBackdrop
 import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
 import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
@@ -2213,9 +2212,10 @@ fun DerbisApp(
     )
     // Liquid Glass records the page into a backdrop layer that every glass surface samples.
     // Only the Liquid Glass skin pays for it; other skins draw their own opaque materials.
+    // The glass has no options any more: the Liquid Glass skin always renders it, and the
+    // only things that can still switch it off are the accessibility and power settings.
     val appBackdrop = rememberDerbisAppBackdrop(
         enabled = DerbisIsLiquidGlass &&
-            state.interfaceSettings.glassEffects != DerbisGlassEffects.Off &&
             !glassMaterialIsOpaque &&
             rememberGlassBlurAllowed(),
         background = DerbisBlack
@@ -3475,26 +3475,7 @@ fun DerbisApp(
                     onSaveCustomTheme = viewModel::saveCustomTheme,
                     onDuplicateCustomTheme = viewModel::duplicateCustomTheme,
                     onDeleteCustomTheme = viewModel::deleteCustomTheme,
-                    onRestoreDefault = viewModel::restoreDefaultTheme,
-                    glassEnabled = state.interfaceSettings.liquidGlassEnabled,
-                    glassStyle = DerbisGlassStyle(
-                        blur = state.interfaceSettings.glassBlur,
-                        transparency = state.interfaceSettings.glassTransparency,
-                        tint = state.interfaceSettings.glassTint,
-                        refraction = state.interfaceSettings.glassRefraction,
-                        effects = state.interfaceSettings.glassEffects
-                    ),
-                    onGlassStyleChange = { glass ->
-                        viewModel.setInterfaceSettings(
-                            state.interfaceSettings.copy(
-                                glassBlur = glass.blur,
-                                glassTransparency = glass.transparency,
-                                glassTint = glass.tint,
-                                glassRefraction = glass.refraction,
-                                glassEffects = glass.effects
-                            )
-                        )
-                    }
+                    onRestoreDefault = viewModel::restoreDefaultTheme
                 )
             }
 
