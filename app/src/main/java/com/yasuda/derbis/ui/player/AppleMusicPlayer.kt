@@ -828,34 +828,32 @@ internal fun SoundWaveIcon(
     }
 }
 
+/**
+ * The single label the Apple Music skin puts on the now-playing badge.
+ *
+ * It reads the same [PlayerAudioSpec.quality] the other skins badge, so both agree: a lossless
+ * source reads Lossless, a hi-res one or a 320 kbps upgrade reads Hi-Fi, and only the lossy
+ * streams below that name their codec with the bitrate that backs it up.
+ */
 internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {
     val mime = spec.mimeType.lowercase(java.util.Locale.ROOT)
-    val codec = spec.codecString.lowercase(java.util.Locale.ROOT)
-    val specCodec = spec.codec.uppercase(java.util.Locale.ROOT)
-    val lossless = spec.codec == "FLAC" || spec.codec == "ALAC" || spec.codec == "PCM"
-    return when {
-        mime == "audio/eac3-joc" || codec.startsWith("ec+3") -> "Dolby Atmos"
-        lossless && (spec.sampleRateHz ?: 0) > 48_000 -> "Hi-Res Lossless"
+    val codecs = spec.codecString.lowercase(java.util.Locale.ROOT)
+    if (mime == "audio/eac3-joc" || codecs.startsWith("ec+3")) return "Dolby Atmos"
+    val lossless = isLosslessAudioStream(mime, codecs)
+    val quality = when {
+        spec.quality == "HI-FI" -> "Hi-Fi"
+        spec.quality == "LOSSLESS" -> "Lossless"
+        // Specs built by hand (tests, older call sites) still read correctly off the mime type.
+        lossless && (spec.sampleRateHz ?: 0) >= 88_200 -> "Hi-Fi"
         lossless -> "Lossless"
-        specCodec.contains("OPUS") || mime.contains("opus") || codec.contains("opus") -> {
-            val tier = when {
-                spec.bitrateKbps != null && spec.bitrateKbps <= 70 -> "Low"
-                spec.bitrateKbps != null && spec.bitrateKbps in 71..140 -> "Medium"
-                else -> "High"
-            }
-            "OPUS $tier"
-        }
-        specCodec.contains("AAC") || mime.contains("mp4a") || codec.contains("mp4a") -> {
-            val tier = when {
-                spec.bitrateKbps != null && spec.bitrateKbps <= 70 -> "Low"
-                spec.bitrateKbps != null && spec.bitrateKbps in 71..140 -> "Medium"
-                else -> "High"
-            }
-            "AAC $tier"
-        }
-        spec.codec.isNotEmpty() -> spec.codec
-        else -> "OPUS High"
+        else -> null
     }
+    if (quality != null) {
+        // A lossless bitrate is just the compression ratio, so only the lossy upgrade gets a number.
+        val kbps = spec.bitrateKbps?.takeIf { it > 0 && !lossless }
+        return if (kbps != null) "$quality · $kbps kbps" else quality
+    }
+    return playerAudioSpecLabels(spec).joinToString(" · ")
 }
 
 @Composable

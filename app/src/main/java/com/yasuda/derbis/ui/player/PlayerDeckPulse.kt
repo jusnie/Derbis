@@ -1176,10 +1176,26 @@ internal fun playerAudioSpecOf(tracks: Tracks): PlayerAudioSpec {
             if (!group.isTrackSelected(index)) continue
             val format = group.getTrackFormat(index)
             val bitrate = format.averageBitrate.takeIf { it > 0 } ?: format.bitrate.takeIf { it > 0 }
+            val kbps = bitrate?.div(1_000)
+            val sampleRate = format.sampleRate.takeIf { it > 0 }
+            // Decoders that hand Media3 24-bit PCM say so here; compressed FLAC does not, which
+            // is why the sample rate also decides the Hi-Fi badge.
+            val bitDepth = when (format.pcmEncoding) {
+                C.ENCODING_PCM_24BIT -> 24
+                C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 32
+                else -> null
+            }
             return PlayerAudioSpec(
                 codec = playerAudioCodecLabel(format.sampleMimeType, format.codecs),
-                bitrateKbps = bitrate?.div(1_000),
-                sampleRateHz = format.sampleRate.takeIf { it > 0 },
+                quality = playerAudioQualityLabel(
+                    format.sampleMimeType,
+                    format.codecs,
+                    sampleRate,
+                    bitDepth,
+                    kbps
+                ),
+                bitrateKbps = kbps,
+                sampleRateHz = sampleRate,
                 channels = format.channelCount.takeIf { it > 0 },
                 mimeType = format.sampleMimeType.orEmpty(),
                 codecString = format.codecs.orEmpty()

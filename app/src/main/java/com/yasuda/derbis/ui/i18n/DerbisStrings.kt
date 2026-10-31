@@ -750,6 +750,7 @@ class DerbisStrings private constructor(
     val audioQualityHigh: String get() = value("audioQualityHigh")
     val audioQualityMedium: String get() = value("audioQualityMedium")
     val audioQualityLow: String get() = value("audioQualityLow")
+    val audioQualityLossless: String get() = value("audioQualityLossless")
     val alternativeAudioTitle: String get() = value("alternativeAudioTitle")
     val alternativeAudioSubtitle: String get() = value("alternativeAudioSubtitle")
     val alternativeAudioOff: String get() = value("alternativeAudioOff")
@@ -2100,7 +2101,8 @@ class DerbisStrings private constructor(
             "audioResetEqualizer",
             "audioPresetCustom",
             "audioBands",
-            "audioQualityMedium"
+            "audioQualityMedium",
+            "audioQualityLossless"
         )
         private val autoEqKeys = setOf(
             "autoEqImport",

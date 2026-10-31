@@ -4313,6 +4313,13 @@ class PlaybackResolver private constructor(private val context: Context) {
             else -> 0
         }
         val cleanQuality = requestedAudioQuality.trim().lowercase()
+        // Lossless asks for the samples, not the biggest lossy stream: a FLAC/ALAC stream
+        // outranks every AAC/Opus candidate no matter how many bits it claims.
+        val losslessBias = if (cleanQuality == "lossless" && isLosslessAudioMime(clean)) {
+            LOSSLESS_FORMAT_BIAS
+        } else {
+            0
+        }
         val itagBias = when (cleanQuality) {
             "low" -> when (itag) {
                 139 -> 600_000
@@ -4377,11 +4384,14 @@ class PlaybackResolver private constructor(private val context: Context) {
                 val targetBps = 112_000
                 -kotlin.math.abs(bitrate - targetBps)
             }
-            "high" -> bitrate
+            "high", "lossless" -> bitrate
             else -> bitrate / 2
         }
-        return formatBias + itagBias + qualityBias + bitrateBias
+        return formatBias + itagBias + qualityBias + bitrateBias + losslessBias
     }
+
+    private fun isLosslessAudioMime(mime: String): Boolean =
+        mime.contains("flac") || mime.contains("alac") || mime.contains("wav") || mime == "audio/raw"
 
     private fun formatLabel(mime: String, itag: Int, bitrate: Int, audioQuality: String): String {
         val codec = when {
@@ -4540,6 +4550,9 @@ private fun Throwable.playbackDiagnostic(): String {
 class PlaybackBlockedException(message: String) : IllegalStateException(message)
 
 private const val ANDROID_REEL_CLIENT_NAME = "ANDROID"
+
+/** Enough to outrank every lossy candidate on the YouTube ladder, whatever its bitrate claims. */
+private const val LOSSLESS_FORMAT_BIAS = 8_000_000
 
 private val PROGRESSIVE_STREAM_CLIENTS = setOf("VISIONOS", "ANDROID_VR")
 

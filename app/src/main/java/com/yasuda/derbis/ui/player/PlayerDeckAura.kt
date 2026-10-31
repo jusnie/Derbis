@@ -712,7 +712,8 @@ private fun AuraTimes(positionMs: Long, durationMs: Long) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         AuraTime(formatSeekbarMillis(positionMs), Modifier.weight(1f))
-        if (spec.codec.isNotEmpty()) {
+        val qualityOrCodec = spec.quality ?: spec.codec
+        if (qualityOrCodec.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -722,7 +723,7 @@ private fun AuraTimes(positionMs: Long, durationMs: Long) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = AuraInkSoft, modifier = Modifier.size(12.dp))
-                Text(spec.codec, color = AuraInkSoft, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
+                Text(qualityOrCodec, color = AuraInkSoft, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
             }
         }
         val remaining = if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - positionMs).coerceAtLeast(0L)) else "--:--"

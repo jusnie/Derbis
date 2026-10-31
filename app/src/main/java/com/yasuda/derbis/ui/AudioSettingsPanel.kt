@@ -287,22 +287,23 @@ internal fun AudioSettingsPanel(
                 item { AudioSectionLabel(strings.audioSectionQuality) }
                 item {
                     AudioQualityRow(
-                        selected = selected,
+                        // A stale "Auto" from an old backup can never leave the row with no segment lit.
+                        selected = DerbisAudioQuality.normalize(selected),
                         labels = listOf(
-                            strings.audioQualityAuto to DerbisAudioQuality.AUTO,
-                            strings.audioQualityHigh to DerbisAudioQuality.HIGH,
+                            strings.audioQualityLow to DerbisAudioQuality.LOW,
                             strings.audioQualityMedium to DerbisAudioQuality.MEDIUM,
-                            strings.audioQualityLow to DerbisAudioQuality.LOW
+                            strings.audioQualityHigh to DerbisAudioQuality.HIGH,
+                            strings.audioQualityLossless to DerbisAudioQuality.LOSSLESS
                         ),
                         onSelect = onSelect
                     )
                 }
                 item {
-                    val qualitySubtitle = when (selected.trim().lowercase()) {
-                        "low" -> "Low · Sets audio to 48 kbps data saver (AAC/Opus)"
-                        "medium" -> "Medium · Sets audio to 98 kbps – 128 kbps balanced audio"
-                        "high" -> "High · Sets audio to 300+ kbps (320 kbps HQ upgrade with highest fallback)"
-                        else -> "Auto · Selects best stream based on network and quality availability"
+                    val qualitySubtitle = when (DerbisAudioQuality.normalize(selected).lowercase()) {
+                        "low" -> "Low · 48 kbps data saver (AAC/Opus)"
+                        "medium" -> "Medium · 98 – 128 kbps balanced audio"
+                        "high" -> "High · 300+ kbps (320 kbps HQ upgrade with highest fallback)"
+                        else -> "Lossless · FLAC / ALAC when the source has it; the player badge shows Lossless or Hi-Fi instead of the codec"
                     }
                     Text(
                         text = qualitySubtitle,
