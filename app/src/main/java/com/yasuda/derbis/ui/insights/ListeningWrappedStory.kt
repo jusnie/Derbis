@@ -1667,7 +1667,7 @@ private fun WrappedBiggestDay(
         WrappedStatTiles(
             stats = listOf(
                 wrappedDuration(day.listenedMs) to strings.wrappedMinutesTitle,
-                day.plays.toString() to strings.wrappedAlbumPlays.replace("%s", "").trim()
+                day.plays.toString() to strings.wrappedPlaysUnit
             )
         )
         Spacer(Modifier.height(14.dp))

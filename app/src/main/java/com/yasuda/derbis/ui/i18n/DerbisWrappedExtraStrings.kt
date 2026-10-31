@@ -29,7 +29,8 @@ internal val wrappedExtraKeys = setOf(
     "wrappedAxisDevotion",
     "wrappedAxisReplay",
     "wrappedNotEnoughTitle",
-    "wrappedNotEnoughBody"
+    "wrappedNotEnoughBody",
+    "wrappedPlaysUnit"
 )
 
 private fun wrappedExtra(vararg values: String): Map<String, String> {
@@ -58,7 +59,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Devotion",
         "Replay",
         "Not enough of %s yet",
-        "Listen on %s more days and your story writes itself."
+        "Listen on %s more days and your story writes itself.",
+        "plays"
     ),
     "it" to wrappedExtra(
         "Gli album in cui hai vissuto",
@@ -80,7 +82,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Devozione",
         "Ripetizione",
         "Non c'è ancora abbastanza del %s",
-        "Ascolta per altri %s giorni e la tua storia si scrive da sola."
+        "Ascolta per altri %s giorni e la tua storia si scrive da sola.",
+        "ascolti"
     ),
     "es" to wrappedExtra(
         "Los álbumes en los que viviste",
@@ -102,7 +105,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Devoción",
         "Repetición",
         "Todavía no hay suficiente de %s",
-        "Escucha %s días más y tu historia se escribe sola."
+        "Escucha %s días más y tu historia se escribe sola.",
+        "reproducciones"
     ),
     "fr" to wrappedExtra(
         "Les albums où tu as vécu",
@@ -124,7 +128,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Dévotion",
         "Replay",
         "Pas encore assez de %s",
-        "Écoute %s jours de plus et ton histoire s'écrit toute seule."
+        "Écoute %s jours de plus et ton histoire s'écrit toute seule.",
+        "écoutes"
     ),
     "de" to wrappedExtra(
         "Die Alben, in denen du gelebt hast",
@@ -146,7 +151,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Hingabe",
         "Wiederholung",
         "Noch nicht genug von %s",
-        "Hör %s Tage länger zu, dann schreibt sich deine Geschichte von selbst."
+        "Hör %s Tage länger zu, dann schreibt sich deine Geschichte von selbst.",
+        "Wiedergaben"
     ),
     "pt" to wrappedExtra(
         "Os álbuns em que você viveu",
@@ -168,7 +174,8 @@ private val wrappedExtraBundles: Map<String, Map<String, String>> = mapOf(
         "Devoção",
         "Repetição",
         "Ainda não há %s suficiente",
-        "Ouça por mais %s dias e sua história se escreve sozinha."
+        "Ouça por mais %s dias e sua história se escreve sozinha.",
+        "reproduções"
     )
 )
 

@@ -985,6 +985,7 @@ class DerbisStrings private constructor(
     val wrappedAxisReplay: String get() = value("wrappedAxisReplay")
     val wrappedNotEnoughTitle: String get() = value("wrappedNotEnoughTitle")
     val wrappedNotEnoughBody: String get() = value("wrappedNotEnoughBody")
+    val wrappedPlaysUnit: String get() = value("wrappedPlaysUnit")
     val shareLyricsPreparing: String get() = value("shareLyricsPreparing")
     /** Share sheet actions. Kept inline so every locale falls back to a readable label. */
     val storyCopyLink: String get() = when (code) {
