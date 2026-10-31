@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: derbis-prebuild-${{ github.ref }}
@@ -80,6 +81,9 @@ jobs:
               echo '```'
             } > /tmp/failure.md
             gh pr comment 2 --body-file /tmp/failure.md || true
+            grep -E "^e: |FAILURE:|error:|What went wrong" build.log | tail -n 20 | while IFS= read -r line; do
+              printf '::error::%s\n' "${line}"
+            done
             exit "${status}"
           fi
 
