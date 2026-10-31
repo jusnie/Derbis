@@ -1,0 +1,36 @@
+name: Derbis Prebuild APK
+on:
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: derbis-prebuild-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DERBIS_VERSION_NAME: "1.5.0"
+  DERBIS_VERSION_CODE: "3000212"
+
+jobs:
+  prebuild-apk:
+    name: Build Prebuild APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe token
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          tag="probe2-${{ github.run_id }}"
+          resp=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" -X POST \
+            -d "{\"tag_name\":\"${tag}\",\"target_commitish\":\"${GITHUB_SHA}\",\"name\":\"probe2\",\"body\":\"p\",\"prerelease\":true,\"draft\":false}" \
+            -w '\n%{http_code}' https://api.github.com/repos/jusnie/Derbis/releases 2>&1)
+          code=$(printf '%s' "$resp" | tail -n1)
+          echo "::error::PROBE2 http=${code} $(printf '%s' "$resp" | sed '$d' | tr '\n' ' ' | cut -c1-200)"
