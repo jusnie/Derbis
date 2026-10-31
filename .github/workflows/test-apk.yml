@@ -1,0 +1,118 @@
+name: Derbis Prebuild APK
+
+# Test-only build. Ships the same applicationId and app label as the official
+# build (com.derbis.app), is published as a GitHub pre-release, and never moves
+# the "latest" pointer. Use the Release APK workflow for real releases.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
+    paths:
+      - '.github/workflows/test-apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: derbis-prebuild-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DERBIS_VERSION_NAME: "1.6.0-prebuild.1"
+  DERBIS_VERSION_CODE: "3000211"
+
+jobs:
+  prebuild-apk:
+    name: Build Prebuild APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-37.0" "build-tools;36.0.0" \
+            "ndk;28.2.13676358" "cmake;3.22.1"
+          chmod +x gradlew
+
+      - name: Build prebuild APK
+        env:
+          DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+          DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
+          DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${DISCORD_SOCIAL_SDK_URL:-}" ]]; then
+            mkdir -p app/libs
+            if curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}" && unzip -tq app/libs/discord_partner_sdk.aar; then
+              echo "Authorized Discord SDK supplied."
+            else
+              rm -f app/libs/discord_partner_sdk.aar
+              echo "Discord SDK unavailable; building without Rich Presence."
+            fi
+          else
+            echo "No Discord SDK configured; Rich Presence stays unavailable."
+          fi
+          ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace \
+            -PderbisVersionName="${DERBIS_VERSION_NAME}" \
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}"
+
+      - name: Rename to derbis.apk and verify identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          src='app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk'
+          [[ -s "${src}" ]] || { echo "APK was not produced"; exit 1; }
+          mkdir -p build_output
+          cp "${src}" build_output/derbis.apk
+          badging="$("${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging build_output/derbis.apk)"
+          printf '%s\n' "${badging}" | head -3
+          grep -F "package: name='com.derbis.app' versionCode='${DERBIS_VERSION_CODE}' versionName='${DERBIS_VERSION_NAME}'" <<< "${badging}" >/dev/null \
+            || { echo "Package name, version code or version name changed; refusing to publish a test build."; exit 1; }
+          ls -la build_output
+          sha256sum build_output/derbis.apk | tee build_output/derbis.apk.sha256
+
+      - name: Upload derbis.apk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: derbis-apk
+          path: |
+            build_output/derbis.apk
+            build_output/derbis.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="prebuild-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release upload "${tag}" build_output/derbis.apk build_output/derbis.apk.sha256 --clobber
+          else
+            gh release create "${tag}" \
+              build_output/derbis.apk build_output/derbis.apk.sha256 \
+              --prerelease \
+              --target "${GITHUB_SHA}" \
+              --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" \
+              --notes "Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release.
+
+          - Package stays \`com.derbis.app\`, app name stays Derbis.
+          - Signed with the CI debug key; unreleased and unsupported.
+          - Verify the file with derbis.apk.sha256 before installing.
+
+          #Derbis #Prebuild #Android #APK #TestBuild"
+          fi
