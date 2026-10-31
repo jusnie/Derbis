@@ -2785,7 +2785,10 @@ fun DerbisApp(
                         .fillMaxSize()
                         .graphicsLayer {
                             val expansion = expansionProvider()
-                            alpha = playerSurfaceAlpha(expansion)
+                            // The lyric page is its own opaque surface: while it is open the player
+                            // deck is taken out of the composite completely, so no transport row,
+                            // seek bar, quality badge or artwork can ghost through the lyrics.
+                            alpha = if (state.showLyrics) 0f else playerSurfaceAlpha(expansion)
                             val origin = morphAnchors.miniCardBounds
                             val container = playerContainerBounds(expansion, origin, size.width, size.height)
                             val scale = if (size.width > 0f) container.width / size.width else 1f
@@ -3154,7 +3157,12 @@ fun DerbisApp(
                 )
             }
 
-            AnimatedVisibility(visible = state.showLyrics, enter = panelEnter, exit = panelExit) {
+            AnimatedVisibility(
+                visible = state.showLyrics,
+                modifier = Modifier.zIndex(41f),
+                enter = panelEnter,
+                exit = panelExit
+            ) {
                 LyricsOverlay(
                     state = state,
                     onTranslation = viewModel::setLyricsTranslationEnabled,
@@ -8790,6 +8798,18 @@ private fun AppleMusic13FullscreenLyrics(
                         interactionTick++
                     }
             ) {
+                // The idle strip parks its Timer button 56 dp into the viewport and the full
+                // cluster stacks three floating buttons in the bottom corner, so the last verses
+                // need real clearance instead of sliding underneath them. Animated so the list
+                // does not jump when the cluster auto-hides after eight idle seconds.
+                val lyricClearance by animateDpAsState(
+                    targetValue = when {
+                        imageShareSelectionMode -> 104.dp
+                        showCluster -> 140.dp
+                        else -> 96.dp
+                    },
+                    label = "lyrics-bottom-clearance"
+                )
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -8797,7 +8817,7 @@ private fun AppleMusic13FullscreenLyrics(
                         start = 24.dp,
                         end = 24.dp,
                         top = if (imageShareSelectionMode) 22.dp else 38.dp,
-                        bottom = if (imageShareSelectionMode) 104.dp else 34.dp
+                        bottom = lyricClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(if (imageShareSelectionMode) 16.dp else 26.dp)
                 ) {
@@ -9218,7 +9238,9 @@ private fun AppleMusic13LyricsArtworkBackdrop(
     val fallbackTop = remember(accentStart) { lerp(accentStart, Color.Black, 0.62f) }
     val fallbackBottom = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.88f) }
 
-    Box(Modifier.fillMaxSize().background(fallbackBottom)) {
+    // Black first, then the blurred wash: the page has to be self-contained even if a caller
+    // ever hands in a low-alpha accent, so nothing from the screen underneath can bleed in.
+    Box(Modifier.fillMaxSize().background(Color.Black).background(fallbackBottom)) {
         // The image is deliberately dimmed as one uniform static layer. This preserves legibility
         // for white active lyrics on very bright album covers without restoring the old dark
         // gradient bands or introducing a moving/palette-based overlay.
