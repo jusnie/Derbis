@@ -102,6 +102,8 @@ import com.yasuda.derbis.domain.NavMotion
 import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.NavSurfaceTone
 import com.yasuda.derbis.domain.NavTuning
+import androidx.compose.foundation.shape.RectangleShape
+import com.yasuda.derbis.ui.components.derbisChromeGlass
 import com.yasuda.derbis.ui.components.dockClipHeight
 import com.yasuda.derbis.ui.components.dockLerpHeight
 import com.yasuda.derbis.ui.components.dockLerpSize
@@ -472,16 +474,20 @@ private fun Modifier.navBackground(
     NavBackground.Translucent -> {
         val frosted = colors.surface.copy(alpha = opacity / 100f * 0.82f)
         val fallback = colors.surface.copy(alpha = maxOf(opacity / 100f, 0.92f))
-        if (glass != null) {
-            glassFrost(
-                state = glass,
-                blurRadius = 24.dp,
-                onDrawFrosted = { drawRect(frosted) },
-                onDrawFallback = { drawRect(fallback) }
-            )
-        } else {
-            background(fallback)
-        }
+        derbisChromeGlass(
+            shape = RectangleShape,
+            tint = frosted,
+            fallback = if (glass != null) {
+                Modifier.glassFrost(
+                    state = glass,
+                    blurRadius = 24.dp,
+                    onDrawFrosted = { drawRect(frosted) },
+                    onDrawFallback = { drawRect(fallback) }
+                )
+            } else {
+                Modifier.background(fallback)
+            }
+        )
     }
 }
 
@@ -503,23 +509,23 @@ private fun Modifier.navLiquidGlass(
         0f to Color.White.copy(alpha = if (colors.isLight) 0.70f else 0.30f),
         1f to Color.White.copy(alpha = if (colors.isLight) 0.18f else 0.05f)
     )
-    val material = if (glass != null) {
-        glassFrost(
-            state = glass,
-            blurRadius = 32.dp,
-            refractionShape = shape,
-            onDrawFrosted = {
-                drawRect(frosted)
-                drawRect(sheen)
-            },
-            onDrawFallback = {
-                drawRect(fallback)
-                drawRect(sheen)
-            }
-        )
-    } else {
-        background(fallback).drawBehind { drawRect(sheen) }
-    }
+    // Real backdrop glass on the Liquid Glass skin; the old frosted layer, or a solid
+    // tint, everywhere else.
+    val material = derbisChromeGlass(
+        shape = shape,
+        tint = frosted.copy(alpha = (opacity / 100f * 0.9f).coerceIn(0.20f, 0.46f)),
+        fallback = if (glass != null) {
+            Modifier.glassFrost(
+                state = glass,
+                blurRadius = 32.dp,
+                refractionShape = shape,
+                onDrawFrosted = { drawRect(frosted) },
+                onDrawFallback = { drawRect(fallback) }
+            )
+        } else {
+            Modifier.background(fallback)
+        }
+    ).drawBehind { drawRect(sheen) }
     return shadow(
         elevation = (8f + 10f * depth).dp,
         shape = shape,

@@ -230,12 +230,16 @@ fun DerbisAdaptiveDockSurface(
     val materialModifier = if (accessibility.prefersOpaqueMaterials) {
         Modifier.background(solidBrush)
     } else {
-        Modifier.glassFrost(
-            state = glass,
-            blurRadius = DockBlurRadius,
-            groundColor = material.ground,
-            onDrawFrosted = { drawRect(frostBrush) },
-            onDrawFallback = { drawRect(solidBrush) }
+        derbisChromeGlass(
+            shape = shape,
+            tint = material.ground,
+            fallback = Modifier.glassFrost(
+                state = glass,
+                blurRadius = DockBlurRadius,
+                groundColor = material.ground,
+                onDrawFrosted = { drawRect(frostBrush) },
+                onDrawFallback = { drawRect(solidBrush) }
+            )
         )
     }
     Column(

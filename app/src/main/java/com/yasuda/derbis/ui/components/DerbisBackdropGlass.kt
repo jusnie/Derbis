@@ -20,7 +20,9 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.ui.components.backdrop.drawBackdrop
@@ -132,6 +134,26 @@ fun Modifier.derbisBackdropGlass(
         },
         backdropScale = scale
     )
+}
+
+/**
+ * Chrome-strength glass for bars, docks and panels: samples the page backdrop with the
+ * full BitChord recipe when the Liquid Glass skin is active, and otherwise falls through
+ * to the caller's own frosted or solid material.
+ *
+ * Wrapped in [composed] because the call sites are plain `Modifier` extensions.
+ */
+fun Modifier.derbisChromeGlass(
+    shape: Shape,
+    tint: Color,
+    fallback: Modifier
+): Modifier = composed {
+    val backdropShape = shape as? CornerBasedShape
+    if (backdropShape != null && LocalDerbisAppBackdrop.current != null) {
+        this.derbisBackdropGlass(shape = backdropShape, tint = tint)
+    } else {
+        this.then(fallback)
+    }
 }
 
 /** The tint a glass surface is filled with when the caller does not supply one. */

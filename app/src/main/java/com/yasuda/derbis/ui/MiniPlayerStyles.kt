@@ -103,6 +103,7 @@ import com.yasuda.derbis.domain.MiniTypography
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.radio.isLiveRadio
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
+import com.yasuda.derbis.ui.components.derbisChromeGlass
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.dockFoldHeight
@@ -835,26 +836,23 @@ private fun Modifier.miniBackground(
         val alpha = tuning.opacity / 100f
         val solidAlpha = (alpha + 0.32f).coerceAtMost(0.96f)
         val sheen = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent))
-        if (glass != null) {
-            glassFrost(
-                state = glass,
-                blurRadius = 24.dp,
-                refractionShape = shape,
-                onDrawFrosted = {
-                    drawRect(tint.copy(alpha = alpha))
-                    drawRect(sheen)
-                },
-                onDrawFallback = {
-                    drawRect(tint.copy(alpha = solidAlpha))
-                    drawRect(sheen)
-                }
-            )
-        } else {
-            drawBehind {
-                drawRect(tint.copy(alpha = (alpha + 0.12f).coerceAtMost(0.96f)))
-                drawRect(sheen)
+        // Real backdrop glass when the Liquid Glass skin is on; the frosted layer, or a
+        // solid tint, otherwise.
+        derbisChromeGlass(
+            shape = shape,
+            tint = tint.copy(alpha = (alpha + 0.18f).coerceIn(0.18f, 0.44f)),
+            fallback = if (glass != null) {
+                Modifier.glassFrost(
+                    state = glass,
+                    blurRadius = 24.dp,
+                    refractionShape = shape,
+                    onDrawFrosted = { drawRect(tint.copy(alpha = alpha)) },
+                    onDrawFallback = { drawRect(tint.copy(alpha = solidAlpha)) }
+                )
+            } else {
+                Modifier.drawBehind { drawRect(tint.copy(alpha = (alpha + 0.12f).coerceAtMost(0.96f))) }
             }
-        }
+        ).drawBehind { drawRect(sheen) }
     }
     MiniPlayerStyle.Floating, MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,
     MiniPlayerStyle.Connected -> background(palette.surface)
