@@ -25,6 +25,8 @@ env:
 jobs:
   prebuild-apk:
     name: Build Prebuild APK
+    # Pushes only exist to cancel an in-flight build; a real APK is built on demand.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
