@@ -1,13 +1,22 @@
 package com.yasuda.derbis.ui.island
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,19 +56,29 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.yasuda.derbis.domain.DerbisNotchSettings
 import com.yasuda.derbis.domain.DerbisNotchStyle
 import com.yasuda.derbis.domain.LyricLine
+import com.yasuda.derbis.ui.LocalAnimationsEnabled
 import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import com.yasuda.derbis.ui.player.PlayerDragEvent
+import com.yasuda.derbis.ui.player.PlayerSwipeResult
+import com.yasuda.derbis.ui.player.playerAxisDragGestures
+import com.yasuda.derbis.ui.player.rememberPlayerSwipeMotion
 import com.yasuda.derbis.ui.theme.DerbisHapticAction
+import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 
 /**
@@ -88,6 +107,12 @@ internal data class NotchPreview(
  * artwork. A hairline progress bar runs along the bottom edge, Apple style — no ring, no pill, just
  * a straight line. Nothing here needs a system overlay permission, and every part of it can be
  * turned off from its customize screen.
+ *
+ * Motion is part of the material, not decoration: the capsule and the card are one surface that
+ * morphs (width, height and corner radius on the same spring), the blurred cover blooms behind it,
+ * the two layouts cross-fade instead of swapping, and a horizontal swipe on the collapsed capsule
+ * skips the track with the same carry/settle motion the mini player uses. Everything respects the
+ * app's animations switch — off means snap, never a half-animated island.
  */
 /** Distance below the status bar, and from the screen edge when the island is not centred. */
 internal const val NotchBaseTopDp = 4
@@ -100,6 +125,10 @@ private val NotchMuted = Color.White.copy(alpha = 0.62f)
 private val NotchPill = Color(0xFF050506)
 private val NotchSpicy = Color(0xFFFF2D95)
 private val NotchWave = Color(0xFF7C4DFF)
+
+/** Width damping of the morph. Slightly under 1 so the island settles instead of gliding to a stop. */
+private const val NotchMorphDamping = 0.76f
+private const val NotchMorphStiffness = 320f
 
 @Composable
 internal fun DerbisMusicNotch(
@@ -116,6 +145,7 @@ internal fun DerbisMusicNotch(
     startExpanded: Boolean = false
 ) {
     var expanded by rememberSaveable(preview.title, startExpanded) { mutableStateOf(startExpanded) }
+    val animated = LocalAnimationsEnabled.current
     val haptics = LocalDerbisHaptics.current
     val activeIndex = remember(preview.lyrics, preview.positionMs, preview.lyricsSynced) {
         if (!preview.lyricsSynced) {
@@ -129,23 +159,93 @@ internal fun DerbisMusicNotch(
         }
     }
 
-    val shape = if (expanded) RoundedCornerShape(30.dp) else RoundedCornerShape(50)
+    // One spring for the whole morph: the capsule widens, the corners relax and the content
+    // cross-fades on the same curve, so it reads as one surface opening rather than three
+    // separate animations.
+    val morphSpring = if (expanded) DerbisMotion.expand else DerbisMotion.collapse
+    val corner by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (expanded) 30.dp else 19.dp,
+        animationSpec = DerbisMotion.physics(animated, morphSpring),
+        label = "notch-corner"
+    )
+    val backdrop by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = DerbisMotion.physics(animated, morphSpring),
+        label = "notch-backdrop"
+    )
+    val rim by animateFloatAsState(
+        targetValue = if (expanded) 0.10f else 0.06f,
+        animationSpec = DerbisMotion.physics(animated, morphSpring),
+        label = "notch-rim"
+    )
+
+    val shape = RoundedCornerShape(corner)
     // A 356dp card is wider than a small phone's screen; clamp it so the island never runs off
     // the edge on a 320-360dp device.
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val expandedWidth = if (settings.compactCard) 248.dp else 356.dp
-    val islandWidth = if (expanded) {
-        minOf(expandedWidth, screenWidth - 32.dp)
+    val islandWidth by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (expanded) {
+            minOf(expandedWidth, screenWidth - 32.dp)
+        } else {
+            minOf(if (settings.showArtwork) 168.dp else 132.dp, screenWidth - 32.dp)
+        },
+        animationSpec = DerbisMotion.physics(animated, morphSpring),
+        label = "notch-width"
+    )
+
+    // Swipe-to-skip lives on the collapsed capsule only: the expanded card owns vertical scrolling
+    // for the lyric sheet and inside it there are real transport buttons. It reuses the same drag
+    // engine and settle curve as the mini player, so a swipe feels identical everywhere.
+    val swipe = rememberPlayerSwipeMotion(animated)
+    val swipeEnabled = interactive && !expanded && settings.showTransport
+    val swipeOffset = { swipe.offsetFor(preview.title) }
+    val swipeModifier = if (swipeEnabled) {
+        Modifier.playerAxisDragGestures(
+            key = preview.title,
+            enabled = true,
+            rightToLeft = false,
+            edgeZonesEnabled = false,
+            verticalEnabled = false
+        ) { event ->
+            when (event) {
+                is PlayerDragEvent.HorizontalOffset -> swipe.follow(preview.title, event.offsetPx)
+                is PlayerDragEvent.HorizontalSettled -> {
+                    val committed = event.result != PlayerSwipeResult.Settle
+                    if (committed) {
+                        if (settings.haptics) haptics.perform(DerbisHapticAction.TrackSwipe)
+                        when (event.result) {
+                            PlayerSwipeResult.Next -> onNext()
+                            PlayerSwipeResult.Previous -> onPrevious()
+                            PlayerSwipeResult.Settle -> Unit
+                        }
+                    }
+                    swipe.release(committed = committed, carry = false)
+                }
+                else -> Unit
+            }
+        }
     } else {
-        minOf(if (settings.showArtwork) 168.dp else 132.dp, screenWidth - 32.dp)
+        Modifier
     }
+
     Box(
         modifier = modifier
             .width(islandWidth)
-            .animateContentSize()
+            .graphicsLayer { translationX = swipeOffset() }
+            .animateContentSize(
+                animationSpec = if (animated) {
+                    spring(dampingRatio = NotchMorphDamping, stiffness = NotchMorphStiffness)
+                } else {
+                    // Reduced motion: the island still has to change size, it just does not glide.
+                    snap()
+                },
+                alignment = Alignment.TopCenter
+            )
             .clip(shape)
             .background(NotchPill)
-            .border(1.dp, Color.White.copy(alpha = if (expanded) 0.10f else 0.06f), shape)
+            .border(1.dp, Color.White.copy(alpha = rim), shape)
+            .then(swipeModifier)
             .then(
                 if (!interactive) {
                     Modifier
@@ -159,9 +259,9 @@ internal fun DerbisMusicNotch(
                 }
             )
     ) {
-        // The blurred cover only exists in the expanded card; the pill stays pitch black so it reads
-        // like the cutout it is imitating.
-        if (expanded) {
+        // The blurred cover only exists in the expanded card; the pill stays pitch black so it
+        // reads like the cutout it is imitating. It blooms in behind the card instead of popping.
+        if (backdrop > 0.01f) {
             if (settings.showArtwork && preview.artworkUrl.isNotBlank()) {
                 AsyncImage(
                     model = preview.artworkUrl,
@@ -169,12 +269,21 @@ internal fun DerbisMusicNotch(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .matchParentSize()
+                        .graphicsLayer {
+                            alpha = backdrop
+                            // Starts slightly wider than the card and settles: the cover is being
+                            // revealed from behind the cutout, not faded on top of it.
+                            val grow = 1.08f - 0.08f * backdrop
+                            scaleX = grow
+                            scaleY = grow
+                        }
                         .blur(36.dp)
                 )
             }
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    .graphicsLayer { alpha = backdrop }
                     .background(
                         Brush.verticalGradient(
                             listOf(
@@ -186,26 +295,42 @@ internal fun DerbisMusicNotch(
             )
         }
 
-        if (!expanded) {
+        AnimatedVisibility(
+            visible = !expanded,
+            enter = fadeIn(animationSpec = tween(if (animated) 160 else 0)) +
+                scaleIn(initialScale = 0.96f, animationSpec = tween(if (animated) 180 else 0)),
+            exit = fadeOut(animationSpec = tween(if (animated) 90 else 0)) +
+                scaleOut(targetScale = 0.96f, animationSpec = tween(if (animated) 90 else 0))
+        ) {
             NotchPillRow(preview = preview, settings = settings)
-        } else {
-            NotchCard(
-                preview = preview,
-                settings = settings,
-                activeIndex = activeIndex,
-                onTogglePlay = onTogglePlay,
-                onPrevious = onPrevious,
-                onNext = onNext,
-                onOpen = onOpen,
-                interactive = interactive
-            )
-            if (settings.showProgress) {
-                NotchProgressBar(
-                    positionMs = preview.positionMs,
-                    durationMs = preview.durationMs,
-                    isPlaying = preview.isPlaying,
-                    modifier = Modifier.align(Alignment.BottomCenter)
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(animationSpec = tween(if (animated) 220 else 0, delayMillis = if (animated) 60 else 0)) +
+                scaleIn(initialScale = 0.94f, animationSpec = tween(if (animated) 240 else 0, delayMillis = if (animated) 60 else 0)),
+            exit = fadeOut(animationSpec = tween(if (animated) 90 else 0)) +
+                scaleOut(targetScale = 0.97f, animationSpec = tween(if (animated) 110 else 0))
+        ) {
+            Box {
+                NotchCard(
+                    preview = preview,
+                    settings = settings,
+                    activeIndex = activeIndex,
+                    onTogglePlay = onTogglePlay,
+                    onPrevious = onPrevious,
+                    onNext = onNext,
+                    onOpen = onOpen,
+                    interactive = interactive
                 )
+                if (settings.showProgress) {
+                    NotchProgressBar(
+                        positionMs = preview.positionMs,
+                        durationMs = preview.durationMs,
+                        isPlaying = preview.isPlaying,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
+                }
             }
         }
     }
@@ -332,18 +457,7 @@ private fun NotchCard(
                     interactive = interactive,
                     onClick = onPrevious
                 )
-                NotchTransportButton(
-                    icon = if (preview.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    label = if (preview.isPlaying) {
-                        LocalDerbisStrings.current.pause
-                    } else {
-                        LocalDerbisStrings.current.play
-                    },
-                    size = 34.dp,
-                    iconSize = 22.dp,
-                    interactive = interactive,
-                    onClick = onTogglePlay
-                )
+                NotchPlayButton(isPlaying = preview.isPlaying, interactive = interactive, onClick = onTogglePlay)
                 NotchTransportButton(
                     icon = Icons.Rounded.SkipNext,
                     label = LocalDerbisStrings.current.next,
@@ -408,7 +522,7 @@ private fun NotchTitleBlock(preview: NotchPreview, centered: Boolean) {
         fontWeight = FontWeight.Bold,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
-        textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start
+        textAlign = if (centered) TextAlign.Center else TextAlign.Start
     )
     Text(
         text = preview.artist,
@@ -416,7 +530,7 @@ private fun NotchTitleBlock(preview: NotchPreview, centered: Boolean) {
         fontSize = 11.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start
+        textAlign = if (centered) TextAlign.Center else TextAlign.Start
     )
 }
 
@@ -426,10 +540,10 @@ private fun NotchTitleBlock(preview: NotchPreview, centered: Boolean) {
  */
 @Composable
 private fun NotchTransportButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     label: String,
-    size: androidx.compose.ui.unit.Dp,
-    iconSize: androidx.compose.ui.unit.Dp,
+    size: Dp,
+    iconSize: Dp,
     interactive: Boolean,
     onClick: () -> Unit
 ) {
@@ -445,8 +559,69 @@ private fun NotchTransportButton(
 }
 
 /**
+ * Play/pause. The glyph is the one control that changes meaning on tap, so the swap is punctuated
+ * by a quick dip and spring back — the tap lands even before audio does. A preview (not
+ * interactive) still draws full strength instead of Material's disabled alpha.
+ */
+@Composable
+private fun NotchPlayButton(
+    isPlaying: Boolean,
+    interactive: Boolean,
+    onClick: () -> Unit
+) {
+    val bump = remember { Animatable(1f) }
+    val animated = LocalAnimationsEnabled.current
+    var settledOnce by remember { mutableStateOf(false) }
+    LaunchedEffect(isPlaying) {
+        // The first composition is not a state change: the island is simply appearing.
+        if (!settledOnce) {
+            settledOnce = true
+            return@LaunchedEffect
+        }
+        if (!animated) {
+            bump.snapTo(1f)
+        } else {
+            bump.animateTo(
+                targetValue = 0.82f,
+                animationSpec = tween(DerbisMotion.Durations.Quick, easing = DerbisMotion.Easings.Accelerate)
+            )
+            bump.animateTo(targetValue = 1f, animationSpec = DerbisMotion.settle.spec())
+        }
+    }
+    val icon: @Composable () -> Unit = {
+        Icon(
+            imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+            contentDescription = if (isPlaying) {
+                LocalDerbisStrings.current.pause
+            } else {
+                LocalDerbisStrings.current.play
+            },
+            tint = NotchText,
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer {
+                    scaleX = bump.value
+                    scaleY = bump.value
+                }
+        )
+    }
+    if (interactive) {
+        androidx.compose.material3.IconButton(onClick = onClick, modifier = Modifier.size(34.dp)) {
+            icon()
+        }
+    } else {
+        Box(modifier = Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+            icon()
+        }
+    }
+}
+
+/**
  * Lyric sheet for the expanded notch. Default keeps the list calm and single-coloured; Spicy scales
  * the active line up and gives it the accent treatment used by the spicy lyric deck.
+ *
+ * The active line now animates between states instead of snapping: colour, opacity and (in Spicy)
+ * a small scale all ease on the same short tween, so the sheet reads as one line moving forward.
  */
 @Composable
 private fun NotchLyricSheet(
@@ -455,6 +630,7 @@ private fun NotchLyricSheet(
     style: DerbisNotchStyle
 ) {
     val strings = LocalDerbisStrings.current
+    val animated = LocalAnimationsEnabled.current
     if (lyrics.isEmpty()) {
         Box(modifier = Modifier.height(112.dp), contentAlignment = Alignment.Center) {
             Text(text = strings.lyricsUnavailable, color = NotchMuted, fontSize = 11.sp)
@@ -465,7 +641,11 @@ private fun NotchLyricSheet(
     LaunchedEffect(activeIndex, lyrics.size) {
         if (activeIndex >= 0) {
             runCatching {
-                listState.animateScrollToItem(index = (activeIndex - 1).coerceAtLeast(0))
+                if (animated) {
+                    listState.animateScrollToItem(index = (activeIndex - 1).coerceAtLeast(0))
+                } else {
+                    listState.scrollToItem(index = (activeIndex - 1).coerceAtLeast(0))
+                }
             }
         }
     }
@@ -477,19 +657,34 @@ private fun NotchLyricSheet(
         itemsIndexed(lyrics) { index, line ->
             val isActive = index == activeIndex
             val weight = if (isActive) FontWeight.Bold else FontWeight.Medium
-            val scale = if (style == DerbisNotchStyle.Spicy) 1.16f else 1f
-            val color = when {
+            val targetColor = when {
                 isActive && style == DerbisNotchStyle.Spicy -> NotchSpicy
                 isActive -> NotchText
                 else -> NotchMuted
             }
+            val color by animateColorAsState(
+                targetValue = targetColor,
+                animationSpec = tween(if (animated) 220 else 0),
+                label = "notch-lyric-color"
+            )
+            val emphasis by animateFloatAsState(
+                targetValue = if (isActive) 1f else 0f,
+                animationSpec = tween(if (animated) 220 else 0),
+                label = "notch-lyric-emphasis"
+            )
+            val scale = if (style == DerbisNotchStyle.Spicy) 1f + 0.16f * emphasis else 1f
             Text(
                 text = line.text.ifBlank { "♪" },
                 color = color,
                 fontSize = (if (isActive) 13.sp else 11.sp) * scale,
                 fontWeight = weight,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = 1f + (scale - 1f) * 0.6f
+                    scaleY = 1f + (scale - 1f) * 0.6f
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0f, 0.5f)
+                }
             )
         }
     }
@@ -497,14 +692,16 @@ private fun NotchLyricSheet(
 
 /**
  * Apple style playback hairline: a straight 2 dp line pinned to the bottom edge of the card, square
- * ends, no ring and no pill. The fill glides between player ticks instead of stepping.
+ * ends, no ring and no pill. The fill glides between player ticks instead of stepping, and it
+ * brightens while audio plays so a paused island reads as paused at a glance.
  */
 @Composable
 internal fun NotchProgressBar(
     positionMs: Long,
     durationMs: Long,
     isPlaying: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    animated: Boolean = LocalAnimationsEnabled.current
 ) {
     val target = if (durationMs > 0L) {
         (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
@@ -513,13 +710,21 @@ internal fun NotchProgressBar(
     }
     val fraction by animateFloatAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis = if (isPlaying) 900 else 260, easing = LinearEasing),
+        animationSpec = tween(
+            durationMillis = if (!animated) 0 else if (isPlaying) 900 else 260,
+            easing = LinearEasing
+        ),
         label = "notch-progress"
+    )
+    val fill by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0.66f,
+        animationSpec = tween(if (animated) 240 else 0),
+        label = "notch-progress-fill"
     )
     Canvas(modifier = modifier.fillMaxWidth().height(2.dp)) {
         drawRect(color = Color.White.copy(alpha = 0.18f))
         drawRect(
-            color = Color.White,
+            color = Color.White.copy(alpha = fill),
             size = androidx.compose.ui.geometry.Size(size.width * fraction, size.height)
         )
     }

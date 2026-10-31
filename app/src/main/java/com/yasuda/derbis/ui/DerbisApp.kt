@@ -2768,52 +2768,78 @@ fun DerbisApp(
 
             // Music only: the island never appears over video, and it is off until the listener
             // turns it on in Settings.
-            if (!playerVisible && !state.showSettings && !state.isVideoMode &&
-                state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled
-            ) {
-                val notchTrack = state.currentTrack
-                val notchSettings = state.interfaceSettings.derbisNotch
-                // Centre is the default and the only placement that needs no side inset; the side
-                // options exist for phones whose cutout is not in the middle.
-                val notchCorner = when (notchSettings.alignment) {
-                    com.yasuda.derbis.domain.NotchAlignment.Start -> Alignment.TopStart
-                    com.yasuda.derbis.domain.NotchAlignment.End -> Alignment.TopEnd
-                    com.yasuda.derbis.domain.NotchAlignment.Center -> Alignment.TopCenter
-                }
-                DerbisMusicNotch(
-                    preview = NotchPreview(
-                        title = notchTrack.title,
-                        artist = notchTrack.artist,
-                        artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
-                        lyrics = state.lyrics,
-                        lyricsSynced = state.lyricsSynced,
-                        positionMs = state.positionMs,
-                        durationMs = state.durationMs,
-                        isPlaying = state.isPlaying
+            val notchSettings = state.interfaceSettings.derbisNotch
+            // Centre is the default and the only placement that needs no side inset; the side
+            // options exist for phones whose cutout is not in the middle.
+            val notchCorner = when (notchSettings.alignment) {
+                com.yasuda.derbis.domain.NotchAlignment.Start -> Alignment.TopStart
+                com.yasuda.derbis.domain.NotchAlignment.End -> Alignment.TopEnd
+                com.yasuda.derbis.domain.NotchAlignment.Center -> Alignment.TopCenter
+            }
+            // The island drops out of the cutout and back into it instead of blinking on when a
+            // track starts or the player closes. Origin is the top edge, so it grows downwards
+            // from where a real island would live.
+            val notchDropIn = tween<Float>(durationMillis = if (state.animationsEnabled) 220 else 0)
+            // slideInVertically animates an IntOffset, so it needs its own spec for the same timing.
+            val notchSlideIn = tween<androidx.compose.ui.unit.IntOffset>(
+                durationMillis = if (state.animationsEnabled) 220 else 0
+            )
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !playerVisible && !state.showSettings && !state.isVideoMode &&
+                    state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled,
+                modifier = Modifier
+                    .align(notchCorner)
+                    .statusBarsPadding()
+                    .padding(
+                        top = (NotchBaseTopDp + notchSettings.offsetYDp).dp,
+                        start = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.Start) {
+                            NotchSideInsetDp.dp
+                        } else {
+                            0.dp
+                        },
+                        end = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.End) {
+                            NotchSideInsetDp.dp
+                        } else {
+                            0.dp
+                        }
+                    )
+                    .zIndex(42f),
+                enter = androidx.compose.animation.fadeIn(animationSpec = notchDropIn) +
+                    androidx.compose.animation.scaleIn(
+                        initialScale = 0.88f,
+                        transformOrigin = TransformOrigin(0.5f, 0f),
+                        animationSpec = notchDropIn
+                    ) + androidx.compose.animation.slideInVertically(
+                        animationSpec = notchSlideIn,
+                        initialOffsetY = { height -> -height / 2 }
                     ),
-                    settings = notchSettings,
-                    onTogglePlay = viewModel::togglePlay,
-                    onPrevious = viewModel::previous,
-                    onNext = viewModel::next,
-                    onOpen = viewModel::openPlayerScreen,
-                    modifier = Modifier
-                        .align(notchCorner)
-                        .statusBarsPadding()
-                        .padding(
-                            top = (NotchBaseTopDp + notchSettings.offsetYDp).dp,
-                            start = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.Start) {
-                                NotchSideInsetDp.dp
-                            } else {
-                                0.dp
-                            },
-                            end = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.End) {
-                                NotchSideInsetDp.dp
-                            } else {
-                                0.dp
-                            }
-                        )
-                        .zIndex(42f)
+                exit = androidx.compose.animation.fadeOut(
+                    animationSpec = tween(durationMillis = if (state.animationsEnabled) 140 else 0)
+                ) + androidx.compose.animation.scaleOut(
+                    targetScale = 0.88f,
+                    transformOrigin = TransformOrigin(0.5f, 0f),
+                    animationSpec = tween(durationMillis = if (state.animationsEnabled) 160 else 0)
                 )
+            ) {
+                state.currentTrack?.let { notchTrack ->
+                    DerbisMusicNotch(
+                        preview = NotchPreview(
+                            title = notchTrack.title,
+                            artist = notchTrack.artist,
+                            artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
+                            lyrics = state.lyrics,
+                            lyricsSynced = state.lyricsSynced,
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
+                            isPlaying = state.isPlaying
+                        ),
+                        settings = notchSettings,
+                        onTogglePlay = viewModel::togglePlay,
+                        onPrevious = viewModel::previous,
+                        onNext = viewModel::next,
+                        onOpen = viewModel::openPlayerScreen
+                    )
+                }
             }
 
             if (playerVisible) {
