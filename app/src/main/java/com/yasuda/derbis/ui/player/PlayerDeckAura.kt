@@ -564,8 +564,12 @@ private fun AuraBackdrop(
                 model = request,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                // Blur first, pulse second: the RenderEffect then wraps a still image and is
+                // computed once, while the beat only re-composites the finished layer. Pulsing
+                // inside the blur would re-run the effect on every frame of the track.
                 modifier = Modifier
                     .fillMaxSize()
+                    .blur(72.dp, BlurredEdgeTreatment.Unbounded)
                     .graphicsLayer {
                         val hit = auraBeatHit(beats, hasGrid, isPlaying)
                         alpha = 0.16f + 0.10f * hit
@@ -573,7 +577,6 @@ private fun AuraBackdrop(
                         scaleX = scale
                         scaleY = scale
                     }
-                    .blur(72.dp, BlurredEdgeTreatment.Unbounded)
             )
         }
         // One accent bloom behind the sleeve, swelling on the beat instead of strobing.
