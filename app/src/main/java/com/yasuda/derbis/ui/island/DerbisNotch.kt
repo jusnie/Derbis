@@ -1,6 +1,5 @@
 package com.yasuda.derbis.ui.island
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -34,7 +33,6 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,19 +54,40 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.yasuda.derbis.domain.DerbisNotchSettings
 import com.yasuda.derbis.domain.DerbisNotchStyle
 import com.yasuda.derbis.domain.LyricLine
-import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import com.yasuda.derbis.ui.theme.DerbisHapticAction
+import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
+
+/**
+ * Everything the notch draws, flattened off the player state.
+ *
+ * The island is handed data, never a Track: the customize screen shows the same composable it is
+ * configuring, without owning a player.
+ */
+internal data class NotchPreview(
+    val title: String,
+    val artist: String,
+    val artworkUrl: String,
+    val lyrics: List<LyricLine>,
+    /** False when the provider returned plain text: the sheet still lists lines, nothing highlights. */
+    val lyricsSynced: Boolean = true,
+    val positionMs: Long,
+    val durationMs: Long,
+    val isPlaying: Boolean
+)
 
 /**
  * Derbis Notch — the in-app dynamic island for the current track.
  *
- * Collapsed it is a black capsule hugging the status bar. Tapping it grows into a two column card:
- * artwork, title and artist on the left, the synced lyric sheet on the right, over a blurred copy of
- * the artwork. A hairline progress bar runs along the bottom edge of the card, Apple style — no ring,
- * no pill, just a straight line. Nothing here needs a system overlay permission.
+ * Collapsed it is a black capsule hugging the status bar. Tapping it grows into a card: artwork,
+ * title and artist on the left, the synced lyric sheet on the right, over a blurred copy of the
+ * artwork. A hairline progress bar runs along the bottom edge, Apple style — no ring, no pill, just
+ * a straight line. Nothing here needs a system overlay permission, and every part of it can be
+ * turned off from its customize screen.
  */
 private val NotchInk = Color(0xFF0A0A0C)
 private val NotchText = Color.White
@@ -79,29 +98,27 @@ private val NotchWave = Color(0xFF7C4DFF)
 
 @Composable
 internal fun DerbisMusicNotch(
-    track: Track?,
-    lyrics: List<LyricLine>,
-    lyricsSynced: Boolean,
-    positionMs: Long,
-    durationMs: Long,
-    isPlaying: Boolean,
-    style: DerbisNotchStyle,
-    onStyleChange: (DerbisNotchStyle) -> Unit,
+    preview: NotchPreview,
+    settings: DerbisNotchSettings,
     onTogglePlay: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onOpen: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** False in the customize screen: the island renders, but nothing inside it reacts. */
+    interactive: Boolean = true,
+    /** The customize screen drives this itself so it can show both states side by side of the toggles. */
+    startExpanded: Boolean = false
 ) {
-    if (track == null) return
-    var expanded by rememberSaveable(track.id) { mutableStateOf(false) }
-    val activeIndex = remember(lyrics, positionMs, lyricsSynced) {
-        if (!lyricsSynced) {
+    var expanded by rememberSaveable(preview.title, startExpanded) { mutableStateOf(startExpanded) }
+    val haptics = LocalDerbisHaptics.current
+    val activeIndex = remember(preview.lyrics, preview.positionMs, preview.lyricsSynced) {
+        if (!preview.lyricsSynced) {
             -1
         } else {
             var found = -1
-            for (index in lyrics.indices) {
-                if (lyrics[index].startMs <= positionMs) found = index else break
+            for (index in preview.lyrics.indices) {
+                if (preview.lyrics[index].startMs <= preview.positionMs) found = index else break
             }
             found
         }
@@ -111,7 +128,12 @@ internal fun DerbisMusicNotch(
     // A 356dp card is wider than a small phone's screen; clamp it so the island never runs off
     // the edge on a 320-360dp device.
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val islandWidth = if (expanded) minOf(356.dp, screenWidth - 32.dp) else minOf(168.dp, screenWidth - 32.dp)
+    val expandedWidth = if (settings.compactCard) 248.dp else 356.dp
+    val islandWidth = if (expanded) {
+        minOf(expandedWidth, screenWidth - 32.dp)
+    } else {
+        minOf(if (settings.showArtwork) 168.dp else 132.dp, screenWidth - 32.dp)
+    }
     Box(
         modifier = modifier
             .width(islandWidth)
@@ -119,19 +141,32 @@ internal fun DerbisMusicNotch(
             .clip(shape)
             .background(NotchPill)
             .border(1.dp, Color.White.copy(alpha = if (expanded) 0.10f else 0.06f), shape)
-            .clickable { expanded = !expanded }
+            .then(
+                if (!interactive) {
+                    Modifier
+                } else {
+                    Modifier.clickable {
+                        // The tick follows the state, not the tap, so a card that closes itself
+                        // buzzes the same way a tapped one does.
+                        if (settings.haptics) haptics.perform(DerbisHapticAction.Confirm)
+                        expanded = !expanded
+                    }
+                }
+            )
     ) {
         // The blurred cover only exists in the expanded card; the pill stays pitch black so it reads
         // like the cutout it is imitating.
         if (expanded) {
-            AsyncImage(
-                model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .blur(36.dp)
-            )
+            if (settings.showArtwork && preview.artworkUrl.isNotBlank()) {
+                AsyncImage(
+                    model = preview.artworkUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .matchParentSize()
+                        .blur(36.dp)
+                )
+            }
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -147,37 +182,32 @@ internal fun DerbisMusicNotch(
         }
 
         if (!expanded) {
-            NotchPillRow(track = track, isPlaying = isPlaying)
+            NotchPillRow(preview = preview, settings = settings)
         } else {
             NotchCard(
-                track = track,
-                lyrics = lyrics,
+                preview = preview,
+                settings = settings,
                 activeIndex = activeIndex,
-                isPlaying = isPlaying,
-                style = style,
-                onStyleChange = onStyleChange,
-                positionMs = positionMs,
-                durationMs = durationMs,
                 onTogglePlay = onTogglePlay,
                 onPrevious = onPrevious,
                 onNext = onNext,
-                onOpen = {
-                    expanded = false
-                    onOpen()
-                }
+                onOpen = onOpen,
+                interactive = interactive
             )
-            NotchProgressBar(
-                positionMs = positionMs,
-                durationMs = durationMs,
-                isPlaying = isPlaying,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
+            if (settings.showProgress) {
+                NotchProgressBar(
+                    positionMs = preview.positionMs,
+                    durationMs = preview.durationMs,
+                    isPlaying = preview.isPlaying,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun NotchPillRow(track: Track, isPlaying: Boolean) {
+private fun NotchPillRow(preview: NotchPreview, settings: DerbisNotchSettings) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,17 +215,21 @@ private fun NotchPillRow(track: Track, isPlaying: Boolean) {
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = track.thumbnailUrl.ifBlank { track.largeThumbnailUrl },
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-        )
-        Spacer(Modifier.width(8.dp))
+        if (settings.showArtwork && preview.artworkUrl.isNotBlank()) {
+            AsyncImage(
+                model = preview.artworkUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+            )
+            Spacer(Modifier.width(8.dp))
+        } else {
+            Spacer(Modifier.width(4.dp))
+        }
         Text(
-            text = track.title,
+            text = preview.title,
             color = NotchText,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
@@ -203,8 +237,10 @@ private fun NotchPillRow(track: Track, isPlaying: Boolean) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        Spacer(Modifier.width(6.dp))
-        NotchWaveform(isPlaying = isPlaying)
+        if (settings.showWaveform) {
+            Spacer(Modifier.width(6.dp))
+            NotchWaveform(isPlaying = preview.isPlaying)
+        }
     }
 }
 
@@ -241,145 +277,166 @@ private fun NotchWaveform(isPlaying: Boolean) {
 
 @Composable
 private fun NotchCard(
-    track: Track,
-    lyrics: List<LyricLine>,
+    preview: NotchPreview,
+    settings: DerbisNotchSettings,
     activeIndex: Int,
-    isPlaying: Boolean,
-    style: DerbisNotchStyle,
-    onStyleChange: (DerbisNotchStyle) -> Unit,
-    positionMs: Long,
-    durationMs: Long,
     onTogglePlay: () -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    interactive: Boolean
 ) {
     Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 16.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Column(
-                modifier = Modifier.width(112.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                AsyncImage(
-                    model = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl },
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(104.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(18.dp))
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text = track.title,
-                    color = NotchText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = track.artist,
-                    color = NotchMuted,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+        if (settings.compactCard) {
+            // No lyric sheet: the artwork sits beside the text instead of above it, so the card
+            // stays a card rather than a tall empty box.
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                NotchArtwork(preview = preview)
+                Column(modifier = Modifier.weight(1f)) {
+                    NotchTitleBlock(preview = preview, centered = false)
+                }
             }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    NotchStyleChip(
-                        label = LocalDerbisStrings.current.derbisNotchStyleDefault,
-                        selected = style == DerbisNotchStyle.Default,
-                        onClick = { onStyleChange(DerbisNotchStyle.Default) }
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    NotchStyleChip(
-                        label = LocalDerbisStrings.current.derbisNotchStyleSpicy,
-                        selected = style == DerbisNotchStyle.Spicy,
-                        onClick = { onStyleChange(DerbisNotchStyle.Spicy) }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(
+                    modifier = Modifier.width(112.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    NotchArtwork(preview = preview)
+                    Spacer(Modifier.height(10.dp))
+                    NotchTitleBlock(preview = preview, centered = true)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    NotchLyricSheet(
+                        lyrics = preview.lyrics,
+                        activeIndex = activeIndex,
+                        style = settings.style
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-                NotchLyricSheet(lyrics = lyrics, activeIndex = activeIndex, style = style)
             }
         }
 
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPrevious, modifier = Modifier.size(30.dp)) {
-                Icon(
-                    Icons.Rounded.SkipPrevious,
-                    contentDescription = LocalDerbisStrings.current.previous,
-                    tint = NotchText,
-                    modifier = Modifier.size(18.dp)
+            if (settings.showTransport) {
+                NotchTransportButton(
+                    icon = Icons.Rounded.SkipPrevious,
+                    label = LocalDerbisStrings.current.previous,
+                    size = 30.dp,
+                    iconSize = 18.dp,
+                    interactive = interactive,
+                    onClick = onPrevious
                 )
-            }
-            IconButton(onClick = onTogglePlay, modifier = Modifier.size(34.dp)) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = if (isPlaying) LocalDerbisStrings.current.pause else LocalDerbisStrings.current.play,
-                    tint = NotchText,
-                    modifier = Modifier.size(22.dp)
+                NotchTransportButton(
+                    icon = if (preview.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    label = if (preview.isPlaying) {
+                        LocalDerbisStrings.current.pause
+                    } else {
+                        LocalDerbisStrings.current.play
+                    },
+                    size = 34.dp,
+                    iconSize = 22.dp,
+                    interactive = interactive,
+                    onClick = onTogglePlay
                 )
-            }
-            IconButton(onClick = onNext, modifier = Modifier.size(30.dp)) {
-                Icon(
-                    Icons.Rounded.SkipNext,
-                    contentDescription = LocalDerbisStrings.current.next,
-                    tint = NotchText,
-                    modifier = Modifier.size(18.dp)
+                NotchTransportButton(
+                    icon = Icons.Rounded.SkipNext,
+                    label = LocalDerbisStrings.current.next,
+                    size = 30.dp,
+                    iconSize = 18.dp,
+                    interactive = interactive,
+                    onClick = onNext
                 )
             }
             Spacer(Modifier.weight(1f))
             Text(
-                text = formatSeekbarMillis(positionMs),
+                text = formatSeekbarMillis(preview.positionMs),
                 color = NotchMuted,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(text = " / ", color = NotchMuted, fontSize = 10.sp)
             Text(
-                text = if (durationMs > 0L) formatSeekbarMillis(durationMs) else "--:--",
+                text = if (preview.durationMs > 0L) formatSeekbarMillis(preview.durationMs) else "--:--",
                 color = NotchMuted,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = LocalDerbisStrings.current.openPlayer,
-                color = NotchText,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.14f))
-                    .clickable { onOpen() }
-                    .padding(horizontal = 10.dp, vertical = 5.dp)
-            )
+            if (interactive) {
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = LocalDerbisStrings.current.openPlayer,
+                    color = NotchText,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .clickable { onOpen() }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun NotchStyleChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val container by animateColorAsState(
-        targetValue = if (selected) Color.White else Color.White.copy(alpha = 0.10f),
-        animationSpec = tween(160),
-        label = "notch-chip"
+private fun NotchArtwork(preview: NotchPreview) {
+    if (preview.artworkUrl.isBlank()) return
+    AsyncImage(
+        model = preview.artworkUrl,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(104.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(18.dp))
+    )
+}
+
+@Composable
+private fun NotchTitleBlock(preview: NotchPreview, centered: Boolean) {
+    Text(
+        text = preview.title,
+        color = NotchText,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start
     )
     Text(
-        text = label,
-        color = if (selected) NotchInk else NotchText,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(container)
-            .clickable { onClick() }
-            .padding(horizontal = 9.dp, vertical = 4.dp)
+        text = preview.artist,
+        color = NotchMuted,
+        fontSize = 11.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = if (centered) androidx.compose.ui.text.style.TextAlign.Center else androidx.compose.ui.text.style.TextAlign.Start
     )
+}
+
+/**
+ * One transport control. In the customize screen [interactive] is false, so the icon draws but is
+ * not a button — a preview should never look like it is taking the tap you just made on a switch.
+ */
+@Composable
+private fun NotchTransportButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    size: androidx.compose.ui.unit.Dp,
+    iconSize: androidx.compose.ui.unit.Dp,
+    interactive: Boolean,
+    onClick: () -> Unit
+) {
+    if (interactive) {
+        androidx.compose.material3.IconButton(onClick = onClick, modifier = Modifier.size(size)) {
+            Icon(icon, contentDescription = label, tint = NotchText, modifier = Modifier.size(iconSize))
+        }
+    } else {
+        Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = NotchText, modifier = Modifier.size(iconSize))
+        }
+    }
 }
 
 /**

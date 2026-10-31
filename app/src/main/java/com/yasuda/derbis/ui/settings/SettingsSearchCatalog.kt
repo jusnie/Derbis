@@ -85,7 +85,13 @@ private fun MutableList<SettingsSearchEntry>.playerEntries(strings: DerbisString
     val automation = strings.automationCopy()
     entry("player.visual_mode", strings.playerVisualMode, strings.playerVisualModeSubtitle, "canvas artwork immersive", categories.player)
     entry("player.haptics", strings.hapticFeedback, strings.hapticFeedbackSubtitle, "haptic vibration", categories.player)
-    entry("player.derbis_notch", strings.derbisNotch, strings.derbisNotchHint, "notch island dynamic island lyrics toggle", categories.player)
+    entry(
+        "player.derbis_notch",
+        strings.derbisNotch,
+        strings.derbisNotchHint,
+        "notch island dynamic island lyrics toggle customize artwork waveform haptics progress",
+        categories.player
+    )
     entry("player.gestures", strings.advancedGestures, strings.advancedGesturesSubtitle, "gestures swipe tap", categories.player)
     entry("player.gesture_horizontal", strings.playerGestureHorizontalSwipe, strings.playerGestureHorizontalSwipeSubtitle, "gestures swipe", categories.player)
     entry("player.gesture_double_tap", strings.playerGestureDoubleTapAction, strings.playerGestureDoubleTapActionSubtitle, "gestures double tap", categories.player)

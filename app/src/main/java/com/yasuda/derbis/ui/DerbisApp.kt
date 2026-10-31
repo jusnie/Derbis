@@ -172,7 +172,6 @@ import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerShapes
 import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.player.*
-import com.yasuda.derbis.domain.DerbisNotchStyle
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.PlayerColorMode
 import com.yasuda.derbis.domain.ResonanceCommentSnippet
@@ -760,6 +759,9 @@ import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
 import com.yasuda.derbis.ui.island.DerbisMusicNotch
+import com.yasuda.derbis.ui.island.NotchCustomizeSheet
+import com.yasuda.derbis.ui.island.NotchPreview
+import com.yasuda.derbis.ui.island.notchSummary
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
@@ -2718,22 +2720,24 @@ fun DerbisApp(
                 }
             }
 
-            if (!playerVisible && !state.showSettings && state.currentTrack != null &&
-                state.interfaceSettings.derbisNotchEnabled
+            // Music only: the island never appears over video, and it is off until the listener
+            // turns it on in Settings.
+            if (!playerVisible && !state.showSettings && !state.isVideoMode &&
+                state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled
             ) {
+                val notchTrack = state.currentTrack
                 DerbisMusicNotch(
-                    track = state.currentTrack,
-                    lyrics = state.lyrics,
-                    lyricsSynced = state.lyricsSynced,
-                    positionMs = state.positionMs,
-                    durationMs = state.durationMs,
-                    isPlaying = state.isPlaying,
-                    style = state.interfaceSettings.derbisNotchStyle,
-                    onStyleChange = { chosen ->
-                        viewModel.setInterfaceSettings(
-                            state.interfaceSettings.copy(derbisNotchStyle = chosen)
-                        )
-                    },
+                    preview = NotchPreview(
+                        title = notchTrack.title,
+                        artist = notchTrack.artist,
+                        artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
+                        lyrics = state.lyrics,
+                        lyricsSynced = state.lyricsSynced,
+                        positionMs = state.positionMs,
+                        durationMs = state.durationMs,
+                        isPlaying = state.isPlaying
+                    ),
+                    settings = state.interfaceSettings.derbisNotch,
                     onTogglePlay = viewModel::togglePlay,
                     onPrevious = viewModel::previous,
                     onNext = viewModel::next,
@@ -2966,6 +2970,19 @@ fun DerbisApp(
                     onInterfaceSettings = viewModel::setInterfaceSettings,
                     // A fresh Spotify session invalidates whatever Canvas was refused before it.
                     onRefreshMotionArtwork = viewModel::refreshCurrentMotionArtwork,
+                    // The customize sheet previews the real island, so it needs the real track.
+                    notchPreview = state.currentTrack?.let { notchTrack ->
+                        NotchPreview(
+                            title = notchTrack.title,
+                            artist = notchTrack.artist,
+                            artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
+                            lyrics = state.lyrics,
+                            lyricsSynced = state.lyricsSynced,
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
+                            isPlaying = state.isPlaying
+                        )
+                    },
                     onAmbientSettings = viewModel::updateAmbientSettings,
                     onOpenAmbient = {
                         viewModel.closeSettings()
@@ -20814,6 +20831,7 @@ private fun SettingsOverlay(
     onOpenAudioSettings: () -> Unit,
     onInterfaceSettings: (DerbisInterfaceSettings) -> Unit,
     onRefreshMotionArtwork: () -> Unit,
+    notchPreview: NotchPreview?,
     onAmbientSettings: (DerbisAmbientSettings) -> Unit,
     onOpenAmbient: () -> Unit,
     onIncludeArtist: (ExcludedArtist) -> Unit,
@@ -20873,6 +20891,7 @@ private fun SettingsOverlay(
         batteryContext.getSystemService(PowerManager::class.java)
         ?.isIgnoringBatteryOptimizations(batteryContext.packageName) == true
     }
+    var showNotchCustomize by rememberSaveable { mutableStateOf(false) }
     var selectedDownloadFolderName by remember(downloadSettings.destinationTreeUri) { mutableStateOf<String?>(null) }
     LaunchedEffect(downloadSettings.destinationTreeUri, batteryCheckToken) {
         selectedDownloadFolderName = if (downloadSettings.destinationTreeUri.isBlank()) {
@@ -21478,11 +21497,11 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
-                            standaloneItem { SettingsSectionLabel("Derbis Notch") }
+                            standaloneItem { SettingsSectionLabel(strings.derbisNotch) }
                             item {
                                 SettingsToggle(
                                     icon = Icons.Rounded.PictureInPictureAlt,
-                                    title = "Enable Derbis Notch",
+                                    title = strings.derbisNotchEnable,
                                     subtitle = strings.derbisNotchHint,
                                     checked = interfaceSettings.derbisNotchEnabled,
                                     onCheckedChange = {
@@ -21494,20 +21513,13 @@ private fun SettingsOverlay(
                             }
                             if (interfaceSettings.derbisNotchEnabled) {
                                 item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.AutoAwesome,
-                                        title = strings.derbisNotchStyleDefault,
-                                        subtitle = "Lyric treatment inside the notch card",
-                                        options = listOf(
-                                            DerbisNotchStyle.Default.name to strings.derbisNotchStyleDefault,
-                                            DerbisNotchStyle.Spicy.name to strings.derbisNotchStyleSpicy
-                                        ),
-                                        selected = interfaceSettings.derbisNotchStyle.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(derbisNotchStyle = DerbisNotchStyle.from(value))
-                                            )
-                                        }
+                                    SettingsButton(
+                                        icon = Icons.Rounded.Tune,
+                                        title = strings.derbisNotchCustomize,
+                                        // One line, live, so the row says what the island will do
+                                        // without opening the sheet.
+                                        subtitle = notchSummary(interfaceSettings.derbisNotch, strings),
+                                        onClick = { showNotchCustomize = true }
                                     )
                                 }
                             }
@@ -22198,6 +22210,18 @@ private fun SettingsOverlay(
                         }
                     } }
                 }
+            }
+            // Outside the list on purpose: a dialog hosted by a lazy item would close itself the
+            // moment that row scrolled away.
+            if (showNotchCustomize) {
+                NotchCustomizeSheet(
+                    settings = interfaceSettings.derbisNotch,
+                    onSettings = { updated ->
+                        onInterfaceSettings(interfaceSettings.copy(derbisNotch = updated))
+                    },
+                    preview = notchPreview,
+                    onDismiss = { showNotchCustomize = false }
+                )
             }
             }
         }

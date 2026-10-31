@@ -1856,7 +1856,13 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("ivoryAppearance", value.ivory.appearance.name)
     .put("hapticFeedback", value.hapticFeedback)
     .put("derbisNotchEnabled", value.derbisNotchEnabled)
-    .put("derbisNotchStyle", value.derbisNotchStyle.name)
+    .put("derbisNotchStyle", value.derbisNotch.style.name)
+    .put("derbisNotchArtwork", value.derbisNotch.showArtwork)
+    .put("derbisNotchLyrics", value.derbisNotch.showLyrics)
+    .put("derbisNotchTransport", value.derbisNotch.showTransport)
+    .put("derbisNotchProgress", value.derbisNotch.showProgress)
+    .put("derbisNotchWaveform", value.derbisNotch.showWaveform)
+    .put("derbisNotchHaptics", value.derbisNotch.haptics)
     .put("playerVisualMode", value.playerVisualMode.name)
     .put("playerBackground", value.playerBackground.name)
     .put("reactiveAuraPreset", value.reactiveAuraPreset.name)
@@ -1924,9 +1930,15 @@ internal fun backupInterfaceSettingsFromJson(
         torque = com.yasuda.derbis.domain.TorqueSettings.from(json.optString("torqueAccent")),
         ivory = com.yasuda.derbis.domain.IvorySettings.from(json.optString("ivoryAppearance")),
         hapticFeedback = json.optBoolean("hapticFeedback", true),
-        derbisNotchEnabled = json.optBoolean("derbisNotchEnabled", true),
-        derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
-            json.optString("derbisNotchStyle")
+        derbisNotchEnabled = json.optBoolean("derbisNotchEnabled", false),
+        derbisNotch = com.yasuda.derbis.domain.DerbisNotchSettings(
+            style = com.yasuda.derbis.domain.DerbisNotchStyle.from(json.optString("derbisNotchStyle")),
+            showArtwork = json.optBoolean("derbisNotchArtwork", true),
+            showLyrics = json.optBoolean("derbisNotchLyrics", true),
+            showTransport = json.optBoolean("derbisNotchTransport", true),
+            showProgress = json.optBoolean("derbisNotchProgress", true),
+            showWaveform = json.optBoolean("derbisNotchWaveform", true),
+            haptics = json.optBoolean("derbisNotchHaptics", true)
         ),
         playerVisualMode = visualMode,
         playerBackground = backgroundMode,

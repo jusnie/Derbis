@@ -271,7 +271,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_IVORY_APPEARANCE] = normalizedInterface.ivory.appearance.name
             mutable[KEY_UI_HAPTIC_FEEDBACK] = normalizedInterface.hapticFeedback
             mutable[KEY_UI_DERBIS_NOTCH] = normalizedInterface.derbisNotchEnabled
-            mutable[KEY_UI_DERBIS_NOTCH_STYLE] = normalizedInterface.derbisNotchStyle.name
+            writeDerbisNotch(mutable, normalizedInterface.derbisNotch)
             mutable[KEY_UI_PLAYER_VISUAL_MODE] = normalizedInterface.playerVisualMode.name
             mutable[KEY_UI_PLAYER_BACKGROUND] = normalizedInterface.playerBackground.name
             mutable[KEY_UI_REACTIVE_AURA_PRESET] = normalizedInterface.reactiveAuraPreset.name
@@ -465,7 +465,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_IVORY_APPEARANCE] = normalized.ivory.appearance.name
             it[KEY_UI_HAPTIC_FEEDBACK] = normalized.hapticFeedback
             it[KEY_UI_DERBIS_NOTCH] = normalized.derbisNotchEnabled
-            it[KEY_UI_DERBIS_NOTCH_STYLE] = normalized.derbisNotchStyle.name
+            writeDerbisNotch(it, normalized.derbisNotch)
             it[KEY_UI_PLAYER_VISUAL_MODE] = normalized.playerVisualMode.name
             it[KEY_UI_PLAYER_BACKGROUND] = normalized.playerBackground.name
             it[KEY_UI_REACTIVE_AURA_PRESET] = normalized.reactiveAuraPreset.name
@@ -929,9 +929,17 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             torque = com.yasuda.derbis.domain.TorqueSettings.from(preferences[KEY_TORQUE_ACCENT].orEmpty()),
             ivory = com.yasuda.derbis.domain.IvorySettings.from(preferences[KEY_IVORY_APPEARANCE].orEmpty()),
             hapticFeedback = preferences[KEY_UI_HAPTIC_FEEDBACK] ?: true,
-            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: true,
-            derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
-                preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: false,
+            derbisNotch = com.yasuda.derbis.domain.DerbisNotchSettings(
+                style = com.yasuda.derbis.domain.DerbisNotchStyle.from(
+                    preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+                ),
+                showArtwork = preferences[KEY_UI_DERBIS_NOTCH_ARTWORK] ?: true,
+                showLyrics = preferences[KEY_UI_DERBIS_NOTCH_LYRICS] ?: true,
+                showTransport = preferences[KEY_UI_DERBIS_NOTCH_TRANSPORT] ?: true,
+                showProgress = preferences[KEY_UI_DERBIS_NOTCH_PROGRESS] ?: true,
+                showWaveform = preferences[KEY_UI_DERBIS_NOTCH_WAVEFORM] ?: true,
+                haptics = preferences[KEY_UI_DERBIS_NOTCH_HAPTICS] ?: true
             ),
             playerVisualMode = visualMode,
             playerBackground = background,
@@ -990,6 +998,19 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             excludedPlaylists = preferences[KEY_SMART_OFFLINE_EXCLUDED_PLAYLISTS].orEmpty(),
             lastRefreshAt = preferences[KEY_SMART_OFFLINE_LAST_REFRESH_AT] ?: 0L
         ).normalized()
+
+    private fun writeDerbisNotch(
+        mutable: androidx.datastore.preferences.core.MutablePreferences,
+        value: com.yasuda.derbis.domain.DerbisNotchSettings
+    ) {
+        mutable[KEY_UI_DERBIS_NOTCH_STYLE] = value.style.name
+        mutable[KEY_UI_DERBIS_NOTCH_ARTWORK] = value.showArtwork
+        mutable[KEY_UI_DERBIS_NOTCH_LYRICS] = value.showLyrics
+        mutable[KEY_UI_DERBIS_NOTCH_TRANSPORT] = value.showTransport
+        mutable[KEY_UI_DERBIS_NOTCH_PROGRESS] = value.showProgress
+        mutable[KEY_UI_DERBIS_NOTCH_WAVEFORM] = value.showWaveform
+        mutable[KEY_UI_DERBIS_NOTCH_HAPTICS] = value.haptics
+    }
 
     private fun writeSmartOfflineSettings(
         mutable: androidx.datastore.preferences.core.MutablePreferences,
@@ -1430,6 +1451,12 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_HAPTIC_FEEDBACK = booleanPreferencesKey("ui_haptic_feedback")
         val KEY_UI_DERBIS_NOTCH = booleanPreferencesKey("ui_derbis_notch")
         val KEY_UI_DERBIS_NOTCH_STYLE = stringPreferencesKey("ui_derbis_notch_style")
+        val KEY_UI_DERBIS_NOTCH_ARTWORK = booleanPreferencesKey("ui_derbis_notch_artwork")
+        val KEY_UI_DERBIS_NOTCH_LYRICS = booleanPreferencesKey("ui_derbis_notch_lyrics")
+        val KEY_UI_DERBIS_NOTCH_TRANSPORT = booleanPreferencesKey("ui_derbis_notch_transport")
+        val KEY_UI_DERBIS_NOTCH_PROGRESS = booleanPreferencesKey("ui_derbis_notch_progress")
+        val KEY_UI_DERBIS_NOTCH_WAVEFORM = booleanPreferencesKey("ui_derbis_notch_waveform")
+        val KEY_UI_DERBIS_NOTCH_HAPTICS = booleanPreferencesKey("ui_derbis_notch_haptics")
         val KEY_UI_DOUBLE_TAP_SECONDS = intPreferencesKey("ui_double_tap_seconds")
         val KEY_UI_LONG_PRESS_ACTION = stringPreferencesKey("ui_long_press_action")
         val KEY_UI_LONG_PRESS_SPEED = floatPreferencesKey("ui_long_press_speed")

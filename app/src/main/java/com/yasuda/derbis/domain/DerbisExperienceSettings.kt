@@ -281,9 +281,9 @@ data class DerbisInterfaceSettings(
     val blockAiContent: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
-    /** In-app dynamic island pinned above the app. */
-    val derbisNotchEnabled: Boolean = true,
-    val derbisNotchStyle: DerbisNotchStyle = DerbisNotchStyle.Default,
+    /** In-app dynamic island pinned above the app. Off until the listener asks for it. */
+    val derbisNotchEnabled: Boolean = false,
+    val derbisNotch: DerbisNotchSettings = DerbisNotchSettings(),
     val playerVisualMode: PlayerVisualMode = PlayerVisualMode.Flow,
     val playerBackground: PlayerBackgroundMode = PlayerBackgroundMode.Dynamic,
     val reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,
