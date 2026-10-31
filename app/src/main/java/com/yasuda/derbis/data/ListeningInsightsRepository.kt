@@ -6,7 +6,9 @@ import com.yasuda.derbis.data.local.DerbisDatabase
 import com.yasuda.derbis.data.local.ListeningInsightsAggregateRow
 import com.yasuda.derbis.domain.ListenPlayPolicy
 import com.yasuda.derbis.domain.ListeningInsightsActivityPoint
+import com.yasuda.derbis.domain.ListeningInsightsAlbum
 import com.yasuda.derbis.domain.ListeningInsightsArtist
+import com.yasuda.derbis.domain.ListeningInsightsBiggestDay
 import com.yasuda.derbis.domain.ListeningInsightsHistoryItem
 import com.yasuda.derbis.domain.ListeningInsightsMetrics
 import com.yasuda.derbis.domain.ListeningInsightsPeriod
@@ -23,6 +25,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
@@ -45,13 +48,20 @@ class ListeningInsightsRepository(context: Context) {
         nowMs: Long = System.currentTimeMillis(),
         zone: ZoneId = ZoneId.systemDefault()
     ): ListeningInsightsSnapshot =
-        snapshotFor(ListeningInsightsPeriod.HalfYear, ListeningInsightsRanges.year(year, nowMs, zone), nowMs, zone)
+        snapshotFor(
+            period = ListeningInsightsPeriod.HalfYear,
+            range = ListeningInsightsRanges.year(year, nowMs, zone),
+            nowMs = nowMs,
+            zone = zone,
+            includeWrappedDetail = true
+        )
 
     private suspend fun snapshotFor(
         period: ListeningInsightsPeriod,
         range: ListeningInsightsRange,
         nowMs: Long,
-        zone: ZoneId
+        zone: ZoneId,
+        includeWrappedDetail: Boolean = false
     ): ListeningInsightsSnapshot = withContext(Dispatchers.IO) {
         database.withTransaction {
             val isAllTime = period == ListeningInsightsPeriod.AllTime
@@ -74,6 +84,7 @@ class ListeningInsightsRepository(context: Context) {
                 days = days
             )
 
+            val wrappedDetail = if (includeWrappedDetail) resolveWrappedDetail(range, zone, metrics) else WrappedDetail()
             ListeningInsightsSnapshot(
                 period = period,
                 metrics = metrics,
@@ -81,6 +92,9 @@ class ListeningInsightsRepository(context: Context) {
                 hourBuckets = hourBuckets,
                 topTracks = topTracks,
                 topArtists = topArtists,
+                topAlbums = wrappedDetail.albums,
+                biggestDay = wrappedDetail.biggestDay,
+                activeDays = wrappedDetail.activeDays,
                 detailedFromMs = if (isAllTime) {
                     days.firstOrNull()?.epochMs ?: range.fromMs
                 } else {
@@ -195,6 +209,82 @@ class ListeningInsightsRepository(context: Context) {
         eventsDao.insightsHours(range.fromMs, range.toMs, ListenPlayPolicy.MIN_EVENT_MS)
             .forEach { row -> if (row.hour in 0..23) hours[row.hour] = row.listenedMs }
         return hours.toList()
+    }
+
+    /** The three extra answers only the yearly reel asks for, resolved together. */
+    private data class WrappedDetail(
+        val albums: List<ListeningInsightsAlbum> = emptyList(),
+        val biggestDay: ListeningInsightsBiggestDay? = null,
+        val activeDays: Int = 0
+    )
+
+    private suspend fun resolveWrappedDetail(
+        range: ListeningInsightsRange,
+        zone: ZoneId,
+        metrics: ListeningInsightsMetrics
+    ): WrappedDetail {
+        val albums = eventsDao.insightsTopAlbums(
+            range.fromMs,
+            range.toMs,
+            WRAPPED_ALBUM_LIMIT,
+            ListenPlayPolicy.MIN_EVENT_MS,
+            ListenPlayPolicy.COUNTED_PLAY_MS,
+            ListenPlayPolicy.SHORT_TRACK_COMPLETION_NUMERATOR,
+            ListenPlayPolicy.SHORT_TRACK_COMPLETION_DENOMINATOR
+        ).map { row ->
+            ListeningInsightsAlbum(
+                album = row.album,
+                artist = row.artist,
+                artworkUrl = row.thumbnailUrl,
+                listenedMs = row.listenedMs,
+                plays = row.countedPlays.toInt()
+            )
+        }
+        val activeDays = runCatching {
+            eventsDao.insightsActiveDays(range.fromMs, range.toMs, ListenPlayPolicy.MIN_EVENT_MS)
+        }.getOrDefault(0)
+        val dayRow = runCatching {
+            eventsDao.insightsBiggestDay(
+                range.fromMs,
+                range.toMs,
+                ListenPlayPolicy.MIN_EVENT_MS,
+                ListenPlayPolicy.COUNTED_PLAY_MS,
+                ListenPlayPolicy.SHORT_TRACK_COMPLETION_NUMERATOR,
+                ListenPlayPolicy.SHORT_TRACK_COMPLETION_DENOMINATOR
+            )
+        }.getOrNull()
+        val biggestDay = dayRow?.let { row ->
+            // A malformed local date would take the whole reel down with it, so it is parsed
+            // defensively: the day is a nice-to-have, the year's other figures are not.
+            val date = runCatching { LocalDate.parse(row.dayKey) }.getOrNull()
+            val dayStart = date?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
+            val dayEnd = date?.plusDays(1)?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
+            val topTrack = if (dayStart != null && dayEnd != null) {
+                runCatching {
+                    eventsDao.insightsDayTopTrack(
+                        dayStart,
+                        dayEnd,
+                        ListenPlayPolicy.MIN_EVENT_MS,
+                        ListenPlayPolicy.COUNTED_PLAY_MS,
+                        ListenPlayPolicy.SHORT_TRACK_COMPLETION_NUMERATOR,
+                        ListenPlayPolicy.SHORT_TRACK_COMPLETION_DENOMINATOR
+                    )
+                }.getOrNull()
+            } else {
+                null
+            }
+            date?.let {
+                ListeningInsightsBiggestDay(
+                    date = it,
+                    listenedMs = row.listenedMs,
+                    plays = row.countedPlays.toInt(),
+                    averageListenedMs = if (activeDays > 0) metrics.listenedMs / activeDays else 0L,
+                    trackTitle = topTrack?.title.orEmpty(),
+                    trackArtist = topTrack?.artist.orEmpty()
+                )
+            }
+        }
+        return WrappedDetail(albums = albums, biggestDay = biggestDay, activeDays = activeDays)
     }
 
     private suspend fun resolveTopTracks(
@@ -443,6 +533,9 @@ class ListeningInsightsRepository(context: Context) {
     companion object {
         const val HISTORY_PAGE_SIZE = 60
         private const val TOP_LIMIT = 10
+
+        /** Card 05 shows three, so four would be wasted queries — three it is, with one spare. */
+        private const val WRAPPED_ALBUM_LIMIT = 4
         private const val MAX_QUERY_LENGTH = 80
         private const val DISCOVERY_REFERENCE_MS = 30L * 24L * 60L * 60L * 1000L
     }
