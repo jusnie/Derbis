@@ -93,6 +93,7 @@ import com.yasuda.derbis.domain.LyricLine
 import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+import com.yasuda.derbis.feature.discord.discordLyricPositionMs
 import com.yasuda.derbis.feature.discord.derbisDiscordPresenceSnapshot
 import com.yasuda.derbis.feature.radio.LIVE_RADIO_SOURCE
 import com.yasuda.derbis.feature.radio.LiveRadioPlaylistDataSource

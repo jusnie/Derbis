@@ -7,7 +7,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextUnit
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -461,8 +462,9 @@ private fun WrappedTopBar(
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 2.dp)
-                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 2.dp),
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -505,15 +507,16 @@ internal class WrappedCardSharer(
                             artistUrl = "",
                             into = assets
                         )
-                        val palette = ListeningReceiptCard.resolvePalette(assets)
-                        val intent = ListeningReceiptCard.createShareIntent(
-                            context = context,
-                            content = current,
-                            assets = assets,
-                            style = styleOf(),
-                            palette = palette,
-                            caption = caption
-                        ) ?: return@withContext false
+                        val intent = assets.use { loaded ->
+                            ListeningReceiptCard.createShareIntent(
+                                context = context,
+                                content = current,
+                                assets = assets,
+                                style = styleOf(),
+                                palette = ListeningReceiptCard.resolvePalette(loaded),
+                                caption = caption
+                            )
+                        } ?: return@withContext false
                         withContext(Dispatchers.Main) {
                             runCatching {
                                 context.startActivity(
@@ -603,7 +606,8 @@ private fun BoxScope.WrappedBody(
                         strings = strings,
                         locale = locale,
                         accent = accent,
-                        animationsEnabled = animationsEnabled
+                        animationsEnabled = animationsEnabled,
+                        onReceiptStyleChange = onReceiptStyleChange
                     )
                 }
             }
@@ -886,7 +890,8 @@ private fun WrappedPageContent(
     strings: DerbisStrings,
     locale: Locale,
     accent: Color,
-    animationsEnabled: Boolean
+    animationsEnabled: Boolean,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     when (page) {
         WrappedPage.Intro -> WrappedIntro(year, strings, accent)

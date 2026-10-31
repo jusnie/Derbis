@@ -146,7 +146,7 @@ fun rememberDerbisGlassAccessibility(): DerbisGlassAccessibility {
 private val blurSupported: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
-internal enum class GlassBackdropQuality(val resolutionScale: Float) {
+enum class GlassBackdropQuality(val resolutionScale: Float) {
     Native(1f),
     Balanced(0.75f),
     Efficient(0.5f)
@@ -168,7 +168,7 @@ internal fun glassBackdropLayerDimension(nativePixels: Float, resolutionScale: F
  * dispersion re-sample the backdrop three extra times per pixel inside the rim band, so the
  * tier gates *cost*, never appearance: every tier still renders frosted glass.
  */
-internal enum class GlassLensTier {
+enum class GlassLensTier {
     /** Lens refraction, dispersion and specular rim. Flagship-class devices. */
     Full,
 
