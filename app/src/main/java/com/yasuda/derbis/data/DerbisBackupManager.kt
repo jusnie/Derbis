@@ -1705,6 +1705,7 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
     .put("bassBoost", value.bassBoost)
     .put("virtualizer", value.virtualizer)
     .put("eightDAudioEnabled", value.eightDAudioEnabled)
+    .put("karaokeMode", value.karaokeMode)
     .put("derbis360Experience", value.derbis360Experience.storageValue)
     .put("preampDb", value.preampDb.toDouble())
     .put("limiterEnabled", value.limiterEnabled)
@@ -1786,6 +1787,7 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         bassBoost = json.optInt("bassBoost"),
         virtualizer = json.optInt("virtualizer"),
         eightDAudioEnabled = json.optBoolean("eightDAudioEnabled", false),
+        karaokeMode = json.optBoolean("karaokeMode", false),
         derbis360Experience = Derbis360Experience.fromStorage(json.optString("derbis360Experience")),
         preampDb = json.optDouble("preampDb", 0.0).toFloat(),
         limiterEnabled = json.optBoolean("limiterEnabled", true),

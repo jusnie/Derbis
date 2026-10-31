@@ -178,7 +178,14 @@ data class DerbisAudioSettings(
      * track with an Atmos master is often also held as a FLAC, so someone on wired headphones
      * may prefer the bit-exact stereo copy to a spatial mix their output cannot render.
      */
-    val dolbyAtmosEnabled: Boolean = true
+    val dolbyAtmosEnabled: Boolean = true,
+    /**
+     * Karaoke: cancel the centre of the stereo image so the lead vocal drops out.
+     *
+     * Off by default and deliberately a plain switch — this is centre-channel cancellation, not
+     * stem separation, so it is instant, per-track and completely reversible.
+     */
+    val karaokeMode: Boolean = false
 ) {
     val effectiveReplayGainMode: ReplayGainMode
         get() = if (replayGainMode == ReplayGainMode.OFF && replayGainEnabled) ReplayGainMode.SMART else replayGainMode

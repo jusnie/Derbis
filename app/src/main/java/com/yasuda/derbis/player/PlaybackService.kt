@@ -200,6 +200,7 @@ class PlaybackService : MediaLibraryService() {
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
+    private var transitionKaraokeProcessor: VocalCancelAudioProcessor? = null
     private var currentAudioSettings = DerbisAudioSettings()
 
     /** Skip-silence forces PCM16 downstream, so it also decides whether float output is safe. */
@@ -217,6 +218,7 @@ class PlaybackService : MediaLibraryService() {
     private val parametricEqualizerProcessor = DerbisParametricEqualizerAudioProcessor()
     private val spatialAudioProcessor = StereoSpatialAudioProcessor()
     private val eightDAudioProcessor = EightDAudioProcessor()
+    private val karaokeProcessor = VocalCancelAudioProcessor()
     private val limiterProcessor = TruePeakLimiterAudioProcessor()
     private val visualizerProcessor = VisualizerAudioProcessor()
     private val beatGridProcessor = BeatGridAnalysisAudioProcessor { trackId, grid ->
@@ -608,10 +610,14 @@ class PlaybackService : MediaLibraryService() {
         spatialAudioProcessor.strength = normalized.virtualizer
         eightDAudioProcessor.enabled = normalized.eightDAudioEnabled
         eightDAudioProcessor.experience = normalized.derbis360Experience
+        // Karaoke is a centre-channel cancel: one volatile flag, smoothed inside the processor so
+        // flipping the switch mid-song ramps instead of clicking.
+        karaokeProcessor.enabled = normalized.karaokeMode
         transitionEightDAudioProcessor?.apply {
             enabled = normalized.eightDAudioEnabled
             experience = normalized.derbis360Experience
         }
+        transitionKaraokeProcessor?.enabled = normalized.karaokeMode
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -1009,6 +1015,9 @@ class PlaybackService : MediaLibraryService() {
                             add(parametricEqualizerProcessor)
                             add(spatialAudioProcessor)
                             add(eightDAudioProcessor)
+                            // Before the limiter and the analysers, so the meters, the beat grid
+                            // and the visualiser all show the mix the listener actually hears.
+                            add(karaokeProcessor)
                             add(limiterProcessor)
                             add(visualizerProcessor)
                             add(beatGridProcessor)
@@ -2478,6 +2487,7 @@ class PlaybackService : MediaLibraryService() {
         transitionPlayer = null
         transitionNormalization = null
         transitionEightDAudioProcessor = null
+        transitionKaraokeProcessor = null
         activePlayer = incoming
         incoming.volume = 1f
         updatePlayerWakeMode(incoming, incoming.currentMediaItem)
@@ -2802,6 +2812,10 @@ class PlaybackService : MediaLibraryService() {
             headphoneOutputAvailable = eightDAudioProcessor.headphoneOutputAvailable
         }
         transitionEightDAudioProcessor = eightD
+        val karaoke = VocalCancelAudioProcessor().apply {
+            enabled = currentAudioSettings.karaokeMode
+        }
+        transitionKaraokeProcessor = karaoke
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
         }
@@ -2841,6 +2855,7 @@ class PlaybackService : MediaLibraryService() {
                             add(parametricEqualizer)
                             add(spatial)
                             add(eightD)
+                            add(karaoke)
                             add(limiter)
                             if (!losslessOutput.bypassPcm16Stage) add(Pcm16OutputAudioProcessor())
                         }.toTypedArray()
@@ -3190,6 +3205,7 @@ class PlaybackService : MediaLibraryService() {
         transitionPlayer = null
         transitionNormalization = null
         transitionEightDAudioProcessor = null
+        transitionKaraokeProcessor = null
         runCatching { player.pause() }
             .onFailure { Timber.w(it, "Queue crossfade secondary pause failed") }
         runCatching { player.clearMediaItems() }

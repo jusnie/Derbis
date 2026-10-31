@@ -3276,6 +3276,7 @@ fun DerbisApp(
                     onVirtualizer = viewModel::setVirtualizer,
                     onDerbis360Enabled = viewModel::setDerbis360Enabled,
                     onDerbis360Experience = viewModel::setDerbis360Experience,
+                    onKaraokeMode = viewModel::setKaraokeMode,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,

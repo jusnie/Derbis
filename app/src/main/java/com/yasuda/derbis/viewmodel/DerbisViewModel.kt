@@ -4783,6 +4783,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setDerbis360Experience(value: Derbis360Experience) =
         updateAudioSettings(_state.value.audioSettings.copy(derbis360Experience = value))
 
+    fun setKaraokeMode(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(karaokeMode = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }

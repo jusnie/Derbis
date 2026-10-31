@@ -5,6 +5,7 @@ All notable, user-visible changes are documented here. Each published Android an
 ## [Unreleased]
 
 ### What's New
+- Karaoke mode: **Settings → Audio → Karaoke** cancels the centre of the stereo mix so the lead vocal drops out and you can sing over the track. It is a real-time `AudioProcessor` in the playback chain, not a render job, so it toggles instantly on any song and is saved with your audio settings and backups. The centre's low band is kept intact, so the kick and bass survive instead of the thin, hollow result of a plain left-minus-right cancel; a mono master has no centre to cancel and passes through untouched.
 - Liquid Glass lens now has real chromatic dispersion at the rim, a directional specular highlight and a thickness-shaped bezel instead of a single flat edge warp.
 - The whole app carries the Liquid Glass material: every screen gets a page-level glass film, and the dock mini player now joins the same material as the navigation bar and player panels.
 - Listening Wrapped can share the receipt card from any page, not just the finale: the story header now has a share button that renders the same card as a 1080px PNG.

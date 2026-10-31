@@ -137,6 +137,7 @@ private fun MutableList<SettingsSearchEntry>.audioEntries(
     entry("audio.bass_boost", strings.bassBoost, strings.audioSectionEqualizer, "bass eq", categories.audio)
     entry("audio.virtualizer", strings.virtualizer, strings.audioSectionSpatial, "spatial surround stereo", categories.audio)
     entry("audio.enhanced", strings.enhancedAudioTitle, strings.enhancedAudioSubtitle, "enhance", categories.audio)
+    entry("audio.karaoke", strings.karaokeTitle, strings.karaokeSubtitle, "karaoke vocal remove voice instrumental acapella sing along", categories.audio)
     entry("audio.limiter", strings.truePeakLimiter, strings.audioSectionDynamics, "limiter true peak clipping dbtp", categories.audio)
     entry("audio.replay_gain", strings.replayGain, strings.audioSectionDynamics, "replaygain normalization loudness volume clipping", categories.audio)
     entry("audio.crossfade", strings.crossfade, strings.audioSectionPlayback, "transition fade", categories.audio)

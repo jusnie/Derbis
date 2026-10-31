@@ -442,6 +442,8 @@ internal fun buildProcessingLabel(
         (equalizerActive || virtualizerActive || replayGainActive || audioNormalization)
 
     if (audioNormalization) add(copy.normalization)
+    // Karaoke changes what leaves the DAC, so the technical sheet has to say so.
+    if (settings.karaokeMode) add("Karaoke")
     if (equalizerActive) add(copy.equalizer)
     if (replayGainActive) add("ReplayGain ${settings.effectiveReplayGainMode.name}")
     if (limiterActive) add(copy.limiter)

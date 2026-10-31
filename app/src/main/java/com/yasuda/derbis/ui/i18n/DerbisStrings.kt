@@ -659,6 +659,31 @@ class DerbisStrings private constructor(
         "de" -> "Derbis-360-Erlebnis"
         else -> "Derbis 360 experience"
     }
+    val karaokeSection: String get() = when (code) {
+        "it" -> "KARAOKE"
+        "es" -> "KARAOKE"
+        "fr" -> "KARAOKÉ"
+        "de" -> "KARAOKE"
+        else -> "KARAOKE"
+    }
+    val karaokeTitle: String get() = when (code) {
+        "it" -> "Modalità karaoke"
+        "es" -> "Modo karaoke"
+        "fr" -> "Mode karaoké"
+        "de" -> "Karaoke-Modus"
+        else -> "Karaoke mode"
+    }
+    /**
+     * The hint is deliberately honest about what this does: it is a centre-channel cancel, not
+     * stem separation, so the vocal goes but so does some of the body.
+     */
+    val karaokeSubtitle: String get() = when (code) {
+        "it" -> "Annulla il centro dello stereo per togliere la voce. Resta la strumentale, ma il basso e la cassa perdono corpo."
+        "es" -> "Cancela el centro del estéreo para quitar la voz. Queda la instrumental, aunque el bajo y el bombo pierden cuerpo."
+        "fr" -> "Annule le centre de la stéréo pour retirer la voix. L'instrumental reste, mais la basse et la grosse caisse perdent du corps."
+        "de" -> "Hebt die Mitte der Stereoaufnahme an, um die Stimme zu entfernen. Das Instrumental bleibt, Bass und Kick verlieren aber etwas Körper."
+        else -> "Cancels the centre of the stereo mix to remove the vocal. The instrumental stays, but the bass and kick lose some body."
+    }
     val derbis360ExperienceSubtitle: String get() = when (code) {
         "it" -> "L'8D offre un'orbita delicata. Il 16D aggiunge un movimento stereo più rapido e profondo."
         "es" -> "8D ofrece una órbita suave. 16D añade un movimiento estéreo más rápido y profundo."

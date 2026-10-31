@@ -194,6 +194,7 @@ internal fun AudioSettingsPanel(
     onVirtualizer: (Int) -> Unit,
     onDerbis360Enabled: (Boolean) -> Unit,
     onDerbis360Experience: (Derbis360Experience) -> Unit,
+    onKaraokeMode: (Boolean) -> Unit = {},
     onPreamp: (Float) -> Unit,
     onLimiter: (Boolean) -> Unit,
     onEnhancedAudio: (Boolean) -> Unit = {},
@@ -555,6 +556,18 @@ internal fun AudioSettingsPanel(
                             onValue = { onVirtualizer(it.roundToInt()) }
                         )
                     }
+                }
+
+                // Sits with the other "what you hear" switches, above Restoration & Enhancement:
+                // this one takes the singer out rather than putting detail back in.
+                item { AudioSectionLabel(strings.karaokeSection) }
+                item {
+                    AudioToggleRow(
+                        title = strings.karaokeTitle,
+                        subtitle = strings.karaokeSubtitle,
+                        checked = audioSettings.karaokeMode,
+                        onCheckedChange = onKaraokeMode
+                    )
                 }
 
                 item { AudioSectionLabel(strings.audioSectionEnhancement) }
