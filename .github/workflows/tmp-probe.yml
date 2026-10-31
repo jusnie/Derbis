@@ -9,6 +9,7 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Probe release write
         env:
           GH_TOKEN: ${{ github.token }}
