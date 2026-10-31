@@ -26,6 +26,7 @@ import androidx.compose.material.icons.rounded.Whatshot
 import com.yasuda.derbis.ui.components.LocalDerbisAppBackdrop
 import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
 import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
+import com.yasuda.derbis.ui.components.LiquidGlassBottomChrome
 import com.yasuda.derbis.ui.components.DerbisIonicons
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import androidx.compose.material.icons.rounded.FormatQuote
@@ -2569,13 +2570,27 @@ fun DerbisApp(
                     val dockCompaction = dockState.animatedCompaction(state.animationsEnabled)
                     val compactionProvider: () -> Float = { dockCompaction.value }
                     val miniPlayerVisible = state.currentTrack != null
+                    // Resolved once and shared by the mini player, the dock and the fused layout;
+                    // the three used to call the skin mapping separately from inside their slots.
+                    val navStudioSettings = skinNavigationSettings(navigationStudio.settings)
+                    val miniStudioSettings = skinMiniSettings(miniPlayerStudio.settings)
+                    // The Liquid Glass skin fuses the bottom chrome into one glass group once the
+                    // adaptive dock has compacted: two orbs and a narrow pill, exactly as the
+                    // expanded dock shrinks away. Other skins keep today's stacked layout.
+                    val fusedGlassDockEnabled = DerbisIsLiquidGlass &&
+                        navStudioSettings.style == NavStyle.LiquidGlass &&
+                        miniStudioSettings.style == MiniPlayerStyle.LiquidGlass &&
+                        miniPlayerVisible &&
+                        !dockSideBySide
+                    val fusedOrbSize = miniStudioSettings.activeTuning().heightDp.dp.coerceIn(52.dp, 68.dp)
+                    val fusedTabEntry = rememberDerbisTabEntries().firstOrNull { it.tab == backgroundTab }
                     val dockLink = rememberConnectedDockLink(
                         navigation = navigationStudio.settings,
                         attached = miniPlayerVisible && !dockSideBySide && !state.showSettings,
                         compaction = dockCompaction,
                         animated = state.animationsEnabled
                     )
-                    val miniPlayerSlot: @Composable () -> Unit = {
+                    val miniPlayerSlot: @Composable (() -> Float) -> Unit = { miniCompaction ->
                         AnimatedVisibility(
                             visible = miniPlayerVisible,
                             enter = miniEnter,
@@ -2623,12 +2638,12 @@ fun DerbisApp(
                                         drag = onExpansionDrag,
                                         end = { velocity -> settleExpansion(velocity, false) }
                                     )
-                                    val miniStudio = skinMiniSettings(miniPlayerStudio.settings)
+                                    val miniStudio = miniStudioSettings
                                     if (miniStudio.style == MiniPlayerStyle.Original) {
                                         MiniPlayer(
                                             model = miniModel,
                                             morphAnchors = morphAnchors,
-                                            compaction = compactionProvider,
+                                            compaction = miniCompaction,
                                             artworkHidden = { artworkMorphActive },
                                             playbackActions = miniPlaybackActions,
                                             expansionActions = miniExpansionActions,
@@ -2640,7 +2655,7 @@ fun DerbisApp(
                                             tuning = miniStudio.activeTuning(),
                                             model = miniModel,
                                             morphAnchors = morphAnchors,
-                                            compaction = compactionProvider,
+                                            compaction = miniCompaction,
                                             artworkHidden = { artworkMorphActive },
                                             playbackActions = miniPlaybackActions,
                                             expansionActions = miniExpansionActions,
@@ -2651,11 +2666,11 @@ fun DerbisApp(
                             }
                         }
                     }
+                    val selectDockTab: (DerbisTab) -> Unit = { tab ->
+                        if (state.showSettings) viewModel.closeSettings()
+                        viewModel.selectTab(tab)
+                    }
                     val bottomTabsSlot: @Composable () -> Unit = {
-                        val selectDockTab: (DerbisTab) -> Unit = { tab ->
-                            if (state.showSettings) viewModel.closeSettings()
-                            viewModel.selectTab(tab)
-                        }
                         Box(
                             modifier = if (miniMaxWidth.isFinite()) {
                                 Modifier.widthIn(max = miniMaxWidth.dp)
@@ -2663,7 +2678,7 @@ fun DerbisApp(
                                 Modifier
                             }
                         ) {
-                            val navStudio = skinNavigationSettings(navigationStudio.settings)
+                            val navStudio = navStudioSettings
                             if (navStudio.style == NavStyle.Original) {
                                 BottomTabs(
                                     selected = backgroundTab,
@@ -2683,12 +2698,9 @@ fun DerbisApp(
                         }
                     }
                     if (state.showSettings) {
-                        miniPlayerSlot()
+                        miniPlayerSlot(compactionProvider)
                         Spacer(modifier = Modifier.navigationBarsPadding())
                     } else {
-                        if (!dockSideBySide) {
-                            miniPlayerSlot()
-                        }
                         val dockModifier = if (miniMaxWidth.isFinite()) {
                             Modifier.widthIn(max = miniMaxWidth.dp)
                         } else {
@@ -2700,21 +2712,53 @@ fun DerbisApp(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.Top
                                 ) {
-                                    Box(modifier = Modifier.weight(DerbisLandscapeDockMiniWeight)) { miniPlayerSlot() }
+                                    Box(modifier = Modifier.weight(DerbisLandscapeDockMiniWeight)) { miniPlayerSlot(compactionProvider) }
                                     Box(modifier = Modifier.weight(1f)) { bottomTabsSlot() }
                                 }
                             } else {
                                 bottomTabsSlot()
                             }
                         }
-                        if (skinNavigationSettings(navigationStudio.settings).style == NavStyle.Original) {
-                            DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
+                        if (dockSideBySide) {
+                            // Landscape keeps the side-by-side row inside one dock surface.
+                            if (navStudioSettings.style == NavStyle.Original) {
+                                DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
+                            } else {
+                                StyledDockSurface(
+                                    style = navStudioSettings.style,
+                                    tuning = navStudioSettings.activeTuning(),
+                                    modifier = dockModifier,
+                                    content = dockContent
+                                )
+                            }
                         } else {
-                            StyledDockSurface(
-                                style = skinNavigationSettings(navigationStudio.settings).style,
-                                tuning = skinNavigationSettings(navigationStudio.settings).activeTuning(),
+                            // Portrait: one glass group. With the orbs at zero width this is the
+                            // plain full-width mini player the app has always shown.
+                            LiquidGlassBottomChrome(
+                                enabled = fusedGlassDockEnabled,
+                                compaction = compactionProvider,
+                                orbSize = fusedOrbSize,
+                                startIcon = fusedTabEntry?.selectedIcon ?: Icons.Rounded.Home,
+                                startLabel = fusedTabEntry?.label ?: currentStrings.home,
+                                onStart = { dockState.expand() },
+                                endIcon = Icons.Rounded.Search,
+                                endLabel = currentStrings.search,
+                                onEnd = { selectDockTab(DerbisTab.Search) },
+                                animated = state.animationsEnabled,
                                 modifier = dockModifier,
-                                content = dockContent
+                                mini = miniPlayerSlot,
+                                dock = {
+                                    if (navStudioSettings.style == NavStyle.Original) {
+                                        DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
+                                    } else {
+                                        StyledDockSurface(
+                                            style = navStudioSettings.style,
+                                            tuning = navStudioSettings.activeTuning(),
+                                            modifier = dockModifier,
+                                            content = dockContent
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
