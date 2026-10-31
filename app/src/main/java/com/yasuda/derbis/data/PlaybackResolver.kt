@@ -23,6 +23,10 @@ import com.yasuda.derbis.data.hqaudio.SharedPreferencesMappingStorage
 import com.yasuda.derbis.data.hqaudio.jiosaavn.JioSaavnAudioProvider
 import com.yasuda.derbis.domain.HighQualityAudioMode
 import com.yasuda.derbis.domain.DerbisAudioQuality
+import com.yasuda.derbis.player.audio.DerbisAtmosStatus
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
+import com.yasuda.derbis.player.audio.derbisAtmosStatus
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.domain.PlaybackDeliveryMethod
 import com.yasuda.derbis.domain.PlaybackStreamDescriptor
 import com.yasuda.derbis.domain.PlaybackStreamKind
@@ -510,6 +514,19 @@ class PlaybackResolver private constructor(private val context: Context) {
     }
 
     private fun normalizeAudioQuality(value: String): String = DerbisAudioQuality.normalize(value)
+
+    /**
+     * Whether an E-AC-3 JOC candidate may be handed to the player at all.
+     *
+     * The same rule BitChord applies to its addon streams: an Atmos rendition on a phone with no
+     * Dolby decoder, or with the switch off, is not a worse-sounding stream — it is a track that
+     * ends in silence with no error to recover from. Skipping the candidate here lets the ladder
+     * pick a sibling instead.
+     */
+    private fun atmosAllowed(): Boolean = derbisAtmosStatus(
+        DerbisDolbyAtmos.decoderAvailable,
+        userPreferences.audioSettings().dolbyAtmosEnabled
+    ) == DerbisAtmosStatus.WANTED
 
     fun warmNetwork() {
         if (!hasInternetCapableNetwork()) return
@@ -1986,10 +2003,12 @@ class PlaybackResolver private constructor(private val context: Context) {
         cpn: String,
         audioQuality: String
     ): List<Triple<JSONObject, String, Int>> = buildList<Triple<JSONObject, String, Int>> {
+        val allowAtmos = atmosAllowed()
         for (i in 0 until adaptiveFormats.length()) {
             val format = adaptiveFormats.optJSONObject(i) ?: continue
             val mime = format.optString("mimeType")
             if (!mime.startsWith("audio/", true)) continue
+            if (!allowAtmos && isDolbyAtmosStream(mime)) continue
             val url = format.resolveFormatUrl(
                 videoId = sourceVideoId,
                 streamingPoToken = null,
@@ -3308,10 +3327,12 @@ class PlaybackResolver private constructor(private val context: Context) {
             val sabrCandidates = if (sabrDelivery == null) emptyList() else sabrFormatCandidates(adaptiveFormats)
 
             val audioCandidates = buildList {
+                val allowAtmos = atmosAllowed()
                 for (i in 0 until adaptiveFormats.length()) {
                     val format = adaptiveFormats.optJSONObject(i) ?: continue
                     val mime = format.optString("mimeType")
                     if (!mime.startsWith("audio/", true)) continue
+                    if (!allowAtmos && isDolbyAtmosStream(mime)) continue
                     if (preferMp4Audio && !isMp4OfflineAudioCandidate(mime, format.optString("url"))) continue
                     val itag = format.optInt("itag", 0)
                     val bitrate = format.optInt("bitrate", 0)

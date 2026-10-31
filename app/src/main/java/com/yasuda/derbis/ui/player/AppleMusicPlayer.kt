@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.data.KanjiFurigana
 import com.yasuda.derbis.ui.lyrics.KaraokeFuriganaWordTimedText
 import com.yasuda.derbis.player.PlaybackService
@@ -838,7 +839,7 @@ internal fun SoundWaveIcon(
 internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {
     val mime = spec.mimeType.lowercase(java.util.Locale.ROOT)
     val codecs = spec.codecString.lowercase(java.util.Locale.ROOT)
-    if (mime == "audio/eac3-joc" || codecs.startsWith("ec+3")) return "Dolby Atmos"
+    if (isDolbyAtmosStream(mime, codecs)) return "Dolby Atmos"
     val lossless = isLosslessAudioStream(mime, codecs)
     val quality = when {
         spec.quality == "HI-FI" -> "Hi-Fi"

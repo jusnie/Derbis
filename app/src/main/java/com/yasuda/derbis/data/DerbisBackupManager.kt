@@ -1729,6 +1729,7 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
         value.customParametricProfiles.forEach { put(parametricProfileToJson(it)) }
     })
     .put("enhancedAudioEnabled", value.enhancedAudioEnabled)
+    .put("dolbyAtmosEnabled", value.dolbyAtmosEnabled)
     .put("audioOffloadPreference", value.audioOffloadPreference.storageValue)
     .put("playbackBuffer", JSONObject()
         .put("mode", value.playbackBuffer.mode.storageValue)
@@ -1808,7 +1809,8 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         customParametricProfiles = customParametricProfiles,
         enhancedAudioEnabled = json.optBoolean("enhancedAudioEnabled", true),
         audioOffloadPreference = AudioOffloadPreference.fromStorage(json.optString("audioOffloadPreference")),
-        playbackBuffer = playbackBuffer
+        playbackBuffer = playbackBuffer,
+        dolbyAtmosEnabled = json.optBoolean("dolbyAtmosEnabled", true)
     ).normalized()
 }
 

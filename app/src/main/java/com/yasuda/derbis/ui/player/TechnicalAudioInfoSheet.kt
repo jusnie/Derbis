@@ -39,7 +39,10 @@ import com.yasuda.derbis.feature.audio.rememberDerbisAudioOutputState
 import com.yasuda.derbis.feature.cast.RemotePlaybackState
 import com.yasuda.derbis.player.NativeAudioIntegration
 import com.yasuda.derbis.player.PlaybackService
+import com.yasuda.derbis.player.audio.DerbisAtmosStatus
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
 import com.yasuda.derbis.player.audio.DerbisLosslessOutput
+import com.yasuda.derbis.player.audio.derbisAtmosStatus
 import com.yasuda.derbis.player.enhanced.EnhancedAudioMetrics
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import kotlin.math.roundToInt
@@ -114,13 +117,15 @@ internal fun TechnicalAudioInfoSheet(
         )
     }
 
+    val atmosDecoderAvailable = remember { DerbisDolbyAtmos.decoderAvailable }
     val outputRows = remember(
         output,
         audioSettings,
         audioNormalization,
         copy,
         systemCopy,
-        remotePlayback
+        remotePlayback,
+        atmosDecoderAvailable
     ) {
         buildTechnicalOutputRows(
             output = output,
@@ -128,7 +133,8 @@ internal fun TechnicalAudioInfoSheet(
             audioNormalization = audioNormalization,
             copy = copy,
             systemCopy = systemCopy,
-            remotePlayback = remotePlayback
+            remotePlayback = remotePlayback,
+            dolbyAtmosSupported = atmosDecoderAvailable
         )
     }
 
@@ -279,7 +285,8 @@ internal fun buildTechnicalOutputRows(
     audioNormalization: Boolean,
     copy: TechnicalAudioInfoCopy,
     systemCopy: com.yasuda.derbis.ui.i18n.DerbisSystemPlayerCopy,
-    remotePlayback: RemotePlaybackState
+    remotePlayback: RemotePlaybackState,
+    dolbyAtmosSupported: Boolean = true
 ): List<Pair<String, String>> {
     if (remotePlayback.connected) {
         val device = remotePlayback.deviceName?.trim()?.takeIf(String::isNotBlank) ?: copy.remotePlayback
@@ -300,9 +307,24 @@ internal fun buildTechnicalOutputRows(
         copy.engine to "Media3 · ExoPlayer",
         copy.path to technicalOutputPath(settings, copy),
         copy.processing to buildProcessingLabel(settings, audioNormalization, copy),
-        copy.lossless to technicalLosslessOutputLabel(route)
+        copy.lossless to technicalLosslessOutputLabel(route),
+        copy.dolbyAtmos to technicalDolbyAtmosLabel(settings.dolbyAtmosEnabled, dolbyAtmosSupported)
     )
 }
+
+/**
+ * Whether an Atmos rendition would actually be taken, and why not when it would not.
+ *
+ * Neither half alone is the answer: a phone with the decoder and the switch off will not play
+ * Atmos, and neither will one with the switch on and no decoder — that one is the case that
+ * ends in silence rather than in sound.
+ */
+internal fun technicalDolbyAtmosLabel(enabled: Boolean, decoderAvailable: Boolean): String =
+    when (derbisAtmosStatus(decoderAvailable, enabled)) {
+        DerbisAtmosStatus.WANTED -> "Yes · E-AC-3 decoder available"
+        DerbisAtmosStatus.DISABLED -> "Off · switched off in Settings"
+        DerbisAtmosStatus.NO_DECODER -> "No · no E-AC-3 decoder on this phone"
+    }
 
 /**
  * Whether the connected route can carry the source's samples without a lossy step, and whether

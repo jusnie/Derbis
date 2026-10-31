@@ -223,6 +223,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_AUDIO_PARAMETRIC_ACTIVE] = normalizedAudio.activeParametricProfile?.let(::parametricProfileToJson)?.toString().orEmpty()
             mutable[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalizedAudio.customParametricProfiles)
             mutable[KEY_AUDIO_ENHANCED_AUDIO] = normalizedAudio.enhancedAudioEnabled
+            mutable[KEY_AUDIO_DOLBY_ATMOS] = normalizedAudio.dolbyAtmosEnabled
             mutable[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalizedAudio.audioOffloadPreference.storageValue
             mutable[KEY_AUDIO_BUFFER_MODE] = normalizedAudio.playbackBuffer.mode.storageValue
             mutable[KEY_AUDIO_BUFFER_MIN_SECONDS] = normalizedAudio.playbackBuffer.minBufferSeconds
@@ -615,6 +616,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_AUDIO_PARAMETRIC_ACTIVE] = normalized.activeParametricProfile?.let(::parametricProfileToJson)?.toString().orEmpty()
             it[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalized.customParametricProfiles)
             it[KEY_AUDIO_ENHANCED_AUDIO] = normalized.enhancedAudioEnabled
+            it[KEY_AUDIO_DOLBY_ATMOS] = normalized.dolbyAtmosEnabled
             it[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalized.audioOffloadPreference.storageValue
             it[KEY_AUDIO_BUFFER_MODE] = normalized.playbackBuffer.mode.storageValue
             it[KEY_AUDIO_BUFFER_MIN_SECONDS] = normalized.playbackBuffer.minBufferSeconds
@@ -1125,6 +1127,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             activeParametricProfile = activeParametricProfile,
             customParametricProfiles = customParametricProfiles,
             enhancedAudioEnabled = preferences[KEY_AUDIO_ENHANCED_AUDIO] ?: true,
+            dolbyAtmosEnabled = preferences[KEY_AUDIO_DOLBY_ATMOS] ?: true,
             audioOffloadPreference = AudioOffloadPreference.fromStorage(preferences[KEY_AUDIO_OFFLOAD_PREFERENCE]),
             playbackBuffer = PlaybackBufferSettings(
                 mode = PlaybackBufferMode.fromStorage(preferences[KEY_AUDIO_BUFFER_MODE]),
@@ -1395,6 +1398,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_AUDIO_PARAMETRIC_ACTIVE = stringPreferencesKey("audio_parametric_active_profile")
         val KEY_AUDIO_PARAMETRIC_PROFILES = stringPreferencesKey("audio_parametric_profiles")
         val KEY_AUDIO_ENHANCED_AUDIO = booleanPreferencesKey("audio_enhanced_audio_enabled")
+        val KEY_AUDIO_DOLBY_ATMOS = booleanPreferencesKey("audio_dolby_atmos_enabled")
         val KEY_AUDIO_OFFLOAD_PREFERENCE = stringPreferencesKey("audio_offload_preference")
         val KEY_AUDIO_BUFFER_MODE = stringPreferencesKey("audio_playback_buffer_mode")
         val KEY_AUDIO_BUFFER_MIN_SECONDS = floatPreferencesKey("audio_playback_buffer_min_seconds")

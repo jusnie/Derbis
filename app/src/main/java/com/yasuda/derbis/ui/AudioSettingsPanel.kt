@@ -184,6 +184,9 @@ internal fun AudioSettingsPanel(
     onSelect: (String) -> Unit,
     highQualityAudioMode: HighQualityAudioMode,
     onHighQualityAudioMode: (HighQualityAudioMode) -> Unit,
+    dolbyAtmosEnabled: Boolean = true,
+    dolbyAtmosSupported: Boolean = true,
+    onDolbyAtmos: (Boolean) -> Unit = {},
     onEqualizerEnabled: (Boolean) -> Unit,
     onPreset: (String) -> Unit,
     onBandLevel: (Int, Int) -> Unit,
@@ -312,6 +315,22 @@ internal fun AudioSettingsPanel(
                         lineHeight = 16.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = "Dolby Atmos",
+                        subtitle = when {
+                            !dolbyAtmosSupported ->
+                                "This phone ships no Dolby E-AC-3 decoder, so an Atmos rendition would play as silence. Off here, and the stereo copy is taken instead."
+                            dolbyAtmosEnabled ->
+                                "Take the E-AC-3 JOC mix when a source has one. It carries height objects but it is lossy, so Lossless still prefers FLAC."
+                            else ->
+                                "Off. Atmos is lossy E-AC-3; Derbis takes the stereo copy instead, which is also what a wired lossless listener wants."
+                        },
+                        checked = dolbyAtmosEnabled && dolbyAtmosSupported,
+                        enabled = dolbyAtmosSupported,
+                        onCheckedChange = onDolbyAtmos
                     )
                 }
                 item {

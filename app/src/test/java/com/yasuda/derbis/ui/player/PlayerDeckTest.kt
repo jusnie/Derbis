@@ -318,6 +318,16 @@ class PlayerDeckTest {
     }
 
     @Test
+    fun `dolby atmos keeps its own name instead of becoming Hi-Fi`() {
+        // 768 kbps would clear the Hi-Fi bar, but Atmos is a different mix, not a bitrate tier.
+        assertNull(playerAudioQualityLabel("audio/eac3-joc", "ec+3", 48_000, null, 768))
+        assertEquals("DOLBY ATMOS", playerAudioCodecLabel("audio/eac3-joc", "ec+3"))
+        // The plain E-AC-3 core is still just a codec.
+        assertEquals("E-AC-3", playerAudioCodecLabel("audio/eac3", "ec-3"))
+        assertEquals("AC-3", playerAudioCodecLabel("audio/ac3", "ac-3"))
+    }
+
+    @Test
     fun `quality replaces the codec in the badge chips`() {
         assertEquals(
             listOf("HI-FI", "320 kbps", "44.1 kHz", "2.0"),

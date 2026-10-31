@@ -629,6 +629,7 @@ import com.yasuda.derbis.data.findVerifiedTopResultArtist
 import com.yasuda.derbis.data.deduplicateSearchSongs
 import com.yasuda.derbis.data.selectSearchTopResultTracks
 import com.yasuda.derbis.player.NativeAudioIntegration
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OPTIONS
 import com.yasuda.derbis.domain.AppUpdateInfo
@@ -3143,6 +3144,9 @@ fun DerbisApp(
                     onSelect = viewModel::setAudioQuality,
                     highQualityAudioMode = state.highQualityAudioMode,
                     onHighQualityAudioMode = viewModel::setHighQualityAudioMode,
+                    dolbyAtmosEnabled = state.audioSettings.dolbyAtmosEnabled,
+                    dolbyAtmosSupported = remember { DerbisDolbyAtmos.decoderAvailable },
+                    onDolbyAtmos = viewModel::setDolbyAtmosEnabled,
                     onEqualizerEnabled = viewModel::setEqualizerEnabled,
                     onPreset = viewModel::setEqualizerPreset,
                     onBandLevel = viewModel::setEqualizerBand,

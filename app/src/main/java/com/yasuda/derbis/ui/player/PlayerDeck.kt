@@ -11,6 +11,7 @@ import com.yasuda.derbis.domain.DerbisInterfaceSettings
 import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.ui.DerbisPlayerPane
 import java.util.Locale
 
@@ -123,6 +124,7 @@ internal fun expressiveTitleSize(title: String, compact: Boolean): TextUnit {
 }
 
 @Immutable
+{{IMPORT_MARK}}
 internal data class PlayerAudioSpec(
     val codec: String = "",
     val bitrateKbps: Int? = null,
@@ -158,6 +160,9 @@ internal fun playerAudioQualityLabel(
 ): String? {
     val mime = mimeType.orEmpty().lowercase(Locale.ROOT)
     val codec = codecs.orEmpty().lowercase(Locale.ROOT)
+    // Atmos is a different mix rather than a rung on the bitrate ladder, so it keeps its own name
+    // instead of being flattened into HI-FI by a 768 kbps E-AC-3 bitrate.
+    if (isDolbyAtmosStream(mime, codec)) return null
     if (isLosslessAudioStream(mime, codec)) {
         val hiRes = (bitDepth ?: 0) >= 24 || (sampleRateHz ?: 0) >= 88_200
         return if (hiRes) "HI-FI" else "LOSSLESS"
@@ -185,8 +190,9 @@ internal fun playerAudioCodecLabel(
         mime == "audio/flac" || codec == "flac" -> "FLAC"
         mime == "audio/vorbis" || codec == "vorbis" -> "VORBIS"
         mime == "audio/alac" || codec == "alac" -> "ALAC"
-        mime == "audio/eac3" || mime == "audio/eac3-joc" -> "E-AC-3"
-        mime == "audio/ac3" -> "AC-3"
+        isDolbyAtmosStream(mime, codec) -> "DOLBY ATMOS"
+        mime == "audio/eac3" || codec == "eac3" -> "E-AC-3"
+        mime == "audio/ac3" || codec == "ac-3" -> "AC-3"
         mime == "audio/raw" || codec.startsWith("pcm") -> "PCM"
         mime.startsWith("audio/") -> mime.removePrefix("audio/").uppercase(Locale.ROOT).take(8)
         else -> ""

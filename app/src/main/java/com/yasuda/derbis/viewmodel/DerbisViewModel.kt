@@ -4832,6 +4832,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         updateAudioSettings(_state.value.audioSettings.copy(pitch = value))
     }
 
+    fun setDolbyAtmosEnabled(value: Boolean) {
+        updateAudioSettings(_state.value.audioSettings.copy(dolbyAtmosEnabled = value))
+    }
+
     fun setGaplessEnabled(value: Boolean) {
         updateAudioSettings(_state.value.audioSettings.copy(gaplessEnabled = value))
     }
