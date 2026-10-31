@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -35,7 +36,6 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.yasuda.derbis.data.DerbisArtworkCache
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.ui.PlayerAmbience
 import com.yasuda.derbis.ui.createPlayerAmbientColorMatrix
 import com.yasuda.derbis.ui.createPlayerTintedMistMatrix
@@ -45,10 +45,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.toArgb
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
-import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -62,24 +59,23 @@ private const val MistScale = 1.32f
 private const val MistAlphaPlaying = 0.64f
 private const val MistAlphaPaused = 0.48f
 private const val BackdropColorMillis = 900
-private const val AuroraDriftMillis = 24_000
+private const val ArtworkDriftMillis = 46_000
+private const val TwoPi = 6.2831855f
+private const val MistBreath = 0.05f
+private const val MistSwayX = 0.035f
+private const val MistSwayY = 0.03f
 private const val MistFadeInMillis = 480
 private const val MistFadeOutMillis = 320
-private val DarkBackdropTop = Color(0xFF15161C)
-private val DarkBackdropMiddle = Color(0xFF0C0D11)
-private val DarkBackdropBottom = Color(0xFF050608)
 
 @Composable
 internal fun PlayerBackdrop(
-    mode: PlayerBackgroundMode,
     artworkUrl: String,
     ambience: PlayerAmbience,
     isPlaying: Boolean,
     animationsEnabled: Boolean,
     modifier: Modifier = Modifier,
     fixedColors: Boolean = false,
-    focusY: Float = 0.34f,
-    reactiveAura: ReactiveAuraStyle = ReactiveAuraStyle.Default
+    focusY: Float = 0.34f
 ) {
     if (LocalAppleMusicPlayerPalette.current != null) {
         Box(modifier.background(Color.Black))
@@ -104,135 +100,44 @@ internal fun PlayerBackdrop(
         animationSpec = DerbisPlayerDesign.motion(animationsEnabled, DerbisPlayerDesign.emphasizedTween(600)),
         label = "player-backdrop-glow"
     )
+    val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-base")
+    val ambientColorFilter = if (fixedColors) {
+        val tint = primary.value
+        remember(tint) { ColorFilter.colorMatrix(createPlayerTintedMistMatrix(tint)) }
+    } else {
+        remember { ColorFilter.colorMatrix(createPlayerAmbientColorMatrix()) }
+    }
+    // The deck has one background now: the cover, blurred past recognition, with two of its own
+    // colours drifting over it. Nothing here is selectable, so it cannot be set to something
+    // duller than the record. The drift only runs while playing — a paused deck should be a still.
+    val drifting = isPlaying && animationsEnabled && LocalDerbisVisualCapabilities.current.decorativeMotion
+    val drift = if (drifting) {
+        rememberInfiniteTransition(label = "player-backdrop-drift").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(ArtworkDriftMillis, easing = LinearEasing),
+                RepeatMode.Restart
+            ),
+            label = "player-backdrop-drift-phase"
+        )
+    } else {
+        null
+    }
 
-    when (mode) {
-        PlayerBackgroundMode.PureBlack -> {
-            Box(
-                modifier = modifier
-                    .background(Color.Black)
-                    .drawBehind {
-                        drawAmbientGlow(primary.value, 0.16f * glowStrength.value, focusY, 0.62f)
-                    }
-            )
-        }
-        PlayerBackgroundMode.Dark -> {
-            Box(
-                modifier = modifier
-                    .background(
-                        Brush.verticalGradient(listOf(DarkBackdropTop, DarkBackdropMiddle, DarkBackdropBottom))
-                    )
-                    .drawBehind {
-                        drawAmbientGlow(primary.value, 0.14f * glowStrength.value, focusY, 0.72f)
-                    }
-            )
-        }
-        PlayerBackgroundMode.Blur -> {
-            Box(modifier = modifier.background(Color.Black)) {
-                PlayerArtworkMist(
-                    artworkUrl = artworkUrl,
-                    colorFilter = null,
-                    isPlaying = isPlaying,
-                    animationsEnabled = animationsEnabled
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .drawBehind { drawLegibilityScrim(Color.Black, 0.62f) }
-                )
-            }
-        }
-        PlayerBackgroundMode.Aurora -> {
-            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-aurora-base")
-            val drifting = isPlaying && animationsEnabled && LocalDerbisVisualCapabilities.current.decorativeMotion
-            val drift = if (drifting) {
-                rememberInfiniteTransition(label = "player-backdrop-aurora").animateFloat(
-                    initialValue = 0f,
-                    targetValue = 1f,
-                    animationSpec = infiniteRepeatable(tween(AuroraDriftMillis, easing = LinearEasing), RepeatMode.Restart),
-                    label = "player-backdrop-aurora-phase"
-                )
-            } else {
-                null
-            }
-            val auroraColors = remember(primary.value, secondary.value) {
-                listOf(
-                    vividBackdropColor(primary.value),
-                    vividBackdropColor(primary.value, 48f),
-                    vividBackdropColor(secondary.value, -56f)
-                )
-            }
-            Box(
-                modifier = modifier.drawBehind {
-                    drawAuroraBackdrop(
-                        base = base.value,
-                        colors = auroraColors,
-                        phase = drift?.value ?: 0f
-                    )
-                }
-            )
-        }
-        PlayerBackgroundMode.Gradient -> {
-            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-gradient-base")
-            val first = remember(primary.value) { vividBackdropColor(primary.value) }
-            val second = remember(secondary.value) { vividBackdropColor(secondary.value) }
-            Box(
-                modifier = modifier.drawBehind {
-                    drawDuotoneBackdrop(
-                        base = base.value,
-                        first = first,
-                        second = second
-                    )
-                }
-            )
-        }
-        PlayerBackgroundMode.Dynamic -> {
-            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-base")
-            val ambientColorFilter = if (fixedColors) {
-                val tint = primary.value
-                remember(tint) { ColorFilter.colorMatrix(createPlayerTintedMistMatrix(tint)) }
-            } else {
-                remember { ColorFilter.colorMatrix(createPlayerAmbientColorMatrix()) }
-            }
-            Box(modifier = modifier.drawBehind { drawRect(base.value) }) {
-                PlayerArtworkMist(
-                    artworkUrl = artworkUrl,
-                    colorFilter = ambientColorFilter,
-                    isPlaying = isPlaying,
-                    animationsEnabled = animationsEnabled
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .drawBehind { drawAura(primary, secondary, base, glowStrength.value, focusY) }
-                )
-            }
-        }
-        PlayerBackgroundMode.ReactiveAura -> {
-            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-aura-base")
-            ReactiveAuraBackdrop(
-                primary = primary,
-                secondary = secondary,
-                base = base,
-                isPlaying = isPlaying,
-                animationsEnabled = animationsEnabled,
-                style = reactiveAura,
-                focusY = focusY,
-                modifier = modifier
-            )
-        }
-        PlayerBackgroundMode.LiquidFerrofluid -> {
-            val base = animateColorAsState(ambience.base, colorSpec, label = "player-backdrop-liquid-base")
-            val accent = animateColorAsState(ambience.tint, colorSpec, label = "player-backdrop-liquid-accent")
-            RaymarchedLiquidBackdrop(
-                primary = primary,
-                secondary = secondary,
-                accent = accent,
-                base = base,
-                isPlaying = isPlaying,
-                animationsEnabled = animationsEnabled,
-                modifier = modifier
-            )
-        }
+    Box(modifier = modifier.drawBehind { drawRect(base.value) }) {
+        PlayerArtworkMist(
+            artworkUrl = artworkUrl,
+            colorFilter = ambientColorFilter,
+            isPlaying = isPlaying,
+            animationsEnabled = animationsEnabled,
+            phase = drift
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind { drawArtworkWash(primary, secondary, base, glowStrength.value, focusY, phase) }
+        )
     }
 }
 
@@ -241,7 +146,8 @@ private fun PlayerArtworkMist(
     artworkUrl: String,
     colorFilter: ColorFilter?,
     isPlaying: Boolean,
-    animationsEnabled: Boolean
+    animationsEnabled: Boolean,
+    phase: State<Float>?
 ) {
     if (artworkUrl.isBlank()) return
     val context = LocalContext.current
@@ -281,8 +187,15 @@ private fun PlayerArtworkMist(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = MistScale
-                    scaleY = MistScale
+                    // A slow sway and breath, so the blur underneath the colours is alive too.
+                    // Anchored at sin(0) = 0: with motion off the mist sits exactly where it did.
+                    // The state is read here, in the layer, so the drift never recomposes.
+                    val drift = phase?.value ?: 0f
+                    val swing = sin(drift * TwoPi)
+                    scaleX = MistScale + MistBreath * swing
+                    scaleY = MistScale + MistBreath * swing
+                    translationX = size.width * MistSwayX * swing
+                    translationY = size.height * MistSwayY * sin(drift * TwoPi * 2f)
                     alpha = mistAlpha
                 }
                 .blur(48.dp)
@@ -290,55 +203,70 @@ private fun PlayerArtworkMist(
     }
 }
 
-private fun DrawScope.drawAmbientGlow(color: Color, alpha: Float, focusY: Float, reach: Float) {
-    if (alpha <= 0f) return
-    drawRect(
-        Brush.radialGradient(
-            colors = listOf(color.copy(alpha = alpha), color.copy(alpha = alpha * 0.35f), Color.Transparent),
-            center = Offset(size.width * 0.5f, size.height * focusY),
-            radius = size.maxDimension * reach
-        )
-    )
+/**
+ * Lays the cover's two colours over the blurred cover as soft, slowly travelling orbs.
+ *
+ * The anchors orbit rather than pulse, because a pulse in place reads as a stutter at 40 seconds
+ * and a drift reads as the record breathing. [phase] is 0..1 per cycle; every offset is written so
+ * that phase 0 is the resting composition.
+ */
+/**
+ * The cover's colours, lifted just enough to read as light on a blurred cover instead of grey.
+ * Hue is never touched — only saturation and value — so the wash still belongs to the artwork.
+ */
+private fun driftColor(color: Color): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    hsv[1] = (hsv[1] * 1.25f).coerceIn(0.35f, 0.85f)
+    hsv[2] = hsv[2].coerceIn(0.42f, 0.76f)
+    return Color(android.graphics.Color.HSVToColor(hsv))
 }
 
-private fun DrawScope.drawLegibilityScrim(ink: Color, strength: Float) {
-    drawRect(
-        Brush.verticalGradient(
-            colorStops = arrayOf(
-                0.00f to ink.copy(alpha = strength * 0.78f),
-                0.16f to ink.copy(alpha = strength * 0.34f),
-                0.48f to ink.copy(alpha = strength * 0.30f),
-                0.70f to ink.copy(alpha = strength * 0.72f),
-                1.00f to ink.copy(alpha = (strength * 1.3f).coerceAtMost(1f))
-            )
-        )
-    )
-}
-
-private fun DrawScope.drawAura(
+private fun DrawScope.drawArtworkWash(
     primary: State<Color>,
     secondary: State<Color>,
     base: State<Color>,
     strength: Float,
-    focusY: Float
+    focusY: Float,
+    phase: State<Float>?
 ) {
-    val lead = primary.value
-    val trail = secondary.value
-    drawAmbientGlow(lead, 0.30f * strength, focusY, 0.68f)
-    drawRect(
-        Brush.radialGradient(
-            colors = listOf(trail.copy(alpha = 0.22f * strength), Color.Transparent),
-            center = Offset(size.width * 0.08f, size.height * 0.86f),
-            radius = size.maxDimension * 0.58f
-        )
+    val lead = driftColor(primary.value)
+    val trail = driftColor(secondary.value)
+    val angle = (phase?.value ?: 0f) * TwoPi
+    val breath = 0.5f + 0.5f * sin(angle * 2f)
+
+    val leadCenter = Offset(
+        x = size.width * (0.5f + 0.26f * cos(angle)),
+        y = size.height * (focusY + 0.05f * sin(angle))
     )
-    drawRect(
-        Brush.radialGradient(
-            colors = listOf(lead.copy(alpha = 0.12f * strength), Color.Transparent),
-            center = Offset(size.width * 0.96f, size.height * 0.58f),
-            radius = size.maxDimension * 0.46f
-        )
+    val leadReach = size.maxDimension * (0.60f + 0.07f * breath)
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(lead.copy(alpha = (0.22f + 0.08f * breath) * strength), Color.Transparent),
+            center = leadCenter,
+            radius = leadReach
+        ),
+        radius = leadReach,
+        center = leadCenter
     )
+
+    val trailCenter = Offset(
+        x = size.width * (0.5f - 0.30f * cos(angle + 1.9f)),
+        y = size.height * (0.74f + 0.09f * sin(angle + 1.9f))
+    )
+    val trailReach = size.maxDimension * (0.52f + 0.06f * (1f - breath))
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(trail.copy(alpha = (0.18f + 0.06f * (1f - breath)) * strength), Color.Transparent),
+            center = trailCenter,
+            radius = trailReach
+        ),
+        radius = trailReach,
+        center = trailCenter
+    )
+
+    // Legibility: the top holds a tint of the cover so titles stay readable, the bottom sinks into
+    // black for the controls.
     drawRect(
         Brush.verticalGradient(
             colorStops = arrayOf(
@@ -350,71 +278,4 @@ private fun DrawScope.drawAura(
             )
         )
     )
-}
-
-private fun DrawScope.drawAuroraBackdrop(base: Color, colors: List<Color>, phase: Float) {
-    drawRect(lerp(base, Color.Black, 0.35f))
-    val angle = phase * 2f * PI.toFloat()
-    val anchors = listOf(
-        Offset(0.15f + 0.22f * cos(angle), 0.12f + 0.12f * sin(angle)),
-        Offset(0.88f + 0.12f * cos(angle + 2.1f), 0.30f + 0.16f * sin(angle + 2.1f)),
-        Offset(0.30f + 0.24f * cos(angle + 4.2f), 0.62f + 0.10f * sin(angle + 4.2f)),
-        Offset(0.80f + 0.14f * sin(angle + 1.3f), 0.86f + 0.08f * cos(angle + 1.3f))
-    )
-    val palette = colors + colors.first()
-    val radius = size.maxDimension * 0.52f
-    palette.zip(anchors).forEach { (color, anchor) ->
-        val center = Offset(size.width * anchor.x, size.height * anchor.y)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(color.copy(alpha = 0.9f), color.copy(alpha = 0.35f), Color.Transparent),
-                center = center,
-                radius = radius
-            ),
-            radius = radius,
-            center = center
-        )
-    }
-    drawRect(
-        Brush.verticalGradient(
-            0f to Color.Black.copy(alpha = 0.10f),
-            0.55f to Color.Black.copy(alpha = 0.22f),
-            1f to Color.Black.copy(alpha = 0.62f)
-        )
-    )
-}
-
-private fun DrawScope.drawDuotoneBackdrop(base: Color, first: Color, second: Color) {
-    drawRect(
-        Brush.linearGradient(
-            colors = listOf(first, lerp(first, second, 0.5f), second),
-            start = Offset.Zero,
-            end = Offset(size.width, size.height)
-        )
-    )
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = 0.16f), Color.Transparent),
-            center = Offset(size.width * 0.2f, size.height * 0.08f),
-            radius = size.maxDimension * 0.5f
-        ),
-        radius = size.maxDimension * 0.5f,
-        center = Offset(size.width * 0.2f, size.height * 0.08f)
-    )
-    drawRect(
-        Brush.verticalGradient(
-            0f to Color.Transparent,
-            0.5f to lerp(base, Color.Black, 0.2f).copy(alpha = 0.35f),
-            1f to lerp(base, Color.Black, 0.5f).copy(alpha = 0.92f)
-        )
-    )
-}
-
-private fun vividBackdropColor(color: Color, hueShift: Float = 0f): Color {
-    val hsv = FloatArray(3)
-    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
-    hsv[0] = (hsv[0] + hueShift + 360f) % 360f
-    hsv[1] = (hsv[1] * 1.8f).coerceIn(0.45f, 0.9f)
-    hsv[2] = hsv[2].coerceIn(0.42f, 0.72f)
-    return Color(android.graphics.Color.HSVToColor(hsv))
 }

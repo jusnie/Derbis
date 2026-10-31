@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.DerbisInterfaceSettings
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.player.audio.isDolbyAtmosStream
@@ -259,5 +258,3 @@ internal class PlayerCreditsEyebrow(
 )
 
 internal val DefaultPlayerVisualMode: PlayerVisualMode = DerbisInterfaceSettings().playerVisualMode
-
-internal val DefaultPlayerBackgroundMode: PlayerBackgroundMode = DerbisInterfaceSettings().playerBackground

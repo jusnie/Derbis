@@ -174,8 +174,6 @@ import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.player.*
 import com.yasuda.derbis.domain.DerbisNotchStyle
 import com.yasuda.derbis.domain.PlayerVisualMode
-import com.yasuda.derbis.domain.PlayerBackgroundMode
-import com.yasuda.derbis.domain.ReactiveAuraPreset
 import com.yasuda.derbis.domain.PlayerColorMode
 import com.yasuda.derbis.domain.ResonanceCommentSnippet
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -21442,47 +21440,6 @@ private fun SettingsOverlay(
                                         )
                                     }
                                 )
-                            }
-                            item {
-                                SettingsChoiceRow(
-                                    icon = Icons.Rounded.Palette,
-                                    title = strings.playerBackground,
-                                    subtitle = strings.playerBackgroundSubtitle,
-                                    options = listOf(
-                                        PlayerBackgroundMode.Dynamic.name to strings.playerBackgroundDynamic,
-                                        PlayerBackgroundMode.LiquidFerrofluid.name to strings.playerBackgroundLiquidFerrofluid,
-                                        PlayerBackgroundMode.ReactiveAura.name to strings.playerBackgroundReactiveAura,
-                                        PlayerBackgroundMode.Blur.name to strings.playerBackgroundBlur,
-                                        PlayerBackgroundMode.Dark.name to strings.playerBackgroundDark,
-                                        PlayerBackgroundMode.PureBlack.name to strings.playerBackgroundPureBlack,
-                                        PlayerBackgroundMode.Aurora.name to strings.playerBackgroundAurora,
-                                        PlayerBackgroundMode.Gradient.name to strings.playerBackgroundGradient
-                                    ),
-                                    selected = interfaceSettings.playerBackground.name,
-                                    onSelect = { value ->
-                                        onInterfaceSettings(
-                                            interfaceSettings.copy(playerBackground = PlayerBackgroundMode.from(value))
-                                        )
-                                    }
-                                )
-                            }
-                            if (interfaceSettings.playerBackground == PlayerBackgroundMode.ReactiveAura) {
-                                item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.AutoAwesome,
-                                        title = strings.playerBackgroundReactiveAura,
-                                        subtitle = "${reactiveAuraPresetLabel(ReactiveAuraPreset.Recommended, strings)} · ${strings.reactiveAuraRecommended}",
-                                        options = ReactiveAuraPreset.entries.map { preset ->
-                                            preset.name to reactiveAuraPresetLabel(preset, strings)
-                                        },
-                                        selected = interfaceSettings.reactiveAuraPreset.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(reactiveAuraPreset = ReactiveAuraPreset.from(value))
-                                            )
-                                        }
-                                    )
-                                }
                             }
                             item {
                                 PlayerColorModeSetting(

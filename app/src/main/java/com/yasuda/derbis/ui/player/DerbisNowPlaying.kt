@@ -137,7 +137,6 @@ import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.PlaybackSourceIdentity
 import com.yasuda.derbis.data.youtubeWatchUrl
 import com.yasuda.derbis.domain.ArtistHit
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.cast.CastRouteButton
@@ -267,13 +266,6 @@ private fun DerbisNowPlayingContent(
     val appleMusicDeck = !DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
     val appleMusicPlayer = DerbisIsAppleMusic || appleMusicDeck
     val visualMode = selectedVisualMode
-    val backgroundMode = state.interfaceSettings.playerBackground.let { selected ->
-        if (nocturne || selected == PlayerBackgroundMode.Dark && state.interfaceSettings.pureBlack) {
-            PlayerBackgroundMode.PureBlack
-        } else {
-            selected
-        }
-    }
     val animated = state.animationsEnabled
     val lyricsAudioRoute = rememberLyricsAudioOutputRoute()
     val lyricsEffectiveOffsetMs = remember(track?.id, lyricsAudioRoute, state.lyricsLatencyProfiles) {
@@ -288,15 +280,6 @@ private fun DerbisNowPlayingContent(
         smoothingEnabled = animated && appleMusicDeck && (state.activeLyric != null || state.lyricsSynced)
     )
     val lyricsEngine = remember { LyricsEngine() }
-    val reactiveAuraStyle = remember(
-        state.interfaceSettings.reactiveAuraPreset,
-        state.interfaceSettings.reactiveAuraIntensity
-    ) {
-        ReactiveAuraStyle(
-            preset = state.interfaceSettings.reactiveAuraPreset,
-            intensity = state.interfaceSettings.reactiveAuraIntensity
-        )
-    }
 
     val fallbackPalette = remember(track?.accentStart, track?.accentEnd) {
         ArtworkPalette(track?.accentStart ?: DerbisCyan.toArgb(), track?.accentEnd ?: DerbisViolet.toArgb())
@@ -347,7 +330,9 @@ private fun DerbisNowPlayingContent(
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.paletteTween()),
         label = "player-secondary-color"
     )
-    val amoled = backgroundMode == PlayerBackgroundMode.PureBlack
+    // Pure black is the OLED switch, not a background style: the deck keeps its artwork backdrop
+    // and only the control surfaces go black.
+    val amoled = state.interfaceSettings.pureBlack && !nocturne
     val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, nocturne) { playerSurfaceTokens(primaryTarget, amoled, nocturne) }
     val heroTone by animateColorAsState(
         targetValue = surfaces.hero,
@@ -499,7 +484,6 @@ private fun DerbisNowPlayingContent(
         LaunchedEffect(
             motionEnabled,
             motionBackdropVisible,
-            backgroundMode,
             state.motionArtwork?.identityKey
         ) {
             val activeIdentity = state.motionArtwork?.identityKey
@@ -508,7 +492,6 @@ private fun DerbisNowPlayingContent(
                     palette = canvasBackdropPalette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = activeIdentity
                 )
             ) {
@@ -522,7 +505,6 @@ private fun DerbisNowPlayingContent(
                     palette = palette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = state.motionArtwork?.identityKey
                 )
             }
@@ -570,14 +552,12 @@ private fun DerbisNowPlayingContent(
         }
 
         PlayerVisualHost(
-            backgroundMode = backgroundMode,
             artworkUrl = artworkUrl,
             ambience = backdropAmbience,
             animationsEnabled = animated,
             isPlaying = state.isPlaying,
             fixedColors = fixedAccents != null,
             backdropFocus = backdropFocus,
-            reactiveAura = reactiveAuraStyle,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -810,8 +790,9 @@ private fun DerbisNowPlayingContent(
                                 depth = lyricsFlipDepth,
                                 rightToLeft = rightToLeft
                             ),
-                        dynamicBackdropEnabled = backgroundMode == PlayerBackgroundMode.Dynamic &&
-                            motionBackdropVisible,
+                        // The Canvas palette feeds the wet wash behind the deck in every mode now,
+                        // so the hero only stops publishing it when Canvas itself is off.
+                        dynamicBackdropEnabled = motionBackdropVisible,
                         onDynamicBackdropPalette = acceptDynamicBackdropPalette
                     )
                     if (lyricsFlipAvailable && lyricsFlip.lyricsComposed) {
@@ -1863,29 +1844,13 @@ private fun DerbisNowPlayingContent(
                 surfaces = surfaces,
                 accent = heroTone,
                 animated = animated,
-                background = backgroundMode,
                 onSelect = { mode ->
                     if (mode != selectedVisualMode) {
                         viewModel.setPlayerVisualMode(mode)
                         hapticFeedback.perform(DerbisHapticAction.Confirm)
                     }
                 },
-                onSelectBackground = { mode ->
-                    if (mode != backgroundMode) {
-                        viewModel.setPlayerBackground(mode)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onDismiss = { showDeck = false },
-                reactiveAuraPreset = state.interfaceSettings.reactiveAuraPreset,
-                reactiveAuraIntensity = state.interfaceSettings.reactiveAuraIntensity,
-                onSelectReactiveAuraPreset = { preset ->
-                    if (preset != state.interfaceSettings.reactiveAuraPreset) {
-                        viewModel.setReactiveAuraPreset(preset)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onSelectReactiveAuraIntensity = viewModel::setReactiveAuraIntensity
+                onDismiss = { showDeck = false }
             )
         }
 
@@ -2121,13 +2086,11 @@ private fun canvasBackdropPaletteMatches(
     palette: MotionBackdropPalette?,
     motionEnabled: Boolean,
     motionBackdropVisible: Boolean,
-    backgroundMode: PlayerBackgroundMode,
     activeIdentity: String?
 ): Boolean {
     val presentationActive = motionEnabled && motionBackdropVisible
-    val dynamicBackground = backgroundMode == PlayerBackgroundMode.Dynamic
     val identityMatches = activeIdentity != null && palette?.identityKey == activeIdentity
-    return presentationActive && dynamicBackground && identityMatches
+    return presentationActive && identityMatches
 }
 
 private fun Track.isLocalMotionArtworkTrack(): Boolean {

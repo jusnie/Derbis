@@ -3,17 +3,13 @@ package com.yasuda.derbis.ui.player
 import com.yasuda.derbis.ui.theme.*
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.border
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
-import com.yasuda.derbis.ui.playerMix
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import com.yasuda.derbis.ui.components.rememberDerbisAvatarPressShape
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -36,7 +32,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,8 +54,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -74,24 +67,17 @@ import androidx.compose.ui.graphics.FilterQuality
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
-import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.playerDeckShortLabels
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
 import com.yasuda.derbis.ui.i18n.DerbisSkinStrings
 import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.layout.PaddingValues
-import com.yasuda.derbis.domain.PlayerBackgroundMode
-import com.yasuda.derbis.domain.DerbisInterfaceSettings
-import com.yasuda.derbis.domain.ReactiveAuraPreset
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 
 private val DeckPreviewSelectedCorner = 48.dp
@@ -106,14 +92,8 @@ internal fun PlayerDeckSheet(
     surfaces: PlayerSurfaceTokens,
     accent: Color,
     animated: Boolean,
-    background: PlayerBackgroundMode,
     onSelect: (PlayerVisualMode) -> Unit,
-    onSelectBackground: (PlayerBackgroundMode) -> Unit,
-    onDismiss: () -> Unit,
-    reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,
-    reactiveAuraIntensity: Int = DerbisInterfaceSettings.DEFAULT_REACTIVE_AURA_INTENSITY,
-    onSelectReactiveAuraPreset: (ReactiveAuraPreset) -> Unit = {},
-    onSelectReactiveAuraIntensity: (Int) -> Unit = {}
+    onDismiss: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     PlayerSheetFrame(
@@ -186,24 +166,6 @@ internal fun PlayerDeckSheet(
                         }
                     }
                 }
-            }
-            PlayerBackgroundPicker(
-                selected = background,
-                accent = accent,
-                surfaces = surfaces,
-                animated = animated,
-                onSelect = onSelectBackground
-            )
-            if (background == PlayerBackgroundMode.ReactiveAura) {
-                ReactiveAuraControls(
-                    preset = reactiveAuraPreset,
-                    intensity = reactiveAuraIntensity,
-                    accent = accent,
-                    surfaces = surfaces,
-                    animated = animated,
-                    onPreset = onSelectReactiveAuraPreset,
-                    onIntensity = onSelectReactiveAuraIntensity
-                )
             }
             Text(
                 text = strings.playerDeckLandscapeNote,
@@ -834,201 +796,3 @@ private fun DrawScope.drawPreviewSignal(accent: Color) {
 
 private fun Color.compositeOnBlack(): Color =
     Color(red = red * alpha, green = green * alpha, blue = blue * alpha, alpha = 1f)
-
-@Composable
-private fun PlayerBackgroundPicker(
-    selected: PlayerBackgroundMode,
-    accent: Color,
-    surfaces: PlayerSurfaceTokens,
-    animated: Boolean,
-    onSelect: (PlayerBackgroundMode) -> Unit
-) {
-    val strings = LocalDerbisStrings.current
-    val options = listOf(
-        PlayerBackgroundMode.Dynamic to strings.playerBackgroundDynamic,
-        PlayerBackgroundMode.LiquidFerrofluid to strings.playerBackgroundLiquidFerrofluid,
-        PlayerBackgroundMode.ReactiveAura to strings.playerBackgroundReactiveAura,
-        PlayerBackgroundMode.Aurora to strings.playerBackgroundAurora,
-        PlayerBackgroundMode.Gradient to strings.playerBackgroundGradient,
-        PlayerBackgroundMode.Blur to strings.playerBackgroundBlur,
-        PlayerBackgroundMode.Dark to strings.playerBackgroundDark,
-        PlayerBackgroundMode.PureBlack to strings.playerBackgroundPureBlack
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(DerbisPlayerDesign.SpaceSm)) {
-        Text(
-            text = strings.playerBackground,
-            color = surfaces.content,
-            fontSize = 18.sp,
-            lineHeight = DerbisTypeRhythm.lineHeight(18.sp),
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(horizontal = DerbisPlayerDesign.Gutter)
-                .semantics { heading() }
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = DerbisPlayerDesign.Gutter)
-                .selectableGroup()
-        ) {
-            options.forEach { (mode, label) ->
-                PlayerBackgroundTile(
-                    mode = mode,
-                    label = label,
-                    selected = mode == selected,
-                    accent = accent,
-                    surfaces = surfaces,
-                    animated = animated,
-                    onClick = { onSelect(mode) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerBackgroundTile(
-    mode: PlayerBackgroundMode,
-    label: String,
-    selected: Boolean,
-    accent: Color,
-    surfaces: PlayerSurfaceTokens,
-    animated: Boolean,
-    onClick: () -> Unit
-) {
-    val shape = rememberDerbisAvatarPressShape(pressed = selected, animated = animated)
-    val tileWidth = 88.dp * (LocalDensity.current.fontScale / 1.3f).coerceAtLeast(1f)
-    Column(
-        modifier = Modifier
-            .width(tileWidth)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(88.dp)
-                .clip(shape)
-                .border(1.dp, if (selected) accent else surfaces.outline, shape),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(Modifier.fillMaxSize()) { drawBackgroundPreview(mode, accent) }
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = surfaces.heroContent,
-                    modifier = Modifier.background(accent, CircleShape)
-                        .padding(DerbisPlayerDesign.SpaceSm).size(20.dp)
-                )
-            }
-        }
-        Text(
-            text = label,
-            color = if (selected) surfaces.content else surfaces.contentMuted,
-            fontSize = 11.sp,
-            lineHeight = DerbisTypeRhythm.lineHeight(11.sp),
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.heightIn(min = 32.dp)
-        )
-        Text(
-                text = if (mode == DefaultPlayerBackgroundMode) LocalDerbisStrings.current.playerDeckDefaultBadge else "",
-                color = surfaces.content,
-                fontSize = 10.sp,
-                lineHeight = DerbisTypeRhythm.lineHeight(10.sp),
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(horizontal = DerbisPlayerDesign.SpaceXs)
-        )
-    }
-}
-
-private fun DrawScope.drawBackgroundPreview(mode: PlayerBackgroundMode, accent: Color) {
-    val deep = lerp(accent, Color.Black, 0.78f)
-    when (mode) {
-        PlayerBackgroundMode.PureBlack -> drawRect(Color.Black)
-        PlayerBackgroundMode.Dark -> drawRect(Brush.verticalGradient(listOf(Color(0xFF1C1D24), Color(0xFF0B0B0F))))
-        PlayerBackgroundMode.Blur -> {
-            drawRect(deep)
-            drawCircle(accent.copy(alpha = 0.55f), radius = size.width * 0.7f, center = Offset(size.width * 0.5f, size.height * 0.3f))
-            drawRect(Color.Black.copy(alpha = 0.35f))
-        }
-        PlayerBackgroundMode.Gradient -> {
-            drawRect(
-                Brush.linearGradient(
-                    listOf(accent, lerp(accent, Color(0xFF7C4DFF), 0.55f)),
-                    start = Offset.Zero,
-                    end = Offset(size.width, size.height)
-                )
-            )
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, deep.copy(alpha = 0.9f))))
-        }
-        PlayerBackgroundMode.Aurora -> {
-            drawRect(deep)
-            listOf(
-                accent to Offset(0.2f, 0.25f),
-                lerp(accent, Color(0xFF7C4DFF), 0.6f) to Offset(0.85f, 0.5f),
-                lerp(accent, Color(0xFF00BFA5), 0.6f) to Offset(0.35f, 0.85f)
-            ).forEach { (color, anchor) ->
-                val center = Offset(size.width * anchor.x, size.height * anchor.y)
-                drawCircle(
-                    Brush.radialGradient(listOf(color.copy(alpha = 0.75f), Color.Transparent), center, size.width * 0.75f),
-                    radius = size.width * 0.75f,
-                    center = center
-                )
-            }
-        }
-        PlayerBackgroundMode.ReactiveAura -> {
-            drawRect(deep)
-            listOf(
-                accent to Offset(0.22f, 0.26f),
-                lerp(accent, Color(0xFF7C4DFF), 0.45f) to Offset(0.84f, 0.56f),
-                lerp(accent, Color(0xFF7C4DFF), 0.2f) to Offset(0.36f, 0.86f)
-            ).forEach { (color, anchor) ->
-                val center = Offset(size.width * anchor.x, size.height * anchor.y)
-                val reach = size.width * 0.62f
-                drawCircle(
-                    Brush.radialGradient(
-                        listOf(color.copy(alpha = 0.5f), color.copy(alpha = 0f)),
-                        center,
-                        reach
-                    ),
-                    radius = reach,
-                    center = center
-                )
-            }
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))))
-        }
-        PlayerBackgroundMode.Dynamic -> {
-            drawRect(deep)
-            drawCircle(
-                Brush.radialGradient(listOf(accent.copy(alpha = 0.6f), Color.Transparent), Offset(size.width / 2f, size.height * 0.35f), size.width),
-                radius = size.width,
-                center = Offset(size.width / 2f, size.height * 0.35f)
-            )
-        }
-        PlayerBackgroundMode.LiquidFerrofluid -> {
-            drawRect(Color(0xFF070709))
-            // Glossy liquid droplet preview
-            val center = Offset(size.width * 0.5f, size.height * 0.52f)
-            drawCircle(
-                Brush.radialGradient(
-                    listOf(accent.copy(alpha = 0.95f), accent.copy(alpha = 0.4f), Color.Transparent),
-                    center,
-                    size.width * 0.48f
-                ),
-                radius = size.width * 0.48f,
-                center = center
-            )
-            // Specular glint
-            drawCircle(
-                Color.White.copy(alpha = 0.75f),
-                radius = size.width * 0.08f,
-                center = Offset(size.width * 0.42f, size.height * 0.40f)
-            )
-        }
-    }
-}
