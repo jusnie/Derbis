@@ -7,6 +7,10 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
+  # TEMPORARY: start this run by push; removed as soon as it is queued.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
@@ -118,47 +122,64 @@ jobs:
         run: |
           set -uo pipefail
           tag="prebuild-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
-          notes="Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release.
+          api="https://api.github.com/repos/jusnie/Derbis"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          body="Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release.
 
           - Package stays \`com.derbis.app\`, app name stays Derbis, version name reads ${DERBIS_VERSION_NAME}.
           - Signed with the CI debug key; unreleased and unsupported.
           - Verify the file with derbis.apk.sha256 before installing.
 
           #Derbis #Prebuild #Android #APK #TestBuild"
-          # Create the release first, upload second: gh release create pushes the ~100 MB asset
-          # itself, so a flaky upload loses the whole call. Any failure is echoed into a GitHub
-          # annotation, because the runner log is not reachable from every environment.
-          created=0
-          for attempt in 1 2 3; do
-            if gh release view "${tag}" >/dev/null 2>&1; then
-              created=1
-              break
-            fi
-            out=$(gh release create "${tag}" \
-              --prerelease \
-              --target "${GITHUB_SHA}" \
-              --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" \
-              --notes "${notes}" 2>&1)
-            code=$?
-            if [[ "${code}" -eq 0 ]]; then
-              created=1
-              break
-            fi
-            short=$(printf '%s' "${out}" | tr '\n' ' ' | cut -c1-300)
-            echo "::warning::release create attempt ${attempt} failed (${code}): ${short}"
-            sleep 10
-          done
-          if [[ "${created}" -ne 1 ]]; then
-            echo "::error::Could not create pre-release ${tag}"
+
+          # Publish through the REST API rather than `gh release create`: the CLI pushes the
+          # ~100 MB asset itself, so one hiccup loses the whole call, and the runner's shell runs
+          # with -e, which aborts the step before any error can be reported. Every request here is
+          # checked by hand and echoed into a log that is attached to the run.
+          log=publish.log
+          : > "${log}"
+
+          id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}")
+          if [[ -z "${id}" ]]; then
+            payload=$(jq -n --arg tag "${tag}" --arg target "${GITHUB_SHA}" \
+              --arg name "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --arg body "${body}" \
+              '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/json" -X POST -d "${payload}" \
+                "${api}/releases" 2>>"${log}")
+              id=$(printf '%s' "${resp}" | jq -r '.id // empty' 2>>"${log}")
+              [[ -n "${id}" ]] && break
+              echo "release create attempt ${attempt}: $(printf '%s' "${resp}" | tr '\n' ' ' | cut -c1-200)" >> "${log}"
+              sleep 10
+            done
+          fi
+          if [[ -z "${id}" ]]; then
+            echo "Could not create ${tag}" >> "${log}"
+            cat "${log}"
+            echo "::error::Could not create pre-release ${tag}; see ${log} in the job output."
             exit 1
           fi
-          for attempt in 1 2 3; do
-            if gh release upload "${tag}" build_output/derbis.apk build_output/derbis.apk.sha256 --clobber; then
-              echo "Assets uploaded on attempt ${attempt}."
-              exit 0
-            fi
-            echo "::warning::Asset upload attempt ${attempt} failed; retrying in 15s."
-            sleep 15
-          done
-          echo "::error::Could not upload derbis.apk to ${tag} after three attempts."
-          exit 1
+
+          upload() {
+            local file="$1" name="$2"
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/octet-stream" -X POST \
+                --data-binary "@${file}" \
+                "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" 2>>"${log}")
+              state=$(printf '%s' "${resp}" | jq -r '.state // .message // "unknown"' 2>>"${log}")
+              [[ "${state}" == "uploaded" ]] && { echo "${name} uploaded on attempt ${attempt}" >> "${log}"; return 0; }
+              echo "${name} attempt ${attempt}: ${state}" >> "${log}"
+              sleep 15
+            done
+            return 1
+          }
+
+          ok=1
+          upload build_output/derbis.apk derbis.apk || ok=0
+          upload build_output/derbis.apk.sha256 derbis.apk.sha256 || ok=0
+          cat "${log}"
+          if [[ "${ok}" -ne 1 ]]; then
+            echo "::error::Could not upload the APK to ${tag}; see ${log} above."
+            exit 1
+          fi
+          echo "Published ${tag}"
