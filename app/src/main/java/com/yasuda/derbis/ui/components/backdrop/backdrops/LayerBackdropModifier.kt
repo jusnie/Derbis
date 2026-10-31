@@ -83,7 +83,16 @@ private class LayerBackdropNode(
             drawContent()
             return
         }
-        recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
+        // Vendored change: a failed record must not take the page with it. If anything in
+        // the recording throws (a shader the device rejects, a detached layer), draw the
+        // page straight instead of crashing the frame.
+        val recorded = runCatching {
+            recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
+        }.isSuccess
+        if (!recorded) {
+            drawContent()
+            return
+        }
         drawLayer(backdrop.graphicsLayer)
     }
 

@@ -2411,7 +2411,14 @@ fun DerbisApp(
                     accent = yourSoundAccent,
                     modifier = Modifier.glassBackdropSource(dockGlass)
                 )
-                CompositionLocalProvider(LocalGlassBackdrop provides dockGlass) {
+                // Everything inside this box is recorded into the backdrop layer, so it must
+                // not sample that same layer: drawing a GraphicsLayer while it is being
+                // recorded throws. Page-level glass keeps the cheap material; only the chrome
+                // outside this box (dock, mini player, sheets, player) reads the real backdrop.
+                CompositionLocalProvider(
+                    LocalGlassBackdrop provides dockGlass,
+                    LocalDerbisAppBackdrop provides null
+                ) {
             val homeSaveableState = rememberSaveableStateHolder()
             AnimatedContent(
                 targetState = backgroundTab,
