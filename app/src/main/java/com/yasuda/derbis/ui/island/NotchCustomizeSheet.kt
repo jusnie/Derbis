@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -43,6 +45,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yasuda.derbis.domain.DerbisNotchSettings
 import com.yasuda.derbis.domain.DerbisNotchStyle
+import com.yasuda.derbis.domain.NotchAlignment
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisInk
@@ -137,6 +140,12 @@ internal fun NotchCustomizeSheet(
                             onStyle = { onSettings(settings.copy(style = it)) }
                         )
                     }
+                    NotchPositionRow(
+                        alignment = settings.alignment,
+                        offsetYDp = settings.offsetYDp,
+                        onAlignment = { onSettings(settings.copy(alignment = it)) },
+                        onOffset = { onSettings(settings.copy(offsetYDp = it)) }
+                    )
                     NotchToggleRow(
                         title = strings.derbisNotchTransport,
                         subtitle = strings.derbisNotchTransportHint,
@@ -219,17 +228,32 @@ private fun NotchPreviewPanel(
             }
         } else {
             // The island itself, not a drawing of it. Nothing inside reacts: a preview that took
-            // the switch tap you just made would be a bug, not a feature.
-            DerbisMusicNotch(
-                preview = preview,
-                settings = settings,
-                onTogglePlay = {},
-                onPrevious = {},
-                onNext = {},
-                onOpen = {},
-                interactive = false,
-                startExpanded = expanded
-            )
+            // the switch tap you just made would be a bug, not a feature. It is placed exactly the
+            // way the running island is, so the position chips do something visible.
+            val align = when (settings.alignment) {
+                NotchAlignment.Start -> Alignment.TopStart
+                NotchAlignment.End -> Alignment.TopEnd
+                NotchAlignment.Center -> Alignment.TopCenter
+            }
+            Box(modifier = Modifier.fillMaxWidth()) {
+                DerbisMusicNotch(
+                    preview = preview,
+                    settings = settings,
+                    onTogglePlay = {},
+                    onPrevious = {},
+                    onNext = {},
+                    onOpen = {},
+                    interactive = false,
+                    startExpanded = expanded,
+                    modifier = Modifier
+                        .align(align)
+                        .padding(
+                            top = settings.offsetYDp.dp,
+                            start = if (settings.alignment == NotchAlignment.Start) NotchSideInsetDp.dp else 0.dp,
+                            end = if (settings.alignment == NotchAlignment.End) NotchSideInsetDp.dp else 0.dp
+                        )
+                )
+            }
         }
         Spacer(Modifier.height(2.dp))
     }
@@ -282,6 +306,70 @@ private fun NotchToggleRow(
                 uncheckedBorderColor = Color.Transparent
             )
         )
+    }
+}
+
+/**
+ * Placement. Three chips for the horizontal slot, then a nudge for how far below the status bar the
+ * island sits — the fix for phones whose cutout is a punch-hole rather than a centred notch.
+ */
+@Composable
+private fun NotchPositionRow(
+    alignment: NotchAlignment,
+    offsetYDp: Int,
+    onAlignment: (NotchAlignment) -> Unit,
+    onOffset: (Int) -> Unit
+) {
+    val strings = LocalDerbisStrings.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(NotchSheetPanel)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(strings.derbisNotchPositionTitle, color = DerbisText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(strings.derbisNotchPositionHint, color = DerbisMuted, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                StyleChip(strings.derbisNotchPositionStart, alignment == NotchAlignment.Start) {
+                    onAlignment(NotchAlignment.Start)
+                }
+                StyleChip(strings.derbisNotchPositionCenter, alignment == NotchAlignment.Center) {
+                    onAlignment(NotchAlignment.Center)
+                }
+                StyleChip(strings.derbisNotchPositionEnd, alignment == NotchAlignment.End) {
+                    onAlignment(NotchAlignment.End)
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(strings.derbisNotchOffset, color = DerbisMuted, fontSize = 11.sp)
+            Slider(
+                value = offsetYDp.toFloat(),
+                onValueChange = { onOffset(it.toInt()) },
+                valueRange = 0f..NotchMaxOffsetYDp.toFloat(),
+                steps = NotchMaxOffsetYDp - 1,
+                modifier = Modifier.weight(1f),
+                colors = SliderDefaults.colors(
+                    thumbColor = DerbisText,
+                    activeTrackColor = DerbisText,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.14f)
+                )
+            )
+            Text("${offsetYDp}dp", color = DerbisMuted, fontSize = 11.sp)
+        }
     }
 }
 

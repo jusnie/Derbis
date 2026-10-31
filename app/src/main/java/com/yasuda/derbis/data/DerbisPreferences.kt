@@ -939,7 +939,11 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
                 showTransport = preferences[KEY_UI_DERBIS_NOTCH_TRANSPORT] ?: true,
                 showProgress = preferences[KEY_UI_DERBIS_NOTCH_PROGRESS] ?: true,
                 showWaveform = preferences[KEY_UI_DERBIS_NOTCH_WAVEFORM] ?: true,
-                haptics = preferences[KEY_UI_DERBIS_NOTCH_HAPTICS] ?: true
+                haptics = preferences[KEY_UI_DERBIS_NOTCH_HAPTICS] ?: true,
+                alignment = com.yasuda.derbis.domain.NotchAlignment.from(
+                    preferences[KEY_UI_DERBIS_NOTCH_ALIGNMENT].orEmpty()
+                ),
+                offsetYDp = preferences[KEY_UI_DERBIS_NOTCH_OFFSET_Y] ?: 0
             ),
             playerVisualMode = visualMode,
             playerBackground = background,
@@ -1010,6 +1014,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         mutable[KEY_UI_DERBIS_NOTCH_PROGRESS] = value.showProgress
         mutable[KEY_UI_DERBIS_NOTCH_WAVEFORM] = value.showWaveform
         mutable[KEY_UI_DERBIS_NOTCH_HAPTICS] = value.haptics
+        mutable[KEY_UI_DERBIS_NOTCH_ALIGNMENT] = value.alignment.name
+        mutable[KEY_UI_DERBIS_NOTCH_OFFSET_Y] = value.offsetYDp
     }
 
     private fun writeSmartOfflineSettings(
@@ -1457,6 +1463,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_DERBIS_NOTCH_PROGRESS = booleanPreferencesKey("ui_derbis_notch_progress")
         val KEY_UI_DERBIS_NOTCH_WAVEFORM = booleanPreferencesKey("ui_derbis_notch_waveform")
         val KEY_UI_DERBIS_NOTCH_HAPTICS = booleanPreferencesKey("ui_derbis_notch_haptics")
+        val KEY_UI_DERBIS_NOTCH_ALIGNMENT = stringPreferencesKey("ui_derbis_notch_alignment")
+        val KEY_UI_DERBIS_NOTCH_OFFSET_Y = intPreferencesKey("ui_derbis_notch_offset_y")
         val KEY_UI_DOUBLE_TAP_SECONDS = intPreferencesKey("ui_double_tap_seconds")
         val KEY_UI_LONG_PRESS_ACTION = stringPreferencesKey("ui_long_press_action")
         val KEY_UI_LONG_PRESS_SPEED = floatPreferencesKey("ui_long_press_speed")

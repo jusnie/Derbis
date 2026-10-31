@@ -31,7 +31,13 @@ internal val derbisNotchKeys = setOf(
     "derbisNotchStyleTitle",
     "derbisNotchStyleHint",
     "derbisNotchMusicOnlyNote",
-    "derbisNotchNothingShown"
+    "derbisNotchNothingShown",
+    "derbisNotchPositionTitle",
+    "derbisNotchPositionHint",
+    "derbisNotchPositionStart",
+    "derbisNotchPositionCenter",
+    "derbisNotchPositionEnd",
+    "derbisNotchOffset"
 )
 
 private val derbisNotchHints = mapOf(
@@ -105,5 +111,11 @@ internal fun derbisNotchLocalizationEntries(code: String): Map<String, String> =
     "derbisNotchStyleTitle" to "Lyric treatment",
     "derbisNotchStyleHint" to "How the active line is dressed.",
     "derbisNotchMusicOnlyNote" to "These settings only change the music island. Derbis Notch never shows notifications, calls or other apps, and it needs no system permission.",
-    "derbisNotchNothingShown" to "Nothing shown — turn something on above"
+    "derbisNotchNothingShown" to "Nothing shown — turn something on above",
+    "derbisNotchPositionTitle" to "Position",
+    "derbisNotchPositionHint" to "Where the island sits. Side placement is for phones with an off-centre cutout.",
+    "derbisNotchPositionStart" to "Left",
+    "derbisNotchPositionCenter" to "Center",
+    "derbisNotchPositionEnd" to "Right",
+    "derbisNotchOffset" to "Drop"
 )

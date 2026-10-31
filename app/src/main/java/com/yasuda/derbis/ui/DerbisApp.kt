@@ -760,7 +760,9 @@ import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
 import com.yasuda.derbis.ui.island.DerbisMusicNotch
 import com.yasuda.derbis.ui.island.NotchCustomizeSheet
+import com.yasuda.derbis.ui.island.NotchBaseTopDp
 import com.yasuda.derbis.ui.island.NotchPreview
+import com.yasuda.derbis.ui.island.NotchSideInsetDp
 import com.yasuda.derbis.ui.island.notchSummary
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
@@ -2726,6 +2728,14 @@ fun DerbisApp(
                 state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled
             ) {
                 val notchTrack = state.currentTrack
+                val notchSettings = state.interfaceSettings.derbisNotch
+                // Centre is the default and the only placement that needs no side inset; the side
+                // options exist for phones whose cutout is not in the middle.
+                val notchCorner = when (notchSettings.alignment) {
+                    com.yasuda.derbis.domain.NotchAlignment.Start -> Alignment.TopStart
+                    com.yasuda.derbis.domain.NotchAlignment.End -> Alignment.TopEnd
+                    com.yasuda.derbis.domain.NotchAlignment.Center -> Alignment.TopCenter
+                }
                 DerbisMusicNotch(
                     preview = NotchPreview(
                         title = notchTrack.title,
@@ -2737,15 +2747,27 @@ fun DerbisApp(
                         durationMs = state.durationMs,
                         isPlaying = state.isPlaying
                     ),
-                    settings = state.interfaceSettings.derbisNotch,
+                    settings = notchSettings,
                     onTogglePlay = viewModel::togglePlay,
                     onPrevious = viewModel::previous,
                     onNext = viewModel::next,
                     onOpen = viewModel::openPlayerScreen,
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
+                        .align(notchCorner)
                         .statusBarsPadding()
-                        .padding(top = 4.dp)
+                        .padding(
+                            top = (NotchBaseTopDp + notchSettings.offsetYDp).dp,
+                            start = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.Start) {
+                                NotchSideInsetDp.dp
+                            } else {
+                                0.dp
+                            },
+                            end = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.End) {
+                                NotchSideInsetDp.dp
+                            } else {
+                                0.dp
+                            }
+                        )
                         .zIndex(42f)
                 )
             }

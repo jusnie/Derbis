@@ -1,5 +1,17 @@
 package com.yasuda.derbis.domain
 
+/** Where the collapsed pill and its card sit horizontally. */
+enum class NotchAlignment {
+    Start,
+    Center,
+    End;
+
+    companion object {
+        fun from(value: String): NotchAlignment =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Center
+    }
+}
+
 /**
  * Everything the Derbis Notch can be told to show.
  *
@@ -21,7 +33,11 @@ data class DerbisNotchSettings(
     /** The three breathing bars on the collapsed pill. */
     val showWaveform: Boolean = true,
     /** A tick when the island opens or closes. */
-    val haptics: Boolean = true
+    val haptics: Boolean = true,
+    /** Left, centre or right. Side placement exists for phones whose cutout is not centred. */
+    val alignment: NotchAlignment = NotchAlignment.Center,
+    /** Extra distance below the status bar, in dp — clears a punch-hole camera or a tall cutout. */
+    val offsetYDp: Int = 0
 ) {
     /** Without a lyric sheet there is nothing to sit beside the artwork, so the card goes single-column. */
     val compactCard: Boolean get() = !showLyrics

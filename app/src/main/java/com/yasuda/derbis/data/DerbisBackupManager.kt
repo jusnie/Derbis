@@ -1863,6 +1863,8 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("derbisNotchProgress", value.derbisNotch.showProgress)
     .put("derbisNotchWaveform", value.derbisNotch.showWaveform)
     .put("derbisNotchHaptics", value.derbisNotch.haptics)
+    .put("derbisNotchAlignment", value.derbisNotch.alignment.name)
+    .put("derbisNotchOffsetY", value.derbisNotch.offsetYDp)
     .put("playerVisualMode", value.playerVisualMode.name)
     .put("playerBackground", value.playerBackground.name)
     .put("reactiveAuraPreset", value.reactiveAuraPreset.name)
@@ -1938,7 +1940,9 @@ internal fun backupInterfaceSettingsFromJson(
             showTransport = json.optBoolean("derbisNotchTransport", true),
             showProgress = json.optBoolean("derbisNotchProgress", true),
             showWaveform = json.optBoolean("derbisNotchWaveform", true),
-            haptics = json.optBoolean("derbisNotchHaptics", true)
+            haptics = json.optBoolean("derbisNotchHaptics", true),
+            alignment = com.yasuda.derbis.domain.NotchAlignment.from(json.optString("derbisNotchAlignment")),
+            offsetYDp = json.optInt("derbisNotchOffsetY", 0)
         ),
         playerVisualMode = visualMode,
         playerBackground = backgroundMode,

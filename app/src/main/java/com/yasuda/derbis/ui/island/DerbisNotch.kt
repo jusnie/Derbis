@@ -89,6 +89,11 @@ internal data class NotchPreview(
  * a straight line. Nothing here needs a system overlay permission, and every part of it can be
  * turned off from its customize screen.
  */
+/** Distance below the status bar, and from the screen edge when the island is not centred. */
+internal const val NotchBaseTopDp = 4
+internal const val NotchSideInsetDp = 12
+internal const val NotchMaxOffsetYDp = 28
+
 private val NotchInk = Color(0xFF0A0A0C)
 private val NotchText = Color.White
 private val NotchMuted = Color.White.copy(alpha = 0.62f)
