@@ -171,6 +171,7 @@ import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerShapes
 import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.player.*
+import com.yasuda.derbis.domain.DerbisNotchStyle
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.ReactiveAuraPreset
@@ -2713,7 +2714,9 @@ fun DerbisApp(
                 }
             }
 
-            if (!playerVisible && state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled) {
+            if (!playerVisible && !state.showSettings && state.currentTrack != null &&
+                state.interfaceSettings.derbisNotchEnabled
+            ) {
                 DerbisMusicNotch(
                     track = state.currentTrack,
                     lyrics = state.lyrics,
@@ -21496,8 +21499,20 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsToggle(
+                                    icon = Icons.Rounded.Swipe,
+                                    title = strings.playerGestureHorizontalSwipe,
+                                    subtitle = strings.playerGestureHorizontalSwipeSubtitle,
+                                    checked = interfaceSettings.swipeTrackChangeEnabled,
+                                    onCheckedChange = {
+                                        onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
+                                    }
+                                )
+                            }
+                            standaloneItem { SettingsSectionLabel("Derbis Notch") }
+                            item {
+                                SettingsToggle(
                                     icon = Icons.Rounded.PictureInPictureAlt,
-                                    title = strings.derbisNotch,
+                                    title = "Enable Derbis Notch",
                                     subtitle = strings.derbisNotchHint,
                                     checked = interfaceSettings.derbisNotchEnabled,
                                     onCheckedChange = {
@@ -21507,16 +21522,24 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
-                            item {
-                                SettingsToggle(
-                                    icon = Icons.Rounded.Swipe,
-                                    title = strings.playerGestureHorizontalSwipe,
-                                    subtitle = strings.playerGestureHorizontalSwipeSubtitle,
-                                    checked = interfaceSettings.swipeTrackChangeEnabled,
-                                    onCheckedChange = {
-                                        onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
-                                    }
-                                )
+                            if (interfaceSettings.derbisNotchEnabled) {
+                                item {
+                                    SettingsChoiceRow(
+                                        icon = Icons.Rounded.AutoAwesome,
+                                        title = strings.derbisNotchStyleDefault,
+                                        subtitle = "Lyric treatment inside the notch card",
+                                        options = listOf(
+                                            DerbisNotchStyle.Default.name to strings.derbisNotchStyleDefault,
+                                            DerbisNotchStyle.Spicy.name to strings.derbisNotchStyleSpicy
+                                        ),
+                                        selected = interfaceSettings.derbisNotchStyle.name,
+                                        onSelect = { value ->
+                                            onInterfaceSettings(
+                                                interfaceSettings.copy(derbisNotchStyle = DerbisNotchStyle.from(value))
+                                            )
+                                        }
+                                    )
+                                }
                             }
                             standaloneItem { SettingsSectionLabel(strings.ambientSettingsTitle) }
                             item {

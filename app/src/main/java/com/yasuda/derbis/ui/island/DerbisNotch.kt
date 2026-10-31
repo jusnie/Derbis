@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -107,9 +108,13 @@ internal fun DerbisMusicNotch(
     }
 
     val shape = if (expanded) RoundedCornerShape(30.dp) else RoundedCornerShape(50)
+    // A 356dp card is wider than a small phone's screen; clamp it so the island never runs off
+    // the edge on a 320-360dp device.
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val islandWidth = if (expanded) minOf(356.dp, screenWidth - 32.dp) else minOf(168.dp, screenWidth - 32.dp)
     Box(
         modifier = modifier
-            .width(if (expanded) 356.dp else 168.dp)
+            .width(islandWidth)
             .animateContentSize()
             .clip(shape)
             .background(NotchPill)
@@ -156,7 +161,10 @@ internal fun DerbisMusicNotch(
                 onTogglePlay = onTogglePlay,
                 onPrevious = onPrevious,
                 onNext = onNext,
-                onOpen = onOpen
+                onOpen = {
+                    expanded = false
+                    onOpen()
+                }
             )
             NotchProgressBar(
                 positionMs = positionMs,
@@ -214,8 +222,11 @@ private fun NotchWaveform(isPlaying: Boolean) {
         val bars = 3
         val slot = size.width / bars
         val amplitude = if (isPlaying) 1f else 0.18f
+        // Only subscribe to the animation while audio is playing: a paused notch should not
+        // redraw sixty times a second for three flat bars.
+        val wave = if (isPlaying) phase else 0f
         for (index in 0 until bars) {
-            val wobble = 0.45f + 0.55f * kotlin.math.abs(kotlin.math.sin(phase + index * 1.1f))
+            val wobble = 0.45f + 0.55f * kotlin.math.abs(kotlin.math.sin(wave + index * 1.1f))
             val barHeight = size.height * wobble * amplitude
             val left = slot * index + slot * 0.28f
             drawRoundRect(
