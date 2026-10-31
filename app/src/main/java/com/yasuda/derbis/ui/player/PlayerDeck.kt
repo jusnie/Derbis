@@ -123,7 +123,6 @@ internal fun expressiveTitleSize(title: String, compact: Boolean): TextUnit {
 }
 
 @Immutable
-{{IMPORT_MARK}}
 internal data class PlayerAudioSpec(
     val codec: String = "",
     val bitrateKbps: Int? = null,

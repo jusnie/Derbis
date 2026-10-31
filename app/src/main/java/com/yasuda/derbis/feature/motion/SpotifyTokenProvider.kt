@@ -74,7 +74,9 @@ internal object SpotifyTokenProvider {
     @Volatile private var cachedSession: SessionInfo? = null
 
     private data class SessionInfo(val clientVersion: String, val deviceId: String)
-    private data class HarvestedToken(val token: String, val expiresAtMs: Long, val clientId: String?)
+    // Internal, not private: TokenBridge is internal (WebView reflects into it), and a
+    // private-in-class type cannot appear in its constructor or it fails to compile.
+    internal data class HarvestedToken(val token: String, val expiresAtMs: Long, val clientId: String?)
 
     fun init(context: Context) {
         appContext = context.applicationContext

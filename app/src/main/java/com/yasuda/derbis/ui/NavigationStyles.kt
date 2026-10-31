@@ -1,5 +1,6 @@
 package com.yasuda.derbis.ui
 
+import androidx.compose.ui.graphics.RectangleShape
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.theme.DerbisIsNocturne
 
@@ -102,7 +103,6 @@ import com.yasuda.derbis.domain.NavMotion
 import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.NavSurfaceTone
 import com.yasuda.derbis.domain.NavTuning
-import androidx.compose.foundation.shape.RectangleShape
 import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
 import com.yasuda.derbis.ui.components.derbisChromeGlass
 import com.yasuda.derbis.ui.components.derbisLightweightGlass

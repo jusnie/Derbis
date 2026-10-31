@@ -136,7 +136,7 @@ internal fun PlayerBackdrop(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind { drawArtworkWash(primary, secondary, base, glowStrength.value, focusY, phase) }
+                .drawBehind { drawArtworkWash(primary, secondary, base, glowStrength.value, focusY, drift) }
         )
     }
 }

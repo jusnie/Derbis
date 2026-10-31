@@ -225,7 +225,7 @@ fun DerbisAdaptiveDockSurface(
     val materialModifier = if (accessibility.prefersOpaqueMaterials) {
         Modifier.background(solidBrush)
     } else {
-        derbisChromeGlass(
+        Modifier.derbisChromeGlass(
             shape = shape,
             tint = defaultGlassSurfaceTint(DerbisActivePalette.isLight),
             fallback = Modifier.background(solidBrush)
