@@ -77,7 +77,9 @@ jobs:
             {
               echo 'Prebuild APK build failed.'
               echo '```'
-              tail -n 80 build.log
+              grep -E '^e: ' build.log | head -n 40
+              echo '...'
+              tail -n 15 build.log
               echo '```'
             } > /tmp/failure.md
             gh pr comment 2 --body-file /tmp/failure.md || true
