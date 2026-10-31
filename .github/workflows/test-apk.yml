@@ -7,6 +7,10 @@ name: Derbis Prebuild APK
 # Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
 on:
   workflow_dispatch:
+  # TEMPORARY: push-triggered so this branch can start the run (dispatch is 403 here).
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
@@ -125,16 +129,32 @@ jobs:
           - Verify the file with derbis.apk.sha256 before installing.
 
           #Derbis #Prebuild #Android #APK #TestBuild"
-          # Create the release first and upload second. A single `gh release create` with the
-          # assets attached has to push ~100 MB in one shot; when that upload hiccups the whole
-          # call fails and no tag is left behind. Two steps can be retried on their own.
-          if ! gh release view "${tag}" >/dev/null 2>&1; then
-            gh release create "${tag}" \
+          # Create the release first, upload second: gh release create pushes the ~100 MB asset
+          # itself, so a flaky upload loses the whole call. Any failure is echoed into a GitHub
+          # annotation, because the runner log is not reachable from every environment.
+          created=0
+          for attempt in 1 2 3; do
+            if gh release view "${tag}" >/dev/null 2>&1; then
+              created=1
+              break
+            fi
+            out=$(gh release create "${tag}" \
               --prerelease \
               --target "${GITHUB_SHA}" \
               --title "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" \
-              --notes "${notes}" \
-              || { echo "::error::Could not create pre-release ${tag}"; exit 1; }
+              --notes "${notes}" 2>&1)
+            code=$?
+            if [[ "${code}" -eq 0 ]]; then
+              created=1
+              break
+            fi
+            short=$(printf '%s' "${out}" | tr '\n' ' ' | cut -c1-300)
+            echo "::warning::release create attempt ${attempt} failed (${code}): ${short}"
+            sleep 10
+          done
+          if [[ "${created}" -ne 1 ]]; then
+            echo "::error::Could not create pre-release ${tag}"
+            exit 1
           fi
           for attempt in 1 2 3; do
             if gh release upload "${tag}" build_output/derbis.apk build_output/derbis.apk.sha256 --clobber; then
