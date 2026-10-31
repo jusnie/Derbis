@@ -287,6 +287,8 @@ class PlayerDeckTest {
         assertEquals("MP3", playerAudioCodecLabel("audio/mpeg", null))
         assertEquals("MP2", playerAudioCodecLabel("audio/mpeg-l2", null))
         assertEquals("FLAC", playerAudioCodecLabel("audio/flac", null))
+        assertEquals("ALAC", playerAudioCodecLabel("audio/alac", null))
+        assertEquals("PCM", playerAudioCodecLabel("audio/raw", null))
         assertEquals("", playerAudioCodecLabel(null, null))
         assertEquals(
             listOf("OPUS", "160 kbps", "48 kHz", "2.0"),
@@ -295,6 +297,53 @@ class PlayerDeckTest {
         assertEquals(listOf("AAC", "44.1 kHz", "5.1"), playerAudioSpecLabels(PlayerAudioSpec("AAC", null, 44_100, 6)))
         assertTrue(playerAudioSpecLabels(PlayerAudioSpec()).isEmpty())
         assertTrue(PlayerAudioSpec().isEmpty)
+    }
+
+    @Test
+    fun `badge says Lossless or Hi-Fi instead of the codec`() {
+        // CD-quality lossless: the codec name no longer says anything useful to the listener.
+        assertEquals("LOSSLESS", playerAudioQualityLabel("audio/flac", null, 44_100, 16, 900))
+        assertEquals("LOSSLESS", playerAudioQualityLabel("audio/alac", "alac", 48_000, null, 1_000))
+        // 24-bit or 88.2 kHz and up is the Hi-Fi tier.
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/flac", null, 96_000, 24, 2_304))
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/flac", null, 88_200, 16, 1_411))
+        // The 320 kbps HQ upgrade is Hi-Fi even though it is lossy; below that the codec stays.
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 320))
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 256))
+        assertNull(playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 255))
+        assertNull(playerAudioQualityLabel("audio/opus", "opus", 48_000, null, 160))
+        // A codec or a sample rate alone never earns the badge.
+        assertNull(playerAudioQualityLabel("audio/flac", null))
+        assertNull(playerAudioQualityLabel(null, null))
+    }
+
+    @Test
+    fun `dolby atmos keeps its own name instead of becoming Hi-Fi`() {
+        // 768 kbps would clear the Hi-Fi bar, but Atmos is a different mix, not a bitrate tier.
+        assertNull(playerAudioQualityLabel("audio/eac3-joc", "ec+3", 48_000, null, 768))
+        assertEquals("DOLBY ATMOS", playerAudioCodecLabel("audio/eac3-joc", "ec+3"))
+        // The plain E-AC-3 core is still just a codec.
+        assertEquals("E-AC-3", playerAudioCodecLabel("audio/eac3", "ec-3"))
+        assertEquals("AC-3", playerAudioCodecLabel("audio/ac3", "ac-3"))
+    }
+
+    @Test
+    fun `quality replaces the codec in the badge chips`() {
+        assertEquals(
+            listOf("HI-FI", "320 kbps", "44.1 kHz", "2.0"),
+            playerAudioSpecLabels(
+                PlayerAudioSpec("AAC", 320, 44_100, 2, "audio/mp4a-latm", "mp4a.40.2", "HI-FI")
+            )
+        )
+        // FLAC has no meaningful bitrate on the badge.
+        assertEquals(
+            listOf("LOSSLESS", "44.1 kHz", "2.0"),
+            playerAudioSpecLabels(
+                PlayerAudioSpec("FLAC", 900, 44_100, 2, "audio/flac", "", "LOSSLESS")
+            )
+        )
+        // No quality means the old codec chip is untouched.
+        assertEquals(listOf("OPUS"), playerAudioSpecLabels(PlayerAudioSpec("OPUS", null, null, null, "audio/opus")))
     }
 
     @Test

@@ -37,9 +37,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Lock
-import com.yasuda.derbis.ui.icons.RestartAlt
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -407,7 +407,6 @@ private fun MiniStudioStage(
                     style = shownStyle,
                     tuning = if (shownStyle == style) tuning else DerbisMiniPlayerStudioSettings.spec(shownStyle).defaults,
                     model = model,
-                    glass = null,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -945,7 +944,6 @@ private fun MiniStyleCard(
                 style = style,
                 tuning = tuning,
                 model = model,
-                glass = null,
                 modifier = Modifier
                     .requiredWidth(320.dp)
                     .graphicsLayer {

@@ -51,7 +51,9 @@ import androidx.lifecycle.lifecycleScope
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisBackupManager
 import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.domain.AppUpdateInfo
 import com.yasuda.derbis.domain.ChartsCatalog
 import com.yasuda.derbis.domain.DerbisFontPreset
@@ -161,9 +163,14 @@ class MainActivity : ComponentActivity() {
         runCatching {
             DerbisSpotifyConnection.initialize(applicationContext)
             DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+            // Canvas unlocks through the web session now, not only through OAuth; both the cookie
+            // store and the token harvester need the application context before the first track.
+            DerbisSpotifySession.initialize(applicationContext)
+            SpotifyTokenProvider.init(applicationContext)
         }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
         runCatching {
             DerbisDiscordRichPresence.attach(this)
+            DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
         }.onFailure { Timber.w(it, "Discord startup attachment failed") }
         // PlaybackService owns ongoing presence publication. This Activity only supplies the
         // Discord SDK with the foreground engine Activity needed for account linking.
@@ -352,6 +359,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+        DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
         DerbisLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
     }

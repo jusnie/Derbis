@@ -36,6 +36,18 @@ SPDX-License-Identifier = "MIT"
 
 [[annotations]]
 path = [
+  "app/src/main/java/com/yasuda/derbis/ui/components/backdrop/**",
+  "app/src/main/assets/licenses/kyant-backdrop.txt",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+  "2025 Kyant0",
+  "2026 Yasuda",
+]
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = [
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java",
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java",
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java",

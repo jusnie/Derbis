@@ -47,9 +47,10 @@ data class SpotifyConnectionState(
 }
 
 /**
- * Official Spotify Authorization Code + PKCE connection. No client secret, Spotify password, or
- * browser cookie is requested or stored. Tokens and the short-lived PKCE verifier are encrypted
- * with an Android Keystore AES key before they reach disk.
+ * Official Spotify Authorization Code + PKCE connection. No client secret or Spotify password is
+ * requested, and this file never asks for a browser cookie — the optional `sp_dc` web session
+ * (see [DerbisSpotifySession]) is a separate, listener-supplied opt-in for Canvas. Tokens and the
+ * short-lived PKCE verifier are encrypted with an Android Keystore AES key before they reach disk.
  */
 object DerbisSpotifyConnection {
     private const val AUTHORIZE_URL = "https://accounts.spotify.com/authorize"

@@ -169,7 +169,23 @@ data class DerbisAudioSettings(
     val customParametricProfiles: List<ParametricEqProfile> = emptyList(),
     val enhancedAudioEnabled: Boolean = true,
     val audioOffloadPreference: AudioOffloadPreference = AudioOffloadPreference.AUTOMATIC,
-    val playbackBuffer: PlaybackBufferSettings = PlaybackBufferSettings()
+    val playbackBuffer: PlaybackBufferSettings = PlaybackBufferSettings(),
+    /**
+     * Whether a source offering a Dolby Atmos (E-AC-3 JOC) rendition may serve it.
+     *
+     * On by default: where the phone can decode it, Atmos is the premium rendition. Off is a
+     * real preference and not just a safety valve — Atmos is E-AC-3, which is lossy, and a
+     * track with an Atmos master is often also held as a FLAC, so someone on wired headphones
+     * may prefer the bit-exact stereo copy to a spatial mix their output cannot render.
+     */
+    val dolbyAtmosEnabled: Boolean = true,
+    /**
+     * Karaoke: cancel the centre of the stereo image so the lead vocal drops out.
+     *
+     * Off by default and deliberately a plain switch — this is centre-channel cancellation, not
+     * stem separation, so it is instant, per-track and completely reversible.
+     */
+    val karaokeMode: Boolean = false
 ) {
     val effectiveReplayGainMode: ReplayGainMode
         get() = if (replayGainMode == ReplayGainMode.OFF && replayGainEnabled) ReplayGainMode.SMART else replayGainMode

@@ -8,6 +8,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import timber.log.Timber
 
 internal fun isLosslessAudioMimeType(mimeType: String?): Boolean = when (mimeType) {
@@ -42,15 +44,27 @@ internal class EnhancedAudioSourceFormatListener(
     ) {
         val lossless = isLosslessAudioMimeType(format.sampleMimeType)
         updateLosslessSource(lossless)
+        // Said out loud, because an Atmos stream on a phone with no Dolby decoder is the one
+        // failure mode that produces silence instead of an error.
+        val atmos = isDolbyAtmosStream(format.sampleMimeType, format.codecs)
+        if (atmos && !DerbisDolbyAtmos.decoderAvailable) {
+            Timber.w(
+                "AUDIO_SOURCE_FORMAT player=%s is Dolby Atmos (%s %s) and this device reports no E-AC-3 decoder",
+                label,
+                format.sampleMimeType,
+                format.codecs
+            )
+        }
         Timber.d(
-            "AUDIO_SOURCE_FORMAT player=%s mime=%s codecs=%s sampleRate=%d channels=%d pcmEncoding=%d lossless=%s",
+            "AUDIO_SOURCE_FORMAT player=%s mime=%s codecs=%s sampleRate=%d channels=%d pcmEncoding=%d lossless=%s atmos=%s",
             label,
             format.sampleMimeType,
             format.codecs,
             format.sampleRate,
             format.channelCount,
             format.pcmEncoding,
-            lossless
+            lossless,
+            atmos
         )
     }
 

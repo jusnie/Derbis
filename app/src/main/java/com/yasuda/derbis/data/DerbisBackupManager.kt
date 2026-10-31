@@ -1705,6 +1705,7 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
     .put("bassBoost", value.bassBoost)
     .put("virtualizer", value.virtualizer)
     .put("eightDAudioEnabled", value.eightDAudioEnabled)
+    .put("karaokeMode", value.karaokeMode)
     .put("derbis360Experience", value.derbis360Experience.storageValue)
     .put("preampDb", value.preampDb.toDouble())
     .put("limiterEnabled", value.limiterEnabled)
@@ -1729,6 +1730,7 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
         value.customParametricProfiles.forEach { put(parametricProfileToJson(it)) }
     })
     .put("enhancedAudioEnabled", value.enhancedAudioEnabled)
+    .put("dolbyAtmosEnabled", value.dolbyAtmosEnabled)
     .put("audioOffloadPreference", value.audioOffloadPreference.storageValue)
     .put("playbackBuffer", JSONObject()
         .put("mode", value.playbackBuffer.mode.storageValue)
@@ -1785,6 +1787,7 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         bassBoost = json.optInt("bassBoost"),
         virtualizer = json.optInt("virtualizer"),
         eightDAudioEnabled = json.optBoolean("eightDAudioEnabled", false),
+        karaokeMode = json.optBoolean("karaokeMode", false),
         derbis360Experience = Derbis360Experience.fromStorage(json.optString("derbis360Experience")),
         preampDb = json.optDouble("preampDb", 0.0).toFloat(),
         limiterEnabled = json.optBoolean("limiterEnabled", true),
@@ -1808,7 +1811,8 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         customParametricProfiles = customParametricProfiles,
         enhancedAudioEnabled = json.optBoolean("enhancedAudioEnabled", true),
         audioOffloadPreference = AudioOffloadPreference.fromStorage(json.optString("audioOffloadPreference")),
-        playbackBuffer = playbackBuffer
+        playbackBuffer = playbackBuffer,
+        dolbyAtmosEnabled = json.optBoolean("dolbyAtmosEnabled", true)
     ).normalized()
 }
 
@@ -1854,7 +1858,15 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("ivoryAppearance", value.ivory.appearance.name)
     .put("hapticFeedback", value.hapticFeedback)
     .put("derbisNotchEnabled", value.derbisNotchEnabled)
-    .put("derbisNotchStyle", value.derbisNotchStyle.name)
+    .put("derbisNotchStyle", value.derbisNotch.style.name)
+    .put("derbisNotchArtwork", value.derbisNotch.showArtwork)
+    .put("derbisNotchLyrics", value.derbisNotch.showLyrics)
+    .put("derbisNotchTransport", value.derbisNotch.showTransport)
+    .put("derbisNotchProgress", value.derbisNotch.showProgress)
+    .put("derbisNotchWaveform", value.derbisNotch.showWaveform)
+    .put("derbisNotchHaptics", value.derbisNotch.haptics)
+    .put("derbisNotchAlignment", value.derbisNotch.alignment.name)
+    .put("derbisNotchOffsetY", value.derbisNotch.offsetYDp)
     .put("playerVisualMode", value.playerVisualMode.name)
     .put("playerBackground", value.playerBackground.name)
     .put("reactiveAuraPreset", value.reactiveAuraPreset.name)
@@ -1922,9 +1934,17 @@ internal fun backupInterfaceSettingsFromJson(
         torque = com.yasuda.derbis.domain.TorqueSettings.from(json.optString("torqueAccent")),
         ivory = com.yasuda.derbis.domain.IvorySettings.from(json.optString("ivoryAppearance")),
         hapticFeedback = json.optBoolean("hapticFeedback", true),
-        derbisNotchEnabled = json.optBoolean("derbisNotchEnabled", true),
-        derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
-            json.optString("derbisNotchStyle")
+        derbisNotchEnabled = json.optBoolean("derbisNotchEnabled", false),
+        derbisNotch = com.yasuda.derbis.domain.DerbisNotchSettings(
+            style = com.yasuda.derbis.domain.DerbisNotchStyle.from(json.optString("derbisNotchStyle")),
+            showArtwork = json.optBoolean("derbisNotchArtwork", true),
+            showLyrics = json.optBoolean("derbisNotchLyrics", true),
+            showTransport = json.optBoolean("derbisNotchTransport", true),
+            showProgress = json.optBoolean("derbisNotchProgress", true),
+            showWaveform = json.optBoolean("derbisNotchWaveform", true),
+            haptics = json.optBoolean("derbisNotchHaptics", true),
+            alignment = com.yasuda.derbis.domain.NotchAlignment.from(json.optString("derbisNotchAlignment")),
+            offsetYDp = json.optInt("derbisNotchOffsetY", 0)
         ),
         playerVisualMode = visualMode,
         playerBackground = backgroundMode,

@@ -4783,6 +4783,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setDerbis360Experience(value: Derbis360Experience) =
         updateAudioSettings(_state.value.audioSettings.copy(derbis360Experience = value))
 
+    fun setKaraokeMode(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(karaokeMode = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }
@@ -4830,6 +4833,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setPitch(value: Float) {
         updateAudioSettings(_state.value.audioSettings.copy(pitch = value))
+    }
+
+    fun setDolbyAtmosEnabled(value: Boolean) {
+        updateAudioSettings(_state.value.audioSettings.copy(dolbyAtmosEnabled = value))
     }
 
     fun setGaplessEnabled(value: Boolean) {
@@ -5757,6 +5764,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setMotionArtworkEnabled(value: Boolean) {
         // Canvas is a deliberate opt-in. Turning it off clears every resolved loop immediately;
         // turning it on resolves only provider-supplied artwork and always falls back to the cover.
+        //
+        // This is the only control for animated artwork (Settings -> Interface). The interface
+        // snapshot owns the same flag for backup and the startup restore, and it also arms the
+        // motion-artwork network policy, so both have to move together or the switch would draw
+        // one state while the engine obeys another.
+        val interfaceSettings = _state.value.interfaceSettings
+        if (interfaceSettings.motionArtworkEnabled != value) {
+            val updated = interfaceSettings.copy(motionArtworkEnabled = value)
+            preferences.setInterfaceSettings(updated)
+            com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(value)
+            _state.update { it.copy(interfaceSettings = updated) }
+        }
         _state.update {
             it.copy(
                 motionArtworkEnabled = value,

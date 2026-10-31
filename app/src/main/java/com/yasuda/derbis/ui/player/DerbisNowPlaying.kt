@@ -57,38 +57,38 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import com.yasuda.derbis.ui.icons.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Interests
 import androidx.compose.material.icons.rounded.Bedtime
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.CloseFullscreen
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloseFullscreen
 import androidx.compose.material.icons.rounded.DeleteOutline
-import com.yasuda.derbis.ui.icons.Download
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.BlurOn
-import com.yasuda.derbis.ui.icons.Fullscreen
-import com.yasuda.derbis.ui.icons.GraphicEq
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Image
-import com.yasuda.derbis.ui.icons.Info
-import com.yasuda.derbis.ui.icons.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Waves
-import com.yasuda.derbis.ui.icons.Nightlight
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.Person
+import androidx.compose.material.icons.rounded.Nightlight
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
-import com.yasuda.derbis.ui.icons.Refresh
-import com.yasuda.derbis.ui.icons.Share
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Subtitles
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -137,7 +137,6 @@ import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.PlaybackSourceIdentity
 import com.yasuda.derbis.data.youtubeWatchUrl
 import com.yasuda.derbis.domain.ArtistHit
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.cast.CastRouteButton
@@ -267,13 +266,6 @@ private fun DerbisNowPlayingContent(
     val appleMusicDeck = !DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
     val appleMusicPlayer = DerbisIsAppleMusic || appleMusicDeck
     val visualMode = selectedVisualMode
-    val backgroundMode = state.interfaceSettings.playerBackground.let { selected ->
-        if (nocturne || selected == PlayerBackgroundMode.Dark && state.interfaceSettings.pureBlack) {
-            PlayerBackgroundMode.PureBlack
-        } else {
-            selected
-        }
-    }
     val animated = state.animationsEnabled
     val lyricsAudioRoute = rememberLyricsAudioOutputRoute()
     val lyricsEffectiveOffsetMs = remember(track?.id, lyricsAudioRoute, state.lyricsLatencyProfiles) {
@@ -288,15 +280,6 @@ private fun DerbisNowPlayingContent(
         smoothingEnabled = animated && appleMusicDeck && (state.activeLyric != null || state.lyricsSynced)
     )
     val lyricsEngine = remember { LyricsEngine() }
-    val reactiveAuraStyle = remember(
-        state.interfaceSettings.reactiveAuraPreset,
-        state.interfaceSettings.reactiveAuraIntensity
-    ) {
-        ReactiveAuraStyle(
-            preset = state.interfaceSettings.reactiveAuraPreset,
-            intensity = state.interfaceSettings.reactiveAuraIntensity
-        )
-    }
 
     val fallbackPalette = remember(track?.accentStart, track?.accentEnd) {
         ArtworkPalette(track?.accentStart ?: DerbisCyan.toArgb(), track?.accentEnd ?: DerbisViolet.toArgb())
@@ -347,7 +330,9 @@ private fun DerbisNowPlayingContent(
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.paletteTween()),
         label = "player-secondary-color"
     )
-    val amoled = backgroundMode == PlayerBackgroundMode.PureBlack
+    // Pure black is the OLED switch, not a background style: the deck keeps its artwork backdrop
+    // and only the control surfaces go black.
+    val amoled = state.interfaceSettings.pureBlack && !nocturne
     val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, nocturne) { playerSurfaceTokens(primaryTarget, amoled, nocturne) }
     val heroTone by animateColorAsState(
         targetValue = surfaces.hero,
@@ -499,7 +484,6 @@ private fun DerbisNowPlayingContent(
         LaunchedEffect(
             motionEnabled,
             motionBackdropVisible,
-            backgroundMode,
             state.motionArtwork?.identityKey
         ) {
             val activeIdentity = state.motionArtwork?.identityKey
@@ -508,7 +492,6 @@ private fun DerbisNowPlayingContent(
                     palette = canvasBackdropPalette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = activeIdentity
                 )
             ) {
@@ -522,7 +505,6 @@ private fun DerbisNowPlayingContent(
                     palette = palette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = state.motionArtwork?.identityKey
                 )
             }
@@ -570,14 +552,12 @@ private fun DerbisNowPlayingContent(
         }
 
         PlayerVisualHost(
-            backgroundMode = backgroundMode,
             artworkUrl = artworkUrl,
             ambience = backdropAmbience,
             animationsEnabled = animated,
             isPlaying = state.isPlaying,
             fixedColors = fixedAccents != null,
             backdropFocus = backdropFocus,
-            reactiveAura = reactiveAuraStyle,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -810,8 +790,9 @@ private fun DerbisNowPlayingContent(
                                 depth = lyricsFlipDepth,
                                 rightToLeft = rightToLeft
                             ),
-                        dynamicBackdropEnabled = backgroundMode == PlayerBackgroundMode.Dynamic &&
-                            motionBackdropVisible,
+                        // The Canvas palette feeds the wet wash behind the deck in every mode now,
+                        // so the hero only stops publishing it when Canvas itself is off.
+                        dynamicBackdropEnabled = motionBackdropVisible,
                         onDynamicBackdropPalette = acceptDynamicBackdropPalette
                     )
                     if (lyricsFlipAvailable && lyricsFlip.lyricsComposed) {
@@ -1863,29 +1844,13 @@ private fun DerbisNowPlayingContent(
                 surfaces = surfaces,
                 accent = heroTone,
                 animated = animated,
-                background = backgroundMode,
                 onSelect = { mode ->
                     if (mode != selectedVisualMode) {
                         viewModel.setPlayerVisualMode(mode)
                         hapticFeedback.perform(DerbisHapticAction.Confirm)
                     }
                 },
-                onSelectBackground = { mode ->
-                    if (mode != backgroundMode) {
-                        viewModel.setPlayerBackground(mode)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onDismiss = { showDeck = false },
-                reactiveAuraPreset = state.interfaceSettings.reactiveAuraPreset,
-                reactiveAuraIntensity = state.interfaceSettings.reactiveAuraIntensity,
-                onSelectReactiveAuraPreset = { preset ->
-                    if (preset != state.interfaceSettings.reactiveAuraPreset) {
-                        viewModel.setReactiveAuraPreset(preset)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onSelectReactiveAuraIntensity = viewModel::setReactiveAuraIntensity
+                onDismiss = { showDeck = false }
             )
         }
 
@@ -2121,13 +2086,11 @@ private fun canvasBackdropPaletteMatches(
     palette: MotionBackdropPalette?,
     motionEnabled: Boolean,
     motionBackdropVisible: Boolean,
-    backgroundMode: PlayerBackgroundMode,
     activeIdentity: String?
 ): Boolean {
     val presentationActive = motionEnabled && motionBackdropVisible
-    val dynamicBackground = backgroundMode == PlayerBackgroundMode.Dynamic
     val identityMatches = activeIdentity != null && palette?.identityKey == activeIdentity
-    return presentationActive && dynamicBackground && identityMatches
+    return presentationActive && identityMatches
 }
 
 private fun Track.isLocalMotionArtworkTrack(): Boolean {

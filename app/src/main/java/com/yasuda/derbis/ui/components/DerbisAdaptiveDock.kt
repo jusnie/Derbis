@@ -33,9 +33,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.yasuda.derbis.ui.GlassBackdropState
 import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
-import com.yasuda.derbis.ui.glassFrost
 import com.yasuda.derbis.ui.theme.DerbisActivePalette
 import com.yasuda.derbis.ui.theme.DerbisBlack
 import com.yasuda.derbis.ui.theme.DerbisInk
@@ -47,7 +45,6 @@ import kotlin.math.roundToInt
 
 private val DockCollapseDistance = 56.dp
 private val DockExpandDistance = 24.dp
-private val DockBlurRadius = 28.dp
 private val DockShadowDark = 16.dp
 private val DockShadowLight = 10.dp
 private const val DockFadeSpan = 0.6f
@@ -215,7 +212,6 @@ private fun rememberDockMaterial(): DockMaterial {
 
 @Composable
 fun DerbisAdaptiveDockSurface(
-    glass: GlassBackdropState,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -224,18 +220,15 @@ fun DerbisAdaptiveDockSurface(
         RoundedCornerShape(topStart = DerbisPlayerDesign.DockTrayCorner, topEnd = DerbisPlayerDesign.DockTrayCorner)
     }
     val accessibility = LocalDerbisGlassAccessibility.current
-    val frostBrush = remember(material) { Brush.verticalGradient(listOf(material.frostTop, material.frostBottom)) }
     val solidBrush = remember(material) { Brush.verticalGradient(listOf(material.solidTop, material.solidBottom)) }
     val rimBrush = remember(material) { Brush.verticalGradient(0f to material.rim, 0.35f to Color.Transparent) }
     val materialModifier = if (accessibility.prefersOpaqueMaterials) {
         Modifier.background(solidBrush)
     } else {
-        Modifier.glassFrost(
-            state = glass,
-            blurRadius = DockBlurRadius,
-            groundColor = material.ground,
-            onDrawFrosted = { drawRect(frostBrush) },
-            onDrawFallback = { drawRect(solidBrush) }
+        Modifier.derbisChromeGlass(
+            shape = shape,
+            tint = defaultGlassSurfaceTint(DerbisActivePalette.isLight),
+            fallback = Modifier.background(solidBrush)
         )
     }
     Column(

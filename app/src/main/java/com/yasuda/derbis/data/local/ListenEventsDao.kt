@@ -123,6 +123,117 @@ interface ListenEventsDao {
     @Query(
         """
         SELECT
+            MAX(album) AS album,
+            MAX(artist) AS artist,
+            MAX(CASE WHEN largeThumbnailUrl != '' THEN largeThumbnailUrl ELSE thumbnailUrl END) AS thumbnailUrl,
+            COALESCE(SUM(listenedMs), 0) AS listenedMs,
+            COALESCE(SUM(CASE
+                WHEN listenedMs >= :countedPlayMs THEN 1
+                WHEN completed = 1 AND durationMs > 0 AND durationMs < :countedPlayMs
+                    AND listenedMs * :completionDenominator >= durationMs * :completionNumerator THEN 1
+                ELSE 0 END), 0) AS countedPlays
+        FROM listen_events
+        WHERE startedAt >= :fromMs AND startedAt < :toMs AND listenedMs >= :minimumEventMs
+            AND trim(album) != ''
+        GROUP BY lower(trim(album)) || '|' || lower(trim(artist))
+        ORDER BY listenedMs DESC, countedPlays DESC
+        LIMIT :limit
+        """
+    )
+    suspend fun insightsTopAlbums(
+        fromMs: Long,
+        toMs: Long,
+        limit: Int,
+        minimumEventMs: Long,
+        countedPlayMs: Long,
+        completionNumerator: Long,
+        completionDenominator: Long
+    ): List<ListeningInsightsTopAlbumRow>
+
+    /**
+     * The one local day that took the most listening, and how much it took.
+     *
+     * Grouped in SQL rather than by walking the activity series: the series the Insights screen
+     * gets is bucketed by period (weeks for a half-year), so on a year the biggest *bucket* would
+     * be mistaken for the biggest *day*.
+     */
+    @Query(
+        """
+        SELECT
+            strftime('%Y-%m-%d', startedAt / 1000, 'unixepoch', 'localtime') AS dayKey,
+            COALESCE(SUM(listenedMs), 0) AS listenedMs,
+            COALESCE(SUM(CASE
+                WHEN listenedMs >= :countedPlayMs THEN 1
+                WHEN completed = 1 AND durationMs > 0 AND durationMs < :countedPlayMs
+                    AND listenedMs * :completionDenominator >= durationMs * :completionNumerator THEN 1
+                ELSE 0 END), 0) AS countedPlays
+        FROM listen_events
+        WHERE startedAt >= :fromMs AND startedAt < :toMs AND listenedMs >= :minimumEventMs
+        GROUP BY dayKey
+        ORDER BY listenedMs DESC, countedPlays DESC
+        LIMIT 1
+        """
+    )
+    suspend fun insightsBiggestDay(
+        fromMs: Long,
+        toMs: Long,
+        minimumEventMs: Long,
+        countedPlayMs: Long,
+        completionNumerator: Long,
+        completionDenominator: Long
+    ): ListeningInsightsDayRow?
+
+    /** Days that hold at least one counted listen — the denominator every consistency claim uses. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM (
+            SELECT DISTINCT strftime('%Y-%m-%d', startedAt / 1000, 'unixepoch', 'localtime') AS dayKey
+            FROM listen_events
+            WHERE startedAt >= :fromMs AND startedAt < :toMs AND listenedMs >= :minimumEventMs
+        )
+        """
+    )
+    suspend fun insightsActiveDays(
+        fromMs: Long,
+        toMs: Long,
+        minimumEventMs: Long
+    ): Int
+
+    /** The track that carried the biggest day, when it can still be resolved. */
+    @Query(
+        """
+        SELECT
+            trackId,
+            MAX(title) AS title,
+            MAX(artist) AS artist,
+            MAX(album) AS album,
+            MAX(thumbnailUrl) AS thumbnailUrl,
+            MAX(largeThumbnailUrl) AS largeThumbnailUrl,
+            COALESCE(SUM(listenedMs), 0) AS listenedMs,
+            COALESCE(SUM(CASE
+                WHEN listenedMs >= :countedPlayMs THEN 1
+                WHEN completed = 1 AND durationMs > 0 AND durationMs < :countedPlayMs
+                    AND listenedMs * :completionDenominator >= durationMs * :completionNumerator THEN 1
+                ELSE 0 END), 0) AS countedPlays
+        FROM listen_events
+        WHERE startedAt >= :fromMs AND startedAt < :toMs AND listenedMs >= :minimumEventMs
+        GROUP BY CASE WHEN trackId != '' THEN trackId ELSE lower(trim(title)) || '|' || lower(trim(artist)) END
+        ORDER BY listenedMs DESC, countedPlays DESC
+        LIMIT 1
+        """
+    )
+    suspend fun insightsDayTopTrack(
+        fromMs: Long,
+        toMs: Long,
+        minimumEventMs: Long,
+        countedPlayMs: Long,
+        completionNumerator: Long,
+        completionDenominator: Long
+    ): ListeningInsightsTopTrackRow?
+
+    @Query(
+        """
+        SELECT
             trackId,
             MAX(title) AS title,
             MAX(artist) AS artist,

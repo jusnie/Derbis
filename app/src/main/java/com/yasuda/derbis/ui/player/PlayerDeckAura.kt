@@ -2,12 +2,15 @@ package com.yasuda.derbis.ui.player
 
 import android.content.Context
 import android.database.ContentObserver
+import android.graphics.Color as AndroidColor
 import android.media.AudioManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -30,20 +33,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import androidx.compose.material.icons.rounded.VolumeDown
-import com.yasuda.derbis.ui.icons.CheckCircle
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.Star
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.VolumeDown
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -57,22 +60,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.geometry.Offset
-import com.yasuda.derbis.player.VisualizerAudioProcessor
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -86,42 +91,55 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.yasuda.derbis.data.ArtworkPalette
+import com.yasuda.derbis.data.ArtworkPaletteCache
+import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisBeatGridStore
 import com.yasuda.derbis.domain.DerbisBeatGrid
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.cast.CastRouteButton
 import com.yasuda.derbis.feature.motion.MotionArtwork
-import com.yasuda.derbis.ui.artwork.SeamlessArtworkImage
 import com.yasuda.derbis.ui.InstantArtworkPlaceholder
 import com.yasuda.derbis.ui.MotionArtworkLayer
 import com.yasuda.derbis.ui.MotionArtworkPresentation
+import com.yasuda.derbis.ui.artwork.SeamlessArtworkImage
+import com.yasuda.derbis.ui.artwork.rememberArtworkPalette
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.PlayerControlLabels
-import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.components.derbisMarquee
 import com.yasuda.derbis.ui.components.derbisPressable
+import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisHapticAction
 import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.graphics.graphicsLayer
 import kotlin.math.exp
 import kotlin.math.floor
 
 private val AuraInk = Color.White
 private val AuraInkSoft = Color.White.copy(alpha = 0.64f)
-private val AuraInkFaint = Color.White.copy(alpha = 0.24f)
 private val AuraBadge = Color.White.copy(alpha = 0.14f)
+
+/** Ink for glyphs drawn on the white play disc — not pure black, which reads as a hole. */
+private val AuraOnInk = Color(0xFF07070A)
 private val AuraGutter = 22.dp
-private val AuraBarIdle = 4.dp
-private val AuraBarActive = 9.dp
 private const val VelvetSleeveWidth = 0.86f
-private val VelvetSleeveCorner = 24.dp
+
+/** Touch target for the bar; the bar itself is [AuraBarHeight] tall inside it and centred, so the
+    target is the full height even though the ink is a tenth of it. */
+private val AuraProgressHeight = 40.dp
+private val AuraBarHeight = 10.dp
+private const val AURA_PROGRESS_MS = 260
+
+/** Artwork is decoded tiny and then blurred, so 96 px is more than the blur can resolve. */
+private const val ArtworkWashPx = 96
 
 @Composable
 internal fun PlayerAuraDeck(
@@ -151,20 +169,63 @@ internal fun PlayerAuraDeck(
     modifier: Modifier = Modifier,
     headlineModifier: Modifier = Modifier
 ) {
-    val velvetTop = remember(track.id, track.accentStart) {
-        androidx.compose.ui.graphics.lerp(Color(track.accentStart), Color.Black, 0.72f)
+    // The cover's own palette, read from the artwork the same way the mini player and the nav bar
+    // read it. The catalog accents go stale and are plain zero for most streams, so the deck asks
+    // for the bitmap, keeps the accents as the fallback while it is being quantised, and lets the
+    // cache answer instantly the next time the track is opened.
+    val paletteKey = remember(track.id, track.thumbnailUrl, track.largeThumbnailUrl) {
+        ArtworkPaletteCache.key(
+            trackId = track.id,
+            thumbnailUrl = track.thumbnailUrl,
+            largeThumbnailUrl = track.largeThumbnailUrl
+        )
     }
-    val velvetMid = remember(track.id, track.accentEnd) {
-        androidx.compose.ui.graphics.lerp(Color(track.accentEnd), Color.Black, 0.86f)
+    val paletteFallback = remember(track.accentStart, track.accentEnd) {
+        ArtworkPalette(track.accentStart, track.accentEnd)
     }
-    // Swap: Velvet now carries the rounded sleeve that previously belonged to the Apple Music 13
-    // deck. It remains static by default; an explicitly enabled verified Canvas loop plays inside
-    // the sleeve without changing Velvet's layout or adding a palette/ink effect.
+    val artworkPalette by rememberArtworkPalette(
+        paletteKey = paletteKey,
+        artworkUrl = artworkUrl,
+        fallback = paletteFallback
+    )
+    val velvetTop = remember(artworkPalette) {
+        androidx.compose.ui.graphics.lerp(Color(artworkPalette.start), Color.Black, 0.72f)
+    }
+    val velvetMid = remember(artworkPalette) {
+        androidx.compose.ui.graphics.lerp(Color(artworkPalette.end), Color.Black, 0.86f)
+    }
+    // One beat clock for the whole deck: the ring around the artwork and the backdrop behind it
+    // must swell on the same frame, and two independent clocks drift apart within a bar.
+    val context = LocalContext.current
+    val beatGrid = remember(track.id) {
+        runCatching { DerbisBeatGridStore(context).gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
+    }
+    val beats = rememberBeatPosition(
+        grid = beatGrid,
+        positionMs = positionMs,
+        isPlaying = isPlaying,
+        animated = animated
+    )
+    val hasBeatGrid = beatGrid?.validBpm != null
+    // Everything that pulses reads this, so the ring, the bloom and the bar cannot disagree
+    // about which colours belong to the sleeve.
+    val beatColors = remember(artworkPalette) {
+        beatPalette(artworkPalette.start, artworkPalette.end)
+    }
+
     Box(
         modifier = modifier.background(
             Brush.verticalGradient(0f to velvetTop, 0.50f to velvetMid, 1f to Color.Black)
         )
     ) {
+        AuraBackdrop(
+            artworkUrl = artworkUrl,
+            accent = beatColors[0],
+            beats = beats,
+            hasGrid = hasBeatGrid,
+            isPlaying = isPlaying,
+            modifier = Modifier.matchParentSize()
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -182,12 +243,13 @@ internal fun PlayerAuraDeck(
                 val sleeveSize = minOf(maxWidth * VelvetSleeveWidth, maxHeight - 16.dp)
                     .coerceAtLeast(152.dp)
                 AuraVelvetSleeve(
-                    track = track,
                     artworkUrl = artworkUrl,
                     motionArtwork = motionArtwork,
                     motionEnabled = motionEnabled,
                     isPlaying = isPlaying,
-                    positionMs = positionMs,
+                    beats = beats,
+                    hasGrid = hasBeatGrid,
+                    beatColors = beatColors,
                     animated = animated,
                     canvasQuality = canvasQuality,
                     modifier = Modifier
@@ -208,16 +270,17 @@ internal fun PlayerAuraDeck(
                 onMore = onMore,
                 modifier = headlineModifier
             )
-            Spacer(Modifier.height(14.dp))
-            AuraLine(
+            Spacer(Modifier.height(6.dp))
+            AuraProgress(
                 fraction = if (durationMs > 0L) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f,
                 enabled = durationMs > 0L,
-                isPlaying = isPlaying,
+                accentStart = beatColors[0],
+                accentEnd = beatColors[2],
                 animated = animated,
                 onCommit = onSeek
             )
             AuraTimes(positionMs = positionMs, durationMs = durationMs)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(14.dp))
             AuraTransport(
                 isPlaying = isPlaying,
                 isResolving = isResolving,
@@ -237,35 +300,30 @@ internal fun PlayerAuraDeck(
 
 @Composable
 private fun AuraVelvetSleeve(
-    track: Track,
     artworkUrl: String,
     motionArtwork: MotionArtwork?,
     motionEnabled: Boolean,
     isPlaying: Boolean,
-    positionMs: Long,
+    beats: MutableFloatState,
+    hasGrid: Boolean,
+    beatColors: List<Color>,
     animated: Boolean,
     canvasQuality: DerbisCanvasQuality,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val grid = remember(track.id) {
-        runCatching { DerbisBeatGridStore(context).gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
-    }
-    val beats = rememberBeatPosition(
-        grid = grid,
-        positionMs = positionMs,
-        isPlaying = isPlaying,
-        animated = animated
-    )
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         BeatAura(
             beats = beats,
-            hasGrid = grid?.validBpm != null,
+            hasGrid = hasGrid,
+            colors = beatColors,
             modifier = Modifier.matchParentSize()
         )
+        // 0.78, not 0.84: the thick band sits at 0.83 of the sleeve, and at the old size the
+        // cover covered it completely — the ring that now carries the artwork's colours was
+        // drawn every frame and never seen.
         Box(
             modifier = Modifier
-                .fillMaxSize(0.84f)
+                .fillMaxSize(0.78f)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.30f))
         ) {
@@ -330,7 +388,12 @@ private fun rememberBeatPosition(
  * outward; between beats it settles. Without a beat grid it keeps a slow accent glow only.
  */
 @Composable
-private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modifier = Modifier) {
+private fun BeatAura(
+    beats: MutableFloatState,
+    hasGrid: Boolean,
+    colors: List<Color>,
+    modifier: Modifier = Modifier
+) {
     Canvas(modifier = modifier) {
         val center = Offset(size.width / 2f, size.height / 2f)
         val baseRadius = size.minDimension * 0.415f
@@ -342,13 +405,7 @@ private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modif
 
         val radius = baseRadius + size.minDimension * 0.055f * hit
         val sweep = Brush.sweepGradient(
-            colors = listOf(
-                AuraCyan,
-                AuraViolet,
-                AuraMagenta,
-                AuraAmber,
-                AuraCyan
-            ),
+            colors = listOf(colors[0], colors[1], colors[2], colors[3], colors[0]),
             center = center
         )
 
@@ -357,8 +414,8 @@ private fun BeatAura(beats: MutableFloatState, hasGrid: Boolean, modifier: Modif
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
                     0.62f to Color.Transparent,
-                    0.84f to AuraViolet.copy(alpha = 0.10f + 0.26f * hit),
-                    0.96f to AuraMagenta.copy(alpha = 0.06f + 0.18f * hit),
+                    0.84f to colors[1].copy(alpha = 0.10f + 0.26f * hit),
+                    0.96f to colors[2].copy(alpha = 0.06f + 0.18f * hit),
                     1f to Color.Transparent
                 ),
                 center = center,
@@ -403,6 +460,48 @@ private val AuraViolet = Color(0xFF7C4DFF)
 private val AuraMagenta = Color(0xFFFF2D95)
 private val AuraAmber = Color(0xFFFFD400)
 
+/** Used when a track carries no artwork palette — offline rows, forced silence, imported files. */
+private val AuraNeonDefault = listOf(AuraCyan, AuraViolet, AuraMagenta, AuraAmber)
+
+/**
+ * The four stops the beat ring sweeps through, taken from the sleeve.
+ *
+ * The deck already extracts two accents from the artwork — they paint the velvet, the progress
+ * fill and the bloom behind the cover. The ring used to ignore them and sweep a fixed
+ * cyan → violet → magenta → amber; now it starts from those two colours and pushes each one part
+ * of the way round the wheel, so the ring keeps four stops and a neon range, but the hues are the
+ * cover's instead of the app's.
+ */
+private fun beatPalette(accentStart: Int, accentEnd: Int): List<Color> {
+    val hasStart = (accentStart ushr 24) != 0
+    val hasEnd = (accentEnd ushr 24) != 0
+    if (!hasStart && !hasEnd) return AuraNeonDefault
+    val start = Color(if (hasStart) accentStart else 0xFF00E5FF.toInt())
+    val end = Color(if (hasEnd) accentEnd else 0xFF7C4DFF.toInt())
+    return listOf(
+        neonOf(start, hueShift = 0f),
+        neonOf(start, hueShift = 34f),
+        neonOf(end, hueShift = 0f),
+        neonOf(end, hueShift = -34f)
+    )
+}
+
+/**
+ * Lifts a tone-mapped accent back to neon without touching its hue.
+ *
+ * The palette extractor deliberately returns dim colours (they are meant to sit under black
+ * chrome); a ring drawn at that value vanishes on black. Saturation is only floored, never
+ * replaced, so a muted cover stays muted-ish instead of being forced into a rainbow.
+ */
+private fun neonOf(color: Color, hueShift: Float): Color {
+    val hsv = FloatArray(3)
+    AndroidColor.colorToHSV(color.toArgb(), hsv)
+    hsv[0] = (hsv[0] + hueShift + 360f) % 360f
+    hsv[1] = hsv[1].coerceAtLeast(0.62f)
+    hsv[2] = hsv[2].coerceAtLeast(0.92f)
+    return Color(AndroidColor.HSVToColor(hsv))
+}
+
 @Composable
 private fun AuraGrabber(onCollapse: () -> Unit) {
     val strings = LocalDerbisStrings.current
@@ -416,10 +515,10 @@ private fun AuraGrabber(onCollapse: () -> Unit) {
     ) {
         Box(
             modifier = Modifier
-                .width(36.dp)
-                .height(5.dp)
+                .width(40.dp)
+                .height(4.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.46f))
+                .background(Color.White.copy(alpha = 0.38f))
         )
     }
 }
@@ -452,9 +551,10 @@ private fun AuraHeadline(
                 Text(
                     text = shown.title,
                     color = AuraInk,
-                    fontSize = 17.sp,
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 19.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.2).sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
@@ -500,54 +600,147 @@ private fun AuraIconButton(icon: ImageVector, label: String, size: Dp, tint: Col
     }
 }
 
+/**
+ * The blurred artwork behind the whole deck, at the opacity a background is allowed to have.
+ *
+ * It is why the page no longer reads as a flat black column: the sleeve's own colours bleed into
+ * the room, but at 16–26 % and under a heavy scrim, so the title, the bar and the transport keep
+ * contrast. The image is blurred from a 96 px request rather than a full-size one — the blur is
+ * destructive anyway, and asking Coil for a thumbnail keeps the decode off the frame budget.
+ *
+ * The pulse is read inside `graphicsLayer` and `Canvas`, never in composition: on a beat grid the
+ * backdrop breathes on the beat without recomposing a single node, and without a grid it settles
+ * to a slow, static wash.
+ */
 @Composable
-private fun AuraLine(
+private fun AuraBackdrop(
+    artworkUrl: String,
+    accent: Color,
+    beats: MutableFloatState,
+    hasGrid: Boolean,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    // Modifier.blur draws through a RenderEffect, which Android 12 introduced; older versions
+    // fall through to the gradient and the glow, both of which still look deliberate.
+    val canBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && artworkUrl.isNotBlank()
+    val request = remember(context, artworkUrl) {
+        ImageRequest.Builder(context)
+            .data(DerbisArtworkCache.small(artworkUrl))
+            .size(ArtworkWashPx, ArtworkWashPx)
+            .crossfade(true)
+            .build()
+    }
+    Box(modifier = modifier) {
+        if (canBlur) {
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                // Blur first, pulse second: the RenderEffect then wraps a still image and is
+                // computed once, while the beat only re-composites the finished layer. Pulsing
+                // inside the blur would re-run the effect on every frame of the track.
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(72.dp, BlurredEdgeTreatment.Unbounded)
+                    .graphicsLayer {
+                        val hit = auraBeatHit(beats, hasGrid, isPlaying)
+                        alpha = 0.16f + 0.10f * hit
+                        val scale = 1.16f + 0.025f * hit
+                        scaleX = scale
+                        scaleY = scale
+                    }
+            )
+        }
+        // One accent bloom behind the sleeve, swelling on the beat instead of strobing.
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val hit = auraBeatHit(beats, hasGrid, isPlaying)
+            val center = Offset(size.width * 0.5f, size.height * 0.27f)
+            val radius = size.minDimension * 0.92f
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colorStops = arrayOf(
+                        0f to accent.copy(alpha = 0.10f + 0.07f * hit),
+                        0.55f to accent.copy(alpha = 0.04f + 0.03f * hit),
+                        1f to Color.Transparent
+                    ),
+                    center = center,
+                    radius = radius
+                ),
+                radius = radius,
+                center = center
+            )
+        }
+        // Legibility scrim: heavy at the bottom where the transport lives, light at the top where
+        // only the grabber sits, so the artwork is never the thing competing with the text.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBehind {
+                    drawRect(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.28f),
+                            0.44f to Color.Black.copy(alpha = 0.52f),
+                            0.78f to Color.Black.copy(alpha = 0.80f),
+                            1f to Color.Black.copy(alpha = 0.94f)
+                        )
+                    )
+                }
+        )
+    }
+}
+
+/**
+ * The beat envelope, 1 on the beat and fading to 0 across the bar.
+ *
+ * Shared by everything that pulses so the deck cannot disagree with itself, and deliberately
+ * allocation-free besides the `exp`: it is called from draw lambdas on every frame.
+ */
+private fun auraBeatHit(beats: MutableFloatState, hasGrid: Boolean, isPlaying: Boolean): Float {
+    if (!hasGrid || !isPlaying) return 0.12f
+    val beat = beats.floatValue
+    val phase = beat - floor(beat)
+    return exp(-phase * 3.4f)
+}
+
+/**
+ * The seek bar, as a bar.
+ *
+ * The old one was a travelling sine wave with a stick dragged through it — two ideas of "where
+ * you are" competing on the same line, and neither one comfortably tappable. This is a single
+ * thick track: what you have heard is filled with the track's own gradient, what is left is a
+ * flat lane, and the head is a round knob that only grows while your finger is on it.
+ */
+@Composable
+private fun AuraProgress(
     fraction: Float,
     enabled: Boolean,
-    isPlaying: Boolean = false,
-    animated: Boolean = true,
-    onCommit: (Float) -> Unit,
-    onLive: ((Float) -> Unit)? = null
+    accentStart: Color,
+    accentEnd: Color,
+    animated: Boolean,
+    onCommit: (Float) -> Unit
 ) {
     var dragFraction by remember { mutableStateOf<Float?>(null) }
     val latestCommit by rememberUpdatedState(onCommit)
-    val latestLive by rememberUpdatedState(onLive)
-    val shown = dragFraction ?: fraction
-
-    var waveTime by remember { mutableFloatStateOf(0f) }
-    var waveBass by remember { mutableFloatStateOf(0f) }
-
-    LaunchedEffect(isPlaying, animated) {
-        if (!animated) return@LaunchedEffect
-        var lastNanos = 0L
-        while (true) {
-            withFrameNanos { now ->
-                if (lastNanos != 0L) {
-                    val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
-                    waveTime += dt * (if (isPlaying) 1.6f else 0.35f)
-
-                    val waveform = if (isPlaying) VisualizerAudioProcessor.waveformState.value else FloatArray(0)
-                    var bassSample = 0f
-                    val sampleCount = minOf(8, waveform.size)
-                    for (i in 0 until sampleCount) {
-                        bassSample += waveform[i]
-                    }
-                    val targetBass = if (sampleCount > 0) (bassSample / sampleCount) * 1.5f else 0f
-                    waveBass += (targetBass - waveBass) * (if (targetBass > waveBass) 0.35f else 0.12f)
-                }
-                lastNanos = now
-            }
-        }
+    val dragging = dragFraction != null
+    val shown = (dragFraction ?: fraction).coerceIn(0f, 1f)
+    // Smooths the half-second tick of the playback position into a gliding head instead of a
+    // stepping one; a drag bypasses it so the knob stays under the finger.
+    val animatedShown by animateFloatAsState(
+        targetValue = shown,
+        animationSpec = if (animated && !dragging) tween(AURA_PROGRESS_MS) else tween(0),
+        label = "aura-progress"
+    )
+    val head = if (dragging) shown else animatedShown
+    val track = remember(accentStart, accentEnd) {
+        Brush.horizontalGradient(listOf(accentStart, accentEnd))
     }
-
-    val wavePlayedPath = remember { Path() }
-    val waveUnplayedPath = remember { Path() }
-    val waveFillPath = remember { Path() }
 
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(38.dp)
+            .height(AuraProgressHeight)
             .semantics {
                 progressBarRangeInfo = ProgressBarRangeInfo(shown, 0f..1f)
                 setProgress { target ->
@@ -572,136 +765,52 @@ private fun AuraLine(
                     onDragCancel = { dragFraction = null },
                     onHorizontalDrag = { change, _ ->
                         if (enabled) {
-                            val next = (change.position.x / size.width).coerceIn(0f, 1f)
-                            dragFraction = next
-                            latestLive?.invoke(next)
+                            dragFraction = (change.position.x / size.width).coerceIn(0f, 1f)
                         }
                     }
                 )
             }
     ) {
-        val w = size.width
-        val h = size.height
-        if (w <= 0f || h <= 0f) return@Canvas
+        if (size.width <= 0f) return@Canvas
+        val barHeight = AuraBarHeight.toPx()
+        val top = (size.height - barHeight) / 2f
+        val radius = CornerRadius(barHeight / 2f)
+        val width = size.width
+        val filled = width * head
 
-        val midY = h * 0.52f
-        val amp = (h * 0.34f + waveBass * 3.5.dp.toPx()).coerceAtMost(h * 0.46f)
-        val xHead = (w * shown.coerceIn(0f, 1f))
-
-        wavePlayedPath.reset()
-        waveUnplayedPath.reset()
-        waveFillPath.reset()
-
-        val steps = 54
-        val dx = w / steps
-
-        fun computeY(x: Float): Float {
-            val progressPhase = (x / w) * 9.5f
-            val wave1 = kotlin.math.sin(progressPhase - waveTime * 1.3f) * 0.72f
-            val wave2 = kotlin.math.cos(progressPhase * 1.5f + waveTime * 0.85f) * 0.28f
-            return midY - (wave1 + wave2) * amp
-        }
-
-        var startedUnplayed = false
-        wavePlayedPath.moveTo(0f, computeY(0f))
-        waveFillPath.moveTo(0f, h)
-        waveFillPath.lineTo(0f, computeY(0f))
-
-        for (i in 1..steps) {
-            val x = i * dx
-            val y = computeY(x)
-
-            if (x <= xHead) {
-                wavePlayedPath.lineTo(x, y)
-                waveFillPath.lineTo(x, y)
-            } else {
-                if (!startedUnplayed) {
-                    val yAtHead = computeY(xHead)
-                    wavePlayedPath.lineTo(xHead, yAtHead)
-                    waveFillPath.lineTo(xHead, yAtHead)
-                    waveFillPath.lineTo(xHead, h)
-                    waveFillPath.close()
-
-                    waveUnplayedPath.moveTo(xHead, yAtHead)
-                    startedUnplayed = true
-                }
-                waveUnplayedPath.lineTo(x, y)
-            }
-        }
-
-        if (!startedUnplayed) {
-            waveFillPath.lineTo(w, h)
-            waveFillPath.close()
-        }
-
-        // 1. Draw soft vertical gradient fill underneath the played wave
-        drawPath(
-            path = waveFillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF80DEEA).copy(alpha = 0.34f),
-                    Color(0xFF26C6DA).copy(alpha = 0.10f),
-                    Color.Transparent
-                ),
-                startY = midY - amp,
-                endY = h
-            )
-        )
-
-        // 2. Draw unplayed wave line (dim translucent)
-        drawPath(
-            path = waveUnplayedPath,
-            color = Color.White.copy(alpha = 0.20f),
-            style = Stroke(
-                width = 2.4.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-
-        // 3. Draw played wave line (vibrant cyan/white glow)
-        // Outer soft glow
-        drawPath(
-            path = wavePlayedPath,
-            color = Color(0xFF4DD0E1).copy(alpha = 0.35f),
-            style = Stroke(
-                width = 6.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-        // Core bright line
-        drawPath(
-            path = wavePlayedPath,
-            color = Color(0xFFE0F7FA),
-            style = Stroke(
-                width = 2.8.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-
-        // 4. Draw moving scrubber stick ("move this stick on progress bar")
-        val isDragging = dragFraction != null
-        val stickWidth = if (isDragging) 4.5.dp.toPx() else 3.dp.toPx()
-        val stickHeight = if (isDragging) 34.dp.toPx() else 28.dp.toPx()
-        val stickTop = (h - stickHeight) / 2f
-        val stickRadius = CornerRadius(stickWidth / 2f)
-
-        // Outer glow on stick
+        // The lane, so the bar is visible before anything has played.
         drawRoundRect(
-            color = Color(0xFF4DD0E1).copy(alpha = 0.55f),
-            topLeft = Offset(xHead - stickWidth * 1.5f, stickTop - 2.dp.toPx()),
-            size = Size(stickWidth * 3f, stickHeight + 4.dp.toPx()),
-            cornerRadius = CornerRadius(stickWidth * 1.5f)
+            color = Color.White.copy(alpha = 0.12f),
+            topLeft = Offset(0f, top),
+            size = Size(width, barHeight),
+            cornerRadius = radius
         )
-        // Core white stick
-        drawRoundRect(
-            color = Color.White,
-            topLeft = Offset(xHead - stickWidth / 2f, stickTop),
-            size = Size(stickWidth, stickHeight),
-            cornerRadius = stickRadius
+        if (filled > 0f) {
+            // A wider, fainter copy underneath is the glow — cheaper than a blur and it keeps the
+            // neon of the sleeve without turning the control into a light strip.
+            drawRoundRect(
+                color = accentStart.copy(alpha = 0.22f),
+                topLeft = Offset(0f, top - barHeight * 0.35f),
+                size = Size(filled, barHeight * 1.7f),
+                cornerRadius = CornerRadius(barHeight * 0.85f)
+            )
+            drawRoundRect(
+                brush = track,
+                topLeft = Offset(0f, top),
+                size = Size(filled.coerceAtLeast(barHeight), barHeight),
+                cornerRadius = radius
+            )
+        }
+        // The knob is drawn even at 0:00 — an empty lane with no head reads as a broken control.
+        val knobRadius = if (dragging) barHeight * 0.95f else barHeight * 0.70f
+        val knobX = filled.coerceIn(knobRadius, width - knobRadius)
+        val knobY = size.height / 2f
+        drawCircle(
+            color = Color.Black.copy(alpha = 0.40f),
+            radius = knobRadius + 2.5.dp.toPx(),
+            center = Offset(knobX, knobY)
         )
+        drawCircle(color = Color.White, radius = knobRadius, center = Offset(knobX, knobY))
     }
 }
 
@@ -713,7 +822,8 @@ private fun AuraTimes(positionMs: Long, durationMs: Long) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         AuraTime(formatSeekbarMillis(positionMs), Modifier.weight(1f))
-        if (spec.codec.isNotEmpty()) {
+        val qualityOrCodec = spec.quality ?: spec.codec
+        if (qualityOrCodec.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -723,7 +833,7 @@ private fun AuraTimes(positionMs: Long, durationMs: Long) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = AuraInkSoft, modifier = Modifier.size(12.dp))
-                Text(spec.codec, color = AuraInkSoft, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
+                Text(qualityOrCodec, color = AuraInkSoft, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp)
             }
         }
         val remaining = if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - positionMs).coerceAtLeast(0L)) else "--:--"
@@ -800,12 +910,22 @@ internal fun PlayerAuraPlayPauseButton(
         if (isResolving) {
             DerbisLoadingIndicator(color = AuraInk, modifier = Modifier.size(42.dp))
         } else {
-            DerbisPlayPauseGlyph(
-                playing = isPlaying,
-                color = AuraInk,
-                modifier = Modifier.size(42.dp),
-                animateMorph = false
-            )
+            // The one filled surface in the deck. Everything else is ink on glass; giving the
+            // primary action a solid disc is what keeps the eye from having to hunt for it now
+            // that the background actually has something in it.
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(AuraInk),
+                contentAlignment = Alignment.Center
+            ) {
+                DerbisPlayPauseGlyph(
+                    playing = isPlaying,
+                    color = AuraOnInk,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
         }
     }
 }

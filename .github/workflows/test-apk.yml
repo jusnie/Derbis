@@ -1,0 +1,195 @@
+name: Derbis Prebuild APK
+
+# Test-only build. Ships the same applicationId and app label as the official
+# build (com.derbis.app), is published as a GitHub pre-release, and never moves
+# the "latest" pointer. Use the Release APK workflow for real releases.
+
+# Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: derbis-prebuild-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Test builds report the requested version name, but keep a version code above the
+  # previous prebuild so the APK installs over it instead of failing as a downgrade.
+  DERBIS_VERSION_NAME: "1.5.0"
+  DERBIS_VERSION_CODE: "3000212"
+
+jobs:
+  prebuild-apk:
+    name: Build Prebuild APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-37.0" "build-tools;36.0.0" \
+            "ndk;28.2.13676358" "cmake;3.22.1"
+          chmod +x gradlew
+
+      - name: Build prebuild APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+          DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
+          DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${DISCORD_SOCIAL_SDK_URL:-}" ]]; then
+            mkdir -p app/libs
+            if curl --fail --location --retry 3 --output app/libs/discord_partner_sdk.aar "${DISCORD_SOCIAL_SDK_URL}" && unzip -tq app/libs/discord_partner_sdk.aar; then
+              echo "Authorized Discord SDK supplied."
+            else
+              rm -f app/libs/discord_partner_sdk.aar
+              echo "Discord SDK unavailable; building without Rich Presence."
+            fi
+          else
+            echo "No Discord SDK configured; Rich Presence stays unavailable."
+          fi
+          set +e
+          ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace --console=plain \
+            -PderbisVersionName="${DERBIS_VERSION_NAME}" \
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}" 2>&1 | tee build.log
+          status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "${status}" -ne 0 ]]; then
+            {
+              echo 'Prebuild APK build failed.'
+              echo '```'
+              grep -E '^e: ' build.log | head -n 40
+              echo '...'
+              tail -n 15 build.log
+              echo '```'
+            } > /tmp/failure.md
+            gh pr comment 2 --body-file /tmp/failure.md || true
+            grep -E "^e: |FAILURE:|error:|What went wrong" build.log | tail -n 20 | while IFS= read -r line; do
+              printf '::error::%s\n' "${line}"
+            done
+            exit "${status}"
+          fi
+
+      - name: Rename to derbis.apk and verify identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          src='app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk'
+          [[ -s "${src}" ]] || { echo "APK was not produced"; exit 1; }
+          mkdir -p build_output
+          cp "${src}" build_output/derbis.apk
+          badging="$("${ANDROID_HOME}/build-tools/36.0.0/aapt" dump badging build_output/derbis.apk)"
+          printf '%s\n' "${badging}" | head -3
+          grep -F "package: name='com.derbis.app' versionCode='${DERBIS_VERSION_CODE}' versionName='${DERBIS_VERSION_NAME}'" <<< "${badging}" >/dev/null \
+            || { echo "Package name, version code or version name changed; refusing to publish a test build."; exit 1; }
+          ls -la build_output
+          sha256sum build_output/derbis.apk | tee build_output/derbis.apk.sha256
+
+      - name: Upload derbis.apk artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: derbis-apk
+          path: |
+            build_output/derbis.apk
+            build_output/derbis.apk.sha256
+          if-no-files-found: error
+
+  publish:
+    # A separate, short job on purpose. Every attempt to create the release at the end of the
+    # 14 minute build job failed while the same request from a fresh job succeeds, so publishing
+    # lives here: it only has to download the artifact and push it. If it does fail, re-running
+    # this job alone is enough — it does not rebuild anything.
+    name: Publish pre-release
+    needs: prebuild-apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download derbis.apk
+        uses: actions/download-artifact@v4
+        with:
+          name: derbis-apk
+          path: build_output
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          tag="prebuild-${DERBIS_VERSION_NAME}-${GITHUB_SHA::7}"
+          api="https://api.github.com/repos/jusnie/Derbis"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          body="Test build from \`${GITHUB_SHA::7}\` on \`${GITHUB_REF_NAME}\`. Not an official release.
+
+          - Package stays \`com.derbis.app\`, app name stays Derbis, version name reads ${DERBIS_VERSION_NAME}.
+          - Signed with the CI debug key; unreleased and unsupported.
+          - Verify the file with derbis.apk.sha256 before installing.
+
+          #Derbis #Prebuild #Android #APK #TestBuild"
+          log=publish.log
+          : > "${log}"
+          note() { echo "$1" | tr '\n' ' ' | cut -c1-300; }
+
+          id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}" || true)
+          if [[ -z "${id}" ]]; then
+            payload=$(jq -n --arg tag "${tag}" --arg target "${GITHUB_SHA}" \
+              --arg name "Derbis Prebuild ${DERBIS_VERSION_NAME} (test)" --arg body "${body}" \
+              '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/json" -X POST -d "${payload}" \
+                -w '\n%{http_code}' "${api}/releases" 2>>"${log}" || true)
+              code=$(printf '%s' "${resp}" | tail -n1)
+              json=$(printf '%s' "${resp}" | sed '$d')
+              id=$(printf '%s' "${json}" | jq -r '.id // empty' 2>>"${log}" || true)
+              echo "create attempt ${attempt}: http=${code} body=$(note "${json}")" >> "${log}"
+              [[ -n "${id}" ]] && break
+              sleep 10
+            done
+          fi
+          cat "${log}"
+          if [[ -z "${id}" ]]; then
+            echo "::error::Could not create pre-release ${tag}. $(note "$(tail -n 3 "${log}")")"
+            exit 1
+          fi
+          echo "release id ${id}"
+
+          ok=1
+          for name in derbis.apk derbis.apk.sha256; do
+            uploaded=0
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/octet-stream" -X POST \
+                --data-binary "@build_output/${name}" -w '\n%{http_code}' \
+                "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" \
+                2>>"${log}" || true)
+              state=$(printf '%s' "${resp}" | sed '$d' | jq -r '.state // .message // "unknown"' 2>>"${log}" || true)
+              if [[ "${state}" == "uploaded" ]]; then
+                echo "${name} uploaded (attempt ${attempt})"
+                uploaded=1
+                break
+              fi
+              echo "${name} attempt ${attempt}: ${state}"
+              sleep 15
+            done
+            [[ "${uploaded}" -eq 1 ]] || ok=0
+          done
+          if [[ "${ok}" -ne 1 ]]; then
+            echo "::error::Could not upload the APK to ${tag}."
+            exit 1
+          fi
+          echo "Published ${tag}"

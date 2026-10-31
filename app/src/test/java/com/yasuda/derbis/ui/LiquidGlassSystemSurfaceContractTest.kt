@@ -9,14 +9,19 @@ import org.junit.Test
 class LiquidGlassSystemSurfaceContractTest {
 
     @Test
-    fun `Liquid Glass skin activates a shared backdrop even without a separate toggle`() {
+    fun `Liquid Glass skin activates the shared backdrop with no separate toggle`() {
         val app = source("ui/DerbisApp.kt")
 
-        assertTrue(app.contains("enabled = (state.interfaceSettings.liquidGlassEnabled ||"))
-        assertTrue(app.contains("state.interfaceSettings.skin == DerbisSkin.LiquidGlass)"))
-        assertTrue(app.contains("CompositionLocalProvider(LocalGlassBackdrop provides dockGlass)"))
-        assertTrue(app.contains("modifier = Modifier.glassBackdropSource(dockGlass)"))
-        assertFalse(app.contains(".nestedScroll(dockState)\n                    .glassBackdropSource(dockGlass)"))
+        assertTrue(app.contains("enabled = DerbisIsLiquidGlass &&"))
+        assertTrue(app.contains("Modifier.layerBackdrop(appBackdrop)"))
+        // Every glass surface samples this one layer, and the page recorded into it must never
+        // be handed the same layer back: drawing a GraphicsLayer while it is being recorded
+        // throws, which is what crashed the skin on selection.
+        assertTrue(app.contains("CompositionLocalProvider(LocalDerbisAppBackdrop provides null)"))
+        assertFalse(app.contains("LocalDerbisAppBackdrop provides appBackdrop"))
+        // The old RenderEffect frost is gone; chrome draws the backdrop glass instead.
+        assertFalse(app.contains("glassBackdropSource("))
+        assertFalse(app.contains("glassFrost("))
     }
 
     @Test

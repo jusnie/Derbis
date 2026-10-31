@@ -36,9 +36,9 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -103,6 +103,9 @@ import com.yasuda.derbis.domain.MiniTypography
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.radio.isLiveRadio
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
+import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
+import com.yasuda.derbis.ui.components.derbisChromeGlass
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.dockFoldHeight
@@ -389,7 +392,6 @@ internal fun StyledMiniPlayer(
     artworkHidden: () -> Boolean,
     playbackActions: MiniPlayerPlaybackActions,
     expansionActions: MiniPlayerExpansionActions,
-    glass: GlassBackdropState?,
     interactive: Boolean = true,
     link: DockLink? = null
 ) {
@@ -444,7 +446,7 @@ internal fun StyledMiniPlayer(
                             .clip(containerShape)
                     }
                 )
-                .miniBackground(style, tuning, palette, glass, containerShape)
+                .miniBackground(style, tuning, palette, containerShape)
                 .miniOutline(style, palette, containerShape)
                 .then(interaction)
         ) {
@@ -827,34 +829,20 @@ private fun Modifier.miniBackground(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     palette: MiniPlayerPalette,
-    glass: GlassBackdropState?,
     shape: Shape
 ): Modifier = when (style) {
     MiniPlayerStyle.LiquidGlass -> {
         val tint = palette.surface.playerMix(palette.accent, 0.10f)
         val alpha = tuning.opacity / 100f
-        val solidAlpha = (alpha + 0.32f).coerceAtMost(0.96f)
+        val fill = tint.copy(alpha = (alpha + 0.32f).coerceAtMost(0.96f))
         val sheen = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent))
-        if (glass != null) {
-            glassFrost(
-                state = glass,
-                blurRadius = 24.dp,
-                refractionShape = shape,
-                onDrawFrosted = {
-                    drawRect(tint.copy(alpha = alpha))
-                    drawRect(sheen)
-                },
-                onDrawFallback = {
-                    drawRect(tint.copy(alpha = solidAlpha))
-                    drawRect(sheen)
-                }
-            )
-        } else {
-            drawBehind {
-                drawRect(tint.copy(alpha = (alpha + 0.12f).coerceAtMost(0.96f)))
-                drawRect(sheen)
-            }
-        }
+        // Real page glass on the Liquid Glass skin; BitChord's lightweight material — same
+        // tint, same edge, no backdrop sample — everywhere else. No frost layer.
+        derbisChromeGlass(
+            shape = shape,
+            tint = defaultGlassSurfaceTint(isLight = !palette.onDark),
+            fallback = Modifier.derbisLightweightGlass(shape, fill, rim = true)
+        ).drawBehind { drawRect(sheen) }
     }
     MiniPlayerStyle.Floating, MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,
     MiniPlayerStyle.Connected -> background(palette.surface)
@@ -1383,7 +1371,6 @@ internal fun MiniPlayerStylePreview(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     model: MiniPlayerModel,
-    glass: GlassBackdropState?,
     modifier: Modifier = Modifier
 ) {
     val playback = remember { MiniPlayerPlaybackActions({}, {}, {}, {}, {}) }
@@ -1409,7 +1396,6 @@ internal fun MiniPlayerStylePreview(
                 artworkHidden = { false },
                 playbackActions = playback,
                 expansionActions = expansion,
-                glass = glass,
                 interactive = false
             )
         }

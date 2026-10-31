@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * Implements Discord Rich Presence over Discord Gateway v10 WebSocket, supporting:
  *  1. Clickable song and artist buttons (`buttons` + `metadata.button_urls`)
+ *  0. Activity title "Listening in Derbis", with the Derbis logo as the artwork fallback
  *  2. Dual assets: high-res song album cover (`large_image`) and artist avatar icon (`small_image`)
  *  3. Live working progress bar with accurate `start` and `end` timestamps
  *  4. Real-time Connection Tester with 4-phase diagnostics (Network, REST API, Profile, Gateway)
@@ -34,6 +35,12 @@ object DiscordRpcClient {
     private const val GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
     private const val REST_API_USER_ME = "https://discord.com/api/v10/users/@me"
     private const val DEFAULT_APP_ID = "1199347898516045884"
+
+    /** Shown as the activity title. Discord prefixes it with "Listening to". */
+    private const val ACTIVITY_NAME = "Listening in Derbis"
+
+    /** Public Derbis mark, used for the artwork slot when a track has no cover. */
+    private const val DERBIS_LOGO_URL = "https://derbis-web.vercel.app/assets/derbis-logo.png"
 
     /** Discord caps both `details` and `state` at 128 characters. */
     private const val ACTIVITY_TEXT_LIMIT = 128
@@ -226,7 +233,7 @@ object DiscordRpcClient {
                 presence.artist.ifBlank { "Unknown Artist" }
             }
             val activity = JSONObject().apply {
-                put("name", "Derbis")
+                put("name", ACTIVITY_NAME)
                 put("type", 2) // 2 = Listening to
                 put("details", detailsText)
                 put("state", stateText)
@@ -254,15 +261,15 @@ object DiscordRpcClient {
                         put("large_image", presence.artworkUrl)
                         put("large_text", presence.title)
                     } else {
-                        put("large_image", "derbis_listening")
-                        put("large_text", "Listening on Derbis")
+                        put("large_image", DERBIS_LOGO_URL)
+                        put("large_text", ACTIVITY_NAME)
                     }
                     if (presence.artistThumbnailUrl.isNotBlank()) {
                         put("small_image", presence.artistThumbnailUrl)
                         put("small_text", presence.artist.ifBlank { "Derbis Artist" })
                     } else {
-                        put("small_image", "derbis_listening")
-                        put("small_text", "Derbis Music")
+                        put("small_image", DERBIS_LOGO_URL)
+                        put("small_text", ACTIVITY_NAME)
                     }
                 }
                 put("assets", assets)

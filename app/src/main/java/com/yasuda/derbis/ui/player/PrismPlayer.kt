@@ -9,11 +9,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.SkipPrevious
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Repeat
+import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -34,9 +34,6 @@ import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.PrismPlayDisc
 import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
-import com.yasuda.derbis.ui.LocalGlassBackdrop
-import com.yasuda.derbis.ui.glassBackdropSource
-import com.yasuda.derbis.ui.rememberGlassBackdropState
 import com.yasuda.derbis.ui.rememberGlassBlurAllowed
 import com.yasuda.derbis.ui.components.PlayerControlLabels
 import com.yasuda.derbis.ui.components.DerbisGlassIntensity
@@ -79,23 +76,12 @@ internal fun PrismPlayerScene(
         return
     }
     val focus = activePrismSettings.playerLayout == PrismPlayerLayout.Focus
-    // Real blur is scoped to one player backdrop. Low-RAM, battery saver, High text contrast,
-    // and the low-transparency setting resolve to the same lightweight opaque material instead
-    // of leaving an unused expensive layer alive. Reduced Motion remains independent.
-    val glassAccessibility = LocalDerbisGlassAccessibility.current
-    val glassStyle = LocalDerbisGlassStyle.current
-    val playerGlassEnabled = LocalDerbisLiquidGlassEnabled.current &&
-        !glassAccessibility.prefersOpaqueMaterials && !glassStyle.prefersOpaqueMaterials
-    val playerGlass = rememberGlassBackdropState(playerGlassEnabled && rememberGlassBlurAllowed())
-    CompositionLocalProvider(LocalGlassBackdrop provides playerGlass) {
-        BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .glassBackdropSource(playerGlass)
-            ) {
-                PrismPlayerAtmosphere(Modifier.fillMaxSize())
-            }
+    BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
+        Box(
+            Modifier.matchParentSize()
+        ) {
+            PrismPlayerAtmosphere(Modifier.fillMaxSize())
+        }
         val artSize = minOf(maxWidth - PrismDesign.gutter * 2, maxHeight * if (focus) 0.5f else 0.44f, artworkCap)
         val viewport = maxHeight
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = PrismDesign.gutter)) {
@@ -146,7 +132,6 @@ internal fun PrismPlayerScene(
                     if (focus) slots.engagement(track)
                 }
             }
-        }
         }
     }
 }

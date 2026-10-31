@@ -104,9 +104,11 @@ internal val PrismTypography = derbisTypographyFor(DerbisFontPreset.Outfit).let 
 internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark: Boolean = true): DerbisPalette {
     val light = settings.appearance == PrismAppearance.Light ||
         settings.appearance == PrismAppearance.Automatic && !systemDark
-    // Neutral system materials must stay translucent too. A large amount of the app uses
-    // palette surfaces directly rather than a dedicated card composable; keeping these opaque
-    // is what made a selected Liquid Glass skin look like the standard dark UI.
+    // Every surface of this skin is glass. A large amount of the app paints palette surfaces
+    // directly rather than through a card composable, so the palette itself has to carry the
+    // glass film: at these alphas a panel, a row, a sheet and a chip all read as the same
+    // material over whatever is behind them. Opaque values here are what made the skin look
+    // like the standard dark UI with a glassy nav bar glued on.
     val translucent = settings.translucency != PrismTranslucency.Reduced
     fun systemMaterial(day: Long, night: Long, alpha: Float): Color =
         prismColor(light, day, night).copy(alpha = if (translucent) alpha else 1f)
@@ -114,9 +116,9 @@ internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark:
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
         black = prismColor(light, 0xFFF5F8FC, 0xFF080A0F),
-        ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.70f else 0.66f),
-        panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.76f else 0.70f),
-        panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.84f else 0.78f),
+        ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.52f else 0.46f),
+        panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.46f else 0.40f),
+        panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.58f else 0.50f),
         cyan = prismColor(light, 0xFF006E99, 0xFF7DD3FC),
         blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
         violet = prismColor(light, 0xFF635BCE, 0xFFC4B5FD),

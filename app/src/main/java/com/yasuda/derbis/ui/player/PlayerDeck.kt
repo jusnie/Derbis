@@ -8,9 +8,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.DerbisInterfaceSettings
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.ui.DerbisPlayerPane
 import java.util.Locale
 
@@ -129,14 +129,55 @@ internal data class PlayerAudioSpec(
     val sampleRateHz: Int? = null,
     val channels: Int? = null,
     val mimeType: String = "",
-    val codecString: String = ""
+    val codecString: String = "",
+    /** "LOSSLESS" or "HI-FI" when the stream earns one; null keeps the raw [codec] on the badge. */
+    val quality: String? = null
 ) {
     val isEmpty: Boolean
         get() = codec.isEmpty() && bitrateKbps == null && sampleRateHz == null && channels == null &&
             mimeType.isEmpty() && codecString.isEmpty()
 }
 
-internal fun playerAudioCodecLabel(mimeType: String?, codecs: String?): String {
+/** Lossy bitrate from which a stream counts as the Hi-Fi tier: the 320 kbps HQ upgrade. */
+internal const val PLAYER_HIFI_MIN_KBPS = 256
+
+/**
+ * What a listener is actually getting, when the codec name would undersell it.
+ *
+ * A lossless source is reported as LOSSLESS, the same source at 24-bit or 88.2 kHz and up as
+ * HI-FI, and a lossy stream only earns HI-FI once it is a genuine 320 kbps upgrade
+ * ([PLAYER_HIFI_MIN_KBPS] and above). Everything below that returns null so the badge keeps
+ * naming the codec — AAC and OPUS stay honest instead of being dressed up.
+ */
+internal fun playerAudioQualityLabel(
+    mimeType: String?,
+    codecs: String?,
+    sampleRateHz: Int? = null,
+    bitDepth: Int? = null,
+    bitrateKbps: Int? = null
+): String? {
+    val mime = mimeType.orEmpty().lowercase(Locale.ROOT)
+    val codec = codecs.orEmpty().lowercase(Locale.ROOT)
+    // Atmos is a different mix rather than a rung on the bitrate ladder, so it keeps its own name
+    // instead of being flattened into HI-FI by a 768 kbps E-AC-3 bitrate.
+    if (isDolbyAtmosStream(mime, codec)) return null
+    if (isLosslessAudioStream(mime, codec)) {
+        val hiRes = (bitDepth ?: 0) >= 24 || (sampleRateHz ?: 0) >= 88_200
+        return if (hiRes) "HI-FI" else "LOSSLESS"
+    }
+    return "HI-FI".takeIf { (bitrateKbps ?: 0) >= PLAYER_HIFI_MIN_KBPS }
+}
+
+/**
+ * The codec that is really playing, for the technical sheet and the lossless checks.
+ *
+ * Deliberately unaware of [playerAudioQualityLabel]: "Lossless" is a badge, not a codec, and
+ * the technical rows have to keep telling the user it is FLAC or ALAC.
+ */
+internal fun playerAudioCodecLabel(
+    mimeType: String?,
+    codecs: String?
+): String {
     val mime = mimeType.orEmpty().lowercase(Locale.ROOT)
     val codec = codecs.orEmpty().lowercase(Locale.ROOT)
     return when {
@@ -147,17 +188,30 @@ internal fun playerAudioCodecLabel(mimeType: String?, codecs: String?): String {
         mime == "audio/flac" || codec == "flac" -> "FLAC"
         mime == "audio/vorbis" || codec == "vorbis" -> "VORBIS"
         mime == "audio/alac" || codec == "alac" -> "ALAC"
-        mime == "audio/eac3" || mime == "audio/eac3-joc" -> "E-AC-3"
-        mime == "audio/ac3" -> "AC-3"
-        mime == "audio/raw" -> "PCM"
+        isDolbyAtmosStream(mime, codec) -> "DOLBY ATMOS"
+        mime == "audio/eac3" || codec == "eac3" -> "E-AC-3"
+        mime == "audio/ac3" || codec == "ac-3" -> "AC-3"
+        mime == "audio/raw" || codec.startsWith("pcm") -> "PCM"
         mime.startsWith("audio/") -> mime.removePrefix("audio/").uppercase(Locale.ROOT).take(8)
         else -> ""
     }
 }
 
+/** FLAC, ALAC, WAV and raw PCM: formats that carry the samples themselves. */
+internal fun isLosslessAudioStream(mime: String, codec: String): Boolean =
+    mime == "audio/flac" || mime == "audio/alac" || mime == "audio/wav" ||
+        mime == "audio/x-wav" || mime == "audio/raw" ||
+        codec == "flac" || codec == "alac" || codec.startsWith("pcm")
+
 internal fun playerAudioSpecLabels(spec: PlayerAudioSpec): List<String> = buildList {
-    if (spec.codec.isNotEmpty()) add(spec.codec)
-    spec.bitrateKbps?.takeIf { it > 0 }?.let { add("$it kbps") }
+    (spec.quality ?: spec.codec).takeIf { it.isNotEmpty() }?.let(::add)
+    // A FLAC or ALAC bitrate is a compression ratio, not a quality figure, so it stays off the
+    // badge once the stream already says Lossless or Hi-Fi.
+    val lossless = isLosslessAudioStream(
+        spec.mimeType.lowercase(Locale.ROOT),
+        spec.codecString.lowercase(Locale.ROOT)
+    )
+    if (!lossless) spec.bitrateKbps?.takeIf { it > 0 }?.let { add("$it kbps") }
     spec.sampleRateHz?.takeIf { it > 0 }?.let { add(formatSampleRate(it)) }
     spec.channels?.takeIf { it > 0 }?.let { add(formatChannelLayout(it)) }
 }
@@ -203,5 +257,3 @@ internal class PlayerCreditsEyebrow(
 )
 
 internal val DefaultPlayerVisualMode: PlayerVisualMode = DerbisInterfaceSettings().playerVisualMode
-
-internal val DefaultPlayerBackgroundMode: PlayerBackgroundMode = DerbisInterfaceSettings().playerBackground
