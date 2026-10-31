@@ -507,16 +507,15 @@ internal class WrappedCardSharer(
                             artistUrl = "",
                             into = assets
                         )
-                        val intent = assets.use { loaded ->
-                            ListeningReceiptCard.createShareIntent(
-                                context = context,
-                                content = current,
-                                assets = assets,
-                                style = styleOf(),
-                                palette = ListeningReceiptCard.resolvePalette(loaded),
-                                caption = caption
-                            )
-                        } ?: return@withContext false
+                        val palette = assets.use { loaded -> ListeningReceiptCard.resolvePalette(loaded) }
+                        val intent = ListeningReceiptCard.createShareIntent(
+                            context = context,
+                            content = current,
+                            assets = assets,
+                            style = styleOf(),
+                            palette = palette,
+                            caption = caption
+                        ) ?: return@withContext false
                         withContext(Dispatchers.Main) {
                             runCatching {
                                 context.startActivity(
