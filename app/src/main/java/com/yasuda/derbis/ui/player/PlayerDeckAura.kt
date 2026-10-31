@@ -318,9 +318,12 @@ private fun AuraVelvetSleeve(
             colors = beatColors,
             modifier = Modifier.matchParentSize()
         )
+        // 0.78, not 0.84: the thick band sits at 0.83 of the sleeve, and at the old size the
+        // cover covered it completely — the ring that now carries the artwork's colours was
+        // drawn every frame and never seen.
         Box(
             modifier = Modifier
-                .fillMaxSize(0.84f)
+                .fillMaxSize(0.78f)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.30f))
         ) {
