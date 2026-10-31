@@ -23,6 +23,10 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Whatshot
+import com.yasuda.derbis.domain.DerbisGlassEffects
+import com.yasuda.derbis.ui.components.LocalDerbisAppBackdrop
+import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
+import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
 import com.yasuda.derbis.ui.components.DerbisIonicons
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import androidx.compose.material.icons.rounded.FormatQuote
@@ -2207,7 +2211,17 @@ fun DerbisApp(
     val glassLensTier = com.yasuda.derbis.ui.rememberDerbisGlassTier(
         heavyBlur = visualCapabilities.heavyBlur
     )
+    // Liquid Glass records the page into a backdrop layer that every glass surface samples.
+    // Only the Liquid Glass skin pays for it; other skins draw their own opaque materials.
+    val appBackdrop = rememberDerbisAppBackdrop(
+        enabled = DerbisIsLiquidGlass &&
+            state.interfaceSettings.glassEffects != DerbisGlassEffects.Off &&
+            !glassMaterialIsOpaque &&
+            rememberGlassBlurAllowed(),
+        background = DerbisBlack
+    )
     CompositionLocalProvider(
+        LocalDerbisAppBackdrop provides appBackdrop,
         LocalAnimationsEnabled provides state.animationsEnabled,
         LocalDerbisVisualCapabilities provides visualCapabilities,
         com.yasuda.derbis.ui.LocalDerbisGlassTier provides glassLensTier,
@@ -2388,6 +2402,7 @@ fun DerbisApp(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(dockState)
+                    .then(if (appBackdrop != null) Modifier.layerBackdrop(appBackdrop) else Modifier)
             ) {
                 // The shared layer intentionally contains only the atmospheric backdrop. Recording
                 // foreground content here would turn a glass panel into a blurred echo of itself.

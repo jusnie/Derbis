@@ -34,6 +34,7 @@ import com.yasuda.derbis.ui.theme.DerbisActivePalette
 import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
+import androidx.compose.foundation.shape.CornerBasedShape
 
 val LocalDerbisLiquidGlassEnabled = staticCompositionLocalOf { false }
 
@@ -178,6 +179,25 @@ internal fun Modifier.resolvedDerbisGlass(
     // rows and page surfaces keep the translucent material, which looks identical at rest and
     // removes dozens of per-frame layer samples from a scrolling settings or library screen.
     val tier = LocalDerbisGlassTier.current
+    // The Liquid Glass skin now draws real glass: the page is recorded into a backdrop
+    // layer and every chrome-strength surface samples it (blur, vibrancy, lens). Subtle
+    // content rows keep the cheap translucent material, because sampling the backdrop
+    // per list row is what would cost frames while scrolling.
+    val backdropShape = shape as? CornerBasedShape
+    val backdropReady = backdropShape != null &&
+        !opaqueMaterial &&
+        intensity != DerbisGlassIntensity.Subtle &&
+        LocalDerbisAppBackdrop.current != null
+    if (backdropReady && backdropShape != null) {
+        val lensAllowed = tokens.allowsRefraction &&
+            tier != GlassLensTier.Efficient &&
+            !accessibility.increasedContrast
+        return@composed this.derbisBackdropGlass(
+            shape = backdropShape,
+            tint = glassTint.copy(alpha = (tokens.tintAlpha * 2.2f).coerceIn(0.18f, 0.42f)),
+            lensEnabled = lensAllowed
+        )
+    }
     val tierAllowsFrost = tier != GlassLensTier.Efficient || intensity == DerbisGlassIntensity.Strong
     val shouldFrost = tokens.samplesBackdrop && tierAllowsFrost && !opaqueMaterial &&
         backdrop?.enabled == true && backdrop.layer != null
