@@ -64,6 +64,8 @@ All notable, user-visible changes are documented here. Each published Android an
 - `a4faca1` Android 1.1.0 packages now retain their correct version metadata so the in-app updater can recognize them as newer.
 - `3fb1c86` Spotify library loading reads the complete signed-in library response so eligible playlists are not mistaken for an empty library.
 - `c541041` Album and discovery artwork no longer fall back to words, initials, genre stickers, or decorative symbols.
+- The Liquid Glass skin actually draws glass now. The recorded page layer used to wrap the navigation bar, the mini player and the dock as well, so every one of them was sampling the layer it was being painted into: the draw failed, the safety guard went off for the session, and the whole app sat on the flat tinted film. Only the page is recorded now, and the chrome is a sibling that samples a layer already finished for the frame. Low RAM and the battery saver no longer switch the material off either — they get the cheap tier (no lens, coarser sampling) instead of frost, which is why "Liquid Glass" could look identical to no glass at all on a phone the OS calls low-RAM.
+- The glass guard no longer punishes a normal exit. One foreground process death — swiping the app out of recents is the usual cause — used to keep glass off for six hours and across restarts on the same build; it now takes two consecutive deaths to pause the material, the pause is fifteen minutes, a break recorded by a different build is ignored, and a clean session in the background clears the marker.
 
 ### What's New
 - `663f5b2` Android Home adds create actions for local playlists and Derbis Jam — LAN.

@@ -2222,12 +2222,16 @@ fun DerbisApp(
     )
     // Liquid Glass records the page into a backdrop layer that every glass surface samples.
     // Only the Liquid Glass skin pays for it; other skins draw their own opaque materials.
-    // The glass has no options any more: the Liquid Glass skin always renders it, and the
-    // only things that can still switch it off are the accessibility and power settings.
+    // The glass has no options any more: the Liquid Glass skin always renders it. Low RAM and
+    // the battery saver drop it to the cheap tier (no lens, coarser sampling) instead of
+    // removing it, because "the skin is liquid glass and nothing is glass" was the bug.
     val appBackdrop = rememberDerbisAppBackdrop(
         enabled = DerbisIsLiquidGlass &&
             !glassMaterialIsOpaque &&
-            rememberGlassBlurAllowed(),
+            rememberLiquidGlassEngineAllowed(
+                explicitlyReduced = state.interfaceSettings.visualPerformance ==
+                    DerbisVisualPerformance.Smooth
+            ),
         background = DerbisBlack
     )
     CompositionLocalProvider(
@@ -2403,156 +2407,166 @@ fun DerbisApp(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(dockState)
-                    .then(if (appBackdrop != null) Modifier.layerBackdrop(appBackdrop) else Modifier)
             ) {
-                // The shared layer intentionally contains only the atmospheric backdrop. Recording
-                // foreground content here would turn a glass panel into a blurred echo of itself.
-                DerbisHomeAtmosphere(
-                    isLight = DerbisIsLight,
-                    accent = yourSoundAccent,
-                    modifier = Modifier
-                )
-                // Everything inside this box is recorded into the backdrop layer, so it must
-                // not sample that same layer: drawing a GraphicsLayer while it is being
-                // recorded throws. Page-level glass keeps the cheap material; only the chrome
-                // outside this box (dock, mini player, sheets, player) reads the real backdrop.
-                CompositionLocalProvider(LocalDerbisAppBackdrop provides null) {
-            val homeSaveableState = rememberSaveableStateHolder()
-            AnimatedContent(
-                targetState = backgroundTab,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        val depth = playerBackgroundScale(expansionProvider())
-                        scaleX = depth
-                        scaleY = depth
-                    },
-                transitionSpec = {
-                    val forward = targetState.ordinal >= initialState.ordinal
-                    val rtl = layoutDirection == LayoutDirection.Rtl
-                    DerbisMotion.tabSwap(state.animationsEnabled, if (forward != rtl) 1 else -1)
-                },
-                label = "derbis-page-transition"
-            ) { tab ->
+                // Only the page is recorded: the atmosphere it sits on, plus the screen inside
+                // it. The chrome below is a sibling of this box, so the dock, the mini player,
+                // the player and the sheets sample a layer that has already finished
+                // recording this frame. The recorded layer used to wrap the chrome as well,
+                // and a surface that samples the layer it is being drawn into cannot work —
+                // every one of them failed its draw, tripped the safety guard, and left the
+                // whole app on the flat tinted fallback.
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .windowInsetsPadding(DerbisHorizontalSafeInsets)
-                        .derbisSystemGlass()
+                        .then(if (appBackdrop != null) Modifier.layerBackdrop(appBackdrop) else Modifier)
                 ) {
-                    when (tab) {
-                        DerbisTab.Home -> {
-                            val homeViewModel: HomeViewModel = composeViewModel(key = "derbis-home", factory = screenViewModelFactory)
-                            val renderSnapshot by homeViewModel.renderState.collectAsStateWithLifecycle()
-                            homeSaveableState.SaveableStateProvider("derbis-home") {
-                                CompositionLocalProvider(
-                                    LocalHomeCompactDensity provides
-                                        renderSnapshot.state.interfaceSettings.compactHome
-                                ) {
-                                    val youtubeMusicLibrary = youtubeMusicState.library
-                                    val youtubeMusicCreatedLabel = com.yasuda.derbis.ui.i18n.youtubeMusicHomeCopy(state.languageCode).createdByYou
-                                    val youtubeMusicShelf = remember(youtubeMusicLibrary, youtubeMusicCreatedLabel) {
-                                        youtubeMusicLibrary?.let { library ->
-                                            com.yasuda.derbis.ui.youtubemusic.youtubeMusicShelfAlbums(library, youtubeMusicCreatedLabel)
-                                        }.orEmpty()
-                                    }
-                                    LaunchedEffect(youtubeMusicState.active?.id, state.languageCode, youtubeMusicState.restoring) {
-                                        youtubeMusicViewModel.loadLibraryShelf(state.languageCode)
-                                    }
-                                    val youtubeMusicHome = youtubeMusicState.active?.let { account ->
-                                        com.yasuda.derbis.ui.youtubemusic.YoutubeMusicHomeShelfUi(
-                                            accountName = account.name,
-                                            avatarUrl = account.avatarUrl,
-                                            albums = youtubeMusicShelf,
-                                            loading = youtubeMusicState.libraryLoading,
-                                            error = youtubeMusicState.libraryError,
-                                            onOpen = { album ->
-                                                val entry = youtubeMusicLibrary?.entryFor(album)
-                                                if (entry != null) {
-                                                    if (entry.collection == com.yasuda.derbis.data.youtubemusic.YoutubeMusicCollection.Albums) {
-                                                        viewModel.openAlbum(album)
-                                                    } else {
-                                                        youtubeMusicViewModel.open(state.languageCode)
-                                                        youtubeMusicViewModel.openDetail(entry)
-                                                        showYoutubeMusic = true
-                                                    }
+                    DerbisHomeAtmosphere(
+                        isLight = DerbisIsLight,
+                        accent = yourSoundAccent,
+                        modifier = Modifier
+                    )
+                    // Everything inside this box is recorded into the backdrop layer, so it must
+                    // not sample that same layer: drawing a GraphicsLayer while it is being
+                    // recorded throws. Page-level glass keeps the cheap material; the chrome
+                    // outside this box reads the real backdrop.
+                    CompositionLocalProvider(LocalDerbisAppBackdrop provides null) {
+                        val homeSaveableState = rememberSaveableStateHolder()
+                        AnimatedContent(
+                            targetState = backgroundTab,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val depth = playerBackgroundScale(expansionProvider())
+                                    scaleX = depth
+                                    scaleY = depth
+                                },
+                            transitionSpec = {
+                                val forward = targetState.ordinal >= initialState.ordinal
+                                val rtl = layoutDirection == LayoutDirection.Rtl
+                                DerbisMotion.tabSwap(state.animationsEnabled, if (forward != rtl) 1 else -1)
+                            },
+                            label = "derbis-page-transition"
+                        ) { tab ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .windowInsetsPadding(DerbisHorizontalSafeInsets)
+                                    .derbisSystemGlass()
+                            ) {
+                                when (tab) {
+                                    DerbisTab.Home -> {
+                                        val homeViewModel: HomeViewModel = composeViewModel(key = "derbis-home", factory = screenViewModelFactory)
+                                        val renderSnapshot by homeViewModel.renderState.collectAsStateWithLifecycle()
+                                        homeSaveableState.SaveableStateProvider("derbis-home") {
+                                            CompositionLocalProvider(
+                                                LocalHomeCompactDensity provides
+                                                    renderSnapshot.state.interfaceSettings.compactHome
+                                            ) {
+                                                val youtubeMusicLibrary = youtubeMusicState.library
+                                                val youtubeMusicCreatedLabel = com.yasuda.derbis.ui.i18n.youtubeMusicHomeCopy(state.languageCode).createdByYou
+                                                val youtubeMusicShelf = remember(youtubeMusicLibrary, youtubeMusicCreatedLabel) {
+                                                    youtubeMusicLibrary?.let { library ->
+                                                        com.yasuda.derbis.ui.youtubemusic.youtubeMusicShelfAlbums(library, youtubeMusicCreatedLabel)
+                                                    }.orEmpty()
                                                 }
-                                            },
-                                            onRefresh = { youtubeMusicViewModel.loadLibraryShelf(state.languageCode, force = true) },
-                                            onShowAll = {
-                                                youtubeMusicViewModel.open(state.languageCode)
-                                                showYoutubeMusic = true
-                                            },
-                                            onReconnect = {
-                                                showYoutubeMusic = true
-                                                youtubeMusicViewModel.open(state.languageCode)
-                                                youtubeMusicViewModel.beginLogin()
+                                                LaunchedEffect(youtubeMusicState.active?.id, state.languageCode, youtubeMusicState.restoring) {
+                                                    youtubeMusicViewModel.loadLibraryShelf(state.languageCode)
+                                                }
+                                                val youtubeMusicHome = youtubeMusicState.active?.let { account ->
+                                                    com.yasuda.derbis.ui.youtubemusic.YoutubeMusicHomeShelfUi(
+                                                        accountName = account.name,
+                                                        avatarUrl = account.avatarUrl,
+                                                        albums = youtubeMusicShelf,
+                                                        loading = youtubeMusicState.libraryLoading,
+                                                        error = youtubeMusicState.libraryError,
+                                                        onOpen = { album ->
+                                                            val entry = youtubeMusicLibrary?.entryFor(album)
+                                                            if (entry != null) {
+                                                                if (entry.collection == com.yasuda.derbis.data.youtubemusic.YoutubeMusicCollection.Albums) {
+                                                                    viewModel.openAlbum(album)
+                                                                } else {
+                                                                    youtubeMusicViewModel.open(state.languageCode)
+                                                                    youtubeMusicViewModel.openDetail(entry)
+                                                                    showYoutubeMusic = true
+                                                                }
+                                                            }
+                                                        },
+                                                        onRefresh = { youtubeMusicViewModel.loadLibraryShelf(state.languageCode, force = true) },
+                                                        onShowAll = {
+                                                            youtubeMusicViewModel.open(state.languageCode)
+                                                            showYoutubeMusic = true
+                                                        },
+                                                        onReconnect = {
+                                                            showYoutubeMusic = true
+                                                            youtubeMusicViewModel.open(state.languageCode)
+                                                            youtubeMusicViewModel.beginLogin()
+                                                        }
+                                                    )
+                                                }?.takeIf { it.albums.isNotEmpty() || it.loading || it.error != null }
+                                                DiscoveryHomeHost(
+                                                    factory = screenViewModelFactory,
+                                                    open = discoveryOpen,
+                                                    onOpenChange = { discoveryOpen = it },
+                                                    backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Home,
+                                                    style = state.homeStudioSettings.style,
+                                                    animationsEnabled = state.animationsEnabled,
+                                                    bottomInset = tabBarBottomContentInset(
+                                                        miniPlayerVisible = state.currentTrack != null,
+                                                        animationsEnabled = state.animationsEnabled
+                                                    )
+                                                ) {
+                                                    HomeStudioHost(
+                                                        viewModel = homeViewModel,
+                                                        renderSnapshot = renderSnapshot,
+                                                        homeListState = homeListState,
+                                                        deferredSectionsRevealed = homeDeferredSectionsRevealed,
+                                                        accountAvatarUrl = youtubeMusicState.active?.avatarUrl.orEmpty(),
+                                                        youtubeMusicHome = youtubeMusicHome,
+                                                        homeStudio = state.homeStudioSettings,
+                                                        onPullRefresh = {
+                                                            homeViewModel.refreshHome { youtubeMusicViewModel.refreshHomeAndAwait(state.languageCode) }
+                                                        },
+                                                        onTrackActions = { track ->
+                                                            queueRemovalTarget = null
+                                                            trackActionTarget = track
+                                                        }
+                                                    )
+                                                }
                                             }
-                                        )
-                                    }?.takeIf { it.albums.isNotEmpty() || it.loading || it.error != null }
-                                    DiscoveryHomeHost(
-                                        factory = screenViewModelFactory,
-                                        open = discoveryOpen,
-                                        onOpenChange = { discoveryOpen = it },
-                                        backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Home,
-                                        style = state.homeStudioSettings.style,
-                                        animationsEnabled = state.animationsEnabled,
-                                        bottomInset = tabBarBottomContentInset(
-                                            miniPlayerVisible = state.currentTrack != null,
-                                            animationsEnabled = state.animationsEnabled
-                                        )
-                                    ) {
-                                        HomeStudioHost(
-                                            viewModel = homeViewModel,
-                                            renderSnapshot = renderSnapshot,
-                                            homeListState = homeListState,
-                                            deferredSectionsRevealed = homeDeferredSectionsRevealed,
-                                            accountAvatarUrl = youtubeMusicState.active?.avatarUrl.orEmpty(),
-                                            youtubeMusicHome = youtubeMusicHome,
-                                            homeStudio = state.homeStudioSettings,
-                                            onPullRefresh = {
-                                                homeViewModel.refreshHome { youtubeMusicViewModel.refreshHomeAndAwait(state.languageCode) }
-                                            },
-                                            onTrackActions = { track ->
-                                                queueRemovalTarget = null
-                                                trackActionTarget = track
-                                            }
+                                        }
+                                    }
+                                    DerbisTab.Search -> {
+                                        val searchViewModel: SearchViewModel = composeViewModel(key = "derbis-search", factory = screenViewModelFactory)
+                                        val screenState by searchViewModel.state.collectAsStateWithLifecycle()
+                                        SearchScreen(searchViewModel, screenState) { track -> trackActionTarget = track }
+                                    }
+                                    DerbisTab.Explore -> {
+                                        val exploreViewModel: ExploreViewModel = composeViewModel(key = "derbis-explore", factory = screenViewModelFactory)
+                                        val screenState by exploreViewModel.state.collectAsStateWithLifecycle()
+                                        ExploreScreen(
+                                            viewModel = exploreViewModel,
+                                            state = screenState,
+                                            liveRadioOpen = liveRadioOpen,
+                                            backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Explore,
+                                            onLiveRadioOpenChange = { liveRadioOpen = it },
+                                            onOpenJam = viewModel::openJam
                                         )
                                     }
+                                    DerbisTab.Library -> {
+                                        val libraryViewModel: LibraryViewModel = composeViewModel(key = "derbis-library", factory = screenViewModelFactory)
+                                        val screenState by libraryViewModel.state.collectAsStateWithLifecycle()
+                                        DerbisLibraryScreen(
+                                            libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
+                                            youtubeMusicAccount = youtubeMusicState.active,
+                                            onOpenYoutubeMusic = { showYoutubeMusic = true }
+                                        )
+                                    }
+                                    DerbisTab.Player -> Unit
                                 }
                             }
                         }
-                        DerbisTab.Search -> {
-                            val searchViewModel: SearchViewModel = composeViewModel(key = "derbis-search", factory = screenViewModelFactory)
-                            val screenState by searchViewModel.state.collectAsStateWithLifecycle()
-                            SearchScreen(searchViewModel, screenState) { track -> trackActionTarget = track }
-                        }
-                        DerbisTab.Explore -> {
-                            val exploreViewModel: ExploreViewModel = composeViewModel(key = "derbis-explore", factory = screenViewModelFactory)
-                            val screenState by exploreViewModel.state.collectAsStateWithLifecycle()
-                            ExploreScreen(
-                                viewModel = exploreViewModel,
-                                state = screenState,
-                                liveRadioOpen = liveRadioOpen,
-                                backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Explore,
-                                onLiveRadioOpenChange = { liveRadioOpen = it },
-                                onOpenJam = viewModel::openJam
-                            )
-                        }
-                        DerbisTab.Library -> {
-                            val libraryViewModel: LibraryViewModel = composeViewModel(key = "derbis-library", factory = screenViewModelFactory)
-                            val screenState by libraryViewModel.state.collectAsStateWithLifecycle()
-                            DerbisLibraryScreen(
-                                libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
-                                youtubeMusicAccount = youtubeMusicState.active,
-                                onOpenYoutubeMusic = { showYoutubeMusic = true }
-                            )
-                        }
-                        DerbisTab.Player -> Unit
                     }
                 }
-            }
-            }
 
             if (chromeVisible) {
                 val miniMaxWidth = derbisMiniPlayerMaxWidthDp(rootLayoutMode)

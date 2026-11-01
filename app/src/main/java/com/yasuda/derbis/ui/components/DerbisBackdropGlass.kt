@@ -37,6 +37,9 @@ import com.yasuda.derbis.ui.components.backdrop.effects.colorControls
 import com.yasuda.derbis.ui.components.backdrop.effects.lens
 import com.yasuda.derbis.ui.components.backdrop.highlight.Highlight
 import com.yasuda.derbis.ui.components.backdrop.highlight.HighlightElement
+import com.yasuda.derbis.ui.GlassLensTier
+import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
+import com.yasuda.derbis.ui.LocalDerbisGlassTier
 import com.yasuda.derbis.ui.components.backdrop.internal.ShapeProvider
 import com.yasuda.derbis.ui.components.backdrop.shadow.Shadow
 
@@ -113,11 +116,20 @@ fun Modifier.derbisBackdropGlass(
         ?.takeUnless { DerbisGlassSafety.disabled }
         ?: return this
     val density = LocalDensity.current
-    val scale = DERBIS_GLASS_RESOLUTION_SCALE
+    // The cheap tier is what a low-RAM device and the battery saver get now that they no
+    // longer lose the material outright: no refraction, and a coarser recording.
+    val tier = LocalDerbisGlassTier.current
+    val accessibility = LocalDerbisGlassAccessibility.current
+    val scale = if (tier == GlassLensTier.Efficient) 0.25f else DERBIS_GLASS_RESOLUTION_SCALE
     val blurPx = with(density) { BLUR_RADIUS_DP.dp.toPx() } * scale
     val lensHeightPx = with(density) { (LENS_HEIGHT * LENS_MAX_DP).dp.toPx() } * scale
     val lensAmountPx = with(density) { (LENS_AMOUNT * LENS_MAX_DP).dp.toPx() } * scale
-    val showLens = lensEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    // Same rule the other glass pipeline uses: a lens is an optical allowance, and the
+    // "reduce motion and effects" and high-contrast requests outrank it.
+    val showLens = lensEnabled &&
+        tier != GlassLensTier.Efficient &&
+        !accessibility.increasedContrast &&
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     val surfaceTint = tint.takeIf { it.alpha > 0f }
 
     return drawBackdrop(

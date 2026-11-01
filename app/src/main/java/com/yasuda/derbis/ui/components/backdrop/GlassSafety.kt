@@ -38,11 +38,30 @@ object DerbisGlassSafety {
     private const val PREFS = "derbis_glass_safety"
     private const val KEY_ARMED = "glass_armed_at"
     private const val KEY_LAST_BREAK = "glass_last_break_at"
+    private const val KEY_BREAK_VERSION = "glass_last_break_version"
+    private const val KEY_DEATHS = "glass_foreground_deaths"
     private const val KEY_VERSION = "glass_version"
     private const val CRASH_FILE = "liquid-glass-crash.txt"
 
-    /** How long glass stays off after a session ended while it was drawing. */
-    private const val RETRY_WINDOW_MS = 6L * 60L * 60L * 1000L
+    /**
+     * How long glass stays off after a session ended while it was drawing.
+     *
+     * Deliberately short. The old six-hour window meant one bad launch - a driver fault, a
+     * kill from the system, or a crash anywhere in the app - left every surface on the flat
+     * frosted fallback for the rest of the day, which is indistinguishable from "the glass
+     * fix did nothing". A failed session is worth one cautious retry, not a morning.
+     */
+    private const val RETRY_WINDOW_MS = 15L * 60L * 1000L
+
+    /**
+     * How many foreground deaths in a row are tolerated before glass is blamed for them.
+     *
+     * One is not evidence. The common case is a user swiping the app out of recents: the
+     * process goes away before the background write that disarms the marker lands, and the
+     * next launch then looked like "glass killed the process". Two in a row - the material
+     * came back and the process died under it again - is worth backing off from.
+     */
+    private const val MAX_FOREGROUND_DEATHS = 2
 
     @Volatile
     private var failure: Throwable? = null
@@ -86,22 +105,45 @@ object DerbisGlassSafety {
                 .putInt(KEY_VERSION, BuildConfig.VERSION_CODE)
                 .putLong(KEY_ARMED, 0L)
                 .putLong(KEY_LAST_BREAK, 0L)
+                .putInt(KEY_BREAK_VERSION, 0)
+                .putInt(KEY_DEATHS, 0)
                 .apply()
         }
         val armedAt = store.getLong(KEY_ARMED, 0L)
         val brokenAt = store.getLong(KEY_LAST_BREAK, 0L)
+        // A break recorded by a different build says nothing about this one: the whole point
+        // of shipping a fix is that the next install gets to try again immediately.
+        val brokenBuild = store.getInt(KEY_BREAK_VERSION, Int.MIN_VALUE)
         val now = System.currentTimeMillis()
         if (armedAt > 0L) {
-            // Previous process died in the foreground with glass on screen: a driver
-            // fault, an OOM kill or a Java crash that beat the handler. Keep glass off
-            // rather than crash again on the very same frame.
-            store.edit().putLong(KEY_ARMED, 0L).putLong(KEY_LAST_BREAK, now).apply()
-            if (failure == null) {
-                failure = IllegalStateException(
-                    "Previous session ended while Liquid Glass was on screen"
-                )
+            // Previous process died in the foreground with glass on screen: a driver fault,
+            // an OOM kill, a Java crash that beat the handler - or, far more often, the user
+            // swiping the app out of recents before the disarm write landed. Count it, and
+            // only stop when the same thing happens twice in a row.
+            val deaths = store.getInt(KEY_DEATHS, 0) + 1
+            if (deaths >= MAX_FOREGROUND_DEATHS) {
+                store.edit()
+                    .putLong(KEY_ARMED, 0L)
+                    .putInt(KEY_DEATHS, 0)
+                    .putLong(KEY_LAST_BREAK, now)
+                    .putInt(KEY_BREAK_VERSION, BuildConfig.VERSION_CODE)
+                    .commit()
+                if (failure == null) {
+                    failure = IllegalStateException(
+                        "$deaths foreground sessions in a row ended while Liquid Glass was " +
+                            "on screen"
+                    )
+                }
+            } else {
+                // Disarm durably before the next launch: commit() writes synchronously, and
+                // apply() is exactly what is likely to be lost when a process is killed.
+                store.edit().putLong(KEY_ARMED, 0L).putInt(KEY_DEATHS, deaths).commit()
             }
-        } else if (brokenAt > 0L && now - brokenAt < RETRY_WINDOW_MS) {
+        } else if (
+            brokenAt > 0L &&
+            brokenBuild == BuildConfig.VERSION_CODE &&
+            now - brokenAt < RETRY_WINDOW_MS
+        ) {
             if (failure == null) {
                 failure = IllegalStateException(
                     "Liquid Glass paused until ${(brokenAt + RETRY_WINDOW_MS) / 1000L}s " +
@@ -119,11 +161,26 @@ object DerbisGlassSafety {
         store.edit().putLong(KEY_ARMED, System.currentTimeMillis()).apply()
     }
 
-    /** Background: a process killed from here was killed by the system, not by glass. */
+    /**
+     * Background: a process killed from here was killed by the system, not by glass.
+     *
+     * This is also where the guard heals itself. Reaching a clean background with glass
+     * drawn and no failure means the GPU path worked for a whole session in the foreground,
+     * which is the best evidence available that the build is fine — so the break marker is
+     * dropped and the next launch starts with the real material again.
+     */
     fun onBackground() {
         val store = prefs() ?: return
-        if (store.getLong(KEY_ARMED, 0L) == 0L) return
-        store.edit().putLong(KEY_ARMED, 0L).apply()
+        val healed = failure == null && drewThisSession &&
+            store.getLong(KEY_LAST_BREAK, 0L) != 0L
+        if (healed) {
+            store.edit()
+                .putLong(KEY_LAST_BREAK, 0L)
+                .putInt(KEY_BREAK_VERSION, 0)
+                .commit()
+        }
+        if (store.getLong(KEY_ARMED, 0L) == 0L && store.getInt(KEY_DEATHS, 0) == 0) return
+        store.edit().putLong(KEY_ARMED, 0L).putInt(KEY_DEATHS, 0).commit()
     }
 
     /** Human-readable state for Settings → Share diagnostics. */
@@ -192,11 +249,15 @@ object DerbisGlassSafety {
                 }
                 crashFile(context).writeText(text.take(64_000))
                 // Glass was on screen when this thread died: keep it off next launch.
+                // commit(), not apply(): this runs on the way into process death, which is
+                // the one moment an asynchronous write is most likely to be dropped.
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .edit()
                     .putLong(KEY_ARMED, 0L)
+                    .putInt(KEY_DEATHS, 0)
                     .putLong(KEY_LAST_BREAK, System.currentTimeMillis())
-                    .apply()
+                    .putInt(KEY_BREAK_VERSION, BuildConfig.VERSION_CODE)
+                    .commit()
             }
             previous?.uncaughtException(thread, error)
         }

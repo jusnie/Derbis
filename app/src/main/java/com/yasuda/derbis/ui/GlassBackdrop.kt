@@ -181,6 +181,27 @@ internal fun coarsestGlassBackdropQuality(
     b: GlassBackdropQuality
 ): GlassBackdropQuality = if (a.resolutionScale <= b.resolutionScale) a else b
 
+/**
+ * Whether the Liquid Glass engine may run at all.
+ *
+ * [rememberGlassBlurAllowed] answers a different question - "is this a session where heavy
+ * blur is affordable" - and folds the OS's low-RAM and battery-saver reports into "no".
+ * Feeding that answer into the backdrop meant the Liquid Glass skin silently rendered as
+ * flat tinted film on every device the system calls low-RAM and on every phone with the
+ * battery saver on: the skin asked for glass, and nothing was glass. Those automatic
+ * downgrades belong in the lens tier, which already answers them with no refraction and
+ * coarser sampling.
+ *
+ * So only two things switch the engine off here: a platform that cannot render
+ * [android.graphics.RenderEffect] at all, and a user who explicitly chose the smooth
+ * (reduced-effects) performance setting.
+ */
+@Composable
+fun rememberLiquidGlassEngineAllowed(explicitlyReduced: Boolean): Boolean {
+    if (!blurSupported) return false
+    return !explicitlyReduced
+}
+
 @Composable
 fun rememberGlassBlurAllowed(): Boolean {
     if (!blurSupported || !LocalDerbisVisualCapabilities.current.heavyBlur) return false
