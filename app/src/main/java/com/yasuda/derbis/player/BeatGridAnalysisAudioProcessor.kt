@@ -7,6 +7,7 @@ import com.yasuda.derbis.domain.DerbisBeatAnalyzer
 import com.yasuda.derbis.domain.DerbisBeatGrid
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,6 +33,15 @@ class BeatGridAnalysisAudioProcessor(
     private var collected = FloatArray(0)
     private var collectedSize = 0
     private var decimation = 1
+
+    /**
+     * The sample rate the decimated stream actually runs at. This is *not* always
+     * [ANALYSIS_SAMPLE_RATE]: decimation is a whole number of input frames, so a 48 kHz decoder
+     * (AAC and Opus both usually are) decimates by 4 to 12 000 Hz, not to 11 025. Pretending it
+     * was 11 025 made every measured tempo 8.8% fast and walked the downbeat off the beat — the
+     * grid was there but wrong, which is worse than no grid at all.
+     */
+    private var analysisSampleRate = ANALYSIS_SAMPLE_RATE
     private var frameCursor = 0L
     private var analysisStarted = false
 
@@ -58,7 +68,10 @@ class BeatGridAnalysisAudioProcessor(
             throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
         }
         inputFormat = inputAudioFormat
-        decimation = (inputAudioFormat.sampleRate / ANALYSIS_SAMPLE_RATE).coerceAtLeast(1)
+        decimation = (inputAudioFormat.sampleRate.toFloat() / ANALYSIS_SAMPLE_RATE)
+            .roundToInt()
+            .coerceAtLeast(1)
+        analysisSampleRate = (inputAudioFormat.sampleRate / decimation).coerceAtLeast(1)
         active = true
         return inputAudioFormat
     }
@@ -103,8 +116,9 @@ class BeatGridAnalysisAudioProcessor(
             val snapshot = collected.copyOf(collectedSize)
             val capturedTrack = id
             val capturedOrigin = capturedFromMs
+            val capturedRate = analysisSampleRate
             scope.launch {
-                val grid = DerbisBeatAnalyzer.analyzeInterleaved(snapshot, ANALYSIS_SAMPLE_RATE, 1)
+                val grid = DerbisBeatAnalyzer.analyzeInterleaved(snapshot, capturedRate, 1)
                 if (trackId == capturedTrack && grid.isUsable) {
                     onGrid(capturedTrack, grid.copy(capturedFromMs = capturedOrigin))
                 }
@@ -148,11 +162,13 @@ class BeatGridAnalysisAudioProcessor(
         collectedSize = 0
         trackId = ""
         capturedFromMs = 0L
+        analysisSampleRate = ANALYSIS_SAMPLE_RATE
         frameCursor = 0L
         analysisStarted = false
     }
 
     private companion object {
+        /** Target analysis rate. Decimation rounds to the nearest whole frame count. */
         const val ANALYSIS_SAMPLE_RATE = 11_025
         const val MIN_CAPTURED_SAMPLES = ANALYSIS_SAMPLE_RATE * 12
         const val MAX_CAPTURED_SAMPLES = ANALYSIS_SAMPLE_RATE * 36

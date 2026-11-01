@@ -2,8 +2,11 @@ package com.yasuda.derbis.domain
 
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -19,6 +22,10 @@ object DerbisBeatAnalyzer {
     private const val ANALYSIS_FRAME = 256
     private const val MAX_ANALYSIS_SECONDS = 36
     private const val MIN_ANALYSIS_SECONDS = 8
+    /** Measured Rayleigh statistic of broadband noise: 0.05-0.13. Real pulses: 0.36-0.71. */
+    private const val ConcentrationFloor = .15f
+    private const val ConcentrationCeiling = .42f
+    private val twoPi = (2.0 * Math.PI).toFloat()
 
     fun analyzeInterleaved(
         samples: FloatArray,
@@ -124,18 +131,23 @@ object DerbisBeatAnalyzer {
             }
         }
 
-        // Confidence has to answer one question: would a listener hear a steady pulse? Raw
-        // autocorrelation cannot — off-beat hats and a busy bass line both raise it, while sparse
-        // but perfectly regular material reads low. The dominant term is instead how much of the
-        // onset energy actually lands on this grid. Random noise spreads its energy over the
-        // whole envelope and scores near zero, which is what keeps a grid from being invented.
-        val onGridShare = gridShare(envelope, refinedLag, bestPhase.toFloat())
+        // Confidence has to answer one question: would a listener hear a steady pulse?
+        //
+        // The dominant term is a Rayleigh test on the significant onsets: every onset is turned
+        // into a phase around the candidate grid, and the length of the mean vector `R` says how
+        // tightly those phases cluster. That has a known null — uniformly scattered onsets give
+        // R ≈ 1/√N, i.e. a noise-like track scores ~0.05-0.13 while any real pulse scores 0.35+.
+        // It also rejects a wrong tempo hypothesis, which is what a plain energy share cannot do:
+        // the old "how much of the envelope lands on the grid" score was calibrated on click
+        // tracks, read ~0.26 on ordinary mixed music against a 0.5 gate, and so almost never
+        // produced a grid at all — which is why the beat visuals and Beat Sync stayed dark.
+        val concentration = onsetConcentration(envelope, refinedLag, bestPhase.toFloat())
         val meanScore = scores.average().toFloat()
         val prominence = ((bestScore - meanScore) / (1f - meanScore).coerceAtLeast(.05f)).coerceIn(0f, 1f)
         val separation = ((bestScore - secondScore) / bestScore.coerceAtLeast(.0001f)).coerceIn(0f, 1f)
         val confidence = (
-            onGridShare * .75f +
-                prominence * .15f +
+            concentration * .80f +
+                prominence * .10f +
                 separation * .10f
             ).coerceIn(0f, 1f)
         if (confidence < DerbisBeatGrid.MIN_CONFIDENCE) return DerbisBeatGrid(confidence = confidence)
@@ -172,22 +184,37 @@ object DerbisBeatAnalyzer {
     }
 
     /**
-     * Share of the total onset energy that falls on the grid. A one-frame tolerance absorbs the
-     * sub-frame period error that would otherwise walk a grid off a spiky envelope over a long
-     * capture; it is far too small to let an unmusical signal pass.
+     * How tightly the track's significant onsets cluster around the candidate grid, as a 0..1
+     * score. This is the Rayleigh test for a non-uniform circular distribution: `R` is the length
+     * of the mean unit vector of each onset's phase inside its beat, so perfectly quantised
+     * material gives 1.0 and uniformly scattered onsets give ~1/√N.
+     *
+     * The mapping 0.15 -> 0 and 0.42 -> 1 sits between the measured noise floor (0.05-0.13 on
+     * broadband noise) and the measured score of ordinary four-on-the-floor material
+     * (0.36-0.71), so a steady pulse passes and a busy but unpulsed signal does not.
      */
-    private fun gridShare(envelope: FloatArray, period: Float, offset: Float): Float {
-        val total = envelope.sum()
-        if (total <= 0f) return 0f
-        var onGrid = 0f
-        for (index in gridPositions(offset, period, envelope.size)) {
-            val from = (index - 1).coerceAtLeast(0)
-            val to = (index + 1).coerceAtMost(envelope.lastIndex)
-            var peak = 0f
-            for (sample in from..to) if (envelope[sample] > peak) peak = envelope[sample]
-            onGrid += peak
+    private fun onsetConcentration(envelope: FloatArray, period: Float, offset: Float): Float {
+        if (period < 1f || envelope.size < 8) return 0f
+        val mean = envelope.average().toFloat()
+        var variance = 0f
+        for (value in envelope) variance += (value - mean) * (value - mean)
+        val threshold = mean + sqrt(variance / envelope.size.coerceAtLeast(1))
+        var real = 0f
+        var imaginary = 0f
+        var peaks = 0
+        for (index in 1 until envelope.lastIndex) {
+            val value = envelope[index]
+            if (value <= threshold) continue
+            if (value < envelope[index - 1] || value < envelope[index + 1]) continue
+            val fraction = ((index - offset) / period) - floor((index - offset) / period)
+            val angle = twoPi * fraction
+            real += cos(angle)
+            imaginary += sin(angle)
+            peaks++
         }
-        return (onGrid / total).coerceIn(0f, 1f)
+        if (peaks < 4) return 0f
+        val r = sqrt(real * real + imaginary * imaginary) / peaks
+        return ((r - ConcentrationFloor) / (ConcentrationCeiling - ConcentrationFloor)).coerceIn(0f, 1f)
     }
 
     /** Sub-frame period estimate from the autocorrelation peak and its two neighbours. */

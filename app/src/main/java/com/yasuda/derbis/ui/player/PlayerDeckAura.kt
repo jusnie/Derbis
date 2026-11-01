@@ -98,6 +98,7 @@ import com.yasuda.derbis.data.ArtworkPalette
 import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisBeatGridStore
+import com.yasuda.derbis.player.VisualizerAudioProcessor
 import com.yasuda.derbis.domain.DerbisBeatGrid
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.Track
@@ -220,6 +221,9 @@ internal fun PlayerAuraDeck(
         animated = animated
     )
     val hasBeatGrid = beatGrid?.validBpm != null
+    // Until a grid exists — the first ~12 s of every track, and any track the analyser could not
+    // read — the deck still breathes with the music instead of freezing at a fixed glow.
+    val livePulse = rememberLivePulse(enabled = !hasBeatGrid, isPlaying = isPlaying, animated = animated)
     // Everything that pulses reads this, so the ring, the bloom and the bar cannot disagree
     // about which colours belong to the sleeve.
     val beatColors = remember(artworkPalette) {
@@ -235,6 +239,7 @@ internal fun PlayerAuraDeck(
             artworkUrl = artworkUrl,
             accent = beatColors[0],
             beats = beats,
+            livePulse = livePulse,
             hasGrid = hasBeatGrid,
             isPlaying = isPlaying,
             modifier = Modifier.matchParentSize()
@@ -261,6 +266,7 @@ internal fun PlayerAuraDeck(
                     motionEnabled = motionEnabled,
                     isPlaying = isPlaying,
                     beats = beats,
+                    livePulse = livePulse,
                     hasGrid = hasBeatGrid,
                     beatColors = beatColors,
                     animated = animated,
@@ -318,6 +324,7 @@ private fun AuraVelvetSleeve(
     motionEnabled: Boolean,
     isPlaying: Boolean,
     beats: MutableFloatState,
+    livePulse: MutableFloatState,
     hasGrid: Boolean,
     beatColors: List<Color>,
     animated: Boolean,
@@ -327,6 +334,7 @@ private fun AuraVelvetSleeve(
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         BeatAura(
             beats = beats,
+            livePulse = livePulse,
             hasGrid = hasGrid,
             colors = beatColors,
             modifier = Modifier.matchParentSize()
@@ -403,6 +411,7 @@ private fun rememberBeatPosition(
 @Composable
 private fun BeatAura(
     beats: MutableFloatState,
+    livePulse: MutableFloatState,
     hasGrid: Boolean,
     colors: List<Color>,
     modifier: Modifier = Modifier
@@ -413,7 +422,7 @@ private fun BeatAura(
 
         val beat = beats.floatValue
         val phase = beat - floor(beat)
-        val hit = if (hasGrid) exp(-phase * 3.4f) else 0.32f
+        val hit = if (hasGrid) exp(-phase * 3.4f) else .18f + .82f * livePulse.floatValue
         val rotation = (beat * 26f) % 360f
 
         val radius = baseRadius + size.minDimension * 0.055f * hit
@@ -630,6 +639,7 @@ private fun AuraBackdrop(
     artworkUrl: String,
     accent: Color,
     beats: MutableFloatState,
+    livePulse: MutableFloatState,
     hasGrid: Boolean,
     isPlaying: Boolean,
     modifier: Modifier = Modifier
@@ -658,7 +668,7 @@ private fun AuraBackdrop(
                     .fillMaxSize()
                     .blur(72.dp, BlurredEdgeTreatment.Unbounded)
                     .graphicsLayer {
-                        val hit = auraBeatHit(beats, hasGrid, isPlaying)
+                        val hit = auraBeatHit(beats, livePulse, hasGrid, isPlaying)
                         alpha = 0.16f + 0.10f * hit
                         val scale = 1.16f + 0.025f * hit
                         scaleX = scale
@@ -668,7 +678,7 @@ private fun AuraBackdrop(
         }
         // One accent bloom behind the sleeve, swelling on the beat instead of strobing.
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val hit = auraBeatHit(beats, hasGrid, isPlaying)
+            val hit = auraBeatHit(beats, livePulse, hasGrid, isPlaying)
             val center = Offset(size.width * 0.5f, size.height * 0.27f)
             val radius = size.minDimension * 0.92f
             drawCircle(
@@ -710,11 +720,60 @@ private fun AuraBackdrop(
  * Shared by everything that pulses so the deck cannot disagree with itself, and deliberately
  * allocation-free besides the `exp`: it is called from draw lambdas on every frame.
  */
-private fun auraBeatHit(beats: MutableFloatState, hasGrid: Boolean, isPlaying: Boolean): Float {
-    if (!hasGrid || !isPlaying) return 0.12f
+private fun auraBeatHit(
+    beats: MutableFloatState,
+    livePulse: MutableFloatState,
+    hasGrid: Boolean,
+    isPlaying: Boolean
+): Float {
+    if (!isPlaying) return 0.12f
+    // A measured grid rides the real bar clock, so the swell lands on the beat. Without one the
+    // live onset follower keeps the ring moving with whatever is playing.
+    if (!hasGrid) return (.12f + .88f * livePulse.floatValue).coerceIn(.12f, 1f)
     val beat = beats.floatValue
     val phase = beat - floor(beat)
     return exp(-phase * 3.4f)
+}
+
+/**
+ * Onset follower for the deck's fallback pulse.
+ *
+ * It reads the same live waveform snapshot the visualiser already publishes — no extra decoding,
+ * no extra allocation on the audio thread — and turns it into a fast-attack / slow-decay envelope:
+ * the ring jumps when the mix gets louder than its own running average and settles back over about
+ * a sixth of a second. That is not a beat grid and it is not sold as one; it is what keeps the
+ * player alive on the first play of a track, when nothing has been measured yet.
+ */
+@Composable
+private fun rememberLivePulse(
+    enabled: Boolean,
+    isPlaying: Boolean,
+    animated: Boolean
+): MutableFloatState {
+    val pulse = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(enabled, isPlaying, animated) {
+        if (!enabled || !isPlaying || !animated) {
+            pulse.floatValue = 0f
+            return@LaunchedEffect
+        }
+        var level = 0f
+        var value = 0f
+        var previousNanos = 0L
+        while (true) {
+            withFrameNanos { now ->
+                val frame = VisualizerAudioProcessor.waveformState.value
+                val energy = if (frame.isEmpty()) 0f else frame.sum() / frame.size
+                level += (energy - level) * .18f
+                val onset = (energy - level).coerceAtLeast(0f)
+                val sinceSeconds = if (previousNanos == 0L) 0f else (now - previousNanos) / 1_000_000_000f
+                val decay = if (sinceSeconds <= 0f) 1f else exp(-sinceSeconds * 6f)
+                value = maxOf(value * decay, (onset * 14f).coerceIn(0f, 1f))
+                previousNanos = now
+                pulse.floatValue = value
+            }
+        }
+    }
+    return pulse
 }
 
 /**
