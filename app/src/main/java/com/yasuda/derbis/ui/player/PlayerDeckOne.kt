@@ -1,5 +1,6 @@
 package com.yasuda.derbis.ui.player
 
+import android.os.Build
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -36,18 +38,24 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -61,6 +69,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.RepeatMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
@@ -78,26 +91,40 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /*
- * Derbis One — the paper deck.
+ * Derbis One — the scalloped sleeve.
  *
- * One idea: the sleeve is the page. A scalloped mat holds the artwork, a thin orbit around it is
- * the progress ring, and the dot on that orbit is the playhead. Everything else is ink on paper.
+ * One idea: the sleeve is the page. The cover is blown up and blurred into the whole backdrop, a
+ * scalloped mat holds the artwork, and the progress ring is that same scalloped outline pushed
+ * out just past the mat, with the playhead riding it. Everything else is light ink on a dark
+ * record.
  *
  * Geometry is expressed as a fraction of the stage box so the same shape reads identically on a
- * 5" phone and a tablet: the mat spans 74% of the box, the orbit 94%.
+ * 5" phone and a tablet: the mat spans 62% of the box, the ring sits 10% outside its lobes.
  */
 
-private val OnePaper = Color(0xFFEDEBE5)
-private val OneInk = Color(0xFF141413)
+/** The record's dark ground, under the blurred sleeve. */
+private val OneGround = Color(0xFF0C0C0F)
+
+/** Ink is light now: the page is a dark record, not a sheet of paper. */
+private val OneInk = Color(0xFFF4F1EA)
+
+/** Ink printed inside the filled play button, which is the one light shape on the deck. */
+private val OneFillInk = OneGround
 
 private const val OneBlobLobes = 13
 private const val OneBlobAmplitude = 0.055f
 
-/** Mean radius of the scalloped mat as a fraction of the stage box. */
-private const val OneBlobRadiusRatio = 0.369f
+/**
+ * Mean radius of the scalloped mat as a fraction of the stage box.
+ *
+ * It used to be 0.369, which put a 37 %-of-the-box stamp in the middle of a tall stage: the cover
+ * is the one thing a deck should not shrink away from. At 0.62 the mat spans 62 % of the box, and
+ * the ring below is sized to sit just outside the lobes rather than on a circle of its own.
+ */
+private const val OneBlobRadiusRatio = 0.62f
 
-/** Orbit radius as a fraction of the stage box. */
-private const val OneOrbitRadiusRatio = 0.469f
+/** The ring orbits the scalloped edge: this is how far outside it sits. */
+private const val OneRingScale = 1.10f
 
 private const val OneOrbitWidthDp = 1f
 private const val OneArcWidthDp = 1.4f
@@ -114,6 +141,9 @@ private const val OneHairlineSoft = 0.09f
 private const val OneOrbitAlpha = 0.16f
 private const val OneArcAlpha = 0.46f
 
+/** How much of the blurred sleeve survives the scrim. */
+private const val OneMistAlpha = 0.55f
+
 private val OneStagePadding = 4.dp
 private val OnePlaySize = 62.dp
 private val OnePlaySizeCompact = 54.dp
@@ -126,6 +156,49 @@ private val OneStripGap = 22.dp
  * The scalloped mat: r(t) = mean * (1 + amplitude * cos(lobes * t)), smoothed with the same
  * Catmull-Rom to cubic conversion the study sheet uses so the bumps stay round at any size.
  */
+/**
+ * The scalloped outline as a path, so the mat and the ring are guaranteed to be the same shape.
+ *
+ * [startAngle] rotates where sample zero sits without rotating the lobes, which is what lets the
+ * progress ring start at the top of the shape the way a clock hand does.
+ */
+private fun oneScallopPath(
+    center: Offset,
+    mean: Float,
+    amplitude: Float,
+    lobes: Int,
+    startAngle: Float = 0f
+): Path {
+    val samples = 240
+    val twoPi = 2f * PI.toFloat()
+    val xs = FloatArray(samples)
+    val ys = FloatArray(samples)
+    for (index in 0 until samples) {
+        val t = startAngle + index.toFloat() / samples.toFloat() * twoPi
+        val r = mean * (1f + amplitude * cos(lobes * (t - startAngle)))
+        xs[index] = center.x + r * cos(t)
+        ys[index] = center.y + r * sin(t)
+    }
+    val path = Path()
+    path.moveTo(xs[0], ys[0])
+    for (index in 0 until samples) {
+        val previous = (index - 1 + samples) % samples
+        val next = (index + 1) % samples
+        val afterNext = (index + 2) % samples
+        // Catmull-Rom to cubic, so the bumps stay round at any size instead of going polygonal.
+        path.cubicTo(
+            xs[index] + (xs[next] - xs[previous]) / 6f,
+            ys[index] + (ys[next] - ys[previous]) / 6f,
+            xs[next] - (xs[afterNext] - xs[index]) / 6f,
+            ys[next] - (ys[afterNext] - ys[index]) / 6f,
+            xs[next],
+            ys[next]
+        )
+    }
+    path.close()
+    return path
+}
+
 @Immutable
 internal class PlayerOneBlobShape(
     private val lobes: Int = OneBlobLobes,
@@ -137,32 +210,9 @@ internal class PlayerOneBlobShape(
         layoutDirection: LayoutDirection,
         density: Density
     ): Outline {
-        val samples = 240
-        val cx = size.width / 2f
-        val cy = size.height / 2f
         val mean = minOf(size.width, size.height) / 2f * radiusRatio
-        val xs = FloatArray(samples)
-        val ys = FloatArray(samples)
-        for (index in 0 until samples) {
-            val t = index.toFloat() / samples.toFloat() * TwoPi
-            val r = mean * (1f + amplitude * cos(lobes * t))
-            xs[index] = cx + r * cos(t)
-            ys[index] = cy + r * sin(t)
-        }
-        val path = Path()
-        path.moveTo(xs[0], ys[0])
-        for (index in 0 until samples) {
-            val previous = (index - 1 + samples) % samples
-            val next = (index + 1) % samples
-            val afterNext = (index + 2) % samples
-            val control1X = xs[index] + (xs[next] - xs[previous]) / 6f
-            val control1Y = ys[index] + (ys[next] - ys[previous]) / 6f
-            val control2X = xs[next] - (xs[afterNext] - xs[index]) / 6f
-            val control2Y = ys[next] - (ys[afterNext] - ys[index]) / 6f
-            path.cubicTo(control1X, control1Y, control2X, control2Y, xs[next], ys[next])
-        }
-        path.close()
-        return Outline.Generic(path)
+        val center = Offset(size.width / 2f, size.height / 2f)
+        return Outline.Generic(oneScallopPath(center, mean, amplitude, lobes))
     }
 
     override fun equals(other: Any?): Boolean =
@@ -209,88 +259,148 @@ internal fun PlayerDerbisOneDeck(
     modifier: Modifier = Modifier,
     headlineModifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .background(OnePaper)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
-            .padding(
-                start = gutter,
-                end = gutter,
-                top = DerbisPlayerDesign.SpaceXs,
-                bottom = if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceXl
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        slots.header()
-        Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceSm else 15.dp))
-        OneClock(playback = playback)
-        Spacer(Modifier.height(DerbisPlayerDesign.SpaceSm))
-        BoxWithConstraints(
+    Box(modifier = modifier.fillMaxSize()) {
+        // The sleeve is the whole page now, blurred past recognition behind the mat, so the deck is
+        // dark and the ink on it is light. A flat paper ground made every cover look pasted onto a
+        // sheet; this is the record the track came from.
+        OneBackdrop(track = track)
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .then(if (scrollable) Modifier.height(OneScrollStage) else Modifier.weight(1f))
-                .padding(vertical = OneStagePadding),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                .padding(
+                    start = gutter,
+                    end = gutter,
+                    top = DerbisPlayerDesign.SpaceXs,
+                    bottom = if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceXl
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val side = minOf(maxWidth, maxHeight, artworkCap)
-            if (side > 0.dp) {
-                Box(
-                    modifier = Modifier.size(side),
-                    contentAlignment = Alignment.Center
-                ) {
-                    slots.stage(
-                        track,
-                        Modifier
-                            .size(side)
-                            .graphicsLayer {
-                                shape = OneBlobShape
-                                clip = true
-                            },
-                        0.dp
-                    )
-                    OneOrbit(
-                        trackId = track.id,
-                        playback = playback,
-                        modifier = Modifier.matchParentSize()
-                    )
-                    slots.gestures(track, Modifier.matchParentSize())
+            slots.header()
+            Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceSm else 15.dp))
+            OneClock(playback = playback)
+            Spacer(Modifier.height(DerbisPlayerDesign.SpaceSm))
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (scrollable) Modifier.height(OneScrollStage) else Modifier.weight(1f))
+                    .padding(vertical = OneStagePadding),
+                contentAlignment = Alignment.Center
+            ) {
+                val side = minOf(maxWidth, maxHeight, artworkCap)
+                if (side > 0.dp) {
+                    Box(
+                        modifier = Modifier.size(side),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        slots.stage(
+                            track,
+                            Modifier
+                                .size(side)
+                                .graphicsLayer {
+                                    shape = OneBlobShape
+                                    clip = true
+                                },
+                            0.dp
+                        )
+                        OneOrbit(
+                            trackId = track.id,
+                            playback = playback,
+                            modifier = Modifier.matchParentSize()
+                        )
+                        slots.gestures(track, Modifier.matchParentSize())
+                    }
                 }
             }
+            OneHeadline(
+                track = track,
+                animated = animated,
+                compact = compact,
+                onArtistClick = onArtistClick,
+                modifier = headlineModifier
+            )
+            Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
+            OneTransport(
+                isPlaying = isPlaying,
+                isResolving = isResolving,
+                shuffleOn = shuffleOn,
+                repeatMode = repeatMode,
+                labels = labels,
+                compact = compact,
+                onShuffle = onShuffle,
+                onPrevious = onPrevious,
+                onTogglePlay = onTogglePlay,
+                onNext = onNext,
+                onRepeat = onRepeat
+            )
+            Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else OneStripGap))
+            OneLyricsStrip(
+                track = track,
+                playback = playback,
+                dockActions = slots.dockActions(track),
+                compact = compact
+            )
         }
-        OneHeadline(
-            track = track,
-            animated = animated,
-            compact = compact,
-            onArtistClick = onArtistClick,
-            modifier = headlineModifier
-        )
-        Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
-        OneTransport(
-            isPlaying = isPlaying,
-            isResolving = isResolving,
-            shuffleOn = shuffleOn,
-            repeatMode = repeatMode,
-            labels = labels,
-            compact = compact,
-            onShuffle = onShuffle,
-            onPrevious = onPrevious,
-            onTogglePlay = onTogglePlay,
-            onNext = onNext,
-            onRepeat = onRepeat
-        )
-        Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else OneStripGap))
-        OneLyricsStrip(
-            track = track,
-            playback = playback,
-            dockActions = slots.dockActions(track),
-            compact = compact
-        )
     }
 }
 
 private val OneScrollStage = 300.dp
+
+/**
+ * The cover, blown up and blurred to a colour field, under a scrim.
+ *
+ * Two things keep it from being the wall of light a bright sleeve would otherwise be: the image is
+ * decoded small and drawn at [OneMistAlpha], and the scrim pulls the top and bottom back down far
+ * enough that the clock, the headline and the transport keep their contrast.
+ */
+@Composable
+private fun OneBackdrop(track: Track) {
+    val url = track.largeThumbnailUrl.ifBlank { track.thumbnailUrl }
+    val context = LocalContext.current
+    val decodePx = remember { mistDecodePxForApi(Build.VERSION.SDK_INT) }
+    Box(modifier = Modifier.fillMaxSize().background(OneGround)) {
+        if (url.isNotBlank()) {
+            val request = remember(context, url, decodePx) {
+                ImageRequest.Builder(context)
+                    .data(DerbisArtworkCache.large(url))
+                    .size(decodePx, decodePx)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .crossfade(false)
+                    .build()
+            }
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                filterQuality = FilterQuality.Medium,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        // Overscan, so the blur never shows a soft edge at the window bounds.
+                        scaleX = 1.28f
+                        scaleY = 1.28f
+                        alpha = OneMistAlpha
+                    }
+                    .blur(64.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to OneGround.copy(alpha = 0.74f),
+                        0.40f to OneGround.copy(alpha = 0.30f),
+                        0.72f to OneGround.copy(alpha = 0.52f),
+                        1f to OneGround.copy(alpha = 0.88f)
+                    )
+                )
+        )
+    }
+}
 
 @Composable
 private fun OneClock(playback: PlayerDeckPlayback, modifier: Modifier = Modifier) {
@@ -355,34 +465,42 @@ private fun OneOrbit(
         }
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
-            val radius = size.minDimension / 2f * OneOrbitRadiusRatio
+            // The ring is the mat's own outline, pushed out by OneRingScale: the progress line
+            // follows the scallops instead of ignoring them, and the dot rides that outline.
+            val mean = size.minDimension / 2f * OneBlobRadiusRatio * OneRingScale
+            val ring = oneScallopPath(
+                center = center,
+                mean = mean,
+                amplitude = OneBlobAmplitude,
+                lobes = OneBlobLobes,
+                startAngle = -PI.toFloat() / 2f
+            )
             val stroke = OneOrbitWidthDp.dp.toPx()
             val arcStroke = OneArcWidthDp.dp.toPx()
-            drawCircle(
+            drawPath(
+                path = ring,
                 color = OneInk.copy(alpha = OneOrbitAlpha),
-                radius = radius,
                 style = Stroke(width = stroke)
             )
-            val sweep = 360f * shown.coerceIn(0f, 1f)
-            if (sweep > 0.01f) {
-                drawArc(
+            val measure = PathMeasure()
+            measure.setPath(ring, false)
+            val length = measure.length
+            if (length <= 1f) return@Canvas
+            val head = length * shown.coerceIn(0f, 1f)
+            if (head > 0.5f) {
+                val played = Path()
+                measure.getSegment(0f, head, played, true)
+                drawPath(
+                    path = played,
                     color = OneInk.copy(alpha = OneArcAlpha),
-                    startAngle = -90f,
-                    sweepAngle = sweep,
-                    useCenter = false,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(radius * 2f, radius * 2f),
                     style = Stroke(width = arcStroke, cap = StrokeCap.Round)
                 )
             }
-            val radians = (-90f + sweep) * PI.toFloat() / 180f
+            val dot = measure.getPosition(head.coerceAtMost(length))
             drawCircle(
                 color = OneInk,
                 radius = OneDotRadiusDp.dp.toPx(),
-                center = Offset(
-                    center.x + radius * cos(radians),
-                    center.y + radius * sin(radians)
-                )
+                center = dot
             )
         }
     }
@@ -403,7 +521,7 @@ private fun OneHeadline(
         contentKey = { it.id },
         label = "player-one-headline"
     ) { shown ->
-        Column(
+    Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -604,11 +722,11 @@ private fun OnePlayButton(
         contentAlignment = Alignment.Center
     ) {
         if (isResolving) {
-            DerbisLoadingIndicator(color = OnePaper, modifier = Modifier.size(size * 0.36f))
+            DerbisLoadingIndicator(color = OneFillInk, modifier = Modifier.size(size * 0.36f))
         } else {
             DerbisPlayPauseGlyph(
                 playing = isPlaying,
-                color = OnePaper,
+                color = OneFillInk,
                 modifier = Modifier.size(if (compact) 20.dp else 22.dp)
             )
         }
