@@ -1128,15 +1128,19 @@ private fun DerbisNowPlayingContent(
             },
             dock = dockBlock,
             dockActions = dockActionsFor,
-            creditsEyebrow = creditWriters?.takeIf { it.second.isNotEmpty() }?.let { (id, writers) ->
-                PlayerCreditsEyebrow(
-                    trackId = id,
-                    heading = strings.trackCreditsCopy().writtenBy,
-                    names = writers,
-                    contentDescription = strings.trackCreditsCopy().title,
-                    onClick = { showTrackCredits = true }
-                )
-            }
+            // The Liquid Glass player keeps its stage clean: no written-by line over the cover.
+            // Credits stay one tap away in the player actions sheet, so nothing is lost.
+            creditsEyebrow = creditWriters
+                ?.takeIf { it.second.isNotEmpty() && !DerbisIsLiquidGlass }
+                ?.let { (id, writers) ->
+                    PlayerCreditsEyebrow(
+                        trackId = id,
+                        heading = strings.trackCreditsCopy().writtenBy,
+                        names = writers,
+                        contentDescription = strings.trackCreditsCopy().title,
+                        onClick = { showTrackCredits = true }
+                    )
+                }
         )
         val deckModifier = rootModifier
             .widthIn(max = detailMaxWidth)
@@ -1622,7 +1626,9 @@ private fun DerbisNowPlayingContent(
                 !appleMusicImmersive &&
                 !state.isVideoMode &&
                 playerPane != DerbisPlayerPane.SideBySide &&
-                deckLayout != PlayerDeckLayout.Pulse,
+                deckLayout != PlayerDeckLayout.Pulse &&
+                // Same rule on the glass player, whichever deck is selected.
+                !DerbisIsLiquidGlass,
             enter = fadeIn(tween(if (animated) CreditsCaptionRevealMs else 0)),
             exit = fadeOut(tween(if (animated) CreditsCaptionRevealMs / 2 else 0)),
             modifier = Modifier
