@@ -3,11 +3,6 @@ name: Build Derbis Release APK
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
 on:
-  # TEMPORARY: push trigger so the 1.5.0 release can be built without the workflow_dispatch API,
-  # which this token cannot call. Removed again in the next commit.
-  push:
-    branches:
-      - arena/b05b2e2f-derbis
   workflow_dispatch:
     inputs:
       release_tag:
@@ -43,8 +38,8 @@ jobs:
       - name: Validate stable release metadata
         shell: bash
         env:
-          # A push run (the temporary trigger) carries no inputs, so the 1.5.0 metadata is the
-          # fallback; a manual dispatch overrides it.
+          # A dispatch normally supplies all four. The fallbacks are the release they were last
+          # set from, so an empty dispatch still cuts a valid tag instead of an empty one.
           RELEASE_TAG: ${{ inputs.release_tag || 'v1.5.0' }}
           RELEASE_NAME: ${{ inputs.release_name || 'Derbis v1.5.0' }}
           RELEASE_VERSION: ${{ inputs.release_version || '1.5.0' }}
