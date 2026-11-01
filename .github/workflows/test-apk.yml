@@ -4,9 +4,15 @@ name: Derbis Prebuild APK
 # build (com.derbis.app), is published as a GitHub pre-release, and never moves
 # the "latest" pointer. Use the Release APK workflow for real releases.
 
-# Manual only: a prebuild publishes a GitHub pre-release, so it never runs on push.
+# Manual only, and publishing is opt-in per run: with publish=false the APK is only a workflow
+# artifact, so a build can be tried without a tag appearing anywhere.
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the APK as a GitHub pre-release (test channel)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -116,6 +122,9 @@ jobs:
           if-no-files-found: error
 
   publish:
+    # Off unless the run asked for it. A build that only exists to be tested does not need a
+    # tag: the APK stays a workflow artifact, and nothing appears on the Releases page.
+    if: ${{ inputs.publish }}
     # A separate, short job on purpose. Every attempt to create the release at the end of the
     # 14 minute build job failed while the same request from a fresh job succeeds, so publishing
     # lives here: it only has to download the artifact and push it. If it does fail, re-running
