@@ -1711,7 +1711,6 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
     .put("limiterEnabled", value.limiterEnabled)
     .put("crossfadeSeconds", value.crossfadeSeconds)
     .put("djSoftMode", value.djSoftMode)
-    .put("beatSyncEnabled", value.beatSyncEnabled)
     .put("replayGainEnabled", value.replayGainActive)
     .put("replayGainMode", value.effectiveReplayGainMode.storageValue)
     .put("replayGainPreampDb", value.replayGainPreampDb.toDouble())
@@ -1793,7 +1792,6 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         limiterEnabled = json.optBoolean("limiterEnabled", true),
         crossfadeSeconds = json.optInt("crossfadeSeconds"),
         djSoftMode = json.optBoolean("djSoftMode"),
-        beatSyncEnabled = json.optBoolean("beatSyncEnabled", false),
         replayGainEnabled = replayGainMode != ReplayGainMode.OFF,
         replayGainMode = replayGainMode,
         replayGainPreampDb = json.optDouble("replayGainPreampDb", 0.0).toFloat(),

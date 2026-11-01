@@ -79,7 +79,6 @@ enum class LibrarySortDirection {
 enum class PlayerVisualMode {
     Artwork,
     CanvasCard,
-    CanvasImmersive,
     AppleMusic13,
     TidalMusic,
     Pulse,
@@ -100,7 +99,10 @@ enum class PlayerVisualMode {
                 else -> entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                     ?: when (value.trim().lowercase()) {
                         "canvas_card", "card" -> CanvasCard
-                        "canvas_immersive", "immersive" -> CanvasImmersive
+                        // The immersive "Beat Sync" deck was retired; an old saved choice
+                        // (stored as the enum name, so also "canvasimmersive") lands on the
+                        // sleeve deck instead of vanishing.
+                        "canvas_immersive", "canvasimmersive", "immersive", "beatsync" -> CanvasCard
                         else -> Artwork
                     }
             }

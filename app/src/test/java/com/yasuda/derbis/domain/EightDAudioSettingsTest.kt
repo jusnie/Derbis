@@ -10,9 +10,9 @@ class EightDAudioSettingsTest {
         assertTrue(DerbisAudioSettings(eightDAudioEnabled = true).normalized().eightDAudioEnabled)
     }
 
-    @Test fun `beat sync takes priority over dj crossfade when conflicting settings are restored`() {
-        val normalized = DerbisAudioSettings(djSoftMode = true, beatSyncEnabled = true).normalized()
-        assertTrue(normalized.beatSyncEnabled)
-        assertFalse(normalized.djSoftMode)
+    @Test fun `dj crossfade survives normalization now that the beat sync switch is gone`() {
+        val normalized = DerbisAudioSettings(djSoftMode = true).normalized()
+        assertTrue(normalized.djSoftMode)
+        assertTrue(normalized.crossfadeSeconds >= 0)
     }
 }

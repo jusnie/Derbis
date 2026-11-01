@@ -200,7 +200,6 @@ internal fun AudioSettingsPanel(
     onEnhancedAudio: (Boolean) -> Unit = {},
     onCrossfade: (Int) -> Unit,
     onDjSoft: (Boolean) -> Unit,
-    onBeatSync: (Boolean) -> Unit,
     onReplayGain: (Boolean) -> Unit,
     onTempo: (Float) -> Unit,
     onPitch: (Float) -> Unit,
@@ -655,27 +654,10 @@ internal fun AudioSettingsPanel(
                 }
                 item {
                     AudioToggleRow(
-                        title = "Beat Sync",
-                        subtitle = if (audioSettings.djSoftMode) {
-                            "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified beat alignment."
-                        } else {
-                            "Opens every blend on the bar line of the song that is playing. That song needs about 15 seconds of playback to be measured; if the next one has been measured too, its tempo is matched as well."
-                        },
-                        checked = audioSettings.beatSyncEnabled,
-                        enabled = !audioSettings.djSoftMode,
-                        onCheckedChange = onBeatSync
-                    )
-                }
-                item {
-                    AudioToggleRow(
                         title = "DJ Crossfade",
-                        subtitle = if (audioSettings.beatSyncEnabled) {
-                            "Unavailable while Beat Sync is on. Turn Beat Sync off to restore energy-adaptive crossfades."
-                        } else {
-                            "${strings.crossfade} ${audioSettings.crossfadeSeconds}s"
-                        },
+                        subtitle = "${strings.crossfade} ${audioSettings.crossfadeSeconds}s",
                         checked = audioSettings.djSoftMode,
-                        enabled = !audioSettings.beatSyncEnabled,
+                        enabled = true,
                         onCheckedChange = onDjSoft
                     )
                 }

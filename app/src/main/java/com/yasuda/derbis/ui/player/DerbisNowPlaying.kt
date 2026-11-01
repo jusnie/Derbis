@@ -219,8 +219,8 @@ fun DerbisNowPlaying(
     playlistDialogContent: (@Composable () -> Unit)? = null,
     onOpenPlaylistDialog: ((Track) -> Unit)? = null
 ) {
-    // Apple Music 13 is its own deck. Velvet remains the Canvas/Aura deck and must not
-    // enter this scope, otherwise the two choices resolve to the same Apple Music scene.
+    // Apple Music 13 is its own deck and must not pull any other style into this scope,
+    // otherwise two different choices would resolve to the same Apple Music scene.
     val appleMusic13 = !DerbisSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle()
     AppleMusicPlayerStyleScope(appleMusic13) {
         DerbisNowPlayingContent(
@@ -1024,7 +1024,6 @@ private fun DerbisNowPlayingContent(
                     surfaces = surfaces,
                     compact = compactPlayer,
                     animated = animated,
-                    useAuraPlayPause = !nocturne && visualMode.usesAuraPlayPause(),
                     labels = playerControlLabels,
                     onShuffle = viewModel::toggleShuffle,
                     onPrevious = viewModel::previous,
@@ -1191,39 +1190,6 @@ private fun DerbisNowPlayingContent(
                 onNext = viewModel::next,
                 onRepeat = viewModel::toggleRepeat,
                 modifier = deckModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Aura && track != null) {
-            PlayerAuraDeck(
-                track = track,
-                slots = deckSlots,
-                artworkUrl = artworkUrl,
-                motionArtwork = state.motionArtwork,
-                motionEnabled = motionEnabled,
-                canvasQuality = state.interfaceSettings.canvasQuality,
-                isFavorite = track.id in state.favoriteIds,
-                isDownloaded = track.id in state.downloadedTrackIds,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                positionMs = state.positionMs,
-                durationMs = state.durationMs,
-                labels = playerControlLabels,
-                animated = animated,
-                onCollapse = collapseActions.collapse,
-                onMore = { showActions = true },
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onDownload = {
-                    if (track.id in state.downloadedTrackIds) downloadRemovalTrackId = track.id else viewModel.exportCurrentTrack()
-                },
-                onSeek = viewModel::seekTo,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                headlineModifier = lyricsFlipSwipeModifier,
-                modifier = rootModifier
             )
         } else if (deckLayout == PlayerDeckLayout.Halo && track != null) {
             PlayerHaloDeck(
@@ -1643,7 +1609,6 @@ private fun DerbisNowPlayingContent(
                 !appleMusicImmersive &&
                 !state.isVideoMode &&
                 playerPane != DerbisPlayerPane.SideBySide &&
-                deckLayout != PlayerDeckLayout.Aura &&
                 deckLayout != PlayerDeckLayout.Pulse,
             enter = fadeIn(tween(if (animated) CreditsCaptionRevealMs else 0)),
             exit = fadeOut(tween(if (animated) CreditsCaptionRevealMs / 2 else 0)),
@@ -2286,7 +2251,6 @@ internal fun visualModeStateDescription(
 ): String = when (mode) {
     PlayerVisualMode.Artwork -> strings.playerVisualModeArtwork
     PlayerVisualMode.CanvasCard -> strings.playerVisualModeCanvasCard
-    PlayerVisualMode.CanvasImmersive -> strings.playerVisualModeCanvasImmersive
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
     PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
     PlayerVisualMode.Pulse -> strings.playerDeckPulse
@@ -2298,7 +2262,6 @@ internal fun visualModeStateDescription(
 internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Artwork -> Icons.Rounded.Image
     PlayerVisualMode.CanvasCard -> Icons.Rounded.AutoAwesome
-    PlayerVisualMode.CanvasImmersive -> Icons.Rounded.BlurOn
     PlayerVisualMode.AppleMusic13 -> Icons.Rounded.Album
     PlayerVisualMode.TidalMusic -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq

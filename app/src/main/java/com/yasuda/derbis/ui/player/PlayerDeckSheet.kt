@@ -257,7 +257,6 @@ private fun PlayerDeckStyleButton(
 internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): String {
     val labels = playerDeckShortLabels(strings.code)
     return when (mode) {
-        PlayerVisualMode.CanvasImmersive -> labels.immersive
         PlayerVisualMode.CanvasCard -> labels.canvasCard
         PlayerVisualMode.Artwork -> labels.artwork
         PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
@@ -270,7 +269,6 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): St
 }
 
 internal fun playerDeckHint(mode: PlayerVisualMode, strings: DerbisStrings): String = when (mode) {
-    PlayerVisualMode.CanvasImmersive -> strings.playerDeckImmersiveHint
     PlayerVisualMode.CanvasCard -> strings.playerDeckCardHint
     PlayerVisualMode.Artwork -> strings.playerDeckArtworkHint
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13Hint
@@ -289,9 +287,8 @@ private fun PlayerDeckPreview(
     accent: Color
 ) {
     when (mode) {
-        // Beat Sync is the wavy visualizer deck with moving scrubber stick; Apple Music 13 owns the stretched, full-bleed stage.
-        // Keep these preview assignments aligned with PlayerAuraDeck and AppleMusicPlayer.
-        PlayerVisualMode.CanvasImmersive -> BeatSyncPreview(track, artworkUrl, accent)
+        // Apple Music 13 owns the stretched, full-bleed stage.
+        // Keep these preview assignments aligned with AppleMusicPlayer.
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
@@ -356,58 +353,6 @@ private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color)
                 )
         )
         PreviewControls(accent = accent, modifier = Modifier.align(Alignment.BottomCenter))
-    }
-}
-
-@Composable
-private fun BeatSyncPreview(track: Track, artworkUrl: String, accent: Color) {
-    val field = lerp(accent, Color.Black, 0.58f)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.82f), field, Color.Black)))
-    ) {
-        DeckArtwork(
-            track = track,
-            artworkUrl = artworkUrl,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 14.dp)
-                .fillMaxWidth(0.78f)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(10.dp))
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // Mini wavy Beat Sync progress bar with stick
-            Canvas(modifier = Modifier.fillMaxWidth().height(6.dp)) {
-                val w = size.width
-                val h = size.height
-                val midY = h * 0.5f
-                val headX = w * 0.42f
-                val wavePath = Path().apply {
-                    moveTo(0f, midY)
-                    cubicTo(w * 0.12f, 0f, w * 0.22f, h, headX, midY)
-                }
-                drawPath(wavePath, color = Color(0xFF80DEEA), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f))
-                // Unplayed line
-                drawLine(Color.White.copy(alpha = 0.25f), start = Offset(headX, midY), end = Offset(w, midY), strokeWidth = 1.2f)
-                // Scrubber stick
-                drawRoundRect(
-                    Color.White,
-                    topLeft = Offset(headX - 1f, 0f),
-                    size = Size(2f, h),
-                    cornerRadius = CornerRadius(1f)
-                )
-            }
-        }
     }
 }
 

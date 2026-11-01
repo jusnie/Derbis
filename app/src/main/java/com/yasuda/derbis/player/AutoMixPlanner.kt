@@ -48,27 +48,18 @@ internal fun planAutoMix(
 ): AutoMixPlan? {
     val normalized = settings.normalized()
     val savedMix = mixStudioSetting?.normalized()
-    // Beat Sync is a playback feature, not a Mix Studio feature. With the master switch on it
-    // applies to an ordinary queue handoff too, even when the playlist has no saved transition
-    // plan — otherwise the toggle could be on and still change nothing about how songs blend.
-    //
-    // Only the outgoing grid is compulsory. Bar-phase alignment needs nothing else: the fade is
-    // cut in on one of the outgoing track's bar lines. Tempo locking additionally needs the
-    // incoming grid, and that only exists once the incoming track has itself played (or been
-    // analysed). Requiring both grids meant a track heard for the first time could never blend
-    // on the beat, which is exactly what "beat sync does nothing" felt like.
-    val beatSyncArmed = normalized.beatSyncEnabled &&
-        (savedMix == null || savedMix.beatSyncEnabled) &&
-        currentBeatGrid != null
-    val beatSyncOnly = beatSyncArmed && savedMix == null
-    if ((!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0) && savedMix == null && !beatSyncOnly) return null
+    // Beat alignment now belongs to Mix Studio alone: it is a property of a saved transition, not
+    // a global switch, because a queue-wide "align everything" toggle could not deliver what it
+    // promised (it only ever had grids for tracks that had already been played). A handoff is
+    // only ever beat-aligned when the playlist itself asked for that pair to be.
+    val beatAlignArmed = savedMix?.beatSyncEnabled == true && currentBeatGrid != null
+    if ((!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0) && savedMix == null) return null
     if (next == null || repeatMode == RepeatMode.One || videoMode || lowRam || current.durationMs <= MIN_TRACK_MS) return null
-    // A continuous album still plays gapless, even with Beat Sync armed: blending two tracks that
+    // A continuous album still plays gapless, even when the pair is marked for beat alignment:
     // were mastered to run into each other would be worse than a short overlap.
     if (savedMix == null && continuesSameRelease(current, next, shuffleEnabled)) return null
     val base = savedMix?.durationMs
         ?: if (savedMix != null) DEFAULT_STUDIO_TRANSITION_MS
-        else if (beatSyncOnly) BEAT_SYNC_OVERLAP_MS
         else (normalized.crossfadeSeconds * 1_000L)
     val adaptive = if (savedMix == null && normalized.djSoftMode) {
         val energyDistance = abs(current.energy - next.energy)
@@ -96,7 +87,7 @@ internal fun planAutoMix(
     )
     // A manually chosen timeline position must be honoured exactly, never replaced by analysis.
     val beatPlan = if (
-        beatSyncArmed && currentBeatGrid != null &&
+        beatAlignArmed && currentBeatGrid != null &&
         manualOutgoingStart == null && manualIncomingStart == null
     ) {
         val sync = nextBeatGrid?.let { DerbisMixStudio.beatSync(currentBeatGrid, it) }
@@ -119,10 +110,6 @@ internal fun planAutoMix(
             } else null
         } else null
     } else null
-    // Beat Sync was the only reason this handoff exists and there is nothing to align: leave the
-    // track alone rather than inventing an overlap. If a normal crossfade is configured, that one
-    // still runs — a beat grid that cannot be read must never silence the fade.
-    if (beatSyncOnly && beatPlan == null && (!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0)) return null
     val transition = (beatPlan?.durationMs ?: requestedTransition)
         .coerceAtMost(manualOutgoingStart?.let { current.durationMs - it } ?: Long.MAX_VALUE)
     if (transition < MIN_TRANSITION_MS) return null
@@ -219,10 +206,3 @@ private const val MAX_TRANSITION_MS = 30_000L
 private const val PRELOAD_MARGIN_MS = 8_000L
 private const val MAX_PRELOAD_LEAD_MS = 40_000L
 private const val DEFAULT_STUDIO_TRANSITION_MS = 6_000L
-
-/**
- * Overlap used when Beat Sync is the only reason a handoff is happening. Four bars at club tempo
- * is a phrase; the planner then snaps the real start to a bar line of the outgoing track, so the
- * number here is a target rather than the exact fade length.
- */
-private const val BEAT_SYNC_OVERLAP_MS = 6_000L

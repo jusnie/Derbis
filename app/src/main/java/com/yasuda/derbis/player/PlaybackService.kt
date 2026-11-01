@@ -2316,10 +2316,10 @@ class PlaybackService : MediaLibraryService() {
             ?: duration
         val remaining = handoffAtMs - position
         if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
-        // Beat grids are consulted whenever the master switch is on, with or without a Mix Studio
-        // plan: without this the toggle only worked for playlists carrying a saved transition.
-        val beatSyncArmed = currentAudioSettings.beatSyncEnabled &&
-            (mixStudioSetting == null || mixStudioSetting.beatSyncEnabled)
+        // Grids are only read when this specific saved transition asked to be beat-aligned. The
+        // queue-wide "Beat Sync" switch is gone: it promised alignment for pairs it had never
+        // measured, so it now lives where it can be honoured, per handoff, in Mix Studio.
+        val beatAlignArmed = mixStudioSetting?.beatSyncEnabled == true
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
             next = next,
@@ -2329,8 +2329,8 @@ class PlaybackService : MediaLibraryService() {
             lowRam = adaptivePlaybackPolicy.current(videoMode = false).lowRam,
             shuffleEnabled = snapshot.shuffleEnabled,
             mixStudioSetting = mixStudioSetting,
-            currentBeatGrid = if (beatSyncArmed) beatGridStore.gridFor(current.id) else null,
-            nextBeatGrid = if (beatSyncArmed) beatGridStore.gridFor(next.id) else null
+            currentBeatGrid = if (beatAlignArmed) beatGridStore.gridFor(current.id) else null,
+            nextBeatGrid = if (beatAlignArmed) beatGridStore.gridFor(next.id) else null
         ) ?: return
         if (remaining > plan.preloadLeadMs) return
         queueTransitionJob = serviceScope.launch {
@@ -2433,7 +2433,7 @@ class PlaybackService : MediaLibraryService() {
             // A beat-matched deck runs at a corrected speed. Glide back to the listener's own
             // speed once the outgoing deck is gone, or the new song would play fast forever.
             if (plan.beatAligned) {
-                serviceScope.launch { restorePlaybackSpeedAfterBeatSync(plan.incomingTempo) }
+                serviceScope.launch { restorePlaybackSpeedAfterBeatAlignment(plan.incomingTempo) }
             }
 
             queueEngine.updatePosition(secondary.currentPosition.coerceAtLeast(0L))
@@ -2459,7 +2459,7 @@ class PlaybackService : MediaLibraryService() {
      * Eases the promoted deck back to the normal playback speed after a beat-matched handoff.
      * The correction is tapered instead of snapped so the tail of the blend does not jump.
      */
-    private suspend fun restorePlaybackSpeedAfterBeatSync(appliedRatio: Float) {
+    private suspend fun restorePlaybackSpeedAfterBeatAlignment(appliedRatio: Float) {
         val base = currentAudioSettings
         val target = base.playbackSpeed
         val applied = (target * appliedRatio).coerceIn(.25f, 4f)

@@ -16,7 +16,6 @@ import java.util.Locale
 
 internal enum class PlayerDeckLayout {
     Derbis,
-    Aura,
     Expressive,
     Poster,
     Pulse,
@@ -36,7 +35,6 @@ internal enum class PlayerDeckLayout {
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Flow,
     PlayerVisualMode.CanvasCard,
-    PlayerVisualMode.CanvasImmersive,
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
@@ -45,7 +43,6 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
 
 internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.CanvasCard -> PlayerDeckLayout.Sleeve
-    PlayerVisualMode.CanvasImmersive -> PlayerDeckLayout.Aura
     PlayerVisualMode.Artwork -> PlayerDeckLayout.Poster
     PlayerVisualMode.AppleMusic13 -> PlayerDeckLayout.AppleMusic13
     PlayerVisualMode.TidalMusic -> PlayerDeckLayout.TidalMusic
@@ -55,15 +52,12 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.Flow -> PlayerDeckLayout.Flow
 }
 
-internal fun PlayerVisualMode.usesAuraPlayPause(): Boolean =
-    deckLayout() == PlayerDeckLayout.Aura
-
 /** Only the Apple Music 13 deck supplies the Apple Music palette and scene. */
 internal fun PlayerVisualMode.usesAppleMusicPlayerStyle(): Boolean =
     this == PlayerVisualMode.AppleMusic13
 
 internal fun PlayerDeckLayout.showsLyricsFace(): Boolean =
-    this != PlayerDeckLayout.Aura && this != PlayerDeckLayout.Pulse
+    this != PlayerDeckLayout.Pulse
 
 internal fun resolvePlayerDeckLayout(
     mode: PlayerVisualMode,

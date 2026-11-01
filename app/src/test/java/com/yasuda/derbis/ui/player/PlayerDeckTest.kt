@@ -35,7 +35,6 @@ class PlayerDeckTest {
     fun `existing modes keep the derbis layout and new styles get their own`() {
         assertEquals(PlayerDeckLayout.Poster, PlayerVisualMode.Artwork.deckLayout())
         assertEquals(PlayerDeckLayout.Sleeve, PlayerVisualMode.CanvasCard.deckLayout())
-        assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
         assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
         assertEquals(PlayerDeckLayout.TidalMusic, PlayerVisualMode.TidalMusic.deckLayout())
         assertEquals(PlayerDeckLayout.Pulse, PlayerVisualMode.Pulse.deckLayout())
@@ -44,16 +43,15 @@ class PlayerDeckTest {
 
     @Test
     fun `lyrics flip is offered only by decks that render an upright lyrics face`() {
-        assertFalse(PlayerDeckLayout.Aura.showsLyricsFace())
         assertFalse(PlayerDeckLayout.Pulse.showsLyricsFace())
         PlayerDeckLayout.entries
-            .filterNot { it == PlayerDeckLayout.Aura || it == PlayerDeckLayout.Pulse }
+            .filterNot { it == PlayerDeckLayout.Pulse }
             .forEach { assertTrue(it.showsLyricsFace()) }
     }
 
     @Test
     fun `new styles fall back to the derbis layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
+        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, DerbisPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Derbis, resolvePlayerDeckLayout(mode, true, false, DerbisPlayerPane.Stacked, true))
@@ -84,32 +82,10 @@ class PlayerDeckTest {
     }
 
     @Test
-    fun `Velvet and Apple Music 13 resolve to different player layouts`() {
-        assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
+    fun `Apple Music 13 keeps its own player layout and palette`() {
         assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
-        assertFalse(PlayerVisualMode.CanvasImmersive.deckLayout() == PlayerVisualMode.AppleMusic13.deckLayout())
-        assertFalse(PlayerVisualMode.CanvasImmersive.usesAppleMusicPlayerStyle())
         assertTrue(PlayerVisualMode.AppleMusic13.usesAppleMusicPlayerStyle())
-    }
-
-    @Test
-    fun `velvet keeps its static play pause in song and video across orientations`() {
-        assertTrue(PlayerVisualMode.CanvasImmersive.usesAuraPlayPause())
-        listOf(false, true).forEach { video ->
-            listOf(DerbisPlayerPane.Stacked, DerbisPlayerPane.SideBySide).forEach { pane ->
-                val layout = resolvePlayerDeckLayout(PlayerVisualMode.CanvasImmersive, video, false, pane, true)
-                val supported = !video && pane == DerbisPlayerPane.Stacked
-                assertEquals(if (supported) PlayerDeckLayout.Aura else PlayerDeckLayout.Derbis, layout)
-                assertTrue(layout == PlayerDeckLayout.Aura || PlayerVisualMode.CanvasImmersive.usesAuraPlayPause())
-            }
-        }
-    }
-
-    @Test
-    fun `other styles keep the morphing play pause segment`() {
-        PlayerVisualMode.entries
-            .filterNot { it == PlayerVisualMode.CanvasImmersive }
-            .forEach { assertFalse(it.usesAuraPlayPause()) }
+        assertFalse(PlayerVisualMode.CanvasCard.usesAppleMusicPlayerStyle())
     }
 
     @Test
@@ -158,7 +134,7 @@ class PlayerDeckTest {
 
     @Test
     fun `switching style never restarts motion artwork or touches other settings`() {
-        val playing = DerbisInterfaceSettings(playerVisualMode = PlayerVisualMode.CanvasImmersive, doubleTapSeekSeconds = 15)
+        val playing = DerbisInterfaceSettings(playerVisualMode = PlayerVisualMode.Flow, doubleTapSeekSeconds = 15)
         PlayerDeckOrder.forEach { from ->
             PlayerDeckOrder.forEach { to ->
                 val previous = playing.copy(playerVisualMode = from)
@@ -363,7 +339,6 @@ class PlayerDeckTest {
         assertEquals("Apple Music 13", visualModeStateDescription(PlayerVisualMode.AppleMusic13, italian))
         assertEquals("Tidal Music", visualModeStateDescription(PlayerVisualMode.TidalMusic, italian))
         assertEquals("Late Night", visualModeStateDescription(PlayerVisualMode.Pulse, italian))
-        assertEquals("Velvet", playerDeckLabel(PlayerVisualMode.CanvasImmersive, italian))
         assertEquals("Sleeve", playerDeckLabel(PlayerVisualMode.CanvasCard, italian))
     }
 

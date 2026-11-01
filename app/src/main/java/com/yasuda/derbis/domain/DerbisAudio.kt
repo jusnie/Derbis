@@ -150,8 +150,6 @@ data class DerbisAudioSettings(
     val limiterEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val djSoftMode: Boolean = false,
-    /** Master permission for verified Mix Studio beat alignment. Mutually exclusive with DJ Crossfade. */
-    val beatSyncEnabled: Boolean = false,
     val replayGainEnabled: Boolean = false,
     val replayGainMode: ReplayGainMode = ReplayGainMode.OFF,
     val replayGainPreampDb: Float = 0f,
@@ -253,8 +251,6 @@ data class DerbisAudioSettings(
             bassBoost = bassBoost.coerceIn(0, 100),
             virtualizer = virtualizer.coerceIn(0, 100),
             preampDb = preampDb.coerceIn(-12f, 3f),
-            // The timing engine and energy-adaptive DJ Crossfade must not both control a handoff.
-            djSoftMode = if (beatSyncEnabled) false else djSoftMode,
             replayGainEnabled = normalizedReplayGainMode != ReplayGainMode.OFF,
             replayGainMode = normalizedReplayGainMode,
             replayGainPreampDb = replayGainPreampDb.coerceIn(-12f, 12f),

@@ -9,7 +9,6 @@ import org.junit.Test
 class AppleMusic13PlayerPresentationContractTest {
 
     private val playerSource = readSource("AppleMusicPlayer.kt")
-    private val auraSource = readSource("PlayerDeckAura.kt")
     private val nowPlayingSource = readSource("DerbisNowPlaying.kt")
 
     @Test
@@ -18,15 +17,6 @@ class AppleMusic13PlayerPresentationContractTest {
         assertTrue(playerSource.contains(".fillMaxHeight(AppleMusic13StretchedArtworkHeight)"))
         assertTrue(playerSource.contains("private fun AppleMusic13ActionDock"))
         assertFalse(playerSource.contains("AppleMusic13SourceActionDock"))
-    }
-
-    @Test
-    fun `Velvet receives the contained sleeve with an opt in Canvas loop`() {
-        assertTrue(auraSource.contains("private fun AuraVelvetSleeve"))
-        assertTrue(auraSource.contains("VelvetSleeveWidth"))
-        assertTrue(auraSource.contains("MotionArtworkLayer("))
-        assertTrue(auraSource.contains("enabled = motionEnabled"))
-        assertTrue(auraSource.contains("staticArtworkMotionEnabled = false"))
     }
 
     @Test

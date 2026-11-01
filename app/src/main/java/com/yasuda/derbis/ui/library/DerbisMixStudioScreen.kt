@@ -84,7 +84,6 @@ private val MixSyncWarn = Color(0xFFE3A857)
 internal fun DerbisMixStudioScreen(
     session: DerbisMixStudioSession,
     controller: DerbisMixStudioController,
-    beatSyncAvailable: Boolean,
     onClose: () -> Unit
 ) {
     BackHandler(onBack = onClose)
@@ -147,11 +146,7 @@ internal fun DerbisMixStudioScreen(
                         Switch(checked = session.draft.enabled, onCheckedChange = controller::setEnabled, enabled = !session.saving)
                     }
                     Text(
-                        if (beatSyncAvailable) {
-                            "Derbis analyzes PCM locally for BPM and a beat-grid candidate while tracks play. Beat Sync only engages when both grids are confident; EQ and filter curves are not claimed here."
-                        } else {
-                            "Beat Sync is off in Audio Settings. Turn off DJ Crossfade, then enable Beat Sync to use verified BPM and beat-grid alignment."
-                        },
+                        "Derbis measures BPM and a beat grid locally, from PCM, while tracks play. A transition only locks to the beat when both of its grids are confident; EQ and filter curves are not claimed here.",
                         color = MixMuted,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
@@ -187,7 +182,6 @@ internal fun DerbisMixStudioScreen(
                 incoming = pair.second,
                 setting = session.draft.settingFor(pair.first, pair.second),
                 enabled = !session.saving,
-                beatSyncAvailable = beatSyncAvailable,
                 outgoingGrid = grids[pair.first.id],
                 incomingGrid = grids[pair.second.id],
                 onPreset = { controller.setPreset(pair.first, pair.second, it) },
@@ -205,7 +199,6 @@ private fun MixTransitionCard(
     incoming: Track,
     setting: com.yasuda.derbis.domain.DerbisMixTransitionSetting?,
     enabled: Boolean,
-    beatSyncAvailable: Boolean,
     outgoingGrid: DerbisBeatGrid? = null,
     incomingGrid: DerbisBeatGrid? = null,
     onPreset: (DerbisMixTransitionPreset) -> Unit,
@@ -224,7 +217,7 @@ private fun MixTransitionCard(
                 outgoingGrid = outgoingGrid,
                 incomingGrid = incomingGrid,
                 enabled = beatSyncEnabled,
-                available = beatSyncAvailable,
+                available = true,
                 interactive = enabled,
                 durationMs = setting?.durationMs ?: 6_000L,
                 onToggle = onBeatSync

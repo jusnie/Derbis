@@ -101,7 +101,6 @@ internal fun PlayerTransportBar(
     surfaces: PlayerSurfaceTokens,
     compact: Boolean,
     animated: Boolean,
-    useAuraPlayPause: Boolean = false,
     labels: PlayerControlLabels,
     onShuffle: () -> Unit,
     onPrevious: () -> Unit,
@@ -153,28 +152,17 @@ internal fun PlayerTransportBar(
             ) {
                 PlayerIcon(Icons.Rounded.SkipPrevious, surfaces.content, Modifier.size(skipGlyph))
             }
-            if (useAuraPlayPause) {
-                PlayerModeSlot(weight = weights.playWeight) {
-                    PlayerAuraPlayPauseButton(
-                        isPlaying = isPlaying,
-                        isResolving = isResolving,
-                        labels = labels,
-                        onTogglePlay = onTogglePlay
-                    )
-                }
-            } else {
-                PlayerPlaySegment(
-                    isPlaying = isPlaying,
-                    isResolving = isResolving,
-                    surfaces = surfaces,
-                    height = height,
-                    glyph = if (compact) DerbisPlayerDesign.TransportPlayGlyphCompact else DerbisPlayerDesign.TransportPlayGlyph,
-                    animated = animated,
-                    labels = labels,
-                    weight = weights.playWeight,
-                    onClick = onTogglePlay
-                )
-            }
+            PlayerPlaySegment(
+                isPlaying = isPlaying,
+                isResolving = isResolving,
+                surfaces = surfaces,
+                height = height,
+                glyph = if (compact) DerbisPlayerDesign.TransportPlayGlyphCompact else DerbisPlayerDesign.TransportPlayGlyph,
+                animated = animated,
+                labels = labels,
+                weight = weights.playWeight,
+                onClick = onTogglePlay
+            )
             PlayerSegmentButton(
                 position = DerbisSegment.Single,
                 weight = weights.skipWeight,

@@ -4794,14 +4794,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val settings = _state.value.audioSettings
         updateAudioSettings(settings.copy(
             djSoftMode = value,
-            beatSyncEnabled = if (value) false else settings.beatSyncEnabled,
             crossfadeSeconds = if (value && settings.crossfadeSeconds == 0) 6 else settings.crossfadeSeconds
         ))
-    }
-
-    fun setBeatSyncEnabled(value: Boolean) {
-        val settings = _state.value.audioSettings
-        updateAudioSettings(settings.copy(beatSyncEnabled = value, djSoftMode = if (value) false else settings.djSoftMode))
     }
 
     fun setReplayGainEnabled(value: Boolean) {
@@ -6187,19 +6181,17 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val diagnostics = listOf(
             resolver.playbackDiagnostics(),
             providerRouter.diagnostics(),
-            beatSyncDiagnostics(),
+            beatGridDiagnostics(),
             com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety.describe()
         ).filter { it.isNotBlank() }.joinToString("\n")
         _state.update { it.copy(playbackDiagnostics = diagnostics) }
         return diagnostics
     }
 
-    /** One line about Beat Sync, so "is it on and does it have data" is answerable from settings. */
-    private fun beatSyncDiagnostics(): String = runCatching {
-        val settings = _state.value.audioSettings
+    /** What the beat analyser has managed to measure, so the player visuals are explainable. */
+    private fun beatGridDiagnostics(): String = runCatching {
         val analysed = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).analysedCount()
         buildString {
-            appendLine("Beat Sync: " + if (settings.beatSyncEnabled) "on" else "off")
             appendLine("beat grids analysed on this device: $analysed")
             val current = _state.value.currentTrack
             if (current != null) {

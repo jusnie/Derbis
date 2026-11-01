@@ -3282,7 +3282,6 @@ fun DerbisApp(
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,
                     onCrossfade = viewModel::setCrossfadeSeconds,
                     onDjSoft = viewModel::setDjSoftMode,
-                    onBeatSync = viewModel::setBeatSyncEnabled,
                     onReplayGain = viewModel::setReplayGainEnabled,
                     onTempo = viewModel::setPlaybackSpeed,
                     onPitch = viewModel::setPitch,
@@ -3490,7 +3489,6 @@ fun DerbisApp(
                     DerbisMixStudioScreen(
                         session = session,
                         controller = viewModel.mixStudio,
-                        beatSyncAvailable = state.audioSettings.beatSyncEnabled,
                         onClose = viewModel::closeMixStudio
                     )
                 }
@@ -21553,7 +21551,6 @@ private fun SettingsOverlay(
                                     subtitle = strings.playerVisualModeSubtitle,
                                     options = listOf(
                                         PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
-                                        PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
                                         PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
                                         PlayerVisualMode.Halo.name to strings.playerDeckHalo,
