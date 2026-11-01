@@ -16,6 +16,7 @@ import com.yasuda.derbis.domain.ListeningInsightsRange
 import com.yasuda.derbis.domain.ListeningInsightsRanges
 import com.yasuda.derbis.domain.ListeningInsightsSnapshot
 import com.yasuda.derbis.domain.ListeningInsightsTrack
+import com.yasuda.derbis.domain.WRAPPED_MIN_ACTIVE_DAYS
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -55,6 +56,37 @@ class ListeningInsightsRepository(context: Context) {
             zone = zone,
             includeWrappedDetail = true
         )
+
+    /**
+     * The years a replay can actually be opened for: any year with listening in it, newest first.
+     *
+     * The running year is always included, even before it holds anything worth a story, because
+     * the picker is also how a listener gets back to the year they were already looking at.
+     */
+    suspend fun wrappedYears(
+        currentYear: Int = LocalDate.now().year,
+        nowMs: Long = System.currentTimeMillis(),
+        zone: ZoneId = ZoneId.systemDefault()
+    ): List<Int> = withContext(Dispatchers.IO) {
+        val stored = runCatching {
+            eventsDao.insightsYears(ListenPlayPolicy.MIN_EVENT_MS)
+        }.getOrDefault(emptyList())
+            .mapNotNull { it.toIntOrNull() }
+            .filter { it in 1970..(currentYear + 1) }
+        // A finished year is only offered when it can actually be replayed. Offering one that
+        // would only open the "not enough" card is offering a dead end; the running year is
+        // always offered because it is a progress report, not a summary.
+        val replayable = stored.filter { year ->
+            year == currentYear || runCatching {
+                eventsDao.insightsActiveDays(
+                    ListeningInsightsRanges.year(year, nowMs, zone).fromMs,
+                    ListeningInsightsRanges.year(year, nowMs, zone).toMs,
+                    ListenPlayPolicy.MIN_EVENT_MS
+                )
+            }.getOrDefault(0) >= WRAPPED_MIN_ACTIVE_DAYS
+        }
+        (listOf(currentYear) + replayable).distinct().sortedDescending()
+    }
 
     private suspend fun snapshotFor(
         period: ListeningInsightsPeriod,

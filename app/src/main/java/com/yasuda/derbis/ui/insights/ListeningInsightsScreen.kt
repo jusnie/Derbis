@@ -252,7 +252,8 @@ internal fun ListeningInsightsScreen(
             ListeningWrappedStory(
                 state = state.wrapped,
                 accent = accent,
-                onClose = { wrappedVisible = false }
+                onClose = { wrappedVisible = false },
+                onSelectYear = { year -> viewModel.loadWrapped(year) }
             )
         }
     }

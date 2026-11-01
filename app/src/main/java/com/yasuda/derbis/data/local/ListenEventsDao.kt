@@ -183,6 +183,22 @@ interface ListenEventsDao {
         completionDenominator: Long
     ): ListeningInsightsDayRow?
 
+    /**
+     * The years that hold any listening, newest first: the only years a replay can be opened for.
+     *
+     * A year with nothing in it is not offered — a picker that lists 2019 because the app was
+     * installed then is a picker that opens empty stories.
+     */
+    @Query(
+        """
+        SELECT DISTINCT strftime('%Y', startedAt / 1000, 'unixepoch', 'localtime') AS yearKey
+        FROM listen_events
+        WHERE listenedMs >= :minimumEventMs
+        ORDER BY yearKey DESC
+        """
+    )
+    suspend fun insightsYears(minimumEventMs: Long): List<String>
+
     /** Days that hold at least one counted listen — the denominator every consistency claim uses. */
     @Query(
         """

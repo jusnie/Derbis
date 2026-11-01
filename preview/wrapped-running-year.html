@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derbis — Replay with the year still running</title>
+<style>
+  :root {
+    --ink: #0a070c;
+    --text: #f4f1ea;
+    --muted: #9a9aa6;
+    --cyan: #46d3f0;
+    --hairline: rgba(255,255,255,.10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 24px 64px;
+    background: #050506; color: var(--text);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+  .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 28px; max-width: 760px; }
+  .cols { display: flex; gap: 26px; flex-wrap: wrap; }
+  .col { width: 320px; }
+  .caption {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 10px; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tag { font-size: 9px; padding: 2px 7px; border-radius: 99px; letter-spacing: .06em; }
+  .tag.bad { background: rgba(255,94,58,.15); color: #ff5e3a; }
+  .tag.good { background: rgba(70,211,240,.16); color: var(--cyan); }
+
+  .phone {
+    height: 600px; border-radius: 28px; overflow: hidden; position: relative;
+    border: 1px solid rgba(255,255,255,.08);
+    display: flex; flex-direction: column;
+  }
+  /* a stand-in for the blurred cover backdrop */
+  .backdrop {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 60% at 30% 10%, rgba(255,120,160,.35), transparent 60%),
+      radial-gradient(100% 70% at 80% 70%, rgba(255,190,90,.18), transparent 65%),
+      linear-gradient(180deg, #2a0d22 0%, #12060f 45%, #07050a 100%);
+    filter: blur(2px);
+  }
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; padding: 14px 14px 0; }
+  .top { display: flex; align-items: center; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 99px; padding: 6px 12px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+    font-size: 11px; font-weight: 800; letter-spacing: 1.6px;
+  }
+  .chip .dot { width: 13px; height: 13px; color: var(--cyan); }
+  .round {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+    color: var(--text);
+  }
+  .round svg { width: 17px; height: 17px; }
+  .spacer { flex: 1; }
+
+  .years { display: flex; gap: 8px; margin-top: 10px; }
+  .year {
+    font-size: 12px; font-weight: 600; letter-spacing: .6px;
+    padding: 5px 12px; border-radius: 99px;
+    background: rgba(255,255,255,.08); color: var(--muted);
+  }
+  .year.on { background: rgba(70,211,240,.34); color: #fff; font-weight: 800; }
+
+  .stage { flex: 1; position: relative; }
+
+  /* old wall */
+  .wall {
+    position: absolute; left: 0; right: 0; top: 46%;
+    transform: translateY(-50%);
+    margin: 0 12px;
+    border-radius: 22px; padding: 22px 18px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.16);
+    text-align: center;
+    backdrop-filter: blur(6px);
+  }
+  .wave { display: flex; gap: 3px; justify-content: center; margin-bottom: 14px; }
+  .wave i { display: block; width: 4px; border-radius: 2px; background: var(--cyan); }
+  .wall h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: 1.6px; font-weight: 800; }
+  .wall p { margin: 0; font-size: 13px; line-height: 1.45; color: #e6e2ea; }
+
+  /* new intro page */
+  .intro { position: absolute; left: 0; right: 0; bottom: 18px; padding: 0 14px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 99px; padding: 5px 12px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18);
+    font-size: 10px; font-weight: 800; letter-spacing: 1.4px;
+  }
+  .intro .label { margin: 18px 0 2px; font-size: 12px; letter-spacing: 2.2px; color: var(--muted); font-weight: 800; }
+  .intro .yearBig { font-size: 92px; line-height: .92; font-weight: 900; letter-spacing: -4px; }
+  .intro .sub { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .intro .sofar { font-size: 13px; color: var(--cyan); font-weight: 600; margin-top: 2px; }
+  .begin {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 26px;
+    border-radius: 99px; padding: 12px 20px; font-size: 14px; font-weight: 700;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.22);
+  }
+  .begin svg { width: 18px; height: 18px; }
+
+  .notes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 26px; }
+  .note { background: #101015; border: 1px solid var(--hairline); border-radius: 16px; padding: 14px 16px; }
+  .note h3 { margin: 0 0 6px; font-size: 13px; }
+  .note p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #cfcfd8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Replay — the year is still running, so it is not refused</h1>
+  <p class="lede">
+    The reel required thirty listening days before it would show anything, which is right for a
+    finished year and wrong for the one you are living in: in November, and on a fresh install, the
+    screen was a wall with no way past it. The running year now plays as a progress report, labelled
+    <em>so far</em> with the date it stops, and the header carries a year picker so a year that
+    <em>can</em> be replayed is one tap away.
+  </p>
+
+  <div class="cols">
+    <div class="col">
+      <p class="caption">Before <span class="tag bad">dead end</span></p>
+      <div class="phone">
+        <div class="backdrop"></div>
+        <div class="content">
+          <div class="top">
+            <div class="chip">
+              <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="10" width="2.4" height="4" rx="1.2"/><rect x="7.2" y="7" width="2.4" height="10" rx="1.2"/><rect x="11.4" y="4" width="2.4" height="16" rx="1.2"/><rect x="15.6" y="8" width="2.4" height="8" rx="1.2"/><rect x="19.8" y="10.5" width="2.4" height="3" rx="1.2"/></svg>
+              REPLAY '2026
+            </div>
+            <div class="spacer"></div>
+            <div class="round"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"/></svg></div>
+            <div class="round"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          </div>
+          <div class="stage">
+            <div class="wall">
+              <div class="wave">
+                <i style="height:8px"></i><i style="height:14px"></i><i style="height:20px"></i><i style="height:10px"></i><i style="height:16px"></i><i style="height:7px"></i><i style="height:13px"></i>
+              </div>
+              <h3>NOT ENOUGH OF 2026 YET</h3>
+              <p>Listen on 29 more days and your story writes itself.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="caption">After <span class="tag good">plays</span></p>
+      <div class="phone">
+        <div class="backdrop"></div>
+        <div class="content">
+          <div class="top">
+            <div class="chip">
+              <svg class="dot" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="10" width="2.4" height="4" rx="1.2"/><rect x="7.2" y="7" width="2.4" height="10" rx="1.2"/><rect x="11.4" y="4" width="2.4" height="16" rx="1.2"/><rect x="15.6" y="8" width="2.4" height="8" rx="1.2"/><rect x="19.8" y="10.5" width="2.4" height="3" rx="1.2"/></svg>
+              REPLAY '2026 · SO FAR
+            </div>
+            <div class="spacer"></div>
+            <div class="round"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M5 14v5a2 2 0 002 2h10a2 2 0 002-2v-5"/></svg></div>
+            <div class="round"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          </div>
+
+          <div class="years">
+            <div class="year on">2026</div>
+            <div class="year">2025</div>
+          </div>
+
+          <div class="stage">
+            <div class="intro">
+              <div class="pill">
+                <svg class="dot" viewBox="0 0 24 24" fill="currentColor" style="width:13px;height:13px"><rect x="3" y="10" width="2.4" height="4" rx="1.2"/><rect x="7.2" y="7" width="2.4" height="10" rx="1.2"/><rect x="11.4" y="4" width="2.4" height="16" rx="1.2"/><rect x="15.6" y="8" width="2.4" height="8" rx="1.2"/><rect x="19.8" y="10.5" width="2.4" height="3" rx="1.2"/></svg>
+                REPLAY
+              </div>
+              <p class="label">YOUR YEAR IN MUSIC</p>
+              <div class="yearBig">2026</div>
+              <div class="sub">Every track, artist and hour, counted.</div>
+              <div class="sofar">So far — through Nov 2, 2026</div>
+              <div class="begin">Tap to begin
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>The floor</h3>
+      <p>Thirty listening days is still the bar for a <em>finished</em> year — a fortnight is not twelve months. It no longer applies to the year you are in, because that year has not finished being lived.</p>
+    </div>
+    <div class="note">
+      <h3>The picker</h3>
+      <p>Only the running year and years that can actually be replayed are offered, so no chip opens a dead end. Kept as a row of chips: at most three years exist inside the event retention window.</p>
+    </div>
+    <div class="note">
+      <h3>The label</h3>
+      <p>The chip reads <code>REPLAY '2026 · SO FAR</code> and the intro names the date the numbers stop, so nothing on screen claims to summarise twelve months.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
