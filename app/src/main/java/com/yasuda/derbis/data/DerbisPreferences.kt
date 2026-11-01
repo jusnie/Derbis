@@ -651,6 +651,20 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         write { it[KEY_DISMISSED_UPDATE_VERSION] = version }
     }
 
+    /** The release tag whose prompt was dismissed. Tags are unique per build; names are not. */
+    fun dismissedUpdateTag(): String = read { it[KEY_DISMISSED_UPDATE_TAG].orEmpty() }
+
+    fun setDismissedUpdateTag(tag: String) {
+        write { it[KEY_DISMISSED_UPDATE_TAG] = tag }
+    }
+
+    /** When the last successful update check finished, so a cold start does not repeat it. */
+    fun lastUpdateCheckMs(): Long = read { it[KEY_LAST_UPDATE_CHECK_MS] ?: 0L }
+
+    fun setLastUpdateCheckMs(value: Long) {
+        write { it[KEY_LAST_UPDATE_CHECK_MS] = value.coerceAtLeast(0L) }
+    }
+
     fun saveLastPlayback(track: Track?, positionMs: Long) {
         write {
             if (track == null) {
@@ -1385,6 +1399,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_CHART_REGION_ID = stringPreferencesKey("chart_region_id")
         val KEY_PERSONAL_ORBIT_TRACKS = stringPreferencesKey("personal_orbit_tracks")
         val KEY_DISMISSED_UPDATE_VERSION = stringPreferencesKey("dismissed_update_version")
+        val KEY_DISMISSED_UPDATE_TAG = stringPreferencesKey("dismissed_update_tag")
+        val KEY_LAST_UPDATE_CHECK_MS = longPreferencesKey("last_update_check_ms")
         val KEY_AUDIO_NORMALIZATION = booleanPreferencesKey("audio_normalization")
         val KEY_LYRICS_TRANSLATION = booleanPreferencesKey("lyrics_translation_enabled")
         val KEY_LYRICS_LATENCY_PROFILES = stringPreferencesKey("lyrics_latency_profiles")

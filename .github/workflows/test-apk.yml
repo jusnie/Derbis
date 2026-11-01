@@ -71,7 +71,8 @@ jobs:
           set +e
           ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace --console=plain \
             -PderbisVersionName="${DERBIS_VERSION_NAME}" \
-            -PderbisVersionCode="${DERBIS_VERSION_CODE}" 2>&1 | tee build.log
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}" \
+            -PderbisUpdateTrack=test 2>&1 | tee build.log
           status="${PIPESTATUS[0]}"
           set -e
           if [[ "${status}" -ne 0 ]]; then
