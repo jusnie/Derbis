@@ -19,8 +19,6 @@ internal enum class PlayerDeckLayout {
     Expressive,
     Poster,
     Pulse,
-    Halo,
-    Folio,
     Flow,
     Sleeve,
     AppleMusic13,
@@ -37,8 +35,6 @@ internal enum class PlayerDeckLayout {
 internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Flow,
     PlayerVisualMode.CanvasCard,
-    PlayerVisualMode.Halo,
-    PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
     PlayerVisualMode.Pulse,
     PlayerVisualMode.Frost,
@@ -51,8 +47,6 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.AppleMusic13 -> PlayerDeckLayout.AppleMusic13
     PlayerVisualMode.TidalMusic -> PlayerDeckLayout.TidalMusic
     PlayerVisualMode.Pulse -> PlayerDeckLayout.Pulse
-    PlayerVisualMode.Halo -> PlayerDeckLayout.Halo
-    PlayerVisualMode.Folio -> PlayerDeckLayout.Folio
     PlayerVisualMode.Flow -> PlayerDeckLayout.Flow
     PlayerVisualMode.Frost -> PlayerDeckLayout.Frost
     PlayerVisualMode.DerbisOne -> PlayerDeckLayout.One

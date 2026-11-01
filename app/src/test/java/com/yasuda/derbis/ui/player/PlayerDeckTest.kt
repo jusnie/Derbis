@@ -53,7 +53,7 @@ class PlayerDeckTest {
 
     @Test
     fun `new styles fall back to the derbis layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne).forEach { mode ->
+        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, DerbisPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Derbis, resolvePlayerDeckLayout(mode, true, false, DerbisPlayerPane.Stacked, true))
@@ -176,7 +176,9 @@ class PlayerDeckTest {
         assertEquals(PlayerVisualMode.Flow, DefaultPlayerVisualMode)
         assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("CanvasCard"))
         assertEquals(PlayerVisualMode.Flow, PlayerVisualMode.from("flow"))
-        assertEquals(PlayerVisualMode.Folio, PlayerVisualMode.from("Folio"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("Folio"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("Halo"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("liner_notes"))
         assertEquals(PlayerVisualMode.TidalMusic, PlayerVisualMode.from("tidal_player"))
         assertEquals(PlayerVisualMode.Flow, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Flow))
         assertEquals(PlayerVisualMode.CanvasCard, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Derbis))

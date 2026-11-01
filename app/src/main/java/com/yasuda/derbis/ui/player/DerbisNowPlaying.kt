@@ -74,7 +74,6 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material.icons.rounded.Circle
 import androidx.compose.material.icons.rounded.Nightlight
@@ -475,7 +474,6 @@ private fun DerbisNowPlayingContent(
         SideEffect {
             morphAnchors.updateLanding(
                 when (deckLayout) {
-                    PlayerDeckLayout.Folio -> PlayerMorphLanding.Cookie
                     PlayerDeckLayout.Flow -> if (state.isPlaying) PlayerMorphLanding.FlowPlaying else PlayerMorphLanding.FlowPaused
                     else -> PlayerMorphLanding.Rounded
                 }
@@ -1205,63 +1203,6 @@ private fun DerbisNowPlayingContent(
                 onTogglePlay = viewModel::togglePlay,
                 onNext = viewModel::next,
                 onRepeat = viewModel::toggleRepeat,
-                modifier = deckModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Halo && track != null) {
-            PlayerHaloDeck(
-                track = track,
-                slots = deckSlots,
-                surfaces = surfaces,
-                isFavorite = track.id in state.favoriteIds,
-                queuePosition = playerDeckQueuePosition(state.queue, track.id),
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                shuffleOn = state.shuffleEnabled,
-                repeatMode = state.repeatMode,
-                labels = playerControlLabels,
-                animated = animated,
-                scrollable = !fitsViewport,
-                gutter = gutter,
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onShuffle = viewModel::toggleShuffle,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                onRepeat = viewModel::toggleRepeat,
-                headlineModifier = lyricsFlipSwipeModifier,
-                modifier = deckModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Folio && track != null) {
-            PlayerFolioDeck(
-                track = track,
-                slots = deckSlots,
-                surfaces = surfaces,
-                isFavorite = track.id in state.favoriteIds,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                shuffleOn = state.shuffleEnabled,
-                repeatMode = state.repeatMode,
-                labels = playerControlLabels,
-                animated = animated,
-                compact = compactPlayer,
-                scrollable = !fitsViewport,
-                gutter = gutter,
-                artworkCap = artworkCap,
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onShuffle = viewModel::toggleShuffle,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                onRepeat = viewModel::toggleRepeat,
-                headlineModifier = lyricsFlipSwipeModifier,
                 modifier = deckModifier
             )
         } else if (deckLayout == PlayerDeckLayout.Sleeve && track != null) {
@@ -2325,8 +2266,6 @@ internal fun visualModeStateDescription(
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
     PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
     PlayerVisualMode.Pulse -> strings.playerDeckPulse
-    PlayerVisualMode.Halo -> strings.playerDeckHalo
-    PlayerVisualMode.Folio -> strings.playerDeckFolio
     PlayerVisualMode.Flow -> strings.playerDeckFlow
     PlayerVisualMode.Frost -> strings.playerDeckFrost
     PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOne
@@ -2338,8 +2277,6 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.AppleMusic13 -> Icons.Rounded.Album
     PlayerVisualMode.TidalMusic -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq
-    PlayerVisualMode.Halo -> Icons.Rounded.Album
-    PlayerVisualMode.Folio -> Icons.Rounded.Newspaper
     PlayerVisualMode.Flow -> Icons.Rounded.Waves
     PlayerVisualMode.Frost -> Icons.Rounded.BlurOn
     PlayerVisualMode.DerbisOne -> Icons.Rounded.Circle

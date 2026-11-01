@@ -82,8 +82,6 @@ enum class PlayerVisualMode {
     AppleMusic13,
     TidalMusic,
     Pulse,
-    Halo,
-    Folio,
     Flow,
     Frost,
     DerbisOne;
@@ -105,6 +103,9 @@ enum class PlayerVisualMode {
                         // (stored as the enum name, so also "canvasimmersive") lands on the
                         // sleeve deck instead of vanishing.
                         "canvas_immersive", "canvasimmersive", "immersive", "beatsync" -> CanvasCard
+                        // Liner Notes (Halo) and Folio were retired in favour of the cover-led
+                        // sleeve, so an old saved choice lands there instead of on the fallback.
+                        "halo", "linernotes", "liner_notes", "folio" -> CanvasCard
                         else -> Artwork
                     }
             }

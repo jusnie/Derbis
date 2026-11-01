@@ -265,8 +265,6 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): St
         PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
         PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
         PlayerVisualMode.Pulse -> labels.pulse
-        PlayerVisualMode.Halo -> labels.halo
-        PlayerVisualMode.Folio -> labels.folio
         PlayerVisualMode.Flow -> labels.flow
         PlayerVisualMode.Frost -> labels.frost
         PlayerVisualMode.DerbisOne -> labels.derbisOne
@@ -279,8 +277,6 @@ internal fun playerDeckHint(mode: PlayerVisualMode, strings: DerbisStrings): Str
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13Hint
     PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusicHint
     PlayerVisualMode.Pulse -> strings.playerDeckPulseHint
-    PlayerVisualMode.Halo -> strings.playerDeckHaloHint
-    PlayerVisualMode.Folio -> strings.playerDeckFolioHint
     PlayerVisualMode.Flow -> strings.playerDeckFlowHint
     PlayerVisualMode.Frost -> strings.playerDeckFrostHint
     PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOneHint
@@ -301,8 +297,6 @@ private fun PlayerDeckPreview(
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
         PlayerVisualMode.TidalMusic -> TidalMusicPreview(track, artworkUrl)
         PlayerVisualMode.Pulse -> PulsePreview(track, artworkUrl, accent)
-        PlayerVisualMode.Halo -> ExpressivePreview(track, artworkUrl, accent)
-        PlayerVisualMode.Folio -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Flow -> FlowPreview(track, artworkUrl, accent)
         PlayerVisualMode.Frost -> FrostPreview(track, artworkUrl, accent)
         PlayerVisualMode.DerbisOne -> OnePreview(track, artworkUrl, accent)
@@ -420,61 +414,6 @@ private fun CardPreview(track: Track, artworkUrl: String, accent: Color) {
             )
         }
         PreviewControls(accent = accent, modifier = Modifier.align(Alignment.BottomCenter))
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ExpressivePreview(track: Track, artworkUrl: String, accent: Color) {
-    val ink = lerp(accent, Color.White, 0.72f)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(lerp(accent, Color.Black, 0.62f))
-    ) {
-        DeckArtwork(
-            track = track,
-            artworkUrl = artworkUrl,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 20.dp)
-                .fillMaxWidth(0.7f)
-                .aspectRatio(1f)
-                .clip(MaterialShapes.Puffy.toShape())
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            PreviewBar(width = 92.dp, height = 12.dp, color = ink)
-            PreviewBar(width = 48.dp, height = 4.dp, color = Color.White.copy(alpha = 0.55f))
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .background(ink.copy(alpha = 0.32f), CircleShape)
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(16.dp)
-                        .background(ink, CircleShape)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .background(ink.copy(alpha = 0.32f), CircleShape)
-                )
-            }
-        }
     }
 }
 
