@@ -111,10 +111,13 @@ val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
 val discordSocialSdkAvailable = !isFdroidBuild && discordSocialSdkAar.isFile
 val discordApplicationId = if (isFdroidBuild) "" else envOrProperty("DISCORD_APPLICATION_ID", "discordApplicationId")
     .ifBlank { "1563840846372012102" }
-// Must be registered as an allowed redirect on the Discord application. The implicit grant
-// returns the access token straight to this custom scheme, so no client secret ships in the APK.
-val discordRedirectUri = if (isFdroidBuild) "" else envOrProperty("DISCORD_REDIRECT_URI", "discordRedirectUri")
-    .ifBlank { "derbis-discord://callback" }
+// Must be registered as an allowed redirect on the Discord application. Mobile Discord does not
+// accept an arbitrary custom scheme: the documented format is discord-<APP ID>:/authorize/callback
+// (scheme plus path, no authority), and the code + PKCE exchange has to repeat it byte for byte.
+// Anything else is rejected by the authorize page before the user ever sees a consent screen.
+val discordRedirectUri = if (isFdroidBuild || discordApplicationId.isBlank()) "" else
+    envOrProperty("DISCORD_REDIRECT_URI", "discordRedirectUri")
+        .ifBlank { "discord-$discordApplicationId:/authorize/callback" }
 val releaseStoreFilePath = envOrProperty("DERBIS_KEYSTORE_FILE", "derbisStoreFile").ifBlank { "app/derbis-release.jks" }
 val releaseStorePassword = envOrProperty("DERBIS_KEYSTORE_PASSWORD", "derbisStorePassword").ifBlank { "derbis123" }
 val releaseKeyAlias = envOrProperty("DERBIS_KEY_ALIAS", "derbisKeyAlias").ifBlank { "derbis" }

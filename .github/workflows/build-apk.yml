@@ -106,6 +106,9 @@ jobs:
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
+          # Read directly by envOrProperty in app/build.gradle.kts; empty falls back to the id
+          # baked into the build, so an unset secret cannot break Discord sign-in.
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
         run: |
           ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace \
             -PderbisVersionName="${DERBIS_VERSION_NAME}" \

@@ -168,7 +168,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="derbis-spotify" android:host="callback" />
-                <data android:scheme="derbis-discord" android:host="callback" />
+            </intent-filter>
+            <!-- Discord mobile redirect: discord-<app id>:/authorize/callback. That URI has a
+                 scheme and a path but no authority, and an intent filter that declares a host
+                 anywhere refuses a hostless URI — so this cannot share a filter with the spotify
+                 callback above. The scheme is all the filter can key on here; the path is checked
+                 in DerbisDiscordRichPresence.receives(). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="discord-${discordApplicationId}" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

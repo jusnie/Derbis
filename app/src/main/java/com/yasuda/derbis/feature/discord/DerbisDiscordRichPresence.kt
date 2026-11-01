@@ -182,6 +182,7 @@ object DerbisDiscordRichPresence {
     private const val ENABLED_KEY = "enabled"
     private const val LYRICS_KEY = "lyrics_in_presence"
     private const val PKCE_VERIFIER_KEY = "pkce_verifier"
+    private const val OAUTH_STATE_KEY = "oauth_state"
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -288,12 +289,16 @@ object DerbisDiscordRichPresence {
             return null
         }
         val verifier = newCodeVerifier()
-        // Persisted before the hand-off so a process death during the Discord round-trip does not
-        // strand the callback with nothing to verify against.
+        // The redirect is a custom scheme, which any app on the device could claim, so the
+        // callback carries a nonce this app generated and nobody else has seen. Persisted before
+        // the hand-off, along with the PKCE verifier, so a process death during the Discord
+        // round-trip does not strand the callback with nothing to check it against.
+        val state = newCodeVerifier()
         context.applicationContext
             .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
             .edit()
             .putString(PKCE_VERIFIER_KEY, verifier)
+            .putString(OAUTH_STATE_KEY, state)
             .apply()
         _connectionState.value = DerbisDiscordConnectionState(
             DerbisDiscordConnectionStatus.SigningIn,
@@ -304,6 +309,7 @@ object DerbisDiscordRichPresence {
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("scope", "identify")
             .appendQueryParameter("redirect_uri", BuildConfig.DISCORD_REDIRECT_URI)
+            .appendQueryParameter("state", state)
             .appendQueryParameter("code_challenge", codeChallenge(verifier))
             .appendQueryParameter("code_challenge_method", "S256")
             .build()
@@ -336,8 +342,13 @@ object DerbisDiscordRichPresence {
     fun receives(uri: Uri?): Boolean {
         if (uri == null) return false
         val expected = Uri.parse(BuildConfig.DISCORD_REDIRECT_URI)
-        return uri.scheme.equals(expected.scheme, ignoreCase = true) &&
-            uri.host.equals(expected.host, ignoreCase = true)
+        // Discord's mobile redirect is discord-<app id>:/authorize/callback: a bare scheme with a
+        // path and no authority at all. Comparing hosts would be comparing two nulls, so the
+        // scheme is what identifies this app, and the path is checked with it.
+        if (!uri.scheme.equals(expected.scheme, ignoreCase = true)) return false
+        val expectedPath = expected.path.orEmpty()
+        if (expectedPath.isBlank()) return true
+        return uri.path.orEmpty().trimEnd('/').equals(expectedPath.trimEnd('/'), ignoreCase = true)
     }
 
     /**
@@ -358,6 +369,22 @@ object DerbisDiscordRichPresence {
         }
         fun read(key: String): String =
             params.getQueryParameter(key) ?: uri.getQueryParameter(key).orEmpty()
+        // State check first: if this callback is not the one this app started, none of the rest
+        // of it can be trusted, including its error field.
+        val preferences = context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+        val expectedState = preferences.getString(OAUTH_STATE_KEY, null).orEmpty()
+        val returnedState = read("state")
+        if (expectedState.isNotBlank()) {
+            preferences.edit().remove(OAUTH_STATE_KEY).apply()
+            if (returnedState != expectedState) {
+                _connectionState.value = DerbisDiscordConnectionState(
+                    DerbisDiscordConnectionStatus.Error,
+                    "Discord sign-in did not come back to the session that started it. Try again."
+                )
+                return
+            }
+        }
         val error = read("error")
         if (error.isNotBlank()) {
             val description = read("error_description")
@@ -452,10 +479,16 @@ object DerbisDiscordRichPresence {
                 latencyMs = diagnostic.latencyMs
             )
             // An OAuth access token authenticates the REST API, not the Discord gateway, so
-            // presence can only go out through the official Social SDK bridge.
+            // presence can only go out through the official Social SDK bridge. Say that out loud
+            // in the detail line instead of leaving a signed-in account that shows nothing.
             if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
                 setEnabled(context, true)
                 publishStored(context)
+            } else {
+                _connectionState.value = _connectionState.value.copy(
+                    detail = "Signed in as @${diagnostic.username}. Rich Presence needs the " +
+                        "Discord Social SDK, which this build does not carry."
+                )
             }
         }
     }

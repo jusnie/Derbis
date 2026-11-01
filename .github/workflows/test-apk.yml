@@ -49,6 +49,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DISCORD_SOCIAL_SDK_URL: ${{ secrets.DISCORD_SOCIAL_SDK_URL }}
+          # Gradle reads this env var directly (see envOrProperty in app/build.gradle.kts) and
+          # falls back to the id baked into the build when the secret is empty.
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
         shell: bash
