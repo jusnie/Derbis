@@ -327,7 +327,7 @@ private fun AppleMusic13ReferencePortraitDeck(
             AppleMusic13InlineLyrics(
                 line = activeLyric,
                 positionMs = lyricPositionMs,
-                modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
+                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
             )
             Box(Modifier.padding(horizontal = 2.dp)) {
                 slots.progress(PlayerProgressStyle.Classic)
@@ -348,6 +348,17 @@ private fun AppleMusic13ReferencePortraitDeck(
         }
     }
 }
+
+/**
+ * The inline lyric sits directly above the seek bar. The row is a fixed two-line box and it is
+ * clipped, for three reasons: the swipe-up transition used to draw the incoming line outside the
+ * row and straight over the seek bar, a long line used to wrap and shove the bar down, and lines
+ * of different lengths used to sit on different heights. Fixed height + clip pins all three, and
+ * the type is smaller so a normal line still reads on one row inside it.
+ */
+private val AppleMusic13InlineLyricSize = 15.sp
+private val AppleMusic13InlineLyricLineHeight = 20.sp
+private val AppleMusic13InlineLyricHeight = 40.dp
 
 private const val AppleMusic13StretchedArtworkHeight = 0.74f
 private const val AppleMusic13GestureStageHeight = 0.58f
@@ -513,7 +524,12 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                 ) + fadeOut(animationSpec = tween(240))
             )
         },
-        modifier = modifier.fillMaxWidth(),
+        // One fixed height, clipped: the incoming line rises inside this box and cannot paint
+        // over the seek bar beneath it, and a wrapped long line cannot push the bar down.
+        modifier = modifier
+            .fillMaxWidth()
+            .height(AppleMusic13InlineLyricHeight)
+            .clipToBounds(),
         label = "apple-music-inline-lyrics-swipe-up"
     ) { currentLine ->
         if (currentLine != null) {
@@ -526,8 +542,8 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                         words = words,
                         positionProvider = { positionMs },
                         isActive = true,
-                        fontSize = 17.sp,
-                        lineHeight = 23.sp,
+                        fontSize = AppleMusic13InlineLyricSize,
+                        lineHeight = AppleMusic13InlineLyricLineHeight,
                         textAlign = TextAlign.Start,
                         inactiveColor = Color.White.copy(alpha = 0.45f),
                         completedColor = Color.White,
@@ -547,8 +563,8 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                         words = words,
                         positionProvider = { positionMs },
                         isActive = true,
-                        fontSize = 17.sp,
-                        lineHeight = 23.sp,
+                        fontSize = AppleMusic13InlineLyricSize,
+                        lineHeight = AppleMusic13InlineLyricLineHeight,
                         textAlign = TextAlign.Start,
                         inactiveColor = Color.White.copy(alpha = 0.45f),
                         completedColor = Color.White,
