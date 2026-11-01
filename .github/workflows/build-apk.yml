@@ -8,20 +8,21 @@ on:
       release_tag:
         description: "Stable Android release tag"
         required: true
-        default: "v1.1.1"
+        default: "v1.5.0"
       release_name:
         description: "Visible release name"
         required: true
-        default: "Derbis v1.1.1"
+        default: "Derbis v1.5.0"
       release_version:
         description: "Version embedded in the Android package"
         required: true
-        default: "1.1.1"
+        default: "1.5.0"
       release_version_code:
         description: "Monotonically increasing Android versionCode"
         required: true
-        # Reissued 1.1.1 needs a higher code so Android accepts it over the previous 1.1.1 APK.
-        default: "3000209"
+        # 1.5.0 has to outrank the 1.5.0 test build (3000212) and the 1.6.0 prebuild (3000211) so
+        # Android installs it over either of them instead of refusing it as a downgrade.
+        default: "3000213"
 
 permissions:
   contents: write
@@ -46,6 +47,9 @@ jobs:
           [[ "${tag}" == "v${version}" ]] || { echo "release_tag must match release_version"; exit 1; }
           [[ "${name}" == "Derbis v${version}" ]] || { echo "release_name must match release_version"; exit 1; }
           [[ "${version_code}" =~ ^[1-9][0-9]*$ ]] || { echo "release_version_code must be a positive integer"; exit 1; }
+          # The release page is the notes file, so a release cannot be cut with a placeholder body.
+          notes="docs/releases/${tag}.md"
+          [[ -s "${notes}" ]] || { echo "release notes file ${notes} is missing or empty"; exit 1; }
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -135,32 +139,35 @@ jobs:
         run: |
           mkdir -p build-assets
           cp app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk build-assets/Derbis.apk
+          cd build-assets
+          sha256sum Derbis.apk | tee Derbis.apk.sha256
 
       - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Derbis-Release-APK
-          path: build-assets/Derbis.apk
+          path: |
+            build-assets/Derbis.apk
+            build-assets/Derbis.apk.sha256
 
       - name: Create / Update GitHub Release
-        if: github.ref == 'refs/heads/main'
+        # Manual dispatch only, and the tag is cut at the commit that was dispatched. Publishing is
+        # allowed from any branch because the metadata is validated above and the tag itself records
+        # the commit the APK came from.
+        if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name }}
+          # docs/releases/v<version>.md is checked in, so the release page and the changelog cannot
+          # drift apart and no placeholder body has to live in this workflow.
+          body_path: docs/releases/${{ inputs.release_tag }}.md
           draft: false
           prerelease: false
-          body: |
-            ## 1.1.1 refreshed build
-            - Removing Derbis from Android Recents now explicitly pauses playback, clears its activity and notification, and stops the media service.
-            - Discord Rich Presence is service-owned while music is active, avoids redundant native updates, and no longer tears down during Activity recreation.
-            - The timeline marks the configured crossfade end-zone; it becomes RGB-bright only during the real two-deck overlap, with a `CROSSFADING` status.
-            - `PLAYING FROM` and `DERBIS MUSIC METADATA` use a stronger player-header weight for better legibility.
-            - The refreshed APK keeps version name `1.1.1` and uses Android versionCode `3000204` so it can install over the original 1.1.1 package.
-
-            ## Update delivery
-            - This release replaces the previous `Derbis.apk` asset for v1.1.1 on GitHub.
-          files: build-assets/Derbis.apk
+          make_latest: true
+          files: |
+            build-assets/Derbis.apk
+            build-assets/Derbis.apk.sha256
           overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
