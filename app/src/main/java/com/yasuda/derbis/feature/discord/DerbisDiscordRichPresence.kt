@@ -338,6 +338,21 @@ object DerbisDiscordRichPresence {
         return Base64.encodeToString(digest, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
     }
 
+    /**
+     * Tells the user what the return trip did.
+     *
+     * The callback usually relaunches the app on whatever screen it left, not on the Discord
+     * panel, so a status that only lives in that panel is a status nobody sees: the phone
+     * bounces back to Derbis, nothing appears to change, and the sign-in reads as broken even
+     * when it succeeded.
+     */
+    private fun announce(message: String) {
+        val context = applicationContext ?: return
+        runCatching {
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
     /** Whether a deep link is the redirect this app is waiting for. */
     fun receives(uri: Uri?): Boolean {
         if (uri == null) return false
@@ -382,16 +397,19 @@ object DerbisDiscordRichPresence {
                     DerbisDiscordConnectionStatus.Error,
                     "Discord sign-in did not come back to the session that started it. Try again."
                 )
+                announce("Discord sign-in did not finish. Try again from Settings → Discord.")
                 return
             }
         }
         val error = read("error")
         if (error.isNotBlank()) {
             val description = read("error_description")
+            val message = description.ifBlank { "Discord sign-in was cancelled or denied ($error)." }
             _connectionState.value = DerbisDiscordConnectionState(
                 DerbisDiscordConnectionStatus.Error,
-                description.ifBlank { "Discord sign-in was cancelled or denied ($error)." }
+                message
             )
+            announce(message)
             return
         }
         val accessToken = read("access_token")
@@ -406,6 +424,7 @@ object DerbisDiscordRichPresence {
                 DerbisDiscordConnectionStatus.Error,
                 "Discord did not return an authorization code. Try signing in again."
             )
+            announce("Discord did not finish sign-in. Try again.")
             return
         }
         exchangeCode(context, code)
@@ -420,6 +439,7 @@ object DerbisDiscordRichPresence {
                 DerbisDiscordConnectionStatus.Error,
                 "The sign-in challenge expired. Start the Discord sign-in again."
             )
+            announce("Discord sign-in expired. Start it again from Settings → Discord.")
             return
         }
         _connectionState.value = DerbisDiscordConnectionState(
@@ -438,6 +458,7 @@ object DerbisDiscordRichPresence {
                     DerbisDiscordConnectionStatus.Error,
                     exchange.message
                 )
+                announce(exchange.message)
                 return@launch
             }
             preferences.edit().remove(PKCE_VERIFIER_KEY).apply()
@@ -457,6 +478,7 @@ object DerbisDiscordRichPresence {
                     status = DerbisDiscordConnectionStatus.Error,
                     detail = diagnostic.message
                 )
+                announce("Discord sign-in failed: ${diagnostic.message}")
                 return@launch
             }
             DerbisDiscordAccountStore.save(
@@ -484,10 +506,15 @@ object DerbisDiscordRichPresence {
             if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
                 setEnabled(context, true)
                 publishStored(context)
+                announce("Discord connected as @${diagnostic.username}.")
             } else {
                 _connectionState.value = _connectionState.value.copy(
                     detail = "Signed in as @${diagnostic.username}. Rich Presence needs the " +
                         "Discord Social SDK, which this build does not carry."
+                )
+                announce(
+                    "Signed in as @${diagnostic.username}. Rich Presence needs the Discord " +
+                        "Social SDK, which this build does not carry."
                 )
             }
         }
