@@ -59,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -194,19 +193,16 @@ internal fun SpotifyCanvasSheet(
                             lineHeight = 19.sp
                         )
 
-                        SpotifyActionButton(
-                            icon = Icons.Rounded.OpenInBrowser,
-                            label = strings.spotifyCanvasOpenBrowser,
-                            emphasis = true
-                        ) {
-                            detected = null
-                            browsing = true
-                        }
-
+                        // One card, not a sign-in button with a session card under it: the two
+                        // were the same question asked twice. The action lives in the card now.
                         SessionCard(
                             stored = stored,
                             busy = busy,
                             status = status,
+                            onSignIn = {
+                                detected = null
+                                browsing = true
+                            },
                             onTest = {
                                 scope.launch {
                                     busy = true
@@ -319,6 +315,7 @@ private fun SessionCard(
     stored: String,
     busy: Boolean,
     status: String,
+    onSignIn: () -> Unit,
     onTest: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
@@ -378,6 +375,35 @@ private fun SessionCard(
                 )
             } else if (unlocked) {
                 TextButton(onClick = onTest) { Text(strings.spotifyCanvasTest, color = SpotifyGreen, fontSize = 12.sp) }
+            }
+        }
+        // The sign-in action belongs to this card: it is what turns "No session stored" into a
+        // session, and a second button above the card said the same thing again.
+        if (!unlocked) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SpotifyGreen.copy(alpha = 0.14f))
+                    .border(1.dp, SpotifyGreen.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                    .clickable(onClick = onSignIn)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.OpenInBrowser,
+                    contentDescription = null,
+                    tint = SpotifyGreen,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = strings.spotifyCanvasOpenBrowser,
+                    color = DerbisText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
         if (status.isNotBlank()) {
@@ -620,42 +646,3 @@ private fun captureSession(): String? {
     return SpotifyCookie.parse(header)
 }
 
-@Composable
-private fun SpotifyActionButton(
-    icon: ImageVector,
-    label: String,
-    emphasis: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .background(
-                if (emphasis) SpotifyGreen.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.05f),
-                RoundedCornerShape(16.dp)
-            )
-            .border(
-                1.dp,
-                if (emphasis) SpotifyGreen.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (emphasis) SpotifyGreen else DerbisMuted,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = label,
-            color = DerbisText,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}

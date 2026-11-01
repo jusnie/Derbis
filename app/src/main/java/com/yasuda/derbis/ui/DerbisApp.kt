@@ -21,7 +21,6 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Whatshot
 import com.yasuda.derbis.ui.components.LocalDerbisAppBackdrop
 import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
@@ -22671,12 +22670,30 @@ private fun SpotifyConnectionSettingsPanel(
             )
         }
     }
-    SettingsButton(
-        icon = Icons.Rounded.AccountCircle,
-        title = if (spotifyState.isConnected) "Disconnect Spotify" else "Connect Spotify",
-        subtitle = subtitle,
-        enabled = spotifyState.status != com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connecting
-    ) {
+    // One Spotify card, not two. The account row and the Canvas row were answering the same
+    // question - is there a Spotify session? - in two different places, so a connected account
+    // showed "Connected" with an "UNLOCKED" card under it, and a disconnected one showed a
+    // sign-in row with a "Canvas locked" card under it. They are one surface now: what the
+    // session is on top, what it unlocks underneath, and the one action that changes it on the
+    // right.
+    //
+    // Canvas needs a Spotify session, and there are two ways to have one: the official OAuth
+    // connection (when the build carries a client id) or the web session held by the sheet.
+    val canvasUnlocked = spotifyState.isConnected || spotifySession.hasCookie
+    val connecting = spotifyState.status ==
+        com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connecting
+    val unlockedLine = when {
+        motionArtworkEnabled -> strings.motionArtworkUnlocked
+        else -> "Session ready · turn on Animated Artwork in Settings → Interface"
+    }
+    val cardSubtitle = when {
+        spotifyState.isConnected ->
+            spotifyState.displayName.ifBlank { "Connected" } + " · " + unlockedLine
+        spotifySession.hasCookie -> "Web session · " + unlockedLine
+        connecting -> subtitle
+        else -> strings.motionArtworkSpotifyRequired
+    }
+    val connectAction: () -> Unit = {
         if (spotifyState.isConnected) {
             com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
         } else {
@@ -22687,17 +22704,11 @@ private fun SpotifyConnectionSettingsPanel(
                 }.onFailure {
                     com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
                 }
+            } else if (!spotifySession.hasCookie) {
+                // No OAuth client id in this build: the sheet is the working door.
+                showSpotifyCanvasSheet = true
             }
         }
-    }
-
-    // Canvas needs a Spotify session, and there are two ways to have one: the official OAuth
-    // connection (when the build carries a client id) or the web session held by the sheet.
-    val canvasUnlocked = spotifyState.isConnected || spotifySession.hasCookie
-    val motionSubtitle = when {
-        !canvasUnlocked -> strings.motionArtworkSpotifyRequired
-        motionArtworkEnabled -> strings.motionArtworkUnlocked
-        else -> "Session ready · turn on Animated Artwork in Settings → Interface"
     }
 
     Box(
@@ -22705,27 +22716,17 @@ private fun SpotifyConnectionSettingsPanel(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(
-                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
+                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.08f)
+                else Color.White.copy(alpha = 0.04f)
             )
             .border(
                 1.dp,
-                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
+                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.32f)
+                else Color.White.copy(alpha = 0.10f),
                 RoundedCornerShape(18.dp)
             )
-            .clickable(enabled = !canvasUnlocked) {
-                // Locked: the old web-login card opened OAuth. That path is unavailable in builds
-                // without a client id, so it opens the session sheet, which has the browser.
-                showSpotifyCanvasSheet = true
-                if (!spotifySession.hasCookie) {
-                    val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-                    if (authorizationUri != null) {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
-                        }
-                    }
-                }
-            }
-            .padding(16.dp)
+            .clickable(enabled = !connecting, onClick = connectAction)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -22737,12 +22738,13 @@ private fun SpotifyConnectionSettingsPanel(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
+                        if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
+                        else Color.White.copy(alpha = 0.08f)
                     ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (canvasUnlocked) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
+                    imageVector = if (canvasUnlocked) Icons.Rounded.AutoAwesome else Icons.Rounded.AccountCircle,
                     contentDescription = null,
                     tint = if (canvasUnlocked) Color(0xFF1ED760) else DerbisMuted,
                     modifier = Modifier.size(22.dp)
@@ -22756,7 +22758,7 @@ private fun SpotifyConnectionSettingsPanel(
                 ) {
                     Text(
                         text = strings.motionArtworkEnabled,
-                        color = if (canvasUnlocked) DerbisText else DerbisMuted,
+                        color = DerbisText,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -22770,7 +22772,11 @@ private fun SpotifyConnectionSettingsPanel(
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = if (canvasUnlocked) "UNLOCKED" else "LOGIN REQUIRED",
+                            text = when {
+                                connecting -> "CONNECTING"
+                                canvasUnlocked -> "UNLOCKED"
+                                else -> "LOGIN REQUIRED"
+                            },
                             color = if (canvasUnlocked) Color(0xFF1ED760) else Color(0xFFFF5E3A),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Black,
@@ -22778,19 +22784,25 @@ private fun SpotifyConnectionSettingsPanel(
                         )
                     }
                 }
-
                 Text(
-                    text = motionSubtitle,
-                    color = if (canvasUnlocked) DerbisMuted else Color.White.copy(alpha = 0.45f),
+                    text = cardSubtitle,
+                    color = DerbisMuted,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
                 )
             }
 
-            // No switch here on purpose. Animated Artwork has one control only — the toggle in
-            // Settings → Interface — so a second switch could never disagree with it. This panel
-            // reports whether a Spotify session is in place (the sp_dc that unlocks official
-            // Canvas lookups) and leaves the on/off decision to that single toggle.
+            // The one action. Tapping the card does the same thing, so neither is the only target.
+            Text(
+                text = if (spotifyState.isConnected) "Disconnect" else "Connect",
+                color = if (spotifyState.isConnected) DerbisMuted else Color(0xFF1ED760),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(99.dp))
+                    .clickable(enabled = !connecting, onClick = connectAction)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
         }
     }
 
