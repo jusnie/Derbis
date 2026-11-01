@@ -22388,30 +22388,42 @@ private fun SettingsSearchResultRow(title: String, description: String, category
  * because the app does not claim every discord.com path as an App Link.
  */
 private fun openDiscordAuthorization(context: Context, uri: Uri) {
+    // Launch, do not ask permission first. Since Android 11 a package that is not named in the
+    // manifest's <queries> block is invisible to resolveActivity(), so the old
+    // "if (candidate.resolveActivity(manager) == null) continue" skipped every Discord candidate on
+    // a modern phone and quietly fell through to a browser tab. startActivity() itself is not
+    // restricted by package visibility - it either opens Discord or throws.
     val discord = com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
     val flag = Intent.FLAG_ACTIVITY_NEW_TASK
     val packages = listOf("com.discord", "com.discord.beta", "com.discord.preview")
-    val candidates = buildList<Intent> {
-        discord.authorizationDeepLink(uri)?.let { deepLink ->
-            packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, deepLink).setPackage(pkg).addFlags(flag)) }
+    val deepLink = discord.authorizationDeepLink(uri)
+
+    // Discord's own app first: the consent screen then opens inside an account that is already
+    // signed in, and the redirect comes straight back to this app.
+    val candidates = buildList {
+        deepLink?.let { link ->
+            // Named Discord builds first, then whoever else answers discord:// on a phone whose
+            // Discord is packaged under a name this list does not know.
+            packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, link).setPackage(pkg).addFlags(flag)) }
+            add(Intent(Intent.ACTION_VIEW, link).addFlags(flag))
         }
+        // Then the https page, which Discord's app also claims on Android when App Links verify.
         packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, uri).setPackage(pkg).addFlags(flag)) }
+        // Last, the page in whatever browser is installed. Always works, never hands back a code.
+        add(Intent(Intent.ACTION_VIEW, uri).addFlags(flag))
     }
-    val manager = context.packageManager
+
     for (candidate in candidates) {
-        if (candidate.resolveActivity(manager) == null) continue
-        if (runCatching { context.startActivity(candidate) }.isSuccess) return
+        val launched = runCatching { context.startActivity(candidate) }
+        if (launched.isSuccess) return
     }
-    runCatching {
-        context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(flag))
-    }.onFailure {
-        // Nothing can open the page: say so instead of leaving the panel stuck on "Signing in".
-        android.widget.Toast.makeText(
-            context,
-            "No app can open Discord sign-in. Install Discord or a browser and try again.",
-            android.widget.Toast.LENGTH_LONG
-        ).show()
-    }
+    // Nothing could take it: say so instead of leaving the panel stuck on "Connecting".
+    discord.cancelAuthorization(context)
+    android.widget.Toast.makeText(
+        context,
+        "Could not open Discord sign-in. Install Discord or a browser and try again.",
+        android.widget.Toast.LENGTH_LONG
+    ).show()
 }
 
 @Composable
@@ -22438,8 +22450,33 @@ private fun DiscordRichPresenceSettingsPanel() {
     val authorizeDiscord: () -> Unit = {
         discord.beginAuthorization(context)?.let { uri -> openDiscordAuthorization(context, uri) }
     }
+    // A sign-in nobody finished must not hold the panel hostage: while the panel waits, it checks
+    // the engine's deadline and goes back to "not signed in" when it passes, instead of sitting
+    // on a card with every control greyed out.
+    LaunchedEffect(connection.status) {
+        if (connection.status == com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn) {
+            while (true) {
+                delay(15_000)
+                if (discord.hasStaleSignIn()) {
+                    discord.cancelAuthorization(context)
+                    break
+                }
+            }
+        }
+    }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    val discordInstalled = remember(context) { discord.isDiscordAppAvailable(context) }
+    if (!discordInstalled) {
+        Text(
+            text = "The Discord app is not installed on this phone. Sign-in opens in your browser " +
+                "and still comes back to Derbis.",
+            color = DerbisMuted,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+        )
+    }
 
     when (connection.status) {
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable,
@@ -22447,7 +22484,10 @@ private fun DiscordRichPresenceSettingsPanel() {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,
                 title = "Connect Discord",
-                subtitle = connection.detail.ifBlank { "Sign in with your Discord account inside the Discord app" },
+                subtitle = connection.detail.ifBlank {
+                    if (discordInstalled) "Sign in with your Discord account inside the Discord app"
+                    else "Sign in with your Discord account in the browser"
+                },
                 onClick = authorizeDiscord
             )
             SettingsButton(
@@ -22463,7 +22503,39 @@ private fun DiscordRichPresenceSettingsPanel() {
                 }
             )
         }
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn,
+        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn -> {
+            // Still waiting on Discord. Tapping opens it again - the deep link can land on the
+            // home screen if the app was backgrounded - and both ways out are here, because a
+            // card that only says "Connecting" can otherwise never be left.
+            SettingsButton(
+                icon = Icons.Rounded.AccountCircle,
+                title = "Connecting Discord",
+                subtitle = connection.detail.ifBlank {
+                    if (discordInstalled) "Approve Derbis in Discord to finish signing in."
+                    else "Approve Derbis in the browser to finish signing in."
+                },
+                onClick = authorizeDiscord
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 2.dp, bottom = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = authorizeDiscord) {
+                    Text(
+                        text = if (discordInstalled) "Open Discord again" else "Open sign-in again",
+                        color = DerbisPink,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                TextButton(onClick = { discord.cancelAuthorization(context) }) {
+                    Text("Cancel", color = DerbisMuted, fontSize = 13.sp)
+                }
+            }
+        }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting -> {
             SettingsButton(
                 icon = Icons.Rounded.AccountCircle,

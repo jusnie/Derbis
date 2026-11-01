@@ -23,6 +23,24 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
 
+    <!-- Android 11 hides other packages from this app unless they are named here. The Discord
+         hand-off does not need it to launch - startActivity() is not restricted - but the panel
+         asks whether Discord is installed at all before promising to open it, and that question
+         is answered from package visibility. -->
+    <queries>
+        <package android:name="com.discord" />
+        <package android:name="com.discord.beta" />
+        <package android:name="com.discord.preview" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="discord" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="discord.com" />
+        </intent>
+    </queries>
+
     <application
         android:name=".DerbisApplication"
         android:allowBackup="true"

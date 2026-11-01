@@ -183,6 +183,14 @@ object DerbisDiscordRichPresence {
     private const val LYRICS_KEY = "lyrics_in_presence"
     private const val PKCE_VERIFIER_KEY = "pkce_verifier"
     private const val OAUTH_STATE_KEY = "oauth_state"
+
+    /**
+     * How long a started sign-in is treated as still in flight. Nothing guarantees a callback -
+     * the Discord app can be closed from the consent screen, the deep link can land nowhere, the
+     * phone can kill the browser - and a panel that waits forever with every control disabled has
+     * no way out of itself. Past this, the panel goes back to "not signed in" on its own.
+     */
+    private const val SIGN_IN_TIMEOUT_MS = 5 * 60 * 1000L
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -195,6 +203,10 @@ object DerbisDiscordRichPresence {
     private val _connectionState = MutableStateFlow(
         DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
     )
+
+    /** When [beginAuthorization] last ran, so a sign-in nobody finished can expire. */
+    @Volatile
+    private var signInStartedAtMs = 0L
 
     val connectionState: StateFlow<DerbisDiscordConnectionState> = _connectionState.asStateFlow()
 
@@ -300,9 +312,10 @@ object DerbisDiscordRichPresence {
             .putString(PKCE_VERIFIER_KEY, verifier)
             .putString(OAUTH_STATE_KEY, state)
             .apply()
+        signInStartedAtMs = android.os.SystemClock.elapsedRealtime()
         _connectionState.value = DerbisDiscordConnectionState(
             DerbisDiscordConnectionStatus.SigningIn,
-            "Approve Derbis inside Discord to finish signing in."
+            "Approve Derbis in Discord to finish signing in."
         )
         return Uri.parse(AUTHORIZE_ENDPOINT).buildUpon()
             .appendQueryParameter("client_id", BuildConfig.DISCORD_APPLICATION_ID)
@@ -353,6 +366,51 @@ object DerbisDiscordRichPresence {
         }
     }
 
+    /**
+     * Whether the Discord app can take the authorization link on this device.
+     *
+     * Launching does not need this answer - startActivity() is not restricted by package
+     * visibility - but saying "Open Discord" when Discord is not installed sends the listener
+     * looking for an app that is not there, so the panel asks before it promises.
+     */
+    fun isDiscordAppAvailable(context: Context): Boolean = runCatching {
+        context.packageManager.queryIntentActivities(
+            android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("discord://-/")),
+            android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+        ).isNotEmpty()
+    }.getOrDefault(false)
+
+    /**
+     * Gives up on a sign-in that was started but never finished, and says so. The PKCE verifier is
+     * dropped with the state, so a callback that arrives late cannot complete a flow the listener
+     * already walked away from.
+     */
+    fun cancelAuthorization(context: Context) {
+        signInStartedAtMs = 0L
+        runCatching {
+            context.applicationContext
+                .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+                .edit()
+                .remove(PKCE_VERIFIER_KEY)
+                .remove(OAUTH_STATE_KEY)
+                .apply()
+        }
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Disconnected,
+            "Discord sign-in was cancelled."
+        )
+    }
+
+    /**
+     * True when a sign-in has been waiting longer than [SIGN_IN_TIMEOUT_MS]. Called from the panel
+     * so the state it renders is never one nobody can leave.
+     */
+    fun hasStaleSignIn(): Boolean {
+        val started = signInStartedAtMs
+        if (started == 0L) return false
+        return android.os.SystemClock.elapsedRealtime() - started > SIGN_IN_TIMEOUT_MS
+    }
+
     /** Whether a deep link is the redirect this app is waiting for. */
     fun receives(uri: Uri?): Boolean {
         if (uri == null) return false
@@ -372,6 +430,7 @@ object DerbisDiscordRichPresence {
      */
     fun handleRedirect(context: Context, uri: Uri?) {
         if (!receives(uri) || uri == null) return
+        signInStartedAtMs = 0L
         applicationContext = context.applicationContext
         // The implicit grant returns the token in the fragment; browsers that rewrite the
         // redirect may hand the same keys back as a query instead, so both are accepted.
