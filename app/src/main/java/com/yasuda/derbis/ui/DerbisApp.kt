@@ -22371,14 +22371,36 @@ private fun SettingsSearchResultRow(title: String, description: String, category
 /**
  * Opens the Discord authorization page in the Discord app, so the user approves Derbis where
  * they are already signed in. Falls back to a browser when Discord is missing or refuses it.
+ *
+ * The app is asked in three ways, cheapest first: Discord's own `discord://` router (the page the
+ * app shows internally), then the https page addressed at the Discord packages, then any browser.
+ * Sending only the https URL to `com.discord` is what used to bounce people into a browser,
+ * because the app does not claim every discord.com path as an App Link.
  */
 private fun openDiscordAuthorization(context: Context, uri: Uri) {
-    val inDiscord = Intent(Intent.ACTION_VIEW, uri)
-        .setPackage("com.discord")
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    if (runCatching { context.startActivity(inDiscord) }.isSuccess) return
+    val discord = com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+    val flag = Intent.FLAG_ACTIVITY_NEW_TASK
+    val packages = listOf("com.discord", "com.discord.beta", "com.discord.preview")
+    val candidates = buildList<Intent> {
+        discord.authorizationDeepLink(uri)?.let { deepLink ->
+            packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, deepLink).setPackage(pkg).addFlags(flag)) }
+        }
+        packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, uri).setPackage(pkg).addFlags(flag)) }
+    }
+    val manager = context.packageManager
+    for (candidate in candidates) {
+        if (candidate.resolveActivity(manager) == null) continue
+        if (runCatching { context.startActivity(candidate) }.isSuccess) return
+    }
     runCatching {
-        context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(flag))
+    }.onFailure {
+        // Nothing can open the page: say so instead of leaving the panel stuck on "Signing in".
+        android.widget.Toast.makeText(
+            context,
+            "No app can open Discord sign-in. Install Discord or a browser and try again.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
     }
 }
 

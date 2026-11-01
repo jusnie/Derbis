@@ -28,15 +28,23 @@ class BeatGridAnalysisAudioProcessor(
     private var inputEnded = false
 
     @Volatile private var trackId: String = ""
+    @Volatile private var capturedFromMs: Long = 0L
     private var collected = FloatArray(0)
     private var collectedSize = 0
     private var decimation = 1
     private var frameCursor = 0L
     private var analysisStarted = false
 
-    fun beginTrack(id: String) {
-        if (id == trackId) return
+    /**
+     * Starts (or restarts) the capture for [id]. [fromPositionMs] is the playback position the
+     * first captured sample corresponds to, so a track that starts or resumes mid-way still gets
+     * a beat origin measured against the real timeline instead of against the capture window.
+     */
+    fun beginTrack(id: String, fromPositionMs: Long = 0L) {
+        val origin = fromPositionMs.coerceAtLeast(0L)
+        if (id == trackId && origin == capturedFromMs) return
         trackId = id
+        capturedFromMs = origin
         collected = FloatArray(0)
         collectedSize = 0
         frameCursor = 0L
@@ -94,9 +102,12 @@ class BeatGridAnalysisAudioProcessor(
             analysisStarted = true
             val snapshot = collected.copyOf(collectedSize)
             val capturedTrack = id
+            val capturedOrigin = capturedFromMs
             scope.launch {
                 val grid = DerbisBeatAnalyzer.analyzeInterleaved(snapshot, ANALYSIS_SAMPLE_RATE, 1)
-                if (trackId == capturedTrack && grid.isUsable) onGrid(capturedTrack, grid)
+                if (trackId == capturedTrack && grid.isUsable) {
+                    onGrid(capturedTrack, grid.copy(capturedFromMs = capturedOrigin))
+                }
             }
         }
     }
@@ -136,6 +147,7 @@ class BeatGridAnalysisAudioProcessor(
         collected = FloatArray(0)
         collectedSize = 0
         trackId = ""
+        capturedFromMs = 0L
         frameCursor = 0L
         analysisStarted = false
     }

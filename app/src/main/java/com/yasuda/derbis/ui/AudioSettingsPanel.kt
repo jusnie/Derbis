@@ -657,9 +657,9 @@ internal fun AudioSettingsPanel(
                     AudioToggleRow(
                         title = "Beat Sync",
                         subtitle = if (audioSettings.djSoftMode) {
-                            "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified Mix Studio beat alignment."
+                            "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified beat alignment."
                         } else {
-                            "Enables verified BPM and beat-grid alignment for transitions selected in Mix Studio."
+                            "Aligns the blend between songs to the beat on any queue. Each track needs about 15 seconds of playback first so Derbis can measure it."
                         },
                         checked = audioSettings.beatSyncEnabled,
                         enabled = !audioSettings.djSoftMode,

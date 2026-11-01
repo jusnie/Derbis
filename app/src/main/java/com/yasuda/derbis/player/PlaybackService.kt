@@ -1092,8 +1092,10 @@ class PlaybackService : MediaLibraryService() {
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 if (activePlayer !== player) return
+                // The offset keeps a resumed track's beat origin measured from the real
+                // timeline instead of from wherever the capture window happened to open.
                 queueEngine.state.value.currentTrack?.id?.takeIf(String::isNotBlank)
-                    ?.let(beatGridProcessor::beginTrack)
+                    ?.let { trackId -> beatGridProcessor.beginTrack(trackId, player.currentPosition) }
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
                     VideoDecoderFallback.Shared.reset()
@@ -2314,6 +2316,10 @@ class PlaybackService : MediaLibraryService() {
             ?: duration
         val remaining = handoffAtMs - position
         if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
+        // Beat grids are consulted whenever the master switch is on, with or without a Mix Studio
+        // plan: without this the toggle only worked for playlists carrying a saved transition.
+        val beatSyncArmed = currentAudioSettings.beatSyncEnabled &&
+            (mixStudioSetting == null || mixStudioSetting.beatSyncEnabled)
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
             next = next,
@@ -2323,8 +2329,8 @@ class PlaybackService : MediaLibraryService() {
             lowRam = adaptivePlaybackPolicy.current(videoMode = false).lowRam,
             shuffleEnabled = snapshot.shuffleEnabled,
             mixStudioSetting = mixStudioSetting,
-            currentBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(current.id) },
-            nextBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(next.id) }
+            currentBeatGrid = if (beatSyncArmed) beatGridStore.gridFor(current.id) else null,
+            nextBeatGrid = if (beatSyncArmed) beatGridStore.gridFor(next.id) else null
         ) ?: return
         if (remaining > plan.preloadLeadMs) return
         queueTransitionJob = serviceScope.launch {

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
+import android.util.Base64
 import com.yasuda.derbis.BuildConfig
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CoroutineScope
@@ -180,6 +181,7 @@ object DerbisDiscordRichPresence {
     private const val PREFERENCES = "derbis_discord_presence"
     private const val ENABLED_KEY = "enabled"
     private const val LYRICS_KEY = "lyrics_in_presence"
+    private const val PKCE_VERIFIER_KEY = "pkce_verifier"
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -270,9 +272,11 @@ object DerbisDiscordRichPresence {
     /**
      * The Discord authorization page for Derbis, or null when this build has no application id.
      *
-     * `response_type=token` keeps the exchange on the device: Discord hands the access token back
-     * in the redirect, so the app never ships a client secret. Callers open this in the Discord
-     * app first and fall back to a browser, so signing in happens where the user is already logged in.
+     * Authorization code + PKCE, not the old implicit grant: Discord's current mobile flow is
+     * code + PKCE with a custom-scheme redirect, and the Discord app is the component that
+     * completes it. The verifier stays on the device, so no client secret ships in the APK.
+     * Callers open this in the Discord app first and fall back to a browser, so signing in happens
+     * where the user is already logged in.
      */
     fun beginAuthorization(context: Context): Uri? {
         applicationContext = context.applicationContext
@@ -283,16 +287,49 @@ object DerbisDiscordRichPresence {
             )
             return null
         }
+        val verifier = newCodeVerifier()
+        // Persisted before the hand-off so a process death during the Discord round-trip does not
+        // strand the callback with nothing to verify against.
+        context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .putString(PKCE_VERIFIER_KEY, verifier)
+            .apply()
         _connectionState.value = DerbisDiscordConnectionState(
             DerbisDiscordConnectionStatus.SigningIn,
             "Approve Derbis inside Discord to finish signing in."
         )
         return Uri.parse(AUTHORIZE_ENDPOINT).buildUpon()
             .appendQueryParameter("client_id", BuildConfig.DISCORD_APPLICATION_ID)
-            .appendQueryParameter("response_type", "token")
+            .appendQueryParameter("response_type", "code")
             .appendQueryParameter("scope", "identify")
             .appendQueryParameter("redirect_uri", BuildConfig.DISCORD_REDIRECT_URI)
+            .appendQueryParameter("code_challenge", codeChallenge(verifier))
+            .appendQueryParameter("code_challenge_method", "S256")
             .build()
+    }
+
+    /**
+     * Deep link to the same authorization page that the Discord app itself understands, so the
+     * consent screen opens inside Discord instead of a browser tab.
+     */
+    fun authorizationDeepLink(authorization: Uri): Uri? = runCatching {
+        val path = authorization.encodedPath?.removePrefix("/").orEmpty()
+        val query = authorization.encodedQuery.orEmpty()
+        if (path.isBlank()) return@runCatching null
+        Uri.parse("discord://-/$path" + if (query.isBlank()) "" else "?$query")
+    }.getOrNull()
+
+    private fun newCodeVerifier(): String {
+        val bytes = ByteArray(32)
+        java.security.SecureRandom().nextBytes(bytes)
+        return Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
+    }
+
+    private fun codeChallenge(verifier: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(verifier.toByteArray(Charsets.US_ASCII))
+        return Base64.encodeToString(digest, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
     }
 
     /** Whether a deep link is the redirect this app is waiting for. */
@@ -331,17 +368,57 @@ object DerbisDiscordRichPresence {
             return
         }
         val accessToken = read("access_token")
-        if (accessToken.isBlank()) {
+        if (accessToken.isNotBlank()) {
+            // Legacy fragment response, kept so an old pending sign-in still completes.
+            completeAuthorization(context, accessToken)
+            return
+        }
+        val code = read("code")
+        if (code.isBlank()) {
             _connectionState.value = DerbisDiscordConnectionState(
                 DerbisDiscordConnectionStatus.Error,
-                "Discord did not return an access token. Try signing in again."
+                "Discord did not return an authorization code. Try signing in again."
             )
             return
         }
-        completeAuthorization(context, accessToken)
+        exchangeCode(context, code)
     }
 
-    private fun completeAuthorization(context: Context, accessToken: String) {
+    /** Swaps the authorization code for a token, then verifies it like any other session. */
+    private fun exchangeCode(context: Context, code: String) {
+        val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+        val verifier = preferences.getString(PKCE_VERIFIER_KEY, null).orEmpty()
+        if (verifier.isBlank()) {
+            _connectionState.value = DerbisDiscordConnectionState(
+                DerbisDiscordConnectionStatus.Error,
+                "The sign-in challenge expired. Start the Discord sign-in again."
+            )
+            return
+        }
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Connecting,
+            "Finishing Discord sign-in..."
+        )
+        bridgeScope.launch {
+            val exchange = DiscordRpcClient.exchangeAuthorizationCode(
+                clientId = BuildConfig.DISCORD_APPLICATION_ID,
+                code = code,
+                redirectUri = BuildConfig.DISCORD_REDIRECT_URI,
+                codeVerifier = verifier
+            )
+            if (!exchange.success) {
+                _connectionState.value = DerbisDiscordConnectionState(
+                    DerbisDiscordConnectionStatus.Error,
+                    exchange.message
+                )
+                return@launch
+            }
+            preferences.edit().remove(PKCE_VERIFIER_KEY).apply()
+            completeAuthorization(context, exchange.accessToken, exchange.refreshToken)
+        }
+    }
+
+    private fun completeAuthorization(context: Context, accessToken: String, refreshToken: String = "") {
         _connectionState.value = DerbisDiscordConnectionState(
             DerbisDiscordConnectionStatus.Connecting,
             "Verifying your Discord account..."
@@ -359,6 +436,7 @@ object DerbisDiscordRichPresence {
                 context,
                 DerbisDiscordSession(
                     accessToken = accessToken,
+                    refreshToken = refreshToken,
                     tokenType = 1,
                     username = diagnostic.username,
                     globalName = diagnostic.globalName,

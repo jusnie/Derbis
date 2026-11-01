@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger
 object DiscordRpcClient {
     private const val GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
     private const val REST_API_USER_ME = "https://discord.com/api/v10/users/@me"
+    private const val REST_API_TOKEN = "https://discord.com/api/v10/oauth2/token"
     private const val DEFAULT_APP_ID = "1199347898516045884"
 
     /** Shown as the activity title. Discord prefixes it with "Listening to". */
@@ -332,6 +333,65 @@ object DiscordRpcClient {
     }
 
     /**
+     * Exchanges the authorization code Discord handed back for an access token.
+     *
+     * Mobile sign-in has to use the authorization-code grant with PKCE: Discord no longer issues
+     * implicit (`response_type=token`) grants to new applications, and the Discord app only
+     * completes the native flow when it is answering a PKCE request. No client secret is involved,
+     * so nothing secret ships in the APK.
+     */
+    suspend fun exchangeAuthorizationCode(
+        clientId: String,
+        code: String,
+        redirectUri: String,
+        codeVerifier: String
+    ): DiscordCodeExchange = withContext(Dispatchers.IO) {
+        if (clientId.isBlank() || code.isBlank() || redirectUri.isBlank() || codeVerifier.isBlank()) {
+            return@withContext DiscordCodeExchange(success = false, message = "Discord sign-in details were incomplete.")
+        }
+        val form = okhttp3.FormBody.Builder()
+            .add("client_id", clientId)
+            .add("grant_type", "authorization_code")
+            .add("code", code)
+            .add("redirect_uri", redirectUri)
+            .add("code_verifier", codeVerifier)
+            .build()
+        val request = Request.Builder()
+            .url(REST_API_TOKEN)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) DerbisMusic/1.1")
+            .post(form)
+            .build()
+        runCatching {
+            httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val described = runCatching { JSONObject(body).optString("error_description") }.getOrNull()
+                    return@use DiscordCodeExchange(
+                        success = false,
+                        httpCode = response.code,
+                        message = described?.takeIf { it.isNotBlank() }
+                            ?: "Discord rejected the sign-in (HTTP ${response.code})."
+                    )
+                }
+                val json = JSONObject(body)
+                val accessToken = json.optString("access_token")
+                if (accessToken.isBlank()) {
+                    return@use DiscordCodeExchange(success = false, message = "Discord did not return an access token.")
+                }
+                DiscordCodeExchange(
+                    success = true,
+                    accessToken = accessToken,
+                    refreshToken = json.optString("refresh_token"),
+                    message = "Signed in"
+                )
+            }
+        }.getOrElse { error ->
+            DiscordCodeExchange(success = false, message = "Could not reach Discord: ${error.message ?: error.javaClass.simpleName}")
+        }
+    }
+
+    /**
      * 4-phase Connection Tester (OuterTune diagnostic pattern).
      */
     suspend fun testConnection(token: String): DiscordDiagnosticResult = withContext(Dispatchers.IO) {
@@ -411,6 +471,15 @@ object DiscordRpcClient {
         }
     }
 }
+
+/** Result of the authorization-code exchange that completes Discord sign-in. */
+data class DiscordCodeExchange(
+    val success: Boolean,
+    val accessToken: String = "",
+    val refreshToken: String = "",
+    val httpCode: Int = 0,
+    val message: String = ""
+)
 
 /**
  * Diagnostic result returned by the Connection Tester.

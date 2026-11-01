@@ -6187,11 +6187,31 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val diagnostics = listOf(
             resolver.playbackDiagnostics(),
             providerRouter.diagnostics(),
+            beatSyncDiagnostics(),
             com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety.describe()
         ).filter { it.isNotBlank() }.joinToString("\n")
         _state.update { it.copy(playbackDiagnostics = diagnostics) }
         return diagnostics
     }
+
+    /** One line about Beat Sync, so "is it on and does it have data" is answerable from settings. */
+    private fun beatSyncDiagnostics(): String = runCatching {
+        val settings = _state.value.audioSettings
+        val analysed = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).analysedCount()
+        buildString {
+            appendLine("Beat Sync: " + if (settings.beatSyncEnabled) "on" else "off")
+            appendLine("beat grids analysed on this device: $analysed")
+            val current = _state.value.currentTrack
+            if (current != null) {
+                val grid = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).gridFor(current.id)
+                appendLine(
+                    "current track grid: " + (grid?.let { g ->
+                        "bpm=${g.validBpm?.let { "%.1f".format(it) } ?: "?"} confidence=${"%.2f".format(g.confidence)}"
+                    } ?: "not analysed yet")
+                )
+            }
+        }
+    }.getOrDefault("")
 
     private suspend fun refreshAfterRestore() {
         val snapshot = withContext(Dispatchers.IO) { preferences.snapshot() }

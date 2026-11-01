@@ -197,8 +197,21 @@ internal fun PlayerAuraDeck(
     // One beat clock for the whole deck: the ring around the artwork and the backdrop behind it
     // must swell on the same frame, and two independent clocks drift apart within a bar.
     val context = LocalContext.current
-    val beatGrid = remember(track.id) {
-        runCatching { DerbisBeatGridStore(context).gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
+    // The grid is measured from the first seconds of playback, so at the moment this composes it
+    // usually does not exist yet. Re-reading it once it lands is what lets the deck start pulsing
+    // on the current track instead of only on the next one.
+    var beatGrid by remember(track.id) {
+        mutableStateOf(
+            runCatching { DerbisBeatGridStore(context).gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
+        )
+    }
+    LaunchedEffect(track.id) {
+        if (beatGrid != null) return@LaunchedEffect
+        val store = DerbisBeatGridStore(context)
+        while (beatGrid == null) {
+            kotlinx.coroutines.delay(3_000L)
+            beatGrid = runCatching { store.gridFor(track.id) }.getOrNull()?.takeIf { it.isUsable }
+        }
     }
     val beats = rememberBeatPosition(
         grid = beatGrid,
