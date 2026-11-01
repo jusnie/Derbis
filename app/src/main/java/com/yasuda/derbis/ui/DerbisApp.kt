@@ -154,6 +154,7 @@ import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalDotIntensity
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalGaps
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalProgress
+import com.yasuda.derbis.ui.lyrics.KARAOKE_VISUAL_LEAD_MS
 import com.yasuda.derbis.ui.lyrics.lyricsLineFocusPositionMs
 import com.yasuda.derbis.ui.lyrics.rememberLyricsPlaybackClock
 import com.yasuda.derbis.ui.lyrics.LYRICS_LANDSCAPE_CHROME_HEIGHT_DP
@@ -9674,8 +9675,11 @@ internal fun KaraokeWordTimedText(
     shadow: Shadow? = null
 ) {
     val timedText = remember(lineText, words) { buildTimedLyricText(lineText, words) }
-    // Inactive rows do not observe the clock and keep their normal inactive color.
-    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    // Inactive rows do not observe the clock and keep their normal inactive color. An active row
+    // reads a little ahead: the word colour takes 115 ms to finish its tween, so a highlight
+    // sampled exactly on the timestamp *completes* after the syllable has been sung. The lead
+    // puts the middle of that fade on the word.
+    val playbackPosition = if (isActive) positionProvider() + KARAOKE_VISUAL_LEAD_MS else Long.MIN_VALUE
     val wordTransition = tween<Color>(
         durationMillis = 115,
         easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)

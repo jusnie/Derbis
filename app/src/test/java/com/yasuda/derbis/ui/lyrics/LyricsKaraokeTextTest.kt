@@ -1,8 +1,10 @@
 package com.yasuda.derbis.ui.lyrics
 
 import androidx.compose.animation.core.Easing
+import com.yasuda.derbis.domain.LyricLine
 import com.yasuda.derbis.domain.LyricWord
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LyricsKaraokeTextTest {
@@ -106,5 +108,33 @@ class LyricsKaraokeTextTest {
         val reference = karaokeCharacterProgress(timed, 10_450L, linear)
 
         assertEquals(reference, shifted, 0.0001f)
+    }
+
+    @Test
+    fun `a line-only source finishes its words before the silent tail`() {
+        // A five-second LRC line whose words take about a second to sing. The rest is breath and
+        // the gap to the next line; stretching the words into it is what made them lag.
+        val words = wordHighlightTimings(LyricLine(startMs = 10_000L, endMs = 15_000L, text = "Hold the line"))
+
+        assertEquals(listOf("Hold", "the", "line"), words.map { it.text })
+        assertEquals(10_000L, words.first().startMs)
+        assertTrue("words must not be stretched across the gap", words.last().endMs < 13_000L)
+        assertTrue(words.zipWithNext().all { (first, second) -> second.startMs == first.endMs })
+    }
+
+    @Test
+    fun `provider word timings are never replaced by the estimate`() {
+        val providerWords = listOf(LyricWord(0L, 200L, "Hel"), LyricWord(200L, 400L, "lo"))
+        val line = LyricLine(startMs = 0L, endMs = 9_000L, text = "Hello", words = providerWords)
+
+        assertEquals(providerWords, wordHighlightTimings(line))
+    }
+
+    @Test
+    fun `a line shorter than its words compresses them into the line`() {
+        val words = wordHighlightTimings(LyricLine(startMs = 1_000L, endMs = 1_400L, text = "One two three four"))
+
+        assertTrue(words.last().endMs <= 1_400L)
+        assertTrue(words.all { it.endMs > it.startMs })
     }
 }

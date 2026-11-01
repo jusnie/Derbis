@@ -49,7 +49,8 @@ internal fun PrismPlayerScene(
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier,
     playing: Boolean = true,
     activeLyric: LyricLine? = null,
-    lyricPositionMs: Long = 0L
+    lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     if (DerbisIsYouTubeMusic) {
         YouTubeMusicPlayerScene(track, slots, artworkCap, playing, metadata, transport, modifier)
@@ -59,7 +60,8 @@ internal fun PrismPlayerScene(
         AppleMusicPlayerScene(
             track, slots, artworkCap, playing, metadata, transport, modifier,
             activeLyric = activeLyric,
-            lyricPositionMs = lyricPositionMs
+            lyricPositionMs = lyricPositionMs,
+            lyricPositionProvider = lyricPositionProvider
         )
         return
     }

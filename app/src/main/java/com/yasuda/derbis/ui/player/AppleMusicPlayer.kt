@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.data.KanjiFurigana
 import com.yasuda.derbis.ui.lyrics.KaraokeFuriganaWordTimedText
+import com.yasuda.derbis.ui.lyrics.wordHighlightTimings
 import com.yasuda.derbis.player.PlaybackService
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.RepeatMode
@@ -146,7 +147,8 @@ internal fun AppleMusicPlayerScene(
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier,
     canvas: AppleMusicCanvas? = null, video: Boolean = false,
     activeLyric: LyricLine? = null,
-    lyricPositionMs: Long = 0L
+    lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     // The Apple Music 13 deck deliberately lets the adaptive artwork ambience show through,
     // then protects controls with a neutral, translucent lower scrim.
@@ -178,7 +180,8 @@ internal fun AppleMusicPlayerScene(
                 metadata = metadata,
                 transport = transport,
                 activeLyric = activeLyric,
-                lyricPositionMs = lyricPositionMs
+                lyricPositionMs = lyricPositionMs,
+                lyricPositionProvider = lyricPositionProvider
             )
         } else {
             AppleMusicPortraitDeck(
@@ -192,6 +195,7 @@ internal fun AppleMusicPlayerScene(
                 transport = transport,
                 activeLyric = activeLyric,
                 lyricPositionMs = lyricPositionMs,
+                lyricPositionProvider = lyricPositionProvider,
                 canvas = canvas,
                 playing = playing
             )
@@ -250,13 +254,20 @@ private fun AppleMusicPortraitDeck(
     transport: @Composable () -> Unit,
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null,
     canvas: AppleMusicCanvas? = null,
     playing: Boolean = false
 ) {
     if (video) {
-        AppleMusicVideoPortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
+        AppleMusicVideoPortraitDeck(
+            track, slots, artworkCap, immersive, artwork, metadata, transport,
+            activeLyric, lyricPositionMs, lyricPositionProvider
+        )
     } else {
-        AppleMusic13ReferencePortraitDeck(track, slots, metadata, transport, activeLyric, lyricPositionMs, canvas, playing)
+        AppleMusic13ReferencePortraitDeck(
+            track, slots, metadata, transport, activeLyric, lyricPositionMs,
+            lyricPositionProvider, canvas, playing
+        )
     }
 }
 
@@ -273,6 +284,7 @@ private fun AppleMusic13ReferencePortraitDeck(
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
     lyricPositionMs: Long,
+    lyricPositionProvider: (() -> Long)?,
     canvas: AppleMusicCanvas?,
     playing: Boolean
 ) {
@@ -327,7 +339,8 @@ private fun AppleMusic13ReferencePortraitDeck(
             AppleMusic13InlineLyrics(
                 line = activeLyric,
                 positionMs = lyricPositionMs,
-                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+                positionProvider = lyricPositionProvider
             )
             Box(Modifier.padding(horizontal = 2.dp)) {
                 slots.progress(PlayerProgressStyle.Classic)
@@ -457,7 +470,8 @@ private fun AppleMusicVideoPortraitDeck(
     metadata: @Composable () -> Unit,
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
-    lyricPositionMs: Long
+    lyricPositionMs: Long,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
@@ -484,26 +498,25 @@ private fun AppleMusicVideoPortraitDeck(
 internal fun appleMusic13UsesWordTiming(line: LyricLine?): Boolean =
     line?.words?.any { word -> word.text.isNotBlank() && word.endMs > word.startMs } == true
 
-internal fun resolveOrSynthesizeLineWords(line: LyricLine): List<LyricWord> {
-    if (appleMusic13UsesWordTiming(line)) return line.words
-    val rawWords = line.text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    if (rawWords.isEmpty()) return emptyList()
-    val lineDuration = (line.endMs - line.startMs).takeIf { it > 400L } ?: 3_500L
-    val totalChars = rawWords.sumOf { it.length.coerceAtLeast(1) }
-    var currentStart = line.startMs
-    return rawWords.map { wordText ->
-        val weight = wordText.length.toFloat() / totalChars.toFloat()
-        val duration = (lineDuration * weight).toLong().coerceAtLeast(120L)
-        val wordEnd = (currentStart + duration).coerceAtMost(line.startMs + lineDuration)
-        val word = LyricWord(startMs = currentStart, endMs = wordEnd, text = wordText)
-        currentStart = wordEnd
-        word
-    }
-}
+/**
+ * The inline line and the lyrics page share one word timeline. The deck used to build its own
+ * by stretching the tokens across the whole line - the same mistake that made the highlight lag
+ * the vocal, fixed once in [wordHighlightTimings] instead of twice.
+ */
+internal fun resolveOrSynthesizeLineWords(line: LyricLine): List<LyricWord> =
+    wordHighlightTimings(line)
 
 @Composable
-private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifier: Modifier = Modifier) {
+private fun AppleMusic13InlineLyrics(
+    line: LyricLine?,
+    positionMs: Long,
+    modifier: Modifier = Modifier,
+    positionProvider: (() -> Long)? = null
+) {
     val activeLine = line?.takeIf { it.text.isNotBlank() }
+    // Reading the clock through a lambda keeps the per-frame update inside the word row: the
+    // deck composable above it only recomposes when the line itself changes.
+    val readPosition: () -> Long = positionProvider ?: { positionMs }
     AnimatedContent(
         targetState = activeLine,
         transitionSpec = {
@@ -540,7 +553,7 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                     KaraokeFuriganaWordTimedText(
                         lineText = currentLine.text,
                         words = words,
-                        positionProvider = { positionMs },
+                        positionProvider = readPosition,
                         isActive = true,
                         fontSize = AppleMusic13InlineLyricSize,
                         lineHeight = AppleMusic13InlineLyricLineHeight,
@@ -561,7 +574,7 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                     KaraokeWordTimedText(
                         lineText = currentLine.text,
                         words = words,
-                        positionProvider = { positionMs },
+                        positionProvider = readPosition,
                         isActive = true,
                         fontSize = AppleMusic13InlineLyricSize,
                         lineHeight = AppleMusic13InlineLyricLineHeight,
@@ -588,7 +601,8 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
 private fun AppleMusicLandscapeDeck(
     track: Track, slots: PlayerDeckSlots, artworkSize: Dp, artwork: @Composable (Dp) -> Unit,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit,
-    activeLyric: LyricLine? = null, lyricPositionMs: Long = 0L
+    activeLyric: LyricLine? = null, lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().displayCutoutPadding()) {
         AppleMusicGrabber()
@@ -606,7 +620,8 @@ private fun AppleMusicLandscapeDeck(
                 AppleMusic13InlineLyrics(
                     line = activeLyric,
                     positionMs = lyricPositionMs,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    positionProvider = lyricPositionProvider
                 )
                 slots.progress(PlayerProgressStyle.Classic)
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { transport() }

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derbis — word-by-word lyric timing</title>
+<style>
+  :root {
+    --ink: #08080a;
+    --surface: #101015;
+    --text: #f4f1ea;
+    --muted: #9a9aa6;
+    --pink: #f06a9b;
+    --green: #35d07f;
+    --hairline: rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 36px 24px 64px;
+    background: #050506; color: var(--text);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+  .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 24px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 20px; padding: 20px 22px; margin-bottom: 18px;
+  }
+  .caption {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; margin: 0 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tag {
+    font-size: 9px; padding: 2px 7px; border-radius: 99px; letter-spacing: .06em;
+    background: rgba(255,94,58,.15); color: #ff5e3a;
+  }
+  .tag.fixed { background: rgba(53,208,127,.16); color: var(--green); }
+  .line {
+    display: flex; gap: .34em; font-size: 30px; font-weight: 800;
+    letter-spacing: -.02em; margin: 6px 0 14px; min-height: 42px;
+  }
+  .line span { transition: color .115s cubic-bezier(.16,0,.1,1); color: rgba(255,255,255,.42); }
+  .line span.past { color: #fff; }
+  .line span.now { color: #fff; text-shadow: 0 0 14px rgba(255,255,255,.45); }
+  .lane { position: relative; height: 26px; border-radius: 8px; background: rgba(255,255,255,.04); overflow: hidden; }
+  .block {
+    position: absolute; top: 4px; bottom: 4px; border-radius: 6px;
+    background: rgba(240,106,155,.55); border: 1px solid rgba(240,106,155,.9);
+    font-size: 10px; color: #101015; font-weight: 800;
+    display: grid; place-items: center; overflow: hidden; white-space: nowrap;
+  }
+  .lane.fixed .block { background: rgba(53,208,127,.55); border-color: rgba(53,208,127,.9); }
+  .playhead {
+    position: absolute; top: 0; bottom: 0; width: 2px; background: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,.65); left: 0;
+  }
+  .ticks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
+  .controls { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  button {
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+    color: #08080a; background: var(--text); border: 0; border-radius: 99px;
+    padding: 9px 18px;
+  }
+  button.ghost { background: rgba(255,255,255,.08); color: var(--text); }
+  .readout { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .notes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .note { background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; padding: 14px 16px; }
+  .note h3 { margin: 0 0 6px; font-size: 13px; }
+  .note p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #cfcfd8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Word-by-word timing — what changed</h1>
+  <p class="lede">
+    One lyric line that lasts five seconds while its four words take about a second and a half to
+    sing. The rest of the line is a breath and the gap to the next line. Press play: the top lane is
+    the old distribution (words stretched across the whole line, so every word lights up late), the
+    bottom lane is the new one (words sized by their own delivery, finished while the vocal is still
+    there). The lyric rows follow their own lane.
+  </p>
+
+  <div class="card">
+    <p class="caption">Old — words stretched to the line's end <span class="tag">LATE</span></p>
+    <div class="line" id="lineOld"><span>Hold</span><span>the</span><span>line</span><span>now</span></div>
+    <div class="lane" id="laneOld"><div class="playhead"></div></div>
+    <div class="ticks"><span>0.0 s</span><span>2.5 s</span><span>5.0 s</span></div>
+  </div>
+
+  <div class="card">
+    <p class="caption">New — words sized by delivery, tail left silent <span class="tag fixed">ON TIME</span></p>
+    <div class="line" id="lineNew"><span>Hold</span><span>the</span><span>line</span><span>now</span></div>
+    <div class="lane fixed" id="laneNew"><div class="playhead"></div></div>
+    <div class="ticks"><span>0.0 s</span><span>2.5 s</span><span>5.0 s</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="play">Play</button>
+    <button class="ghost" id="reset">Reset</button>
+    <span class="readout" id="readout">0.00 s</span>
+  </div>
+
+  <div class="notes" style="margin-top:22px">
+    <div class="note">
+      <h3>The estimate</h3>
+      <p><code>90 ms</code> attack per word plus <code>52 ms</code> per character actually sung, scaled to fit the line and never stretched past
+      <code>1.35×</code> that estimate. Real provider word timings always win.</p>
+    </div>
+    <div class="note">
+      <h3>The clock</h3>
+      <p>A standing lag used to be corrected 48 ms per player report, so it never cleared. It is now half the error per report, snapped outright past 200 ms.</p>
+    </div>
+    <div class="note">
+      <h3>The lead</h3>
+      <p>The word colour tween takes 115 ms. The highlight now reads 55 ms ahead, so the middle of that fade lands on the syllable instead of after it.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SPAN_MS = 5000;
+  const words = ["Hold", "the", "line", "now"];
+  const weights = words.map(w => 90 + 52 * Math.max(1, (w.match(/[a-z0-9]/gi) || []).length));
+  const estimate = weights.reduce((a, b) => a + b, 0);
+  const sungMs = Math.min(SPAN_MS, Math.round(estimate * 1.35));
+
+  // old: proportional to the whole span
+  let cursor = 0;
+  const oldSegments = weights.map((w, i) => {
+    const dur = Math.round(SPAN_MS * w / estimate);
+    const seg = { start: cursor, end: Math.min(SPAN_MS, cursor + dur), label: words[i] };
+    cursor = seg.end;
+    return seg;
+  });
+
+  // new: proportional to the sung estimate, capped by the line and the stretch limit
+  cursor = 0;
+  const newSegments = weights.map((w, i) => {
+    const dur = i === weights.length - 1 ? sungMs - cursor : Math.round(sungMs * w / estimate);
+    const seg = { start: cursor, end: Math.min(sungMs, cursor + dur), label: words[i] };
+    cursor = seg.end;
+    return seg;
+  });
+
+  function render(laneId, lineId, segments) {
+    const lane = document.getElementById(laneId);
+    const line = document.getElementById(lineId);
+    segments.forEach((seg, i) => {
+      const block = document.createElement("div");
+      block.className = "block";
+      block.style.left = (seg.start / SPAN_MS * 100) + "%";
+      block.style.width = Math.max(2, (seg.end - seg.start) / SPAN_MS * 100) + "%";
+      block.textContent = seg.label;
+      block.dataset.index = i;
+      lane.appendChild(block);
+      line.children[i].dataset.start = seg.start;
+      line.children[i].dataset.end = seg.end;
+    });
+  }
+
+  render("laneOld", "lineOld", oldSegments);
+  render("laneNew", "lineNew", newSegments);
+
+  let position = 0;
+  let playing = false;
+  let last = 0;
+
+  function paint() {
+    [["lineOld", oldSegments], ["lineNew", newSegments]].forEach(([id, segments]) => {
+      const line = document.getElementById(id);
+      segments.forEach((seg, i) => {
+        const el = line.children[i];
+        el.classList.toggle("past", position >= seg.end);
+        el.classList.toggle("now", position >= seg.start && position < seg.end);
+      });
+    });
+    document.querySelectorAll(".playhead").forEach(ph => {
+      ph.style.left = (Math.min(position, SPAN_MS) / SPAN_MS * 100) + "%";
+    });
+    document.getElementById("readout").textContent = (position / 1000).toFixed(2) + " s";
+  }
+
+  function frame(now) {
+    if (!playing) return;
+    if (!last) last = now;
+    position += now - last;
+    last = now;
+    if (position >= SPAN_MS) { position = SPAN_MS; playing = false; document.getElementById("play").textContent = "Play"; }
+    paint();
+    if (playing) requestAnimationFrame(frame);
+  }
+
+  document.getElementById("play").onclick = () => {
+    playing = !playing;
+    last = 0;
+    if (playing) {
+      if (position >= SPAN_MS) position = 0;
+      document.getElementById("play").textContent = "Pause";
+      requestAnimationFrame(frame);
+    } else {
+      document.getElementById("play").textContent = "Play";
+    }
+  };
+  document.getElementById("reset").onclick = () => {
+    playing = false; position = 0; last = 0;
+    document.getElementById("play").textContent = "Play";
+    paint();
+  };
+  paint();
+</script>
+</body>
+</html>

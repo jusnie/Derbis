@@ -101,6 +101,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -1141,16 +1142,24 @@ private fun DerbisNowPlayingContent(
             .widthIn(max = detailMaxWidth)
             .align(Alignment.TopCenter)
 
+        // The active line is derived, not remembered against the clock: reading the clock
+        // position as a remember key recomputed this binary search on every frame and recomposed
+        // the whole deck with it. A derived value only invalidates when the line actually
+        // changes, and the word row inside the deck reads the clock itself.
+        val currentLyricLine by remember(state.lyrics, state.lyricsSynced, appleMusicLyricsClock) {
+            derivedStateOf {
+                if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                    lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                } else null
+            }
+        }
+
         val deckPlayback = PlayerDeckPlayback(
             positionMs = state.positionMs,
             bufferedPositionMs = state.bufferedPositionMs,
             durationMs = state.durationMs,
             // Same clock as the lyrics page, so the inline line cannot drift from it.
-            activeLyric = if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
-                lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
-            } else {
-                state.activeLyric
-            },
+            activeLyric = currentLyricLine ?: state.activeLyric,
             lyricsLabel = strings.lyrics,
             onSeek = viewModel::seekTo,
             onOpenLyrics = viewModel::openLyrics
@@ -1164,28 +1173,20 @@ private fun DerbisNowPlayingContent(
                     canvas = AppleMusicCanvas(state.motionArtwork, motionEnabled && !lyricsFlip.lyricsSettled, state.interfaceSettings.canvasQuality, livingArtwork)
                 )
             } else if (appleMusicPlayer) {
-                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
-                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
-                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
-                    } else null
-                } ?: state.activeLyric
                 AppleMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = appleMusicCanvas,
                     video = state.isVideoMode,
-                    activeLyric = compensatedActiveLyric,
-                    lyricPositionMs = appleMusicLyricsClock.positionMs
+                    activeLyric = currentLyricLine ?: state.activeLyric,
+                    lyricPositionProvider = { appleMusicLyricsClock.positionMs }
                 )
             } else {
-                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
-                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
-                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
-                    } else null
-                } ?: state.activeLyric
                 PrismPlayerScene(
                     track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying,
-                    activeLyric = compensatedActiveLyric, lyricPositionMs = appleMusicLyricsClock.positionMs
+                    activeLyric = currentLyricLine ?: state.activeLyric,
+                    lyricPositionMs = appleMusicLyricsClock.positionMs,
+                    lyricPositionProvider = { appleMusicLyricsClock.positionMs }
                 )
             }
         } else if (deckLayout == PlayerDeckLayout.TidalMusic && track != null) {
