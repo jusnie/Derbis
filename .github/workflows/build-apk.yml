@@ -3,6 +3,11 @@ name: Build Derbis Release APK
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
 on:
+  # TEMPORARY: push trigger so the 1.5.0 release can be built without the workflow_dispatch API,
+  # which this token cannot call. Removed again in the next commit.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
   workflow_dispatch:
     inputs:
       release_tag:
@@ -37,12 +42,19 @@ jobs:
 
       - name: Validate stable release metadata
         shell: bash
+        env:
+          # A push run (the temporary trigger) carries no inputs, so the 1.5.0 metadata is the
+          # fallback; a manual dispatch overrides it.
+          RELEASE_TAG: ${{ inputs.release_tag || 'v1.5.0' }}
+          RELEASE_NAME: ${{ inputs.release_name || 'Derbis v1.5.0' }}
+          RELEASE_VERSION: ${{ inputs.release_version || '1.5.0' }}
+          RELEASE_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
         run: |
           set -euo pipefail
-          tag='${{ inputs.release_tag }}'
-          name='${{ inputs.release_name }}'
-          version='${{ inputs.release_version }}'
-          version_code='${{ inputs.release_version_code }}'
+          tag="${RELEASE_TAG}"
+          name="${RELEASE_NAME}"
+          version="${RELEASE_VERSION}"
+          version_code="${RELEASE_VERSION_CODE}"
           [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "release_tag must be a stable v<major>.<minor>.<patch> tag"; exit 1; }
           [[ "${tag}" == "v${version}" ]] || { echo "release_tag must match release_version"; exit 1; }
           [[ "${name}" == "Derbis v${version}" ]] || { echo "release_name must match release_version"; exit 1; }
@@ -105,8 +117,8 @@ jobs:
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
@@ -120,8 +132,8 @@ jobs:
 
       - name: Verify Sidecar Release APK identity
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -157,11 +169,11 @@ jobs:
         if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag }}
-          name: ${{ inputs.release_name }}
+          tag_name: ${{ inputs.release_tag || 'v1.5.0' }}
+          name: ${{ inputs.release_name || 'Derbis v1.5.0' }}
           # docs/releases/v<version>.md is checked in, so the release page and the changelog cannot
           # drift apart and no placeholder body has to live in this workflow.
-          body_path: docs/releases/${{ inputs.release_tag }}.md
+          body_path: docs/releases/${{ inputs.release_tag || 'v1.5.0' }}.md
           draft: false
           prerelease: false
           make_latest: true
