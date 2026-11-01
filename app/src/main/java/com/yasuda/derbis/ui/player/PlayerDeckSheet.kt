@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -76,6 +77,8 @@ import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.i18n.DerbisSkinStrings
 import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -265,6 +268,8 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): St
         PlayerVisualMode.Halo -> labels.halo
         PlayerVisualMode.Folio -> labels.folio
         PlayerVisualMode.Flow -> labels.flow
+        PlayerVisualMode.Frost -> labels.frost
+        PlayerVisualMode.DerbisOne -> labels.derbisOne
     }
 }
 
@@ -277,6 +282,8 @@ internal fun playerDeckHint(mode: PlayerVisualMode, strings: DerbisStrings): Str
     PlayerVisualMode.Halo -> strings.playerDeckHaloHint
     PlayerVisualMode.Folio -> strings.playerDeckFolioHint
     PlayerVisualMode.Flow -> strings.playerDeckFlowHint
+    PlayerVisualMode.Frost -> strings.playerDeckFrostHint
+    PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOneHint
 }
 
 @Composable
@@ -297,6 +304,8 @@ private fun PlayerDeckPreview(
         PlayerVisualMode.Halo -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Folio -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Flow -> FlowPreview(track, artworkUrl, accent)
+        PlayerVisualMode.Frost -> FrostPreview(track, artworkUrl, accent)
+        PlayerVisualMode.DerbisOne -> OnePreview(track, artworkUrl, accent)
     }
 }
 
@@ -707,6 +716,152 @@ private fun PreviewWave(accent: Color) {
             cap = StrokeCap.Round
         )
     }
+}
+
+@Composable
+private fun FrostPreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF07100F))) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(accent.copy(alpha = 0.55f), Color.Transparent),
+                    center = Offset(size.width * 0.24f, size.height * 0.16f),
+                    radius = size.minDimension * 1.05f
+                )
+            )
+        }
+        DeckArtwork(
+            track = track,
+            artworkUrl = artworkUrl,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+                .fillMaxWidth(0.74f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(10.dp))
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.06f))
+                    )
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            PreviewBar(width = 74.dp, height = 6.dp, color = Color.White.copy(alpha = 0.9f))
+            PreviewBar(width = 40.dp, height = 4.dp, color = Color.White.copy(alpha = 0.45f))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.18f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.38f)
+                        .height(4.dp)
+                        .background(Brush.horizontalGradient(listOf(accent, Color.White)))
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PreviewBar(width = 16.dp, height = 3.dp, color = Color.White.copy(alpha = 0.35f))
+                PreviewCircle(size = 22.dp, color = Color.White.copy(alpha = 0.92f))
+                PreviewBar(width = 16.dp, height = 3.dp, color = Color.White.copy(alpha = 0.35f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun OnePreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFEDEBE5))) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 26.dp)
+                .fillMaxWidth(0.82f)
+                .aspectRatio(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            DeckArtwork(
+                track = track,
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        shape = OnePreviewBlob
+                        clip = true
+                    }
+            )
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val radius = size.minDimension / 2f
+                drawCircle(
+                    color = Color(0xFF141413).copy(alpha = 0.16f),
+                    radius = radius - 1.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+                val angle = (-90f + 360f * 0.38f) * PI.toFloat() / 180f
+                drawCircle(
+                    color = Color(0xFF141413),
+                    radius = 3.dp.toPx(),
+                    center = Offset(
+                        center.x + (radius - 1.dp.toPx()) * cos(angle),
+                        center.y + (radius - 1.dp.toPx()) * sin(angle)
+                    )
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PreviewBar(width = 96.dp, height = 9.dp, color = Color(0xFF141413))
+            PreviewBar(width = 54.dp, height = 4.dp, color = Color(0xFF141413).copy(alpha = 0.44f))
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PreviewBar(width = 12.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.4f))
+                PreviewBar(width = 16.dp, height = 5.dp, color = Color(0xFF141413))
+                PreviewCircle(size = 30.dp, color = Color(0xFF141413))
+                PreviewBar(width = 16.dp, height = 5.dp, color = Color(0xFF141413))
+                PreviewBar(width = 12.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.4f))
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color(0xFF141413).copy(alpha = 0.09f))
+            )
+            PreviewBar(width = 40.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.32f))
+        }
+    }
+}
+
+private val OnePreviewBlob: Shape = PlayerOneBlobShape()
+
+@Composable
+private fun PreviewCircle(size: Dp, color: Color) {
+    Box(modifier = Modifier.size(size).clip(CircleShape).background(color))
 }
 
 @Composable

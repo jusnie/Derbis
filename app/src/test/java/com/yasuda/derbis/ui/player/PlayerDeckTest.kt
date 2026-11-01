@@ -39,6 +39,8 @@ class PlayerDeckTest {
         assertEquals(PlayerDeckLayout.TidalMusic, PlayerVisualMode.TidalMusic.deckLayout())
         assertEquals(PlayerDeckLayout.Pulse, PlayerVisualMode.Pulse.deckLayout())
         assertEquals(PlayerDeckLayout.Flow, PlayerVisualMode.Flow.deckLayout())
+        assertEquals(PlayerDeckLayout.Frost, PlayerVisualMode.Frost.deckLayout())
+        assertEquals(PlayerDeckLayout.One, PlayerVisualMode.DerbisOne.deckLayout())
     }
 
     @Test
@@ -51,7 +53,7 @@ class PlayerDeckTest {
 
     @Test
     fun `new styles fall back to the derbis layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
+        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, DerbisPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Derbis, resolvePlayerDeckLayout(mode, true, false, DerbisPlayerPane.Stacked, true))
@@ -320,6 +322,59 @@ class PlayerDeckTest {
         )
         // No quality means the old codec chip is untouched.
         assertEquals(listOf("OPUS"), playerAudioSpecLabels(PlayerAudioSpec("OPUS", null, null, null, "audio/opus")))
+    }
+
+    @Test
+    fun `one deck caption joins album and artist and never repeats the title`() {
+        assertEquals(
+            "EDI by TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "one", title = "Clash of Titans", artist = "Tommy Fury", album = "EDI",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+        assertEquals(
+            "TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "two", title = "Clash of Titans", artist = "Tommy Fury", album = "",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+        assertEquals(
+            "TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "three", title = "Clash of Titans", artist = "Tommy Fury", album = "Clash of Titans",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `one deck clock is two digit minutes and seconds and never goes negative`() {
+        assertEquals("00:00", formatOneTime(0L))
+        assertEquals("01:23", formatOneTime(83_000L))
+        assertEquals("03:40", formatOneTime(220_999L))
+        assertEquals("00:00", formatOneTime(-4_000L))
+        assertEquals("100:00", formatOneTime(6_000_000L))
+    }
+
+    @Test
+    fun `frost and one survive persistence by name and land on their own decks`() {
+        assertEquals(PlayerVisualMode.Frost, PlayerVisualMode.from("Frost"))
+        assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("DerbisOne"))
+        assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("derbisone"))
     }
 
     @Test

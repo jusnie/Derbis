@@ -76,6 +76,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Waves
+import androidx.compose.material.icons.rounded.Circle
 import androidx.compose.material.icons.rounded.Nightlight
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
@@ -1142,6 +1143,21 @@ private fun DerbisNowPlayingContent(
             .widthIn(max = detailMaxWidth)
             .align(Alignment.TopCenter)
 
+        val deckPlayback = PlayerDeckPlayback(
+            positionMs = state.positionMs,
+            bufferedPositionMs = state.bufferedPositionMs,
+            durationMs = state.durationMs,
+            // Same clock as the lyrics page, so the inline line cannot drift from it.
+            activeLyric = if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+            } else {
+                state.activeLyric
+            },
+            lyricsLabel = strings.lyrics,
+            onSeek = viewModel::seekTo,
+            onOpenLyrics = viewModel::openLyrics
+        )
+
         if (((DerbisIsPrism && !DerbisIsTidal) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != DerbisPlayerPane.SideBySide || appleMusicPlayer)) {
             if (DerbisIsYouTubeMusic) {
                 YouTubeMusicPlayerScene(
@@ -1377,6 +1393,61 @@ private fun DerbisNowPlayingContent(
                 onNext = viewModel::next,
                 onRepeat = viewModel::toggleRepeat,
                 onSeekBy = viewModel::seekBy,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
+        } else if (deckLayout == PlayerDeckLayout.One && track != null) {
+            PlayerDerbisOneDeck(
+                track = track,
+                slots = deckSlots,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
+        } else if (deckLayout == PlayerDeckLayout.Frost && track != null) {
+            PlayerFrostDeck(
+                track = track,
+                slots = deckSlots,
+                surfaces = surfaces,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
                 headlineModifier = lyricsFlipSwipeModifier,
                 modifier = deckModifier
             )
@@ -2257,6 +2328,8 @@ internal fun visualModeStateDescription(
     PlayerVisualMode.Halo -> strings.playerDeckHalo
     PlayerVisualMode.Folio -> strings.playerDeckFolio
     PlayerVisualMode.Flow -> strings.playerDeckFlow
+    PlayerVisualMode.Frost -> strings.playerDeckFrost
+    PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOne
 }
 
 internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
@@ -2268,6 +2341,8 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Halo -> Icons.Rounded.Album
     PlayerVisualMode.Folio -> Icons.Rounded.Newspaper
     PlayerVisualMode.Flow -> Icons.Rounded.Waves
+    PlayerVisualMode.Frost -> Icons.Rounded.BlurOn
+    PlayerVisualMode.DerbisOne -> Icons.Rounded.Circle
 }
 
 @Composable

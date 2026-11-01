@@ -21555,7 +21555,9 @@ private fun SettingsOverlay(
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
                                         PlayerVisualMode.Halo.name to strings.playerDeckHalo,
                                         PlayerVisualMode.Folio.name to strings.playerDeckFolio,
-                                        PlayerVisualMode.Flow.name to strings.playerDeckFlow
+                                        PlayerVisualMode.Flow.name to strings.playerDeckFlow,
+                                        PlayerVisualMode.Frost.name to strings.playerDeckFrost,
+                                        PlayerVisualMode.DerbisOne.name to strings.playerDeckDerbisOne
                                     ),
                                     selected = interfaceSettings.playerVisualMode.name,
                                     onSelect = { value ->

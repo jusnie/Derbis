@@ -15,6 +15,10 @@ internal val playerDeckKeys = setOf(
     "playerDeckFolioHint",
     "playerDeckFlow",
     "playerDeckFlowHint",
+    "playerDeckFrost",
+    "playerDeckFrostHint",
+    "playerDeckDerbisOne",
+    "playerDeckDerbisOneHint",
     "playerDeckAppleMusic13",
     "playerDeckAppleMusic13Hint",
     "playerDeckTidalMusic",
@@ -52,7 +56,9 @@ internal data class PlayerDeckShortLabels(
     val pulse: String,
     val halo: String = "Liner Notes",
     val folio: String = "Folio",
-    val flow: String = "Derbis Flow"
+    val flow: String = "Derbis Flow",
+    val frost: String = "Frost",
+    val derbisOne: String = "Derbis One"
 )
 
 private val playerDeckShortLabelsByCode: Map<String, PlayerDeckShortLabels> = mapOf(
@@ -195,6 +201,80 @@ private val playerDeckFolioHints: Map<String, String> = mapOf(
     "ms" to "Susun atur editorial dua warna."
 )
 
+private val playerDeckFrostHints: Map<String, String> = mapOf(
+    "en" to "Artwork as the light, with every control on one pane of glass.",
+    "it" to "Copertina come luce, ogni comando su un unico pannello di vetro.",
+    "es" to "La portada es la luz y todos los controles viven en un solo panel de cristal.",
+    "fr" to "La pochette comme source de lumière, toutes les commandes sur une seule vitre.",
+    "de" to "Das Cover als Lichtquelle, alle Bedienelemente auf einer einzigen Glasscheibe.",
+    "pt" to "A capa como luz e todos os controlos num único painel de vidro.",
+    "nl" to "Hoes als lichtbron, alle bediening op één glasplaat.",
+    "pl" to "Okładka jako światło, wszystkie elementy na jednej tafli szkła.",
+    "ro" to "Coperta ca lumină, toate comenzile pe un singur panou de sticlă.",
+    "el" to "Το εξώφυλλο ως φως και όλα τα χειριστήρια σε ένα τζάμι.",
+    "sv" to "Omslaget som ljus, alla kontroller på en enda glasskiva.",
+    "da" to "Coveret som lys, alle knapper på én glasplade.",
+    "cs" to "Obal jako světlo, všechny ovládací prvky na jediném skle.",
+    "uk" to "Обкладинка як світло, усі елементи керування на одному склі.",
+    "ru" to "Обложка как источник света, все элементы управления на одном стекле.",
+    "tr" to "Kapak ışık kaynağı, tüm kontroller tek bir cam panelde.",
+    "ar" to "الغلاف هو الضوء وكل عناصر التحكم على لوح زجاجي واحد.",
+    "zh" to "封面即光源，所有控件都在同一块玻璃上。",
+    "ja" to "アートワークを光に、操作はすべて一枚のガラスの上に。",
+    "ko" to "아트워크가 빛이 되고 모든 컨트롤은 하나의 유리 위에 있습니다.",
+    "hi" to "कवर ही प्रकाश है और सभी नियंत्रण एक ही कांच पर।",
+    "id" to "Sampul menjadi cahaya dan semua kontrol di satu panel kaca.",
+    "vi" to "Bìa đĩa là nguồn sáng, mọi điều khiển trên một tấm kính.",
+    "th" to "ปกอัลบั้มเป็นแสง และทุกปุ่มอยู่บนกระจกแผ่นเดียว",
+    "fil" to "Ang cover ang ilaw, at lahat ng kontrol sa isang salaming panel.",
+    "he" to "העטיפה היא האור, וכל הפקדים על זכוכית אחת.",
+    "fi" to "Kansi valonlähteenä, kaikki säätimet yhdellä lasilla.",
+    "et" to "Kaanis on valgus, kõik juhtnupud ühel klaasil.",
+    "hu" to "A borító a fény, minden vezérlő egyetlen üveglapon.",
+    "nb" to "Omslaget som lys, alle kontrollene på én glassflate.",
+    "ca" to "La portada és la llum i tots els controls en un sol vidre.",
+    "fa" to "کاور منبع نور است و همه کنترل‌ها روی یک شیشه.",
+    "zh-Hant" to "封面即光源，所有控制都在同一片玻璃上。",
+    "ms" to "Muka depan menjadi cahaya dan semua kawalan pada satu kaca."
+)
+
+private val playerDeckOneHints: Map<String, String> = mapOf(
+    "en" to "Paper, a scalloped mat and a ring that is the seek.",
+    "it" to "Carta, una cornice smerlata e un anello che è la barra di avanzamento.",
+    "es" to "Papel, un marco festoneado y un anillo que es la barra de avance.",
+    "fr" to "Papier, un cadre festonné et un anneau qui sert de barre de lecture.",
+    "de" to "Papier, eine gezackte Fassung und ein Ring als Fortschrittsbalken.",
+    "pt" to "Papel, uma moldura recortada e um anel que é a barra de progresso.",
+    "nl" to "Papier, een geschulpte lijst en een ring als voortgangsbalk.",
+    "pl" to "Papier, wycięta oprawa i pierścień jako pasek postępu.",
+    "ro" to "Hârtie, o ramă decupată și un inel care este bara de progres.",
+    "el" to "Χαρτί, κυματιστό πλαίσιο και ένας δακτύλιος ως μπάρα προόδου.",
+    "sv" to "Papper, en vågig ram och en ring som är spelarens lägesvisare.",
+    "da" to "Papir, en bølget ramme og en ring som position.",
+    "cs" to "Papír, zvlněný rám a kruh místo posuvníku.",
+    "uk" to "Папір, фігурна рамка й кільце замість смуги перемотування.",
+    "ru" to "Бумага, фигурная рамка и кольцо вместо полосы перемотки.",
+    "tr" to "Kağıt, dalgalı çerçeve ve ilerleme yerine bir halka.",
+    "ar" to "ورق وإطار مموج وحلقة تحل محل شريط التقدم.",
+    "zh" to "纸张、波浪形画框，以及作为进度条的圆环。",
+    "ja" to "紙と波打つ台座、そして進行バーを兼ねるリング。",
+    "ko" to "종이, 물결 무늬 받침, 그리고 진행 표시인 링.",
+    "hi" to "कागज़, लहरदार फ़्रेम और प्रगति के लिए एक वलय।",
+    "id" to "Kertas, bingkai bergelombang, dan cincin sebagai progres.",
+    "vi" to "Giấy, khung lượn sóng và vòng tròn thay thanh tiến trình.",
+    "th" to "กระดาษ กรอบหยัก และวงแหวนที่ทำหน้าที่เป็นแถบความคืบหน้า",
+    "fil" to "Papel, bingkaing may alon, at singsing na siyang progress bar.",
+    "he" to "נייר, מסגרת גלית וטבעת שמשמשת כפס התקדמות.",
+    "fi" to "Paperi, aaltoreunainen kehys ja rengas edistymispalkkina.",
+    "et" to "Paber, laineline raam ja edenemisribana töötav rõngas.",
+    "hu" to "Papír, hullámos keret és a folyamatjelzőt helyettesítő gyűrű.",
+    "nb" to "Papir, en bølgete ramme og en ring som posisjon.",
+    "ca" to "Paper, un marc ondulat i un anell que fa de barra de progrés.",
+    "fa" to "کاغذ، قاب کنگره‌ای و حلقه‌ای به‌جای نوار پیشرفت.",
+    "zh-Hant" to "紙張、波浪形畫框,以及作為進度條的圓環。",
+    "ms" to "Kertas, bingkai bergerigi dan cincin sebagai bar kemajuan."
+)
+
 private val playerDeckFlowHints: Map<String, String> = mapOf(
     "en" to "Cover, light and controls on one flowing surface.",
     "it" to "Copertina, luce e controlli su un'unica superficie fluida.",
@@ -327,6 +407,10 @@ internal fun playerDeckLocalizationEntries(code: String): Map<String, String> =
         "playerDeckTidalMusicHint" to "Editorial black stage, oversized artwork and direct transport. Selecting it applies TIDAL Style.",
         "playerDeckCardHint" to (playerDeckSleeveHints[code] ?: playerDeckSleeveHints.getValue("en")),
         "playerDeckFlowHint" to (playerDeckFlowHints[code] ?: playerDeckFlowHints.getValue("en")),
+        "playerDeckFrost" to "Frost",
+        "playerDeckFrostHint" to (playerDeckFrostHints[code] ?: playerDeckFrostHints.getValue("en")),
+        "playerDeckDerbisOne" to "Derbis One",
+        "playerDeckDerbisOneHint" to (playerDeckOneHints[code] ?: playerDeckOneHints.getValue("en")),
         "playerDeckDefaultBadge" to (playerDeckDefaultBadges[code] ?: playerDeckDefaultBadges.getValue("en"))
     )
 

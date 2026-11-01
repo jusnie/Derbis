@@ -24,7 +24,9 @@ internal enum class PlayerDeckLayout {
     Flow,
     Sleeve,
     AppleMusic13,
-    TidalMusic
+    TidalMusic,
+    Frost,
+    One
 }
 
 /**
@@ -38,7 +40,9 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.Halo,
     PlayerVisualMode.Folio,
     PlayerVisualMode.AppleMusic13,
-    PlayerVisualMode.Pulse
+    PlayerVisualMode.Pulse,
+    PlayerVisualMode.Frost,
+    PlayerVisualMode.DerbisOne
 )
 
 internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
@@ -50,6 +54,8 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.Halo -> PlayerDeckLayout.Halo
     PlayerVisualMode.Folio -> PlayerDeckLayout.Folio
     PlayerVisualMode.Flow -> PlayerDeckLayout.Flow
+    PlayerVisualMode.Frost -> PlayerDeckLayout.Frost
+    PlayerVisualMode.DerbisOne -> PlayerDeckLayout.One
 }
 
 /** Only the Apple Music 13 deck supplies the Apple Music palette and scene. */
@@ -83,6 +89,31 @@ internal fun resolvePlayerDeckVisualMode(
     mode
 } else {
     PlayerVisualMode.CanvasCard
+}
+
+/**
+ * The live transport state a deck needs when it draws its own seek control instead of calling
+ * [PlayerDeckSlots.progress]. Kept together so a custom deck does not take seven loose parameters.
+ */
+@Immutable
+internal class PlayerDeckPlayback(
+    val positionMs: Long,
+    val bufferedPositionMs: Long,
+    val durationMs: Long,
+    val activeLyric: com.yasuda.derbis.domain.LyricLine?,
+    val lyricsLabel: String,
+    val onSeek: (Float) -> Unit,
+    val onOpenLyrics: () -> Unit
+) {
+    val duration: Long get() = durationMs.coerceAtLeast(0L)
+
+    /** 0..1, clamped. The one number a custom seek control needs. */
+    fun fraction(): Float {
+        if (duration <= 0L) return 0f
+        return (positionMs.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+    }
+
+    val hasDuration: Boolean get() = duration > 0L
 }
 
 @Immutable
