@@ -3,10 +3,6 @@ name: Build Derbis Release APK
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
 on:
-  # TEMPORARY: push trigger while the 1.5.0 release build is being fixed.
-  push:
-    branches:
-      - arena/b05b2e2f-derbis
   workflow_dispatch:
     inputs:
       release_tag:
@@ -180,6 +176,9 @@ jobs:
         with:
           tag_name: ${{ inputs.release_tag || 'v1.5.0' }}
           name: ${{ inputs.release_name || 'Derbis v1.5.0' }}
+          # Cut the tag at the commit this run built. Without it the tag is created at the default
+          # branch's head, which is not necessarily the code in the APK.
+          target_commitish: ${{ github.sha }}
           # docs/releases/v<version>.md is checked in, so the release page and the changelog cannot
           # drift apart and no placeholder body has to live in this workflow.
           body_path: docs/releases/${{ inputs.release_tag || 'v1.5.0' }}.md
