@@ -64,6 +64,7 @@ import com.yasuda.derbis.ui.DerbisApp
 import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.components.LocalDerbisLiquidGlassEnabled
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.support.RemoteAnnouncementGate
 import com.yasuda.derbis.ui.support.RemoteAnnouncementPromptPolicy
@@ -306,6 +307,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Arms the Liquid Glass crash marker: if the process dies while this Activity is
+        // in front and glass is drawing, the next launch keeps glass off instead of
+        // walking into the same GPU fault.
+        runCatching { DerbisGlassSafety.onForeground() }
+    }
+
+    override fun onStop() {
+        // Backgrounded processes get killed by the system all the time; that is not a
+        // glass failure, so the marker is cleared here.
+        runCatching { DerbisGlassSafety.onBackground() }
+        super.onStop()
     }
 
     override fun onResume() {

@@ -39,6 +39,15 @@ float radiusAt(float2 coord, float4 radii) {
     }
 }
 
+// Length-guarded normalise. normalize(float2(0.0)) is a division by zero, and
+// some Adreno/Mali drivers turn the resulting NaN into a SIGSEGV instead of a
+// black pixel. The centre pixel of a centred surface is exactly (0, 0) in the
+// shader's coordinates, so this is hit on the first frame, not on an edge case.
+float2 safeNormalize(float2 v) {
+    float len = length(v);
+    return len > 0.00001 ? v / len : float2(0.0, 0.0);
+}
+
 float sdRoundedRect(float2 coord, float2 halfSize, float radius) {
     float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
     float outside = length(max(cornerCoord, 0.0)) - radius;
@@ -49,7 +58,7 @@ float sdRoundedRect(float2 coord, float2 halfSize, float radius) {
 float2 gradSdRoundedRect(float2 coord, float2 halfSize, float radius) {
     float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
     if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
-        return sign(coord) * normalize(max(cornerCoord, 0.0));
+        return sign(coord) * safeNormalize(max(cornerCoord, 0.0));
     } else {
         float gradX = step(cornerCoord.y, cornerCoord.x);
         return sign(coord) * float2(gradX, 1.0 - gradX);
@@ -70,10 +79,16 @@ uniform float depthEffect;
 $RoundedRectSDF
 
 float circleMap(float x) {
-    return 1.0 - sqrt(1.0 - x * x);
+    float v = clamp(x, 0.0, 1.0);
+    return 1.0 - sqrt(1.0 - v * v);
 }
 
 half4 main(float2 coord) {
+    // A surface that is still 0 or 1 px wide on its first frame has no valid SDF
+    // gradient; evaluating the refraction there is what takes the process down.
+    if (size.x < 2.0 || size.y < 2.0 || refractionHeight < 0.001) {
+        return content.eval(coord);
+    }
     float2 halfSize = size * 0.5;
     float2 centeredCoord = (coord + offset) - halfSize;
     float radius = radiusAt(coord, cornerRadii);
@@ -86,7 +101,7 @@ half4 main(float2 coord) {
     
     float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
     float gradRadius = min(radius * 1.5, min(halfSize.x, halfSize.y));
-    float2 grad = normalize(gradSdRoundedRect(centeredCoord, halfSize, gradRadius) + depthEffect * normalize(centeredCoord));
+    float2 grad = safeNormalize(gradSdRoundedRect(centeredCoord, halfSize, gradRadius) + depthEffect * safeNormalize(centeredCoord));
     
     float2 refractedCoord = coord + d * grad;
     return content.eval(refractedCoord);
@@ -107,10 +122,16 @@ uniform float chromaticAberration;
 $RoundedRectSDF
 
 float circleMap(float x) {
-    return 1.0 - sqrt(1.0 - x * x);
+    float v = clamp(x, 0.0, 1.0);
+    return 1.0 - sqrt(1.0 - v * v);
 }
 
 half4 main(float2 coord) {
+    // A surface that is still 0 or 1 px wide on its first frame has no valid SDF
+    // gradient; evaluating the refraction there is what takes the process down.
+    if (size.x < 2.0 || size.y < 2.0 || refractionHeight < 0.001) {
+        return content.eval(coord);
+    }
     float2 halfSize = size * 0.5;
     float2 centeredCoord = (coord + offset) - halfSize;
     float radius = radiusAt(coord, cornerRadii);
@@ -123,10 +144,10 @@ half4 main(float2 coord) {
     
     float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
     float gradRadius = min(radius * 1.5, min(halfSize.x, halfSize.y));
-    float2 grad = normalize(gradSdRoundedRect(centeredCoord, halfSize, gradRadius) + depthEffect * normalize(centeredCoord));
+    float2 grad = safeNormalize(gradSdRoundedRect(centeredCoord, halfSize, gradRadius) + depthEffect * safeNormalize(centeredCoord));
     
     float2 refractedCoord = coord + d * grad;
-    float dispersionIntensity = chromaticAberration * ((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));
+    float dispersionIntensity = chromaticAberration * ((centeredCoord.x * centeredCoord.y) / max(halfSize.x * halfSize.y, 1.0));
     float2 dispersedCoord = d * grad * dispersionIntensity;
     
     half4 color = half4(0.0);

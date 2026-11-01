@@ -9,6 +9,7 @@
  */
 package com.yasuda.derbis.ui.components.backdrop.shadow
 
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
@@ -88,57 +89,64 @@ internal class InnerShadowNode(
         drawContent()
 
         if (!isRenderEffectSupported()) return
+        if (size.width < 1f || size.height < 1f) return
+        if (DerbisGlassSafety.disabled) return
 
         val shadow = shadow() ?: return
 
         val shadowLayer = shadowLayer
         if (shadowLayer != null) {
-            val size = size
-            val density: Density = this
-            val layoutDirection = layoutDirection
+            runCatching { drawInnerShadow(shadow, shadowLayer) }
+                .onFailure(DerbisGlassSafety::report)
+        }
+    }
 
-            val radius = shadow.radius.toPx()
-            val offsetX = shadow.offset.x.toPx()
-            val offsetY = shadow.offset.y.toPx()
+    private fun ContentDrawScope.drawInnerShadow(shadow: InnerShadow, shadowLayer: GraphicsLayer) {
+        val size = size
+        val density: Density = this
+        val layoutDirection = layoutDirection
 
-            val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
-            val clipPath =
-                if (outline is Outline.Rounded) {
-                    clipPath ?: Path().also { clipPath = it }
+        val radius = shadow.radius.toPx()
+        val offsetX = shadow.offset.x.toPx()
+        val offsetY = shadow.offset.y.toPx()
+
+        val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
+        val clipPath =
+            if (outline is Outline.Rounded) {
+                clipPath ?: Path().also { clipPath = it }
+            } else {
+                null
+            }
+
+        configurePaint(shadow)
+
+        shadowLayer.alpha = shadow.alpha
+        shadowLayer.blendMode = shadow.blendMode
+        if (prevRadius != radius) {
+            shadowLayer.renderEffect =
+                if (radius > 0f) {
+                    BlurEffect(radius, radius, TileMode.Decal)
                 } else {
                     null
                 }
-
-            configurePaint(shadow)
-
-            shadowLayer.alpha = shadow.alpha
-            shadowLayer.blendMode = shadow.blendMode
-            if (prevRadius != radius) {
-                shadowLayer.renderEffect =
-                    if (radius > 0f) {
-                        BlurEffect(radius, radius, TileMode.Decal)
-                    } else {
-                        null
-                    }
-                prevRadius = radius
-            }
-            shadowLayer.record {
-                val canvas = drawContext.canvas
-                canvas.save()
-                canvas.clipOutline(outline, clipPath)
-                canvas.drawOutline(outline, paint)
-                canvas.translate(offsetX, offsetY)
-                canvas.drawOutline(outline, ShadowMaskPaint)
-                canvas.translate(-offsetX, -offsetY)
-                canvas.restore()
-            }
-
+            prevRadius = radius
+        }
+        shadowLayer.record {
             val canvas = drawContext.canvas
             canvas.save()
             canvas.clipOutline(outline, clipPath)
-            drawLayer(shadowLayer)
+            canvas.drawOutline(outline, paint)
+            canvas.translate(offsetX, offsetY)
+            canvas.drawOutline(outline, ShadowMaskPaint)
+            canvas.translate(-offsetX, -offsetY)
             canvas.restore()
         }
+
+        val canvas = drawContext.canvas
+        canvas.save()
+        canvas.clipOutline(outline, clipPath)
+        drawLayer(shadowLayer)
+        canvas.restore()
     }
 
     override fun onAttach() {

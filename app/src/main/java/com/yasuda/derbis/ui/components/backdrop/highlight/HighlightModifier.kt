@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastCoerceAtMost
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.components.backdrop.RuntimeShaderCacheImpl
 import com.yasuda.derbis.ui.components.backdrop.internal.ShapeProvider
 import com.yasuda.derbis.ui.components.backdrop.internal.blur
@@ -95,13 +96,16 @@ internal class HighlightNode(
 
     override fun ContentDrawScope.draw() {
         val highlight = highlight()
-        if (highlight == null || highlight.width.value <= 0f) {
-            return drawContent()
-        }
-
-        drawContent()
-
         val highlightLayer = highlightLayer
+        drawContent()
+        if (highlight == null || highlight.width.value <= 0f) return
+        // The rim is decoration: if its layer or its AGSL shader is rejected, drop the rim
+        // rather than the frame.
+        runCatching { drawHighlight(highlight, highlightLayer) }
+            .onFailure(DerbisGlassSafety::report)
+    }
+
+    private fun ContentDrawScope.drawHighlight(highlight: Highlight, highlightLayer: GraphicsLayer?) {
         if (highlightLayer != null) {
             val size = size
             val density: Density = this

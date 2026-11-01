@@ -18,6 +18,7 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.InspectorInfo
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.components.backdrop.internal.recordLayer
 
 fun Modifier.layerBackdrop(backdrop: LayerBackdrop): Modifier =
@@ -86,14 +87,29 @@ private class LayerBackdropNode(
         // Vendored change: a failed record must not take the page with it. If anything in
         // the recording throws (a shader the device rejects, a detached layer), draw the
         // page straight instead of crashing the frame.
+        if (DerbisGlassSafety.disabled) {
+            drawContent()
+            return
+        }
+        // The first frame of a page transition can be 0 x 0. Recording that size throws,
+        // and it is not a glass failure, so it is skipped rather than reported.
+        if (size.width < 1f || size.height < 1f) {
+            drawContent()
+            return
+        }
         val recorded = runCatching {
             recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
-        }.isSuccess
+        }.onFailure(DerbisGlassSafety::report).isSuccess
         if (!recorded) {
             drawContent()
             return
         }
-        drawLayer(backdrop.graphicsLayer)
+        // Compositing the finished layer can fail on its own (a rejected RenderNode, a
+        // driver that refuses the blit). The page still has to be on screen, so a failed
+        // composite falls back to drawing the content directly.
+        if (!runCatching { drawLayer(backdrop.graphicsLayer) }.onFailure(DerbisGlassSafety::report).isSuccess) {
+            drawContent()
+        }
     }
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {

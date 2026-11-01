@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.components.backdrop.drawBackdrop
 import com.yasuda.derbis.ui.components.backdrop.backdrops.LayerBackdrop
 import com.yasuda.derbis.ui.components.backdrop.backdrops.rememberLayerBackdrop
@@ -75,9 +76,13 @@ const val DERBIS_GLASS_RESOLUTION_SCALE = 0.33f
  */
 @Composable
 fun rememberDerbisAppBackdrop(enabled: Boolean, background: Color): LayerBackdrop? {
-    if (!enabled || !isBackdropGlassSupported()) return null
+    if (!enabled || !isBackdropGlassSupported() || DerbisGlassSafety.disabled) return null
     return rememberLayerBackdrop(
         onDraw = {
+            // Reaching this lambda means the GPU path is live for this process; the
+            // crash guard uses that to decide whether a process death is worth
+            // blaming on glass.
+            DerbisGlassSafety.noteDrawn()
             // A layer records only what is drawn into it. Pages here paint no
             // background of their own, so without this floor the recording is
             // transparent and the glass has nothing to blur.
@@ -96,7 +101,7 @@ fun rememberDerbisAppBackdrop(enabled: Boolean, background: Color): LayerBackdro
  * their own opaque fallback for unsupported devices and for the low-transparency
  * accessibility settings.
  *
- * [shape] must be a [CornerBasedShape]: the lens effect throws for anything else.
+ * [shape] should be a [CornerBasedShape]; anything else keeps a plain frosted panel.
  */
 @Composable
 fun Modifier.derbisBackdropGlass(
@@ -104,7 +109,9 @@ fun Modifier.derbisBackdropGlass(
     tint: Color = Color.Transparent,
     lensEnabled: Boolean = true
 ): Modifier {
-    val backdrop = LocalDerbisAppBackdrop.current ?: return this
+    val backdrop = LocalDerbisAppBackdrop.current
+        ?.takeUnless { DerbisGlassSafety.disabled }
+        ?: return this
     val density = LocalDensity.current
     val scale = DERBIS_GLASS_RESOLUTION_SCALE
     val blurPx = with(density) { BLUR_RADIUS_DP.dp.toPx() } * scale

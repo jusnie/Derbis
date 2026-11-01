@@ -370,23 +370,51 @@ private class DrawBackdropNode(
     }
 
     override fun ContentDrawScope.draw() {
-        if (effectScope.update(this, backdropScale)) {
+        // A surface that is still collapsing to nothing has no pixels to frost, and
+        // feeding a sub-pixel size to the shader chain is a native crash on some GPUs.
+        if (size.width < 2f || size.height < 2f) {
+            drawContent()
+            return
+        }
+        // Once the GPU path has failed once this session, every surface keeps its tint
+        // and its content and stops sampling: a glass panel is not worth a crash.
+        if (DerbisGlassSafety.disabled) {
+            onDrawBehind?.invoke(this)
+            onDrawSurface?.invoke(this)
+            drawContent()
+            onDrawFront?.invoke(this)
+            return
+        }
+        // Setting up the effect scope resolves shapes and sizes; it can fail for a shape
+        // this engine cannot describe, and that must cost the effect, not the frame.
+        val effectsReady = runCatching { effectScope.update(this, backdropScale) }
+            .onFailure(DerbisGlassSafety::report)
+            .getOrDefault(false)
+        if (effectsReady) {
             updateEffects()
         }
 
         onDrawBehind?.invoke(this)
-        drawBackdropLayer()
+        // Sampling the page layer is the one step that can throw from inside the draw
+        // pass. It runs before anything is painted, so a failure can drop straight to the
+        // tinted surface plus content with no double draw.
+        runCatching { drawBackdropLayer() }.onFailure(DerbisGlassSafety::report)
         onDrawSurface?.invoke(this)
         drawContent()
         onDrawFront?.invoke(this)
 
-        exportedBackdrop?.graphicsLayer?.let { layer ->
-            recordLayer(this@DrawBackdropNode, layer) {
-                onDrawBehind?.invoke(this)
-                drawRecordedBackdrop()
-                onDrawSurface?.invoke(this)
-                onDrawFront?.invoke(this)
-            }
+        val exportLayer = exportedBackdrop?.graphicsLayer
+        if (exportLayer != null && size.width >= 1f && size.height >= 1f) {
+            // Same story as the page layer: an export that cannot be recorded loses the
+            // export, never the frame.
+            runCatching {
+                recordLayer(this@DrawBackdropNode, exportLayer) {
+                    onDrawBehind?.invoke(this)
+                    drawRecordedBackdrop()
+                    onDrawSurface?.invoke(this)
+                    onDrawFront?.invoke(this)
+                }
+            }.onFailure(DerbisGlassSafety::report)
         }
     }
 
@@ -417,10 +445,18 @@ private class DrawBackdropNode(
 
     private fun updateEffects() {
         if (!isRenderEffectSupported()) return
+        if (DerbisGlassSafety.disabled) return
 
-        effectScope.apply(effects)
-        graphicsLayer?.renderEffect = effectScope.renderEffect
-        padding = effectScope.padding
+        // Building the RenderEffect/AGSL chain is where an unsupported shader shows up
+        // first. If it throws, the surface keeps its tint and stops sampling.
+        runCatching {
+            effectScope.apply(effects)
+            graphicsLayer?.renderEffect = effectScope.renderEffect
+            padding = effectScope.padding
+        }.onFailure { error ->
+            graphicsLayer?.renderEffect = null
+            DerbisGlassSafety.report(error)
+        }
     }
 
     override fun onAttach() {

@@ -9,6 +9,7 @@
  */
 package com.yasuda.derbis.ui.components.backdrop.shadow
 
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Paint
@@ -80,43 +81,48 @@ internal class ShadowNode(
     private val paint = Paint()
 
     override fun ContentDrawScope.draw() {
-        val shadow = shadow() ?: return drawContent()
-
+        val shadow = shadow()
         val shadowLayer = shadowLayer
-        if (shadowLayer != null) {
-            val size = size
-            val density: Density = this
-            val layoutDirection = layoutDirection
+        if (shadow != null && shadowLayer != null) {
+            runCatching { drawShadow(shadow, shadowLayer) }
+                .onFailure(DerbisGlassSafety::report)
+        }
+        drawContent()
+    }
 
-            val radius = shadow.radius.toPx()
-            val offsetX = shadow.offset.x.toPx()
-            val offsetY = shadow.offset.y.toPx()
-            val shadowSize = IntSize(
-                ceil(size.width + radius * 4f + offsetX).toInt(),
-                ceil(size.height + radius * 4f + offsetY).toInt()
-            )
-            val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
+    private fun ContentDrawScope.drawShadow(shadow: Shadow, shadowLayer: GraphicsLayer) {
+        val size = size
+        val density: Density = this
+        val layoutDirection = layoutDirection
 
-            configurePaint(shadow)
+        val radius = shadow.radius.toPx()
+        val offsetX = shadow.offset.x.toPx()
+        val offsetY = shadow.offset.y.toPx()
+        // A zero-or-negative record size throws, and a shrinking surface can hand
+        // one over for a frame mid-animation.
+        val shadowSize = IntSize(
+            ceil(size.width + radius * 4f + offsetX).toInt().coerceAtLeast(1),
+            ceil(size.height + radius * 4f + offsetY).toInt().coerceAtLeast(1)
+        )
+        val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
 
-            shadowLayer.alpha = shadow.alpha
-            shadowLayer.blendMode = shadow.blendMode
-            shadowLayer.record(shadowSize) {
-                translate(radius * 2f + offsetX, radius * 2f + offsetY) {
-                    val canvas = drawContext.canvas
-                    canvas.drawOutline(outline, paint)
-                    canvas.translate(-offsetX, -offsetY)
-                    canvas.drawOutline(outline, ShadowMaskPaint)
-                    canvas.translate(offsetX, offsetY)
-                }
-            }
+        configurePaint(shadow)
 
-            translate(-radius * 2f, -radius * 2f) {
-                drawLayer(shadowLayer)
+        shadowLayer.alpha = shadow.alpha
+        shadowLayer.blendMode = shadow.blendMode
+        shadowLayer.record(shadowSize) {
+            translate(radius * 2f + offsetX, radius * 2f + offsetY) {
+                val canvas = drawContext.canvas
+                canvas.drawOutline(outline, paint)
+                canvas.translate(-offsetX, -offsetY)
+                canvas.drawOutline(outline, ShadowMaskPaint)
+                canvas.translate(offsetX, offsetY)
             }
         }
 
-        drawContent()
+        translate(-radius * 2f, -radius * 2f) {
+            drawLayer(shadowLayer)
+        }
     }
 
     override fun onAttach() {

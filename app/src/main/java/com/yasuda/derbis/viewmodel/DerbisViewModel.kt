@@ -6186,7 +6186,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshPlaybackDiagnostics(): String {
         val diagnostics = listOf(
             resolver.playbackDiagnostics(),
-            providerRouter.diagnostics()
+            providerRouter.diagnostics(),
+            com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety.describe()
         ).filter { it.isNotBlank() }.joinToString("\n")
         _state.update { it.copy(playbackDiagnostics = diagnostics) }
         return diagnostics
