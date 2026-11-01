@@ -29,7 +29,9 @@ private data class BeatAlignedAutoMix(
     val startMs: Long,
     val durationMs: Long,
     val incomingStartMs: Long,
-    val incomingTempo: Float
+    val incomingTempo: Float,
+    /** True only when the incoming deck's tempo was actually locked to the outgoing grid. */
+    val tempoMatched: Boolean
 )
 
 internal fun planAutoMix(
@@ -49,9 +51,16 @@ internal fun planAutoMix(
     // Beat Sync is a playback feature, not a Mix Studio feature. With the master switch on it
     // applies to an ordinary queue handoff too, even when the playlist has no saved transition
     // plan — otherwise the toggle could be on and still change nothing about how songs blend.
-    val beatSyncRequested = normalized.beatSyncEnabled && (savedMix == null || savedMix.beatSyncEnabled) &&
-        currentBeatGrid != null && nextBeatGrid != null
-    val beatSyncOnly = beatSyncRequested && savedMix == null
+    //
+    // Only the outgoing grid is compulsory. Bar-phase alignment needs nothing else: the fade is
+    // cut in on one of the outgoing track's bar lines. Tempo locking additionally needs the
+    // incoming grid, and that only exists once the incoming track has itself played (or been
+    // analysed). Requiring both grids meant a track heard for the first time could never blend
+    // on the beat, which is exactly what "beat sync does nothing" felt like.
+    val beatSyncArmed = normalized.beatSyncEnabled &&
+        (savedMix == null || savedMix.beatSyncEnabled) &&
+        currentBeatGrid != null
+    val beatSyncOnly = beatSyncArmed && savedMix == null
     if ((!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0) && savedMix == null && !beatSyncOnly) return null
     if (next == null || repeatMode == RepeatMode.One || videoMode || lowRam || current.durationMs <= MIN_TRACK_MS) return null
     // A continuous album still plays gapless, even with Beat Sync armed: blending two tracks that
@@ -87,21 +96,33 @@ internal fun planAutoMix(
     )
     // A manually chosen timeline position must be honoured exactly, never replaced by analysis.
     val beatPlan = if (
-        beatSyncRequested && manualOutgoingStart == null && manualIncomingStart == null &&
-        currentBeatGrid != null && nextBeatGrid != null
+        beatSyncArmed && currentBeatGrid != null &&
+        manualOutgoingStart == null && manualIncomingStart == null
     ) {
-        val sync = DerbisMixStudio.beatSync(currentBeatGrid, nextBeatGrid)
-        val start = DerbisMixStudio.beatAlignedTransitionStartMs(current.durationMs, requestedTransition, currentBeatGrid)
-        if (sync.aligned && start != null) {
-            val duration = current.durationMs - start
+        val sync = nextBeatGrid?.let { DerbisMixStudio.beatSync(currentBeatGrid, it) }
+        val tempoMatched = sync?.aligned == true
+        val barAlignedStart = DerbisMixStudio.beatAlignedTransitionStartMs(
+            durationMs = current.durationMs,
+            desiredTransitionMs = requestedTransition,
+            grid = currentBeatGrid
+        )
+        if (barAlignedStart != null) {
+            val duration = current.durationMs - barAlignedStart
             if (duration in MIN_TRANSITION_MS..MAX_TRANSITION_MS) {
-                BeatAlignedAutoMix(start, duration, sync.incomingSeekMs, sync.incomingTempo)
+                BeatAlignedAutoMix(
+                    startMs = barAlignedStart,
+                    durationMs = duration,
+                    incomingStartMs = if (tempoMatched) sync?.incomingSeekMs ?: 0L else 0L,
+                    incomingTempo = if (tempoMatched) sync?.incomingTempo ?: 1f else 1f,
+                    tempoMatched = tempoMatched
+                )
             } else null
         } else null
     } else null
-    // Nothing to align and no ordinary crossfade configured: leave the handoff alone rather than
-    // inventing an overlap the listener never asked for.
-    if (beatSyncOnly && beatPlan == null) return null
+    // Beat Sync was the only reason this handoff exists and there is nothing to align: leave the
+    // track alone rather than inventing an overlap. If a normal crossfade is configured, that one
+    // still runs — a beat grid that cannot be read must never silence the fade.
+    if (beatSyncOnly && beatPlan == null && (!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0)) return null
     val transition = (beatPlan?.durationMs ?: requestedTransition)
         .coerceAtMost(manualOutgoingStart?.let { current.durationMs - it } ?: Long.MAX_VALUE)
     if (transition < MIN_TRANSITION_MS) return null
@@ -116,7 +137,9 @@ internal fun planAutoMix(
         transitionStartMs = manualOutgoingStart ?: beatPlan?.startMs,
         incomingStartMs = manualIncomingStart ?: beatPlan?.incomingStartMs ?: 0L,
         incomingTempo = beatPlan?.incomingTempo ?: 1f,
-        beatAligned = beatPlan != null
+        // The fade can be phrase-aligned without the two tempos matching, so this flag tracks the
+        // tempo lock specifically: it is what lets the service seek and re-speed the incoming deck.
+        beatAligned = beatPlan?.tempoMatched == true
     )
 }
 

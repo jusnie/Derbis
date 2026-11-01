@@ -212,6 +212,84 @@ class AutoMixPlannerTest {
     }
 
     @Test
+    fun beatSyncAloneSnapsAnOrdinaryHandoffToTheBarLine() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = DerbisAudioSettings(crossfadeSeconds = 0, beatSyncEnabled = true),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            currentBeatGrid = DerbisBeatGrid(bpm = 120f, downbeatMs = 0L, confidence = .9f),
+            nextBeatGrid = DerbisBeatGrid(bpm = 124f, downbeatMs = 120L, confidence = .9f)
+        )
+
+        // 120 BPM: 500 ms beat, 2000 ms bar. The fade must open on a bar line, not on the raw
+        // "duration - 6 s" point, and the two decks must be tempo-locked.
+        assertNotNull(plan)
+        assertEquals(174_000L, plan?.transitionStartMs)
+        assertEquals(6_000L, plan?.transitionMs)
+        assertTrue(plan?.beatAligned == true)
+        assertEquals(120f / 124f, plan?.incomingTempo ?: 0f, .001f)
+    }
+
+    @Test
+    fun beatSyncWithoutAnIncomingGridStillCutsTheBlendOnABarLine() {
+        val plan = planAutoMix(
+            current = track("out"),
+            next = track("in"),
+            settings = DerbisAudioSettings(crossfadeSeconds = 0, beatSyncEnabled = true),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            currentBeatGrid = DerbisBeatGrid(bpm = 120f, downbeatMs = 600L, confidence = .9f),
+            nextBeatGrid = null
+        )
+
+        // First play of a track has no grid yet. The phrase still lands: 600 + 86 bars.
+        assertNotNull(plan)
+        assertEquals(172_600L, plan?.transitionStartMs)
+        assertEquals(7_400L, plan?.transitionMs)
+        // ...but nothing is re-timed, because there is no incoming tempo to lock to.
+        assertFalse(plan?.beatAligned == true)
+        assertEquals(1f, plan?.incomingTempo ?: 0f, .001f)
+        assertEquals(0L, plan?.incomingStartMs)
+    }
+
+    @Test
+    fun beatSyncWithoutAnyGridLeavesTheHandoffExactlyAsItWas() {
+        assertNull(
+            planAutoMix(
+                current = track("out"),
+                next = track("in"),
+                settings = DerbisAudioSettings(crossfadeSeconds = 0, beatSyncEnabled = true),
+                repeatMode = RepeatMode.Off,
+                videoMode = false,
+                lowRam = false
+            )
+        )
+    }
+
+    @Test
+    fun beatSyncKeepsTheOrdinaryCrossfadeWhenTheGridCannotBeSnapped() {
+        // A grid whose first detected beat lands after the intended fade point has no bar line to
+        // open on. The user's own crossfade must still run rather than the handoff being dropped.
+        val plan = planAutoMix(
+            current = track("out").copy(durationMs = 40_000L),
+            next = track("in"),
+            settings = DerbisAudioSettings(crossfadeSeconds = 6, beatSyncEnabled = true),
+            repeatMode = RepeatMode.Off,
+            videoMode = false,
+            lowRam = false,
+            currentBeatGrid = DerbisBeatGrid(bpm = 120f, downbeatMs = 36_000L, confidence = .9f)
+        )
+
+        assertNotNull(plan)
+        assertEquals(6_000L, plan?.transitionMs)
+        assertNull(plan?.transitionStartMs)
+    }
+
+    @Test
     fun savedMixStudioFadeUsesLinearGainCurve() {
         val plan = planAutoMix(
             current = track("out"),

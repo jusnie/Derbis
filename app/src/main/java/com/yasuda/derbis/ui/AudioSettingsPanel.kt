@@ -659,7 +659,7 @@ internal fun AudioSettingsPanel(
                         subtitle = if (audioSettings.djSoftMode) {
                             "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified beat alignment."
                         } else {
-                            "Aligns the blend between songs to the beat on any queue. Each track needs about 15 seconds of playback first so Derbis can measure it."
+                            "Opens every blend on the bar line of the song that is playing. That song needs about 15 seconds of playback to be measured; if the next one has been measured too, its tempo is matched as well."
                         },
                         checked = audioSettings.beatSyncEnabled,
                         enabled = !audioSettings.djSoftMode,
