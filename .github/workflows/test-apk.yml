@@ -7,6 +7,11 @@ name: Derbis Prebuild APK
 # Manual only, and publishing is opt-in per run: with publish=false the APK is only a workflow
 # artifact, so a build can be tried without a tag appearing anywhere.
 on:
+  # TEMPORARY: lets this branch start a build by pushing, because the dispatch API is not
+  # reachable from here. Removed in the next commit; publishing is still off by default.
+  push:
+    branches:
+      - arena/b05b2e2f-derbis
   workflow_dispatch:
     inputs:
       publish:
