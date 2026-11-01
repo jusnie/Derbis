@@ -22614,6 +22614,9 @@ private fun SpotifyConnectionSettingsPanel(
     val spotifyState by com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
     val spotifySession by DerbisSpotifySession.state.collectAsStateWithLifecycle()
     var showSpotifyCanvasSheet by remember { mutableStateOf(false) }
+    // Connect goes straight into the sign-in browser; the Developer chip opens the same sheet on
+    // its status card instead.
+    var spotifyCanvasInBrowser by remember { mutableStateOf(false) }
     LaunchedEffect(context) {
         DerbisSpotifyConnection.initialize(context)
         DerbisSpotifySession.initialize(context)
@@ -22628,7 +22631,7 @@ private fun SpotifyConnectionSettingsPanel(
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Unavailable ->
             spotifyState.detail
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Disconnected ->
-            "Connect your account with Spotify’s official sign-in"
+            "Sign in to Spotify in the in-app browser"
     }
     // The developer door sits in the upper right of the section, where a session is advertised
     // without giving it a whole row of its own.
@@ -22646,7 +22649,10 @@ private fun SpotifyConnectionSettingsPanel(
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(99.dp))
-                .clickable { showSpotifyCanvasSheet = true }
+                .clickable {
+                    spotifyCanvasInBrowser = false
+                    showSpotifyCanvasSheet = true
+                }
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -22693,21 +22699,15 @@ private fun SpotifyConnectionSettingsPanel(
         connecting -> subtitle
         else -> strings.motionArtworkSpotifyRequired
     }
+    // Connect signs in inside Derbis. A browser Derbis does not own cannot hand back the sp_dc
+    // cookie, and that cookie is the only way to the Canvas, so the sign-in opens here: full
+    // screen browser on Spotify's login page, cookie read from its own jar on the way out.
     val connectAction: () -> Unit = {
         if (spotifyState.isConnected) {
             com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
         } else {
-            val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-            if (authorizationUri != null) {
-                runCatching {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
-                }.onFailure {
-                    com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
-                }
-            } else if (!spotifySession.hasCookie) {
-                // No OAuth client id in this build: the sheet is the working door.
-                showSpotifyCanvasSheet = true
-            }
+            spotifyCanvasInBrowser = true
+            showSpotifyCanvasSheet = true
         }
     }
 
@@ -22809,7 +22809,8 @@ private fun SpotifyConnectionSettingsPanel(
     if (showSpotifyCanvasSheet) {
         SpotifyCanvasSheet(
             onDismiss = { showSpotifyCanvasSheet = false },
-            onSessionSaved = onRefreshMotionArtwork
+            onSessionSaved = onRefreshMotionArtwork,
+            startInBrowser = spotifyCanvasInBrowser
         )
     }
 }

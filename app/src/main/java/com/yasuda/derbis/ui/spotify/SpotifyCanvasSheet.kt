@@ -107,14 +107,16 @@ private val SpotifyGreen = Color(0xFF1ED760)
 @Composable
 internal fun SpotifyCanvasSheet(
     onDismiss: () -> Unit,
-    onSessionSaved: () -> Unit = {}
+    onSessionSaved: () -> Unit = {},
+    startInBrowser: Boolean = false
 ) {
     val strings = LocalDerbisStrings.current
     val context = LocalContext.current
     val session by DerbisSpotifySession.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
-    var browsing by remember { mutableStateOf(false) }
+    // Connect opens the browser itself: the sheet is the sign-in, not a menu about it.
+    var browsing by remember { mutableStateOf(startInBrowser) }
     var developerOpen by remember { mutableStateOf(false) }
     var detected by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf("") }
@@ -127,7 +129,7 @@ internal fun SpotifyCanvasSheet(
         SpotifyTokenProvider.init(context)
     }
 
-    val stored = DerbisSpotifySession.cookie()
+    val stored = remember(session) { DerbisSpotifySession.cookie() }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -157,7 +159,8 @@ internal fun SpotifyCanvasSheet(
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.weight(1f)
                     )
-                    // The developer door: what was captured, and where to paste a different one.
+                    // The developer door, top right. It brings the sp_dc field up from the bottom
+                    // of the screen — the same end the keyboard opens on, so nothing jumps.
                     IconButton(onClick = { developerOpen = !developerOpen }) {
                         Icon(
                             Icons.Rounded.Code,
@@ -170,12 +173,21 @@ internal fun SpotifyCanvasSheet(
                 if (browsing) {
                     SpotifyBrowserPane(
                         modifier = Modifier.weight(1f),
+                        // The developer dock replaces the browser's own bar while it is up:
+                        // two rows of buttons under a keyboard is one row too many.
+                        footer = !developerOpen,
                         onDetected = { detected = it },
                         onCancel = { browsing = false },
+                        onCopy = { cookie ->
+                            copyCookie(context, cookie)
+                            status = strings.spotifyCanvasCopied
+                        },
                         onUse = { cookie ->
                             val (accepted, message) = applySession(context, cookie, strings, onSessionSaved)
                             status = message
-                            if (accepted) browsing = false
+                            // Sign-in finished: hand the listener back to the settings card,
+                            // which is where the unlocked state is shown.
+                            if (accepted) onDismiss()
                         }
                     )
                 } else {
@@ -193,8 +205,6 @@ internal fun SpotifyCanvasSheet(
                             lineHeight = 19.sp
                         )
 
-                        // One card, not a sign-in button with a session card under it: the two
-                        // were the same question asked twice. The action lives in the card now.
                         SessionCard(
                             stored = stored,
                             busy = busy,
@@ -217,47 +227,52 @@ internal fun SpotifyCanvasSheet(
                             }
                         )
 
-                        if (developerOpen) {
-                            DeveloperCard(
-                                stored = stored,
-                                revealed = revealed,
-                                draft = draft,
-                                onDraft = { draft = it },
-                                onToggleReveal = { revealed = !revealed },
-                                onCopy = {
-                                    copyCookie(context, stored)
-                                    status = strings.spotifyCanvasCopied
-                                },
-                                onPaste = {
-                                    pasteCookie(context)?.let { draft = it }
-                                },
-                                onSave = {
-                                    val (accepted, message) = applySession(context, draft, strings, onSessionSaved)
-                                    status = message
-                                    if (accepted) draft = ""
-                                },
-                                onRemove = {
-                                    DerbisSpotifySession.clear(context)
-                                    SpotifyOfficialCanvas.invalidate()
-                                    SpotifyTokenProvider.invalidate()
-                                    draft = ""
-                                    status = strings.spotifyCanvasRemoved
-                                },
-                                onUseDetected = detected?.let { cookie ->
-                                    {
-                                        val (_, message) = applySession(context, cookie, strings, onSessionSaved)
-                                        status = message
-                                    }
-                                }
-                            )
-                        } else if (stored.isNotEmpty()) {
-                            TextButton(onClick = { developerOpen = true }) {
-                                Text(strings.spotifyCanvasDeveloper, color = DerbisMuted, fontSize = 12.sp)
-                            }
-                        }
+                        Text(
+                            text = strings.spotifyCanvasDeveloperHint,
+                            color = DerbisMuted.copy(alpha = 0.75f),
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp
+                        )
 
                         Spacer(Modifier.height(8.dp))
                     }
+                }
+
+                // Bottom dock: the sp_dc field, pasted or typed, with the captured value above it.
+                if (developerOpen) {
+                    DeveloperDock(
+                        stored = stored,
+                        status = status,
+                        revealed = revealed,
+                        draft = draft,
+                        onDraft = { draft = it },
+                        onToggleReveal = { revealed = !revealed },
+                        onCopy = {
+                            copyCookie(context, stored)
+                            status = strings.spotifyCanvasCopied
+                        },
+                        onPaste = {
+                            pasteCookie(context)?.let { draft = it }
+                        },
+                        onSave = {
+                            val (accepted, message) = applySession(context, draft, strings, onSessionSaved)
+                            status = message
+                            if (accepted) draft = ""
+                        },
+                        onRemove = {
+                            DerbisSpotifySession.clear(context)
+                            SpotifyOfficialCanvas.invalidate()
+                            SpotifyTokenProvider.invalidate()
+                            draft = ""
+                            status = strings.spotifyCanvasRemoved
+                        },
+                        onUseDetected = detected?.let { cookie ->
+                            {
+                                val (_, message) = applySession(context, cookie, strings, onSessionSaved)
+                                status = message
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -413,8 +428,9 @@ private fun SessionCard(
 }
 
 @Composable
-private fun DeveloperCard(
+private fun DeveloperDock(
     stored: String,
+    status: String,
     revealed: Boolean,
     draft: String,
     onDraft: (String) -> Unit,
@@ -429,34 +445,32 @@ private fun DeveloperCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White.copy(alpha = 0.04f), RoundedCornerShape(18.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
-            .padding(16.dp),
+            .background(Color(0xFF141418), RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+            .border(
+                1.dp,
+                Color.White.copy(alpha = 0.10f),
+                RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(strings.spotifyCanvasDeveloper, color = DerbisText, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        Text(strings.spotifyCanvasCookieLabel, color = DerbisMuted, fontSize = 11.sp, letterSpacing = 0.6.sp)
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = when {
-                    stored.isEmpty() -> strings.spotifyCanvasNoSession
-                    revealed -> stored
-                    else -> SpotifyCookie.masked(stored)
-                },
-                color = if (stored.isEmpty()) DerbisMuted else DerbisText,
-                fontSize = 12.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                maxLines = if (revealed) 4 else 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+        // What is stored right now, with the two things anyone wants from it: look, copy.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(strings.spotifyCanvasCookieLabel, color = DerbisMuted, fontSize = 10.sp, letterSpacing = 0.6.sp)
+                Text(
+                    text = when {
+                        stored.isEmpty() -> strings.spotifyCanvasNoSession
+                        revealed -> stored
+                        else -> SpotifyCookie.masked(stored)
+                    },
+                    color = if (stored.isEmpty()) DerbisMuted else DerbisText,
+                    fontSize = 12.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    maxLines = if (revealed) 3 else 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             IconButton(onClick = onToggleReveal, enabled = stored.isNotEmpty()) {
                 Icon(
                     imageVector = if (revealed) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
@@ -512,20 +526,19 @@ private fun DeveloperCard(
             }
         }
 
-        Text(
-            text = strings.spotifyCanvasDeveloperHint,
-            color = DerbisMuted.copy(alpha = 0.75f),
-            fontSize = 11.sp,
-            lineHeight = 16.sp
-        )
+        if (status.isNotBlank()) {
+            Text(status, color = DerbisMuted, fontSize = 12.sp, lineHeight = 17.sp)
+        }
     }
 }
 
 @Composable
 private fun SpotifyBrowserPane(
     modifier: Modifier = Modifier,
+    footer: Boolean = true,
     onDetected: (String?) -> Unit,
     onCancel: () -> Unit,
+    onCopy: (String) -> Unit,
     onUse: (String) -> Unit
 ) {
     val strings = LocalDerbisStrings.current
@@ -571,22 +584,48 @@ private fun SpotifyBrowserPane(
                 ).also { webView = it }
             }
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (detected != null) strings.spotifyCanvasDetected else strings.spotifyCanvasSigningIn,
-                color = DerbisMuted,
-                fontSize = 12.sp,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onCancel) { Text(strings.cancel, color = DerbisMuted) }
-            TextButton(onClick = { detected?.let(onUse) }, enabled = detected != null) {
-                Text(strings.spotifyCanvasUseAccount, color = if (detected != null) SpotifyGreen else DerbisMuted)
+        if (footer) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DerbisInk)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Bottom left is the cookie: what this browser is holding, tap to copy it.
+                Row(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(99.dp))
+                        .background(Color.White.copy(alpha = 0.06f))
+                        .clickable(enabled = detected != null) { detected?.let(onCopy) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Code,
+                        contentDescription = null,
+                        tint = if (detected != null) SpotifyGreen else DerbisMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = when {
+                            detected == null -> strings.spotifyCanvasSigningIn
+                            else -> "sp_dc " + SpotifyCookie.masked(detected.orEmpty())
+                        },
+                        color = if (detected != null) SpotifyGreen else DerbisMuted,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onCancel) { Text(strings.cancel, color = DerbisMuted) }
+                TextButton(onClick = { detected?.let(onUse) }, enabled = detected != null) {
+                    Text(strings.spotifyCanvasUseAccount, color = if (detected != null) SpotifyGreen else DerbisMuted)
+                }
             }
         }
     }
