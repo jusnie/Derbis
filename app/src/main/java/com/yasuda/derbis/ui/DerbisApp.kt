@@ -22829,44 +22829,50 @@ private fun SpotifyConnectionSettingsPanel(
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = strings.motionArtworkEnabled,
-                        color = DerbisText,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(
-                                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
-                                else Color(0xFFFF5E3A).copy(alpha = 0.15f)
-                            )
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = when {
-                                connecting -> "CONNECTING"
-                                canvasUnlocked -> "UNLOCKED"
-                                else -> "LOGIN REQUIRED"
-                            },
-                            color = if (canvasUnlocked) Color(0xFF1ED760) else Color(0xFFFF5E3A),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
-                }
+                // Title, then the status chip on its own line. The chip used to sit inline next to
+                // the title, and on a narrow phone there was never room for both: the title kept
+                // its full width, the chip was squeezed into "LOGIN / REQUIRED" on two lines and
+                // spilled over the card, and the action was pushed past the edge.
+                Text(
+                    text = strings.motionArtworkEnabled,
+                    color = DerbisText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Text(
                     text = cardSubtitle,
                     color = DerbisMuted,
                     fontSize = 12.sp,
-                    lineHeight = 16.sp
+                    lineHeight = 16.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .clip(RoundedCornerShape(99.dp))
+                        .background(
+                            if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
+                            else Color(0xFFFF5E3A).copy(alpha = 0.15f)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = when {
+                            connecting -> "CONNECTING"
+                            canvasUnlocked -> "UNLOCKED"
+                            else -> "LOGIN REQUIRED"
+                        },
+                        color = if (canvasUnlocked) Color(0xFF1ED760) else Color(0xFFFF5E3A),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
             }
 
             // The one action. Tapping the card does the same thing, so neither is the only target.
@@ -22875,6 +22881,8 @@ private fun SpotifyConnectionSettingsPanel(
                 color = if (spotifyState.isConnected) DerbisMuted else Color(0xFF1ED760),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
                 modifier = Modifier
                     .clip(RoundedCornerShape(99.dp))
                     .clickable(enabled = !connecting, onClick = connectAction)
