@@ -13,6 +13,8 @@ internal val playerDeckKeys = setOf(
     "playerDeckFlowHint",
     "playerDeckFrost",
     "playerDeckFrostHint",
+    "playerDeckVinyl",
+    "playerDeckVinylHint",
     "playerDeckDerbisOne",
     "playerDeckDerbisOneHint",
     "playerDeckAppleMusic13",
@@ -52,7 +54,8 @@ internal data class PlayerDeckShortLabels(
     val pulse: String,
     val flow: String = "Derbis Flow",
     val frost: String = "Frost",
-    val derbisOne: String = "Derbis One"
+    val derbisOne: String = "Derbis One",
+    val vinyl: String = "Vinyl"
 )
 
 private val playerDeckShortLabelsByCode: Map<String, PlayerDeckShortLabels> = mapOf(
@@ -155,6 +158,42 @@ private val playerDeckFrostHints: Map<String, String> = mapOf(
     "fa" to "کاور منبع نور است و همه کنترل‌ها روی یک شیشه.",
     "zh-Hant" to "封面即光源，所有控制都在同一片玻璃上。",
     "ms" to "Muka depan menjadi cahaya dan semua kawalan pada satu kaca."
+)
+
+private val playerDeckVinylHints: Map<String, String> = mapOf(
+    "en" to "The record slides out of its sleeve while it plays, label pressed from the artwork.",
+    "it" to "Il disco esce dalla copertina mentre suona, con l'etichetta presa dalla copertina.",
+    "es" to "El disco sale de la funda mientras suena, con la etiqueta tomada de la portada.",
+    "fr" to "Le disque sort de sa pochette pendant la lecture, étiquette tirée de la pochette.",
+    "de" to "Die Platte gleitet beim Abspielen aus der Hülle, das Label aus dem Cover.",
+    "pt" to "O disco sai da capa enquanto toca, com o rótulo tirado da capa.",
+    "nl" to "De plaat schuift tijdens het spelen uit de hoes, het label uit de hoes.",
+    "pl" to "Płyta wysuwa się z okładki podczas grania, a etykieta pochodzi z okładki.",
+    "ru" to "Пластинка выезжает из конверта во время воспроизведения, этикетка из обложки.",
+    "uk" to "Платівка висувається з конверта під час відтворення, етикетка з обкладинки.",
+    "tr" to "Plak çalarken kılıfından çıkar, etiket kapaktan alınır.",
+    "ar" to "تخرج الأسطوانة من غلافها أثناء التشغيل، والملصق مأخوذ من الغلاف.",
+    "zh" to "唱片播放时从封套滑出，标签取自封面。",
+    "ja" to "再生中はレコードがスリーブから出て、レーベルはアートワークから作られます。",
+    "ko" to "재생 중에는 레코드가 슬리브에서 나오고, 레이블은 아트워크에서 가져옵니다.",
+    "id" to "Piringan keluar dari sampulnya saat diputar, labelnya diambil dari sampul.",
+    "vi" to "Đĩa trượt ra khỏi bìa khi phát, nhãn đĩa lấy từ ảnh bìa.",
+    "th" to "แผ่นเสียงเลื่อนออกจากซองขณะเล่น โดยป้ายแผ่นมาจากปก",
+    "fil" to "Lumalabas ang plaka sa sleeve habang tumutugtog, gawa sa cover ang label.",
+    "sv" to "Skivan glider ut ur fodralet när den spelas, etiketten tas från omslaget.",
+    "da" to "Pladen glider ud af sit omslag under afspilning, etiketten fra coveret.",
+    "cs" to "Deska při přehrávání vyjíždí z obalu, etiketa vychází z obalu.",
+    "el" to "Ο δίσκος βγαίνει από το κάλυμμα όσο παίζει, με ετικέτα από το εξώφυλλο.",
+    "ro" to "Discul iese din copertă în timpul redării, eticheta fiind luată din copertă.",
+    "he" to "התקליט יוצא מהעטיפה בזמן הנגינה, והתווית נלקחת מהעטיפה.",
+    "fi" to "Levy liukuu kotelostaan soidessaan, etiketti otetaan kansikuvasta.",
+    "et" to "Plaat libiseb esitamise ajal ümbrisest välja, silt tuleb kaanest.",
+    "hu" to "A lemez játék közben kicsúszik a tokból, a címke a borítóból készül.",
+    "nb" to "Platen glir ut av omslaget mens den spilles, etiketten fra coveret.",
+    "ca" to "El disc surt de la funda mentre sona, amb l'etiqueta presa de la portada.",
+    "fa" to "صفحه در حال پخش از جلد بیرون می‌آید و برچسب آن از طرح جلد ساخته می‌شود.",
+    "zh-Hant" to "唱片播放時從封套滑出，標籤取自封面。",
+    "ms" to "Cakera keluar dari sarungnya semasa dimainkan, label diambil daripada muka depan."
 )
 
 private val playerDeckOneHints: Map<String, String> = mapOf(
@@ -326,6 +365,8 @@ internal fun playerDeckLocalizationEntries(code: String): Map<String, String> =
         "playerDeckFrostHint" to (playerDeckFrostHints[code] ?: playerDeckFrostHints.getValue("en")),
         "playerDeckDerbisOne" to "Derbis One",
         "playerDeckDerbisOneHint" to (playerDeckOneHints[code] ?: playerDeckOneHints.getValue("en")),
+        "playerDeckVinyl" to "Vinyl",
+        "playerDeckVinylHint" to (playerDeckVinylHints[code] ?: playerDeckVinylHints.getValue("en")),
         "playerDeckDefaultBadge" to (playerDeckDefaultBadges[code] ?: playerDeckDefaultBadges.getValue("en"))
     )
 

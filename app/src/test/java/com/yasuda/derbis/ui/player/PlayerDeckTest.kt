@@ -41,6 +41,7 @@ class PlayerDeckTest {
         assertEquals(PlayerDeckLayout.Flow, PlayerVisualMode.Flow.deckLayout())
         assertEquals(PlayerDeckLayout.Frost, PlayerVisualMode.Frost.deckLayout())
         assertEquals(PlayerDeckLayout.One, PlayerVisualMode.DerbisOne.deckLayout())
+        assertEquals(PlayerDeckLayout.Vinyl, PlayerVisualMode.Vinyl.deckLayout())
     }
 
     @Test
@@ -53,7 +54,7 @@ class PlayerDeckTest {
 
     @Test
     fun `new styles fall back to the derbis layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne).forEach { mode ->
+        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne, PlayerVisualMode.Vinyl).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, DerbisPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Derbis, resolvePlayerDeckLayout(mode, true, false, DerbisPlayerPane.Stacked, true))
@@ -377,6 +378,8 @@ class PlayerDeckTest {
         assertEquals(PlayerVisualMode.Frost, PlayerVisualMode.from("Frost"))
         assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("DerbisOne"))
         assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("derbisone"))
+        assertEquals(PlayerVisualMode.Vinyl, PlayerVisualMode.from("Vinyl"))
+        assertEquals(PlayerVisualMode.Vinyl, PlayerVisualMode.from("vinyl"))
     }
 
     @Test

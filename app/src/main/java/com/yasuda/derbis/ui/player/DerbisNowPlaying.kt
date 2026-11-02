@@ -76,6 +76,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Waves
 import androidx.compose.material.icons.rounded.Circle
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Nightlight
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
@@ -1397,6 +1398,34 @@ private fun DerbisNowPlayingContent(
                 headlineModifier = lyricsFlipSwipeModifier,
                 modifier = deckModifier
             )
+        } else if (deckLayout == PlayerDeckLayout.Vinyl && track != null) {
+            PlayerVinylDeck(
+                track = track,
+                slots = deckSlots,
+                surfaces = surfaces,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
         } else if (playerPane == DerbisPlayerPane.SideBySide && track != null && compactLandscape && !state.isVideoMode) {
             Row(
                 modifier = rootModifier
@@ -2276,6 +2305,7 @@ internal fun visualModeStateDescription(
     PlayerVisualMode.Flow -> strings.playerDeckFlow
     PlayerVisualMode.Frost -> strings.playerDeckFrost
     PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOne
+    PlayerVisualMode.Vinyl -> strings.playerDeckVinyl
 }
 
 internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
@@ -2287,6 +2317,7 @@ internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Flow -> Icons.Rounded.Waves
     PlayerVisualMode.Frost -> Icons.Rounded.BlurOn
     PlayerVisualMode.DerbisOne -> Icons.Rounded.Circle
+    PlayerVisualMode.Vinyl -> Icons.Rounded.MusicNote
 }
 
 @Composable

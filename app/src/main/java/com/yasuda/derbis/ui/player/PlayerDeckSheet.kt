@@ -268,6 +268,7 @@ internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): St
         PlayerVisualMode.Flow -> labels.flow
         PlayerVisualMode.Frost -> labels.frost
         PlayerVisualMode.DerbisOne -> labels.derbisOne
+        PlayerVisualMode.Vinyl -> labels.vinyl
     }
 }
 
@@ -280,6 +281,7 @@ internal fun playerDeckHint(mode: PlayerVisualMode, strings: DerbisStrings): Str
     PlayerVisualMode.Flow -> strings.playerDeckFlowHint
     PlayerVisualMode.Frost -> strings.playerDeckFrostHint
     PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOneHint
+    PlayerVisualMode.Vinyl -> strings.playerDeckVinylHint
 }
 
 @Composable
@@ -300,6 +302,7 @@ private fun PlayerDeckPreview(
         PlayerVisualMode.Flow -> FlowPreview(track, artworkUrl, accent)
         PlayerVisualMode.Frost -> FrostPreview(track, artworkUrl, accent)
         PlayerVisualMode.DerbisOne -> OnePreview(track, artworkUrl, accent)
+        PlayerVisualMode.Vinyl -> VinylPreview(track, artworkUrl, accent)
     }
 }
 
@@ -719,6 +722,61 @@ private fun FrostPreview(track: Track, artworkUrl: String, accent: Color) {
                 PreviewCircle(size = 22.dp, color = Color.White.copy(alpha = 0.92f))
                 PreviewBar(width = 16.dp, height = 3.dp, color = Color.White.copy(alpha = 0.35f))
             }
+        }
+    }
+}
+
+@Composable
+private fun VinylPreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(accent.copy(alpha = 0.30f).compositeOnBlack(), Color(0xFF08080A))
+                )
+            )
+    ) {
+        Box(modifier = Modifier.align(Alignment.Center).fillMaxWidth()) {
+            // The record, half out of the sleeve, exactly as the playing deck draws it.
+            Canvas(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+                val record = size.height * 0.92f
+                val radius = record / 2f
+                val centre = Offset(size.width * 0.66f, size.height / 2f)
+                drawCircle(Color(0xFF141417), radius = radius, center = centre)
+                var groove = radius * 0.36f
+                while (groove < radius * 0.96f) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.06f),
+                        radius = groove,
+                        center = centre,
+                        style = Stroke(width = 0.6.dp.toPx())
+                    )
+                    groove += radius * 0.10f
+                }
+                drawCircle(accent.copy(alpha = 0.9f), radius = radius * 0.30f, center = centre)
+                drawCircle(Color(0xFF08080A), radius = radius * 0.05f, center = centre)
+            }
+            DeckArtwork(
+                track = track,
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 10.dp)
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(3.dp))
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PreviewBar(width = 68.dp, height = 5.dp, color = Color.White.copy(alpha = 0.9f))
+            PreviewBar(width = 36.dp, height = 4.dp, color = Color.White.copy(alpha = 0.42f))
+            PreviewBar(width = 118.dp, height = 3.dp, color = accent.copy(alpha = 0.85f))
         }
     }
 }

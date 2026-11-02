@@ -84,7 +84,8 @@ enum class PlayerVisualMode {
     Pulse,
     Flow,
     Frost,
-    DerbisOne;
+    DerbisOne,
+    Vinyl;
 
     companion object {
         /**

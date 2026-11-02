@@ -24,7 +24,8 @@ internal enum class PlayerDeckLayout {
     AppleMusic13,
     TidalMusic,
     Frost,
-    One
+    One,
+    Vinyl
 }
 
 /**
@@ -38,7 +39,8 @@ internal val PlayerDeckOrder: List<PlayerVisualMode> = listOf(
     PlayerVisualMode.AppleMusic13,
     PlayerVisualMode.Pulse,
     PlayerVisualMode.Frost,
-    PlayerVisualMode.DerbisOne
+    PlayerVisualMode.DerbisOne,
+    PlayerVisualMode.Vinyl
 )
 
 internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
@@ -50,6 +52,7 @@ internal fun PlayerVisualMode.deckLayout(): PlayerDeckLayout = when (this) {
     PlayerVisualMode.Flow -> PlayerDeckLayout.Flow
     PlayerVisualMode.Frost -> PlayerDeckLayout.Frost
     PlayerVisualMode.DerbisOne -> PlayerDeckLayout.One
+    PlayerVisualMode.Vinyl -> PlayerDeckLayout.Vinyl
 }
 
 /** Only the Apple Music 13 deck supplies the Apple Music palette and scene. */

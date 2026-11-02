@@ -194,6 +194,8 @@ class DerbisStrings private constructor(
     val playerDeckFlowHint: String get() = value("playerDeckFlowHint")
     val playerDeckFrost: String get() = value("playerDeckFrost")
     val playerDeckFrostHint: String get() = value("playerDeckFrostHint")
+    val playerDeckVinyl: String get() = value("playerDeckVinyl")
+    val playerDeckVinylHint: String get() = value("playerDeckVinylHint")
     val playerDeckDerbisOne: String get() = value("playerDeckDerbisOne")
     val playerDeckDerbisOneHint: String get() = value("playerDeckDerbisOneHint")
     val playerDeckAppleMusic13: String get() = value("playerDeckAppleMusic13")
