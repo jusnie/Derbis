@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Chat
-import com.yasuda.derbis.ui.icons.Public
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

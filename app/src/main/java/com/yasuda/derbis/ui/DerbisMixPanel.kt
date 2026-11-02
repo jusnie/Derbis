@@ -28,11 +28,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Casino
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider

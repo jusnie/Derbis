@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.yasuda.derbis.ui.LocalGlassBackdrop
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
@@ -106,7 +105,6 @@ fun Modifier.playerGlass(
     }
 
     this.resolvedDerbisGlass(
-        backdrop = LocalGlassBackdrop.current,
         shape = shape,
         baseTint = fill.copy(alpha = 1f),
         fallbackColor = fill,

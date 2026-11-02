@@ -177,7 +177,7 @@ class AutoMixPlannerTest {
         val plan = planAutoMix(
             current = track("out"),
             next = track("in"),
-            settings = DerbisAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false, beatSyncEnabled = true),
+            settings = DerbisAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
             repeatMode = RepeatMode.Off,
             videoMode = false,
             lowRam = false,
@@ -198,7 +198,7 @@ class AutoMixPlannerTest {
         val plan = planAutoMix(
             current = track("out"),
             next = track("in"),
-            settings = DerbisAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false, beatSyncEnabled = true),
+            settings = DerbisAudioSettings(crossfadeSeconds = 0, gaplessEnabled = false),
             repeatMode = RepeatMode.Off,
             videoMode = false,
             lowRam = false,

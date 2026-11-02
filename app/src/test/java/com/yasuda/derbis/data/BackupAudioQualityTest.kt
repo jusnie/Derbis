@@ -15,8 +15,15 @@ class BackupAudioQualityTest {
     @Test
     fun explicitBackupChoicesAreRestoredUnchanged() {
         assertEquals("High", backupAudioQualityFromJson(JSONObject().put("audioQuality", "High")))
-        assertEquals("Auto", backupAudioQualityFromJson(JSONObject().put("audioQuality", "Auto")))
+        assertEquals("Medium", backupAudioQualityFromJson(JSONObject().put("audioQuality", "Medium")))
         assertEquals("Low", backupAudioQualityFromJson(JSONObject().put("audioQuality", "Low")))
+        assertEquals("Lossless", backupAudioQualityFromJson(JSONObject().put("audioQuality", "Lossless")))
+    }
+
+    @Test
+    fun legacyAutoBackupsLandOnTheHighBranchTheyAlreadyTook() {
+        assertEquals("High", backupAudioQualityFromJson(JSONObject().put("audioQuality", "Auto")))
+        assertEquals("High", backupAudioQualityFromJson(JSONObject().put("audioQuality", "auto")))
     }
 
     @Test

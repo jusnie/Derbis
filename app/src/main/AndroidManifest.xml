@@ -23,10 +23,29 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
 
+    <!-- Android 11 hides other packages from this app unless they are named here. The Discord
+         hand-off does not need it to launch - startActivity() is not restricted - but the panel
+         asks whether Discord is installed at all before promising to open it, and that question
+         is answered from package visibility. -->
+    <queries>
+        <package android:name="com.discord" />
+        <package android:name="com.discord.beta" />
+        <package android:name="com.discord.preview" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="discord" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="discord.com" />
+        </intent>
+    </queries>
+
     <application
         android:name=".DerbisApplication"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
@@ -167,6 +186,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="derbis-spotify" android:host="callback" />
+            </intent-filter>
+            <!-- Discord mobile redirect: discord-<app id>:/authorize/callback. That URI has a
+                 scheme and a path but no authority, and an intent filter that declares a host
+                 anywhere refuses a hostless URI — so this cannot share a filter with the spotify
+                 callback above. The scheme is all the filter can key on here; the path is checked
+                 in DerbisDiscordRichPresence.receives(). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="discord-${discordApplicationId}" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

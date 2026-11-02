@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derbis — Spotify sign-in sheet</title>
+<style>
+  :root {
+    --ink: #08080a;
+    --surface: #141418;
+    --text: #f4f1ea;
+    --muted: #9a9aa6;
+    --green: #1ed760;
+    --hairline: rgba(255,255,255,.10);
+    --chip: rgba(255,255,255,.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 64px;
+    background: #050506;
+    color: var(--text);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 30px; max-width: 720px; }
+  .frames { display: flex; gap: 28px; flex-wrap: wrap; }
+  .frame { width: 340px; }
+  .caption {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 10px; font-weight: 700;
+  }
+  .phone {
+    position: relative;
+    height: 640px;
+    border-radius: 30px;
+    overflow: hidden;
+    background: var(--ink);
+    border: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* top bar */
+  .top {
+    display: flex; align-items: center; gap: 6px;
+    padding: 10px 8px;
+    flex: 0 0 auto;
+  }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--text);
+  }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn.dev { color: var(--muted); }
+  .icon-btn.dev.on { color: var(--green); background: rgba(30,215,96,.10); }
+  .title { flex: 1; font-size: 17px; font-weight: 800; }
+
+  /* browser mock */
+  .browser {
+    flex: 1; min-height: 0;
+    margin: 0 12px;
+    border-radius: 16px;
+    background: #0f0f12;
+    border: 1px solid var(--hairline);
+    position: relative;
+    overflow: hidden;
+  }
+  .bar { height: 4px; background: rgba(30,215,96,.35); }
+  .bar i { display: block; height: 100%; width: 42%; background: var(--green); }
+  .page { padding: 22px 18px; }
+  .url {
+    font-size: 9px; color: #6e6e7a; background: #17171c; border-radius: 99px;
+    padding: 5px 10px; display: inline-block; margin-bottom: 20px;
+  }
+  .page h2 { margin: 0 0 4px; font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+  .page p { margin: 0 0 18px; font-size: 11px; color: var(--muted); }
+  .field {
+    height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,.16);
+    margin-bottom: 10px; display: flex; align-items: center; padding: 0 12px;
+    font-size: 11px; color: #6e6e7a;
+  }
+  .cta {
+    height: 36px; border-radius: 99px; background: var(--green);
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 800; color: #06120a; margin-top: 16px;
+  }
+
+  /* bottom bar: cookies left, actions right */
+  .footer {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px 14px;
+  }
+  .cookie {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--chip); border-radius: 99px;
+    padding: 6px 10px;
+    font-size: 11px; color: var(--green);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    max-width: 62%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cookie svg { width: 14px; height: 14px; flex: 0 0 auto; }
+  .cookie.empty { color: var(--muted); font-family: inherit; }
+  .spacer { flex: 1; }
+  .txt-btn {
+    font-size: 13px; font-weight: 700; padding: 8px 10px; border-radius: 99px;
+    color: var(--muted);
+  }
+  .txt-btn.use { color: var(--green); }
+  .txt-btn.use[aria-disabled="true"] { color: #55555f; }
+
+  /* developer dock */
+  .dock {
+    flex: 0 0 auto;
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+    border-radius: 22px 22px 0 0;
+    padding: 14px 16px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .dock-label { font-size: 10px; letter-spacing: .07em; color: var(--muted); text-transform: uppercase; }
+  .dock-row { display: flex; align-items: center; gap: 8px; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+  .mini-icon { width: 30px; height: 30px; display: grid; place-items: center; color: var(--muted); }
+  .mini-icon svg { width: 17px; height: 17px; }
+  .input {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 6px;
+    padding: 10px 12px; font-size: 12px; color: #6e6e7a;
+  }
+  .input .caret { flex: 1; }
+  .input svg { width: 18px; height: 18px; color: var(--muted); }
+  .dock-actions { display: flex; align-items: center; gap: 6px; }
+  .dock-actions .txt-btn { font-size: 12px; }
+  .hint { font-size: 11px; line-height: 1.5; color: #7c7c88; }
+
+  /* settings card reference */
+  .card {
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(255,255,255,.04);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .card.live { background: rgba(30,215,96,.08); border-color: rgba(30,215,96,.32); }
+  .badge {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,.08); display: grid; place-items: center; color: var(--muted);
+  }
+  .card.live .badge { background: rgba(30,215,96,.20); color: var(--green); }
+  .badge svg { width: 22px; height: 22px; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+  .pill {
+    font-size: 9px; font-weight: 800; letter-spacing: .06em;
+    padding: 2px 7px; border-radius: 99px;
+    background: rgba(255,94,58,.15); color: #ff5e3a;
+  }
+  .live .pill { background: rgba(30,215,96,.20); color: var(--green); }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .card-action { font-size: 13px; font-weight: 700; color: var(--green); padding: 6px 10px; }
+  .live .card-action { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Spotify sign-in — one sheet, browser first</h1>
+  <p class="lede">
+    Tapping <strong>Connect</strong> in Settings goes straight into the browser, full screen, on Spotify's
+    own login page. The cookie the web player leaves behind is read from that browser's jar — no typing,
+    no dev tools. <strong>Bottom left</strong> holds the cookie it captured (tap to copy).
+    <strong>Top right</strong> is the developer door; it slides the <code>sp_dc</code> field up from the
+    bottom of the screen, ready to paste one from a desktop browser.
+  </p>
+
+  <div class="frames">
+    <!-- 1. the sheet as it opens from Connect -->
+    <div class="frame">
+      <p class="caption">1 · Connect → browser</p>
+      <div class="phone">
+        <div class="top">
+          <div class="icon-btn" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </div>
+          <div class="title">Spotify Canvas</div>
+          <div class="icon-btn dev" title="Developer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <div class="browser">
+          <div class="bar"><i></i></div>
+          <div class="page">
+            <div class="url">accounts.spotify.com/en/login</div>
+            <h2>Log in to Spotify</h2>
+            <p>Sign in with your account to keep listening.</p>
+            <div class="field">Email or username</div>
+            <div class="field">Password</div>
+            <div class="cta">Log in</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="cookie">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+            sp_dc AQAB7x…f3c9
+          </div>
+          <div class="spacer"></div>
+          <div class="txt-btn">Cancel</div>
+          <div class="txt-btn use">Use this account</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. before sign-in: nothing captured yet -->
+    <div class="frame">
+      <p class="caption">2 · before the cookie lands</p>
+      <div class="phone">
+        <div class="top">
+          <div class="icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </div>
+          <div class="title">Spotify Canvas</div>
+          <div class="icon-btn dev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <div class="browser">
+          <div class="bar"><i style="width:22%"></i></div>
+          <div class="page">
+            <div class="url">accounts.spotify.com/en/login</div>
+            <h2>Log in to Spotify</h2>
+            <p>Sign in with your account to keep listening.</p>
+            <div class="field">Email or username</div>
+            <div class="field">Password</div>
+            <div class="cta" style="background:#2a2a31;color:#6e6e7a">Log in</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <div class="cookie empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+            Sign in to Spotify…
+          </div>
+          <div class="spacer"></div>
+          <div class="txt-btn">Cancel</div>
+          <div class="txt-btn use" aria-disabled="true">Use this account</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. developer dock open -->
+    <div class="frame">
+      <p class="caption">3 · developer open (top right)</p>
+      <div class="phone">
+        <div class="top">
+          <div class="icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </div>
+          <div class="title">Spotify Canvas</div>
+          <div class="icon-btn dev on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <div class="browser">
+          <div class="bar"><i style="width:60%"></i></div>
+          <div class="page">
+            <div class="url">accounts.spotify.com/en/login</div>
+            <h2>Log in to Spotify</h2>
+            <p>Sign in with your account to keep listening.</p>
+            <div class="field">Email or username</div>
+            <div class="field">Password</div>
+          </div>
+        </div>
+
+        <div class="dock">
+          <div class="dock-row">
+            <div style="flex:1;min-width:0">
+              <div class="dock-label">sp_dc session cookie</div>
+              <div class="mono" style="margin-top:2px">AQAB7x…f3c9</div>
+            </div>
+            <div class="mini-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="mini-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+            </div>
+          </div>
+
+          <div class="input">
+            <span class="caret">Paste sp_dc</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>
+          </div>
+
+          <div class="dock-actions">
+            <div class="txt-btn" style="color:#55555f">Save</div>
+            <div class="txt-btn" style="color:var(--green)">Use detected session</div>
+            <div class="spacer"></div>
+            <div class="txt-btn">Remove</div>
+          </div>
+
+          <div class="hint">A browser keeps sp_dc as an httpOnly cookie: on desktop open open.spotify.com, then DevTools → Application → Cookies → sp_dc.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- settings card, before/after -->
+  <p class="caption" style="margin-top:40px">Settings card — the same one card, unlocked by that session</p>
+  <div class="frames">
+    <div class="frame" style="width:520px">
+      <div class="card">
+        <div class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Animated Artwork &amp; Canvas <span class="pill">LOGIN REQUIRED</span></div>
+          <div class="card-sub">Sign in to Spotify to unlock animated artwork and Canvas.</div>
+        </div>
+        <div class="card-action">Connect</div>
+      </div>
+    </div>
+    <div class="frame" style="width:520px">
+      <div class="card live">
+        <div class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.1 5.2L19 10l-4.9 1.8L12 17l-2.1-5.2L5 10l4.9-1.8z"/><path d="M18 16l.9 2.1L21 19l-2.1.9L18 22l-.9-2.1L15 19l2.1-.9z"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Animated Artwork &amp; Canvas <span class="pill">UNLOCKED</span></div>
+          <div class="card-sub">Web session · Unlocked · Streaming Apple Music &amp; Spotify motion covers</div>
+        </div>
+        <div class="card-action">Disconnect</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

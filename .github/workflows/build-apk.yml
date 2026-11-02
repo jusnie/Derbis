@@ -8,20 +8,21 @@ on:
       release_tag:
         description: "Stable Android release tag"
         required: true
-        default: "v1.1.1"
+        default: "v1.5.0"
       release_name:
         description: "Visible release name"
         required: true
-        default: "Derbis v1.1.1"
+        default: "Derbis v1.5.0"
       release_version:
         description: "Version embedded in the Android package"
         required: true
-        default: "1.1.1"
+        default: "1.5.0"
       release_version_code:
         description: "Monotonically increasing Android versionCode"
         required: true
-        # Reissued 1.1.1 needs a higher code so Android accepts it over the previous 1.1.1 APK.
-        default: "3000209"
+        # 1.5.0 has to outrank the 1.5.0 test build (3000212) and the 1.6.0 prebuild (3000211) so
+        # Android installs it over either of them instead of refusing it as a downgrade.
+        default: "3000213"
 
 permissions:
   contents: write
@@ -36,16 +37,26 @@ jobs:
 
       - name: Validate stable release metadata
         shell: bash
+        env:
+          # A dispatch normally supplies all four. The fallbacks are the release they were last
+          # set from, so an empty dispatch still cuts a valid tag instead of an empty one.
+          RELEASE_TAG: ${{ inputs.release_tag || 'v1.5.0' }}
+          RELEASE_NAME: ${{ inputs.release_name || 'Derbis v1.5.0' }}
+          RELEASE_VERSION: ${{ inputs.release_version || '1.5.0' }}
+          RELEASE_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
         run: |
           set -euo pipefail
-          tag='${{ inputs.release_tag }}'
-          name='${{ inputs.release_name }}'
-          version='${{ inputs.release_version }}'
-          version_code='${{ inputs.release_version_code }}'
+          tag="${RELEASE_TAG}"
+          name="${RELEASE_NAME}"
+          version="${RELEASE_VERSION}"
+          version_code="${RELEASE_VERSION_CODE}"
           [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "release_tag must be a stable v<major>.<minor>.<patch> tag"; exit 1; }
           [[ "${tag}" == "v${version}" ]] || { echo "release_tag must match release_version"; exit 1; }
           [[ "${name}" == "Derbis v${version}" ]] || { echo "release_name must match release_version"; exit 1; }
           [[ "${version_code}" =~ ^[1-9][0-9]*$ ]] || { echo "release_version_code must be a positive integer"; exit 1; }
+          # The release page is the notes file, so a release cannot be cut with a placeholder body.
+          notes="docs/releases/${tag}.md"
+          [[ -s "${notes}" ]] || { echo "release notes file ${notes} is missing or empty"; exit 1; }
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -101,20 +112,33 @@ jobs:
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
+          # Read directly by envOrProperty in app/build.gradle.kts; empty falls back to the id
+          # baked into the build, so an unset secret cannot break Discord sign-in.
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
+        shell: bash
         run: |
-          ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace \
+          set +e
+          ./gradlew :app:assembleSidecarRelease --no-daemon --stacktrace --console=plain \
             -PderbisVersionName="${DERBIS_VERSION_NAME}" \
-            -PderbisVersionCode="${DERBIS_VERSION_CODE}"
+            -PderbisVersionCode="${DERBIS_VERSION_CODE}" 2>&1 | tee build.log
+          status="${PIPESTATUS[0]}"
+          set -e
+          if [[ "${status}" -ne 0 ]]; then
+            grep -E '^e: |error:|What went wrong|FAILURE:' build.log | tail -n 60 | while IFS= read -r line; do
+              printf '::error::%s\n' "${line}"
+            done
+            exit "${status}"
+          fi
 
       - name: Verify Sidecar Release APK identity
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -132,32 +156,38 @@ jobs:
         run: |
           mkdir -p build-assets
           cp app/build/outputs/apk/sidecarRelease/app-sidecarRelease.apk build-assets/Derbis.apk
+          cd build-assets
+          sha256sum Derbis.apk | tee Derbis.apk.sha256
 
       - name: Upload Derbis APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Derbis-Release-APK
-          path: build-assets/Derbis.apk
+          path: |
+            build-assets/Derbis.apk
+            build-assets/Derbis.apk.sha256
 
       - name: Create / Update GitHub Release
-        if: github.ref == 'refs/heads/main'
+        # Manual dispatch only, and the tag is cut at the commit that was dispatched. Publishing is
+        # allowed from any branch because the metadata is validated above and the tag itself records
+        # the commit the APK came from.
+        if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag }}
-          name: ${{ inputs.release_name }}
+          tag_name: ${{ inputs.release_tag || 'v1.5.0' }}
+          name: ${{ inputs.release_name || 'Derbis v1.5.0' }}
+          # Cut the tag at the commit this run built. Without it the tag is created at the default
+          # branch's head, which is not necessarily the code in the APK.
+          target_commitish: ${{ github.sha }}
+          # docs/releases/v<version>.md is checked in, so the release page and the changelog cannot
+          # drift apart and no placeholder body has to live in this workflow.
+          body_path: docs/releases/${{ inputs.release_tag || 'v1.5.0' }}.md
           draft: false
           prerelease: false
-          body: |
-            ## 1.1.1 refreshed build
-            - Removing Derbis from Android Recents now explicitly pauses playback, clears its activity and notification, and stops the media service.
-            - Discord Rich Presence is service-owned while music is active, avoids redundant native updates, and no longer tears down during Activity recreation.
-            - The timeline marks the configured crossfade end-zone; it becomes RGB-bright only during the real two-deck overlap, with a `CROSSFADING` status.
-            - `PLAYING FROM` and `DERBIS MUSIC METADATA` use a stronger player-header weight for better legibility.
-            - The refreshed APK keeps version name `1.1.1` and uses Android versionCode `3000204` so it can install over the original 1.1.1 package.
-
-            ## Update delivery
-            - This release replaces the previous `Derbis.apk` asset for v1.1.1 on GitHub.
-          files: build-assets/Derbis.apk
+          make_latest: true
+          files: |
+            build-assets/Derbis.apk
+            build-assets/Derbis.apk.sha256
           overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

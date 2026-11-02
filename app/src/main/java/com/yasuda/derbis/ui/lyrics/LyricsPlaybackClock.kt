@@ -10,8 +10,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.abs
 
-const val LYRICS_CLOCK_RESYNC_THRESHOLD_MS = 320L
+const val LYRICS_CLOCK_RESYNC_THRESHOLD_MS = 200L
 const val LYRICS_CLOCK_MAX_CONVERGENCE_MS = 48L
+/** The share of a standing lag the clock removes each time the player reports a position. */
+const val LYRICS_CLOCK_CATCHUP_FRACTION = 0.5f
+const val LYRICS_CLOCK_MAX_CATCHUP_MS = 180L
 const val LYRICS_CLOCK_MIN_SPEED = 0.25f
 const val LYRICS_CLOCK_MAX_SPEED = 4f
 
@@ -31,11 +34,23 @@ fun projectedLyricsPositionMs(
 fun shouldSnapLyricsClock(renderedMs: Long, reportedMs: Long): Boolean =
     abs(reportedMs - renderedMs) > LYRICS_CLOCK_RESYNC_THRESHOLD_MS
 
+/**
+ * Pulls the rendered position toward the reported one.
+ *
+ * It used to move at most [LYRICS_CLOCK_MAX_CONVERGENCE_MS] per report, which meant a lag of
+ * half a second - the usual size after a seek, a buffer, or a route change - took a dozen
+ * player updates to clear and, with the updates arriving twice a second, was still there
+ * several seconds later. Karaoke cannot survive a standing offset: the word being sung and the
+ * word being lit are then permanently out of step. The correction is now proportional to the
+ * error, so a lag is gone in two or three reports, while [LYRICS_CLOCK_RESYNC_THRESHOLD_MS]
+ * still snaps a real jump instead of easing through it.
+ */
 fun convergedLyricsAnchorMs(renderedMs: Long, reportedMs: Long): Long {
     if (shouldSnapLyricsClock(renderedMs, reportedMs)) return reportedMs.coerceAtLeast(0L)
-    val correction = (reportedMs - renderedMs)
-        .coerceIn(-LYRICS_CLOCK_MAX_CONVERGENCE_MS, LYRICS_CLOCK_MAX_CONVERGENCE_MS)
-    return (renderedMs + correction).coerceAtLeast(0L)
+    val error = reportedMs - renderedMs
+    val step = (error.toFloat() * LYRICS_CLOCK_CATCHUP_FRACTION).toLong()
+        .coerceIn(LYRICS_CLOCK_MAX_CONVERGENCE_MS, LYRICS_CLOCK_MAX_CATCHUP_MS)
+    return (renderedMs + error.coerceIn(-step, step)).coerceAtLeast(0L)
 }
 
 @Stable

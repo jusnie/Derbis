@@ -150,8 +150,6 @@ data class DerbisAudioSettings(
     val limiterEnabled: Boolean = true,
     val crossfadeSeconds: Int = 0,
     val djSoftMode: Boolean = false,
-    /** Master permission for verified Mix Studio beat alignment. Mutually exclusive with DJ Crossfade. */
-    val beatSyncEnabled: Boolean = false,
     val replayGainEnabled: Boolean = false,
     val replayGainMode: ReplayGainMode = ReplayGainMode.OFF,
     val replayGainPreampDb: Float = 0f,
@@ -169,7 +167,23 @@ data class DerbisAudioSettings(
     val customParametricProfiles: List<ParametricEqProfile> = emptyList(),
     val enhancedAudioEnabled: Boolean = true,
     val audioOffloadPreference: AudioOffloadPreference = AudioOffloadPreference.AUTOMATIC,
-    val playbackBuffer: PlaybackBufferSettings = PlaybackBufferSettings()
+    val playbackBuffer: PlaybackBufferSettings = PlaybackBufferSettings(),
+    /**
+     * Whether a source offering a Dolby Atmos (E-AC-3 JOC) rendition may serve it.
+     *
+     * On by default: where the phone can decode it, Atmos is the premium rendition. Off is a
+     * real preference and not just a safety valve — Atmos is E-AC-3, which is lossy, and a
+     * track with an Atmos master is often also held as a FLAC, so someone on wired headphones
+     * may prefer the bit-exact stereo copy to a spatial mix their output cannot render.
+     */
+    val dolbyAtmosEnabled: Boolean = true,
+    /**
+     * Karaoke: cancel the centre of the stereo image so the lead vocal drops out.
+     *
+     * Off by default and deliberately a plain switch — this is centre-channel cancellation, not
+     * stem separation, so it is instant, per-track and completely reversible.
+     */
+    val karaokeMode: Boolean = false
 ) {
     val effectiveReplayGainMode: ReplayGainMode
         get() = if (replayGainMode == ReplayGainMode.OFF && replayGainEnabled) ReplayGainMode.SMART else replayGainMode
@@ -237,8 +251,6 @@ data class DerbisAudioSettings(
             bassBoost = bassBoost.coerceIn(0, 100),
             virtualizer = virtualizer.coerceIn(0, 100),
             preampDb = preampDb.coerceIn(-12f, 3f),
-            // The timing engine and energy-adaptive DJ Crossfade must not both control a handoff.
-            djSoftMode = if (beatSyncEnabled) false else djSoftMode,
             replayGainEnabled = normalizedReplayGainMode != ReplayGainMode.OFF,
             replayGainMode = normalizedReplayGainMode,
             replayGainPreampDb = replayGainPreampDb.coerceIn(-12f, 12f),

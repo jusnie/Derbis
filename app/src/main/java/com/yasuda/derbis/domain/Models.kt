@@ -353,7 +353,11 @@ data class AppUpdateInfo(
     val assetName: String,
     val directApk: Boolean,
     val isNewer: Boolean,
-    val assetSizeBytes: Long = 0L
+    val assetSizeBytes: Long = 0L,
+    /** Release line the advertised build belongs to: "stable" or "test". */
+    val track: String = "",
+    /** Short commit a prebuild was cut from, when its tag carries one. */
+    val buildId: String = ""
 )
 
 fun Track.smartWeightFor(mood: Mood?): Int {

@@ -2,7 +2,9 @@ package com.yasuda.derbis.feature.discord
 
 import android.app.Activity
 import android.content.Context
+import android.net.Uri
 import android.os.SystemClock
+import android.util.Base64
 import com.yasuda.derbis.BuildConfig
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +23,8 @@ import timber.log.Timber
  *
  * Supports both:
  *  1. OuterTune / KizzyRPC direct Discord Gateway WebSocket & REST client
- *     (with clickable buttons, progress bar, dual artwork/artist icon assets, and connection tester)
+ *     (clickable buttons, progress bar, dual artwork/artist icon assets, live lyric line,
+ *     the Derbis logo as artwork fallback, and a connection tester)
  *  2. Optional Android Discord Social SDK native bridge when available.
  */
 enum class DerbisDiscordConnectionStatus {
@@ -87,6 +90,12 @@ internal data class DerbisDiscordPresenceSnapshot(
 
 private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
 private const val DISCORD_POSITION_RESYNC_MS = 30_000L
+
+/** Activity name shown by the native bridge, matching what the gateway client sends. */
+private const val DISCORD_ACTIVITY_NAME = "Listening in Derbis"
+
+/** Placeholder line for a track whose metadata has no artist. */
+private const val DISCORD_UNKNOWN_ARTIST = "Unknown Artist"
 
 /**
  * Discord only accepts five game-status updates per 20 seconds per session
@@ -174,9 +183,20 @@ private fun String.discordExternalArtworkUrl(): String {
 }
 
 object DerbisDiscordRichPresence {
+    private const val AUTHORIZE_ENDPOINT = "https://discord.com/oauth2/authorize"
     private const val PREFERENCES = "derbis_discord_presence"
     private const val ENABLED_KEY = "enabled"
     private const val LYRICS_KEY = "lyrics_in_presence"
+    private const val PKCE_VERIFIER_KEY = "pkce_verifier"
+    private const val OAUTH_STATE_KEY = "oauth_state"
+
+    /**
+     * How long a started sign-in is treated as still in flight. Nothing guarantees a callback -
+     * the Discord app can be closed from the consent screen, the deep link can land nowhere, the
+     * phone can kill the browser - and a panel that waits forever with every control disabled has
+     * no way out of itself. Past this, the panel goes back to "not signed in" on its own.
+     */
+    private const val SIGN_IN_TIMEOUT_MS = 5 * 60 * 1000L
     private const val NATIVE_UNAVAILABLE = 0
     private const val NATIVE_DISCONNECTED = 1
     private const val NATIVE_SIGNING_IN = 2
@@ -189,6 +209,10 @@ object DerbisDiscordRichPresence {
     private val _connectionState = MutableStateFlow(
         DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
     )
+
+    /** When [beginAuthorization] last ran, so a sign-in nobody finished can expire. */
+    @Volatile
+    private var signInStartedAtMs = 0L
 
     val connectionState: StateFlow<DerbisDiscordConnectionState> = _connectionState.asStateFlow()
 
@@ -235,7 +259,10 @@ object DerbisDiscordRichPresence {
                 globalName = savedSession.globalName,
                 avatarUrl = savedSession.avatarUrl
             )
-            DiscordRpcClient.connect(savedSession.effectiveToken)
+            // The gateway authenticates account tokens only; an OAuth access token is for REST.
+            if (savedSession.userToken.isNotBlank()) {
+                DiscordRpcClient.connect(savedSession.userToken)
+            }
         } else {
             if (_connectionState.value.status != DerbisDiscordConnectionStatus.SigningIn) {
                 _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
@@ -257,40 +284,304 @@ object DerbisDiscordRichPresence {
         }
     }
 
+    /** True when this build carries a Discord application id and a redirect URI to call back to. */
+    fun isConfigured(): Boolean =
+        BuildConfig.DISCORD_APPLICATION_ID.isNotBlank() && BuildConfig.DISCORD_REDIRECT_URI.isNotBlank()
+
     /**
-     * Token login (OuterTune pattern): directly verifies and connects using user token.
+     * The Discord authorization page for Derbis, or null when this build has no application id.
+     *
+     * Authorization code + PKCE, not the old implicit grant: Discord's current mobile flow is
+     * code + PKCE with a custom-scheme redirect, and the Discord app is the component that
+     * completes it. The verifier stays on the device, so no client secret ships in the APK.
+     * Callers open this in the Discord app first and fall back to a browser, so signing in happens
+     * where the user is already logged in.
      */
-    fun loginWithToken(context: Context, token: String, onResult: (DiscordDiagnosticResult) -> Unit) {
+    fun beginAuthorization(context: Context): Uri? {
         applicationContext = context.applicationContext
-        _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting, "Verifying token...")
-        bridgeScope.launch {
-            val diagnostic = DiscordRpcClient.testConnection(token)
-            if (diagnostic.success) {
-                val session = DerbisDiscordSession(
-                    userToken = token.trim(),
-                    username = diagnostic.username,
-                    globalName = diagnostic.globalName,
-                    avatarUrl = diagnostic.avatarUrl
-                )
-                DerbisDiscordAccountStore.save(context, session)
+        if (!isConfigured()) {
+            _connectionState.value = DerbisDiscordConnectionState(
+                DerbisDiscordConnectionStatus.Unavailable,
+                "This build has no Discord application id, so Discord sign-in is unavailable."
+            )
+            return null
+        }
+        val verifier = newCodeVerifier()
+        // The redirect is a custom scheme, which any app on the device could claim, so the
+        // callback carries a nonce this app generated and nobody else has seen. Persisted before
+        // the hand-off, along with the PKCE verifier, so a process death during the Discord
+        // round-trip does not strand the callback with nothing to check it against.
+        val state = newCodeVerifier()
+        context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .putString(PKCE_VERIFIER_KEY, verifier)
+            .putString(OAUTH_STATE_KEY, state)
+            .apply()
+        signInStartedAtMs = android.os.SystemClock.elapsedRealtime()
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.SigningIn,
+            "Approve Derbis in Discord to finish signing in."
+        )
+        return Uri.parse(AUTHORIZE_ENDPOINT).buildUpon()
+            .appendQueryParameter("client_id", BuildConfig.DISCORD_APPLICATION_ID)
+            .appendQueryParameter("response_type", "code")
+            .appendQueryParameter("scope", "identify")
+            .appendQueryParameter("redirect_uri", BuildConfig.DISCORD_REDIRECT_URI)
+            .appendQueryParameter("state", state)
+            .appendQueryParameter("code_challenge", codeChallenge(verifier))
+            .appendQueryParameter("code_challenge_method", "S256")
+            .build()
+    }
+
+    /**
+     * Deep link to the same authorization page that the Discord app itself understands, so the
+     * consent screen opens inside Discord instead of a browser tab.
+     */
+    fun authorizationDeepLink(authorization: Uri): Uri? = runCatching {
+        val path = authorization.encodedPath?.removePrefix("/").orEmpty()
+        val query = authorization.encodedQuery.orEmpty()
+        if (path.isBlank()) return@runCatching null
+        Uri.parse("discord://-/$path" + if (query.isBlank()) "" else "?$query")
+    }.getOrNull()
+
+    private fun newCodeVerifier(): String {
+        val bytes = ByteArray(32)
+        java.security.SecureRandom().nextBytes(bytes)
+        return Base64.encodeToString(bytes, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
+    }
+
+    private fun codeChallenge(verifier: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(verifier.toByteArray(Charsets.US_ASCII))
+        return Base64.encodeToString(digest, Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE)
+    }
+
+    /**
+     * Tells the user what the return trip did.
+     *
+     * The callback usually relaunches the app on whatever screen it left, not on the Discord
+     * panel, so a status that only lives in that panel is a status nobody sees: the phone
+     * bounces back to Derbis, nothing appears to change, and the sign-in reads as broken even
+     * when it succeeded.
+     */
+    private fun announce(message: String) {
+        val context = applicationContext ?: return
+        runCatching {
+            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Whether the Discord app can take the authorization link on this device.
+     *
+     * Launching does not need this answer - startActivity() is not restricted by package
+     * visibility - but saying "Open Discord" when Discord is not installed sends the listener
+     * looking for an app that is not there, so the panel asks before it promises.
+     */
+    fun isDiscordAppAvailable(context: Context): Boolean = runCatching {
+        context.packageManager.queryIntentActivities(
+            android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("discord://-/")),
+            android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+        ).isNotEmpty()
+    }.getOrDefault(false)
+
+    /**
+     * Gives up on a sign-in that was started but never finished, and says so. The PKCE verifier is
+     * dropped with the state, so a callback that arrives late cannot complete a flow the listener
+     * already walked away from.
+     */
+    fun cancelAuthorization(context: Context) {
+        signInStartedAtMs = 0L
+        runCatching {
+            context.applicationContext
+                .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+                .edit()
+                .remove(PKCE_VERIFIER_KEY)
+                .remove(OAUTH_STATE_KEY)
+                .apply()
+        }
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Disconnected,
+            "Discord sign-in was cancelled."
+        )
+    }
+
+    /**
+     * True when a sign-in has been waiting longer than [SIGN_IN_TIMEOUT_MS]. Called from the panel
+     * so the state it renders is never one nobody can leave.
+     */
+    fun hasStaleSignIn(): Boolean {
+        val started = signInStartedAtMs
+        if (started == 0L) return false
+        return android.os.SystemClock.elapsedRealtime() - started > SIGN_IN_TIMEOUT_MS
+    }
+
+    /** Whether a deep link is the redirect this app is waiting for. */
+    fun receives(uri: Uri?): Boolean {
+        if (uri == null) return false
+        val expected = Uri.parse(BuildConfig.DISCORD_REDIRECT_URI)
+        // Discord's mobile redirect is discord-<app id>:/authorize/callback: a bare scheme with a
+        // path and no authority at all. Comparing hosts would be comparing two nulls, so the
+        // scheme is what identifies this app, and the path is checked with it.
+        if (!uri.scheme.equals(expected.scheme, ignoreCase = true)) return false
+        val expectedPath = expected.path.orEmpty()
+        if (expectedPath.isBlank()) return true
+        return uri.path.orEmpty().trimEnd('/').equals(expectedPath.trimEnd('/'), ignoreCase = true)
+    }
+
+    /**
+     * Completes the authorization started by [beginAuthorization]. Discord returns the token in
+     * the redirect fragment, which Android hands back as `Uri.fragment`.
+     */
+    fun handleRedirect(context: Context, uri: Uri?) {
+        if (!receives(uri) || uri == null) return
+        signInStartedAtMs = 0L
+        applicationContext = context.applicationContext
+        // The implicit grant returns the token in the fragment; browsers that rewrite the
+        // redirect may hand the same keys back as a query instead, so both are accepted.
+        val fragment = uri.fragment.orEmpty()
+        val params = if (fragment.isBlank()) {
+            uri
+        } else {
+            // Uri reads queries, not fragments, so re-home the fragment as the query.
+            Uri.parse("${BuildConfig.DISCORD_REDIRECT_URI}?$fragment")
+        }
+        fun read(key: String): String =
+            params.getQueryParameter(key) ?: uri.getQueryParameter(key).orEmpty()
+        // State check first: if this callback is not the one this app started, none of the rest
+        // of it can be trusted, including its error field.
+        val preferences = context.applicationContext
+            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+        val expectedState = preferences.getString(OAUTH_STATE_KEY, null).orEmpty()
+        val returnedState = read("state")
+        if (expectedState.isNotBlank()) {
+            preferences.edit().remove(OAUTH_STATE_KEY).apply()
+            if (returnedState != expectedState) {
                 _connectionState.value = DerbisDiscordConnectionState(
-                    status = DerbisDiscordConnectionStatus.Connected,
-                    detail = "Connected as @${diagnostic.username}",
-                    username = diagnostic.username,
-                    globalName = diagnostic.globalName,
-                    avatarUrl = diagnostic.avatarUrl,
-                    latencyMs = diagnostic.latencyMs
+                    DerbisDiscordConnectionStatus.Error,
+                    "Discord sign-in did not come back to the session that started it. Try again."
                 )
-                setEnabled(context, true)
-                DiscordRpcClient.connect(token.trim())
-                publishStored(context)
-            } else {
+                announce("Discord sign-in did not finish. Try again from Settings → Discord.")
+                return
+            }
+        }
+        val error = read("error")
+        if (error.isNotBlank()) {
+            val description = read("error_description")
+            val message = description.ifBlank { "Discord sign-in was cancelled or denied ($error)." }
+            _connectionState.value = DerbisDiscordConnectionState(
+                DerbisDiscordConnectionStatus.Error,
+                message
+            )
+            announce(message)
+            return
+        }
+        val accessToken = read("access_token")
+        if (accessToken.isNotBlank()) {
+            // Legacy fragment response, kept so an old pending sign-in still completes.
+            completeAuthorization(context, accessToken)
+            return
+        }
+        val code = read("code")
+        if (code.isBlank()) {
+            _connectionState.value = DerbisDiscordConnectionState(
+                DerbisDiscordConnectionStatus.Error,
+                "Discord did not return an authorization code. Try signing in again."
+            )
+            announce("Discord did not finish sign-in. Try again.")
+            return
+        }
+        exchangeCode(context, code)
+    }
+
+    /** Swaps the authorization code for a token, then verifies it like any other session. */
+    private fun exchangeCode(context: Context, code: String) {
+        val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+        val verifier = preferences.getString(PKCE_VERIFIER_KEY, null).orEmpty()
+        if (verifier.isBlank()) {
+            _connectionState.value = DerbisDiscordConnectionState(
+                DerbisDiscordConnectionStatus.Error,
+                "The sign-in challenge expired. Start the Discord sign-in again."
+            )
+            announce("Discord sign-in expired. Start it again from Settings → Discord.")
+            return
+        }
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Connecting,
+            "Finishing Discord sign-in..."
+        )
+        bridgeScope.launch {
+            val exchange = DiscordRpcClient.exchangeAuthorizationCode(
+                clientId = BuildConfig.DISCORD_APPLICATION_ID,
+                code = code,
+                redirectUri = BuildConfig.DISCORD_REDIRECT_URI,
+                codeVerifier = verifier
+            )
+            if (!exchange.success) {
+                _connectionState.value = DerbisDiscordConnectionState(
+                    DerbisDiscordConnectionStatus.Error,
+                    exchange.message
+                )
+                announce(exchange.message)
+                return@launch
+            }
+            preferences.edit().remove(PKCE_VERIFIER_KEY).apply()
+            completeAuthorization(context, exchange.accessToken, exchange.refreshToken)
+        }
+    }
+
+    private fun completeAuthorization(context: Context, accessToken: String, refreshToken: String = "") {
+        _connectionState.value = DerbisDiscordConnectionState(
+            DerbisDiscordConnectionStatus.Connecting,
+            "Verifying your Discord account..."
+        )
+        bridgeScope.launch {
+            val diagnostic = DiscordRpcClient.testConnection("Bearer $accessToken")
+            if (!diagnostic.success) {
                 _connectionState.value = DerbisDiscordConnectionState(
                     status = DerbisDiscordConnectionStatus.Error,
                     detail = diagnostic.message
                 )
+                announce("Discord sign-in failed: ${diagnostic.message}")
+                return@launch
             }
-            onResult(diagnostic)
+            DerbisDiscordAccountStore.save(
+                context,
+                DerbisDiscordSession(
+                    accessToken = accessToken,
+                    refreshToken = refreshToken,
+                    tokenType = 1,
+                    username = diagnostic.username,
+                    globalName = diagnostic.globalName,
+                    avatarUrl = diagnostic.avatarUrl
+                )
+            )
+            _connectionState.value = DerbisDiscordConnectionState(
+                status = DerbisDiscordConnectionStatus.Connected,
+                detail = "Connected as @${diagnostic.username}",
+                username = diagnostic.username,
+                globalName = diagnostic.globalName,
+                avatarUrl = diagnostic.avatarUrl,
+                latencyMs = diagnostic.latencyMs
+            )
+            // An OAuth access token authenticates the REST API, not the Discord gateway, so
+            // presence can only go out through the official Social SDK bridge. Say that out loud
+            // in the detail line instead of leaving a signed-in account that shows nothing.
+            if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
+                setEnabled(context, true)
+                publishStored(context)
+                announce("Discord connected as @${diagnostic.username}.")
+            } else {
+                _connectionState.value = _connectionState.value.copy(
+                    detail = "Signed in as @${diagnostic.username}. Rich Presence needs the " +
+                        "Discord Social SDK, which this build does not carry."
+                )
+                announce(
+                    "Signed in as @${diagnostic.username}. Rich Presence needs the Discord " +
+                        "Social SDK, which this build does not carry."
+                )
+            }
         }
     }
 
@@ -299,7 +590,12 @@ object DerbisDiscordRichPresence {
      */
     fun testConnection(context: Context, onResult: (DiscordDiagnosticResult) -> Unit) {
         val session = DerbisDiscordAccountStore.read(context)
-        val token = session?.effectiveToken.orEmpty()
+        // OAuth sessions carry a bearer token; legacy user-token sessions send the account token raw.
+        val token = session?.let { session ->
+            session.userToken.ifBlank {
+                session.accessToken.takeIf(String::isNotBlank)?.let { "Bearer $it" }.orEmpty()
+            }
+        }.orEmpty()
         bridgeScope.launch {
             val diagnostic = DiscordRpcClient.testConnection(token)
             if (diagnostic.success) {
@@ -312,24 +608,6 @@ object DerbisDiscordRichPresence {
             }
             onResult(diagnostic)
         }
-    }
-
-    fun beginSignIn(context: Context) {
-        initialize(context)
-        if (loadBridge()) {
-            if (!initialized) {
-                initialized = runCatching { nativeInitialize(applicationId) }.getOrDefault(false)
-            }
-            if (initialized && runCatching { nativeBeginSignIn() }.getOrDefault(false)) {
-                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
-                ensureStatePolling()
-                return
-            }
-        }
-        _connectionState.value = DerbisDiscordConnectionState(
-            DerbisDiscordConnectionStatus.Disconnected,
-            "Enter your Discord token or log in below"
-        )
     }
 
     fun disconnect(context: Context) {
@@ -400,22 +678,17 @@ object DerbisDiscordRichPresence {
             return
         }
 
-        // Publish via WebSocket Gateway RPC (clickable buttons, progress bar, dual artwork/artist icon)
-        enqueueGatewayPresence(effective)
-
-        // Publish via native bridge if loaded. The Social SDK activity has no lyric field, so
-        // strip it before dedupe to avoid re-sending the same title/artist on every line change.
-        if (loadBridge()) {
-            publishNative(effective.copy(lyricLine = ""))
-        }
+        // Both transports are driven from one schedule: Discord counts a presence update once per
+        // session, so the gateway and the Social SDK share the same budget and the same layout.
+        enqueuePresence(effective)
     }
 
     /**
-     * Sends a gateway presence update immediately when the 5-per-20-seconds budget allows,
-     * otherwise keeps only the newest snapshot and flushes it once the window reopens.
-     * Without this a rapidly changing lyric line would trip Discord's presence rate limit.
+     * Sends a presence update immediately when the 5-per-20-seconds budget allows, otherwise keeps
+     * only the newest snapshot and flushes it once the window reopens. Without this a rapidly
+     * changing lyric line would trip Discord's presence rate limit.
      */
-    private fun enqueueGatewayPresence(presence: DerbisDiscordPresenceSnapshot) {
+    private fun enqueuePresence(presence: DerbisDiscordPresenceSnapshot, forceNative: Boolean = false) {
         val now = SystemClock.elapsedRealtime()
         val sendNow = synchronized(presenceGateLock) {
             val allowed = shouldFlushPresenceNow(now, lastGatewaySendElapsedMs)
@@ -428,13 +701,13 @@ object DerbisDiscordRichPresence {
             allowed
         }
         if (sendNow) {
-            DiscordRpcClient.updatePresence(presence)
+            dispatchPresence(presence, forceNative)
         } else {
-            scheduleTrailingGatewayPresence()
+            scheduleTrailingPresence(forceNative)
         }
     }
 
-    private fun scheduleTrailingGatewayPresence() {
+    private fun scheduleTrailingPresence(forceNative: Boolean) {
         synchronized(presenceGateLock) {
             if (pendingFlushJob?.isActive == true) return
             val elapsed = SystemClock.elapsedRealtime() - lastGatewaySendElapsedMs
@@ -448,8 +721,20 @@ object DerbisDiscordRichPresence {
                     if (pending != null) lastGatewaySendElapsedMs = SystemClock.elapsedRealtime()
                     pending
                 }
-                if (latest != null) DiscordRpcClient.updatePresence(latest)
+                if (latest != null) dispatchPresence(latest, forceNative)
             }
+        }
+    }
+
+    /**
+     * Hands one snapshot to every transport that is available: the Discord Gateway client and,
+     * when the Social SDK is loaded, the native bridge. Each transport draws the same two activity
+     * lines, so the lyric line travels to whichever one the listener's build can actually use.
+     */
+    private fun dispatchPresence(presence: DerbisDiscordPresenceSnapshot, forceNative: Boolean = false) {
+        DiscordRpcClient.updatePresence(presence)
+        if (loadBridge()) {
+            publishNative(presence, force = forceNative)
         }
     }
 
@@ -486,23 +771,43 @@ object DerbisDiscordRichPresence {
 
     private fun publishStored(context: Context) {
         if (!lastPresence.playing || !isEnabled(context)) return
-        enqueueGatewayPresence(lastPresence)
-        if (loadBridge()) {
-            publishNative(lastPresence.copy(lyricLine = ""), force = true)
-        }
+        // Forced so a transport that just reconnected publishes again instead of trusting the
+        // dedupe key from before the reconnect.
+        enqueuePresence(lastPresence, forceNative = true)
     }
 
     private fun publishNative(presence: DerbisDiscordPresenceSnapshot, force: Boolean = false) {
         if (!force && nativePresenceActive && lastPublishedPresenceKey == presence.syncKey) return
+        // Where this track began, so the SDK renders the same clock as the gateway.
         val startedAtEpochSeconds = (
             System.currentTimeMillis() - presence.positionMs.coerceAtLeast(0L)
         ).coerceAtLeast(0L) / 1_000L
+        // Discord draws a progress bar only when it knows where the activity ends; a start on its
+        // own is a counting-up clock, which is all this card used to show.
+        val durationMs = presence.durationMs.coerceAtLeast(0L)
+        // The Social SDK activity has the same two text lines as the gateway activity, so the
+        // lyric line takes the first one and the track stays on the second, exactly as it does
+        // there. Without a lyric line the track and artist take those two lines instead.
+        val lyricLine = presence.lyricLine
+        val hasLyric = lyricLine.isNotBlank()
+        val details = (if (hasLyric) lyricLine else presence.title).discordPresenceText()
+        val state = (
+            if (hasLyric) presence.artistTitleLine.ifBlank { DISCORD_ACTIVITY_NAME }
+            else presence.artist.ifBlank { DISCORD_UNKNOWN_ARTIST }
+        ).discordPresenceText()
+        val largeText = listOf(presence.title, presence.artist)
+            .filter(String::isNotBlank)
+            .joinToString(separator = " — ")
+            .ifBlank { DISCORD_ACTIVITY_NAME }
+            .discordPresenceText()
         runCatching {
             nativeUpdate(
-                title = presence.title,
-                artist = presence.artist,
+                details = details,
+                state = state,
+                largeText = largeText,
                 artworkUrl = presence.artworkUrl,
                 startedAtEpochSeconds = startedAtEpochSeconds,
+                durationMs = durationMs,
                 playing = presence.playing
             )
             nativePresenceActive = true
@@ -585,10 +890,12 @@ object DerbisDiscordRichPresence {
     private external fun nativeTakeRefreshToken(): String
     private external fun nativeTakeTokenType(): Int
     private external fun nativeUpdate(
-        title: String,
-        artist: String,
+        details: String,
+        state: String,
+        largeText: String,
         artworkUrl: String,
         startedAtEpochSeconds: Long,
+        durationMs: Long,
         playing: Boolean
     )
     private external fun nativeClear()

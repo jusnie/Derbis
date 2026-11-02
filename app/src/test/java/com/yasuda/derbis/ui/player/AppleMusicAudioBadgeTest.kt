@@ -14,12 +14,26 @@ class AppleMusicAudioBadgeTest {
     @Test
     fun losslessTiersFollowTheSampleRate() {
         assertEquals("Lossless", appleMusicAudioBadgeLabel(PlayerAudioSpec(codec = "FLAC", sampleRateHz = 44_100, mimeType = "audio/flac")))
-        assertEquals("Hi-Res Lossless", appleMusicAudioBadgeLabel(PlayerAudioSpec(codec = "FLAC", sampleRateHz = 96_000, mimeType = "audio/flac")))
+        assertEquals("Hi-Fi", appleMusicAudioBadgeLabel(PlayerAudioSpec(codec = "FLAC", sampleRateHz = 96_000, mimeType = "audio/flac")))
+        assertEquals(
+            "Hi-Fi",
+            appleMusicAudioBadgeLabel(
+                PlayerAudioSpec(codec = "FLAC", sampleRateHz = 44_100, mimeType = "audio/flac", quality = "HI-FI")
+            )
+        )
     }
 
     @Test
     fun lossyStreamsShowTheRealCodecAndBitrate() {
-        assertEquals("AAC · 256 kbps", appleMusicAudioBadgeLabel(PlayerAudioSpec(codec = "AAC", bitrateKbps = 256, mimeType = "audio/mp4a-latm")))
+        assertEquals("AAC · 160 kbps", appleMusicAudioBadgeLabel(PlayerAudioSpec(codec = "AAC", bitrateKbps = 160, mimeType = "audio/mp4a-latm")))
         assertEquals("", appleMusicAudioBadgeLabel(PlayerAudioSpec()))
+    }
+
+    @Test
+    fun hqLossyUpgradeReadsHiFiInsteadOfItsCodec() {
+        val upgrade = PlayerAudioSpec(codec = "AAC", bitrateKbps = 320, mimeType = "audio/mp4a-latm", quality = "HI-FI")
+        assertEquals("Hi-Fi · 320 kbps", appleMusicAudioBadgeLabel(upgrade))
+        val plain = PlayerAudioSpec(codec = "AAC", bitrateKbps = 128, mimeType = "audio/mp4a-latm")
+        assertEquals("AAC · 128 kbps", appleMusicAudioBadgeLabel(plain))
     }
 }

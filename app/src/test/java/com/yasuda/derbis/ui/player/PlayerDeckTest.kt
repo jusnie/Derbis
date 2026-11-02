@@ -35,25 +35,26 @@ class PlayerDeckTest {
     fun `existing modes keep the derbis layout and new styles get their own`() {
         assertEquals(PlayerDeckLayout.Poster, PlayerVisualMode.Artwork.deckLayout())
         assertEquals(PlayerDeckLayout.Sleeve, PlayerVisualMode.CanvasCard.deckLayout())
-        assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
         assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
         assertEquals(PlayerDeckLayout.TidalMusic, PlayerVisualMode.TidalMusic.deckLayout())
         assertEquals(PlayerDeckLayout.Pulse, PlayerVisualMode.Pulse.deckLayout())
         assertEquals(PlayerDeckLayout.Flow, PlayerVisualMode.Flow.deckLayout())
+        assertEquals(PlayerDeckLayout.Frost, PlayerVisualMode.Frost.deckLayout())
+        assertEquals(PlayerDeckLayout.One, PlayerVisualMode.DerbisOne.deckLayout())
+        assertEquals(PlayerDeckLayout.Vinyl, PlayerVisualMode.Vinyl.deckLayout())
     }
 
     @Test
     fun `lyrics flip is offered only by decks that render an upright lyrics face`() {
-        assertFalse(PlayerDeckLayout.Aura.showsLyricsFace())
         assertFalse(PlayerDeckLayout.Pulse.showsLyricsFace())
         PlayerDeckLayout.entries
-            .filterNot { it == PlayerDeckLayout.Aura || it == PlayerDeckLayout.Pulse }
+            .filterNot { it == PlayerDeckLayout.Pulse }
             .forEach { assertTrue(it.showsLyricsFace()) }
     }
 
     @Test
     fun `new styles fall back to the derbis layout where they are not designed to run`() {
-        listOf(PlayerVisualMode.CanvasImmersive, PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Halo, PlayerVisualMode.Folio).forEach { mode ->
+        listOf(PlayerVisualMode.Artwork, PlayerVisualMode.TidalMusic, PlayerVisualMode.Pulse, PlayerVisualMode.Flow, PlayerVisualMode.CanvasCard, PlayerVisualMode.Frost, PlayerVisualMode.DerbisOne, PlayerVisualMode.Vinyl).forEach { mode ->
             val supported = resolvePlayerDeckLayout(mode, false, false, DerbisPlayerPane.Stacked, true)
             assertEquals(mode.deckLayout(), supported)
             assertEquals(PlayerDeckLayout.Derbis, resolvePlayerDeckLayout(mode, true, false, DerbisPlayerPane.Stacked, true))
@@ -84,32 +85,10 @@ class PlayerDeckTest {
     }
 
     @Test
-    fun `Velvet and Apple Music 13 resolve to different player layouts`() {
-        assertEquals(PlayerDeckLayout.Aura, PlayerVisualMode.CanvasImmersive.deckLayout())
+    fun `Apple Music 13 keeps its own player layout and palette`() {
         assertEquals(PlayerDeckLayout.AppleMusic13, PlayerVisualMode.AppleMusic13.deckLayout())
-        assertFalse(PlayerVisualMode.CanvasImmersive.deckLayout() == PlayerVisualMode.AppleMusic13.deckLayout())
-        assertFalse(PlayerVisualMode.CanvasImmersive.usesAppleMusicPlayerStyle())
         assertTrue(PlayerVisualMode.AppleMusic13.usesAppleMusicPlayerStyle())
-    }
-
-    @Test
-    fun `velvet keeps its static play pause in song and video across orientations`() {
-        assertTrue(PlayerVisualMode.CanvasImmersive.usesAuraPlayPause())
-        listOf(false, true).forEach { video ->
-            listOf(DerbisPlayerPane.Stacked, DerbisPlayerPane.SideBySide).forEach { pane ->
-                val layout = resolvePlayerDeckLayout(PlayerVisualMode.CanvasImmersive, video, false, pane, true)
-                val supported = !video && pane == DerbisPlayerPane.Stacked
-                assertEquals(if (supported) PlayerDeckLayout.Aura else PlayerDeckLayout.Derbis, layout)
-                assertTrue(layout == PlayerDeckLayout.Aura || PlayerVisualMode.CanvasImmersive.usesAuraPlayPause())
-            }
-        }
-    }
-
-    @Test
-    fun `other styles keep the morphing play pause segment`() {
-        PlayerVisualMode.entries
-            .filterNot { it == PlayerVisualMode.CanvasImmersive }
-            .forEach { assertFalse(it.usesAuraPlayPause()) }
+        assertFalse(PlayerVisualMode.CanvasCard.usesAppleMusicPlayerStyle())
     }
 
     @Test
@@ -158,7 +137,7 @@ class PlayerDeckTest {
 
     @Test
     fun `switching style never restarts motion artwork or touches other settings`() {
-        val playing = DerbisInterfaceSettings(playerVisualMode = PlayerVisualMode.CanvasImmersive, doubleTapSeekSeconds = 15)
+        val playing = DerbisInterfaceSettings(playerVisualMode = PlayerVisualMode.Flow, doubleTapSeekSeconds = 15)
         PlayerDeckOrder.forEach { from ->
             PlayerDeckOrder.forEach { to ->
                 val previous = playing.copy(playerVisualMode = from)
@@ -198,7 +177,9 @@ class PlayerDeckTest {
         assertEquals(PlayerVisualMode.Flow, DefaultPlayerVisualMode)
         assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("CanvasCard"))
         assertEquals(PlayerVisualMode.Flow, PlayerVisualMode.from("flow"))
-        assertEquals(PlayerVisualMode.Folio, PlayerVisualMode.from("Folio"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("Folio"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("Halo"))
+        assertEquals(PlayerVisualMode.CanvasCard, PlayerVisualMode.from("liner_notes"))
         assertEquals(PlayerVisualMode.TidalMusic, PlayerVisualMode.from("tidal_player"))
         assertEquals(PlayerVisualMode.Flow, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Flow))
         assertEquals(PlayerVisualMode.CanvasCard, resolvePlayerDeckVisualMode(PlayerVisualMode.Flow, PlayerDeckLayout.Derbis))
@@ -287,6 +268,8 @@ class PlayerDeckTest {
         assertEquals("MP3", playerAudioCodecLabel("audio/mpeg", null))
         assertEquals("MP2", playerAudioCodecLabel("audio/mpeg-l2", null))
         assertEquals("FLAC", playerAudioCodecLabel("audio/flac", null))
+        assertEquals("ALAC", playerAudioCodecLabel("audio/alac", null))
+        assertEquals("PCM", playerAudioCodecLabel("audio/raw", null))
         assertEquals("", playerAudioCodecLabel(null, null))
         assertEquals(
             listOf("OPUS", "160 kbps", "48 kHz", "2.0"),
@@ -295,6 +278,108 @@ class PlayerDeckTest {
         assertEquals(listOf("AAC", "44.1 kHz", "5.1"), playerAudioSpecLabels(PlayerAudioSpec("AAC", null, 44_100, 6)))
         assertTrue(playerAudioSpecLabels(PlayerAudioSpec()).isEmpty())
         assertTrue(PlayerAudioSpec().isEmpty)
+    }
+
+    @Test
+    fun `badge says Lossless or Hi-Fi instead of the codec`() {
+        // CD-quality lossless: the codec name no longer says anything useful to the listener.
+        assertEquals("LOSSLESS", playerAudioQualityLabel("audio/flac", null, 44_100, 16, 900))
+        assertEquals("LOSSLESS", playerAudioQualityLabel("audio/alac", "alac", 48_000, null, 1_000))
+        // 24-bit or 88.2 kHz and up is the Hi-Fi tier.
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/flac", null, 96_000, 24, 2_304))
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/flac", null, 88_200, 16, 1_411))
+        // The 320 kbps HQ upgrade is Hi-Fi even though it is lossy; below that the codec stays.
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 320))
+        assertEquals("HI-FI", playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 256))
+        assertNull(playerAudioQualityLabel("audio/mp4a-latm", "mp4a.40.2", 44_100, null, 255))
+        assertNull(playerAudioQualityLabel("audio/opus", "opus", 48_000, null, 160))
+        // A codec or a sample rate alone never earns the badge.
+        assertNull(playerAudioQualityLabel("audio/flac", null))
+        assertNull(playerAudioQualityLabel(null, null))
+    }
+
+    @Test
+    fun `dolby atmos keeps its own name instead of becoming Hi-Fi`() {
+        // 768 kbps would clear the Hi-Fi bar, but Atmos is a different mix, not a bitrate tier.
+        assertNull(playerAudioQualityLabel("audio/eac3-joc", "ec+3", 48_000, null, 768))
+        assertEquals("DOLBY ATMOS", playerAudioCodecLabel("audio/eac3-joc", "ec+3"))
+        // The plain E-AC-3 core is still just a codec.
+        assertEquals("E-AC-3", playerAudioCodecLabel("audio/eac3", "ec-3"))
+        assertEquals("AC-3", playerAudioCodecLabel("audio/ac3", "ac-3"))
+    }
+
+    @Test
+    fun `quality replaces the codec in the badge chips`() {
+        assertEquals(
+            listOf("HI-FI", "320 kbps", "44.1 kHz", "2.0"),
+            playerAudioSpecLabels(
+                PlayerAudioSpec("AAC", 320, 44_100, 2, "audio/mp4a-latm", "mp4a.40.2", "HI-FI")
+            )
+        )
+        // FLAC has no meaningful bitrate on the badge.
+        assertEquals(
+            listOf("LOSSLESS", "44.1 kHz", "2.0"),
+            playerAudioSpecLabels(
+                PlayerAudioSpec("FLAC", 900, 44_100, 2, "audio/flac", "", "LOSSLESS")
+            )
+        )
+        // No quality means the old codec chip is untouched.
+        assertEquals(listOf("OPUS"), playerAudioSpecLabels(PlayerAudioSpec("OPUS", null, null, null, "audio/opus")))
+    }
+
+    @Test
+    fun `one deck caption joins album and artist and never repeats the title`() {
+        assertEquals(
+            "EDI by TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "one", title = "Clash of Titans", artist = "Tommy Fury", album = "EDI",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+        assertEquals(
+            "TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "two", title = "Clash of Titans", artist = "Tommy Fury", album = "",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+        assertEquals(
+            "TOMMY FURY",
+            oneKicker(
+                Track(
+                    id = "three", title = "Clash of Titans", artist = "Tommy Fury", album = "Clash of Titans",
+                    durationMs = 220_000L, streamUrl = "", videoUrl = "", thumbnailUrl = "",
+                    largeThumbnailUrl = "", source = "test", moodTags = emptySet(), energy = 0,
+                    vocal = 0, replayScore = 0, cacheScore = 0, accentStart = 0, accentEnd = 0
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `one deck clock is two digit minutes and seconds and never goes negative`() {
+        assertEquals("00:00", formatOneTime(0L))
+        assertEquals("01:23", formatOneTime(83_000L))
+        assertEquals("03:40", formatOneTime(220_999L))
+        assertEquals("00:00", formatOneTime(-4_000L))
+        assertEquals("100:00", formatOneTime(6_000_000L))
+    }
+
+    @Test
+    fun `frost and one survive persistence by name and land on their own decks`() {
+        assertEquals(PlayerVisualMode.Frost, PlayerVisualMode.from("Frost"))
+        assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("DerbisOne"))
+        assertEquals(PlayerVisualMode.DerbisOne, PlayerVisualMode.from("derbisone"))
+        assertEquals(PlayerVisualMode.Vinyl, PlayerVisualMode.from("Vinyl"))
+        assertEquals(PlayerVisualMode.Vinyl, PlayerVisualMode.from("vinyl"))
     }
 
     @Test
@@ -314,7 +399,6 @@ class PlayerDeckTest {
         assertEquals("Apple Music 13", visualModeStateDescription(PlayerVisualMode.AppleMusic13, italian))
         assertEquals("Tidal Music", visualModeStateDescription(PlayerVisualMode.TidalMusic, italian))
         assertEquals("Late Night", visualModeStateDescription(PlayerVisualMode.Pulse, italian))
-        assertEquals("Velvet", playerDeckLabel(PlayerVisualMode.CanvasImmersive, italian))
         assertEquals("Sleeve", playerDeckLabel(PlayerVisualMode.CanvasCard, italian))
     }
 

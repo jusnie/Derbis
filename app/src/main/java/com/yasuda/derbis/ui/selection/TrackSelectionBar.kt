@@ -14,9 +14,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.Download
-import com.yasuda.derbis.ui.icons.Favorite
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults

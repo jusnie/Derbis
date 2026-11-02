@@ -61,18 +61,28 @@ class LyricsPlaybackClockTest {
     }
 
     @Test
-    fun `small drift converges gradually without a visible jump`() {
+    fun `small drift converges in one report instead of creeping`() {
         assertFalse(shouldSnapLyricsClock(renderedMs = 10_000L, reportedMs = 10_120L))
         val corrected = convergedLyricsAnchorMs(renderedMs = 10_000L, reportedMs = 10_120L)
-        assertTrue(corrected > 10_000L)
-        assertTrue(corrected <= 10_000L + LYRICS_CLOCK_MAX_CONVERGENCE_MS)
+        // Half the error. A fixed 48 ms step per report never cleared a standing lag, which is
+        // what kept the karaoke highlight behind the vocal after every seek.
+        assertEquals(10_060L, corrected)
+        assertTrue(corrected <= 10_000L + LYRICS_CLOCK_MAX_CATCHUP_MS)
     }
 
     @Test
     fun `backward drift converges without rewinding past the cap`() {
         val corrected = convergedLyricsAnchorMs(renderedMs = 10_200L, reportedMs = 10_000L)
         assertTrue(corrected < 10_200L)
-        assertTrue(corrected >= 10_200L - LYRICS_CLOCK_MAX_CONVERGENCE_MS)
+        assertTrue(corrected >= 10_200L - LYRICS_CLOCK_MAX_CATCHUP_MS)
+        assertEquals(10_100L, corrected)
+    }
+
+    @Test
+    fun `a standing half-second lag clears within three reports`() {
+        var rendered = 10_000L
+        repeat(3) { rendered = convergedLyricsAnchorMs(renderedMs = rendered, reportedMs = 10_500L) }
+        assertTrue(rendered > 10_400L)
     }
 
     @Test

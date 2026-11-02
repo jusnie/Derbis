@@ -28,11 +28,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State

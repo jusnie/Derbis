@@ -80,6 +80,15 @@ internal object ListeningReceiptCard {
     const val EXPORT_WIDTH_PX = 1080
     const val PREVIEW_WIDTH_PX = 540
 
+    /**
+     * Widths tried in order when the share card is built. A 1080 x 1350 ARGB bitmap is 5.8 MB
+     * before the covers and the blur layers under them, and a phone that is already holding the
+     * player can refuse it. The card is a share image, so fewer pixels still looks right in a chat
+     * and is a better answer than "couldn't create the image". The last step is the width the
+     * on-screen preview is drawn at, which is known to work on the same device.
+     */
+    private val EXPORT_LADDER = intArrayOf(1080, 720, PREVIEW_WIDTH_PX)
+
     private const val WIDTH = 1080f
     private const val HEIGHT = 1350f
     private const val MARGIN = 72f
@@ -143,7 +152,10 @@ internal object ListeningReceiptCard {
         caption: String
     ): Intent? = withContext(Dispatchers.IO) {
         val directory = File(context.cacheDir, SHARE_DIRECTORY)
-        if (!directory.isDirectory && !directory.mkdirs()) return@withContext null
+        if (!directory.isDirectory && !directory.mkdirs()) {
+            Timber.w("Listening receipt share directory could not be created: %s", directory)
+            return@withContext null
+        }
         prune(directory)
         val file = File(directory, "derbis-receipt-${System.currentTimeMillis()}.png")
         val written = try {
@@ -156,12 +168,14 @@ internal object ListeningReceiptCard {
             false
         }
         if (!written || file.length() <= 0L) {
+            Timber.w("Listening receipt PNG was not written (%d bytes)", file.length())
             file.delete()
             return@withContext null
         }
         val uri = try {
             FileProvider.getUriForFile(context, "${context.packageName}.share-files", file)
-        } catch (_: IllegalArgumentException) {
+        } catch (error: IllegalArgumentException) {
+            Timber.w(error, "Listening receipt is outside the share provider paths: %s", file)
             file.delete()
             return@withContext null
         }
@@ -193,12 +207,36 @@ internal object ListeningReceiptCard {
         palette: ListeningReceiptPalette,
         output: OutputStream
     ): Boolean {
-        val bitmap = assets.use { render(content, it, style, palette, EXPORT_WIDTH_PX) } ?: return false
+        var rendered: Bitmap? = null
+        for (width in EXPORT_LADDER) {
+            rendered = renderSafely(content, assets, style, palette, width)
+            if (rendered != null) break
+        }
+        val bitmap = rendered ?: return false
         return try {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
         } finally {
             bitmap.recycle()
         }
+    }
+
+    /**
+     * [render] with the reason kept. A drawing fault used to surface as a bare null - the sheet
+     * only had one sentence to show and nothing in the log said which stage gave up.
+     */
+    private fun renderSafely(
+        content: ListeningReceiptContent,
+        assets: ListeningReceiptCovers,
+        style: ListeningReceiptStyle,
+        palette: ListeningReceiptPalette,
+        widthPx: Int
+    ): Bitmap? = try {
+        assets.use { render(content, it, style, palette, widthPx) }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Throwable) {
+        Timber.w(error, "Listening receipt render failed at %d px", widthPx)
+        null
     }
 
     fun render(

@@ -127,6 +127,7 @@ import com.yasuda.derbis.domain.ChartsCatalog
 import com.yasuda.derbis.domain.DownloadedTrack
 import com.yasuda.derbis.domain.ExploreCatalog
 import com.yasuda.derbis.domain.ExploreCategory
+import com.yasuda.derbis.update.AUTO_UPDATE_CHECK_INTERVAL_MS
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.smartOfflineCopy
 import com.yasuda.derbis.ui.i18n.DerbisLiveRadioCatalog
@@ -4783,6 +4784,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setDerbis360Experience(value: Derbis360Experience) =
         updateAudioSettings(_state.value.audioSettings.copy(derbis360Experience = value))
 
+    fun setKaraokeMode(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(karaokeMode = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }
@@ -4791,14 +4795,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val settings = _state.value.audioSettings
         updateAudioSettings(settings.copy(
             djSoftMode = value,
-            beatSyncEnabled = if (value) false else settings.beatSyncEnabled,
             crossfadeSeconds = if (value && settings.crossfadeSeconds == 0) 6 else settings.crossfadeSeconds
         ))
-    }
-
-    fun setBeatSyncEnabled(value: Boolean) {
-        val settings = _state.value.audioSettings
-        updateAudioSettings(settings.copy(beatSyncEnabled = value, djSoftMode = if (value) false else settings.djSoftMode))
     }
 
     fun setReplayGainEnabled(value: Boolean) {
@@ -4830,6 +4828,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setPitch(value: Float) {
         updateAudioSettings(_state.value.audioSettings.copy(pitch = value))
+    }
+
+    fun setDolbyAtmosEnabled(value: Boolean) {
+        updateAudioSettings(_state.value.audioSettings.copy(dolbyAtmosEnabled = value))
     }
 
     fun setGaplessEnabled(value: Boolean) {
@@ -5685,9 +5687,20 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(showSettings = false) }
     }
 
+    /**
+     * Asks GitHub for the release this build should be comparing against.
+     *
+     * [silent] is the automatic check that runs shortly after a cold start: it never posts a
+     * message, it respects a dismissal, and it is skipped entirely when a check already ran
+     * inside [AUTO_UPDATE_CHECK_INTERVAL_MS]. A manual check from Settings always runs, so
+     * "check now" means now.
+     */
     fun checkForUpdates(silent: Boolean = false) {
         if (!BuildConfig.UPSTREAM_UPDATES_ENABLED) return
         if (updateJob?.isActive == true) return
+        if (silent && System.currentTimeMillis() - preferences.lastUpdateCheckMs() < AUTO_UPDATE_CHECK_INTERVAL_MS) {
+            return
+        }
         updateJob = viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -5697,12 +5710,21 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             }
             val result = runCatching { appUpdateRepository.latest() }
             result.onSuccess { info ->
-                val dismissed = preferences.dismissedUpdateVersion()
+                preferences.setLastUpdateCheckMs(System.currentTimeMillis())
+                // Dismissals are remembered per release tag. A version name is not unique -
+                // two different prebuilds can both be called 1.5.0 - and the old key made
+                // dismissing one hide the other. The name stays as the fallback for a
+                // dismissal written before tags were stored.
+                val dismissedTag = preferences.dismissedUpdateTag()
+                val dismissedVersion = preferences.dismissedUpdateVersion()
+                val dismissed = info.latestTag.isNotBlank() &&
+                    (dismissedTag == info.latestTag ||
+                        (dismissedTag.isBlank() && dismissedVersion == info.latestVersionName))
                 _state.update {
                     it.copy(
                         updateInfo = info,
                         isCheckingUpdates = false,
-                        showUpdatePrompt = info.isNewer && (!silent || dismissed != info.latestVersionName),
+                        showUpdatePrompt = info.isNewer && (!silent || !dismissed),
                         updateMessage = when {
                             silent -> null
                             info.isNewer -> DerbisStrings.forCode(it.languageCode).appUpdateAvailable(info.latestVersionName)
@@ -5712,6 +5734,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }.onFailure { error ->
                 if (error is CancellationException) throw error
+                // A failed check is not recorded, so the next cold start tries again instead of
+                // sitting out the interval.
                 _state.update {
                     it.copy(
                         isCheckingUpdates = false,
@@ -5723,7 +5747,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun dismissUpdatePrompt() {
-        _state.value.updateInfo?.latestVersionName?.let { preferences.setDismissedUpdateVersion(it) }
+        _state.value.updateInfo?.let { info ->
+            if (info.latestTag.isNotBlank()) preferences.setDismissedUpdateTag(info.latestTag)
+            preferences.setDismissedUpdateVersion(info.latestVersionName)
+        }
         _state.update { it.copy(showUpdatePrompt = false) }
     }
 
@@ -5757,6 +5784,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setMotionArtworkEnabled(value: Boolean) {
         // Canvas is a deliberate opt-in. Turning it off clears every resolved loop immediately;
         // turning it on resolves only provider-supplied artwork and always falls back to the cover.
+        //
+        // This is the only control for animated artwork (Settings -> Interface). The interface
+        // snapshot owns the same flag for backup and the startup restore, and it also arms the
+        // motion-artwork network policy, so both have to move together or the switch would draw
+        // one state while the engine obeys another.
+        val interfaceSettings = _state.value.interfaceSettings
+        if (interfaceSettings.motionArtworkEnabled != value) {
+            val updated = interfaceSettings.copy(motionArtworkEnabled = value)
+            preferences.setInterfaceSettings(updated)
+            com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(value)
+            _state.update { it.copy(interfaceSettings = updated) }
+        }
         _state.update {
             it.copy(
                 motionArtworkEnabled = value,
@@ -6167,11 +6206,30 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshPlaybackDiagnostics(): String {
         val diagnostics = listOf(
             resolver.playbackDiagnostics(),
-            providerRouter.diagnostics()
+            providerRouter.diagnostics(),
+            beatGridDiagnostics(),
+            com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety.describe()
         ).filter { it.isNotBlank() }.joinToString("\n")
         _state.update { it.copy(playbackDiagnostics = diagnostics) }
         return diagnostics
     }
+
+    /** What the beat analyser has managed to measure, so the player visuals are explainable. */
+    private fun beatGridDiagnostics(): String = runCatching {
+        val analysed = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).analysedCount()
+        buildString {
+            appendLine("beat grids analysed on this device: $analysed")
+            val current = _state.value.currentTrack
+            if (current != null) {
+                val grid = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).gridFor(current.id)
+                appendLine(
+                    "current track grid: " + (grid?.let { g ->
+                        "bpm=${g.validBpm?.let { "%.1f".format(it) } ?: "?"} confidence=${"%.2f".format(g.confidence)}"
+                    } ?: "not analysed yet")
+                )
+            }
+        }
+    }.getOrDefault("")
 
     private suspend fun refreshAfterRestore() {
         val snapshot = withContext(Dispatchers.IO) { preferences.snapshot() }

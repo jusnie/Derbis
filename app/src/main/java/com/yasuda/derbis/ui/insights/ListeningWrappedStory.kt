@@ -5,9 +5,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextUnit
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -30,6 +33,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,14 +56,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronRight
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.KeyboardArrowDown
-import com.yasuda.derbis.ui.icons.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,18 +110,30 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.yasuda.derbis.R
 import com.yasuda.derbis.data.DerbisArtworkCache
+import com.yasuda.derbis.domain.ListeningInsightsAlbum
 import com.yasuda.derbis.domain.ListeningInsightsArtist
+import com.yasuda.derbis.domain.ListeningInsightsBiggestDay
 import com.yasuda.derbis.domain.ListeningInsightsRanges
 import com.yasuda.derbis.domain.ListeningInsightsSnapshot
 import com.yasuda.derbis.domain.ListeningInsightsTrack
+import com.yasuda.derbis.domain.WRAPPED_MIN_ACTIVE_DAYS
+import com.yasuda.derbis.domain.WrappedPersona
+import com.yasuda.derbis.domain.WrappedPersonaProfile
+import com.yasuda.derbis.domain.wrappedPersonaProfile
 import com.yasuda.derbis.ui.LocalAnimationsEnabled
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisViolet
+import timber.log.Timber
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.Year
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val WRAPPED_PAGE_MS = 6_500
 private val WrappedInk = Color.White
@@ -178,6 +193,48 @@ private fun WrappedTag(
     Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
 }
 
+/**
+ * Which year the story is about.
+ *
+ * Only the running year and the years that actually hold listening are offered, so every chip
+ * opens a story. It stays a row of chips rather than a menu because there are at most three.
+ */
+@Composable
+private fun WrappedYearPicker(
+    years: List<Int>,
+    selected: Int,
+    accent: Color,
+    onSelect: (Int) -> Unit
+) {
+    if (years.size < 2) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        years.forEach { year ->
+            val active = year == selected
+            Text(
+                text = year.toString(),
+                color = if (active) WrappedInk else WrappedMuted,
+                fontSize = 12.sp,
+                fontWeight = if (active) FontWeight.Black else FontWeight.SemiBold,
+                letterSpacing = 0.6.sp,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (active) accent.copy(alpha = 0.34f) else Color.White.copy(alpha = 0.08f))
+                    .clickable(enabled = !active) { onSelect(year) }
+                    .padding(horizontal = 12.dp, vertical = 5.dp)
+            )
+        }
+    }
+}
+
+private fun wrappedReplayLabel(year: Int, runningYear: Boolean): String =
+    if (runningYear) "REPLAY '$year · SO FAR" else "REPLAY '$year"
+
 @Composable
 private fun WrappedTagContent(text: String, icon: @Composable () -> Unit) {
     Row(
@@ -201,14 +258,19 @@ private fun WrappedTagContent(text: String, icon: @Composable () -> Unit) {
     }
 }
 
-private enum class WrappedPage { Intro, Minutes, Artist, Tracks, Rhythm, Finale }
+private enum class WrappedPage { Intro, Minutes, Artist, Tracks, Albums, Rhythm, Day, Persona, Finale }
 
 private fun wrappedPages(snapshot: ListeningInsightsSnapshot): List<WrappedPage> = buildList {
     add(WrappedPage.Intro)
     add(WrappedPage.Minutes)
     if (snapshot.topArtists.any { it.name.isNotBlank() }) add(WrappedPage.Artist)
     if (snapshot.topTracks.isNotEmpty()) add(WrappedPage.Tracks)
+    if (snapshot.topAlbums.any { it.album.isNotBlank() }) add(WrappedPage.Albums)
     if (snapshot.hourBuckets.any { it > 0L }) add(WrappedPage.Rhythm)
+    if (snapshot.biggestDay != null) add(WrappedPage.Day)
+    // The archetype is derived from figures every year has, so it is the one card that never
+    // needs a guard beyond having a snapshot at all.
+    add(WrappedPage.Persona)
     add(WrappedPage.Finale)
 }
 
@@ -216,13 +278,28 @@ private fun wrappedPages(snapshot: ListeningInsightsSnapshot): List<WrappedPage>
 internal fun ListeningWrappedStory(
     state: ListeningWrappedState,
     accent: Color,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onSelectYear: (Int) -> Unit = {}
 ) {
     val strings = LocalDerbisStrings.current
     val locale = remember(strings.code) { Locale.forLanguageTag(strings.code) }
     val animationsEnabled = LocalAnimationsEnabled.current
     val snapshot = state.snapshot?.takeIf { it.hasSignal }
-    val pages = remember(snapshot) { snapshot?.let(::wrappedPages).orEmpty() }
+    val today = remember { LocalDate.now() }
+    val currentYear = today.year
+    // A year still running is a progress report, not a summary, so it is never refused: the old
+    // floor of thirty days made the month of January, and every fresh install, a wall that said
+    // "not enough yet" with no way past it. A *finished* year still needs enough of a year in it
+    // to be worth summarising — the same floor SimpMusic puts on its own reel. The floor is only
+    // applied when the count is actually known: a snapshot loaded without the Wrapped detail
+    // leaves activeDays at 0 and must not read as "nothing".
+    val runningYear = state.year == currentYear
+    val shortYear = remember(snapshot, state.year) {
+        snapshot != null && !runningYear && snapshot.activeDays in 1 until WRAPPED_MIN_ACTIVE_DAYS
+    }
+    val pages = remember(snapshot, shortYear) {
+        if (shortYear) emptyList() else snapshot?.let(::wrappedPages).orEmpty()
+    }
     var pageIndex by rememberSaveable(state.year) { mutableIntStateOf(0) }
     val lastIndex = (pages.size - 1).coerceAtLeast(0)
     val page = pages.getOrNull(pageIndex.coerceIn(0, lastIndex))
@@ -311,6 +388,14 @@ internal fun ListeningWrappedStory(
                 shareLabel = strings.share,
                 onClose = onClose
             )
+            // The story used to be nailed to whatever year the calendar was in. A listener whose
+            // last year is the one with the music in it had no way to reach it.
+            WrappedYearPicker(
+                years = state.years,
+                selected = state.year,
+                accent = accent,
+                onSelect = onSelectYear
+            )
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -326,10 +411,13 @@ internal fun ListeningWrappedStory(
                     state = state,
                     snapshot = snapshot,
                     page = page,
+                    shortYear = shortYear,
                     strings = strings,
                     locale = locale,
                     accent = accent,
                     animationsEnabled = animationsEnabled,
+                    otherYears = state.years.filter { it != state.year },
+                    onSelectYear = onSelectYear,
                     onReceiptStyleChange = { receiptStyle = it }
                 )
             }
@@ -383,17 +471,24 @@ private fun WrappedTopBar(
     onClose: () -> Unit
 ) {
     Row(
+        // The end inset is 10 dp rather than 16 dp because each action is a 48 dp slot around a
+        // 36 dp circle: the six unused dp on each side would otherwise push the drawn circle in by
+        // 6 dp and leave it out of line with the pill and the year row below.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 16.dp, end = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        // The chip gives way, not the buttons: it is the only weighted child, so the actions
+        // measure first and the pill is capped at whatever is left of the row.
         Row(
             modifier = Modifier
+                .weight(1f, fill = false)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
                 .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -404,54 +499,48 @@ private fun WrappedTopBar(
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "REPLAY '$year",
+                text = wrappedReplayLabel(year, runningYear = year == LocalDate.now().year),
                 color = WrappedInk,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 1.8.sp
+                letterSpacing = 1.4.sp,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(Modifier.weight(1f))
-        // Share lives next to Close so the card is one tap away from any page.
-        IconButton(
-            onClick = share::share,
-            enabled = share.canShare && !share.busy,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-        ) {
-            if (share.busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(15.dp),
-                    strokeWidth = 1.8.dp,
-                    color = WrappedInk
-                )
-            } else {
+        // Grouped so the gap between the two circles is a property of this row and cannot be
+        // squeezed by anything else on the bar.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Share lives next to Close so the card is one tap away from any page.
+            WrappedCircleButton(
+                label = shareLabel,
+                enabled = share.canShare && !share.busy,
+                onClick = share::share
+            ) {
+                if (share.busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(15.dp),
+                        strokeWidth = 1.8.dp,
+                        color = WrappedInk
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.IosShare,
+                        contentDescription = null,
+                        tint = WrappedInk,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+            }
+            WrappedCircleButton(label = closeLabel, onClick = onClose) {
                 Icon(
-                    Icons.Rounded.IosShare,
-                    contentDescription = shareLabel,
+                    Icons.Rounded.Close,
+                    contentDescription = null,
                     tint = WrappedInk,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-        }
-        Spacer(Modifier.width(8.dp))
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-        ) {
-            Icon(
-                Icons.Rounded.Close,
-                contentDescription = closeLabel,
-                tint = WrappedInk,
-                modifier = Modifier.size(18.dp)
-            )
         }
     }
     share.error?.let { message ->
@@ -461,9 +550,52 @@ private fun WrappedTopBar(
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 2.dp)
-                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 2.dp),
+            textAlign = TextAlign.Center
         )
+    }
+}
+
+/**
+ * A round header button where the target and the circle are two different sizes.
+ *
+ * Material's `IconButton` reserves a 48 dp touch target around whatever is inside it, so asking it
+ * for 36 dp did not make it 36 dp - it made a 36 dp circle sitting in a 48 dp box, and two of those
+ * beside the year pill were wider than the row they had to live in. Here the box is the finger's
+ * and the circle is only what is painted: 48 dp to hit, 36 dp to see.
+ */
+@Composable
+private fun WrappedCircleButton(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(
+                enabled = enabled,
+                onClickLabel = label,
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        // The ripple is the 48 dp target; the drawn circle stays 36 dp on top of it.
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = if (enabled) 0.12f else 0.06f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
     }
 }
 
@@ -505,7 +637,7 @@ internal class WrappedCardSharer(
                             artistUrl = "",
                             into = assets
                         )
-                        val palette = ListeningReceiptCard.resolvePalette(assets)
+                        val palette = assets.use { loaded -> ListeningReceiptCard.resolvePalette(loaded) }
                         val intent = ListeningReceiptCard.createShareIntent(
                             context = context,
                             content = current,
@@ -521,13 +653,13 @@ internal class WrappedCardSharer(
                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     }
                                 )
-                            }.isSuccess
+                            }.onFailure { Timber.w(it, "Wrapped card chooser did not open") }.isSuccess
                         }
                     } finally {
                         assets.close()
                     }
                 }
-            }.getOrDefault(false)
+            }.onFailure { Timber.w(it, "Wrapped card share failed") }.getOrDefault(false)
             busy = false
             if (!launched) error = failedLabel
         }
@@ -562,10 +694,13 @@ private fun BoxScope.WrappedBody(
     state: ListeningWrappedState,
     snapshot: ListeningInsightsSnapshot?,
     page: WrappedPage?,
+    shortYear: Boolean = false,
     strings: DerbisStrings,
     locale: Locale,
     accent: Color,
     animationsEnabled: Boolean,
+    otherYears: List<Int> = emptyList(),
+    onSelectYear: (Int) -> Unit = {},
     onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     // Measure the page area rather than the window: the progress bar and top bar already took
@@ -585,6 +720,30 @@ private fun BoxScope.WrappedBody(
                 ) {
                     CircularProgressIndicator(color = accent, strokeWidth = 2.dp, modifier = Modifier.size(28.dp))
                 }
+                shortYear -> Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    WrappedStatusCard(
+                        title = strings.wrappedNotEnoughTitle.replace("%s", state.year.toString()),
+                        body = strings.wrappedNotEnoughBody.replace(
+                            "%s",
+                            (WRAPPED_MIN_ACTIVE_DAYS - (snapshot?.activeDays ?: 0)).coerceAtLeast(1).toString()
+                        ),
+                        accent = accent
+                    )
+                    // A finished year cannot grow any more days no matter how long anyone
+                    // listens, so the card must point at the years that can still be opened.
+                    if (otherYears.isNotEmpty()) {
+                        Spacer(Modifier.height(12.dp))
+                        WrappedYearPicker(
+                            years = otherYears,
+                            selected = 0,
+                            accent = accent,
+                            onSelect = onSelectYear
+                        )
+                    }
+                }
                 snapshot == null || page == null -> WrappedStatusCard(
                     title = strings.wrappedYearInMusic,
                     body = if (state.failed) strings.insightsError else strings.wrappedEmpty.replace("%s", state.year.toString()),
@@ -603,7 +762,8 @@ private fun BoxScope.WrappedBody(
                         strings = strings,
                         locale = locale,
                         accent = accent,
-                        animationsEnabled = animationsEnabled
+                        animationsEnabled = animationsEnabled,
+                        onReceiptStyleChange = onReceiptStyleChange
                     )
                 }
             }
@@ -886,14 +1046,18 @@ private fun WrappedPageContent(
     strings: DerbisStrings,
     locale: Locale,
     accent: Color,
-    animationsEnabled: Boolean
+    animationsEnabled: Boolean,
+    onReceiptStyleChange: (ListeningReceiptStyle) -> Unit = {}
 ) {
     when (page) {
-        WrappedPage.Intro -> WrappedIntro(year, strings, accent)
+        WrappedPage.Intro -> WrappedIntro(year, strings, locale, accent)
         WrappedPage.Minutes -> WrappedMinutes(snapshot, strings, locale, accent, animationsEnabled)
         WrappedPage.Artist -> WrappedArtist(snapshot.topArtists, strings, locale, accent)
         WrappedPage.Tracks -> WrappedTracks(snapshot.topTracks, strings, accent)
+        WrappedPage.Albums -> WrappedAlbums(snapshot.topAlbums, strings, accent)
         WrappedPage.Rhythm -> WrappedRhythm(snapshot, strings, locale, accent)
+        WrappedPage.Day -> WrappedBiggestDay(snapshot.biggestDay, strings, locale, accent)
+        WrappedPage.Persona -> WrappedPersona(snapshot, year, strings, accent)
         WrappedPage.Finale -> WrappedFinale(
             year = year,
             snapshot = snapshot,
@@ -906,7 +1070,7 @@ private fun WrappedPageContent(
 }
 
 @Composable
-private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
+private fun WrappedIntro(year: Int, strings: DerbisStrings, locale: Locale, accent: Color) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -943,6 +1107,20 @@ private fun WrappedIntro(year: Int, strings: DerbisStrings, accent: Color) {
             lineHeight = 22.sp,
             fontWeight = FontWeight.Medium
         )
+        // A year still running is not twelve months of listening, and the intro has to say so:
+        // the numbers that follow are real, they just stop today.
+        if (year == LocalDate.now().year) {
+            Text(
+                text = "So far — through " +
+                    LocalDate.now().format(
+                        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
+                    ),
+                color = accent,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         Spacer(Modifier.height(wrappedDp(36.dp)))
         Row(
             modifier = Modifier
@@ -1473,5 +1651,358 @@ private fun WrappedFinale(
             previewMaxHeight = 460.dp,
             onStyleChange = onReceiptStyleChange
         )
+    }
+}
+
+/** "3 h 20 m", or "47 m" under the hour. Abbreviations every language reads the same way. */
+private fun wrappedDuration(ms: Long): String {
+    val minutes = (ms / 60_000L).coerceAtLeast(0L)
+    val hours = minutes / 60L
+    return if (hours > 0L) "$hours h ${minutes % 60L} m" else "$minutes m"
+}
+
+/**
+ * The albums the year was lived in.
+ *
+ * Only albums the history actually carries a name for reach here — an unknown album is not a
+ * rank, and a row reading "—" would be filling a slot rather than reporting one.
+ */
+@Composable
+private fun WrappedAlbums(
+    albums: List<ListeningInsightsAlbum>,
+    strings: DerbisStrings,
+    accent: Color
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        WrappedTag(
+            text = "TOP ALBUMS",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = strings.wrappedAlbumsTitle,
+            color = WrappedInk,
+            fontSize = wrappedSp(28f),
+            lineHeight = wrappedSp(32f),
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-0.8).sp
+        )
+        Spacer(Modifier.height(18.dp))
+        albums.take(3).forEachIndexed { index, album ->
+            val first = index == 0
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(if (first) 22.dp else 16.dp))
+                    .background(if (first) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.06f))
+                    .border(
+                        1.dp,
+                        if (first) accent.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.10f),
+                        RoundedCornerShape(if (first) 22.dp else 16.dp)
+                    )
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                WrappedCover(
+                    artworkUrl = album.artworkUrl,
+                    initial = ListeningReceiptModel.initial(album.album),
+                    accent = accent,
+                    size = if (first) 56.dp else 46.dp
+                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 12.dp)
+                ) {
+                    Text(
+                        text = album.album,
+                        color = WrappedInk,
+                        fontSize = if (first) 17.sp else 15.sp,
+                        fontWeight = if (first) FontWeight.Black else FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (album.artist.isNotBlank()) {
+                        Text(
+                            text = album.artist,
+                            color = WrappedMuted,
+                            fontSize = 12.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Text(
+                    text = strings.wrappedAlbumPlays.replace("%s", album.plays.toString()),
+                    color = WrappedMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The one day that took the most.
+ *
+ * The comparison is against the typical *active* day rather than the calendar, so a year that
+ * only has Sunday afternoons in it does not get a "0.4× a normal day" hero.
+ */
+@Composable
+private fun WrappedBiggestDay(
+    day: ListeningInsightsBiggestDay?,
+    strings: DerbisStrings,
+    locale: Locale,
+    accent: Color
+) {
+    if (day == null) return
+    val date = remember(day.date, locale) {
+        val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale)
+        day.date.format(formatter)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        WrappedTag(
+            text = "BIGGEST DAY",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = strings.wrappedBiggestDayTitle,
+            color = WrappedInk,
+            fontSize = wrappedSp(24f),
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = date,
+            color = WrappedInk,
+            fontSize = wrappedSp(34f),
+            lineHeight = wrappedSp(38f),
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-1).sp
+        )
+        Spacer(Modifier.height(18.dp))
+        WrappedStatTiles(
+            stats = listOf(
+                wrappedDuration(day.listenedMs) to strings.wrappedMinutesTitle,
+                day.plays.toString() to strings.wrappedPlaysUnit
+            )
+        )
+        Spacer(Modifier.height(14.dp))
+        day.multipleOfTypicalDay?.takeIf { it > 1 }?.let { multiple ->
+            Text(
+                text = strings.wrappedBiggestDayMultiple.replace("%s", multiple.toString()),
+                color = accent,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(Modifier.height(14.dp))
+        }
+        if (day.trackTitle.isNotBlank()) {
+            Text(
+                text = strings.wrappedBiggestDayOnRepeat,
+                color = WrappedMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.White.copy(alpha = 0.10f))
+                    .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_sound_wave),
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Column(modifier = Modifier.padding(start = 10.dp)) {
+                    Text(
+                        text = day.trackTitle,
+                        color = WrappedInk,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (day.trackArtist.isNotBlank()) {
+                        Text(
+                            text = day.trackArtist,
+                            color = WrappedMuted,
+                            fontSize = 12.5.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The year read as a shape rather than a list: one archetype, four measured axes.
+ *
+ * The axes are drawn from the same numbers the archetype was chosen from, so the bar that is
+ * fullest is always the name above it.
+ */
+@Composable
+private fun WrappedPersona(
+    snapshot: ListeningInsightsSnapshot,
+    year: Int,
+    strings: DerbisStrings,
+    accent: Color
+) {
+    val daysInYear = remember(year) { if (Year.isLeap(year.toLong())) 366 else 365 }
+    val profile = remember(snapshot, daysInYear) { wrappedPersonaProfile(snapshot, daysInYear) }
+    val name = when (profile.persona) {
+        WrappedPersona.THE_REGULAR -> strings.wrappedPersonaRegular
+        WrappedPersona.THE_OMNIVORE -> strings.wrappedPersonaOmnivore
+        WrappedPersona.THE_DEVOTEE -> strings.wrappedPersonaDevotee
+        WrappedPersona.THE_DEEP_DIVER -> strings.wrappedPersonaDeepDiver
+    }
+    val body = when (profile.persona) {
+        WrappedPersona.THE_REGULAR -> strings.wrappedPersonaRegularBody
+        WrappedPersona.THE_OMNIVORE -> strings.wrappedPersonaOmnivoreBody
+        WrappedPersona.THE_DEVOTEE -> strings.wrappedPersonaDevoteeBody
+        WrappedPersona.THE_DEEP_DIVER -> strings.wrappedPersonaDeepDiverBody
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = LocalWrappedViewportHeight.current)
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        WrappedTag(
+            text = "YOUR SHAPE",
+            accent = accent,
+            icon = painterResource(R.drawable.ic_sound_wave)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = strings.wrappedPersonaTitle,
+            color = WrappedMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 2.sp
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = name,
+            color = WrappedInk,
+            fontSize = wrappedSp(38f),
+            lineHeight = wrappedSp(42f),
+            fontWeight = FontWeight.Black,
+            letterSpacing = (-1.2).sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = body,
+            color = WrappedMuted,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(Modifier.height(22.dp))
+        WrappedPersonaAxis(strings.wrappedAxisConsistency, profile.consistency, accent)
+        WrappedPersonaAxis(strings.wrappedAxisDiversity, profile.diversity, accent)
+        WrappedPersonaAxis(strings.wrappedAxisDevotion, profile.concentration, accent)
+        WrappedPersonaAxis(strings.wrappedAxisReplay, profile.replay, accent)
+    }
+}
+
+@Composable
+private fun WrappedPersonaAxis(label: String, value: Float, accent: Color) {
+    val share = value.coerceIn(0f, 1f)
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = label,
+                color = WrappedInk,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${(share * 100).roundToInt()}%",
+                color = WrappedMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(share.coerceAtLeast(0.02f))
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(accent)
+            )
+        }
+    }
+}
+
+/** Album artwork with the same fallback the track rows use: initial on an accent gradient. */
+@Composable
+private fun WrappedCover(artworkUrl: String, initial: String, accent: Color, size: Dp) {
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Brush.linearGradient(listOf(accent, DerbisViolet))),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
+            color = WrappedOnAccent,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black
+        )
+        if (artworkUrl.isNotBlank()) {
+            val request = remember(context, artworkUrl) {
+                ImageRequest.Builder(context).data(DerbisArtworkCache.large(artworkUrl)).crossfade(true).build()
+            }
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }

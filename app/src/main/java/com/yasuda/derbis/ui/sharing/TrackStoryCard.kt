@@ -36,6 +36,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
+import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
@@ -332,6 +333,15 @@ internal object TrackStoryCard {
         }
     }
 
+    /**
+     * The card's background is the artwork's palette, not a fixed theme colour.
+     *
+     * Every theme draws the same four layers - a base gradient mixed from the palette's dominant
+     * colour, three blooms, and a legibility floor - and differs only in how far it lets the
+     * palette show ([backdropStrength]). The fixed charcoal of Vinyl Studio and the pure black of
+     * OLED both made every share look the same regardless of what was playing; the palette is
+     * what makes a card look like the record it came from.
+     */
     private fun drawBackdrop(
         canvas: Canvas,
         width: Float,
@@ -341,95 +351,91 @@ internal object TrackStoryCard {
         artwork: Bitmap?
     ) {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val strength = backdropStrength(theme)
+        val dominant = palette.dominant
+        val accent = palette.accent
+        // The palette's own base, pulled toward the dominant colour. Without this the brightest
+        // artwork still lands on near-black and the card stops looking like the cover.
+        val top = mixColors(palette.darkBase, dominant, 0.42f * strength)
+        val bottom = mixColors(palette.darkBase, dominant, 0.10f * strength)
 
-        when (theme) {
-            TrackStoryTheme.OLED_BLACK -> {
-                // 100% OLED Pure Black
-                canvas.drawColor(Color.BLACK)
+        paint.shader = LinearGradient(0f, 0f, 0f, height, top, bottom, Shader.TileMode.CLAMP)
+        canvas.drawRect(0f, 0f, width, height, paint)
 
-                // Ultra subtle luminous ambient halo behind the artwork center
-                paint.shader = RadialGradient(
-                    width * 0.5f,
-                    height * 0.42f,
-                    width * 0.65f,
-                    withAlpha(palette.dominant, 48),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
-            }
+        // Three blooms at the same anchor points as the preview: one catching the hero from
+        // above, one behind the label block, one lifting the footer out of the vignette.
+        paint.shader = RadialGradient(
+            width * 0.76f,
+            height * 0.13f,
+            width * 0.62f,
+            withAlpha(dominant, (140f * strength).toInt()),
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, width, height, paint)
 
-            TrackStoryTheme.VINYL_STUDIO -> {
-                // Sleek charcoal studio gradient
-                paint.shader = LinearGradient(
-                    0f, 0f, 0f, height,
-                    0xFF121218.toInt(),
-                    0xFF060608.toInt(),
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
+        paint.shader = RadialGradient(
+            width * 0.24f,
+            height * 0.46f,
+            width * 0.72f,
+            withAlpha(accent, (128f * strength).toInt()),
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, width, height, paint)
 
-                // Soft dynamic light bloom on the left
-                paint.shader = RadialGradient(
-                    width * 0.35f,
-                    height * 0.40f,
-                    width * 0.8f,
-                    withAlpha(palette.dominant, 65),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
-            }
+        paint.shader = RadialGradient(
+            width * 0.62f,
+            height * 0.87f,
+            width * 0.80f,
+            withAlpha(dominant, (102f * strength).toInt()),
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, width, height, paint)
 
-            TrackStoryTheme.AURA_GLOW -> {
-                // Rich multi-orb living aura
-                canvas.drawColor(palette.darkBase)
+        // Legibility floor. Title, timestamps and the footer sit on white text, so bright
+        // palettes need the edges and the lower half pulled back down. This is the layer that
+        // keeps a yellow cover from washing the card out.
+        paint.shader = RadialGradient(
+            width * 0.5f,
+            height * 0.22f,
+            width * 0.92f,
+            Color.TRANSPARENT,
+            Color.argb((78f * strength + 26f).toInt(), 0, 0, 0),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, width, height, paint)
 
-                // Top dominant light pool
-                paint.shader = RadialGradient(
-                    width * 0.80f,
-                    height * 0.15f,
-                    width * 0.85f,
-                    withAlpha(palette.dominant, 130),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
+        paint.shader = LinearGradient(
+            0f,
+            height * 0.46f,
+            0f,
+            height,
+            Color.TRANSPARENT,
+            Color.argb((108f * strength + 34f).toInt(), 0, 0, 0),
+            Shader.TileMode.CLAMP
+        )
+        canvas.drawRect(0f, 0f, width, height, paint)
+    }
 
-                // Center vibrant hero bloom
-                paint.shader = RadialGradient(
-                    width * 0.30f,
-                    height * 0.46f,
-                    width * 0.90f,
-                    withAlpha(palette.accent, 150),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
+    /** How far a theme lets the artwork palette through. */
+    private fun backdropStrength(theme: TrackStoryTheme): Float = when (theme) {
+        TrackStoryTheme.AURA_GLOW -> 1f
+        TrackStoryTheme.VINYL_STUDIO -> 0.62f
+        TrackStoryTheme.OLED_BLACK -> 0.34f
+    }
 
-                // Lower counter-glow
-                paint.shader = RadialGradient(
-                    width * 0.65f,
-                    height * 0.82f,
-                    width * 0.70f,
-                    withAlpha(palette.dominant, 90),
-                    Color.TRANSPARENT,
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
-
-                // Deep perimeter vignette for readability
-                paint.shader = RadialGradient(
-                    width * 0.5f,
-                    height * 0.5f,
-                    height * 0.65f,
-                    Color.TRANSPARENT,
-                    Color.argb(135, 0, 0, 0),
-                    Shader.TileMode.CLAMP
-                )
-                canvas.drawRect(0f, 0f, width, height, paint)
-            }
-        }
+    /** Linear blend of two opaque colours; [amount] 0 keeps [from], 1 returns [to]. */
+    private fun mixColors(from: Int, to: Int, amount: Float): Int {
+        val t = amount.coerceIn(0f, 1f)
+        fun channel(a: Int, b: Int) = (a + (b - a) * t).toInt().coerceIn(0, 255)
+        return Color.argb(
+            channel(Color.alpha(from), Color.alpha(to)),
+            channel(Color.red(from), Color.red(to)),
+            channel(Color.green(from), Color.green(to)),
+            channel(Color.blue(from), Color.blue(to))
+        )
     }
 
     private fun drawTopHeader(
@@ -454,43 +460,57 @@ internal object TrackStoryCard {
         }
         canvas.drawText(BRAND_TEXT, marginX + 62f, topY + 33f, brandPaint)
 
-        // Draw Audio Quality Badge on the right
-        val badgeText = "LOSSLESS OPUS"
+        // Audio quality badge on the right: one long smooth pill with no stroke. What used to be
+        // a 2 px white outline under a 16 % white fill read as a bordered chip next to the
+        // wordmark; a 46 px pill at full radius and a soft two-stop fill reads as part of the
+        // same glass row. The label is read from the snapshot's tier rather than painted into the
+        // layout, so whatever the share sheet knows about the stream is what the card says.
+        val badgeText = badgeLabel(snapshot)
         val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = 24f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            letterSpacing = 0.08f
+            letterSpacing = 0.12f
         }
         val textWidth = textPaint.measureText(badgeText)
-        val badgePaddingX = 26f
-        val badgeHeight = 44f
-        val badgeWidth = textWidth + badgePaddingX * 2 + 36f
+        val iconWidth = 22f
+        val gap = 12f
+        val badgePaddingX = 30f
+        val badgeHeight = 46f
+        val badgeWidth = textWidth + badgePaddingX * 2f + iconWidth + gap
         val badgeRight = width - marginX
         val badgeLeft = badgeRight - badgeWidth
-        val badgeTop = topY - 2f
+        val badgeTop = topY - 3f
         val badgeRect = RectF(badgeLeft, badgeTop, badgeRight, badgeTop + badgeHeight)
 
-        // Pill backdrop
+        // Fill only: a horizontal two-stop gradient rather than a flat 16 % wash, so the pill has
+        // a direction without needing an outline to show its edge against a bright palette.
         val pillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(40, 255, 255, 255)
+            shader = LinearGradient(
+                badgeLeft,
+                badgeTop,
+                badgeRight,
+                badgeTop + badgeHeight,
+                Color.argb(52, 255, 255, 255),
+                Color.argb(26, 255, 255, 255),
+                Shader.TileMode.CLAMP
+            )
             style = Paint.Style.FILL
         }
         canvas.drawRoundRect(badgeRect, badgeHeight / 2f, badgeHeight / 2f, pillPaint)
 
-        // Pill border
-        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(55, 255, 255, 255)
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-        }
-        canvas.drawRoundRect(badgeRect, badgeHeight / 2f, badgeHeight / 2f, borderPaint)
-
         // 7-bar audio wave icon inside the badge
-        drawAudioWaveIcon(canvas, badgeLeft + 18f, badgeTop + badgeHeight / 2f, 22f, Color.WHITE)
+        drawAudioWaveIcon(
+            canvas,
+            badgeLeft + badgePaddingX + iconWidth / 2f,
+            badgeTop + badgeHeight / 2f,
+            iconWidth,
+            Color.WHITE
+        )
 
-        // Text inside badge
-        canvas.drawText(badgeText, badgeLeft + 48f, badgeTop + 30f, textPaint)
+        // Text inside badge, optically centred on the pill rather than on its own baseline.
+        val textBaseline = badgeTop + badgeHeight / 2f + textPaint.textSize * 0.36f
+        canvas.drawText(badgeText, badgeLeft + badgePaddingX + iconWidth + gap, textBaseline, textPaint)
     }
 
     private fun calculateCoverBounds(
@@ -872,6 +892,16 @@ internal object TrackStoryCard {
     ) {
         val ellipsized = TextUtils.ellipsize(text, paint, maxWidth, TextUtils.TruncateAt.END).toString()
         canvas.drawText(ellipsized, x, y, paint)
+    }
+
+    /**
+     * The tier the card advertises, taken from the snapshot instead of being written into the
+     * layout. A share is a claim, so the text has one source of truth rather than a constant in
+     * the draw code that no caller can change.
+     */
+    private fun badgeLabel(snapshot: TrackStorySnapshot): String {
+        val tier = snapshot.qualityTier.substringBefore('\u2022').trim()
+        return tier.ifBlank { "DERBIS AUDIO" }.uppercase(Locale.ROOT)
     }
 
     private fun withAlpha(color: Int, alpha: Int): Int {

@@ -20,6 +20,75 @@ class DerbisBeatAnalyzerTest {
         assertTrue(abs((result.downbeatMs ?: -1L) - 240L) < 80L)
     }
 
+    /**
+     * The gate used to be calibrated on click tracks: on ordinary mixed music (kick, snare,
+     * off-beat hats, a pad) the old score read ~0.26 against a 0.5 threshold, so no grid was ever
+     * stored — and the beat visuals and Beat Sync had nothing to run on. This material is what
+     * that gate has to accept.
+     */
+    @Test
+    fun findsTheGridInMixedMusicNotJustAClickTrack() {
+        val result = DerbisBeatAnalyzer.analyzeInterleaved(
+            samples = mixedTrack(sampleRate = 12_000, seconds = 14, bpm = 120f),
+            sampleRate = 12_000,
+            channels = 1
+        )
+
+        assertTrue("mixed music should produce a usable grid", result.isUsable)
+        assertEquals(120f, result.bpm ?: 0f, 3f)
+    }
+
+    /** ...and it still refuses to invent one for material with no pulse at all. */
+    @Test
+    fun doesNotInventAGridForBroadbandNoise() {
+        val random = kotlin.random.Random(7)
+        val noise = FloatArray(12_000 * 14) { random.nextFloat() * 2f - 1f }
+
+        assertFalse(DerbisBeatAnalyzer.analyzeInterleaved(noise, 12_000, 1).isUsable)
+    }
+
+    private fun mixedTrack(sampleRate: Int, seconds: Int, bpm: Float): FloatArray {
+        val samples = FloatArray(sampleRate * seconds)
+        val beat = 60f / bpm
+        fun hit(startSeconds: Float, lengthSeconds: Float, amplitude: Float, shape: (Float) -> Float) {
+            val start = (startSeconds * sampleRate).toInt()
+            val length = (lengthSeconds * sampleRate).toInt()
+            for (index in 0 until length) {
+                val position = start + index
+                if (position !in samples.indices) continue
+                samples[position] += amplitude * shape(index / sampleRate.toFloat())
+            }
+        }
+        var bar = 0
+        while (bar * 4 * beat < seconds) {
+            val barStart = bar * 4 * beat
+            hit(barStart, .22f, .55f) { t -> kotlin.math.sin(2f * Math.PI.toFloat() * (55f + 90f * kotlin.math.exp(-t * 30f)) * t) * kotlin.math.exp(-t * 14f) }
+            hit(barStart + 2 * beat, .22f, .55f) { t -> kotlin.math.sin(2f * Math.PI.toFloat() * (55f + 90f * kotlin.math.exp(-t * 30f)) * t) * kotlin.math.exp(-t * 14f) }
+            for (step in intArrayOf(1, 3)) {
+                hit(barStart + step * beat, .18f, .30f) { t ->
+                    kotlin.math.sin(2f * Math.PI.toFloat() * 190f * t) * kotlin.math.exp(-t * 22f)
+                }
+            }
+            for (eighth in 1 until 8 step 2) {
+                hit(barStart + eighth * beat / 2f, .05f, .10f) { t -> kotlin.math.exp(-t * 90f) }
+            }
+            hit(barStart, beat * 1.5f, .25f) { t -> kotlin.math.sin(2f * Math.PI.toFloat() * 55f * t) }
+            hit(barStart + 2 * beat, beat * 1.2f, .22f) { t -> kotlin.math.sin(2f * Math.PI.toFloat() * 73f * t) }
+            bar++
+        }
+        // A steady pad: energy the analyser has to ignore rather than count as an onset.
+        for (index in samples.indices) {
+            val t = index / sampleRate.toFloat()
+            val chord = (kotlin.math.sin(2f * Math.PI.toFloat() * 220f * t) +
+                kotlin.math.sin(2f * Math.PI.toFloat() * 277.2f * t) +
+                kotlin.math.sin(2f * Math.PI.toFloat() * 330f * t)) / 3f
+            samples[index] += .07f * chord
+        }
+        val peak = samples.maxOf { kotlin.math.abs(it) }.coerceAtLeast(.0001f)
+        for (index in samples.indices) samples[index] = samples[index] / peak * .9f
+        return samples
+    }
+
     @Test
     fun doesNotInventAGridForTooShortOrSilentInput() {
         val tooShort = DerbisBeatAnalyzer.analyzeInterleaved(FloatArray(4_000), 44_100, 1)

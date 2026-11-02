@@ -19,6 +19,7 @@ import com.yasuda.derbis.feature.cast.CastRuntimeInitializer
 import com.yasuda.derbis.player.PlaybackNetworkStack
 import com.yasuda.derbis.player.waveseek.WaveSeekRuntime
 import com.yasuda.derbis.runtime.RuntimeHooks
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,9 @@ class DerbisApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Reads the Liquid Glass crash marker before any UI can draw through the GPU.
+        runCatching { DerbisGlassSafety.install(this) }
+            .onFailure { Timber.w(it, "Liquid Glass guard bootstrap failed") }
         CastRuntimeInitializer.initialize(this)
         RuntimeHooks.start(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())

@@ -21,19 +21,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.ui.GlassBackdropQuality
-import com.yasuda.derbis.ui.GlassBackdropState
 import com.yasuda.derbis.ui.GlassLensTier
 import com.yasuda.derbis.ui.LocalDerbisGlassTier
 import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
-import com.yasuda.derbis.ui.LocalGlassBackdrop
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
-import com.yasuda.derbis.ui.glassSurface
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisActivePalette
 import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
+import androidx.compose.foundation.shape.CornerBasedShape
 
 val LocalDerbisLiquidGlassEnabled = staticCompositionLocalOf { false }
 
@@ -130,7 +128,6 @@ fun Modifier.derbisGlass(
             .border(borderWidth, fallbackBorderColor, shape)
     }
     this.resolvedDerbisGlass(
-        backdrop = LocalGlassBackdrop.current,
         shape = shape,
         baseTint = baseTint,
         fallbackColor = fallbackColor,
@@ -143,7 +140,6 @@ fun Modifier.derbisGlass(
 }
 
 internal fun Modifier.resolvedDerbisGlass(
-    backdrop: GlassBackdropState?,
     shape: Shape,
     baseTint: Color,
     fallbackColor: Color,
@@ -162,8 +158,15 @@ internal fun Modifier.resolvedDerbisGlass(
     // The fallback is intentionally more opaque than the frosted version. It protects type,
     // icon contrast and focus rings on API levels without RenderEffect, Low Power mode and when
     // the user chooses the low-transparency end of the Glass controls.
-    val fallbackAlpha = (tokens.fallbackTintAlpha + if (opaqueMaterial) 0.18f else 0f)
-        .coerceIn(0.42f, 0.96f)
+    // Under the skin the fallback is the same glass film as the palette panels, not the old
+    // near-opaque material: without this the surfaces that cannot sample the page came out
+    // darker and flatter than the ones around them.
+    val glassSkin = LocalDerbisLiquidGlassEnabled.current
+    val fallbackAlpha = if (glassSkin && !opaqueMaterial) {
+        (tokens.fallbackTintAlpha * 0.58f).coerceIn(0.32f, 0.50f)
+    } else {
+        (tokens.fallbackTintAlpha + if (opaqueMaterial) 0.18f else 0f).coerceIn(0.42f, 0.96f)
+    }
     val glassTint = harmonizedTint.copy(
         alpha = if (opaqueMaterial) fallbackAlpha else (tokens.tintAlpha * style.tintAlphaScale).coerceIn(0.08f, 0.42f)
     )
@@ -178,30 +181,42 @@ internal fun Modifier.resolvedDerbisGlass(
     // rows and page surfaces keep the translucent material, which looks identical at rest and
     // removes dozens of per-frame layer samples from a scrolling settings or library screen.
     val tier = LocalDerbisGlassTier.current
-    val tierAllowsFrost = tier != GlassLensTier.Efficient || intensity == DerbisGlassIntensity.Strong
-    val shouldFrost = tokens.samplesBackdrop && tierAllowsFrost && !opaqueMaterial &&
-        backdrop?.enabled == true && backdrop.layer != null
-
-    if (shouldFrost) {
-        this.glassSurface(
-            state = checkNotNull(backdrop),
-            shape = shape,
-            tint = glassTint,
-            fallbackColor = materialFallback,
-            borderColor = border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)),
-            blurRadius = tokens.blurRadius,
-            borderWidth = borderWidth,
-            highlightAlpha = tokens.highlightAlpha * GlassSheenShare,
-            refraction = tokens.allowsRefraction &&
-                tier != GlassLensTier.Efficient &&
-                !accessibility.increasedContrast,
-            qualityCeiling = tokens.samplingQuality
+    // The Liquid Glass skin now draws real glass: the page is recorded into a backdrop
+    // layer and every chrome-strength surface samples it (blur, vibrancy, lens). Subtle
+    // content rows keep the cheap translucent material, because sampling the backdrop
+    // per list row is what would cost frames while scrolling.
+    val backdropShape = shape as? CornerBasedShape
+    // Every intensity is glass on this skin, not just the chrome-strength ones: a row that
+    // samples the page is the whole point, and the engine already refuses to sample the layer
+    // it is drawn into, so a card inside the recorded page lands on the lightweight material
+    // rather than on a flat panel.
+    val backdropReady = backdropShape != null &&
+        !opaqueMaterial &&
+        LocalDerbisAppBackdrop.current != null
+    if (backdropReady && backdropShape != null) {
+        val lensAllowed = tokens.allowsRefraction &&
+            tier != GlassLensTier.Efficient &&
+            !accessibility.increasedContrast
+        return@composed this.derbisBackdropGlass(
+            shape = backdropShape,
+            // BitChord's surface film: a neutral near-black (or near-white) at 40%, not a
+            // tint of the artwork. Anything stronger hides the page it is supposed to show.
+            tint = defaultGlassSurfaceTint(DerbisActivePalette.isLight),
+            lensEnabled = lensAllowed
         )
-    } else {
-        this
-            .background(materialFallback, shape)
-            .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
     }
+    // No frost layer any more: a surface either samples the page backdrop with the real
+    // glass, or it is BitChord's lightweight material — the same tint with the edge light —
+    // because a card drawn inside the recorded page must not sample that page. The old
+    // blurred RenderEffect sample was a second, weaker glass stacked under the real one.
+    this
+        .derbisLightweightGlass(
+            shape = shape,
+            fill = materialFallback,
+            rim = !opaqueMaterial && tier != GlassLensTier.Efficient,
+            hairline = false
+        )
+        .border(borderWidth, border.copy(alpha = tokens.borderAlpha.coerceAtLeast(border.alpha)), shape)
 }
 
 /**

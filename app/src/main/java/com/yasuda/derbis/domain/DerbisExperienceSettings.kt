@@ -79,13 +79,13 @@ enum class LibrarySortDirection {
 enum class PlayerVisualMode {
     Artwork,
     CanvasCard,
-    CanvasImmersive,
     AppleMusic13,
     TidalMusic,
     Pulse,
-    Halo,
-    Folio,
-    Flow;
+    Flow,
+    Frost,
+    DerbisOne,
+    Vinyl;
 
     companion object {
         /**
@@ -100,7 +100,13 @@ enum class PlayerVisualMode {
                 else -> entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                     ?: when (value.trim().lowercase()) {
                         "canvas_card", "card" -> CanvasCard
-                        "canvas_immersive", "immersive" -> CanvasImmersive
+                        // The immersive "Beat Sync" deck was retired; an old saved choice
+                        // (stored as the enum name, so also "canvasimmersive") lands on the
+                        // sleeve deck instead of vanishing.
+                        "canvas_immersive", "canvasimmersive", "immersive", "beatsync" -> CanvasCard
+                        // Liner Notes (Halo) and Folio were retired in favour of the cover-led
+                        // sleeve, so an old saved choice lands there instead of on the fallback.
+                        "halo", "linernotes", "liner_notes", "folio" -> CanvasCard
                         else -> Artwork
                     }
             }
@@ -281,9 +287,9 @@ data class DerbisInterfaceSettings(
     val blockAiContent: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
-    /** In-app dynamic island pinned above the app. */
-    val derbisNotchEnabled: Boolean = true,
-    val derbisNotchStyle: DerbisNotchStyle = DerbisNotchStyle.Default,
+    /** In-app dynamic island pinned above the app. Off until the listener asks for it. */
+    val derbisNotchEnabled: Boolean = false,
+    val derbisNotch: DerbisNotchSettings = DerbisNotchSettings(),
     val playerVisualMode: PlayerVisualMode = PlayerVisualMode.Flow,
     val playerBackground: PlayerBackgroundMode = PlayerBackgroundMode.Dynamic,
     val reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,

@@ -49,12 +49,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import com.yasuda.derbis.ui.icons.Album
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.MusicNote
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.OfflinePin
-import com.yasuda.derbis.ui.icons.Person
-import com.yasuda.derbis.ui.icons.Search
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -124,7 +124,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import com.yasuda.derbis.data.ArtworkPalette

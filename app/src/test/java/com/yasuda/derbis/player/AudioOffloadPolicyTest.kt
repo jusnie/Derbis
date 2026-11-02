@@ -256,13 +256,6 @@ class AudioOffloadPolicyTest {
     }
 
     @Test
-    fun backup_roundTripsBeatSyncMasterSwitch() {
-        val restored = backupAudioSettingsFromJson(backupAudioSettingsToJson(DerbisAudioSettings(beatSyncEnabled = true)))
-        assertTrue(restored.beatSyncEnabled)
-        assertFalse(restored.djSoftMode)
-    }
-
-    @Test
     fun storageValue_parsesCaseInsensitivelyWithAutomaticFallback() {
         assertEquals(AudioOffloadPreference.OFF, AudioOffloadPreference.fromStorage(" OFF "))
         assertEquals(AudioOffloadPreference.AUTOMATIC, AudioOffloadPreference.fromStorage(null))

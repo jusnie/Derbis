@@ -17,10 +17,10 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Add
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.Refresh
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton

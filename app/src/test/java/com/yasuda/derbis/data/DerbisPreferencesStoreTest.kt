@@ -205,7 +205,15 @@ class DerbisPreferencesStoreTest {
 
     @Test
     fun storedAudioQualityChoicesSurviveTheHighDefault() {
-        mapOf("High" to "High", "Auto" to "Auto", "Low" to "Low", "" to "High", "Medium" to "High").forEach { (stored, expected) ->
+        mapOf(
+            "High" to "High",
+            "Medium" to "Medium",
+            "Low" to "Low",
+            "Lossless" to "Lossless",
+            "Auto" to "High",
+            "" to "High",
+            "Ultra" to "High"
+        ).forEach { (stored, expected) ->
             runBlocking { disk.edit { it[stringPreferencesKey("audio_quality")] = stored } }
             val (_, preferences) = open()
 
@@ -216,7 +224,7 @@ class DerbisPreferencesStoreTest {
 
     @Test
     fun restoringASnapshotKeepsAnExplicitAudioQualityChoice() {
-        listOf("Auto", "High", "Low").forEach { choice ->
+        listOf("High", "Medium", "Low", "Lossless").forEach { choice ->
             val (store, preferences) = open()
             runBlocking { preferences.restoreSnapshot(preferences.snapshot().copy(audioQuality = choice)) }
             flush(store)

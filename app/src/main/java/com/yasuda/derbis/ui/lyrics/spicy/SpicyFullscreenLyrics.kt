@@ -3,6 +3,7 @@ package com.yasuda.derbis.ui.lyrics.spicy
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -38,14 +39,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import com.yasuda.derbis.ui.icons.Favorite
-import com.yasuda.derbis.ui.icons.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Image
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.Button
@@ -459,6 +460,16 @@ fun SpicyFullscreenLyrics(
                     .fillMaxWidth()
                     .nestedScroll(scrollWakesCluster)
             ) {
+                // Same clearance rule as the default renderer: the floating action stack and the
+                // idle progress strip own the bottom of the page, so verses stop clear of them.
+                val spicyClearance by animateDpAsState(
+                    targetValue = when {
+                        imageShareSelectionMode -> 100.dp
+                        showCluster -> 140.dp
+                        else -> 72.dp
+                    },
+                    label = "spicy-lyrics-bottom-clearance"
+                )
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -466,7 +477,7 @@ fun SpicyFullscreenLyrics(
                         start = 24.dp,
                         end = 24.dp,
                         top = if (imageShareSelectionMode) 20.dp else 36.dp,
-                        bottom = if (imageShareSelectionMode) 100.dp else 36.dp
+                        bottom = spicyClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(28.dp)
                 ) {

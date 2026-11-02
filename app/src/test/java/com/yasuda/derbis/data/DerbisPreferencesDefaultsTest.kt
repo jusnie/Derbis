@@ -140,9 +140,9 @@ class DerbisPreferencesDefaultsTest {
     fun legacyBackupPreservesCanvasPreferenceWhenVisualModeMissing() {
         val restoredWithCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
-            legacyVisualMode = PlayerVisualMode.CanvasImmersive
+            legacyVisualMode = PlayerVisualMode.CanvasCard
         )
-        assertEquals(PlayerVisualMode.CanvasImmersive, restoredWithCanvas.playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasCard, restoredWithCanvas.playerVisualMode)
 
         val restoredWithoutCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),

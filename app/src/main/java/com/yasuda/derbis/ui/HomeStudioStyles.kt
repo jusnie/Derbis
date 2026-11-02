@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.Canvas
-import com.yasuda.derbis.ui.icons.Public
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.animateFloatAsState
@@ -51,11 +51,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Search
-import com.yasuda.derbis.ui.icons.Settings
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ButtonDefaults

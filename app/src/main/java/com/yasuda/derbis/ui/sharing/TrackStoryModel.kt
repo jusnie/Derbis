@@ -40,17 +40,17 @@ enum class TrackStoryTheme(
     AURA_GLOW(
         id = "aura_glow",
         label = "Aura Glow",
-        subtitle = "Dynamic chromatic blur & living radiance"
+        subtitle = "The artwork's own colour, aired out"
     ),
     OLED_BLACK(
         id = "oled_black",
         label = "OLED Pure",
-        subtitle = "Pitch black luxury with luminous accents"
+        subtitle = "Near-black, lit only by the cover"
     ),
     VINYL_STUDIO(
         id = "vinyl_studio",
         label = "Vinyl Studio",
-        subtitle = "Grooved vinyl record sleeve presentation"
+        subtitle = "Vinyl sleeve on a deep palette wash"
     )
 }
 

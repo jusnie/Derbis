@@ -3,21 +3,18 @@ package com.yasuda.derbis.ui.player
 import com.yasuda.derbis.ui.theme.*
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.border
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.snap
-import com.yasuda.derbis.ui.playerMix
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import com.yasuda.derbis.ui.components.rememberDerbisAvatarPressShape
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,12 +33,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Check
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -59,8 +55,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -74,24 +68,19 @@ import androidx.compose.ui.graphics.FilterQuality
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
-import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.playerDeckShortLabels
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
 import com.yasuda.derbis.ui.i18n.DerbisSkinStrings
 import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
-import com.yasuda.derbis.domain.PlayerBackgroundMode
-import com.yasuda.derbis.domain.DerbisInterfaceSettings
-import com.yasuda.derbis.domain.ReactiveAuraPreset
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 
 private val DeckPreviewSelectedCorner = 48.dp
@@ -106,14 +95,8 @@ internal fun PlayerDeckSheet(
     surfaces: PlayerSurfaceTokens,
     accent: Color,
     animated: Boolean,
-    background: PlayerBackgroundMode,
     onSelect: (PlayerVisualMode) -> Unit,
-    onSelectBackground: (PlayerBackgroundMode) -> Unit,
-    onDismiss: () -> Unit,
-    reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,
-    reactiveAuraIntensity: Int = DerbisInterfaceSettings.DEFAULT_REACTIVE_AURA_INTENSITY,
-    onSelectReactiveAuraPreset: (ReactiveAuraPreset) -> Unit = {},
-    onSelectReactiveAuraIntensity: (Int) -> Unit = {}
+    onDismiss: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     PlayerSheetFrame(
@@ -186,24 +169,6 @@ internal fun PlayerDeckSheet(
                         }
                     }
                 }
-            }
-            PlayerBackgroundPicker(
-                selected = background,
-                accent = accent,
-                surfaces = surfaces,
-                animated = animated,
-                onSelect = onSelectBackground
-            )
-            if (background == PlayerBackgroundMode.ReactiveAura) {
-                ReactiveAuraControls(
-                    preset = reactiveAuraPreset,
-                    intensity = reactiveAuraIntensity,
-                    accent = accent,
-                    surfaces = surfaces,
-                    animated = animated,
-                    onPreset = onSelectReactiveAuraPreset,
-                    onIntensity = onSelectReactiveAuraIntensity
-                )
             }
             Text(
                 text = strings.playerDeckLandscapeNote,
@@ -295,28 +260,28 @@ private fun PlayerDeckStyleButton(
 internal fun playerDeckLabel(mode: PlayerVisualMode, strings: DerbisStrings): String {
     val labels = playerDeckShortLabels(strings.code)
     return when (mode) {
-        PlayerVisualMode.CanvasImmersive -> labels.immersive
         PlayerVisualMode.CanvasCard -> labels.canvasCard
         PlayerVisualMode.Artwork -> labels.artwork
         PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
         PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
         PlayerVisualMode.Pulse -> labels.pulse
-        PlayerVisualMode.Halo -> labels.halo
-        PlayerVisualMode.Folio -> labels.folio
         PlayerVisualMode.Flow -> labels.flow
+        PlayerVisualMode.Frost -> labels.frost
+        PlayerVisualMode.DerbisOne -> labels.derbisOne
+        PlayerVisualMode.Vinyl -> labels.vinyl
     }
 }
 
 internal fun playerDeckHint(mode: PlayerVisualMode, strings: DerbisStrings): String = when (mode) {
-    PlayerVisualMode.CanvasImmersive -> strings.playerDeckImmersiveHint
     PlayerVisualMode.CanvasCard -> strings.playerDeckCardHint
     PlayerVisualMode.Artwork -> strings.playerDeckArtworkHint
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13Hint
     PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusicHint
     PlayerVisualMode.Pulse -> strings.playerDeckPulseHint
-    PlayerVisualMode.Halo -> strings.playerDeckHaloHint
-    PlayerVisualMode.Folio -> strings.playerDeckFolioHint
     PlayerVisualMode.Flow -> strings.playerDeckFlowHint
+    PlayerVisualMode.Frost -> strings.playerDeckFrostHint
+    PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOneHint
+    PlayerVisualMode.Vinyl -> strings.playerDeckVinylHint
 }
 
 @Composable
@@ -327,17 +292,17 @@ private fun PlayerDeckPreview(
     accent: Color
 ) {
     when (mode) {
-        // Beat Sync is the wavy visualizer deck with moving scrubber stick; Apple Music 13 owns the stretched, full-bleed stage.
-        // Keep these preview assignments aligned with PlayerAuraDeck and AppleMusicPlayer.
-        PlayerVisualMode.CanvasImmersive -> BeatSyncPreview(track, artworkUrl, accent)
+        // Apple Music 13 owns the stretched, full-bleed stage.
+        // Keep these preview assignments aligned with AppleMusicPlayer.
         PlayerVisualMode.CanvasCard -> SleevePreview(track, artworkUrl, accent)
         PlayerVisualMode.Artwork -> CardPreview(track, artworkUrl, accent)
         PlayerVisualMode.AppleMusic13 -> AppleMusic13Preview(track, artworkUrl, accent)
         PlayerVisualMode.TidalMusic -> TidalMusicPreview(track, artworkUrl)
         PlayerVisualMode.Pulse -> PulsePreview(track, artworkUrl, accent)
-        PlayerVisualMode.Halo -> ExpressivePreview(track, artworkUrl, accent)
-        PlayerVisualMode.Folio -> ExpressivePreview(track, artworkUrl, accent)
         PlayerVisualMode.Flow -> FlowPreview(track, artworkUrl, accent)
+        PlayerVisualMode.Frost -> FrostPreview(track, artworkUrl, accent)
+        PlayerVisualMode.DerbisOne -> OnePreview(track, artworkUrl, accent)
+        PlayerVisualMode.Vinyl -> VinylPreview(track, artworkUrl, accent)
     }
 }
 
@@ -398,58 +363,6 @@ private fun AppleMusic13Preview(track: Track, artworkUrl: String, accent: Color)
 }
 
 @Composable
-private fun BeatSyncPreview(track: Track, artworkUrl: String, accent: Color) {
-    val field = lerp(accent, Color.Black, 0.58f)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(accent.copy(alpha = 0.82f), field, Color.Black)))
-    ) {
-        DeckArtwork(
-            track = track,
-            artworkUrl = artworkUrl,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 14.dp)
-                .fillMaxWidth(0.78f)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(10.dp))
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(track.title, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(track.artist, color = Color.White.copy(alpha = 0.72f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // Mini wavy Beat Sync progress bar with stick
-            Canvas(modifier = Modifier.fillMaxWidth().height(6.dp)) {
-                val w = size.width
-                val h = size.height
-                val midY = h * 0.5f
-                val headX = w * 0.42f
-                val wavePath = Path().apply {
-                    moveTo(0f, midY)
-                    cubicTo(w * 0.12f, 0f, w * 0.22f, h, headX, midY)
-                }
-                drawPath(wavePath, color = Color(0xFF80DEEA), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f))
-                // Unplayed line
-                drawLine(Color.White.copy(alpha = 0.25f), start = Offset(headX, midY), end = Offset(w, midY), strokeWidth = 1.2f)
-                // Scrubber stick
-                drawRoundRect(
-                    Color.White,
-                    topLeft = Offset(headX - 1f, 0f),
-                    size = Size(2f, h),
-                    cornerRadius = CornerRadius(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun TidalMusicPreview(track: Track, artworkUrl: String) {
     Box(
         modifier = Modifier
@@ -504,61 +417,6 @@ private fun CardPreview(track: Track, artworkUrl: String, accent: Color) {
             )
         }
         PreviewControls(accent = accent, modifier = Modifier.align(Alignment.BottomCenter))
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ExpressivePreview(track: Track, artworkUrl: String, accent: Color) {
-    val ink = lerp(accent, Color.White, 0.72f)
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(lerp(accent, Color.Black, 0.62f))
-    ) {
-        DeckArtwork(
-            track = track,
-            artworkUrl = artworkUrl,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 20.dp)
-                .fillMaxWidth(0.7f)
-                .aspectRatio(1f)
-                .clip(MaterialShapes.Puffy.toShape())
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            PreviewBar(width = 92.dp, height = 12.dp, color = ink)
-            PreviewBar(width = 48.dp, height = 4.dp, color = Color.White.copy(alpha = 0.55f))
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .background(ink.copy(alpha = 0.32f), CircleShape)
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(16.dp)
-                        .background(ink, CircleShape)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .background(ink.copy(alpha = 0.32f), CircleShape)
-                )
-            }
-        }
     }
 }
 
@@ -803,6 +661,207 @@ private fun PreviewWave(accent: Color) {
 }
 
 @Composable
+private fun FrostPreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF07100F))) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawRect(
+                Brush.radialGradient(
+                    colors = listOf(accent.copy(alpha = 0.55f), Color.Transparent),
+                    center = Offset(size.width * 0.24f, size.height * 0.16f),
+                    radius = size.minDimension * 1.05f
+                )
+            )
+        }
+        DeckArtwork(
+            track = track,
+            artworkUrl = artworkUrl,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+                .fillMaxWidth(0.74f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(10.dp))
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 12.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.15f), Color.White.copy(alpha = 0.06f))
+                    )
+                )
+                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            PreviewBar(width = 74.dp, height = 6.dp, color = Color.White.copy(alpha = 0.9f))
+            PreviewBar(width = 40.dp, height = 4.dp, color = Color.White.copy(alpha = 0.45f))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color.White.copy(alpha = 0.18f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.38f)
+                        .height(4.dp)
+                        .background(Brush.horizontalGradient(listOf(accent, Color.White)))
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PreviewBar(width = 16.dp, height = 3.dp, color = Color.White.copy(alpha = 0.35f))
+                PreviewCircle(size = 22.dp, color = Color.White.copy(alpha = 0.92f))
+                PreviewBar(width = 16.dp, height = 3.dp, color = Color.White.copy(alpha = 0.35f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VinylPreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(accent.copy(alpha = 0.30f).compositeOnBlack(), Color(0xFF08080A))
+                )
+            )
+    ) {
+        Box(modifier = Modifier.align(Alignment.Center).fillMaxWidth()) {
+            // The record, half out of the sleeve, exactly as the playing deck draws it.
+            Canvas(modifier = Modifier.fillMaxWidth().height(96.dp)) {
+                val record = size.height * 0.92f
+                val radius = record / 2f
+                val centre = Offset(size.width * 0.66f, size.height / 2f)
+                drawCircle(Color(0xFF141417), radius = radius, center = centre)
+                var groove = radius * 0.36f
+                while (groove < radius * 0.96f) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.06f),
+                        radius = groove,
+                        center = centre,
+                        style = Stroke(width = 0.6.dp.toPx())
+                    )
+                    groove += radius * 0.10f
+                }
+                drawCircle(accent.copy(alpha = 0.9f), radius = radius * 0.30f, center = centre)
+                drawCircle(Color(0xFF08080A), radius = radius * 0.05f, center = centre)
+            }
+            DeckArtwork(
+                track = track,
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 10.dp)
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(3.dp))
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PreviewBar(width = 68.dp, height = 5.dp, color = Color.White.copy(alpha = 0.9f))
+            PreviewBar(width = 36.dp, height = 4.dp, color = Color.White.copy(alpha = 0.42f))
+            PreviewBar(width = 118.dp, height = 3.dp, color = accent.copy(alpha = 0.85f))
+        }
+    }
+}
+
+@Composable
+private fun OnePreview(track: Track, artworkUrl: String, accent: Color) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFEDEBE5))) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 26.dp)
+                .fillMaxWidth(0.82f)
+                .aspectRatio(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            DeckArtwork(
+                track = track,
+                artworkUrl = artworkUrl,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        shape = OnePreviewBlob
+                        clip = true
+                    }
+            )
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val radius = size.minDimension / 2f
+                drawCircle(
+                    color = Color(0xFF141413).copy(alpha = 0.16f),
+                    radius = radius - 1.dp.toPx(),
+                    style = Stroke(width = 1.dp.toPx())
+                )
+                val angle = (-90f + 360f * 0.38f) * PI.toFloat() / 180f
+                drawCircle(
+                    color = Color(0xFF141413),
+                    radius = 3.dp.toPx(),
+                    center = Offset(
+                        center.x + (radius - 1.dp.toPx()) * cos(angle),
+                        center.y + (radius - 1.dp.toPx()) * sin(angle)
+                    )
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            PreviewBar(width = 96.dp, height = 9.dp, color = Color(0xFF141413))
+            PreviewBar(width = 54.dp, height = 4.dp, color = Color(0xFF141413).copy(alpha = 0.44f))
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                PreviewBar(width = 12.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.4f))
+                PreviewBar(width = 16.dp, height = 5.dp, color = Color(0xFF141413))
+                PreviewCircle(size = 30.dp, color = Color(0xFF141413))
+                PreviewBar(width = 16.dp, height = 5.dp, color = Color(0xFF141413))
+                PreviewBar(width = 12.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.4f))
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color(0xFF141413).copy(alpha = 0.09f))
+            )
+            PreviewBar(width = 40.dp, height = 3.dp, color = Color(0xFF141413).copy(alpha = 0.32f))
+        }
+    }
+}
+
+private val OnePreviewBlob: Shape = PlayerOneBlobShape()
+
+@Composable
+private fun PreviewCircle(size: Dp, color: Color) {
+    Box(modifier = Modifier.size(size).clip(CircleShape).background(color))
+}
+
+@Composable
 private fun PreviewBar(width: Dp, height: Dp, color: Color) {
     Box(
         modifier = Modifier
@@ -834,201 +893,3 @@ private fun DrawScope.drawPreviewSignal(accent: Color) {
 
 private fun Color.compositeOnBlack(): Color =
     Color(red = red * alpha, green = green * alpha, blue = blue * alpha, alpha = 1f)
-
-@Composable
-private fun PlayerBackgroundPicker(
-    selected: PlayerBackgroundMode,
-    accent: Color,
-    surfaces: PlayerSurfaceTokens,
-    animated: Boolean,
-    onSelect: (PlayerBackgroundMode) -> Unit
-) {
-    val strings = LocalDerbisStrings.current
-    val options = listOf(
-        PlayerBackgroundMode.Dynamic to strings.playerBackgroundDynamic,
-        PlayerBackgroundMode.LiquidFerrofluid to strings.playerBackgroundLiquidFerrofluid,
-        PlayerBackgroundMode.ReactiveAura to strings.playerBackgroundReactiveAura,
-        PlayerBackgroundMode.Aurora to strings.playerBackgroundAurora,
-        PlayerBackgroundMode.Gradient to strings.playerBackgroundGradient,
-        PlayerBackgroundMode.Blur to strings.playerBackgroundBlur,
-        PlayerBackgroundMode.Dark to strings.playerBackgroundDark,
-        PlayerBackgroundMode.PureBlack to strings.playerBackgroundPureBlack
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(DerbisPlayerDesign.SpaceSm)) {
-        Text(
-            text = strings.playerBackground,
-            color = surfaces.content,
-            fontSize = 18.sp,
-            lineHeight = DerbisTypeRhythm.lineHeight(18.sp),
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(horizontal = DerbisPlayerDesign.Gutter)
-                .semantics { heading() }
-        )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = DerbisPlayerDesign.Gutter)
-                .selectableGroup()
-        ) {
-            options.forEach { (mode, label) ->
-                PlayerBackgroundTile(
-                    mode = mode,
-                    label = label,
-                    selected = mode == selected,
-                    accent = accent,
-                    surfaces = surfaces,
-                    animated = animated,
-                    onClick = { onSelect(mode) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerBackgroundTile(
-    mode: PlayerBackgroundMode,
-    label: String,
-    selected: Boolean,
-    accent: Color,
-    surfaces: PlayerSurfaceTokens,
-    animated: Boolean,
-    onClick: () -> Unit
-) {
-    val shape = rememberDerbisAvatarPressShape(pressed = selected, animated = animated)
-    val tileWidth = 88.dp * (LocalDensity.current.fontScale / 1.3f).coerceAtLeast(1f)
-    Column(
-        modifier = Modifier
-            .width(tileWidth)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(88.dp)
-                .clip(shape)
-                .border(1.dp, if (selected) accent else surfaces.outline, shape),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(Modifier.fillMaxSize()) { drawBackgroundPreview(mode, accent) }
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = surfaces.heroContent,
-                    modifier = Modifier.background(accent, CircleShape)
-                        .padding(DerbisPlayerDesign.SpaceSm).size(20.dp)
-                )
-            }
-        }
-        Text(
-            text = label,
-            color = if (selected) surfaces.content else surfaces.contentMuted,
-            fontSize = 11.sp,
-            lineHeight = DerbisTypeRhythm.lineHeight(11.sp),
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.heightIn(min = 32.dp)
-        )
-        Text(
-                text = if (mode == DefaultPlayerBackgroundMode) LocalDerbisStrings.current.playerDeckDefaultBadge else "",
-                color = surfaces.content,
-                fontSize = 10.sp,
-                lineHeight = DerbisTypeRhythm.lineHeight(10.sp),
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(horizontal = DerbisPlayerDesign.SpaceXs)
-        )
-    }
-}
-
-private fun DrawScope.drawBackgroundPreview(mode: PlayerBackgroundMode, accent: Color) {
-    val deep = lerp(accent, Color.Black, 0.78f)
-    when (mode) {
-        PlayerBackgroundMode.PureBlack -> drawRect(Color.Black)
-        PlayerBackgroundMode.Dark -> drawRect(Brush.verticalGradient(listOf(Color(0xFF1C1D24), Color(0xFF0B0B0F))))
-        PlayerBackgroundMode.Blur -> {
-            drawRect(deep)
-            drawCircle(accent.copy(alpha = 0.55f), radius = size.width * 0.7f, center = Offset(size.width * 0.5f, size.height * 0.3f))
-            drawRect(Color.Black.copy(alpha = 0.35f))
-        }
-        PlayerBackgroundMode.Gradient -> {
-            drawRect(
-                Brush.linearGradient(
-                    listOf(accent, lerp(accent, Color(0xFF7C4DFF), 0.55f)),
-                    start = Offset.Zero,
-                    end = Offset(size.width, size.height)
-                )
-            )
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, deep.copy(alpha = 0.9f))))
-        }
-        PlayerBackgroundMode.Aurora -> {
-            drawRect(deep)
-            listOf(
-                accent to Offset(0.2f, 0.25f),
-                lerp(accent, Color(0xFF7C4DFF), 0.6f) to Offset(0.85f, 0.5f),
-                lerp(accent, Color(0xFF00BFA5), 0.6f) to Offset(0.35f, 0.85f)
-            ).forEach { (color, anchor) ->
-                val center = Offset(size.width * anchor.x, size.height * anchor.y)
-                drawCircle(
-                    Brush.radialGradient(listOf(color.copy(alpha = 0.75f), Color.Transparent), center, size.width * 0.75f),
-                    radius = size.width * 0.75f,
-                    center = center
-                )
-            }
-        }
-        PlayerBackgroundMode.ReactiveAura -> {
-            drawRect(deep)
-            listOf(
-                accent to Offset(0.22f, 0.26f),
-                lerp(accent, Color(0xFF7C4DFF), 0.45f) to Offset(0.84f, 0.56f),
-                lerp(accent, Color(0xFF7C4DFF), 0.2f) to Offset(0.36f, 0.86f)
-            ).forEach { (color, anchor) ->
-                val center = Offset(size.width * anchor.x, size.height * anchor.y)
-                val reach = size.width * 0.62f
-                drawCircle(
-                    Brush.radialGradient(
-                        listOf(color.copy(alpha = 0.5f), color.copy(alpha = 0f)),
-                        center,
-                        reach
-                    ),
-                    radius = reach,
-                    center = center
-                )
-            }
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))))
-        }
-        PlayerBackgroundMode.Dynamic -> {
-            drawRect(deep)
-            drawCircle(
-                Brush.radialGradient(listOf(accent.copy(alpha = 0.6f), Color.Transparent), Offset(size.width / 2f, size.height * 0.35f), size.width),
-                radius = size.width,
-                center = Offset(size.width / 2f, size.height * 0.35f)
-            )
-        }
-        PlayerBackgroundMode.LiquidFerrofluid -> {
-            drawRect(Color(0xFF070709))
-            // Glossy liquid droplet preview
-            val center = Offset(size.width * 0.5f, size.height * 0.52f)
-            drawCircle(
-                Brush.radialGradient(
-                    listOf(accent.copy(alpha = 0.95f), accent.copy(alpha = 0.4f), Color.Transparent),
-                    center,
-                    size.width * 0.48f
-                ),
-                radius = size.width * 0.48f,
-                center = center
-            )
-            // Specular glint
-            drawCircle(
-                Color.White.copy(alpha = 0.75f),
-                radius = size.width * 0.08f,
-                center = Offset(size.width * 0.42f, size.height * 0.40f)
-            )
-        }
-    }
-}

@@ -15,13 +15,23 @@ data class DerbisBeatGrid(
     val bpm: Float? = null,
     val downbeatMs: Long? = null,
     val confidence: Float = 0f,
-    val camelotKey: String = ""
+    val camelotKey: String = "",
+    /**
+     * Playback position the analysis actually started from. A grid captured mid-track measures
+     * its downbeat from that point, not from the start of the file, so every consumer needs the
+     * offset to place a beat on the real timeline.
+     */
+    val capturedFromMs: Long = 0L
 ) {
     val validBpm: Float?
         get() = bpm?.takeIf { it.isFinite() && it in MIN_BPM..MAX_BPM }
 
     val beatDurationMs: Long?
         get() = validBpm?.let { (60_000f / it).roundToInt().toLong() }
+
+    /** First detected beat as a position inside the track, offset-corrected. */
+    val absoluteDownbeatMs: Long?
+        get() = downbeatMs?.plus(capturedFromMs.coerceAtLeast(0L))
 
     val isUsable: Boolean
         get() = validBpm != null && confidence >= MIN_CONFIDENCE
@@ -105,7 +115,7 @@ object DerbisMixStudio {
         val tempo = matchedTempo(referenceBpm, incomingBpm)
             ?: return DerbisBeatSyncPlan(incomingTempo = 1f, incomingSeekMs = 0L, aligned = false)
         val incomingBeatMs = incoming.beatDurationMs ?: return DerbisBeatSyncPlan(1f, 0L, false)
-        val downbeat = incoming.downbeatMs?.coerceAtLeast(0L) ?: 0L
+        val downbeat = incoming.absoluteDownbeatMs?.coerceAtLeast(0L) ?: 0L
         val seek = nearestBeatAtOrAfter(downbeat, incomingBeatMs, downbeat)
         return DerbisBeatSyncPlan(
             incomingTempo = tempo,
@@ -127,7 +137,7 @@ object DerbisMixStudio {
         val base = beatSync(reference, incoming)
         if (!base.aligned) return base
         if (referencePositionMs < 0L) return base.copy(aligned = false)
-        val incomingDownbeat = incoming.downbeatMs?.coerceAtLeast(0L) ?: 0L
+        val incomingDownbeat = incoming.absoluteDownbeatMs?.coerceAtLeast(0L) ?: 0L
         return base.copy(incomingSeekMs = incomingDownbeat)
     }
 
@@ -144,7 +154,7 @@ object DerbisMixStudio {
         val beatMs = grid.beatDurationMs ?: return null
         if (!grid.isUsable || durationMs <= desiredTransitionMs || beatMs <= 0L) return null
         val target = (durationMs - desiredTransitionMs).coerceAtLeast(0L)
-        val origin = grid.downbeatMs?.coerceAtLeast(0L) ?: 0L
+        val origin = grid.absoluteDownbeatMs?.coerceAtLeast(0L) ?: 0L
         if (target < origin) return null
         val barMs = beatMs * beatsPerBar.coerceIn(2, 8)
         // Long overlaps start on a bar line so the incoming deck enters on a phrase boundary.

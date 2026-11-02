@@ -30,10 +30,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,15 +61,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
-import com.yasuda.derbis.ui.icons.Add
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.ContentCopy
-import com.yasuda.derbis.ui.icons.Delete
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DriveFileRenameOutline
-import com.yasuda.derbis.ui.icons.Edit
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.Palette
-import com.yasuda.derbis.ui.icons.RestartAlt
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -99,12 +99,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.yasuda.derbis.domain.DerbisCustomTheme
 import com.yasuda.derbis.domain.DerbisCustomThemes
-import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.i18n.ColorPickerText
 import com.yasuda.derbis.ui.i18n.ThemeLibraryCopy
 import com.yasuda.derbis.ui.i18n.ThemeLibraryText
 import com.yasuda.derbis.ui.i18n.colorPickerCopy
-import com.yasuda.derbis.ui.i18n.glassStudioCopy
 import com.yasuda.derbis.ui.i18n.themeLibraryCopy
 import kotlin.math.roundToInt
 
@@ -133,10 +131,7 @@ internal fun DerbisThemeStudioOverlay(
     onSaveCustomTheme: (DerbisCustomTheme, Boolean) -> Unit = { _, _ -> },
     onDuplicateCustomTheme: (String, String) -> Unit = { _, _ -> },
     onDeleteCustomTheme: (String) -> Unit = {},
-    onRestoreDefault: () -> Unit = {},
-    glassEnabled: Boolean = false,
-    glassStyle: DerbisGlassStyle = DerbisGlassStyle(),
-    onGlassStyleChange: (DerbisGlassStyle) -> Unit = {}
+    onRestoreDefault: () -> Unit = {}
 ) {
     val strings = LocalDerbisStrings.current
     val library = strings.themeLibraryCopy
@@ -349,14 +344,6 @@ internal fun DerbisThemeStudioOverlay(
                 }
             }
 
-            item(contentType = "studio-glass") {
-                ThemeStudioGlassSection(
-                    copy = strings.glassStudioCopy(),
-                    enabled = glassEnabled,
-                    style = glassStyle,
-                    onStyleChange = onGlassStyleChange
-                )
-            }
         }
     }
 
