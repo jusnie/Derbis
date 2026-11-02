@@ -5,6 +5,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -61,7 +63,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -123,6 +124,7 @@ import com.yasuda.derbis.ui.LocalAnimationsEnabled
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisViolet
+import timber.log.Timber
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.Year
@@ -469,17 +471,24 @@ private fun WrappedTopBar(
     onClose: () -> Unit
 ) {
     Row(
+        // The end inset is 10 dp rather than 16 dp because each action is a 48 dp slot around a
+        // 36 dp circle: the six unused dp on each side would otherwise push the drawn circle in by
+        // 6 dp and leave it out of line with the pill and the year row below.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 16.dp, end = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
+        // The chip gives way, not the buttons: it is the only weighted child, so the actions
+        // measure first and the pill is capped at whatever is left of the row.
         Row(
             modifier = Modifier
+                .weight(1f, fill = false)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
                 .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -494,50 +503,44 @@ private fun WrappedTopBar(
                 color = WrappedInk,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 1.8.sp
+                letterSpacing = 1.4.sp,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(Modifier.weight(1f))
-        // Share lives next to Close so the card is one tap away from any page.
-        IconButton(
-            onClick = share::share,
-            enabled = share.canShare && !share.busy,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-        ) {
-            if (share.busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(15.dp),
-                    strokeWidth = 1.8.dp,
-                    color = WrappedInk
-                )
-            } else {
+        // Grouped so the gap between the two circles is a property of this row and cannot be
+        // squeezed by anything else on the bar.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Share lives next to Close so the card is one tap away from any page.
+            WrappedCircleButton(
+                label = shareLabel,
+                enabled = share.canShare && !share.busy,
+                onClick = share::share
+            ) {
+                if (share.busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(15.dp),
+                        strokeWidth = 1.8.dp,
+                        color = WrappedInk
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.IosShare,
+                        contentDescription = null,
+                        tint = WrappedInk,
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+            }
+            WrappedCircleButton(label = closeLabel, onClick = onClose) {
                 Icon(
-                    Icons.Rounded.IosShare,
-                    contentDescription = shareLabel,
+                    Icons.Rounded.Close,
+                    contentDescription = null,
                     tint = WrappedInk,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-        }
-        Spacer(Modifier.width(8.dp))
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.12f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-        ) {
-            Icon(
-                Icons.Rounded.Close,
-                contentDescription = closeLabel,
-                tint = WrappedInk,
-                modifier = Modifier.size(18.dp)
-            )
         }
     }
     share.error?.let { message ->
@@ -551,6 +554,48 @@ private fun WrappedTopBar(
                 .padding(horizontal = 20.dp, vertical = 2.dp),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+/**
+ * A round header button where the target and the circle are two different sizes.
+ *
+ * Material's `IconButton` reserves a 48 dp touch target around whatever is inside it, so asking it
+ * for 36 dp did not make it 36 dp - it made a 36 dp circle sitting in a 48 dp box, and two of those
+ * beside the year pill were wider than the row they had to live in. Here the box is the finger's
+ * and the circle is only what is painted: 48 dp to hit, 36 dp to see.
+ */
+@Composable
+private fun WrappedCircleButton(
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(
+                enabled = enabled,
+                onClickLabel = label,
+                role = Role.Button,
+                onClick = onClick
+            )
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        // The ripple is the 48 dp target; the drawn circle stays 36 dp on top of it.
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = if (enabled) 0.12f else 0.06f))
+                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
     }
 }
 
@@ -608,13 +653,13 @@ internal class WrappedCardSharer(
                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                     }
                                 )
-                            }.isSuccess
+                            }.onFailure { Timber.w(it, "Wrapped card chooser did not open") }.isSuccess
                         }
                     } finally {
                         assets.close()
                     }
                 }
-            }.getOrDefault(false)
+            }.onFailure { Timber.w(it, "Wrapped card share failed") }.getOrDefault(false)
             busy = false
             if (!launched) error = failedLabel
         }
