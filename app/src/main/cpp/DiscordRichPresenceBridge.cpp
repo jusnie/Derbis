@@ -324,10 +324,12 @@ JNIEXPORT void JNICALL
 Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     JNIEnv* env,
     jobject,
-    jstring title,
-    jstring artist,
+    jstring details_text,
+    jstring state_text,
+    jstring large_text,
     jstring artwork_url,
     jlong started_at_epoch_seconds,
+    jlong duration_ms,
     jboolean playing
 ) {
     std::lock_guard<std::recursive_mutex> lock(g_mutex);
@@ -336,21 +338,25 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
         return;
     }
 
-    const char* title_chars = title == nullptr ? "" : env->GetStringUTFChars(title, nullptr);
-    const char* artist_chars = artist == nullptr ? "" : env->GetStringUTFChars(artist, nullptr);
-    const char* artwork_chars = artwork_url == nullptr ? "" : env->GetStringUTFChars(artwork_url, nullptr);
-    std::string details = title_chars == nullptr ? "" : title_chars;
-    std::string state = artist_chars == nullptr ? "" : artist_chars;
-    std::string image_key = artwork_chars == nullptr ? "" : artwork_chars;
-    if (title_chars != nullptr) env->ReleaseStringUTFChars(title, title_chars);
-    if (artist_chars != nullptr) env->ReleaseStringUTFChars(artist, artist_chars);
-    if (artwork_chars != nullptr) env->ReleaseStringUTFChars(artwork_url, artwork_chars);
+    // The Kotlin side already decides what the two activity lines say - the lyric line over the
+    // track, or the track over the artist - and keeps each one inside Discord's 128 character
+    // limit, so this only has to move the strings across.
+    auto read_string = [env](jstring value) {
+        if (value == nullptr) return std::string();
+        const char* chars = env->GetStringUTFChars(value, nullptr);
+        if (chars == nullptr) return std::string();
+        std::string copy(chars);
+        env->ReleaseStringUTFChars(value, chars);
+        return copy;
+    };
+    std::string details = read_string(details_text);
+    std::string state = read_string(state_text);
+    std::string image_text = read_string(large_text);
+    std::string image_key = read_string(artwork_url);
 
     // Discord Social SDK supports public HTTPS URLs as external Rich Presence assets. Local,
     // malformed, or unavailable art falls back to the reviewed Derbis portal asset.
     if (image_key.rfind("https://", 0) != 0) image_key = "derbis_listening";
-    std::string image_text = details;
-    if (!state.empty()) image_text += image_text.empty() ? state : " — " + state;
     if (image_text.empty()) image_text = "Listening on Derbis";
 
     Discord_Activity activity{};
@@ -367,10 +373,19 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeUpdate(
     if (!state.empty()) Discord_Activity_SetState(&activity, &state_value);
     Discord_Activity_SetSupportedPlatforms(&activity, Discord_ActivityGamePlatforms_Android);
 
-    if (started_at_epoch_seconds > 0) {
+    const auto start_seconds = started_at_epoch_seconds > 0
+        ? static_cast<uint64_t>(started_at_epoch_seconds)
+        : 0ULL;
+    // Discord draws the progress bar only when the activity knows both ends; a start on its own
+    // renders a counting-up clock, which is what the card showed before the end made it across.
+    const auto duration_seconds = duration_ms >= 1000 ? static_cast<uint64_t>(duration_ms / 1000) : 0ULL;
+    if (start_seconds > 0) {
         Discord_ActivityTimestamps timestamps{};
         Discord_ActivityTimestamps_Init(&timestamps);
-        Discord_ActivityTimestamps_SetStart(&timestamps, static_cast<uint64_t>(started_at_epoch_seconds));
+        Discord_ActivityTimestamps_SetStart(&timestamps, start_seconds);
+        if (duration_seconds > 0) {
+            Discord_ActivityTimestamps_SetEnd(&timestamps, start_seconds + duration_seconds);
+        }
         Discord_Activity_SetTimestamps(&activity, &timestamps);
         Discord_ActivityTimestamps_Drop(&timestamps);
     }

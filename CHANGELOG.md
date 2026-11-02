@@ -4,7 +4,8 @@ All notable, user-visible changes are documented here. Each published Android an
 
 ## [Unreleased]
 
-Nothing here yet — the next release starts with its first commit.
+### What's Fixed
+- Discord Rich Presence shows the progress bar and the lyric line when it is published through the Social SDK. That path was handed only the start of the track, so Discord drew a counting-up clock instead of the bar it draws once it knows both ends, and the lyric line was stripped before the call on the assumption that the SDK activity had no room for it. The activity has the same two text lines as the gateway activity, so the lyric now takes the first one and the track stays on the second; with the lyrics option off, the track and the artist take those two lines as before. Both transports also ride the one four-second presence budget now, so a fast-moving lyric line cannot trip Discord's update limit on either of them.
 
 ## [1.5.0] — 2026-11-02
 

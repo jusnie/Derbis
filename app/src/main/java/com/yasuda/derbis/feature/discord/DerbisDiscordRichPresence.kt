@@ -91,6 +91,12 @@ internal data class DerbisDiscordPresenceSnapshot(
 private const val DISCORD_PRESENCE_TEXT_LIMIT = 128
 private const val DISCORD_POSITION_RESYNC_MS = 30_000L
 
+/** Activity name shown by the native bridge, matching what the gateway client sends. */
+private const val DISCORD_ACTIVITY_NAME = "Listening in Derbis"
+
+/** Placeholder line for a track whose metadata has no artist. */
+private const val DISCORD_UNKNOWN_ARTIST = "Unknown Artist"
+
 /**
  * Discord only accepts five game-status updates per 20 seconds per session
  * (https://discord.com/developers/docs/events/gateway-events#update-presence),
@@ -672,22 +678,17 @@ object DerbisDiscordRichPresence {
             return
         }
 
-        // Publish via WebSocket Gateway RPC (clickable buttons, progress bar, dual artwork/artist icon)
-        enqueueGatewayPresence(effective)
-
-        // Publish via native bridge if loaded. The Social SDK activity has no lyric field, so
-        // strip it before dedupe to avoid re-sending the same title/artist on every line change.
-        if (loadBridge()) {
-            publishNative(effective.copy(lyricLine = ""))
-        }
+        // Both transports are driven from one schedule: Discord counts a presence update once per
+        // session, so the gateway and the Social SDK share the same budget and the same layout.
+        enqueuePresence(effective)
     }
 
     /**
-     * Sends a gateway presence update immediately when the 5-per-20-seconds budget allows,
-     * otherwise keeps only the newest snapshot and flushes it once the window reopens.
-     * Without this a rapidly changing lyric line would trip Discord's presence rate limit.
+     * Sends a presence update immediately when the 5-per-20-seconds budget allows, otherwise keeps
+     * only the newest snapshot and flushes it once the window reopens. Without this a rapidly
+     * changing lyric line would trip Discord's presence rate limit.
      */
-    private fun enqueueGatewayPresence(presence: DerbisDiscordPresenceSnapshot) {
+    private fun enqueuePresence(presence: DerbisDiscordPresenceSnapshot, forceNative: Boolean = false) {
         val now = SystemClock.elapsedRealtime()
         val sendNow = synchronized(presenceGateLock) {
             val allowed = shouldFlushPresenceNow(now, lastGatewaySendElapsedMs)
@@ -700,13 +701,13 @@ object DerbisDiscordRichPresence {
             allowed
         }
         if (sendNow) {
-            DiscordRpcClient.updatePresence(presence)
+            dispatchPresence(presence, forceNative)
         } else {
-            scheduleTrailingGatewayPresence()
+            scheduleTrailingPresence(forceNative)
         }
     }
 
-    private fun scheduleTrailingGatewayPresence() {
+    private fun scheduleTrailingPresence(forceNative: Boolean) {
         synchronized(presenceGateLock) {
             if (pendingFlushJob?.isActive == true) return
             val elapsed = SystemClock.elapsedRealtime() - lastGatewaySendElapsedMs
@@ -720,8 +721,20 @@ object DerbisDiscordRichPresence {
                     if (pending != null) lastGatewaySendElapsedMs = SystemClock.elapsedRealtime()
                     pending
                 }
-                if (latest != null) DiscordRpcClient.updatePresence(latest)
+                if (latest != null) dispatchPresence(latest, forceNative)
             }
+        }
+    }
+
+    /**
+     * Hands one snapshot to every transport that is available: the Discord Gateway client and,
+     * when the Social SDK is loaded, the native bridge. Each transport draws the same two activity
+     * lines, so the lyric line travels to whichever one the listener's build can actually use.
+     */
+    private fun dispatchPresence(presence: DerbisDiscordPresenceSnapshot, forceNative: Boolean = false) {
+        DiscordRpcClient.updatePresence(presence)
+        if (loadBridge()) {
+            publishNative(presence, force = forceNative)
         }
     }
 
@@ -758,24 +771,43 @@ object DerbisDiscordRichPresence {
 
     private fun publishStored(context: Context) {
         if (!lastPresence.playing || !isEnabled(context)) return
-        enqueueGatewayPresence(lastPresence)
-        if (loadBridge()) {
-            publishNative(lastPresence.copy(lyricLine = ""), force = true)
-        }
+        // Forced so a transport that just reconnected publishes again instead of trusting the
+        // dedupe key from before the reconnect.
+        enqueuePresence(lastPresence, forceNative = true)
     }
 
     private fun publishNative(presence: DerbisDiscordPresenceSnapshot, force: Boolean = false) {
         if (!force && nativePresenceActive && lastPublishedPresenceKey == presence.syncKey) return
-        // Start of the current track, so the SDK renders the same progress bar as the gateway.
+        // Where this track began, so the SDK renders the same clock as the gateway.
         val startedAtEpochSeconds = (
             System.currentTimeMillis() - presence.positionMs.coerceAtLeast(0L)
         ).coerceAtLeast(0L) / 1_000L
+        // Discord draws a progress bar only when it knows where the activity ends; a start on its
+        // own is a counting-up clock, which is all this card used to show.
+        val durationMs = presence.durationMs.coerceAtLeast(0L)
+        // The Social SDK activity has the same two text lines as the gateway activity, so the
+        // lyric line takes the first one and the track stays on the second, exactly as it does
+        // there. Without a lyric line the track and artist take those two lines instead.
+        val lyricLine = presence.lyricLine
+        val hasLyric = lyricLine.isNotBlank()
+        val details = (if (hasLyric) lyricLine else presence.title).discordPresenceText()
+        val state = (
+            if (hasLyric) presence.artistTitleLine.ifBlank { DISCORD_ACTIVITY_NAME }
+            else presence.artist.ifBlank { DISCORD_UNKNOWN_ARTIST }
+        ).discordPresenceText()
+        val largeText = listOf(presence.title, presence.artist)
+            .filter(String::isNotBlank)
+            .joinToString(separator = " — ")
+            .ifBlank { DISCORD_ACTIVITY_NAME }
+            .discordPresenceText()
         runCatching {
             nativeUpdate(
-                title = presence.title,
-                artist = presence.artist,
+                details = details,
+                state = state,
+                largeText = largeText,
                 artworkUrl = presence.artworkUrl,
                 startedAtEpochSeconds = startedAtEpochSeconds,
+                durationMs = durationMs,
                 playing = presence.playing
             )
             nativePresenceActive = true
@@ -858,10 +890,12 @@ object DerbisDiscordRichPresence {
     private external fun nativeTakeRefreshToken(): String
     private external fun nativeTakeTokenType(): Int
     private external fun nativeUpdate(
-        title: String,
-        artist: String,
+        details: String,
+        state: String,
+        largeText: String,
         artworkUrl: String,
         startedAtEpochSeconds: Long,
+        durationMs: Long,
         playing: Boolean
     )
     private external fun nativeClear()
