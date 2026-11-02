@@ -3,9 +3,11 @@ package com.yasuda.derbis.ui.spotify
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -82,8 +84,30 @@ import com.yasuda.derbis.ui.theme.DerbisText
 import kotlinx.coroutines.launch
 
 private const val SPOTIFY_ORIGIN = "https://open.spotify.com"
-private const val SPOTIFY_LOGIN_URL =
-    "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
+private const val SPOTIFY_ACCOUNTS_ORIGIN = "https://accounts.spotify.com"
+
+/**
+ * Sign-in stays on `accounts.spotify.com`. The old URL sent the browser through
+ * `continue=open.spotify.com`, and that web player is a DRM app: in a plain WebView it paints its
+ * dark shell and then nothing, which is the black page this sheet used to show. The `sp_dc` cookie
+ * is written by the accounts page, so the player was only ever the blank doorstep after it.
+ */
+private const val SPOTIFY_LOGIN_URL = "https://accounts.spotify.com/en/login"
+
+/**
+ * A real Chrome user agent. The stock WebView UA carries `; wv` and `Version/4.0`, which Spotify's
+ * accounts page answers with a variant that renders no form at all - the other half of the blank
+ * screen. [com.yasuda.derbis.feature.motion.SpotifyTokenProvider] sends the same identity when it
+ * mints a token, so both halves of the feature look like the same browser.
+ */
+private const val SPOTIFY_BROWSER_UA =
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/122.0.0.0 Mobile Safari/537.36"
+
+/** True for the web player, the one Spotify surface a plain WebView cannot draw. */
+private fun isSpotifyWebPlayer(url: Uri): Boolean =
+    url.host?.equals("open.spotify.com", ignoreCase = true) == true ||
+        url.host?.equals("play.spotify.com", ignoreCase = true) == true
 
 /**
  * The sheet's session test uses a well-known track. It does not matter whether this one still has
@@ -644,6 +668,7 @@ private fun createSpotifyWebView(
     settings.allowFileAccess = false
     settings.allowContentAccess = false
     settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+    settings.userAgentString = SPOTIFY_BROWSER_UA
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
     webViewClient = object : WebViewClient() {
@@ -653,10 +678,29 @@ private fun createSpotifyWebView(
                 onError()
                 return true
             }
+            // The session is already on the device once the accounts page hands off to the web
+            // player, and the player itself is a black rectangle here. Take the cookie and stay on
+            // the page that rendered instead of walking into the blank one.
+            if (request.isForMainFrame && isSpotifyWebPlayer(request.url)) {
+                val cookie = captureSession()
+                if (cookie != null) onDetected(cookie) else onError()
+                return true
+            }
             return false
         }
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+            // A server-side redirect does not always pass through shouldOverrideUrlLoading, so the
+            // hand-off to the web player is caught again here and the load is stopped before the
+            // blank page can paint over the page that was working.
+            val target = url?.let(Uri::parse)
+            if (target != null && isSpotifyWebPlayer(target)) {
+                view.stopLoading()
+                onLoading(false)
+                val cookie = captureSession()
+                if (cookie != null) onDetected(cookie) else onError()
+                return
+            }
             onLoading(true)
         }
 
@@ -670,6 +714,16 @@ private fun createSpotifyWebView(
         override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
             if (request.isForMainFrame) onError()
         }
+
+        // A refused page is not a network error: it used to arrive as a finished load with
+        // nothing on it, so the sheet sat on an empty screen with no message at all.
+        override fun onReceivedHttpError(
+            view: WebView,
+            request: WebResourceRequest,
+            errorResponse: WebResourceResponse
+        ) {
+            if (request.isForMainFrame) onError()
+        }
     }
     loadUrl(SPOTIFY_LOGIN_URL)
 }
@@ -681,8 +735,13 @@ private fun createSpotifyWebView(
 private fun captureSession(): String? {
     val manager = CookieManager.getInstance()
     manager.flush()
-    val header = manager.getCookie(SPOTIFY_ORIGIN).orEmpty()
-    if (header.isBlank()) return null
-    return SpotifyCookie.parse(header)
+    // `sp_dc` is written on `.spotify.com`, so either jar has it; checking the accounts origin too
+    // means a sign-in is picked up even when the player page was never visited at all.
+    for (origin in listOf(SPOTIFY_ORIGIN, SPOTIFY_ACCOUNTS_ORIGIN)) {
+        val header = manager.getCookie(origin).orEmpty()
+        if (header.isBlank()) continue
+        SpotifyCookie.parse(header)?.let { return it }
+    }
+    return null
 }
 
