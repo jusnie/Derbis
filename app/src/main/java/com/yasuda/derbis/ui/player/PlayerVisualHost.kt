@@ -9,7 +9,7 @@ import com.yasuda.derbis.ui.PlayerAmbience
 /**
  * The deck's background. There is no longer a choice to make here: the cover, blurred and drifting,
  * with its own colours moving over it. Kept as a host so a skin that owns its own atmosphere
- * (Apple Music, Prism, Nocturne) can short-circuit in one place.
+ * (Apple Music, Prism, Pixel) can short-circuit in one place.
  */
 @Composable
 internal fun PlayerVisualHost(

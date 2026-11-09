@@ -2,7 +2,7 @@ package com.yasuda.derbis.ui
 
 import androidx.compose.ui.graphics.RectangleShape
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
@@ -439,7 +439,7 @@ internal fun StyledDockSurface(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Column(modifier = modifier, content = content)
         return
     }
@@ -644,8 +644,8 @@ internal fun StyledBottomTabs(
         PrismBottomTabs(tuning, selected, onSelect, applySystemInset)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneBottomTabs(tuning, selected, onSelect, applySystemInset)
+    if (DerbisIsPixel) {
+        PixelBottomTabs(tuning, selected, onSelect, applySystemInset)
         return
     }
     val allEntries = rememberDerbisTabEntries()

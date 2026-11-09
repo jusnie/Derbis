@@ -1,9 +1,9 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsSpotify
-import com.yasuda.derbis.ui.theme.Nocturne78Design
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import androidx.compose.animation.AnimatedVisibility
@@ -77,10 +77,10 @@ import com.yasuda.derbis.ui.components.derbisGroupedListShape
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun collectionMosaicShape(): Shape = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.artworkCorner) else MaterialShapes.Cookie4Sided.toShape()
+private fun collectionMosaicShape(): Shape = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.artworkCorner) else MaterialShapes.Cookie4Sided.toShape()
 private val CollectionActionHeight = 56.dp
 private val CollectionActionGroupGap = 4.dp
-private val CollectionActionOuterCorner get() = if (DerbisIsNocturne) Nocturne78Design.controlCorner else 28.dp
+private val CollectionActionOuterCorner get() = if (DerbisIsPixel) PixelDesign.controlCorner else 28.dp
 private val CollectionActionInnerCorner = 10.dp
 private val CollectionActionChrome = 16.dp * 2 + 22.dp + 8.dp
 private val CollectionActionLabelStyle: TextStyle
@@ -127,11 +127,11 @@ internal fun HomeCollectionScreen(
             .take(3)
             .joinToString(" · ")
     }
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val spotify = DerbisIsSpotify
-    val backdrop = remember(accentStart, accentEnd, nocturne, spotify) {
+    val backdrop = remember(accentStart, accentEnd, pixel, spotify) {
         if (spotify) Brush.verticalGradient(0f to spotifyRadioPastel(accentStart), 0.5f to spotifyRadioPastel(accentStart).copy(alpha = 0.55f), 1f to Color.Transparent) else
-        if (nocturne) Brush.verticalGradient(listOf(Nocturne78Palette.black, Nocturne78Palette.black)) else
+        if (pixel) Brush.verticalGradient(listOf(PixelPalette.black, PixelPalette.black)) else
         Brush.verticalGradient(
             0f to accentStart.copy(alpha = 0.55f),
             0.45f to accentEnd.copy(alpha = 0.18f),
@@ -193,7 +193,7 @@ internal fun HomeCollectionScreen(
                             tracks = mosaic,
                             accentStart = accentStart,
                             modifier = Modifier
-                                .fillMaxWidth(if (nocturne) 0.66f else 0.78f)
+                                .fillMaxWidth(if (pixel) 0.66f else 0.78f)
                                 .aspectRatio(1f)
                         )
                         Text(

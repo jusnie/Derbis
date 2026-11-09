@@ -203,7 +203,7 @@ enum class PlayerVerticalSwipeAction {
 
 enum class DerbisSkin {
     Default,
-    Nocturne78,
+    Pixel,
     LiquidGlass,
     Torque,
     Ivory,
@@ -213,10 +213,18 @@ enum class DerbisSkin {
     YouTubeMusicStyle;
 
     companion object {
-        /** Prism was the temporary backing name for Liquid Glass builds. Keep old preferences valid. */
-        fun from(value: String): DerbisSkin = when (value) {
-            "Prism" -> LiquidGlass
-            else -> entries.firstOrNull { it.name == value } ?: Default
+        /**
+         * Old saved names keep working.
+         *
+         * Prism was the temporary backing name for Liquid Glass builds. Pixel replaced the
+         * Nocturne 78 skin outright, so anyone who had it selected opens on Pixel rather than
+         * being silently dropped back to Default — the skin they chose is gone, but the choice
+         * was a skin, not a reset.
+         */
+        fun from(value: String): DerbisSkin = when (value.trim().lowercase()) {
+            "prism" -> LiquidGlass
+            "nocturne78", "nocturne_78", "nocturne", "nocturne 78" -> Pixel
+            else -> entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Default
         }
     }
 }

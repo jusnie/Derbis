@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui.media
 
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.ui.theme.DerbisIsTorque
 import com.yasuda.derbis.ui.theme.DerbisIsIvory
@@ -107,10 +107,10 @@ internal data class ImmersiveMediaPrimaryAction(
     val onClick: () -> Unit
 )
 
-internal fun immersiveMediaColors(primary: Color, secondary: Color, lightTheme: Boolean, nocturne: Boolean = false): ImmersiveMediaColors {
+internal fun immersiveMediaColors(primary: Color, secondary: Color, lightTheme: Boolean, pixel: Boolean = false): ImmersiveMediaColors {
     skinMediaColors(primary)?.let { return it }
-    if (nocturne) {
-        val p = Nocturne78Palette
+    if (pixel) {
+        val p = PixelPalette
         return ImmersiveMediaColors(p.black, p.black, p.ink, p.text, p.muted, p.cyan, p.panelSoft, p.panelSoft, p.cyan, p.panel, p.outline)
     }
     val accents = harmonizePlayerAccents(primary, secondary)
@@ -710,7 +710,7 @@ private fun SkinMediaHero(
         DerbisIsSpotify -> SpotifyMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         DerbisIsIvory -> IvoryMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         DerbisIsPrism -> PrismMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
-        DerbisIsNocturne -> NocturneMediaHero(title, overline, subtitle, metadata, colors, topBarHeight, onSubtitleClick, actions, artwork, modifier)
+        DerbisIsPixel -> PixelMediaHero(title, overline, subtitle, metadata, colors, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         else -> return false
     }
     return true

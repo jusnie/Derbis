@@ -14,7 +14,7 @@ class PlayerArtworkPauseLayoutContractTest {
     fun `pausing retains full artwork scale and position`() {
         assertTrue(source.contains("val artRestScale = 1f"))
         assertTrue(source.contains("val artRestOffset = 0.dp"))
-        assertFalse(source.contains("val artworkRestsFullBleed = nocturne || state.isPlaying"))
+        assertFalse(source.contains("val artworkRestsFullBleed = pixel || state.isPlaying"))
     }
 
     private fun sourceFile(): Path = sequenceOf(

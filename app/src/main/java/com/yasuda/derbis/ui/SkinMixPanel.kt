@@ -37,7 +37,7 @@ internal fun SkinMixPanel(
     onOpenYourSound: () -> Unit, onOpenMixLab: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
-    val corner = if (DerbisIsNocturne) Nocturne78Design.panelCorner else PrismDesign.surfaceCorner
+    val corner = if (DerbisIsPixel) PixelDesign.panelCorner else PrismDesign.surfaceCorner
     val shape = RoundedCornerShape(corner)
     Column(
         modifier.fillMaxWidth().clip(shape).background(DerbisPanel)
@@ -54,7 +54,7 @@ internal fun SkinMixPanel(
                 )
                 SkinMixReadout(familiarity, accent)
             }
-            val playShape = if (DerbisIsNocturne) RoundedCornerShape(8.dp) else PrismDesign.cut(24.dp)
+            val playShape = if (DerbisIsPixel) RoundedCornerShape(8.dp) else PrismDesign.cut(24.dp)
             Box(
                 Modifier.size(64.dp).clip(playShape).background(accent)
                     .derbisPressable(onClick = { onStartMix(DerbisMixKind.Personalized) }, enabled = !loading,
@@ -74,7 +74,7 @@ internal fun SkinMixPanel(
 
 @Composable
 private fun SkinMixReadout(familiarity: Float, accent: Color) {
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Text(
             "${(familiarity.coerceIn(0f, 1f) * 100).toInt()} / ${((1f - familiarity.coerceIn(0f, 1f)) * 100).toInt()}",
             color = accent, fontFamily = FontFamily.Monospace, fontSize = 20.sp, letterSpacing = 3.sp

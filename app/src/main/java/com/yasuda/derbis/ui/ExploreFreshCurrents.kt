@@ -63,10 +63,10 @@ import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.derbisGlass
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.DerbisCardDesign
 import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.theme.DerbisType
@@ -289,8 +289,8 @@ private fun ExploreFreshSpotlightPage(
     actions: @Composable () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
-    val nocturne = DerbisIsNocturne
-    val animationsEnabled = LocalAnimationsEnabled.current && !nocturne
+    val pixel = DerbisIsPixel
+    val animationsEnabled = LocalAnimationsEnabled.current && !pixel
     val card = exploreReleaseCard(track)
     val palette = rememberFreshSpotlightPalette(track)
     val accent = palette.accent
@@ -317,7 +317,7 @@ private fun ExploreFreshSpotlightPage(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(FreshCardAspect)
-            .then(freshSpotlightTransform(pageOffset, animationsEnabled, nocturne, accent, glowEnd))
+            .then(freshSpotlightTransform(pageOffset, animationsEnabled, pixel, accent, glowEnd))
             .background(ink)
             .derbisPressable(
                 onClick = onOpen,
@@ -631,9 +631,9 @@ private data class FreshSpotlightPalette(val accent: Color, val glowEnd: Color, 
 
 @Composable
 private fun rememberFreshSpotlightPalette(track: Track): FreshSpotlightPalette {
-    val nocturne = DerbisIsNocturne
-    return remember(track.accentStart, track.accentEnd, nocturne) {
-        if (nocturne) FreshSpotlightPalette(Nocturne78Palette.cyan, Nocturne78Palette.panel, Nocturne78Palette.ink, Nocturne78Palette.cyan)
+    val pixel = DerbisIsPixel
+    return remember(track.accentStart, track.accentEnd, pixel) {
+        if (pixel) FreshSpotlightPalette(PixelPalette.cyan, PixelPalette.panel, PixelPalette.ink, PixelPalette.cyan)
         else {
             val accent = Color(track.accentStart)
             FreshSpotlightPalette(accent, Color(track.accentEnd), lerp(accent, Color.Black, 0.72f), lerp(accent, Color.White, 0.72f))
@@ -667,7 +667,7 @@ private fun FreshSpotlightControl(isResolving: Boolean, opensAlbum: Boolean, pla
     }
 }
 
-private fun freshSpotlightTransform(pageOffset: () -> Float, animationsEnabled: Boolean, nocturne: Boolean, accent: Color, glowEnd: Color): Modifier =
+private fun freshSpotlightTransform(pageOffset: () -> Float, animationsEnabled: Boolean, pixel: Boolean, accent: Color, glowEnd: Color): Modifier =
     Modifier.graphicsLayer {
         val offset = if (animationsEnabled) pageOffset() else 0f
         val focus = 1f - abs(offset)
@@ -678,9 +678,9 @@ private fun freshSpotlightTransform(pageOffset: () -> Float, animationsEnabled: 
         rotationY = offset * FreshCardTiltDegrees
         rotationZ = offset * FreshCardRollDegrees
         cameraDistance = FreshCardCameraDistance * density
-        shape = RoundedCornerShape(if (nocturne) Nocturne78Design.cardCorner.toPx() else corner.toPx())
+        shape = RoundedCornerShape(if (pixel) PixelDesign.cardCorner.toPx() else corner.toPx())
         clip = true
-        shadowElevation = if (nocturne) 0f else (20.dp * focus).toPx()
+        shadowElevation = if (pixel) 0f else (20.dp * focus).toPx()
         ambientShadowColor = accent.copy(alpha = 0.32f)
         spotShadowColor = glowEnd.copy(alpha = 0.42f)
     }

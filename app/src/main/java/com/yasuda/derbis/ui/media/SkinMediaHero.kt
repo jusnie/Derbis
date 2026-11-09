@@ -217,18 +217,18 @@ internal fun TorqueMediaHero(
 }
 
 @Composable
-internal fun NocturneMediaHero(
+internal fun PixelMediaHero(
     title: String, overline: String, subtitle: String, metadata: String, colors: ImmersiveMediaColors,
     topBarHeight: Dp, onSubtitleClick: (() -> Unit)?, actions: @Composable () -> Unit,
     artwork: @Composable BoxScope.() -> Unit, modifier: Modifier
 ) {
     val amber = colors.accent
-    val frame = RoundedCornerShape(Nocturne78Design.artworkCorner + 4.dp)
-    val readout = RoundedCornerShape(Nocturne78Design.controlCorner)
+    val frame = RoundedCornerShape(PixelDesign.artworkCorner + 4.dp)
+    val readout = RoundedCornerShape(PixelDesign.controlCorner)
     Column(modifier.fillMaxWidth().padding(top = topBarHeight, start = 20.dp, end = 20.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Box(
             Modifier.fillMaxWidth().aspectRatio(1f).border(1.dp, amber.copy(alpha = 0.45f), frame)
-                .padding(10.dp).clip(RoundedCornerShape(Nocturne78Design.artworkCorner))
+                .padding(10.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))
         ) { artwork() }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (overline.isNotBlank()) Text(overline.uppercase(), color = amber, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.4.sp, maxLines = 1)

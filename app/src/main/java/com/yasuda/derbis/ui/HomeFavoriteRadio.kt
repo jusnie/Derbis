@@ -66,7 +66,7 @@ private fun HomeFavoriteRadio(radio: HomeRadioState) {
         else Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = DerbisText,
             modifier = Modifier.padding(horizontal = inset).semantics { heading() })
         when {
-            DerbisIsNocturne || DerbisIsTorque || DerbisIsIvory -> LazyRow(
+            DerbisIsPixel || DerbisIsTorque || DerbisIsIvory -> LazyRow(
                 contentPadding = PaddingValues(horizontal = inset), horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(radio.stations.chunked(3), key = { it.first().uuid }) { group ->
@@ -149,7 +149,7 @@ private fun SkinHomeRadio(station: RadioStation, radio: HomeRadioState) {
 @Composable
 private fun CompactHomeRadio(station: RadioStation, radio: HomeRadioState) {
     val active = radio.currentId == station.uuid
-    val shape = when { DerbisIsNocturne -> CircleShape; DerbisIsTorque -> RoundedCornerShape(2.dp); else -> RoundedCornerShape(IvoryDesign.coverCorner) }
+    val shape = when { DerbisIsPixel -> CircleShape; DerbisIsTorque -> RoundedCornerShape(2.dp); else -> RoundedCornerShape(IvoryDesign.coverCorner) }
     Row(Modifier.fillMaxWidth().heightIn(min = 80.dp).clip(shape).background(DerbisPanel)
         .semantics { selected = active }.derbisPressable(onClick = { radio.onPlay(station) }, role = Role.Button).padding(8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

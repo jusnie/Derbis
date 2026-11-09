@@ -62,28 +62,28 @@ object DerbisPlayerDesign {
     const val SegmentPressGrowth: Float = 0.16f
 
     const val ArtworkCornerRatio: Float = 0.075f
-    val ArtworkCornerMin: Dp get() = if (DerbisIsNocturne) 6.dp else 18.dp
-    val ArtworkCornerMax: Dp get() = if (DerbisIsNocturne) 6.dp else 32.dp
+    val ArtworkCornerMin: Dp get() = if (DerbisIsPixel) 0.dp else 18.dp
+    val ArtworkCornerMax: Dp get() = if (DerbisIsPixel) 0.dp else 32.dp
     const val ArtworkPausedScale: Float = 0.92f
     const val ArtworkTrackChangeScale: Float = 0.965f
 
-    val MiniCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 6.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsNocturne) 10.dp else 20.dp
+    val MiniCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 6.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 20.dp
     val MiniArtwork: Dp = 46.dp
-    val MiniArtworkCorner: Dp get() = if (DerbisIsNocturne) 6.dp else 13.dp
+    val MiniArtworkCorner: Dp get() = if (DerbisIsPixel) 0.dp else 13.dp
     val MiniHeight: Dp = 64.dp
     val MiniHeightCompact: Dp = 50.dp
     val MiniArtworkCompact: Dp = 36.dp
-    val DockTrayCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsNocturne) 14.dp else 28.dp
+    val DockTrayCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 28.dp
 
     val Hairline: Dp = 1.dp
-    val TrackHeight: Dp get() = if (DerbisIsNocturne) 2.dp else 5.dp
-    val TrackHeightActive: Dp get() = if (DerbisIsNocturne) 4.dp else 8.dp
-    val ThumbRadius: Dp get() = if (DerbisIsNocturne) 4.dp else 7.dp
-    val ThumbRadiusActive: Dp get() = if (DerbisIsNocturne) 6.dp else 10.dp
-    val HandleWidth: Dp get() = if (DerbisIsNocturne) 5.dp else 12.dp
-    val HandleWidthActive: Dp get() = if (DerbisIsNocturne) 7.dp else 17.dp
-    val HandleHeight: Dp get() = if (DerbisIsNocturne) 10.dp else 12.dp
-    val HandleHeightActive: Dp get() = if (DerbisIsNocturne) 14.dp else 17.dp
+    val TrackHeight: Dp get() = if (DerbisIsPixel) 2.dp else 5.dp
+    val TrackHeightActive: Dp get() = if (DerbisIsPixel) 4.dp else 8.dp
+    val ThumbRadius: Dp get() = if (DerbisIsPixel) 4.dp else 7.dp
+    val ThumbRadiusActive: Dp get() = if (DerbisIsPixel) 6.dp else 10.dp
+    val HandleWidth: Dp get() = if (DerbisIsPixel) 5.dp else 12.dp
+    val HandleWidthActive: Dp get() = if (DerbisIsPixel) 7.dp else 17.dp
+    val HandleHeight: Dp get() = if (DerbisIsPixel) 10.dp else 12.dp
+    val HandleHeightActive: Dp get() = if (DerbisIsPixel) 14.dp else 17.dp
 
     val Emphasized: Easing = DerbisMotion.Easings.Emphasized
     val Standard: Easing = DerbisMotion.Easings.Standard

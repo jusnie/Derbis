@@ -1,9 +1,9 @@
 package com.yasuda.derbis.ui.components
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.ui.theme.PrismDesign
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Shape
@@ -135,8 +135,8 @@ internal fun DerbisWavyProgress(
     )
 }
 
-internal val DerbisGroupedOuterCorner: Dp get() = if (DerbisIsPrism) PrismDesign.surfaceCorner else if (DerbisIsNocturne) Nocturne78Design.panelCorner else 24.dp
-internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsNocturne) 2.dp else 6.dp
+internal val DerbisGroupedOuterCorner: Dp get() = if (DerbisIsPrism) PrismDesign.surfaceCorner else if (DerbisIsPixel) PixelDesign.panelCorner else 24.dp
+internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsPixel) 2.dp else 6.dp
 
 internal fun derbisGroupedListShape(index: Int, count: Int): Shape {
     val first = index == 0

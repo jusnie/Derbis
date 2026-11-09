@@ -26,7 +26,7 @@ internal const val TorquePaletteId = "derbis_torque"
 internal val DerbisIsLiquidGlass: Boolean get() = DerbisActivePalette.id == PrismPaletteId
 val DerbisIsTorque: Boolean get() = DerbisActivePalette.id == TorquePaletteId
 val DerbisIsPrism: Boolean get() = DerbisIsLiquidGlass || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsTidal || DerbisIsYouTubeMusic
-internal val DerbisSkinManagesLayout: Boolean get() = DerbisIsNocturne || DerbisIsPrism
+internal val DerbisSkinManagesLayout: Boolean get() = DerbisIsPixel || DerbisIsPrism
 internal val DerbisSkinLabel: String get() = DerbisActivePalette.label
 internal var activePrismSettings by mutableStateOf(PrismSettings())
     private set
@@ -248,7 +248,7 @@ internal fun skinMiniPlayerCorner(tuning: MiniPlayerTuning): Dp =
         DerbisIsIvory -> 26.dp
         DerbisIsSpotify -> SpotifyDesign.corner
         DerbisIsAppleMusic -> AppleMusicDesign.miniHeight / 2
-        DerbisIsNocturne -> 10.dp
+        DerbisIsPixel -> 0.dp
         else -> tuning.cornerDp.dp
     }
 
@@ -271,14 +271,14 @@ internal fun prismNavSettings(saved: DerbisNavigationStudioSettings): DerbisNavi
 }
 
 internal fun skinNavigationSettings(saved: DerbisNavigationStudioSettings): DerbisNavigationStudioSettings = when {
-    DerbisIsNocturne -> nocturneNavSettings(saved)
+    DerbisIsPixel -> pixelNavSettings(saved)
     DerbisIsPrism -> prismNavSettings(saved)
     else -> saved
 }
 
 internal fun skinMiniSettings(saved: DerbisMiniPlayerStudioSettings): DerbisMiniPlayerStudioSettings {
     return when {
-        DerbisIsNocturne -> nocturneMiniSettings(saved)
+        DerbisIsPixel -> pixelMiniSettings(saved)
         DerbisIsPrism -> prismMiniSettings(saved)
         else -> saved
     }

@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 
 import androidx.compose.ui.graphics.lerp
@@ -2427,8 +2427,8 @@ private fun AudioLevelSlider(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val thumbRadius = with(density) { 9.dp.toPx() }
-    val nocturne = DerbisIsNocturne
-    val trackHeight = with(density) { (if (nocturne || DerbisIsPrism) 3.dp else 14.dp).toPx() }
+    val pixel = DerbisIsPixel
+    val trackHeight = with(density) { (if (pixel || DerbisIsPrism) 3.dp else 14.dp).toPx() }
     val handleWidth = with(density) { 4.dp.toPx() }
     val handleHeight = with(density) { 36.dp.toPx() }
     val handleGap = with(density) { 5.dp.toPx() }

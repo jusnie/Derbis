@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.background
@@ -227,8 +227,8 @@ internal fun DiscoveryEditorialCard(
         PrismCollectionCard(title, subtitle, artwork, onOpen, modifier)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneCollectionCard(title, subtitle, artwork, onOpen, modifier)
+    if (DerbisIsPixel) {
+        PixelCollectionCard(title, subtitle, artwork, onOpen, modifier)
         return
     }
     val tonal = remember(accentStart, isLight) {

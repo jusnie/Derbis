@@ -464,7 +464,7 @@ object DerbisThemeController {
     ) {
         val base = when (skin) {
             DerbisSkin.Default -> DerbisThemes.byId(presetId)
-            DerbisSkin.Nocturne78 -> Nocturne78Palette
+            DerbisSkin.Pixel -> PixelPalette
             DerbisSkin.LiquidGlass -> prismPalette(prism, systemDark)
             DerbisSkin.Torque -> torquePalette(torque, coverAccentStart)
             DerbisSkin.Ivory -> ivoryPalette(ivory, systemDark)
@@ -591,15 +591,15 @@ val DerbisIsPureBlack: Boolean
 
 val DerbisGlass: Color
     get() = when {
-        DerbisIsNocturne -> Nocturne78Palette.panel
+        DerbisIsPixel -> PixelPalette.panel
         activePaletteState.value.isLight -> Color(0x14101322)
         DerbisIsPureBlack -> Color(0x0AFFFFFF)
         else -> Color(0x0FFFFFFF)
     }
 
 val DerbisGlassBorder: Color
-    get() = if (DerbisIsNocturne) {
-        Nocturne78Palette.outline
+    get() = if (DerbisIsPixel) {
+        PixelPalette.outline
     } else if (activePaletteState.value.isLight) {
         Color(0x26101322)
     } else {
@@ -661,13 +661,13 @@ fun DerbisTheme(
     val palette = activePaletteState.value
     val colorScheme = remember(palette) { derbisColorScheme(palette) }
     val cornerScale = activeCornerScaleState.value
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val prism = DerbisIsPrism
     val torque = DerbisIsTorque
     val ivory = DerbisIsIvory
     val spotify = DerbisIsSpotify
-    val shapes = remember(cornerScale, nocturne, prism, torque, ivory, spotify) {
-        if (nocturne) Nocturne78Shapes
+    val shapes = remember(cornerScale, pixel, prism, torque, ivory, spotify) {
+        if (pixel) PixelShapes
         else if (prism) PrismShapes
         else if (cornerScale == 1f) DerbisExpressiveShapes else scaledExpressiveShapes(cornerScale)
     }
@@ -678,7 +678,7 @@ fun DerbisTheme(
         colorScheme = colorScheme,
         motionScheme = motionScheme,
         shapes = shapes,
-        typography = if (nocturne) Nocturne78Typography else if (DerbisIsSpotify) SpotifyTypography else if (DerbisIsAppleMusic) AppleMusicTypography else if (DerbisIsYouTubeMusic) YouTubeMusicTypography else if (ivory) IvoryTypography else if (prism) PrismTypography else derbisTypographyFor(fontPreset ?: activeFontPresetState.value),
+        typography = if (pixel) PixelTypography else if (DerbisIsSpotify) SpotifyTypography else if (DerbisIsAppleMusic) AppleMusicTypography else if (DerbisIsYouTubeMusic) YouTubeMusicTypography else if (ivory) IvoryTypography else if (prism) PrismTypography else derbisTypographyFor(fontPreset ?: activeFontPresetState.value),
         content = content
     )
 }

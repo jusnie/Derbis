@@ -2,8 +2,8 @@ package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.PlayerAccentPair
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.rememberLyricsAudioOutputRoute
@@ -261,7 +261,7 @@ private fun DerbisNowPlayingContent(
     val density = LocalDensity.current
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
     val artworkUrl = track?.let(::preferredPlayerArtworkUrl).orEmpty()
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
     val selectedVisualMode = if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
@@ -334,8 +334,8 @@ private fun DerbisNowPlayingContent(
     )
     // Pure black is the OLED switch, not a background style: the deck keeps its artwork backdrop
     // and only the control surfaces go black.
-    val amoled = state.interfaceSettings.pureBlack && !nocturne
-    val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, nocturne) { playerSurfaceTokens(primaryTarget, amoled, nocturne) }
+    val amoled = state.interfaceSettings.pureBlack && !pixel
+    val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, pixel) { playerSurfaceTokens(primaryTarget, amoled, pixel) }
     val heroTone by animateColorAsState(
         targetValue = surfaces.hero,
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.paletteTween()),
@@ -976,7 +976,7 @@ private fun DerbisNowPlayingContent(
                     positionMs = state.positionMs,
                     bufferedPositionMs = state.bufferedPositionMs,
                     durationMs = state.durationMs,
-                    activeColor = if (nocturne) primary else heroTone,
+                    activeColor = if (pixel) primary else heroTone,
                     secondaryColor = secondary,
                     surfaces = surfaces,
                     isPlaying = state.isPlaying,
@@ -1045,7 +1045,7 @@ private fun DerbisNowPlayingContent(
                 isDownloaded,
                 selectedVisualMode,
                 visualMode,
-                nocturne,
+                pixel,
                 DerbisSkinManagesLayout,
                 DerbisSkinLabel,
                 strings,

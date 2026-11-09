@@ -2,9 +2,9 @@ package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelIcons
 
 import com.yasuda.derbis.ui.components.rememberDerbisPlayMorphShape
 import androidx.compose.animation.animateColorAsState
@@ -245,8 +245,8 @@ private fun RowScope.PlayerPlaySegment(
         contentDescription = playDescription(isPlaying, labels),
         animated = animated,
         haptic = DerbisHapticAction.Transport,
-        shapeOverride = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner) else morphShape,
-        outline = if (DerbisIsNocturne) surfaces.outline else Color.Transparent,
+        shapeOverride = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner) else morphShape,
+        outline = if (DerbisIsPixel) surfaces.outline else Color.Transparent,
         onClick = onClick
     ) {
         PlayGlyphContent(
@@ -273,9 +273,9 @@ private fun PlayGlyphContent(
             color = content,
             modifier = Modifier.size(glyph * 1.2f)
         )
-    } else if (DerbisIsNocturne) {
+    } else if (DerbisIsPixel) {
         androidx.compose.material3.Icon(
-            imageVector = if (isPlaying) Nocturne78Icons.Pause else Nocturne78Icons.Play,
+            imageVector = if (isPlaying) PixelIcons.Pause else PixelIcons.Play,
             contentDescription = null,
             tint = content,
             modifier = Modifier.size(glyph)

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel logo — the Derbis mark, pixelated</title>
+<style>
+  :root {
+    --ground: #150C11;
+    --rose: #FFC2D3;
+    --hot: #FF5C8A;
+    --ink: #A84765;
+    --paper: #FFEDF1;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--ground);
+    color: #F6E7EC;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 40px 24px 80px;
+  }
+  h1 { font-size: 22px; letter-spacing: .14em; text-transform: uppercase;
+    margin: 0 0 8px; color: var(--rose); }
+  .sub { font-size: 12.5px; line-height: 1.7; color: rgba(255,226,234,.62);
+    max-width: 740px; margin: 0 0 34px; }
+  h2 { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #FF9DBB;
+    margin: 0 0 16px; display: flex; align-items: center; gap: 12px; }
+  h2::after { content: ""; flex: 1; height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(255,157,187,.45) 0 6px, transparent 6px 12px); }
+  section { margin-bottom: 44px; }
+  .row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .cell { flex: 0 0 auto; }
+  .label { font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+    color: rgba(255,226,234,.42); margin-bottom: 8px; }
+  .label b { color: var(--rose); }
+  .checker {
+    background-image: repeating-conic-gradient(#2a2028 0% 25%, #1d161c 0% 50%);
+    background-size: 18px 18px;
+  }
+  .frame { border: 2px solid rgba(255,255,255,.14); display: inline-block; }
+  .frame img { display: block; image-rendering: pixelated; }
+  .logo-big img { width: 168px; }
+  .logo-small img { width: 28px; }
+  .logo-tiny img { width: 20px; }
+  .on-paper { background: var(--paper); padding: 18px; }
+  .on-noir { background: #08080A; padding: 18px; }
+
+  .launcher {
+    display: flex; gap: 22px; align-items: center;
+  }
+  .icon { border-radius: 22px; overflow: hidden; background: #000;
+    box-shadow: 0 18px 36px -14px rgba(0,0,0,.9); }
+  .icon img { display: block; image-rendering: pixelated; }
+  .icon.big img { width: 108px; }
+  .icon.small img { width: 56px; }
+  .icon.round { border-radius: 50%; }
+  .icon.round img { width: 72px; }
+
+  .inapp {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border: 2px solid var(--ink); background: #FFF8F6;
+    color: #5B2338; width: 300px;
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+  }
+  .inapp img { width: 26px; image-rendering: pixelated; }
+  .inapp b { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }
+  .inapp span { margin-left: auto; font-size: 8px; letter-spacing: .18em;
+    text-transform: uppercase; color: #FF5C8A; }
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; max-width: 900px; }
+  .rule { border: 1px solid rgba(255,157,187,.22); background: rgba(255,255,255,.03);
+    padding: 12px 14px; border-radius: 10px; }
+  .rule b { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--rose); margin-bottom: 5px; }
+  .rule span { font-size: 11.5px; line-height: 1.65; color: rgba(255,226,234,.68); }
+  code { font-size: 11px; color: var(--rose); background: rgba(255,157,187,.1);
+    padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Pixel logo</h1>
+<p class="sub">
+  Not a new logo. The shipped mark <code>derbis_logo.png</code> is three diamonds on alpha; this
+  reads that alpha channel, crops it to the mark, resamples onto a 21&times;28 pixel grid and inlays
+  it with a rose outline, blush highlight and a cream catchlight. Same shape, coarser resolution,
+  the skin's colours.
+</p>
+
+<section>
+  <h2>The mark</h2>
+  <div class="row">
+    <div class="cell">
+      <div class="label"><b>large</b> &middot; transparent</div>
+      <div class="frame checker"><img class="logo-big" src="pixel-logo/logo.png" alt="Pixel Derbis mark" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">on blush paper</div>
+      <div class="frame on-paper"><img style="width:120px;image-rendering:pixelated" src="pixel-logo/logo.png" alt="" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">on noir</div>
+      <div class="frame on-noir"><img style="width:120px;image-rendering:pixelated" src="pixel-logo/logo.png" alt="" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">28 dp &middot; in-app slot</div>
+      <div class="frame checker"><img class="logo-small" src="pixel-logo/logo.png" alt="" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">20 dp &middot; tightest</div>
+      <div class="frame checker"><img class="logo-tiny" src="pixel-logo/logo.png" alt="" /></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Launcher</h2>
+  <div class="launcher">
+    <div class="cell">
+      <div class="label"><b>adaptive</b> &middot; 108 dp</div>
+      <div class="icon big"><img src="pixel-logo/icon.png" alt="Pixel launcher icon" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">home screen &middot; 56 dp</div>
+      <div class="icon small"><img src="pixel-logo/icon.png" alt="" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">round mask</div>
+      <div class="icon round"><img src="pixel-logo/icon.png" alt="" /></div>
+    </div>
+    <div class="cell">
+      <div class="label">in the Pixel UI</div>
+      <div class="inapp">
+        <img src="pixel-logo/logo.png" alt="" />
+        <b>Derbis</b>
+        <span>Pixel</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How it is built</h2>
+  <div class="rules">
+    <div class="rule"><b>Derived, not drawn</b><span>The alpha channel of the real logo is read and
+      resampled. Delete nothing, redraw nothing &mdash; the silhouette is the shipped one.</span></div>
+    <div class="rule"><b>Transparent</b><span>Outside the mark is <code>alpha 0</code>. The launcher
+      plate is a separate pink tile with its own rounded corners; the mark PNG stays plate-free.</span></div>
+    <div class="rule"><b>Crisp</b><span>8&times; nearest-neighbour PNG, plus SVG rects for the app
+      so an icon at any density keeps square cells.</span></div>
+    <div class="rule"><b>Skin-scoped</b><span>Only applied while Pixel is the active skin; every
+      other skin keeps the white mark. The launcher icon cannot change at runtime &mdash; it is a
+      build-time resource, so the Pixel launcher would ship as a separate build flavour.</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Files</h2>
+  <div class="rules">
+    <div class="rule"><b>Mark</b><span><code>preview/pixel-logo/logo.png</code> (transparent) and
+      <code>logo.svg</code>.</span></div>
+    <div class="rule"><b>Launcher</b><span><code>preview/pixel-logo/icon.png</code> and
+      <code>icon.svg</code>, plate included.</span></div>
+    <div class="rule"><b>Source</b><span><code>preview/pixel-logo/generate.py</code> &mdash; reads
+      the app's own <code>derbis_logo.png</code>. Standard library only.</span></div>
+  </div>
+</section>
+
+</body>
+</html>

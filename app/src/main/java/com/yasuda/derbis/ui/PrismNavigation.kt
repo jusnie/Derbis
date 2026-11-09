@@ -33,7 +33,7 @@ internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (
         tuning.visibleOrder().mapNotNull { tab -> all.firstOrNull { it.tab == tab } }
     }
     val haptics = LocalDerbisHaptics.current
-    val measuredHeight = LocalNocturneNavigationHeight.current
+    val measuredHeight = LocalPixelNavigationHeight.current
     val density = LocalDensity.current
     val torque = DerbisIsTorque
     val skinModifier = Modifier.onSizeChanged { size -> measuredHeight?.value = with(density) { size.height.toDp() } }

@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cover Flow — replacement for the Vinyl deck</title>
+<style>
+  :root {
+    --ground: #08080a;
+    --ink: #f3f1ee;
+    --accent: #d9863f;
+    --accent-2: #f0b25e;
+
+    --card: 196;          /* card width in px */
+    --plate: 54;          /* title plate under the artwork */
+    --step: 0.58;         /* how far each neighbour sits, against the card width */
+    --tilt: 52;           /* degrees of Y rotation per step */
+    --drop: 0.12;         /* scale lost per step */
+    --dim: 0.26;          /* scrim gained per step */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: #0b0b0d;
+    color: #e9e7e3;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    padding: 30px 22px 70px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 19px; font-weight: 650; letter-spacing: -.1px; margin: 0 0 5px; }
+  .sub { font-size: 13px; line-height: 1.65; color: #9a979e; max-width: 780px; margin: 0 0 30px; }
+  .sub b { color: #cfccd2; font-weight: 600; }
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  .col { flex: 1 1 330px; min-width: 320px; }
+
+  /* ---------- phone ---------- */
+  .phone {
+    width: 330px; height: 690px; border-radius: 42px; padding: 9px;
+    background: linear-gradient(#26262b, #141416 40%, #0e0e10);
+    box-shadow: 0 30px 70px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.07);
+    flex: 0 0 auto;
+  }
+  .screen {
+    position: relative; width: 100%; height: 100%; border-radius: 34px; overflow: hidden;
+    background: var(--ground); isolation: isolate;
+    display: flex; flex-direction: column;
+  }
+  .wash { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .wash::before, .wash::after { content: ""; position: absolute; border-radius: 50%; filter: blur(52px); }
+  .wash::before {
+    width: 340px; height: 340px; left: -110px; top: -90px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 58%, transparent), transparent 68%);
+  }
+  .wash::after {
+    width: 300px; height: 300px; right: -120px; top: 130px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-2) 34%, transparent), transparent 70%);
+  }
+  .floor {
+    position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(to bottom, transparent 34%, color-mix(in srgb, var(--ground) 88%, transparent) 62%, var(--ground) 88%);
+  }
+
+  .status { position: relative; z-index: 4; display: flex; justify-content: space-between;
+    padding: 12px 22px 0; font-size: 11px; font-weight: 600; color: #ebe8ec; opacity: .92; }
+
+  .head { position: relative; z-index: 4; display: flex; align-items: center;
+    justify-content: space-between; padding: 12px 16px 4px; }
+  .head .kicker { font-size: 9.5px; letter-spacing: 1.7px; font-weight: 700;
+    color: rgba(244,242,239,.50); text-transform: uppercase; }
+  .head .kicker b { display: block; font-size: 11px; letter-spacing: .4px; margin-top: 3px;
+    color: rgba(244,242,239,.80); text-transform: none; font-weight: 600; }
+  .ico { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    color: rgba(244,242,239,.78); background: rgba(255,255,255,.05); }
+  .ico svg { width: 17px; height: 17px; display: block; }
+
+  /* ---------- the carousel ---------- */
+  .stage {
+    position: relative; z-index: 2;
+    height: 300px; margin-top: 10px;
+    perspective: 900px;
+    perspective-origin: 50% 46%;
+  }
+  .deck3d {
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+  }
+  .card {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: calc(var(--card) * 1px);
+    height: calc((var(--card) + var(--plate)) * 1px);
+    margin-left: calc(var(--card) * -0.5px);
+    margin-top: calc((var(--card) + var(--plate)) * -0.5px);
+    border-radius: 16px;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    will-change: transform, opacity;
+    background: #16161a;
+    box-shadow: 0 26px 46px rgba(0,0,0,.62), inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .card .art { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--card) * 1px); }
+  .card .plate {
+    position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--plate) * 1px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; text-align: center; padding: 0 10px;
+    background: linear-gradient(to bottom, rgba(10,10,12,.52), rgba(10,10,12,.86));
+    backdrop-filter: blur(2px);
+  }
+  .card .plate b {
+    font-size: 12.5px; font-weight: 650; letter-spacing: -.1px; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  .card .plate span {
+    font-size: 10px; letter-spacing: .3px; color: rgba(255,255,255,.58);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  /* the scrim that darkens the neighbours, over the whole card */
+  .card .dim { position: absolute; inset: 0; background: #07070a; opacity: 0; pointer-events: none; }
+
+  .art-a { background:
+      radial-gradient(120% 95% at 24% 12%, #ffcf7a 0%, transparent 56%),
+      radial-gradient(120% 90% at 84% 20%, #e0603c 0%, transparent 52%),
+      linear-gradient(158deg, #3a1e0a 0%, #16100c 54%, #08060a 100%); }
+  .art-b { background:
+      radial-gradient(115% 92% at 20% 16%, #7de3ff 0%, transparent 54%),
+      radial-gradient(120% 100% at 82% 26%, #4a6bff 0%, transparent 50%),
+      linear-gradient(160deg, #05202e 0%, #070f1e 60%, #04060c 100%); }
+  .art-c { background:
+      radial-gradient(120% 90% at 26% 18%, #b6f06a 0%, transparent 52%),
+      radial-gradient(120% 100% at 80% 30%, #1f9d6a 0%, transparent 54%),
+      linear-gradient(160deg, #0b2418 0%, #07160f 58%, #040a07 100%); }
+  .art-d { background:
+      radial-gradient(120% 92% at 22% 14%, #ff8fd0 0%, transparent 55%),
+      radial-gradient(120% 98% at 84% 24%, #8a4bff 0%, transparent 52%),
+      linear-gradient(160deg, #2a0a24 0%, #150718 56%, #07040a 100%); }
+  .art-e { background:
+      radial-gradient(120% 92% at 24% 16%, #ffe27a 0%, transparent 54%),
+      radial-gradient(120% 98% at 82% 28%, #c9a40c 0%, transparent 52%),
+      linear-gradient(160deg, #2a2206 0%, #141005 58%, #080602 100%); }
+
+  /* ---------- panel ---------- */
+  .panel { position: relative; z-index: 4; padding: 0 22px; margin-top: auto; }
+  .seek { position: relative; height: 22px; display: flex; align-items: center; }
+  .track { position: relative; width: 100%; height: 5px; border-radius: 99px;
+    background: rgba(255,255,255,.16); }
+  .fill { position: absolute; inset: 0 auto 0 0; width: var(--p, 34%); border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), #ffffff); }
+  .thumb { position: absolute; top: 50%; left: var(--p, 34%); width: 11px; height: 11px;
+    translate: -50% -50%; border-radius: 50%; background: #fff;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+  .times { display: flex; justify-content: space-between; margin-top: 4px;
+    font-size: 10px; font-weight: 500; letter-spacing: .5px;
+    color: rgba(244,242,239,.5); font-variant-numeric: tabular-nums; }
+
+  .transport { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 0; }
+  .tbtn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+    color: rgba(244,242,239,.52); background: none; border: 0; padding: 0; cursor: pointer; }
+  .tbtn svg { width: 20px; height: 20px; }
+  .tbtn.on { color: rgba(244,242,239,.9); }
+  .play { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+    border: 0; cursor: pointer; color: #0a0a0c;
+    background: radial-gradient(circle at 34% 28%,
+      color-mix(in srgb, var(--accent) 78%, #fff), var(--accent) 78%);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 34%, transparent),
+                inset 0 0 0 1px rgba(255,255,255,.16); }
+  .play svg { width: 22px; height: 22px; }
+
+  .lyric { margin: 16px 0 0; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.10); }
+  .lyric .row2 { display: flex; align-items: center; justify-content: space-between; }
+  .lyric .lbl { font-size: 9px; font-weight: 700; letter-spacing: 1.8px;
+    color: rgba(244,242,239,.45); text-transform: uppercase; }
+  .lyric .dock { display: flex; gap: 14px; color: rgba(244,242,239,.5); }
+  .lyric .dock svg { width: 16px; height: 16px; }
+  .lyric .line { margin-top: 8px; font-size: 12.5px; line-height: 1.55;
+    color: rgba(244,242,239,.82); }
+  .lyric .line .now { color: #fff; }
+  .lyric .line .rest { color: rgba(244,242,239,.42); }
+  .safe { padding-bottom: 14px; }
+
+  /* ---------- controls / notes ---------- */
+  .card2 { background: #131316; border: 1px solid rgba(255,255,255,.07); border-radius: 16px;
+    padding: 16px 18px; margin-bottom: 14px; }
+  .card2 h2 { font-size: 11.5px; letter-spacing: .5px; text-transform: uppercase;
+    color: #8d8a92; margin: 0 0 12px; font-weight: 650; }
+  .ctl { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; flex-wrap: wrap; }
+  .ctl:last-child { margin-bottom: 0; }
+  .ctl label { font-size: 12.5px; color: #b9b6bd; min-width: 74px; }
+  input[type=range] { flex: 1; accent-color: var(--accent); min-width: 120px; }
+  button.chip { font: inherit; font-size: 12px; padding: 7px 13px; border-radius: 99px;
+    border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05);
+    color: #e6e3e9; cursor: pointer; }
+  button.chip[aria-pressed="true"] { background: #e8e6ec; color: #111114; border-color: transparent; }
+  .swatches { display: flex; gap: 8px; }
+  .sw { width: 30px; height: 30px; border-radius: 9px; border: 1px solid rgba(255,255,255,.16); cursor: pointer; }
+  .notes { font-size: 12.5px; line-height: 1.75; color: #9d9aa2; }
+  .notes ul { margin: 0; padding-left: 17px; }
+  .notes li { margin-bottom: 7px; }
+  .notes code { font-size: 11.5px; color: #cfcbd4; background: rgba(255,255,255,.06);
+    padding: 1px 5px; border-radius: 5px; }
+  .tag { display: inline-block; font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: color-mix(in srgb, var(--accent) 74%, #fff); margin-right: 6px; }
+  .film { display: flex; gap: 12px; margin-top: 12px; }
+  .frame { flex: 1; }
+  .frame .mini {
+    position: relative; height: 132px; border-radius: 12px; overflow: hidden;
+    background: radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%), #0c0c0e;
+    perspective: 520px;
+  }
+  .frame .mini .mcard {
+    position: absolute; left: 50%; top: 50%; width: 74px; height: 92px; border-radius: 7px;
+    margin: -46px 0 0 -37px; background: #191919;
+    box-shadow: 0 10px 20px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08);
+    overflow: hidden;
+  }
+  .frame .mini .mcard i { position: absolute; inset: 0 0 26px 0; display: block; }
+  .frame .mini .mcard s { position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
+    display: block; background: rgba(8,8,10,.82); }
+  .frame figcaption { margin-top: 7px; font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: rgba(255,255,255,.36); text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Cover Flow — what replaces the Vinyl deck</h1>
+<p class="sub">
+  <b>The stage is the queue.</b> The current track sits forward and flat; the two on either side
+  are turned away on the Y axis, scaled down and dimmed, each showing its own title. Pressing next
+  or previous does not swap two pictures — the whole row <b>turns</b>: every card slides and rotates
+  through the arc at once, and the one that lands in the centre straightens up.
+</p>
+
+<div class="row">
+  <div class="phone">
+    <div class="screen">
+      <div class="wash"></div><div class="floor"></div>
+      <div class="status"><span>9:41</span><span>▮▮▮ 100%</span></div>
+
+      <div class="head">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="kicker">Playing from<b>After Hours</b></div>
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/>
+            <circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="deck3d" id="deckA"></div>
+      </div>
+
+      <div class="panel">
+        <div class="seek">
+          <div class="track"><div class="fill" style="--p:34%"></div><div class="thumb" style="left:34%"></div></div>
+        </div>
+        <div class="times"><span>1:04</span><span>3:12</span></div>
+
+        <div class="transport">
+          <button class="tbtn" aria-label="Repeat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+          </button>
+          <button class="tbtn" id="prevA" aria-label="Previous">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14l-11-7z"/></svg>
+          </button>
+          <button class="play" id="playA" aria-label="Pause">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <button class="tbtn" id="nextA" aria-label="Next">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5l11 7-11 7z"/></svg>
+          </button>
+          <button class="tbtn" aria-label="Shuffle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="lyric">
+          <div class="row2">
+            <span class="lbl">Lyrics</span>
+            <span class="dock">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            </span>
+          </div>
+          <p class="line"><span class="now">I'm blinded by the lights</span> <span class="rest">— no I can't sleep until I feel your touch</span></p>
+        </div>
+      </div>
+      <div class="safe"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card2">
+      <h2>The turn</h2>
+
+      <div class="film">
+        <div class="frame">
+          <div class="mini" id="frameRest"></div>
+          <figcaption>At rest</figcaption>
+        </div>
+        <div class="frame">
+          <div class="mini" id="frameMid"></div>
+          <figcaption>Mid-turn</figcaption>
+        </div>
+        <div class="frame">
+          <div class="mini" id="frameEnd"></div>
+          <figcaption>Landed</figcaption>
+        </div>
+      </div>
+
+      <div class="notes" style="margin-top:14px;">
+        <ul>
+          <li><span class="tag">Arc</span> each card's distance <code>d</code> from the playhead sets
+            its transform: <code>translateX(d × 0.58 × card)</code>,
+            <code>rotateY(−d × 52°)</code>, <code>scale(1 − |d| × 0.12)</code>,
+            scrim <code>|d| × 0.26</code>. The row is one animated float, not a swap.</li>
+          <li><span class="tag">Turn</span> next and previous animate that float by ±1 over
+            <code>420 ms</code> with <code>FastOutSlowInEasing</code>; the outgoing card keeps
+            turning as it leaves, so the motion reads as a wheel, not a cross-fade.</li>
+          <li><span class="tag">Snap</span> with animations off the float jumps in one frame —
+            same rule the Vinyl deck already follows.</li>
+          <li><span class="tag">Depth</span> <code>cameraDistance = 14 × density</code>, raised from
+            the default so a 52° turn does not fan the card into a trapezoid.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card2">
+      <h2>Drive it</h2>
+      <div class="ctl">
+        <label>Queue</label>
+        <button class="chip" id="prevBtn">◀ Previous</button>
+        <button class="chip" id="nextBtn">Next ▶</button>
+        <button class="chip" id="motionBtn" aria-pressed="true">Animations</button>
+      </div>
+      <div class="ctl">
+        <label for="prog">Progress</label>
+        <input id="prog" type="range" min="0" max="100" value="34">
+      </div>
+      <div class="ctl">
+        <label>Palette</label>
+        <div class="swatches">
+          <div class="sw" data-a="#d9863f" data-b="#f0b25e" style="background:linear-gradient(140deg,#f0b25e,#3a1e0a)"></div>
+          <div class="sw" data-a="#4a7bff" data-b="#7de3ff" style="background:linear-gradient(140deg,#7de3ff,#05202e)"></div>
+          <div class="sw" data-a="#1f9d6a" data-b="#b6f06a" style="background:linear-gradient(140deg,#b6f06a,#0b2418)"></div>
+          <div class="sw" data-a="#8a4bff" data-b="#ff8fd0" style="background:linear-gradient(140deg,#ff8fd0,#2a0a24)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card2">
+      <h2>What it takes in the app</h2>
+      <div class="notes">
+        <ul>
+          <li><span class="tag">Deck</span> the deck API hands a deck one <code>Track</code>. This
+            needs the queue: <code>PlayerDeckQueue(previous, current, next, index, total)</code>
+            added to <code>PlayerDeckSlots</code>, filled from <code>state.queue</code> and
+            <code>state.queueCurrentIndex</code> — both already in scope in
+            <code>DerbisNowPlaying</code>.</li>
+          <li><span class="tag">Direction</span> <code>rememberTrackStepDirection()</code> already
+            returns ±1 for a skip; it becomes the sign of the turn, so a native previous turns the
+            other way.</li>
+          <li><span class="tag">Rename</span> <code>PlayerVisualMode.Vinyl</code> →
+            <code>CoverFlow</code> and <code>PlayerDeckLayout.Vinyl</code> → <code>CoverFlow</code>,
+            with <code>"vinyl"</code> kept in <code>PlayerVisualMode.from()</code> so anyone who
+            picked Vinyl lands on the new deck rather than on the fallback.</li>
+          <li><span class="tag">Files</span> <code>PlayerDeckVinyl.kt</code> becomes
+            <code>PlayerDeckCoverFlow.kt</code>; the panel, seek, transport and lyric strip carry
+            over unchanged. The title moves onto the card's plate, so the separate headline goes.</li>
+          <li><span class="tag">Art</span> neighbours use the same <code>CoverImage</code> slot the
+            centre card uses; no extra loading path, no image assets.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var TRACKS = [
+    { id: 'a', title: 'Blinding Lights', artist: 'The Weeknd', art: 'art-a', art2: 'art-d' },
+    { id: 'b', title: 'Hotel California', artist: 'Eagles', art: 'art-e', art2: 'art-a' },
+    { id: 'c', title: 'New Patek', artist: 'Lil Uzi Vert', art: 'art-c', art2: 'art-b' },
+    { id: 'd', title: 'Purple Hearts', artist: 'Wiz Khalifa', art: 'art-d', art2: 'art-a' },
+    { id: 'e', title: 'Night Swim', artist: 'Hana Koru', art: 'art-b', art2: 'art-c' }
+  ];
+
+  var CARD = 196, PLATE = 54, STEP = 0.58, TILT = 52, DROP = 0.12, DIM = 0.26;
+
+  var deckA = document.getElementById('deckA');
+  var cards = [];
+  var current = 0;            /* the playhead index */
+  var position = 0;           /* the animated float the whole row is drawn from */
+  var raf = null;
+  var animated = true;
+
+  function buildDeck() {
+    deckA.innerHTML = '';
+    cards = TRACKS.map(function (t, i) {
+      var el = document.createElement('div');
+      el.className = 'card';
+      el.innerHTML =
+        '<div class="art ' + t.art + '"></div>' +
+        '<div class="plate"><b>' + t.title + '</b><span>' + t.artist + '</span></div>' +
+        '<div class="dim"></div>';
+      deckA.appendChild(el);
+      return el;
+    });
+    paint();
+  }
+
+  function paint() {
+    cards.forEach(function (el, i) {
+      var d = i - position;
+      var ad = Math.abs(d);
+      var x = d * STEP * CARD;
+      var ry = Math.max(-86, Math.min(86, -d * TILT));
+      var sc = Math.max(0.62, 1 - Math.min(ad, 2.4) * DROP);
+      var dim = Math.min(0.82, ad * DIM);
+      el.style.transform =
+        'translateX(' + x + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
+      el.style.opacity = ad > 2.35 ? '0' : '1';
+      el.style.zIndex = String(200 - Math.round(ad * 20));
+      el.querySelector('.dim').style.opacity = String(dim);
+    });
+  }
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function goTo(target) {
+    target = Math.max(0, Math.min(TRACKS.length - 1, target));
+    if (target === current) return;
+    current = target;
+    if (raf) cancelAnimationFrame(raf);
+    if (!animated) { position = target; paint(); return; }
+    var from = position, to = target, start = performance.now(), DUR = 420;
+    function tick(now) {
+      var t = Math.min(1, (now - start) / DUR);
+      position = from + (to - from) * easeOutCubic(t);
+      paint();
+      if (t < 1) raf = requestAnimationFrame(tick); else { position = to; paint(); raf = null; }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+
+  document.getElementById('nextBtn').addEventListener('click', function () { goTo(current + 1); });
+  document.getElementById('prevBtn').addEventListener('click', function () { goTo(current - 1); });
+  document.getElementById('nextA').addEventListener('click', function () { goTo(current + 1); });
+  document.getElementById('prevA').addEventListener('click', function () { goTo(current - 1); });
+
+  document.getElementById('motionBtn').addEventListener('click', function () {
+    animated = !animated;
+    this.setAttribute('aria-pressed', String(animated));
+    this.textContent = animated ? 'Animations' : 'Snapped';
+  });
+
+  document.getElementById('prog').addEventListener('input', function () {
+    var p = Number(this.value);
+    document.querySelectorAll('.fill, .thumb').forEach(function (el) {
+      if (el.classList.contains('fill')) el.style.setProperty('--p', p + '%');
+    });
+    document.querySelector('.fill').style.width = p + '%';
+    document.querySelector('.thumb').style.left = p + '%';
+  });
+
+  document.querySelectorAll('.sw').forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      document.documentElement.style.setProperty('--accent', sw.dataset.a);
+      document.documentElement.style.setProperty('--accent-2', sw.dataset.b);
+    });
+  });
+
+  /* the three still frames, drawn with the same maths at three positions */
+  function miniFrame(host, pos, offsetIndex) {
+    host.innerHTML = '';
+    var stage = document.createElement('div');
+    stage.style.position = 'absolute';
+    stage.style.inset = '0';
+    stage.style.transformStyle = 'preserve-3d';
+    host.appendChild(stage);
+    TRACKS.forEach(function (t, i) {
+      var d = i - pos;
+      var ad = Math.abs(d);
+      if (ad > 2.3) return;
+      var x = d * STEP * 74;
+      var ry = Math.max(-86, Math.min(86, -d * TILT));
+      var sc = Math.max(0.62, 1 - Math.min(ad, 2.4) * DROP);
+      var el = document.createElement('div');
+      el.className = 'mcard';
+      el.style.transform = 'translateX(' + x + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
+      el.style.zIndex = String(100 - Math.round(ad * 10));
+      el.innerHTML = '<i class="' + t.art + '"></i><s></s>' +
+        '<div style="position:absolute;inset:0;background:#07070a;opacity:' +
+        Math.min(0.82, ad * DIM) + '"></div>';
+      stage.appendChild(el);
+    });
+  }
+
+  buildDeck();
+  miniFrame(document.getElementById('frameRest'), 0);
+  miniFrame(document.getElementById('frameMid'), 0.45);
+  miniFrame(document.getElementById('frameEnd'), 1);
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui.components
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -24,7 +24,7 @@ private const val NowPlayingAccentMinimumChroma = 16.0
 
 @Composable
 fun rememberNowPlayingAccent(track: Track?, fallback: Color): Color {
-    if (DerbisIsNocturne) return Nocturne78Palette.cyan
+    if (DerbisIsPixel) return PixelPalette.cyan
     val animationsEnabled = LocalAnimationsEnabled.current
     val target = remember(
         track?.id,

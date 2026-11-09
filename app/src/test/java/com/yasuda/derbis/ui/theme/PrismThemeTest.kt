@@ -129,14 +129,14 @@ class PrismThemeTest {
         assertFalse(prismPalette(systemDark = false).isLight)
     }
 
-    @Test fun switchingSkinsRestoresDefaultAndNocturneExactly() {
+    @Test fun switchingSkinsRestoresDefaultAndPixelExactly() {
         DerbisThemeController.apply(DerbisThemes.FROST, accentOverride = 0xFF3355AA.toInt())
         val saved = DerbisActivePalette
         DerbisThemeController.apply(DerbisThemes.FROST, skin = DerbisSkin.LiquidGlass)
         assertTrue(DerbisSkinManagesLayout)
         assertTrue(DerbisIsPrism)
-        DerbisThemeController.apply(DerbisThemes.FROST, skin = DerbisSkin.Nocturne78)
-        assertEquals(Nocturne78Palette, DerbisActivePalette)
+        DerbisThemeController.apply(DerbisThemes.FROST, skin = DerbisSkin.Pixel)
+        assertEquals(PixelPalette, DerbisActivePalette)
         assertFalse(DerbisIsPrism)
         DerbisThemeController.apply(DerbisThemes.FROST, accentOverride = 0xFF3355AA.toInt())
         assertEquals(saved, DerbisActivePalette)
@@ -171,9 +171,10 @@ class PrismThemeTest {
         assertEquals(2, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
         DerbisThemeController.apply(DerbisThemes.COSMIC, skin = DerbisSkin.LiquidGlass)
         assertEquals(30, skinMiniPlayerCorner(prismMiniSettings(saved).activeTuning()).value.toInt())
-        DerbisThemeController.apply(DerbisThemes.COSMIC, skin = DerbisSkin.Nocturne78)
-        val nocturneTuning = nocturneMiniSettings(saved).activeTuning()
-        assertEquals(10, skinMiniPlayerCorner(nocturneTuning).value.toInt())
+        DerbisThemeController.apply(DerbisThemes.COSMIC, skin = DerbisSkin.Pixel)
+        val pixelTuning = pixelMiniSettings(saved).activeTuning()
+        // Pixel has no corners at all, including on the mini player.
+        assertEquals(0, skinMiniPlayerCorner(pixelTuning).value.toInt())
         DerbisThemeController.apply(DerbisThemes.COSMIC, skin = DerbisSkin.Default)
         assertEquals(saved.activeTuning().cornerDp, skinMiniPlayerCorner(saved.activeTuning()).value.toInt())
         assertEquals(DerbisMiniPlayerStudioSettings(), saved)

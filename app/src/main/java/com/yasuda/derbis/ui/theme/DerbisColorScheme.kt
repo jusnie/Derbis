@@ -83,23 +83,9 @@ internal fun derbisColorScheme(palette: DerbisPalette): ColorScheme {
         tertiaryContainer = palette.panel, onTertiaryContainer = palette.pink,
         surfaceTint = Color.Transparent
     )
-    if (palette.id == Nocturne78Palette.id) return darkColorScheme(
-        primary = palette.cyan, onPrimary = palette.black,
-        primaryContainer = palette.panelSoft, onPrimaryContainer = palette.cyan,
-        secondary = palette.muted, onSecondary = palette.black,
-        secondaryContainer = palette.panelSoft, onSecondaryContainer = palette.text,
-        tertiary = palette.violet, onTertiary = palette.black,
-        tertiaryContainer = palette.panel, onTertiaryContainer = palette.violet,
-        background = palette.black, onBackground = palette.text,
-        surface = palette.panel, onSurface = palette.text,
-        surfaceVariant = Nocturne78Design.variant, onSurfaceVariant = palette.muted,
-        surfaceTint = Color.Transparent, outline = palette.outline, outlineVariant = palette.outline,
-        surfaceContainerLowest = palette.ink, surfaceContainerLow = palette.panel,
-        surfaceContainer = palette.panel, surfaceContainerHigh = palette.panelSoft,
-        surfaceContainerHighest = Nocturne78Design.variant,
-        surfaceBright = Nocturne78Design.variant, surfaceDim = palette.ink,
-        inverseSurface = palette.text, inverseOnSurface = palette.black, inversePrimary = Color(0xFF704800)
-    )
+    // Pixel is a light palette, so it takes the generic light branch below rather than a
+    // fixed scheme of its own: the branch already derives readable accents and containers from
+    // isLight, which is exactly what a rose-on-paper skin needs.
     val light = palette.isLight
     val primary = derbisTonalRole(palette.cyan, light, AccentContainerChroma)
     val secondary = derbisTonalRole(palette.violet, light, NeutralContainerChroma)

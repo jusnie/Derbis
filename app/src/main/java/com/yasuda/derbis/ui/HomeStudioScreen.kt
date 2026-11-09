@@ -2,7 +2,7 @@ package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.domain.DerbisSkin
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelPalette
 import com.yasuda.derbis.ui.theme.SkinManagedNotice
 
 import com.yasuda.derbis.ui.components.DerbisBackButton

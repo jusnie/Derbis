@@ -3,8 +3,8 @@ package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.domain.LyricsProviderId
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.nocturneMiniSettings
-import com.yasuda.derbis.ui.theme.nocturneNavSettings
+import com.yasuda.derbis.ui.theme.pixelMiniSettings
+import com.yasuda.derbis.ui.theme.pixelNavSettings
 
 import com.yasuda.derbis.ui.components.derbisMarquee
 import com.yasuda.derbis.ui.components.DerbisBackButton
@@ -328,9 +328,9 @@ import com.yasuda.derbis.domain.MiniPlayerStyle
 import com.yasuda.derbis.domain.NavColorSource
 import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.DerbisSkin
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.SkinSelector
 import com.yasuda.derbis.ui.i18n.NavStudioText
 import com.yasuda.derbis.ui.i18n.navigationStudioCopy
@@ -935,7 +935,7 @@ private val DerbisTabIndicatorTop = 11.dp
 private val DerbisTabIndicatorHeight = 36.dp
 private val DerbisTabIndicatorShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 15.dp, bottomEnd = 15.dp)
 private val DerbisTabScrimHeight = 22.dp
-private val DerbisNavigationBlue: Color get() = if (DerbisIsNocturne) DerbisCyan else Color(0xFF0A84FF)
+private val DerbisNavigationBlue: Color get() = if (DerbisIsPixel) DerbisCyan else Color(0xFF0A84FF)
 private val DerbisHomeGlowViolet = Color(0xFF6E5CF0)
 
 internal val DerbisIsLight: Boolean get() = DerbisActivePalette.isLight
@@ -1111,7 +1111,7 @@ private fun cinematicGlassBrush(
     accentEnd: Color = DerbisViolet,
     intensity: Float = 1f
 ): Brush {
-    if (DerbisIsNocturne) return Brush.linearGradient(listOf(DerbisPanel, DerbisPanel))
+    if (DerbisIsPixel) return Brush.linearGradient(listOf(DerbisPanel, DerbisPanel))
     return if (DerbisIsLight) {
         Brush.linearGradient(
             listOf(
@@ -1166,13 +1166,13 @@ internal data class DerbisTabEntry(
 @Composable
 internal fun rememberDerbisTabEntries(): List<DerbisTabEntry> {
     val strings = LocalDerbisStrings.current
-    val nocturne = DerbisIsNocturne
-    return remember(strings, nocturne) {
+    val pixel = DerbisIsPixel
+    return remember(strings, pixel) {
         listOf(
-            DerbisTabEntry(DerbisTab.Home, if (nocturne) Icons.Outlined.Home else Icons.Rounded.Home, Icons.Outlined.Home, strings.home),
-            DerbisTabEntry(DerbisTab.Search, if (nocturne) Icons.Outlined.Search else Icons.Rounded.Search, Icons.Outlined.Search, strings.search),
-            DerbisTabEntry(DerbisTab.Explore, if (nocturne) Icons.Outlined.Explore else Icons.Rounded.Explore, Icons.Outlined.Explore, strings.explore),
-            DerbisTabEntry(DerbisTab.Library, if (nocturne) Icons.Outlined.LibraryMusic else Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic, strings.library)
+            DerbisTabEntry(DerbisTab.Home, if (pixel) Icons.Outlined.Home else Icons.Rounded.Home, Icons.Outlined.Home, strings.home),
+            DerbisTabEntry(DerbisTab.Search, if (pixel) Icons.Outlined.Search else Icons.Rounded.Search, Icons.Outlined.Search, strings.search),
+            DerbisTabEntry(DerbisTab.Explore, if (pixel) Icons.Outlined.Explore else Icons.Rounded.Explore, Icons.Outlined.Explore, strings.explore),
+            DerbisTabEntry(DerbisTab.Library, if (pixel) Icons.Outlined.LibraryMusic else Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic, strings.library)
         )
     }
 }
@@ -2063,9 +2063,9 @@ fun DerbisApp(
     }
     val rootView = LocalView.current
     LaunchedEffect(state.themePreset, pureBlack, customThemes, state.interfaceSettings.skin, DerbisActivePalette.isLight) {
-        val nocturne = state.interfaceSettings.skin == DerbisSkin.Nocturne78
+        val pixel = state.interfaceSettings.skin == DerbisSkin.Pixel
         val base = when (state.interfaceSettings.skin) {
-            DerbisSkin.Nocturne78 -> Nocturne78Palette
+            DerbisSkin.Pixel -> PixelPalette
             DerbisSkin.LiquidGlass, DerbisSkin.Torque, DerbisSkin.Ivory, DerbisSkin.AppleMusicStyle, DerbisSkin.TidalStyle, DerbisSkin.YouTubeMusicStyle -> DerbisActivePalette
             DerbisSkin.SpotifyStyle -> spotifyPalette()
             DerbisSkin.Default -> DerbisThemes.byId(state.themePreset)
@@ -2242,7 +2242,7 @@ fun DerbisApp(
         LocalDerbisStrings provides currentStrings,
         LocalDerbisHaptics provides rememberDerbisHaptics(state.interfaceSettings.hapticFeedback),
         LocalLayoutDirection provides layoutDirection,
-        LocalNocturneNavigationHeight provides remember { mutableStateOf(64.dp) },
+        LocalPixelNavigationHeight provides remember { mutableStateOf(64.dp) },
         LocalNavDockExtraClearance provides if (DerbisSkinManagesLayout) 0.dp else navDockExtraClearance(navigationStudio.settings.style, navigationStudio.settings.activeTuning()),
         LocalNavArtworkSeed provides navArtworkSeed,
         LocalDerbisGlassAccessibility provides glassAccessibility
@@ -4060,8 +4060,8 @@ private fun downloadHudBottomPadding(state: DerbisUiState, dockSideBySide: Boole
 private fun tabBarBottomContentInset(miniPlayerVisible: Boolean, animationsEnabled: Boolean): Dp {
     val navigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navigationHeight = when {
-        DerbisIsNocturne -> (LocalNocturneNavigationHeight.current?.value ?: 64.dp) + 1.dp
-        DerbisIsPrism -> LocalNocturneNavigationHeight.current?.value ?: 80.dp
+        DerbisIsPixel -> (LocalPixelNavigationHeight.current?.value ?: 64.dp) + 1.dp
+        DerbisIsPrism -> LocalPixelNavigationHeight.current?.value ?: 80.dp
         else -> DerbisTabBarCompactHeight
     }
     val collapsed = navigationHeight + navigationBarInset + DerbisBottomContentGap + LocalNavDockExtraClearance.current
@@ -4620,8 +4620,8 @@ private fun AlbumOverlay(
         fallback = fallbackPalette
     )
     val lightTheme = DerbisIsLight
-    val nocturne = DerbisIsNocturne
-    val stageTarget = remember(albumPalette, lightTheme, nocturne) {
+    val pixel = DerbisIsPixel
+    val stageTarget = remember(albumPalette, lightTheme, pixel) {
         albumStageColors(Color(albumPalette.start), Color(albumPalette.end), lightTheme)
     }
     val stage = animatedImmersiveMediaColors(
@@ -5479,9 +5479,9 @@ private fun ArtistOverlay(
         artworkUrl = heroArtwork,
         fallback = fallbackPalette
     )
-    val nocturne = DerbisIsNocturne
-    val atmosphereTargets = remember(artistPalette, nocturne) {
-        if (nocturne) Nocturne78Palette.black to Nocturne78Palette.cyan else {
+    val pixel = DerbisIsPixel
+    val atmosphereTargets = remember(artistPalette, pixel) {
+        if (pixel) PixelPalette.black to PixelPalette.cyan else {
         val pair = harmonizePlayerAccents(Color(artistPalette.start), Color(artistPalette.end))
         playerAmbienceOf(pair.primary, pair.secondary).tint to playerHighlightOf(pair.primary, pair.secondary)
         }
@@ -9931,7 +9931,7 @@ private fun LyricsSyncStatus(synced: Boolean, syncedLabel: String, unsyncedLabel
 
 @Composable
 private fun DerbisBackground() {
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Box(Modifier.fillMaxSize().background(DerbisBlack))
         return
     }
@@ -11291,7 +11291,7 @@ private class StudioHomeLook(
 @Composable
 private fun rememberStudioHomeLook(homeStudio: DerbisHomeStudioSettings, state: DerbisUiState): StudioHomeLook {
     val homeStyle = when {
-        DerbisIsNocturne -> HomeStyle.Minimal
+        DerbisIsPixel -> HomeStyle.Minimal
         DerbisIsPrism -> HomeStyle.Minimal
         else -> homeStudio.style
     }
@@ -11300,9 +11300,9 @@ private fun rememberStudioHomeLook(homeStudio: DerbisHomeStudioSettings, state: 
         homeStudio.activeLayout().let { if (prismHome) it.copy(density = HomeDensity.Balanced, dynamicPalette = false) else it }
     }
     val homeRenderOrder = remember(studioLayout) { studioLayout.renderOrder() }
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val spotifyHome = DerbisIsSpotify
-    val styleSpec = remember(homeStyle, studioLayout.density, nocturne, spotifyHome) { homeStyleSpec(homeStyle, studioLayout.density, nocturne, spotifyHome) }
+    val styleSpec = remember(homeStyle, studioLayout.density, pixel, spotifyHome) { homeStyleSpec(homeStyle, studioLayout.density, pixel, spotifyHome) }
     val homeAnimationsEnabled = state.animationsEnabled && studioLayout.motion != HomeMotion.Reduced
     val studioPlacementSpec = remember(studioLayout.motion) {
         if (studioLayout.motion == HomeMotion.Expressive) {
@@ -14513,20 +14513,20 @@ private data class ResonanceAppearance(val shape: Shape, val quoteShape: Shape, 
 
 @Composable
 private fun rememberResonanceAppearance(toneIndex: Int): ResonanceAppearance {
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val colors = MaterialTheme.colorScheme
     val tone = ResonanceBubbleTones[toneIndex.coerceAtLeast(0) % ResonanceBubbleTones.size]
-    return remember(nocturne, colors, tone) {
-        if (nocturne) {
-            val shape = RoundedCornerShape(Nocturne78Design.cardCorner)
-            ResonanceAppearance(shape, RoundedCornerShape(Nocturne78Design.artworkCorner), colors.surfaceContainer, Modifier.border(1.dp, colors.outline, shape))
+    return remember(pixel, colors, tone) {
+        if (pixel) {
+            val shape = RoundedCornerShape(PixelDesign.cardCorner)
+            ResonanceAppearance(shape, RoundedCornerShape(PixelDesign.artworkCorner), colors.surfaceContainer, Modifier.border(1.dp, colors.outline, shape))
         } else ResonanceAppearance(ResonanceCardShape, ResonanceBubbleShape, lerp(colors.surfaceContainerHighest, tone, 0.30f), Modifier)
     }
 }
 
 @Composable
 private fun resonancePlayShape(playing: Boolean): Shape =
-    if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner)
+    if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner)
     else rememberDerbisPlayMorphShape(playing = playing, animated = LocalAnimationsEnabled.current)
 
 @Composable
@@ -14597,15 +14597,15 @@ private fun ResonanceQuoteHeader(
 
 @Composable
 private fun ResonanceQuoteText(text: String, muted: Boolean) {
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val size = if (muted) 13.sp else 16.sp
     Text(
         text = text,
         color = if (muted) DerbisMuted else DerbisText,
         fontSize = size,
         lineHeight = DerbisTypeRhythm.lineHeight(size),
-        fontFamily = if (nocturne && !muted) FontFamily.Serif else null,
-        fontWeight = if (nocturne || muted) FontWeight.Medium else FontWeight.SemiBold,
+        fontFamily = if (pixel && !muted) FontFamily.Serif else null,
+        fontWeight = if (pixel || muted) FontWeight.Medium else FontWeight.SemiBold,
         maxLines = 3,
         overflow = TextOverflow.Ellipsis
     )
@@ -21044,7 +21044,7 @@ private fun SettingsOverlay(
     fun categoryTitle(value: String): String = settingsCategoryTitle(value, categoryLocale)
     val categories = remember(strings.code, DerbisActivePalette) {
         listOf(
-            SettingsCategoryMeta("skins", com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, DerbisViolet, SettingsHubGroup.Appearance),
+            SettingsCategoryMeta("skins", com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).title, "Derbis Default · Pixel · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.playerGestureHorizontalSwipe} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, DerbisPink, SettingsHubGroup.Listening),
@@ -21595,13 +21595,13 @@ private fun SettingsOverlay(
                                     onSettings = onInterfaceSettings
                                 )
                             }
-                            }, nocturne = {
+                            }, pixel = {
                                 item {
                                     SettingsTile {
                                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             Text(strings.playerVisualMode, color = DerbisMuted, style = MaterialTheme.typography.labelLarge)
                                             Text(DerbisSkinLabel, color = DerbisText, style = MaterialTheme.typography.titleMedium)
-                                            Text(if (DerbisIsPrism) com.yasuda.derbis.ui.i18n.DerbisSkinStrings.managedForCode(strings.code, DerbisSkinLabel) else com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).nocturneBody, color = DerbisMuted)
+                                            Text(if (DerbisIsPrism) com.yasuda.derbis.ui.i18n.DerbisSkinStrings.managedForCode(strings.code, DerbisSkinLabel) else com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).pixelBody, color = DerbisMuted)
                                         }
                                     }
                                 }
@@ -23986,7 +23986,7 @@ private fun SettingsToggle(icon: ImageVector, title: String, subtitle: String, c
         ) {
             SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisCyan)
             SettingsTileText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
-            if (DerbisIsNocturne || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) SkinSwitch(checked) else Switch(
+            if (DerbisIsPixel || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) SkinSwitch(checked) else Switch(
                 checked = checked,
                 onCheckedChange = null,
                 thumbContent = if (checked) {
@@ -26554,9 +26554,9 @@ private fun SearchSectionHeader(title: String, showAll: Boolean, onShowAll: () -
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = if (DerbisIsTorque || DerbisIsNocturne) title.uppercase() else title,
+            text = if (DerbisIsTorque || DerbisIsPixel) title.uppercase() else title,
             color = DerbisText,
-            fontSize = if (DerbisIsTorque || DerbisIsNocturne) 18.sp else 24.sp,
+            fontSize = if (DerbisIsTorque || DerbisIsPixel) 18.sp else 24.sp,
             lineHeight = 28.sp,
             fontWeight = searchSectionTitleWeight(),
             letterSpacing = searchSectionTitleSpacing(),
@@ -27768,7 +27768,7 @@ private fun ExploreMoodRailRow(
                             title = zone.label,
                             identity = zone.id,
                             artworkUrl = artworkUrl,
-                            accentColors = if (DerbisIsNocturne) DerbisPanel to DerbisPanelSoft else Color(zone.accentStart) to Color(zone.accentEnd),
+                            accentColors = if (DerbisIsPixel) DerbisPanel to DerbisPanelSoft else Color(zone.accentStart) to Color(zone.accentEnd),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp),
@@ -28152,7 +28152,7 @@ private fun DerbisExploreShortcutTile(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "explore-shortcut-rotation"
     )
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val skinned = DerbisSkinManagesLayout
     val iconShape = if (skinned) SkinChrome.iconShape else entry.polygon.toShape()
     val tileShape = exploreShortcutShape()
@@ -28204,7 +28204,7 @@ private fun DerbisExploreShortcutTile(
         BasicText(
             text = entry.label,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (skinned) FontWeight.Medium else FontWeight.Bold, color = colors.onSurface),
-            maxLines = if (nocturne) 2 else 1,
+            maxLines = if (pixel) 2 else 1,
             overflow = TextOverflow.Ellipsis,
             autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 14.sp),
             modifier = Modifier.weight(1f)
@@ -28783,9 +28783,9 @@ private fun formatDuration(ms: Long): String {
 private fun LazyListScope.skinSettingsItems(
     skin: DerbisSkin,
     defaults: LazyListScope.() -> Unit,
-    nocturne: LazyListScope.() -> Unit = {}
+    pixel: LazyListScope.() -> Unit = {}
 ) {
-    if (skin == DerbisSkin.Default) defaults() else nocturne()
+    if (skin == DerbisSkin.Default) defaults() else pixel()
 }
 
 private fun skinHomeStyleLabel(style: HomeStyle): String =
@@ -28815,7 +28815,7 @@ private fun searchFieldIconTint(active: Boolean, scheme: androidx.compose.materi
 }
 
 private fun searchFieldCorner(fallback: Dp): Dp = when {
-    DerbisIsNocturne -> Nocturne78Design.cardCorner
+    DerbisIsPixel -> PixelDesign.cardCorner
     DerbisIsSpotify -> SpotifyDesign.corner
     DerbisIsYouTubeMusic -> 20.dp
     DerbisIsAppleMusic -> AppleMusicDesign.cornerL
@@ -28904,15 +28904,15 @@ private fun settingsChoiceContent(active: Boolean): Color =
 
 private fun exploreShortcutShape(): Shape = when {
     DerbisIsPrism -> PrismDesign.cut(PrismDesign.surfaceCorner)
-    DerbisIsNocturne -> RoundedCornerShape(Nocturne78Design.cardCorner)
+    DerbisIsPixel -> RoundedCornerShape(PixelDesign.cardCorner)
     else -> RoundedCornerShape(22.dp)
 }
 
 private fun artistPlayBackground(playContainer: Color, playShape: Shape): Modifier =
     when {
         DerbisIsPrism -> Modifier.clip(CircleShape).background(PrismAccent.gradient())
-        DerbisIsNocturne -> Modifier.clip(RoundedCornerShape(Nocturne78Design.controlCorner)).background(DerbisPanelSoft)
-            .border(1.dp, DerbisCyan, RoundedCornerShape(Nocturne78Design.controlCorner))
+        DerbisIsPixel -> Modifier.clip(RoundedCornerShape(PixelDesign.controlCorner)).background(DerbisPanelSoft)
+            .border(1.dp, DerbisCyan, RoundedCornerShape(PixelDesign.controlCorner))
         else -> Modifier.background(playContainer, playShape)
     }
 
@@ -28966,7 +28966,7 @@ private fun searchSectionTitleWeight(): FontWeight = when {
 }
 
 private fun searchSectionTitleSpacing(): TextUnit = when {
-    DerbisIsTorque || DerbisIsNocturne -> 1.8.sp
+    DerbisIsTorque || DerbisIsPixel -> 1.8.sp
     DerbisIsIvory -> 0.2.sp
     DerbisIsSpotify -> (-0.4).sp
     else -> (-0.3).sp
@@ -28975,7 +28975,7 @@ private fun searchSectionTitleSpacing(): TextUnit = when {
 private fun artistPlayContent(fallback: Color): Color = when {
     DerbisIsSpotify || DerbisIsYouTubeMusic -> Color.Black
     DerbisIsPrism -> Color.White
-    DerbisIsNocturne -> DerbisCyan
+    DerbisIsPixel -> DerbisCyan
     else -> fallback
 }
 

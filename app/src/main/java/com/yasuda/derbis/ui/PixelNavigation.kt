@@ -27,21 +27,21 @@ import com.yasuda.derbis.domain.DerbisTab
 import com.yasuda.derbis.domain.NavTuning
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 import com.yasuda.derbis.ui.theme.DerbisHapticAction
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelIcons
+import com.yasuda.derbis.ui.theme.PixelPalette
 
-internal val LocalNocturneNavigationHeight = compositionLocalOf<MutableState<Dp>?> { null }
+internal val LocalPixelNavigationHeight = compositionLocalOf<MutableState<Dp>?> { null }
 
 @Composable
-internal fun NocturneBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (DerbisTab) -> Unit, applySystemInset: Boolean) {
-    val measuredHeight = LocalNocturneNavigationHeight.current
+internal fun PixelBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (DerbisTab) -> Unit, applySystemInset: Boolean) {
+    val measuredHeight = LocalPixelNavigationHeight.current
     val density = LocalDensity.current
     val haptics = LocalDerbisHaptics.current
     val all = rememberDerbisTabEntries()
     val entries = remember(all, tuning.order, tuning.hidden) {
         tuning.visibleOrder().mapNotNull { tab -> all.firstOrNull { it.tab == tab } }
     }
-    val p = Nocturne78Palette
+    val p = PixelPalette
     Column(Modifier.fillMaxWidth().background(p.panel)) {
         HorizontalDivider(color = p.outline, thickness = 1.dp)
         Row(
@@ -65,7 +65,7 @@ internal fun NocturneBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect
                 ) {
                     Box(Modifier.width(20.dp).height(2.dp).background(if (active) p.cyan else Color.Transparent))
                     Spacer(Modifier.height(5.dp))
-                    Icon(Nocturne78Icons.resolve(entry.unselectedIcon), null, tint = tint, modifier = Modifier.size(22.dp))
+                    Icon(PixelIcons.resolve(entry.unselectedIcon), null, tint = tint, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.height(4.dp))
                     Text(
                         entry.label, color = tint, fontSize = 11.sp, lineHeight = 15.sp,

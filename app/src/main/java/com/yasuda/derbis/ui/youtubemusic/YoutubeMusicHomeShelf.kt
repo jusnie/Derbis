@@ -40,7 +40,7 @@ import com.yasuda.derbis.ui.components.DerbisSectionShowAll
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.youtubeMusicHomeCopy
 import com.yasuda.derbis.ui.theme.DerbisCyan
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsTorque
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisPanelSoft
@@ -80,7 +80,7 @@ private fun YoutubeMusicLibraryEntry.asShelfAlbum(subtitle: String, type: Releas
 @Composable
 internal fun YoutubeMusicHomeFooter(ui: YoutubeMusicHomeShelfUi, inset: Dp) {
     val copy = youtubeMusicHomeCopy(LocalDerbisStrings.current.code)
-    val upper = DerbisIsTorque || DerbisIsNocturne
+    val upper = DerbisIsTorque || DerbisIsPixel
     val avatarShape = if (DerbisIsTorque) RoundedCornerShape(2.dp) else CircleShape
     Row(
         modifier = Modifier

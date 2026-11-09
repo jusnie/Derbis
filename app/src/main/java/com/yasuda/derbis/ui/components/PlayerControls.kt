@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelIcons
 
 data class PlayerControlLabels(
     val shuffle: String,
@@ -68,8 +68,8 @@ internal fun PlayerIcon(
     tint: Color,
     modifier: Modifier = Modifier
 ) {
-    val nocturne = DerbisIsNocturne
-    val resolved = remember(icon, nocturne) { if (nocturne) Nocturne78Icons.resolve(icon) else ioniconForPlayer(icon) ?: icon }
+    val pixel = DerbisIsPixel
+    val resolved = remember(icon, pixel) { if (pixel) PixelIcons.resolve(icon) else ioniconForPlayer(icon) ?: icon }
     Icon(
         imageVector = resolved,
         contentDescription = null,

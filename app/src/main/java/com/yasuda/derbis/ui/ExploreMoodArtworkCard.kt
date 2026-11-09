@@ -1,10 +1,10 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisPanelSoft
-import com.yasuda.derbis.ui.theme.Nocturne78Design
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -314,10 +314,10 @@ internal fun RowScope.ExploreMoodCard(
         }
         return
     }
-    val nocturne = DerbisIsNocturne
-    val accentStart = if (nocturne) DerbisPanelSoft else Color(zone.accentStart)
-    val accentEnd = if (nocturne) DerbisPanel else Color(zone.accentEnd)
-    val shape = RoundedCornerShape(if (nocturne) Nocturne78Design.cardCorner else 26.dp)
+    val pixel = DerbisIsPixel
+    val accentStart = if (pixel) DerbisPanelSoft else Color(zone.accentStart)
+    val accentEnd = if (pixel) DerbisPanel else Color(zone.accentEnd)
+    val shape = RoundedCornerShape(if (pixel) PixelDesign.cardCorner else 26.dp)
     val bottomScrim = remember {
         Brush.verticalGradient(
             listOf(
@@ -327,10 +327,10 @@ internal fun RowScope.ExploreMoodCard(
             )
         )
     }
-    val outlineBrush = remember(accentStart, accentEnd, isSelected, nocturne) {
+    val outlineBrush = remember(accentStart, accentEnd, isSelected, pixel) {
         Brush.linearGradient(
             listOf(
-                if (nocturne) (if (isSelected) Nocturne78Palette.cyan else Nocturne78Palette.outline) else accentStart.copy(alpha = if (isSelected) 0.96f else 0.40f),
+                if (pixel) (if (isSelected) PixelPalette.cyan else PixelPalette.outline) else accentStart.copy(alpha = if (isSelected) 0.96f else 0.40f),
                 accentEnd.copy(alpha = if (isSelected) 0.76f else 0.25f),
                 Color.White.copy(alpha = if (isSelected) 0.20f else 0.08f)
             )
@@ -342,7 +342,7 @@ internal fun RowScope.ExploreMoodCard(
             .weight(1f)
             .heightIn(min = if (prominent) 204.dp else 156.dp)
             .shadow(
-                elevation = if (nocturne) 0.dp else if (isSelected) 18.dp else 10.dp,
+                elevation = if (pixel) 0.dp else if (isSelected) 18.dp else 10.dp,
                 shape = shape,
                 clip = false,
                 ambientColor = accentStart.copy(alpha = if (isSelected) 0.30f else 0.16f),
@@ -413,7 +413,7 @@ internal fun RowScope.ExploreMoodCard(
             )
             if (isSelected) {
                 Box(
-                    modifier = Modifier.size(24.dp).background(if (nocturne) Nocturne78Palette.cyan else Color.White, CircleShape),
+                    modifier = Modifier.size(24.dp).background(if (pixel) PixelPalette.cyan else Color.White, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Rounded.Check, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))

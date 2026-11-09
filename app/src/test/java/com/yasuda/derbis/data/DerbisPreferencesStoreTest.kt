@@ -136,10 +136,10 @@ class DerbisPreferencesStoreTest {
         val (store, preferences) = open()
         preferences.setThemePreset(com.yasuda.derbis.ui.theme.DerbisThemes.FROST)
         preferences.setThemeAccent(0xFF1256AB.toInt())
-        preferences.setInterfaceSettings(DerbisInterfaceSettings(skin = com.yasuda.derbis.domain.DerbisSkin.Nocturne78))
+        preferences.setInterfaceSettings(DerbisInterfaceSettings(skin = com.yasuda.derbis.domain.DerbisSkin.Pixel))
         flush(store)
         val reopened = reopen()
-        assertEquals(com.yasuda.derbis.domain.DerbisSkin.Nocturne78, reopened.interfaceSettings().skin)
+        assertEquals(com.yasuda.derbis.domain.DerbisSkin.Pixel, reopened.interfaceSettings().skin)
         assertEquals(com.yasuda.derbis.ui.theme.DerbisThemes.FROST, reopened.themePreset())
         assertEquals(0xFF1256AB.toInt(), reopened.themeAccent())
     }

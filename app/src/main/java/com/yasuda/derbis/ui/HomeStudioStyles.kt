@@ -1,8 +1,8 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import android.icu.text.DateFormat
 import androidx.compose.animation.animateColorAsState
@@ -160,7 +160,7 @@ internal data class HomeStyleSpec(
     val compactLimit: Int
 )
 
-internal fun homeStyleSpec(style: HomeStyle, density: HomeDensity, nocturne: Boolean = false, spotify: Boolean = false): HomeStyleSpec {
+internal fun homeStyleSpec(style: HomeStyle, density: HomeDensity, pixel: Boolean = false, spotify: Boolean = false): HomeStyleSpec {
     val base = when (style) {
         HomeStyle.Original -> HomeStyleSpec(16.dp, 8.dp, 156.dp, 260.dp, 1f, 12.dp, 52.dp, 5, 3, 6)
         HomeStyle.ExpressiveMax -> HomeStyleSpec(16.dp, 20.dp, 168.dp, 304.dp, 1f, 32.dp, 56.dp, 5, 3, 6)
@@ -177,8 +177,8 @@ internal fun homeStyleSpec(style: HomeStyle, density: HomeDensity, nocturne: Boo
     }
     return base.copy(
         inset = if (spotify) SpotifyDesign.gutter else base.inset,
-        sectionGap = (if (nocturne) base.sectionGap.coerceAtMost(16.dp) else if (spotify) 24.dp else base.sectionGap) * scale,
-        artworkCorner = if (nocturne) Nocturne78Design.artworkCorner else if (spotify) SpotifyDesign.cornerSmall else base.artworkCorner,
+        sectionGap = (if (pixel) base.sectionGap.coerceAtMost(16.dp) else if (spotify) 24.dp else base.sectionGap) * scale,
+        artworkCorner = if (pixel) PixelDesign.artworkCorner else if (spotify) SpotifyDesign.cornerSmall else base.artworkCorner,
         cardWidth = base.cardWidth * scale,
         largeCardWidth = base.largeCardWidth * scale,
         listLimit = if (density == HomeDensity.Compact) base.listLimit + 1 else base.listLimit
@@ -305,8 +305,8 @@ private fun expressiveArtistShapeFor(index: Int): Shape = when (index % 3) {
 
 @Composable
 private fun studioArtworkShape(style: HomeStyle, spec: HomeStyleSpec, index: Int, round: Boolean): Shape = when {
-    DerbisIsNocturne && !round -> RoundedCornerShape(Nocturne78Design.artworkCorner)
-    DerbisIsNocturne -> CircleShape
+    DerbisIsPixel && !round -> RoundedCornerShape(PixelDesign.artworkCorner)
+    DerbisIsPixel -> CircleShape
     round && style == HomeStyle.Minimal -> RoundedCornerShape(spec.artworkCorner)
     round && style == HomeStyle.ExpressiveMax -> expressiveArtistShapeFor(index)
     round -> CircleShape
@@ -316,7 +316,7 @@ private fun studioArtworkShape(style: HomeStyle, spec: HomeStyleSpec, index: Int
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun studioOrbitShape(style: HomeStyle, index: Int, fallback: Shape): Shape = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.artworkCorner) else when (style) {
+internal fun studioOrbitShape(style: HomeStyle, index: Int, fallback: Shape): Shape = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.artworkCorner) else when (style) {
     HomeStyle.ExpressiveMax -> when (index % 6) {
         0 -> MaterialShapes.SoftBurst.toShape()
         1 -> MaterialShapes.Cookie9Sided.toShape()
@@ -971,8 +971,8 @@ private fun StudioCompact(
         PrismCompactShelf(items, isPlaying, spec.inset, modifier)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneCompactShelf(items, isPlaying, spec.inset, modifier)
+    if (DerbisIsPixel) {
+        PixelCompactShelf(items, isPlaying, spec.inset, modifier)
         return
     }
     if (items.first().round) {
@@ -1094,8 +1094,8 @@ internal fun StudioHomeHeader(
         PrismHomeHeader(greeting, today.takeIf { name.isBlank() }.orEmpty(), hero, spec.inset, onSearch, onSettings, dayPart, name, onOpenZone)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneHomeHeader(greeting, today.takeIf { name.isBlank() }.orEmpty(), hero, spec.inset, onSearch, onSettings, dayPart, name)
+    if (DerbisIsPixel) {
+        PixelHomeHeader(greeting, today.takeIf { name.isBlank() }.orEmpty(), hero, spec.inset, onSearch, onSettings, dayPart, name)
         return
     }
     if (style == HomeStyle.MaterialExpressive && hero != null) {
@@ -1287,7 +1287,7 @@ internal fun StudioSpotlight(
     val playing = isCurrent && isPlaying
     val resolving = isCurrent && isResolving
     val playIcon = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         CompactSpotlight(HomeStyle.Minimal, spec, track, artistArtworkUrl, label, lead, playLabel, playing, resolving, playIcon, animationsEnabled, onOpen)
         return
     }
@@ -2002,7 +2002,7 @@ internal fun StudioHomeBackdrop(
         PrismAtmosphere(modifier)
         return
     }
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Box(modifier.fillMaxSize().background(canvas))
         return
     }
@@ -2623,8 +2623,8 @@ private fun StudioMinimalChart(
     spec: HomeStyleSpec,
     onPlay: (Track) -> Unit
 ) {
-    if (DerbisIsNocturne) {
-        NocturneChartShelf(tracks, currentId, isPlaying, onPlay, spec.inset)
+    if (DerbisIsPixel) {
+        PixelChartShelf(tracks, currentId, isPlaying, onPlay, spec.inset)
         return
     }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = spec.inset)) {

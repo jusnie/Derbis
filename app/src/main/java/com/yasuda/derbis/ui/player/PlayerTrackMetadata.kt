@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -209,7 +209,7 @@ private fun metadataTitleSize(compact: Boolean, appleMusic: Boolean, prism: Bool
     DerbisIsSpotify -> 22.sp
     appleMusic -> 20.sp
     prism -> 23.sp
-    DerbisIsNocturne -> if (compact) 22.sp else 25.sp
+    DerbisIsPixel -> if (compact) 22.sp else 25.sp
     compact -> 23.sp
     else -> 27.sp
 }
@@ -226,7 +226,7 @@ private fun metadataTitleWeight(appleMusic: Boolean, prism: Boolean): FontWeight
     DerbisIsYouTubeMusic -> FontWeight.Bold
     DerbisIsSpotify -> FontWeight.Bold
     appleMusic -> FontWeight.Medium
-    DerbisIsNocturne || prism -> FontWeight.Medium
+    DerbisIsPixel || prism -> FontWeight.Medium
     else -> FontWeight.ExtraBold
 }
 

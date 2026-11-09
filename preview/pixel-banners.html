@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel charms — transparent banners</title>
+<style>
+  :root {
+    --ground: #FFEDF1;
+    --panel: #FFD9E2;
+    --edge: #A84765;
+    --ink: #5B2338;
+    --muted: #9A5570;
+    --hot: #FF5C8A;
+    --cream: #FFF8F6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: #150C11;
+    color: #F6E7EC;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 40px 24px 80px;
+  }
+  h1 { font-size: 22px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; color: #FFC2D3; }
+  .sub { font-size: 12.5px; line-height: 1.7; color: rgba(255,226,234,.62); max-width: 720px; margin: 0 0 34px; }
+  h2 {
+    font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #FF9DBB;
+    margin: 0 0 16px; display: flex; align-items: center; gap: 12px;
+  }
+  h2::after { content: ""; flex: 1; height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(255,157,187,.45) 0 6px, transparent 6px 12px); }
+  section { margin-bottom: 46px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+  .cell { flex: 0 0 auto; }
+  .label { font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+    color: rgba(255,226,234,.42); margin-bottom: 7px; }
+  .label b { color: #FFC2D3; }
+
+  /* the four grounds the banner has to survive */
+  .bg-checker {
+    background-image:
+      repeating-conic-gradient(#2a2028 0% 25%, #1d161c 0% 50%);
+    background-size: 16px 16px;
+  }
+  .bg-rose { background: #FF8FB1; }
+  .bg-noir { background: #08080A; }
+  .bg-blush { background: #FFEDF1; }
+
+  .swatch { padding: 0; border: 2px solid rgba(255,255,255,.14); }
+  .swatch img { display: block; width: 216px; height: auto; image-rendering: pixelated; }
+
+  /* the mini player banner, as it would sit in the app */
+  .mini {
+    width: 320px; border: 2px solid var(--edge); background: var(--cream);
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+  }
+  .mini .band { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+  .mini .inner { display: flex; align-items: center; gap: 10px; padding: 9px 10px; }
+  .mini .cov { width: 44px; height: 44px; flex: 0 0 44px; border: 2px solid var(--edge);
+    background: linear-gradient(140deg,#FFC2D3,#FF5C8A 60%,#A84765); }
+  .mini .meta { flex: 1; min-width: 0; }
+  .mini .meta em { display: block; font-style: normal; font-size: 7.5px; letter-spacing: .26em;
+    text-transform: uppercase; color: var(--hot); margin-bottom: 2px; }
+  .mini .meta b { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini .meta span { font-size: 9px; color: var(--muted); }
+  .mini .bar { height: 8px; border-top: 2px solid var(--edge); background: var(--panel); }
+  .mini .bar i { display: block; height: 100%; width: 46%;
+    background-image: repeating-conic-gradient(var(--hot) 0% 25%, transparent 0% 50%);
+    background-size: 4px 4px; background-color: var(--hot); }
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; max-width: 900px; }
+  .rule { border: 1px solid rgba(255,157,187,.22); background: rgba(255,255,255,.03);
+    padding: 12px 14px; border-radius: 10px; }
+  .rule b { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    color: #FFC2D3; margin-bottom: 5px; }
+  .rule span { font-size: 11.5px; line-height: 1.65; color: rgba(255,226,234,.68); }
+  code { font-size: 11px; color: #FFC2D3; background: rgba(255,157,187,.1); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Pixel charms</h1>
+<p class="sub">
+  The white plate is gone. Each charm is drawn straight onto the band, so every pixel that is not
+  the band or the charm is <b>fully transparent</b> — <code>alpha 0</code>, not white. Shipped as
+  PNG (6&times; nearest-neighbour, <code>720&times;180</code>) and as SVG rects, so it stays crisp
+  at any density.
+</p>
+
+<section>
+  <h2>On the four grounds it has to survive</h2>
+  <div class="grid">
+    <div class="cell">
+      <div class="label"><b>bow</b> &middot; transparent checker</div>
+      <div class="swatch bg-checker"><img src="pixel-banners/bow.png" alt="bow banner on a transparency checker" /></div>
+    </div>
+    <div class="cell">
+      <div class="label"><b>star</b> &middot; hot rose</div>
+      <div class="swatch bg-rose"><img src="pixel-banners/star.png" alt="star banner on rose" /></div>
+    </div>
+    <div class="cell">
+      <div class="label"><b>heart</b> &middot; noir</div>
+      <div class="swatch bg-noir"><img src="pixel-banners/heart.png" alt="heart banner on black" /></div>
+    </div>
+    <div class="cell">
+      <div class="label"><b>bow</b> &middot; blush paper</div>
+      <div class="swatch bg-blush"><img src="pixel-banners/bow.png" alt="bow banner on blush paper" /></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Where it lands — the mini player banner</h2>
+  <div class="grid">
+    <div class="cell">
+      <div class="label"><b>bow</b></div>
+      <div class="mini">
+        <img class="band" src="pixel-banners/bow.png" alt="" />
+        <div class="inner">
+          <div class="cov"></div>
+          <div class="meta"><em>Now playing</em><b>Lovers Rock</b><span>TV Girl</span></div>
+        </div>
+        <div class="bar"><i></i></div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="label"><b>star</b></div>
+      <div class="mini">
+        <img class="band" src="pixel-banners/star.png" alt="" />
+        <div class="inner">
+          <div class="cov" style="background:linear-gradient(140deg,#D9C2FF,#9FB8FF 60%,#5B6BB4)"></div>
+          <div class="meta"><em>Now playing</em><b>Amber Room</b><span>Nia Archives</span></div>
+        </div>
+        <div class="bar"><i style="width:72%"></i></div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="label"><b>heart</b></div>
+      <div class="mini">
+        <img class="band" src="pixel-banners/heart.png" alt="" />
+        <div class="inner">
+          <div class="cov" style="background:linear-gradient(140deg,#FFE1A8,#FF9DBB 60%,#B4546E)"></div>
+          <div class="meta"><em>Paused</em><b>Night Drive</b><span>Kali Uchis</span></div>
+        </div>
+        <div class="bar"><i style="width:14%"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>How it is made</h2>
+  <div class="rules">
+    <div class="rule"><b>Transparency</b><span>Written as RGBA PNG with <code>alpha 0</code> outside
+      the band and charm. No white fill, no matte.</span></div>
+    <div class="rule"><b>Crispness</b><span>Every pixel is duplicated 6&times; nearest-neighbour, so
+      the blocks stay square; in the app the SVG is used at any <code>dp</code>.</span></div>
+    <div class="rule"><b>Source</b><span>ASCII grids in <code>generate.py</code> — one letter per
+      colour. Edit a grid, re-run, both files rebuild.</span></div>
+    <div class="rule"><b>Charm</b><span>bow, star and heart share one band, so switching charm never
+      changes the banner's height.</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Files</h2>
+  <div class="rules">
+    <div class="rule"><b>PNG</b><span><code>preview/pixel-banners/bow.png</code>,
+      <code>star.png</code>, <code>heart.png</code> &mdash; 720&times;180 RGBA.</span></div>
+    <div class="rule"><b>SVG</b><span><code>bow.svg</code>, <code>star.svg</code>,
+      <code>heart.svg</code> &mdash; the same art as ~340 rects, for the app drawable.</span></div>
+    <div class="rule"><b>Source</b><span><code>preview/pixel-banners/generate.py</code> &mdash;
+      no dependencies beyond the standard library.</span></div>
+  </div>
+</section>
+
+</body>
+</html>

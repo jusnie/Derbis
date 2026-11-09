@@ -89,7 +89,7 @@ import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.appleArtistInfoCopy
 import com.yasuda.derbis.ui.theme.AppleMusicDesign
 import com.yasuda.derbis.ui.theme.DerbisIsAppleMusic
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.viewmodel.AppleMusicEditorialViewModel
 import com.yasuda.derbis.viewmodel.appleArtistKey
@@ -246,7 +246,7 @@ private fun AppleMusicTitle(title: String, explicit: Boolean, style: androidx.co
     }
 }
 
-internal val DerbisUsesAppleArtistHero: Boolean get() = DerbisIsAppleMusic || (!DerbisIsPrism && !DerbisIsNocturne)
+internal val DerbisUsesAppleArtistHero: Boolean get() = DerbisIsAppleMusic || (!DerbisIsPrism && !DerbisIsPixel)
 
 internal class AppleArtistActions(
     val openAlbum: (AppleCatalogItem) -> Unit,

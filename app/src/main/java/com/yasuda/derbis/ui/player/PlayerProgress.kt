@@ -2,7 +2,7 @@
 package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -100,7 +100,7 @@ internal fun PlayerProgress(
             ?.bars(if (compact) 72 else 96)
     }
 
-    val appearance = remember(style, activeColor, secondaryColor, motionActive, waveform, DerbisIsNocturne) {
+    val appearance = remember(style, activeColor, secondaryColor, motionActive, waveform, DerbisIsPixel) {
         playerProgressAppearance(style, activeColor, secondaryColor, motionActive, waveform)
     }
     Column(modifier = modifier.fillMaxWidth()) {
@@ -192,6 +192,6 @@ private class PlayerProgressAppearance(
 
 private fun playerProgressAppearance(style: PlayerProgressStyle, active: Color, secondary: Color, motion: Boolean, waveform: FloatArray?): PlayerProgressAppearance {
     val thumb = if (style == PlayerProgressStyle.Expressive) SeekbarThumbShape.Notched else SeekbarThumbShape.Round
-    return if (DerbisIsNocturne) PlayerProgressAppearance(false, active, active, false, null, thumb)
+    return if (DerbisIsPixel) PlayerProgressAppearance(false, active, active, false, null, thumb)
     else PlayerProgressAppearance(style == PlayerProgressStyle.Wavy, secondary, Color.White, motion, waveform, thumb)
 }

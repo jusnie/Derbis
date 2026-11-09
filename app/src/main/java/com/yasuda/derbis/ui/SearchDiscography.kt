@@ -79,7 +79,7 @@ import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.searchDiscographyCopy
 import com.yasuda.derbis.ui.theme.DerbisActivePalette
 import com.yasuda.derbis.ui.theme.DerbisCyan
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.ui.theme.DerbisIsIvory
 import com.yasuda.derbis.ui.theme.DerbisIsSpotify
@@ -91,7 +91,7 @@ import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisPanelSoft
 import com.yasuda.derbis.ui.theme.DerbisText
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PrismAccent
 import com.yasuda.derbis.ui.theme.PrismDesign
 import java.util.Locale
@@ -107,7 +107,7 @@ internal data class SearchCardModel(
 
 internal data class SearchCardAction(val icon: ImageVector, val label: String, val onClick: () -> Unit)
 
-internal enum class SearchCardStyle { Expressive, Prism, Torque, Nocturne, Ivory, Spotify }
+internal enum class SearchCardStyle { Expressive, Prism, Torque, Pixel, Ivory, Spotify }
 
 internal val currentSearchCardStyle: SearchCardStyle
     get() = when {
@@ -115,7 +115,7 @@ internal val currentSearchCardStyle: SearchCardStyle
         DerbisIsSpotify -> SearchCardStyle.Spotify
         DerbisIsIvory -> SearchCardStyle.Ivory
         DerbisIsPrism -> SearchCardStyle.Prism
-        DerbisIsNocturne -> SearchCardStyle.Nocturne
+        DerbisIsPixel -> SearchCardStyle.Pixel
         else -> SearchCardStyle.Expressive
     }
 
@@ -238,7 +238,7 @@ private fun SearchDiscographyShelf.label(featuredOn: String, albums: String, sin
 
 @Composable
 private fun searchSkinLabel(text: String): String =
-    if (DerbisIsTorque || DerbisIsNocturne) text.uppercase(LocalLocale.current.platformLocale) else text
+    if (DerbisIsTorque || DerbisIsPixel) text.uppercase(LocalLocale.current.platformLocale) else text
 
 @Composable
 private fun SearchDiscographyHeader(artist: ArtistHit, overline: String, onOpenArtist: () -> Unit) {
@@ -260,7 +260,7 @@ private fun SearchDiscographyHeader(artist: ArtistHit, overline: String, onOpenA
                 text = searchSkinLabel(overline),
                 color = if (style == SearchCardStyle.Expressive) MaterialTheme.colorScheme.primary else DerbisCyan,
                 style = MaterialTheme.typography.labelMedium,
-                letterSpacing = if (style == SearchCardStyle.Torque || style == SearchCardStyle.Nocturne) 1.6.sp else 0.4.sp,
+                letterSpacing = if (style == SearchCardStyle.Torque || style == SearchCardStyle.Pixel) 1.6.sp else 0.4.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -336,7 +336,7 @@ internal fun SearchCard(
         SearchCardStyle.Expressive -> ExpressiveSearchCard(card, actions, modifier, onClick)
         SearchCardStyle.Prism -> PrismSearchCard(card, actions, modifier, onClick)
         SearchCardStyle.Torque -> TorqueSearchCard(card, actions, modifier, onClick)
-        SearchCardStyle.Nocturne -> NocturneSearchCard(card, actions, modifier, onClick)
+        SearchCardStyle.Pixel -> PixelSearchCard(card, actions, modifier, onClick)
         SearchCardStyle.Ivory -> IvorySearchCard(card, actions, modifier, onClick)
         SearchCardStyle.Spotify -> SpotifySearchCard(card, actions, modifier, onClick)
     }
@@ -544,8 +544,8 @@ private fun TorqueSearchCard(card: SearchCardModel, actions: List<SearchCardActi
 }
 
 @Composable
-private fun NocturneSearchCard(card: SearchCardModel, actions: List<SearchCardAction>, modifier: Modifier, onClick: () -> Unit) {
-    val artworkShape = RoundedCornerShape(Nocturne78Design.artworkCorner)
+private fun PixelSearchCard(card: SearchCardModel, actions: List<SearchCardAction>, modifier: Modifier, onClick: () -> Unit) {
+    val artworkShape = RoundedCornerShape(PixelDesign.artworkCorner)
     Column(
         modifier = modifier.derbisPressable(onClick = onClick, role = Role.Button, onClickLabel = card.title),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -665,14 +665,14 @@ internal fun SearchArtistListRow(artist: ArtistHit, onClick: () -> Unit) {
         SearchCardStyle.Expressive -> MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.62f)
         SearchCardStyle.Prism -> Color.Transparent
         SearchCardStyle.Torque -> DerbisPanel
-        SearchCardStyle.Nocturne -> DerbisPanelSoft
+        SearchCardStyle.Pixel -> DerbisPanelSoft
         SearchCardStyle.Ivory, SearchCardStyle.Spotify -> Color.Transparent
     }
     val rowShape: Shape = when (style) {
         SearchCardStyle.Expressive -> RoundedCornerShape(24.dp)
         SearchCardStyle.Prism -> RoundedCornerShape(PrismDesign.surfaceCorner)
         SearchCardStyle.Torque -> RoundedCornerShape(2.dp)
-        SearchCardStyle.Nocturne -> RoundedCornerShape(Nocturne78Design.cardCorner)
+        SearchCardStyle.Pixel -> RoundedCornerShape(PixelDesign.cardCorner)
         SearchCardStyle.Ivory -> RoundedCornerShape(PrismDesign.surfaceCorner)
         SearchCardStyle.Spotify -> RoundedCornerShape(SpotifyDesign.cornerSmall)
     }

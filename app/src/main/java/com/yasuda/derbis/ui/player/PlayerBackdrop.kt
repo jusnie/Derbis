@@ -85,7 +85,7 @@ internal fun PlayerBackdrop(
         com.yasuda.derbis.ui.theme.PrismPlayerAtmosphere(modifier)
         return
     }
-    if (com.yasuda.derbis.ui.theme.DerbisIsNocturne) {
+    if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
         Box(modifier.background(Color.Black))
         return
     }

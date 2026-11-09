@@ -2,7 +2,7 @@ package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.toShape
@@ -124,7 +124,7 @@ internal fun LibraryHero(title: String, subtitle: String, onBack: (() -> Unit)? 
         if (onBack != null) {
             DerbisBackButton(onClick = onBack, contentDescription = strings.back, modifier = Modifier.padding(bottom = 4.dp))
         }
-        Text(title, color = colors.onSurface, style = if (DerbisIsNocturne) DerbisType.screenTitle else DerbisType.heroTitle, softWrap = true, modifier = Modifier.semantics { heading() })
+        Text(title, color = colors.onSurface, style = if (DerbisIsPixel) DerbisType.screenTitle else DerbisType.heroTitle, softWrap = true, modifier = Modifier.semantics { heading() })
         if (subtitle.isNotBlank()) {
             Text(subtitle, color = colors.onSurfaceVariant, style = DerbisType.metadata, softWrap = true)
         }

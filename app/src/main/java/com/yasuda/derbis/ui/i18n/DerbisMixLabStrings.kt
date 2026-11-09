@@ -128,7 +128,7 @@ private val mixLabBundles: Map<String, Map<String, String>> = mapOf(
         "Genres", "Uniquement les genres que vous choisissez",
         "Artistes", "Uniquement les artistes que vous choisissez",
         "Ambiance", "Basé sur vos vrais tags de genre et d'ambiance",
-        "Préréglages", "Détente", "Entraînement", "Nocturne", "Redécouvrir", "Nouveautés",
+        "Préréglages", "Détente", "Entraînement", "Pixel", "Redécouvrir", "Nouveautés",
         "Générer", "Régénérer", "Régler les paramètres",
         "Création de votre mix…",
         "Aperçu", "{count} titres", "{count} artistes", "{percent}% familiers", "{percent}% découverte",

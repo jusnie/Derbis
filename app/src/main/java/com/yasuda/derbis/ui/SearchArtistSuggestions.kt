@@ -219,7 +219,7 @@ private fun SearchArtistRow(
 
 private fun searchArtistAvatarShape(default: androidx.compose.ui.graphics.Shape): androidx.compose.ui.graphics.Shape = when {
     DerbisIsTorque -> RoundedCornerShape(2.dp)
-    DerbisIsNocturne -> RoundedCornerShape(Nocturne78Design.artworkCorner)
+    DerbisIsPixel -> RoundedCornerShape(PixelDesign.artworkCorner)
     else -> default
 }
 

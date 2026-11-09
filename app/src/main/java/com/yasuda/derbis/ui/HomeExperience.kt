@@ -86,7 +86,7 @@ internal fun DerbisHomeAtmosphere(
         com.yasuda.derbis.ui.theme.PrismAtmosphere(modifier)
         return
     }
-    if (com.yasuda.derbis.ui.theme.DerbisIsNocturne) {
+    if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
         Box(modifier.fillMaxSize().background(DerbisBlack))
         return
     }

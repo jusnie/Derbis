@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui.components
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
@@ -132,8 +132,8 @@ fun PremiumSeekbar(
 ) {
     val density = LocalDensity.current
     val haptics = LocalDerbisHaptics.current
-    val nocturne = DerbisIsNocturne
-    val decorativeMotion = LocalDerbisVisualCapabilities.current.decorativeMotion && !nocturne
+    val pixel = DerbisIsPixel
+    val decorativeMotion = LocalDerbisVisualCapabilities.current.decorativeMotion && !pixel
     val measuredWaveform = waveform?.takeIf { values ->
         values.isNotEmpty() && values.all { it.isFinite() }
     }
@@ -423,7 +423,7 @@ fun PremiumSeekbar(
                 }
             }
 
-            if (nocturne && handleX > trackStart) {
+            if (pixel && handleX > trackStart) {
                 drawRoundRect(
                     color = activeColor, topLeft = Offset(trackStart, trackTop),
                     size = Size(handleX - trackStart, trackHeight), cornerRadius = radius

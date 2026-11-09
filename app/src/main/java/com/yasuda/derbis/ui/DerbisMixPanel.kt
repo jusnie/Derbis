@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
@@ -109,12 +109,12 @@ internal fun DerbisMixLauncherPanel(
         return
     }
     val colors = MaterialTheme.colorScheme
-    val nocturne = DerbisIsNocturne
-    val panelShape = RoundedCornerShape(if (nocturne) Nocturne78Design.panelCorner else 28.dp)
-    val wash = remember(accent, colors.surfaceContainerHigh, nocturne) {
+    val pixel = DerbisIsPixel
+    val panelShape = RoundedCornerShape(if (pixel) PixelDesign.panelCorner else 28.dp)
+    val wash = remember(accent, colors.surfaceContainerHigh, pixel) {
         Brush.linearGradient(
-            0f to accent.copy(alpha = if (nocturne) 0f else 0.34f),
-            0.55f to accent.copy(alpha = if (nocturne) 0f else 0.10f),
+            0f to accent.copy(alpha = if (pixel) 0f else 0.34f),
+            0.55f to accent.copy(alpha = if (pixel) 0f else 0.10f),
             1f to colors.surfaceContainerHigh.copy(alpha = 0f)
         )
     }

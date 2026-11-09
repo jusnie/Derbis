@@ -39,16 +39,16 @@ internal val TorqueStripShape = androidx.compose.foundation.shape.GenericShape {
 
 internal object SkinChrome {
     val active: Boolean get() = DerbisSkinManagesLayout
-    val outerCorner: Dp get() = if (DerbisIsYouTubeMusic) YouTubeMusicDesign.chipCorner else if (DerbisIsAppleMusic) AppleMusicDesign.cornerL else if (DerbisIsPrism) PrismDesign.surfaceCorner else Nocturne78Design.cardCorner
+    val outerCorner: Dp get() = if (DerbisIsYouTubeMusic) YouTubeMusicDesign.chipCorner else if (DerbisIsAppleMusic) AppleMusicDesign.cornerL else if (DerbisIsPrism) PrismDesign.surfaceCorner else PixelDesign.cardCorner
     val innerCorner: Dp get() = if (DerbisIsAppleMusic) 0.dp else if (DerbisIsYouTubeMusic) YouTubeMusicDesign.artworkCorner else if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else 2.dp
-    val fieldShape: Shape get() = RoundedCornerShape(if (DerbisIsPrism) PrismDesign.controlCorner else Nocturne78Design.controlCorner)
+    val fieldShape: Shape get() = RoundedCornerShape(if (DerbisIsPrism) PrismDesign.controlCorner else PixelDesign.controlCorner)
     val chipShape: Shape get() = when {
         DerbisIsYouTubeMusic -> YouTubeMusicDesign.chipShape
         DerbisIsTorque -> RoundedCornerShape(2.dp)
         DerbisIsPrism -> CircleShape
-        else -> RoundedCornerShape(Nocturne78Design.controlCorner)
+        else -> RoundedCornerShape(PixelDesign.controlCorner)
     }
-    val iconShape: Shape get() = if (DerbisIsAppleMusic) RoundedCornerShape(AppleMusicDesign.cornerM) else if (DerbisIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else RoundedCornerShape(Nocturne78Design.controlCorner)
+    val iconShape: Shape get() = if (DerbisIsAppleMusic) RoundedCornerShape(AppleMusicDesign.cornerM) else if (DerbisIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else RoundedCornerShape(PixelDesign.controlCorner)
     val iconBackground: Color get() = when {
         DerbisIsYouTubeMusic -> Color.Transparent
         DerbisIsAppleMusic -> AppleMusicDesign.accent
@@ -67,7 +67,7 @@ internal object SkinChrome {
         else -> Color.Transparent
     }
     val chipSelectedContent: Color get() = if (DerbisIsYouTubeMusic) Color.Black else if (DerbisIsTorque || DerbisIsAppleMusic) Color.White else if (DerbisIsSpotify) Color.Black else if (DerbisIsIvory) IvoryDesign.onInk else DerbisCyan
-    val labelsUppercase: Boolean get() = DerbisIsNocturne || DerbisIsTorque
+    val labelsUppercase: Boolean get() = DerbisIsPixel || DerbisIsTorque
 
     fun label(text: String, locale: Locale): String = if (labelsUppercase) text.uppercase(locale) else text
 }

@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExitTransition
@@ -204,7 +204,7 @@ internal fun rememberMiniPlayerPalette(
 @Composable
 private fun rememberSkinMiniPlayerPalette(track: Track, animated: Boolean): MiniPlayerPalette? {
     val scheme = MaterialTheme.colorScheme
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         return MiniPlayerPalette(scheme.primary, scheme.primary, scheme.surfaceContainerHigh, scheme.onSurface, scheme.onSurfaceVariant, true)
     }
     if (DerbisIsSpotify) {

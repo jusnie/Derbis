@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
-internal object Nocturne78Icons {
+internal object PixelIcons {
     val Play = lineIcon("Play", "M8,5 L19,12 L8,19 Z")
     val Pause = lineIcon("Pause", "M8,5 L8,19 M16,5 L16,19")
     private val Previous = lineIcon("Previous", "M5,5 L5,19 M19,5 L8,12 L19,19 Z")
@@ -43,7 +43,7 @@ internal object Nocturne78Icons {
     }
 
     private fun lineIcon(name: String, path: String): ImageVector = ImageVector.Builder(
-        name = "Nocturne78.$name", defaultWidth = 24.dp, defaultHeight = 24.dp,
+        name = "Pixel.$name", defaultWidth = 24.dp, defaultHeight = 24.dp,
         viewportWidth = 24f, viewportHeight = 24f
     ).addPath(
         pathData = PathParser().parsePathString(path).toNodes(),

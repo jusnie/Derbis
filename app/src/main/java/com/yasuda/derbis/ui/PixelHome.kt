@@ -33,12 +33,12 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import com.yasuda.derbis.ui.components.DerbisPlayingIndicator
 import com.yasuda.derbis.ui.components.derbisPressable
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
-import com.yasuda.derbis.ui.theme.Nocturne78Design
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelIcons
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 @Composable
-internal fun NocturneHomeHeader(
+internal fun PixelHomeHeader(
     greeting: String,
     date: String,
     hero: StudioHero?,
@@ -49,7 +49,7 @@ internal fun NocturneHomeHeader(
     name: String = ""
 ) {
     val strings = LocalDerbisStrings.current
-    val p = Nocturne78Palette
+    val p = PixelPalette
     Box(Modifier.fillMaxWidth().background(p.black)) {
         if (hero != null) {
             Box(Modifier.matchParentSize()) {
@@ -93,14 +93,14 @@ internal fun NocturneHomeHeader(
                 Text(hero.lead, color = p.muted, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(14.dp))
                 Row(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(Nocturne78Design.cardCorner))
-                        .background(p.panel).border(1.dp, p.outline, RoundedCornerShape(Nocturne78Design.cardCorner))
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(PixelDesign.cardCorner))
+                        .background(p.panel).border(1.dp, p.outline, RoundedCornerShape(PixelDesign.cardCorner))
                         .derbisPressable(onClick = hero.onOpen, onClickLabel = hero.track.title, role = Role.Button)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(Modifier.size(58.dp).clip(RoundedCornerShape(Nocturne78Design.artworkCorner))) {
+                    Box(Modifier.size(58.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))) {
                         CoverImage(hero.track, Modifier.fillMaxSize())
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -108,13 +108,13 @@ internal fun NocturneHomeHeader(
                         Text(hero.track.artist, color = p.muted, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     Box(
-                        Modifier.size(48.dp).border(BorderStroke(1.dp, p.outline), RoundedCornerShape(Nocturne78Design.controlCorner)),
+                        Modifier.size(48.dp).border(BorderStroke(1.dp, p.outline), RoundedCornerShape(PixelDesign.controlCorner)),
                         contentAlignment = Alignment.Center
                     ) {
                         if (hero.isResolving && hero.isCurrent) {
                             DerbisLoadingIndicator(color = p.cyan, modifier = Modifier.size(24.dp))
                         } else {
-                            Icon(if (hero.isCurrent && hero.isPlaying) Nocturne78Icons.Pause else Nocturne78Icons.Play, null, tint = p.cyan)
+                            Icon(if (hero.isCurrent && hero.isPlaying) PixelIcons.Pause else PixelIcons.Play, null, tint = p.cyan)
                         }
                     }
                 }
@@ -124,16 +124,16 @@ internal fun NocturneHomeHeader(
 }
 
 @Composable
-internal fun NocturneCollectionCard(title: String, subtitle: String, artwork: Track?, onOpen: () -> Unit, modifier: Modifier) {
-    val p = Nocturne78Palette
+internal fun PixelCollectionCard(title: String, subtitle: String, artwork: Track?, onOpen: () -> Unit, modifier: Modifier) {
+    val p = PixelPalette
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(Nocturne78Design.cardCorner)).background(p.panel)
-            .border(1.dp, p.outline, RoundedCornerShape(Nocturne78Design.cardCorner))
+        modifier.fillMaxWidth().clip(RoundedCornerShape(PixelDesign.cardCorner)).background(p.panel)
+            .border(1.dp, p.outline, RoundedCornerShape(PixelDesign.cardCorner))
             .derbisPressable(onClick = onOpen, onClickLabel = title, role = Role.Button).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (artwork != null) Box(Modifier.size(76.dp).clip(RoundedCornerShape(Nocturne78Design.artworkCorner))) {
+        if (artwork != null) Box(Modifier.size(76.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))) {
             CoverImage(artwork, Modifier.fillMaxSize())
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -145,9 +145,9 @@ internal fun NocturneCollectionCard(title: String, subtitle: String, artwork: Tr
 }
 
 @Composable
-internal fun NocturneCompactShelf(items: List<StudioShelfItem>, isPlaying: Boolean, inset: Dp, modifier: Modifier) {
+internal fun PixelCompactShelf(items: List<StudioShelfItem>, isPlaying: Boolean, inset: Dp, modifier: Modifier) {
     val pages = remember(items) { items.chunked(3) }
-    val p = Nocturne78Palette
+    val p = PixelPalette
     LazyRow(
         modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = inset),
@@ -163,7 +163,7 @@ internal fun NocturneCompactShelf(items: List<StudioShelfItem>, isPlaying: Boole
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(Nocturne78Design.artworkCorner))) {
+                        Box(Modifier.size(48.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))) {
                             item.artwork(Modifier.fillMaxSize(), false)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -180,7 +180,7 @@ internal fun NocturneCompactShelf(items: List<StudioShelfItem>, isPlaying: Boole
 }
 
 @Composable
-internal fun NocturneChartShelf(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit, inset: Dp) {
+internal fun PixelChartShelf(tracks: List<Track>, currentId: String?, isPlaying: Boolean, onPlay: (Track) -> Unit, inset: Dp) {
     val pages = remember(tracks) { tracks.chunked(5) }
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -197,15 +197,15 @@ internal fun NocturneChartShelf(tracks: List<Track>, currentId: String?, isPlayi
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text((pageIndex * 5 + rowIndex + 1).toString(), color = Nocturne78Palette.muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, modifier = Modifier.width(24.dp))
-                        Box(Modifier.size(44.dp).clip(RoundedCornerShape(Nocturne78Design.artworkCorner))) { CoverImage(track, Modifier.fillMaxSize()) }
+                        Text((pageIndex * 5 + rowIndex + 1).toString(), color = PixelPalette.muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp, modifier = Modifier.width(24.dp))
+                        Box(Modifier.size(44.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))) { CoverImage(track, Modifier.fillMaxSize()) }
                         Column(Modifier.weight(1f)) {
-                            Text(track.title, color = Nocturne78Palette.text, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text(track.artist, color = Nocturne78Palette.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(track.title, color = PixelPalette.text, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(track.artist, color = PixelPalette.muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        if (track.id == currentId) DerbisPlayingIndicator(playing = isPlaying, color = Nocturne78Palette.cyan, size = 12.dp)
+                        if (track.id == currentId) DerbisPlayingIndicator(playing = isPlaying, color = PixelPalette.cyan, size = 12.dp)
                     }
-                    HorizontalDivider(color = Nocturne78Palette.outline.copy(alpha = 0.5f))
+                    HorizontalDivider(color = PixelPalette.outline.copy(alpha = 0.5f))
                 }
             }
         }

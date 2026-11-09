@@ -1,8 +1,8 @@
 package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import androidx.compose.foundation.shape.CircleShape
 import android.Manifest
@@ -683,7 +683,7 @@ internal fun DerbisLibraryScreen(
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     singleLine = true,
-                    shape = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner) else CircleShape,
+                    shape = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner) else CircleShape,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         color = colors.onSurface,
                         fontWeight = FontWeight.Medium
