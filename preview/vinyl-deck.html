@@ -6,6 +6,8 @@
 <title>Derbis — Vinyl player deck (preview)</title>
 <style>
   :root {
+    /* the sleeve side everything on the stage is derived from */
+    --side: 188;
     /* one artwork's palette; every colour on the deck is mixed from these */
     --accent: #d9465f;
     --accent-2: #f0a35e;
@@ -62,44 +64,60 @@
     color: rgba(244,242,239,.8); background: rgba(255,255,255,.05); }
   .ico svg { width: 17px; height: 17px; display: block; }
 
-  /* ---------- the stage: sleeve + disc + tonearm ---------- */
-  .stage { position: relative; z-index: 2; height: 292px; display: grid; place-items: center; }
-  .stage-inner { position: relative; width: 268px; height: 200px; }
+  /* ---------- the stage ----------
+     These are the deck's numbers, not an impression of them. With side = 188:
+       stage width   1.42 x side  (VinylStageWidthFactor) - room for the disc to leave
+       sleeve        flush at the start edge, side x side, 4 dp corner
+       disc          diameter 0.94 x side, centre at (0.5 + 0.42 x out) x side
+       label         radius 0.31 x disc radius
+       spindle       radius 0.032 x disc radius
+     The disc stays behind the sleeve, so at out = 0 it is completely hidden and the
+     stage reads as one square; only the slide-out ever shows it. The stage is left-aligned,
+     not centred, so the sleeve sits on the same gutter as the title underneath it and the
+     spare 0.42 x side is on the right, where the disc goes. */
+  .stage { position: relative; z-index: 2; height: calc(var(--side) * 1px); padding: 0 22px; }
+  .stage-inner { position: relative; width: calc(var(--side) * 1.42px); height: calc(var(--side) * 1px); }
+
+  /* the record's weight: a hard shadow circle, offset down and slightly over size */
+  .disc-shadow {
+    position: absolute; top: 50%;
+    width: calc(var(--side) * 0.9494px); height: calc(var(--side) * 0.9494px);
+    border-radius: 50%; background: rgba(0,0,0,.42);
+    translate: -50% calc(-50% + 7px);
+    left: calc(94px + 78.96px * var(--out, 0));
+    transition: left .52s cubic-bezier(.4,0,.2,1);
+  }
 
   /* record */
   .disc {
-    position: absolute; top: 50%; width: 188px; height: 188px; border-radius: 50%;
+    position: absolute; top: 50%;
+    width: calc(var(--side) * 0.94px); height: calc(var(--side) * 0.94px);
+    border-radius: 50%;
     translate: -50% -50%;
-    left: calc(46% + var(--out, 0px));
+    left: calc(94px + 78.96px * var(--out, 0));
     background:
-      radial-gradient(circle at 50% 50%, #111 0 27%, transparent 27.4%),
       repeating-radial-gradient(circle at 50% 50%,
-        rgba(255,255,255,.055) 0 1px, transparent 1px 4px),
-      radial-gradient(circle at 34% 26%, rgba(255,255,255,.16), transparent 42%),
-      radial-gradient(circle at 50% 50%, #1a1a1d 0 62%, #0a0a0c 100%);
-    box-shadow: 0 18px 34px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.045);
-    transition: left .55s cubic-bezier(.22,.61,.36,1);
+        rgba(255,255,255,.055) 0 1px, transparent 1px calc(var(--side) * 0.028px)),
+      radial-gradient(118% 118% at 33% 25%, #262629 0%, #191a1d 46%, #0c0c0f 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.045);
+    transition: left .52s cubic-bezier(.4,0,.2,1);
   }
-  /* the pressed label, coloured from the artwork */
+  /* the pressed label, coloured from the artwork's accent */
   .label {
-    position: absolute; left: 50%; top: 50%; width: 74px; height: 74px; border-radius: 50%;
+    position: absolute; left: 50%; top: 50%;
+    width: calc(var(--side) * 0.2914px); height: calc(var(--side) * 0.2914px);
+    border-radius: 50%;
     translate: -50% -50%;
-    background:
-      radial-gradient(circle at 34% 28%, rgba(255,255,255,.4), transparent 46%),
-      conic-gradient(from 210deg,
-        color-mix(in srgb, var(--accent) 88%, #000),
-        color-mix(in srgb, var(--accent-2) 80%, #000) 45%,
-        color-mix(in srgb, var(--accent) 70%, #000) 78%,
-        color-mix(in srgb, var(--accent) 88%, #000));
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+    background: linear-gradient(135deg,
+      var(--accent), color-mix(in srgb, var(--accent) 62%, transparent));
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.30);
     display: grid; place-items: center;
   }
-  .label::after { content: ""; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--ground); box-shadow: 0 0 0 1px rgba(255,255,255,.16); }
+  .label::after { content: ""; width: calc(var(--side) * 0.0301px); height: calc(var(--side) * 0.0301px);
+    border-radius: 50%; background: var(--ground);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.18); }
   /* the specular sweep across the disc, turning with it */
-  .sheet {
-    position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
-  }
+  .sheet { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
   .sheet::before {
     content: ""; position: absolute; inset: -10%;
     background: conic-gradient(from 0deg,
@@ -111,11 +129,11 @@
   @keyframes turn { to { rotate: 360deg; } }
   .no-motion .spin { animation: none !important; }
 
-  /* sleeve */
+  /* sleeve: the artwork itself, at the start edge, over the disc */
   .sleeve {
-    position: absolute; top: 50%; left: 46%; width: 188px; height: 188px;
-    translate: -50% -50%;
-    border-radius: 3px; overflow: hidden;
+    position: absolute; top: 0; left: 0;
+    width: calc(var(--side) * 1px); height: calc(var(--side) * 1px);
+    border-radius: 4px; overflow: hidden;
     box-shadow: 0 22px 44px rgba(0,0,0,.62), 0 2px 0 rgba(255,255,255,.05) inset;
   }
   .sleeve .art { position: absolute; inset: 0; }
@@ -133,7 +151,7 @@
       radial-gradient(120% 100% at 80% 30%, #e2562f 0%, transparent 54%),
       linear-gradient(160deg, #2a1a06 0%, #170a05 58%, #0a0504 100%); }
   /* sleeve mouth: a hairline where the record comes out */
-  .sleeve::after { content: ""; position: absolute; inset: 0; border-radius: 3px;
+  .sleeve::after { content: ""; position: absolute; inset: 0; border-radius: 4px;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.10),
                 inset -10px 0 22px rgba(0,0,0,.45); }
 
@@ -213,7 +231,7 @@
 <p class="sub">
   <b>The record is the sleeve's other half.</b> A square sleeve holds a disc that slides out while
   the track plays and back in when it pauses; the disc's own label is pressed from the artwork's
-  palette. The disc turns with the playhead at a 33&frac14;&nbsp;rpm relationship, so scrubbing
+  palette. The disc turns with the playhead at a 33&frac13;&nbsp;rpm relationship, so scrubbing
   lands it in the same place every time. Same transport and seek as every other cover-led deck, one
   text line of lyrics underneath. Everything here is gradients and paths: no image assets, no generated art.
 </p>
@@ -221,7 +239,7 @@
 <div class="row">
   <!-- state 1: playing -->
   <div class="phone">
-    <div class="screen playing" id="screenA" style="--out: 92px; --p: 34%;">
+    <div class="screen playing" id="screenA" style="--out: 1; --p: 34%;">
       <div class="wash"></div><div class="floor"></div>
       <div class="status"><span>9:41</span><span>▮▮▮ 100%</span></div>
       <div class="head">
@@ -238,6 +256,7 @@
 
       <div class="stage">
         <div class="stage-inner">
+          <div class="disc-shadow"></div>
           <div class="disc">
             <div class="spin">
               <div class="sheet"></div>
@@ -302,7 +321,7 @@
 
   <!-- state 2: paused -->
   <div class="phone">
-    <div class="screen" id="screenB" style="--out: 0px; --p: 8%;">
+    <div class="screen" id="screenB" style="--out: 0; --p: 8%;">
       <div class="wash"></div><div class="floor"></div>
       <div class="status"><span>9:41</span><span>▮▮▮ 100%</span></div>
       <div class="head">
@@ -319,6 +338,7 @@
 
       <div class="stage">
         <div class="stage-inner">
+          <div class="disc-shadow"></div>
           <div class="disc">
             <div class="spin"><div class="sheet"></div></div>
             <div class="label"></div>
@@ -403,14 +423,17 @@
       <h2>What moves, and why</h2>
       <div class="notes">
         <ul>
-          <li><span class="tag">Sleeve</span> the artwork itself, square, 3&nbsp;dp corner — the
-            stage slot every deck already gets.</li>
-          <li><span class="tag">Disc</span> slides out 46&nbsp;% of its width while playing,
-            glides back when paused. Rotation is <code>positionMs × 0.2°</code> — a 33⅓&nbsp;rpm
-            disc, so scrubbing turns it to the same place every time.</li>
-          <li><span class="tag">Label</span> a conic gradient pressed from the artwork's two
-            accents, with the spindle hole. It rotates with the disc.</li>
-          <li><span class="tag">Label</span> the record's centre is the only progress cue on the
+          <li><span class="tag">Sleeve</span> the artwork itself, square, 4&nbsp;dp corner, flush
+            to the start edge — the stage slot every deck already gets.</li>
+          <li><span class="tag">Disc</span> 0.94&nbsp;× the sleeve side, centred at
+            <code>0.5 × side + 0.42 × side</code> when out: it travels 0.42&nbsp;of the side, which
+            is 45&nbsp;% of its own diameter, not 46&nbsp;%. Glides back when paused. Rotation is
+            <code>positionMs × 0.2°</code> — a 33⅓&nbsp;rpm disc, so scrubbing turns it to the same
+            place every time.</li>
+          <li><span class="tag">Label</span> a two-stop gradient of the artwork accent at
+            0.31&nbsp;× the disc radius, with the spindle at 0.032&nbsp;× — pressed ink, not a
+            picture. It does not rotate: it is drawn after the turn, so the hole stays still.</li>
+          <li><span class="tag">Centre</span> the record's centre is the only progress cue on the
             disc: the playhead is the bar underneath, so nothing competes with the artwork.</li>
           <li><span class="tag">Motion</span> every animation is a tween on <code>animated</code>
             and snaps when animations are off (item 66's rule, and the notch's).</li>
@@ -447,7 +470,7 @@
     playBtn.setAttribute('aria-pressed', String(playing));
     screens.forEach(s => {
       s.classList.toggle('playing', playing);
-      s.style.setProperty('--out', playing ? '92px' : '0px');
+      s.style.setProperty('--out', playing ? '1' : '0');
     });
   }
 

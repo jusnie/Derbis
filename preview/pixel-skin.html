@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel — pink skin preview</title>
+<style>
+  :root {
+    --ground: #FFEDF1;
+    --ground2: #FFE3EA;
+    --panel: #FFD9E2;
+    --panel2: #FFC9D6;
+    --edge: #A84765;
+    --edge-soft: #C9748D;
+    --ink: #5B2338;
+    --muted: #9A5570;
+    --hot: #FF5C8A;
+    --hot2: #FFB3C9;
+    --cream: #FFF8F6;
+    --butter: #FFD98A;
+    --mint: #9FE8C8;
+
+    --noir: #08090B;
+    --noir-panel: #111316;
+    --noir-soft: #1B1D20;
+    --gold: #D49A46;
+    --gold-lite: #E7B96D;
+    --bone: #F2EEE7;
+    --bone-muted: #ABA59B;
+    --noir-edge: #393632;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(70% 50% at 15% 0%, #3A1B2C 0%, transparent 60%),
+      radial-gradient(60% 45% at 95% 5%, #2A1B33 0%, transparent 55%),
+      #150C11;
+    color: #F6E7EC;
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    padding: 44px 26px 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    font-size: 26px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+    color: #FFC2D3;
+  }
+  .sub {
+    color: rgba(255, 226, 234, 0.62);
+    font-size: 12.5px;
+    line-height: 1.7;
+    max-width: 760px;
+    margin: 0 0 46px;
+  }
+  h2 {
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #FF9DBB;
+    margin: 0 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  h2::after {
+    content: "";
+    flex: 1;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, rgba(255,157,187,.45) 0 6px, transparent 6px 12px);
+  }
+  section { margin-bottom: 56px; }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 34px;
+    align-items: flex-start;
+  }
+  figure { margin: 0; }
+  figcaption {
+    margin-top: 14px;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 226, 234, 0.5);
+    text-align: center;
+  }
+  figcaption b { color: #FFC2D3; font-weight: 700; }
+
+  /* ---------- phone shell ---------- */
+  .phone {
+    width: 342px;
+    height: 706px;
+    border-radius: 26px;
+    padding: 9px;
+    background: #0D090C;
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 34px 60px -30px rgba(0,0,0,.95), inset 0 0 0 1px rgba(255,255,255,.04);
+    flex: 0 0 auto;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 19px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 16px 4px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+  }
+
+  /* ---------- pixel language ---------- */
+  .px-screen {
+    background-color: var(--ground);
+    background-image:
+      linear-gradient(rgba(168,71,101,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,71,101,.05) 1px, transparent 1px);
+    background-size: 8px 8px;
+    color: var(--ink);
+  }
+  .px-screen .status { color: rgba(91,35,56,.72); }
+  .frame {
+    border: 2px solid var(--edge);
+    border-radius: 0;
+    background: var(--cream);
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+  }
+  .frame.flat { box-shadow: none; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 2px solid var(--edge);
+    background: var(--panel);
+    color: var(--ink);
+  }
+  .chip.hot { background: var(--hot); border-color: var(--edge); color: var(--cream); }
+  .chip.gold { background: var(--butter); }
+  .sq {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border: 2px solid var(--edge);
+    background: var(--cream);
+    box-shadow: 2px 2px 0 rgba(168,71,101,.85);
+  }
+  .cabbr { text-transform: uppercase; letter-spacing: 0.14em; }
+
+  .sprite { display: inline-block; line-height: 0; }
+  .sprite svg { display: block; }
+
+  /* ---------- pixel home ---------- */
+  .px-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px 10px;
+  }
+  .px-date { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .px-actions { display: flex; gap: 8px; }
+  .px-greet { padding: 2px 14px 12px; }
+  .px-greet .eyebrow {
+    font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--hot);
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+  }
+  .px-greet h3 {
+    margin: 0;
+    font-size: 21px;
+    line-height: 1.18;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .px-greet h3 em { font-style: normal; color: var(--hot); }
+  .px-greet p { margin: 6px 0 0; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
+
+  .hero { margin: 0 14px 16px; position: relative; }
+  .hero .art {
+    height: 168px;
+    border: 2px solid var(--edge);
+    background:
+      linear-gradient(150deg, #FF9DBB 0%, #E8769A 45%, #B4546E 100%);
+    position: relative;
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+  }
+  .hero .art::after {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      repeating-conic-gradient(rgba(255,255,255,.16) 0% 25%, transparent 0% 50%);
+    background-size: 6px 6px;
+    mix-blend-mode: soft-light;
+  }
+  .hero .crest {
+    position: absolute;
+    top: -13px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--ground);
+    padding: 0 6px;
+  }
+  .hero .body {
+    border: 2px solid var(--edge);
+    border-top: none;
+    background: var(--cream);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero .body .t { flex: 1; min-width: 0; }
+  .hero .body .t b {
+    display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hero .body .t span { font-size: 9px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .shelf { padding: 0 14px 12px; }
+  .shelf .head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .shelf .head b { font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+  .shelf .head span { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--hot); }
+  .tiles { display: flex; gap: 10px; }
+  .tile { width: 92px; }
+  .tile .art {
+    height: 92px;
+    border: 2px solid var(--edge);
+    box-shadow: 2px 2px 0 rgba(168,71,101,.8);
+    position: relative;
+  }
+  .tile .art.a { background: linear-gradient(135deg,#FFC2D3,#FF5C8A); }
+  .tile .art.b { background: linear-gradient(135deg,#FFE1A8,#FF9DBB 70%,#B4546E); }
+  .tile .art.c { background: linear-gradient(135deg,#D9C2FF,#9FB8FF 60%,#5B6BB4); }
+  .tile .art .badge {
+    position: absolute; right: -2px; bottom: -2px;
+    background: var(--hot); border: 2px solid var(--edge); padding: 1px 3px;
+  }
+  .tile b {
+    display: block; margin-top: 6px; font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tile span { font-size: 8.5px; color: var(--muted); letter-spacing: 0.06em; }
+
+  /* ---------- mini player ---------- */
+  .mini {
+    margin: 0 12px 10px;
+    border: 2px solid var(--edge);
+    background: var(--cream);
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+    position: relative;
+  }
+  .mini .ribbon {
+    height: 13px;
+    border-bottom: 2px solid var(--edge);
+    background:
+      repeating-linear-gradient(90deg, var(--hot) 0 8px, var(--panel2) 8px 16px);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mini .ribbon .crest {
+    position: absolute;
+    top: -11px;
+    background: var(--cream);
+    padding: 0 4px;
+  }
+  .mini .inner { display: flex; align-items: center; gap: 9px; padding: 8px 9px 7px; }
+  .mini .cov {
+    width: 42px; height: 42px; flex: 0 0 42px;
+    border: 2px solid var(--edge);
+    background: linear-gradient(140deg,#FFC2D3,#FF5C8A 60%,#A84765);
+    position: relative;
+  }
+  .mini .cov::after {
+    content: ""; position: absolute; inset: 0;
+    background-image: repeating-conic-gradient(rgba(255,255,255,.22) 0% 25%, transparent 0% 50%);
+    background-size: 4px 4px;
+  }
+  .mini .meta { flex: 1; min-width: 0; }
+  .mini .meta em {
+    display: block; font-style: normal; font-size: 7.5px; letter-spacing: 0.26em;
+    text-transform: uppercase; color: var(--hot); margin-bottom: 2px;
+  }
+  .mini .meta b {
+    display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mini .meta span { font-size: 9px; color: var(--muted); }
+  .mini .ctl { display: flex; align-items: center; gap: 5px; }
+  .mini .ctl .b {
+    width: 26px; height: 26px; display: grid; place-items: center;
+    border: 2px solid var(--edge); background: var(--panel);
+  }
+  .mini .ctl .b.play { background: var(--hot); width: 30px; height: 30px; }
+  .mini .bar { height: 8px; border-top: 2px solid var(--edge); position: relative; background: var(--panel2); }
+  .mini .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background-image: repeating-conic-gradient(var(--hot) 0% 25%, transparent 0% 50%);
+    background-size: 4px 4px;
+    background-color: var(--panel2);
+  }
+  .mini .bar .fill::after {
+    content: ""; position: absolute; inset: 0;
+    background: var(--hot);
+    opacity: .55;
+  }
+  .mini.paused .ribbon { background: repeating-linear-gradient(90deg, var(--panel2) 0 8px, var(--panel) 8px 16px); }
+
+  /* ---------- player ---------- */
+  .player-head { padding: 8px 14px 4px; display: flex; align-items: center; justify-content: space-between; }
+  .player-head .lbl { font-size: 8.5px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--muted); }
+  .art-big {
+    margin: 10px 16px 0;
+    aspect-ratio: 1 / 1;
+    border: 2px solid var(--edge);
+    box-shadow: 4px 4px 0 rgba(168,71,101,.85);
+    background: linear-gradient(155deg, #FFD1DC 0%, #FF8FB1 38%, #D9557B 72%, #8E3A55 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .art-big::after {
+    content: ""; position: absolute; inset: 0;
+    background-image: repeating-conic-gradient(rgba(255,255,255,.14) 0% 25%, transparent 0% 50%);
+    background-size: 8px 8px;
+    mix-blend-mode: soft-light;
+  }
+  .art-big .corner { position: absolute; z-index: 2; }
+  .art-big .corner.tl { top: 4px; left: 4px; }
+  .art-big .corner.tr { top: 4px; right: 4px; }
+  .art-big .corner.bl { bottom: 4px; left: 4px; }
+  .art-big .corner.br { bottom: 4px; right: 4px; }
+  .art-big .crest {
+    position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+    z-index: 3; background: var(--ground); padding: 0 5px 2px;
+  }
+  .track { padding: 14px 18px 6px; }
+  .track b {
+    display: block;
+    font-size: 20px; line-height: 1.1; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink);
+  }
+  .track span { display: block; margin-top: 5px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .seek { margin: 12px 18px 0; }
+  .seek .rail {
+    height: 12px; border: 2px solid var(--edge); background: var(--panel); position: relative;
+  }
+  .seek .rail .fill {
+    position: absolute; inset: 0 auto 0 0; width: 38%;
+    background-color: var(--hot);
+    background-image: repeating-conic-gradient(rgba(255,255,255,.28) 0% 25%, transparent 0% 50%);
+    background-size: 4px 4px;
+    border-right: 2px solid var(--edge);
+  }
+  .seek .rail .thumb {
+    position: absolute; top: -7px; left: 38%; transform: translateX(-50%);
+    z-index: 2;
+  }
+  .seek .times {
+    display: flex; justify-content: space-between; margin-top: 7px;
+    font-size: 9px; letter-spacing: 0.16em; color: var(--muted);
+  }
+  .transport {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 16px 18px 10px;
+  }
+  .transport .b {
+    width: 46px; height: 42px; display: grid; place-items: center;
+    border: 2px solid var(--edge); background: var(--cream);
+    box-shadow: 3px 3px 0 rgba(168,71,101,.85);
+  }
+  .transport .b.play { width: 64px; height: 52px; background: var(--hot); }
+  .under {
+    display: flex; align-items: center; justify-content: center; gap: 22px;
+    padding: 4px 18px 10px;
+    font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  }
+  .under .on { color: var(--hot); }
+
+  /* ---------- pixel nav ---------- */
+  .nav {
+    margin-top: auto;
+    border-top: 2px solid var(--edge);
+    background: var(--panel);
+    display: flex;
+  }
+  .nav .tab {
+    flex: 1;
+    padding: 9px 4px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .nav .tab.on { background: var(--hot); color: var(--cream); }
+  .nav .tab .dot { width: 16px; height: 2px; background: transparent; }
+  .nav .tab.on .dot { background: var(--cream); }
+
+  /* ---------- nocturne 78 reference ---------- */
+  .noir {
+    background: var(--noir);
+    color: var(--bone);
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  }
+  .noir .status { color: rgba(242,238,231,.55); font-family: ui-monospace, Menlo, monospace; }
+  .noir .hdr { padding: 14px 16px 16px; }
+  .noir .hdr .date { font-size: 11px; color: var(--bone-muted); font-family: ui-monospace, Menlo, monospace; letter-spacing: .04em; }
+  .noir .hdr h3 { margin: 6px 0 0; font-size: 25px; font-weight: 500; letter-spacing: -.01em; }
+  .noir .hdr h3 em { font-style: italic; color: var(--gold-lite); }
+  .noir .chipn {
+    display: inline-block; padding: 4px 9px; font-size: 10px; letter-spacing: .08em;
+    border: 1px solid var(--noir-edge); border-radius: 6px; color: var(--bone-muted);
+    font-family: ui-monospace, Menlo, monospace; text-transform: uppercase;
+  }
+  .noir .chipn.gold { color: var(--gold); border-color: rgba(212,154,70,.45); }
+  .noir .hero2 { margin: 0 16px 14px; border-radius: 6px; overflow: hidden; border: 1px solid var(--noir-edge); }
+  .noir .hero2 .art { height: 150px; background: linear-gradient(140deg,#3A2A1C,#6B4A24 60%,#D49A46); }
+  .noir .hero2 .body { padding: 10px 12px; background: var(--noir-soft); }
+  .noir .hero2 .body b { display: block; font-size: 14px; font-weight: 500; }
+  .noir .hero2 .body span { font-size: 10px; color: var(--bone-muted); font-family: ui-monospace, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+  .noir .shelf2 { padding: 0 16px; }
+  .noir .shelf2 .head { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--bone-muted); margin-bottom: 8px; }
+  .noir .tiles2 { display: flex; gap: 10px; }
+  .noir .tiles2 .t { width: 88px; }
+  .noir .tiles2 .t .art { height: 88px; border-radius: 6px; border: 1px solid var(--noir-edge); }
+  .noir .tiles2 .t .art.a { background: linear-gradient(135deg,#4A3320,#D49A46); }
+  .noir .tiles2 .t .art.b { background: linear-gradient(135deg,#2A2B2E,#8C6A34); }
+  .noir .tiles2 .t .art.c { background: linear-gradient(135deg,#3B2C20,#B98A45); }
+  .noir .tiles2 .t b { display: block; margin-top: 6px; font-size: 11px; font-weight: 500; }
+  .noir .minin {
+    margin: 0 12px 10px; border: 1px solid var(--noir-edge); border-radius: 10px; background: var(--noir-panel);
+    padding: 8px 10px; display: flex; align-items: center; gap: 9px;
+  }
+  .noir .minin .cov { width: 40px; height: 40px; border-radius: 4px; background: linear-gradient(140deg,#4A3320,#D49A46); flex: 0 0 40px; }
+  .noir .minin .m { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; }
+  .noir .minin .m b { display: block; font-size: 11px; color: var(--bone); font-weight: 500; }
+  .noir .minin .m span { font-size: 9px; color: var(--bone-muted); }
+  .noir .minin .c { display: flex; gap: 6px; }
+  .noir .minin .c .b {
+    width: 26px; height: 26px; border: 1px solid var(--noir-edge); border-radius: 5px;
+    display: grid; place-items: center; color: var(--gold);
+  }
+  .noir .navn { margin-top: auto; background: var(--noir-panel); border-top: 1px solid var(--noir-edge); display: flex; }
+  .noir .navn .tab {
+    flex: 1; padding: 8px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 7.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--bone-muted);
+  }
+  .noir .navn .tab .bar2 { width: 18px; height: 2px; background: transparent; }
+  .noir .navn .tab.on { color: var(--gold); }
+  .noir .navn .tab.on .bar2 { background: var(--gold); }
+
+  /* ---------- picker ---------- */
+  .picker {
+    width: 366px; padding: 14px; border-radius: 16px; background: #1B1220;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .picker .ttl { font-size: 9px; letter-spacing: .24em; text-transform: uppercase; color: rgba(255,226,234,.45); margin-bottom: 10px; }
+  .skinrow {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,.07); margin-bottom: 8px;
+    background: #221729;
+  }
+  .skinrow .sw { width: 26px; height: 26px; border-radius: 7px; flex: 0 0 26px; border: 1px solid rgba(255,255,255,.14); }
+  .skinrow .nm { flex: 1; font-size: 11.5px; color: #F3E4EA; }
+  .skinrow .tag { font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,226,234,.4); }
+  .skinrow.sel { border-color: rgba(255,157,187,.55); box-shadow: 0 0 0 1px rgba(255,157,187,.25) inset; }
+  .sw.default { background: linear-gradient(135deg,#5865F2,#232428); }
+  .sw.noir { background: linear-gradient(135deg,#08090B,#D49A46); position: relative; }
+  .sw.glass { background: linear-gradient(135deg,#B9E6FF,#6C7BFF 55%,#1B1F3A); }
+  .sw.torque { background: linear-gradient(135deg,#FF6B35,#2B2B2B); }
+  .sw.ivory { background: linear-gradient(135deg,#F6EFE2,#C9B79C); }
+  .sw.pixel {
+    background:
+      repeating-conic-gradient(#FF8FB1 0% 25%, #FFD9E2 0% 50%) 0 0 / 8px 8px;
+    border-color: rgba(255,157,187,.6);
+  }
+  .strike { position: relative; opacity: .55; }
+  .strike::after {
+    content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 2px;
+    background: #FF6B8E;
+  }
+
+  /* ---------- swatches / rules ---------- */
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .swatch { width: 108px; }
+  .swatch .box { height: 54px; border: 2px solid var(--edge); box-shadow: 3px 3px 0 rgba(168,71,101,.55); }
+  .swatch code { display: block; margin-top: 7px; font-size: 9.5px; color: rgba(255,226,234,.62); letter-spacing: .06em; }
+  .swatch b { display: block; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,226,234,.4); }
+
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; max-width: 900px; }
+  .rule {
+    border: 1px solid rgba(255,157,187,.22);
+    background: rgba(255,255,255,.03);
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+  .rule b { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #FFC2D3; margin-bottom: 5px; }
+  .rule span { font-size: 11.5px; line-height: 1.65; color: rgba(255,226,234,.68); }
+  .foot {
+    max-width: 900px; font-size: 11.5px; line-height: 1.8; color: rgba(255,226,234,.6);
+    border-top: 2px dashed rgba(255,157,187,.25); padding-top: 20px;
+  }
+  .foot b { color: #FFC2D3; }
+</style>
+</head>
+<body>
+
+  <h1>Pixel</h1>
+  <p class="sub">
+    A pink pixel skin that replaces <b>Nocturne 78</b>. Same skeleton as Nocturne 78 &mdash; one palette,
+    one chrome pass, no per-screen forks &mdash; but every surface is hard-edged: 2&nbsp;dp borders,
+    no corner radius, no blur, no glass, offset drop shadows in a single rose ink, and a dithered
+    fill for anything that fills. Pick a card, a bow, or a heart from the shelf and it lands on the
+    mini player as a ribbon.
+  </p>
+
+  <section>
+    <h2>Home &mdash; what it replaces</h2>
+    <div class="row">
+
+      <figure>
+        <div class="phone">
+          <div class="screen noir">
+            <div class="status"><span>9:41</span><span>&#9679;&#9679;&#9679; &#9633;</span></div>
+            <div class="hdr">
+              <div class="date">Sunday, 30 October</div>
+              <h3>Good evening, <em>Aya</em></h3>
+              <div style="margin-top:10px; display:flex; gap:8px;">
+                <span class="chipn gold">Recently played</span>
+                <span class="chipn">Made for you</span>
+              </div>
+            </div>
+            <div class="hero2">
+              <div class="art"></div>
+              <div class="body">
+                <b>Lovers Rock</b>
+                <span>TV Girl</span>
+              </div>
+            </div>
+            <div class="shelf2">
+              <div class="head">Made for you</div>
+              <div class="tiles2">
+                <div class="t"><div class="art a"></div><b>Slow Gold</b></div>
+                <div class="t"><div class="art b"></div><b>Night Drive</b></div>
+                <div class="t"><div class="art c"></div><b>Amber Room</b></div>
+              </div>
+            </div>
+            <div style="margin-top:auto; padding:0 12px 10px;">
+              <div class="minin">
+                <div class="cov"></div>
+                <div class="m"><b>Lovers Rock</b><span>TV Girl</span></div>
+                <div class="c">
+                  <div class="b">&#9198;</div>
+                  <div class="b">&#10074;&#10074;</div>
+                  <div class="b">&#9197;</div>
+                </div>
+              </div>
+            </div>
+            <div class="navn">
+              <div class="tab on"><div class="bar2"></div>Home</div>
+              <div class="tab"><div class="bar2"></div>Search</div>
+              <div class="tab"><div class="bar2"></div>Explore</div>
+              <div class="tab"><div class="bar2"></div>Library</div>
+            </div>
+          </div>
+        </div>
+        <figcaption><b>Nocturne 78</b> &middot; black, serif, gold</figcaption>
+      </figure>
+
+      <figure>
+        <div class="phone">
+          <div class="screen px-screen">
+            <div class="status"><span>9:41</span><span>&#9632;&#9632;&#9632; &#9633;</span></div>
+
+            <div class="px-top">
+              <div class="px-date">Sun 30 Oct</div>
+              <div class="px-actions">
+                <div class="sq" data-icon="search"></div>
+                <div class="sq" data-icon="gear"></div>
+              </div>
+            </div>
+
+            <div class="px-greet">
+              <div class="eyebrow"><span class="sprite" data-sprite="star" data-scale="2"></span> Good evening</div>
+              <h3>Hi <em>Aya</em><br />what are we<br />playing?</h3>
+              <p>14 days in a row &mdash; keep the streak</p>
+            </div>
+
+            <div class="hero">
+              <div class="crest sprite" data-sprite="bow" data-scale="2"></div>
+              <div class="art"></div>
+              <div class="body">
+                <div class="t"><b>Lovers Rock</b><span>TV Girl &middot; track 4</span></div>
+                <div class="sq" data-icon="play" style="background:var(--hot);"></div>
+              </div>
+            </div>
+
+            <div class="shelf">
+              <div class="head"><b>Made for you</b><span>See all</span></div>
+              <div class="tiles">
+                <div class="tile">
+                  <div class="art a"><div class="badge sprite" data-sprite="heart" data-scale="2"></div></div>
+                  <b>Slow Gold</b><span>32 tracks</span>
+                </div>
+                <div class="tile">
+                  <div class="art b"></div>
+                  <b>Night Drive</b><span>28 tracks</span>
+                </div>
+                <div class="tile">
+                  <div class="art c"></div>
+                  <b>Amber Room</b><span>19 tracks</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mini">
+              <div class="ribbon">
+                <div class="crest sprite" data-sprite="bow" data-scale="2"></div>
+              </div>
+              <div class="inner">
+                <div class="cov"></div>
+                <div class="meta">
+                  <em>Now playing</em>
+                  <b>Lovers Rock</b>
+                  <span>TV Girl</span>
+                </div>
+                <div class="ctl">
+                  <div class="b" data-icon="prev"></div>
+                  <div class="b play" data-icon="pause"></div>
+                  <div class="b" data-icon="next"></div>
+                </div>
+              </div>
+              <div class="bar"><div class="fill" style="width:38%"></div></div>
+            </div>
+
+            <div class="nav">
+              <div class="tab on"><div class="dot"></div><span class="sprite" data-sprite="home" data-scale="2"></span>Home</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="search" data-scale="2"></span>Search</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="compass" data-scale="2"></span>Explore</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="library" data-scale="2"></span>Library</div>
+            </div>
+          </div>
+        </div>
+        <figcaption><b>Pixel</b> &middot; blush paper, rose ink, dithered fills</figcaption>
+      </figure>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Player &amp; the mini player banner</h2>
+    <div class="row">
+
+      <figure>
+        <div class="phone">
+          <div class="screen px-screen">
+            <div class="status"><span>9:41</span><span>&#9632;&#9632;&#9632; &#9633;</span></div>
+
+            <div class="player-head">
+              <div class="chip"><span class="sprite" data-sprite="heart" data-scale="2"></span>Liked</div>
+              <div class="lbl">Playing from &middot; Slow Gold</div>
+              <div class="sq" data-icon="dots" style="width:26px;height:26px;"></div>
+            </div>
+
+            <div class="art-big">
+              <div class="crest sprite" data-sprite="bow" data-scale="3"></div>
+              <div class="corner tl sprite" data-sprite="heartSmall" data-scale="2"></div>
+              <div class="corner tr sprite" data-sprite="heartSmall" data-scale="2"></div>
+              <div class="corner bl sprite" data-sprite="heartSmall" data-scale="2"></div>
+              <div class="corner br sprite" data-sprite="heartSmall" data-scale="2"></div>
+            </div>
+
+            <div class="track">
+              <b>Lovers Rock</b>
+              <span>TV Girl &middot; French Exit</span>
+            </div>
+
+            <div class="seek">
+              <div class="rail">
+                <div class="fill"></div>
+                <div class="thumb sprite" data-sprite="star" data-scale="2"></div>
+              </div>
+              <div class="times"><span>1:51</span><span>-1:36</span></div>
+            </div>
+
+            <div class="transport">
+              <div class="b" data-icon="shuffle"></div>
+              <div class="b" data-icon="prev"></div>
+              <div class="b play" data-icon="pause"></div>
+              <div class="b" data-icon="next"></div>
+              <div class="b" data-icon="repeat"></div>
+            </div>
+
+            <div class="under">
+              <span class="on">Lyrics</span>
+              <span>Queue</span>
+              <span>Info</span>
+            </div>
+
+            <div class="nav">
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="home" data-scale="2"></span>Home</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="search" data-scale="2"></span>Search</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="compass" data-scale="2"></span>Explore</div>
+              <div class="tab"><div class="dot"></div><span class="sprite" data-sprite="library" data-scale="2"></span>Library</div>
+            </div>
+          </div>
+        </div>
+        <figcaption><b>Player</b> &middot; bow crest, corner hearts, star thumb</figcaption>
+      </figure>
+
+      <div style="display:flex; flex-direction:column; gap:26px; flex:1; min-width:340px; max-width:430px;">
+        <div>
+          <div class="ttl" style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,226,234,.45);margin-bottom:10px;">Mini player &mdash; playing</div>
+          <div class="px-screen" style="padding:14px; border:2px solid var(--edge);">
+            <div class="mini" style="margin:0 0 8px;">
+              <div class="ribbon"><div class="crest sprite" data-sprite="bow" data-scale="2"></div></div>
+              <div class="inner">
+                <div class="cov"></div>
+                <div class="meta"><em>Now playing</em><b>Lovers Rock</b><span>TV Girl</span></div>
+                <div class="ctl">
+                  <div class="b" data-icon="prev"></div>
+                  <div class="b play" data-icon="pause"></div>
+                  <div class="b" data-icon="next"></div>
+                </div>
+              </div>
+              <div class="bar"><div class="fill" style="width:38%"></div></div>
+            </div>
+            <div class="mini" style="margin:0 0 8px;">
+              <div class="ribbon"><div class="crest sprite" data-sprite="star" data-scale="2"></div></div>
+              <div class="inner">
+                <div class="cov" style="background:linear-gradient(140deg,#D9C2FF,#9FB8FF 60%,#5B6BB4);"></div>
+                <div class="meta"><em>Now playing</em><b>Amber Room</b><span>Nia Archives</span></div>
+                <div class="ctl">
+                  <div class="b" data-icon="prev"></div>
+                  <div class="b play" data-icon="pause"></div>
+                  <div class="b" data-icon="next"></div>
+                </div>
+              </div>
+              <div class="bar"><div class="fill" style="width:72%"></div></div>
+            </div>
+            <div class="mini paused" style="margin:0;">
+              <div class="ribbon"><div class="crest sprite" data-sprite="heartSmall" data-scale="2"></div></div>
+              <div class="inner">
+                <div class="cov" style="background:linear-gradient(140deg,#FFE1A8,#FF9DBB 60%,#B4546E);"></div>
+                <div class="meta"><em>Paused</em><b>Night Drive</b><span>Kali Uchis</span></div>
+                <div class="ctl">
+                  <div class="b" data-icon="prev"></div>
+                  <div class="b play" data-icon="play"></div>
+                  <div class="b" data-icon="next"></div>
+                </div>
+              </div>
+              <div class="bar"><div class="fill" style="width:14%"></div></div>
+            </div>
+          </div>
+          <p style="font-size:10.5px;line-height:1.7;color:rgba(255,226,234,.5);margin:10px 2px 0;">
+            The ribbon is the banner: a 13&nbsp;dp strip of alternating blocks, with the chosen charm
+            sitting on its top edge like a tie. Charm follows the artwork accent &mdash; bow, star or heart.
+          </p>
+        </div>
+
+        <div>
+          <div class="ttl" style="font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,226,234,.45);margin-bottom:10px;">Skin picker</div>
+          <div class="picker" style="width:100%;">
+            <div class="skinrow"><div class="sw default"></div><div class="nm">Default</div><div class="tag">System</div></div>
+            <div class="skinrow strike"><div class="sw noir"></div><div class="nm">Nocturne 78</div><div class="tag">Removed</div></div>
+            <div class="skinrow sel"><div class="sw pixel"></div><div class="nm">Pixel</div><div class="tag">New</div></div>
+            <div class="skinrow"><div class="sw glass"></div><div class="nm">Liquid Glass</div><div class="tag">Glass</div></div>
+            <div class="skinrow"><div class="sw torque"></div><div class="nm">Torque</div><div class="tag">Deck</div></div>
+            <div class="skinrow"><div class="sw ivory"></div><div class="nm">Ivory</div><div class="tag">Light</div></div>
+          </div>
+          <p style="font-size:10.5px;line-height:1.7;color:rgba(255,226,234,.5);margin:10px 2px 0;">
+            Anyone who had Nocturne 78 selected opens on <b style="color:#FFC2D3">Pixel</b>, not on Default.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Palette</h2>
+    <div class="swatches">
+      <div class="swatch"><div class="box" style="background:#FFEDF1"></div><code>#FFEDF1</code><b>paper</b></div>
+      <div class="swatch"><div class="box" style="background:#FFD9E2"></div><code>#FFD9E2</code><b>panel</b></div>
+      <div class="swatch"><div class="box" style="background:#A84765"></div><code>#A84765</code><b>ink / border</b></div>
+      <div class="swatch"><div class="box" style="background:#5B2338"></div><code>#5B2338</code><b>text</b></div>
+      <div class="swatch"><div class="box" style="background:#FF5C8A"></div><code>#FF5C8A</code><b>hot pink</b></div>
+      <div class="swatch"><div class="box" style="background:#FFB3C9"></div><code>#FFB3C9</code><b>blush</b></div>
+      <div class="swatch"><div class="box" style="background:#FFD98A"></div><code>#FFD98A</code><b>butter</b></div>
+      <div class="swatch"><div class="box" style="background:#FFF8F6"></div><code>#FFF8F6</code><b>cream</b></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The rules it follows</h2>
+    <div class="rules">
+      <div class="rule"><b>Corners</b><span>0&nbsp;dp everywhere. Every surface is a rectangle with a 2&nbsp;dp rose border.</span></div>
+      <div class="rule"><b>Shadow</b><span>Offset only &mdash; 2 to 4&nbsp;dp, hard, no blur. No elevation, no glow, no gradient falloff.</span></div>
+      <div class="rule"><b>Fills</b><span>Anything that fills (progress, badges, active tab) is either flat hot pink or a 4&nbsp;dp checker dither.</span></div>
+      <div class="rule"><b>Type</b><span>Monospace, uppercase, wide tracking. No bundled font &mdash; the system mono keeps the app size unchanged.</span></div>
+      <div class="rule"><b>Motion</b><span>Steps, not tweens: page and sheet transitions land in 2 frames; nothing eases. Still obeys the animations switch.</span></div>
+      <div class="rule"><b>No glass</b><span>Pixel opts out of the Liquid Glass film entirely. Fresh, not frosted.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Scope, honestly</h2>
+    <p class="foot">
+      <b>Removal:</b> `DerbisSkin.Nocturne78` becomes `Pixel`, and the persisted string `"Nocturne78"` maps to
+      `Pixel` in `DerbisSkin.from()` &mdash; the same way `"Prism"` already maps to Liquid Glass, so nobody's
+      saved choice resets to Default. The palette file keeps its shape, the 123 references follow the rename.<br />
+      <b>Chrome:</b> home header, shelves and tiles, bottom nav, mini player, settings rows, sheets and dialogs get
+      the pixel pass &mdash; the pieces you see above, not a per-screen fork.<br />
+      <b>Decks:</b> the seven player decks are artwork-coloured by design; under Pixel the frame, transport and seek
+      turn to the pixel language but the artwork still drives the colour, which is what keeps them from fighting the skin.<br />
+      <b>Originality:</b> bow, heart and star are drawn as pixel sprites in this repo &mdash; CSS and inline SVG only,
+      no image files, no bundled character, nothing borrowed.
+    </p>
+  </section>
+
+<script>
+  // 16x16-ish ASCII sprites. '.' = transparent; letters map to the palette below.
+  var PALETTE = {
+    o: '#A84765', // outline / rose ink
+    k: '#5B2338', // deep plum
+    p: '#FF5C8A', // hot pink
+    P: '#FFB3C9', // blush
+    w: '#FFF8F6', // cream
+    y: '#FFD98A', // butter
+    q: '#E0A7B9'  // muted rose (inactive)
+  };
+
+  var SPRITES = {
+    heart: [
+      '..oo...oo..',
+      '.oPPo.oPPo.',
+      'oPPPPoPPPo.',
+      'oPPPPPPPPo.',
+      'oPPPPPPPPo.',
+      '.oPPPPPPo..',
+      '..oPPPPo...',
+      '...oPPo....',
+      '....oo.....'
+    ],
+    heartSmall: [
+      '.oo.oo.',
+      'oPPoPPo',
+      'oPPPPP o',
+      '.oPPPo.',
+      '..oPo..',
+      '...o...'
+    ],
+    star: [
+      '.....o.....',
+      '....oyo....',
+      '....oyo....',
+      '.oooyoyooo.',
+      '.oyyyyyyyo.',
+      '..oyyyyyo..',
+      '...oyyyo...',
+      '..oyyoyyo..',
+      '..oyo.oyo..'
+    ],
+    bow: [
+      '.................',
+      '...oo.......oo...',
+      '..oPPo.....oPPo..',
+      '.oPPPPo...oPPPPo.',
+      'oPPPPPPoooPPPPPPo',
+      'oPPPPPPoooPPPPPPo',
+      '.oPPPPo.o.oPPPPo.',
+      '..oPP.o...o.PPo..',
+      '...o..o...o..o...',
+      '......o...o......'
+    ],
+    play: [
+      'oooo...',
+      'oppPo..',
+      'opppPo.',
+      'oppppPo',
+      'oppppPo',
+      'opppPo.',
+      'oppPo..',
+      'oooo...'
+    ],
+    pause: [
+      'oo..oo',
+      'op..op',
+      'op..op',
+      'op..op',
+      'op..op',
+      'op..op',
+      'oo..oo'
+    ],
+    next: [
+      '..oo...o',
+      '.oppo..o',
+      'opppo..o',
+      'oppppo.o',
+      'oppppo.o',
+      'opppo..o',
+      '.oppo..o',
+      '..oo...o'
+    ],
+    prev: [
+      'o...oo..',
+      'o..oppo.',
+      'o..opppo',
+      'o.oppppo',
+      'o.oppppo',
+      'o..opppo',
+      'o..oppo.',
+      'o...oo..'
+    ],
+    search: [
+      '.ooooo..',
+      'oPPPPP o',
+      'oPoPoPo.',
+      'oPPPPP o',
+      'oPoPoPo.',
+      'oPPPPP o',
+      '.ooooo..',
+      '....oooo',
+      '.....oo.'
+    ],
+    gear: [
+      '..o.o.o..',
+      '.ooooo oo',
+      'ooo...ooo',
+      '.o.....o.',
+      '.o.....o.',
+      'ooo...ooo',
+      '.ooooo oo',
+      '..o.o.o..'
+    ],
+    home: [
+      '....oo...',
+      '...oppo..',
+      '..oppppo.',
+      '.oppppppo',
+      'opppppppp',
+      '.opppppp.',
+      '.opo..opo',
+      '.opo..opo',
+      '.ooo..ooo'
+    ],
+    compass: [
+      '....o....',
+      '...opo...',
+      '..opppo..',
+      '.opppppo.',
+      'opppppppo',
+      '.opppppo.',
+      '..opppo..',
+      '...opo...',
+      '....o....'
+    ],
+    library: [
+      'oo.oo.oo.',
+      'op.op.opo',
+      'op.op.opo',
+      'op.op.opo',
+      'op.op.opo',
+      'op.op.opo',
+      'oo.oo.ooo'
+    ],
+    dots: [
+      '.........',
+      '.........',
+      'opp.opp.o',
+      'opp.opp.o',
+      '.........',
+      '.........'
+    ],
+    shuffle: [
+      'o.....o.o',
+      'oo...oo..',
+      '.oo.oo...',
+      '..ooo....',
+      '..ooo....',
+      '.oo.oo...',
+      'oo...oo..',
+      'o.....o.o'
+    ],
+    repeat: [
+      '.ooooooo.',
+      'o.......o',
+      'o.......o',
+      '.ooooooo.',
+      'o.......o',
+      'o.......o',
+      '.ooooooo.'
+    ]
+  };
+
+  function buildSprite(name, scale) {
+    var rows = SPRITES[name];
+    if (!rows) return '';
+    var width = 0;
+    rows.forEach(function (r) { if (r.length > width) width = r.length; });
+    var rects = '';
+    rows.forEach(function (row, y) {
+      for (var x = 0; x < row.length; x++) {
+        var ch = row.charAt(x);
+        if (ch === '.' || ch === ' ') continue;
+        var fill = PALETTE[ch] || PALETTE.o;
+        rects += '<rect x="' + x + '" y="' + y + '" width="1" height="1" fill="' + fill + '"/>';
+      }
+    });
+    return '<svg viewBox="0 0 ' + width + ' ' + rows.length + '" width="' + (width * scale) +
+      '" height="' + (rows.length * scale) + '" shape-rendering="crispEdges" aria-hidden="true">' +
+      rects + '</svg>';
+  }
+
+  document.querySelectorAll('[data-sprite]').forEach(function (el) {
+    var scale = parseInt(el.getAttribute('data-scale') || '3', 10);
+    el.innerHTML = buildSprite(el.getAttribute('data-sprite'), scale);
+  });
+
+  var ICON_MAP = {
+    play: 'play', pause: 'pause', prev: 'prev', next: 'next', search: 'search',
+    gear: 'gear', dots: 'dots', shuffle: 'shuffle', repeat: 'repeat'
+  };
+  document.querySelectorAll('[data-icon]').forEach(function (el) {
+    var name = ICON_MAP[el.getAttribute('data-icon')];
+    if (!name) return;
+    var size = el.classList.contains('play') ? 3 : 2;
+    el.innerHTML = buildSprite(name, size);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derbis — design previews</title>
+<style>
+  :root {
+    --ground: #0b0710;
+    --panel: rgba(255, 255, 255, 0.045);
+    --edge: rgba(255, 255, 255, 0.10);
+    --ink: #f4eef6;
+    --muted: rgba(244, 238, 246, 0.55);
+    --accent: #ff9dbb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 64px 28px 90px;
+    background:
+      radial-gradient(75% 55% at 16% 0%, #2c1636 0%, transparent 58%),
+      radial-gradient(65% 50% at 92% 6%, #16263a 0%, transparent 55%),
+      var(--ground);
+    color: var(--ink);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+  header { margin-bottom: 42px; }
+  .kicker {
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 650;
+  }
+  header p {
+    margin: 0;
+    max-width: 600px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 14px;
+  }
+  a.card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 18px 16px;
+    border-radius: 16px;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  }
+  a.card:hover, a.card:focus-visible {
+    outline: none;
+    border-color: rgba(255, 157, 187, 0.5);
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-1px);
+  }
+  .card .name {
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .card .desc {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .card .file {
+    margin-top: 4px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: rgba(255, 157, 187, 0.75);
+  }
+  .tag {
+    align-self: flex-start;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 999px;
+    border: 1px solid var(--edge);
+    color: var(--muted);
+  }
+  .tag.new { color: #1a0d15; background: var(--accent); border-color: transparent; font-weight: 700; }
+  footer {
+    margin-top: 44px;
+    padding-top: 20px;
+    border-top: 1px solid var(--edge);
+    font-size: 12px;
+    line-height: 1.7;
+    color: rgba(244, 238, 246, 0.42);
+  }
+  footer code {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: rgba(255, 157, 187, 0.8);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">Derbis &middot; design previews</p>
+    <h1>Static previews</h1>
+    <p>
+      Every visual change that lands in the app is drawn here first, in plain HTML and CSS, so it can be
+      reviewed before any Kotlin is written. These pages are not the app &mdash; they are the design.
+    </p>
+  </header>
+
+  <div class="grid">
+
+    <a class="card" href="pixel-skin.html">
+      <span class="tag new">Awaiting approval</span>
+      <span class="name">Pixel &mdash; pink skin</span>
+      <span class="desc">
+        The pink pixel skin that replaces Nocturne 78: blush paper, rose-ink borders, hard offset
+        shadows, dithered fills, and a charm ribbon across the mini player banner.
+      </span>
+      <span class="file">preview/pixel-skin.html</span>
+    </a>
+
+    <a class="card" href="vinyl-deck.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Vinyl player deck</span>
+      <span class="desc">
+        The seventh deck: a sleeve, a record that slides out on play, a label pressed from the
+        artwork's own accents, and the transport underneath.
+      </span>
+      <span class="file">preview/vinyl-deck.html</span>
+    </a>
+
+    <a class="card" href="wrapped-top-bar.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Wrapped top bar</span>
+      <span class="desc">
+        Before and after for the story header: two circles in 48 dp slots instead of 48 dp boxes,
+        and a pill that gives way instead of pushing them off the edge.
+      </span>
+      <span class="file">preview/wrapped-top-bar.html</span>
+    </a>
+
+    <a class="card" href="wrapped-running-year.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Replay, year still running</span>
+      <span class="desc">
+        The story header for a year that is not finished yet, and the year picker that gets a
+        listener back to a year that is.
+      </span>
+      <span class="file">preview/wrapped-running-year.html</span>
+    </a>
+
+    <a class="card" href="spotify-signin-sheet.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Spotify sign-in sheet</span>
+      <span class="desc">
+        The in-app Connect flow: login stays on the accounts origin, the captured cookie sits in
+        the corner, and the paste field is the fallback when the page refuses to render.
+      </span>
+      <span class="file">preview/spotify-signin-sheet.html</span>
+    </a>
+
+    <a class="card" href="discord-connect.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Discord connect</span>
+      <span class="desc">
+        Account linking over the Discord app, with the visibility and callback the platform
+        actually requires.
+      </span>
+      <span class="file">preview/discord-connect.html</span>
+    </a>
+
+    <a class="card" href="lyric-word-sync.html">
+      <span class="tag">Shipped</span>
+      <span class="name">Word-by-word lyric timing</span>
+      <span class="desc">
+        The karaoke timing sheet: how a line's words are scheduled against the clip so the
+        highlight lands on the syllable, not the bar.
+      </span>
+      <span class="file">preview/lyric-word-sync.html</span>
+    </a>
+
+  </div>
+
+  <footer>
+    Serve this folder with <code>python3 -m http.server 8000 --bind 0.0.0.0 --directory preview</code>
+    from the repository root. Nothing here is bundled into the APK &mdash; <code>preview/</code> is a
+    design reference, not an asset directory.
+  </footer>
+</div>
+</body>
+</html>
