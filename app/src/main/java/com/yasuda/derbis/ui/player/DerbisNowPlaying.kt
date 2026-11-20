@@ -1130,6 +1130,7 @@ private fun DerbisNowPlayingContent(
                 }
                 errorContent?.invoke()
             },
+            error = { errorContent?.invoke() },
             dock = dockBlock,
             dockActions = dockActionsFor,
             // The Liquid Glass player keeps its stage clean: no written-by line over the cover.

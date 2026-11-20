@@ -265,6 +265,15 @@ internal class PlayerDeckSlots(
     val controlsWithoutMetadata: @Composable ColumnScope.(Track) -> Unit,
     val engagement: @Composable (Track) -> Unit,
     val progress: @Composable (style: PlayerProgressStyle) -> Unit,
+    /**
+     * The player's error line, on its own.
+     *
+     * It used to be rendered inside [progress], which was fine while every deck with a failure to
+     * report also drew the shared seek bar. Vinyl draws its own, so it never called that slot and
+     * a failed stream was completely silent there: no message, no seek, just a play button that
+     * did nothing. A deck that owns its seek still needs somewhere to put the reason.
+     */
+    val error: @Composable () -> Unit,
     val dock: @Composable (Track) -> Unit,
     val dockActions: @Composable (Track) -> List<PlayerDockAction>,
     val creditsEyebrow: PlayerCreditsEyebrow? = null

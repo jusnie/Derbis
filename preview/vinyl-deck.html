@@ -321,7 +321,7 @@
 
   <!-- state 2: paused -->
   <div class="phone">
-    <div class="screen" id="screenB" style="--out: 0; --p: 8%;">
+    <div class="screen" id="screenB" style="--out: 0.31; --p: 8%;">
       <div class="wash"></div><div class="floor"></div>
       <div class="status"><span>9:41</span><span>▮▮▮ 100%</span></div>
       <div class="head">
@@ -387,8 +387,8 @@
                    stroke-linecap="round"><path d="M12 21s-7.5-4.7-9.3-9A5.3 5.3 0 0112 6.6 5.3 5.3 0 0121.3 12c-1.8 4.3-9.3 9-9.3 9z"/></svg>
             </span>
           </div>
-          <p class="line" style="color:rgba(244,242,239,.45)">Paused — the record is back in its
-            sleeve</p>
+          <p class="line" style="color:rgba(244,242,239,.45)">Paused — the record rests a tenth out of
+            its sleeve</p>
         </div>
       </div>
     </div>
@@ -427,7 +427,9 @@
             to the start edge — the stage slot every deck already gets.</li>
           <li><span class="tag">Disc</span> 0.94&nbsp;× the sleeve side, centred at
             <code>0.5 × side + 0.42 × side</code> when out: it travels 0.42&nbsp;of the side, which
-            is 45&nbsp;% of its own diameter, not 46&nbsp;%. Glides back when paused. Rotation is
+            is 45&nbsp;% of its own diameter, not 46&nbsp;%. While paused it rests a tenth out — 0.31 of its
+            travel, which puts its trailing edge at 1.10 × the side — so the deck still reads as a
+            turntable with nothing playing, and it goes all the way in only while a track resolves. Rotation is
             <code>positionMs × 0.2°</code> — a 33⅓&nbsp;rpm disc, so scrubbing turns it to the same
             place every time.</li>
           <li><span class="tag">Label</span> a two-stop gradient of the artwork accent at
@@ -470,7 +472,7 @@
     playBtn.setAttribute('aria-pressed', String(playing));
     screens.forEach(s => {
       s.classList.toggle('playing', playing);
-      s.style.setProperty('--out', playing ? '1' : '0');
+      s.style.setProperty('--out', playing ? '1' : '0.31');
     });
   }
 

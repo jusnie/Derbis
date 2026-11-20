@@ -103,6 +103,20 @@ private const val VinylDiscRatio = 0.94f
 /** How far the record travels out of its sleeve, against the sleeve side. */
 private const val VinylSlideRatio = 0.42f
 
+/**
+ * How far out the record rests while the deck is paused, as a fraction of its full travel.
+ *
+ * A record sitting completely inside its sleeve leaves nothing on screen to say what deck this is:
+ * the paused player and any ordinary cover-led player look identical. At rest the disc now clears
+ * the sleeve by 10 % of its side, which is enough to read as a record without pretending the track
+ * is playing. The figure is exactly derived rather than eyeballed: the disc's trailing edge lands
+ * at `0.5 + 0.42 × 0.31 + 0.47 = 1.10 × side`, i.e. one tenth of the sleeve outside its edge.
+ *
+ * Nothing is loaded while a track resolves, and there the record does go all the way back in — the
+ * sleeve is empty, and a record would claim a track that is not there yet.
+ */
+private const val VinylPausedPeek = 0.31f
+
 /** Stage width per sleeve side, so the disc's overhang is never clipped. */
 private const val VinylStageWidthFactor = 1.42f
 
@@ -147,8 +161,14 @@ internal fun PlayerVinylDeck(
 ) {
     val glow = surfaces.glow
     val accent = if (glow.alpha > 0f) glow.copy(alpha = 1f) else surfaces.hero
+    // Three resting places, not two: out while playing, a visible tenth out while paused, and
+    // all the way in while a track is still resolving.
     val discOut by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0f,
+        targetValue = when {
+            isPlaying -> 1f
+            isResolving -> 0f
+            else -> VinylPausedPeek
+        },
         animationSpec = if (animated) {
             tween(durationMillis = 520, easing = FastOutSlowInEasing)
         } else {
@@ -214,6 +234,7 @@ internal fun PlayerVinylDeck(
                 onRepeat = onRepeat,
                 modifier = headlineModifier
             )
+            slots.error()
             Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
             VinylLyricsStrip(
                 track = track,
@@ -255,7 +276,7 @@ private fun VinylBackdrop(accent: Color, modifier: Modifier = Modifier) {
 
 /**
  * The turntable: the sleeve is the artwork slot, the record is drawn behind it, and the record's
- * centre slides right as [discOut] goes from rest to playing.
+ * centre slides right as [discOut] goes from rest to playing, and rests a tenth out while paused.
  */
 @Composable
 private fun VinylStage(
