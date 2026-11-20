@@ -440,7 +440,10 @@ private fun DerbisNowPlayingContent(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            // Pixel's ground is blush paper, not black. Every other skin wants the near-black
+            // stage, which is why this was a literal; but a literal is exactly what a skin
+            // cannot reach, so under Pixel the stage was the one screen still painted black.
+            .background(if (pixel) PixelPalette.black else Color.Black)
     ) {
         val layoutMode = resolveDerbisLayoutMode(maxWidth.value, maxHeight.value)
         val compactLandscape = isDerbisCompactLandscape(maxWidth.value, maxHeight.value)
