@@ -35,6 +35,7 @@ import com.yasuda.derbis.domain.DerbisDownloadSettings
 import com.yasuda.derbis.domain.DerbisSmartOfflineSettings
 import com.yasuda.derbis.domain.DerbisAmbientMode
 import com.yasuda.derbis.domain.DerbisAmbientSettings
+import com.yasuda.derbis.domain.DerbisExplicitFilter
 import com.yasuda.derbis.domain.DerbisInterfaceSettings
 import com.yasuda.derbis.domain.DerbisCustomTheme
 import com.yasuda.derbis.domain.DerbisCustomThemes
@@ -223,6 +224,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalizedAudio.customParametricProfiles)
             mutable[KEY_AUDIO_ENHANCED_AUDIO] = normalizedAudio.enhancedAudioEnabled
             mutable[KEY_AUDIO_KARAOKE] = normalizedAudio.karaokeMode
+            mutable[KEY_AUDIO_MONO] = normalizedAudio.monoEnabled
             mutable[KEY_AUDIO_DOLBY_ATMOS] = normalizedAudio.dolbyAtmosEnabled
             mutable[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalizedAudio.audioOffloadPreference.storageValue
             mutable[KEY_AUDIO_BUFFER_MODE] = normalizedAudio.playbackBuffer.mode.storageValue
@@ -262,6 +264,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
             mutable[KEY_UI_ENHANCE_VIDEO_METADATA] = normalizedInterface.enhanceVideoMetadata
             mutable[KEY_UI_BLOCK_AI_CONTENT] = normalizedInterface.blockAiContent
+            mutable[KEY_UI_EXPLICIT_FILTER] = normalizedInterface.explicitFilter.storageValue
+            mutable[KEY_UI_STATUS_BAR_LYRICS] = normalizedInterface.statusBarLyrics
             mutable[KEY_UI_PURE_BLACK] = normalizedInterface.pureBlack
             mutable[KEY_UI_SKIN] = normalizedInterface.skin.name
             mutable[KEY_PRISM_APPEARANCE] = normalizedInterface.prism.appearance.name
@@ -456,6 +460,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
             it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
+            it[KEY_UI_EXPLICIT_FILTER] = normalized.explicitFilter.storageValue
+            it[KEY_UI_STATUS_BAR_LYRICS] = normalized.statusBarLyrics
             it[KEY_UI_PURE_BLACK] = normalized.pureBlack
             it[KEY_UI_SKIN] = normalized.skin.name
             it[KEY_PRISM_APPEARANCE] = normalized.prism.appearance.name
@@ -616,6 +622,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalized.customParametricProfiles)
             it[KEY_AUDIO_ENHANCED_AUDIO] = normalized.enhancedAudioEnabled
             it[KEY_AUDIO_KARAOKE] = normalized.karaokeMode
+            it[KEY_AUDIO_MONO] = normalized.monoEnabled
             it[KEY_AUDIO_DOLBY_ATMOS] = normalized.dolbyAtmosEnabled
             it[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalized.audioOffloadPreference.storageValue
             it[KEY_AUDIO_BUFFER_MODE] = normalized.playbackBuffer.mode.storageValue
@@ -933,6 +940,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
             blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
+            explicitFilter = DerbisExplicitFilter.fromStorage(preferences[KEY_UI_EXPLICIT_FILTER]),
+            statusBarLyrics = preferences[KEY_UI_STATUS_BAR_LYRICS] ?: false,
             pureBlack = preferences[KEY_UI_PURE_BLACK] ?: false,
             skin = com.yasuda.derbis.domain.DerbisSkin.from(preferences[KEY_UI_SKIN].orEmpty()),
             prism = com.yasuda.derbis.domain.PrismSettings.from(
@@ -1168,6 +1177,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             customParametricProfiles = customParametricProfiles,
             enhancedAudioEnabled = preferences[KEY_AUDIO_ENHANCED_AUDIO] ?: true,
             karaokeMode = preferences[KEY_AUDIO_KARAOKE] ?: false,
+            monoEnabled = preferences[KEY_AUDIO_MONO] ?: false,
             dolbyAtmosEnabled = preferences[KEY_AUDIO_DOLBY_ATMOS] ?: true,
             audioOffloadPreference = AudioOffloadPreference.fromStorage(preferences[KEY_AUDIO_OFFLOAD_PREFERENCE]),
             playbackBuffer = PlaybackBufferSettings(
@@ -1441,6 +1451,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_AUDIO_PARAMETRIC_PROFILES = stringPreferencesKey("audio_parametric_profiles")
         val KEY_AUDIO_ENHANCED_AUDIO = booleanPreferencesKey("audio_enhanced_audio_enabled")
         val KEY_AUDIO_KARAOKE = booleanPreferencesKey("audio_karaoke_mode")
+        val KEY_AUDIO_MONO = booleanPreferencesKey("audio_mono_output")
         val KEY_AUDIO_DOLBY_ATMOS = booleanPreferencesKey("audio_dolby_atmos_enabled")
         val KEY_AUDIO_OFFLOAD_PREFERENCE = stringPreferencesKey("audio_offload_preference")
         val KEY_AUDIO_BUFFER_MODE = stringPreferencesKey("audio_playback_buffer_mode")
@@ -1500,6 +1511,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")
         val KEY_UI_BLOCK_AI_CONTENT = booleanPreferencesKey("ui_block_ai_content")
+        val KEY_UI_EXPLICIT_FILTER = stringPreferencesKey("ui_explicit_filter")
+        val KEY_UI_STATUS_BAR_LYRICS = booleanPreferencesKey("ui_status_bar_lyrics")
         val KEY_UI_PLAYER_VISUAL_MODE = stringPreferencesKey("ui_player_visual_mode")
         val KEY_UI_PLAYER_BACKGROUND = stringPreferencesKey("ui_player_background")
         val KEY_UI_REACTIVE_AURA_PRESET = stringPreferencesKey("ui_reactive_aura_preset")

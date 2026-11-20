@@ -1567,6 +1567,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     val playerController get() = player.controller
 
     init {
+        // Award the lyric line its switch before playback can start, so a listener who turned it on
+        // gets it on the very first track of the process rather than the second.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(
+            startupSettings.interfaceSettings.statusBarLyrics
+        )
         viewModelScope.launch {
             searchEngine.state.collect(::applySearchSnapshot)
         }
@@ -4787,6 +4792,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setKaraokeMode(value: Boolean) =
         updateAudioSettings(_state.value.audioSettings.copy(karaokeMode = value))
 
+    fun setMonoEnabled(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(monoEnabled = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }
@@ -5833,6 +5841,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             normalized.motionArtworkEnabled
         )
         DerbisTypographyController.apply(normalized.fontPreset)
+        // The playback tick reads a volatile flag, not a preference, so it is pushed here.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(normalized.statusBarLyrics)
         _state.update { it.copy(interfaceSettings = normalized) }
         if (!previous.blockAiContent && normalized.blockAiContent &&
             _state.value.currentTrack?.let(AiContentFilter::blocks) == true
@@ -6292,6 +6302,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         localLibrarySortFlow.value =
             snapshot.interfaceSettings.librarySort to snapshot.interfaceSettings.librarySortDirection
         DerbisTypographyController.apply(snapshot.interfaceSettings.fontPreset)
+        // A backup restore is the other way this value changes without the settings screen.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(snapshot.interfaceSettings.statusBarLyrics)
         applyLanguageContent(snapshot.languageCode, refreshRemote = true)
         player.setSkipSilence(snapshot.skipSilence)
         player.setPremiumAudioSettings(snapshot.audioSettings, snapshot.audioNormalization)

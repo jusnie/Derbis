@@ -195,6 +195,7 @@ internal fun AudioSettingsPanel(
     onDerbis360Enabled: (Boolean) -> Unit,
     onDerbis360Experience: (Derbis360Experience) -> Unit,
     onKaraokeMode: (Boolean) -> Unit = {},
+    onMonoEnabled: (Boolean) -> Unit = {},
     onPreamp: (Float) -> Unit,
     onLimiter: (Boolean) -> Unit,
     onEnhancedAudio: (Boolean) -> Unit = {},
@@ -566,6 +567,14 @@ internal fun AudioSettingsPanel(
                         subtitle = strings.karaokeSubtitle,
                         checked = audioSettings.karaokeMode,
                         onCheckedChange = onKaraokeMode
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = strings.monoTitle,
+                        subtitle = strings.monoSubtitle,
+                        checked = audioSettings.monoEnabled,
+                        onCheckedChange = onMonoEnabled
                     )
                 }
 

@@ -197,10 +197,14 @@ class PlaybackService : MediaLibraryService() {
     @Volatile private var discordLyricsSynced: Boolean = false
     @Volatile private var discordLyricsLatencyProfiles = LyricsLatencyProfiles()
     private var lastDiscordLyricLine: String = ""
+    /** What the status-bar notification currently shows; empty when nothing is posted. */
+    private var lastStatusLyricLine: String = ""
+    private val lyricStatusNotifier by lazy { LyricStatusNotifier(this) }
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
     private var transitionKaraokeProcessor: VocalCancelAudioProcessor? = null
+    private var transitionMonoProcessor: MonoAudioProcessor? = null
     private var currentAudioSettings = DerbisAudioSettings()
 
     /** Skip-silence forces PCM16 downstream, so it also decides whether float output is safe. */
@@ -219,6 +223,7 @@ class PlaybackService : MediaLibraryService() {
     private val spatialAudioProcessor = StereoSpatialAudioProcessor()
     private val eightDAudioProcessor = EightDAudioProcessor()
     private val karaokeProcessor = VocalCancelAudioProcessor()
+    private val monoProcessor = MonoAudioProcessor()
     private val limiterProcessor = TruePeakLimiterAudioProcessor()
     private val visualizerProcessor = VisualizerAudioProcessor()
     private val beatGridProcessor = BeatGridAnalysisAudioProcessor { trackId, grid ->
@@ -613,11 +618,13 @@ class PlaybackService : MediaLibraryService() {
         // Karaoke is a centre-channel cancel: one volatile flag, smoothed inside the processor so
         // flipping the switch mid-song ramps instead of clicking.
         karaokeProcessor.enabled = normalized.karaokeMode
+        monoProcessor.enabled = normalized.monoEnabled
         transitionEightDAudioProcessor?.apply {
             enabled = normalized.eightDAudioEnabled
             experience = normalized.derbis360Experience
         }
         transitionKaraokeProcessor?.enabled = normalized.karaokeMode
+        transitionMonoProcessor?.enabled = normalized.monoEnabled
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -838,6 +845,7 @@ class PlaybackService : MediaLibraryService() {
         // Lyrics usually arrive after playback starts; republish now so the line shows up
         // immediately instead of waiting for the next playback tick or the 30 s resync.
         runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishDiscordLyricLineIfChanged) }
+        runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishStatusLyricLineIfChanged) }
         val mediaId = DerbisMediaItemFactory.mediaId(track)
         val forwardLyrics = { deviceIntegration?.onLyrics(mediaId, track.id, lines, synced) }
         if (deviceIntegrationResolved) forwardLyrics() else pendingDeviceLyrics = { forwardLyrics() }
@@ -1018,6 +1026,7 @@ class PlaybackService : MediaLibraryService() {
                             // Before the limiter and the analysers, so the meters, the beat grid
                             // and the visualiser all show the mix the listener actually hears.
                             add(karaokeProcessor)
+                            add(monoProcessor)
                             add(limiterProcessor)
                             add(visualizerProcessor)
                             add(beatGridProcessor)
@@ -1328,6 +1337,11 @@ class PlaybackService : MediaLibraryService() {
                 }
                 if (playbackDeck.isPlaying) {
                     publishDiscordLyricLineIfChanged(playbackDeck)
+                    publishStatusLyricLineIfChanged(playbackDeck)
+                } else {
+                    // Pausing is the listener's signal that the lyric can go away; leaving a stale
+                    // line on the lock screen would be worse than showing nothing.
+                    clearStatusLyricLine()
                 }
                 delay(2_000L)
             }
@@ -2494,6 +2508,7 @@ class PlaybackService : MediaLibraryService() {
         transitionNormalization = null
         transitionEightDAudioProcessor = null
         transitionKaraokeProcessor = null
+        transitionMonoProcessor = null
         activePlayer = incoming
         incoming.volume = 1f
         updatePlayerWakeMode(incoming, incoming.currentMediaItem)
@@ -2822,6 +2837,10 @@ class PlaybackService : MediaLibraryService() {
             enabled = currentAudioSettings.karaokeMode
         }
         transitionKaraokeProcessor = karaoke
+        val mono = MonoAudioProcessor().apply {
+            enabled = currentAudioSettings.monoEnabled
+        }
+        transitionMonoProcessor = mono
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
         }
@@ -2862,6 +2881,7 @@ class PlaybackService : MediaLibraryService() {
                             add(spatial)
                             add(eightD)
                             add(karaoke)
+                            add(mono)
                             add(limiter)
                             if (!losslessOutput.bypassPcm16Stage) add(Pcm16OutputAudioProcessor())
                         }.toTypedArray()
@@ -3212,6 +3232,7 @@ class PlaybackService : MediaLibraryService() {
         transitionNormalization = null
         transitionEightDAudioProcessor = null
         transitionKaraokeProcessor = null
+        transitionMonoProcessor = null
         runCatching { player.pause() }
             .onFailure { Timber.w(it, "Queue crossfade secondary pause failed") }
         runCatching { player.clearMediaItems() }
@@ -3286,6 +3307,52 @@ class PlaybackService : MediaLibraryService() {
      * Republish as soon as the sung line changes. The presence layer coalesces these into
      * Discord's 5-per-20-seconds budget, so polling every playback tick stays safe.
      */
+    /**
+     * Pushes the current lyric line to the silent status-bar notification.
+     *
+     * It reads the same engine, line list and latency profile as the Discord presence, so the two
+     * can never disagree about which line is current. It is a separate notification rather than a
+     * rewrite of the media item's metadata on purpose: pushing a lyric through the media session
+     * would tell every session listener — lock screen, Android Auto, watches — that the track
+     * changed dozens of times per song.
+     */
+    private fun publishStatusLyricLineIfChanged(player: Player) {
+        if (!LyricStatusLineSettings.enabled) {
+            clearStatusLyricLine()
+            return
+        }
+        val track = queueEngine.state.value.currentTrack
+        if (track == null) {
+            clearStatusLyricLine()
+            return
+        }
+        val line = statusLyricLineFor(track, player.currentPosition)
+        if (line.isBlank()) {
+            clearStatusLyricLine()
+            return
+        }
+        if (line == lastStatusLyricLine) return
+        lastStatusLyricLine = line
+        lyricStatusNotifier.update(track, line)
+    }
+
+    private fun clearStatusLyricLine() {
+        if (lastStatusLyricLine.isEmpty()) return
+        lastStatusLyricLine = ""
+        lyricStatusNotifier.clear()
+    }
+
+    /** The current line, gated only by whether lyrics for this track have arrived. */
+    private fun statusLyricLineFor(track: Track, positionMs: Long): String {
+        if (!discordLyricsSynced || discordLyricsTrackId != track.id) return ""
+        val line = discordLyricsEngine.currentLine(
+            positionMs = discordLyricPositionMs(positionMs, discordLyricsLatencyProfileOffset(track.id)),
+            lines = discordLyricsLines
+        ) ?: return ""
+        if (line.isInstrumental || line.isMetadata) return ""
+        return line.text
+    }
+
     private fun publishDiscordLyricLineIfChanged(player: Player) {
         val track = queueEngine.state.value.currentTrack
         val line = discordLyricLineFor(track, player.currentPosition)
@@ -3301,6 +3368,7 @@ class PlaybackService : MediaLibraryService() {
         // an explicit stop. Clear the activity, foreground notification, and every audible deck
         // instead of leaving a media service running without a visible Derbis task.
         DerbisDiscordRichPresence.clear()
+        clearStatusLyricLine()
         stopDerbisPlaybackForAppExit()
     }
 

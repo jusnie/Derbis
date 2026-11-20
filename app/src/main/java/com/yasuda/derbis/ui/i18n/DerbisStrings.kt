@@ -20,6 +20,15 @@ class DerbisStrings private constructor(
         return if (DerbisLanguageCatalog.isRtl(code) && clean.isNotBlank()) "\u2068$clean\u2069" else clean
     }
 
+    /** The explicit-content setting's own copy, in one place rather than seven scattered getters. */
+    val explicitFilterTitle: String get() = value("explicitFilterTitle")
+    val explicitFilterSubtitle: String get() = value("explicitFilterSubtitle")
+    val explicitFilterShowAll: String get() = value("explicitFilterShowAll")
+    val explicitFilterHide: String get() = value("explicitFilterHide")
+    val explicitFilterOnly: String get() = value("explicitFilterOnly")
+    val statusBarLyricsTitle: String get() = value("statusBarLyricsTitle")
+    val statusBarLyricsSubtitle: String get() = value("statusBarLyricsSubtitle")
+
     val smartOffline: DerbisSmartOfflineCopy
         get() = DerbisSmartOfflineCopy(
             title = value("smartOfflineTitle"),
@@ -683,6 +692,25 @@ class DerbisStrings private constructor(
         "fr" -> "Annule le centre de la stéréo pour retirer la voix. L'instrumental reste, mais la basse et la grosse caisse perdent du corps."
         "de" -> "Hebt die Mitte der Stereoaufnahme an, um die Stimme zu entfernen. Das Instrumental bleibt, Bass und Kick verlieren aber etwas Körper."
         else -> "Cancels the centre of the stereo mix to remove the vocal. The instrumental stays, but the bass and kick lose some body."
+    }
+    val monoTitle: String get() = when (code) {
+        "it" -> "Uscita mono"
+        "es" -> "Salida mono"
+        "fr" -> "Sortie mono"
+        "de" -> "Mono-Ausgabe"
+        else -> "Mono output"
+    }
+    /**
+     * Names the reason, because "mono" alone reads like a downgrade: it exists for one earbud, a
+     * mono speaker, or hearing that only reaches one side, where the alternative is losing half
+     * the mix rather than hearing it in worse quality.
+     */
+    val monoSubtitle: String get() = when (code) {
+        "it" -> "Unisce sinistra e destra in un solo canale, così un auricolare solo o un altoparlante mono non perde metà del mix."
+        "es" -> "Une izquierda y derecha en un solo canal, para que un solo auricular o un altavoz mono no pierda la mitad de la mezcla."
+        "fr" -> "Réunit gauche et droite en un seul canal, pour qu'un écouteur unique ou une enceinte mono ne perde pas la moitié du mixage."
+        "de" -> "Fasst links und rechts zu einem Kanal zusammen, damit ein einzelner Ohrhörer oder ein Mono-Lautsprecher nicht die halbe Mischung verliert."
+        else -> "Folds left and right into one channel, so a single earbud or a mono speaker does not lose half the mix."
     }
     val derbis360ExperienceSubtitle: String get() = when (code) {
         "it" -> "L'8D offre un'orbita delicata. Il 16D aggiunge un movimento stereo più rapido e profondo."
@@ -2486,9 +2514,9 @@ class DerbisStrings private constructor(
         }
 
         private fun bundle(code: String, entries: Map<String, String>): DerbisStrings {
-            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code) + derbisNotchLocalizationEntries(code) + wrappedExtraLocalizationEntries(code)
+            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code) + derbisNotchLocalizationEntries(code) + wrappedExtraLocalizationEntries(code) + contentFilterLocalizationEntries(code)
             val resolvedEntries = localizedEntries + smartOfflineLocalizationEntries(code, localizedEntries)
-            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys + derbisNotchKeys
+            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys + derbisNotchKeys + contentFilterKeys
             val missing = allRequiredKeys - resolvedEntries.keys
             val finalEntries = if (missing.isNotEmpty()) {
                 val fallback = resolvedEntries.toMutableMap()

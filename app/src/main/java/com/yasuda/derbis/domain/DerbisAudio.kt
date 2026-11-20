@@ -184,6 +184,13 @@ data class DerbisAudioSettings(
      * stem separation, so it is instant, per-track and completely reversible.
      */
     val karaokeMode: Boolean = false
+    /**
+     * Folds the stereo mix to one channel and sends it to both sides.
+     *
+     * For a single earbud, a mono speaker, or hearing loss on one side: a plain one-channel
+     * playback would drop whatever sits on the other side of the mix.
+     */
+    val monoEnabled: Boolean = false
 ) {
     val effectiveReplayGainMode: ReplayGainMode
         get() = if (replayGainMode == ReplayGainMode.OFF && replayGainEnabled) ReplayGainMode.SMART else replayGainMode

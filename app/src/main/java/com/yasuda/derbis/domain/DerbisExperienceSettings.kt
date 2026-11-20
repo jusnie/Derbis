@@ -293,6 +293,14 @@ data class DerbisInterfaceSettings(
     val enhanceVideoMetadata: Boolean = false,
     /** Hides tracks and videos explicitly identified as AI-generated. */
     val blockAiContent: Boolean = false,
+    /** Which tracks are allowed through, by their provider's explicit flag. */
+    val explicitFilter: DerbisExplicitFilter = DerbisExplicitFilter.Default,
+    /**
+     * Repeats the current lyric line as a silent, ongoing notification.
+     *
+     * Off by default: it is a second notification, and nobody should discover it by surprise.
+     */
+    val statusBarLyrics: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
     /** In-app dynamic island pinned above the app. Off until the listener asks for it. */
@@ -325,6 +333,26 @@ data class DerbisInterfaceSettings(
     companion object {
         const val DEFAULT_GLASS_LEVEL = 50
         const val DEFAULT_REACTIVE_AURA_INTENSITY = 50
+    }
+}
+
+enum class DerbisExplicitFilter(val storageValue: String) {
+    Off("off"),
+    HideExplicit("hide"),
+    OnlyExplicit("only");
+
+    val label: String
+        get() = when (this) {
+            Off -> "Show all"
+            HideExplicit -> "Hide explicit"
+            OnlyExplicit -> "Explicit only"
+        }
+
+    companion object {
+        val Default = Off
+
+        fun fromStorage(raw: String?): DerbisExplicitFilter =
+            entries.firstOrNull { it.storageValue == raw?.trim()?.lowercase() } ?: Default
     }
 }
 

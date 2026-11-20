@@ -658,6 +658,7 @@ import com.yasuda.derbis.domain.availableSearchAlbumKinds
 import com.yasuda.derbis.ui.youtubemusic.entryFor
 import com.yasuda.derbis.domain.SmartMusicProfile
 import com.yasuda.derbis.domain.DerbisCanvasQuality
+import com.yasuda.derbis.domain.DerbisExplicitFilter
 import com.yasuda.derbis.domain.DerbisVisualPerformance
 import com.yasuda.derbis.domain.DerbisContentLocales
 import com.yasuda.derbis.domain.DerbisLanguageCatalog
@@ -817,6 +818,7 @@ import com.yasuda.derbis.viewmodel.buildHomeRenderSnapshot
 import com.yasuda.derbis.viewmodel.HomeViewModel
 import com.yasuda.derbis.viewmodel.DerbisScreenViewModelFactory
 import com.yasuda.derbis.viewmodel.withAiContentBlocked
+import com.yasuda.derbis.viewmodel.withExplicitFiltered
 import com.yasuda.derbis.ui.discovery.discoverySection
 import com.yasuda.derbis.ui.discovery.DiscoveryHomeHost
 import com.yasuda.derbis.ui.discovery.LocalHomeDiscovery
@@ -1923,7 +1925,14 @@ fun DerbisApp(
     var showYoutubeMusic by rememberSaveable { mutableStateOf(false) }
 
     val rawState by viewModel.state.collectAsStateWithLifecycle()
-    val state = remember(rawState, rawState.interfaceSettings.blockAiContent) { rawState.withAiContentBlocked() }
+    // One choke point for both content settings, in the order the listener would expect: the AI
+    // block first, then the explicit filter, so the explicit pass never has to consider tracks the
+    // AI block has already removed. The key carries both values, so flipping either rebuilds once.
+    val state = remember(
+        rawState,
+        rawState.interfaceSettings.blockAiContent,
+        rawState.interfaceSettings.explicitFilter
+    ) { rawState.withAiContentBlocked().withExplicitFiltered() }
     val miniPlayerStudio by viewModel.miniPlayerStudio.collectAsStateWithLifecycle()
     val customThemes by viewModel.customThemes.collectAsStateWithLifecycle()
     val navigationStudio by viewModel.navigationStudio.collectAsStateWithLifecycle()
@@ -3291,6 +3300,7 @@ fun DerbisApp(
                     onDerbis360Enabled = viewModel::setDerbis360Enabled,
                     onDerbis360Experience = viewModel::setDerbis360Experience,
                     onKaraokeMode = viewModel::setKaraokeMode,
+                    onMonoEnabled = viewModel::setMonoEnabled,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,
@@ -21402,6 +21412,26 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsChoiceRow(
+                                    icon = Icons.Rounded.Explicit,
+                                    title = strings.explicitFilterTitle,
+                                    subtitle = strings.explicitFilterSubtitle,
+                                    options = DerbisExplicitFilter.entries.map { option ->
+                                        option.storageValue to explicitFilterLabel(option, strings)
+                                    },
+                                    selected = interfaceSettings.explicitFilter.storageValue,
+                                    onSelect = { value ->
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(
+                                                explicitFilter = DerbisExplicitFilter.entries
+                                                    .firstOrNull { it.storageValue == value }
+                                                    ?: DerbisExplicitFilter.Default
+                                            )
+                                        )
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsChoiceRow(
                                     icon = Icons.Rounded.Speed,
                                     title = strings.visualPerformance,
                                     subtitle = visualPerformanceSubtitle(interfaceSettings.visualPerformance, strings),
@@ -22086,6 +22116,17 @@ private fun SettingsOverlay(
                                     checked = betterLyricsEnabled,
                                     onCheckedChange = { enabled ->
                                         onLyricsProviderOrdering(lyricsProviderOrdering.withEnabled(LyricsProviderId.BETTER_LYRICS, enabled))
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.Subtitles,
+                                    title = strings.statusBarLyricsTitle,
+                                    subtitle = strings.statusBarLyricsSubtitle,
+                                    checked = interfaceSettings.statusBarLyrics,
+                                    onCheckedChange = { enabled ->
+                                        onInterfaceSettings(interfaceSettings.copy(statusBarLyrics = enabled))
                                     }
                                 )
                             }
@@ -23457,6 +23498,12 @@ private fun visualPerformanceLabel(mode: DerbisVisualPerformance, strings: Derbi
     DerbisVisualPerformance.Full -> strings.visualPerformanceFull
     DerbisVisualPerformance.Auto -> strings.visualPerformanceAuto
     DerbisVisualPerformance.Smooth -> strings.visualPerformanceSmooth
+}
+
+private fun explicitFilterLabel(filter: DerbisExplicitFilter, strings: DerbisStrings): String = when (filter) {
+    DerbisExplicitFilter.Off -> strings.explicitFilterShowAll
+    DerbisExplicitFilter.HideExplicit -> strings.explicitFilterHide
+    DerbisExplicitFilter.OnlyExplicit -> strings.explicitFilterOnly
 }
 
 private fun visualPerformanceSubtitle(mode: DerbisVisualPerformance, strings: DerbisStrings): String = when (mode) {

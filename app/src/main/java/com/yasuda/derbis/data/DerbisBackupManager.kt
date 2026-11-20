@@ -25,6 +25,7 @@ import com.yasuda.derbis.data.local.toTrack
 import com.yasuda.derbis.data.local.PlaylistTagEntity
 import com.yasuda.derbis.data.local.PlaylistTagLinkEntity
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
+import com.yasuda.derbis.domain.DerbisExplicitFilter
 import com.yasuda.derbis.domain.ExcludedArtist
 import com.yasuda.derbis.domain.FollowedArtist
 import com.yasuda.derbis.domain.HighQualityAudioMode
@@ -1706,6 +1707,7 @@ internal fun backupAudioSettingsToJson(value: DerbisAudioSettings): JSONObject =
     .put("virtualizer", value.virtualizer)
     .put("eightDAudioEnabled", value.eightDAudioEnabled)
     .put("karaokeMode", value.karaokeMode)
+    .put("monoEnabled", value.monoEnabled)
     .put("derbis360Experience", value.derbis360Experience.storageValue)
     .put("preampDb", value.preampDb.toDouble())
     .put("limiterEnabled", value.limiterEnabled)
@@ -1787,6 +1789,7 @@ internal fun backupAudioSettingsFromJson(json: JSONObject?): DerbisAudioSettings
         virtualizer = json.optInt("virtualizer"),
         eightDAudioEnabled = json.optBoolean("eightDAudioEnabled", false),
         karaokeMode = json.optBoolean("karaokeMode", false),
+        monoEnabled = json.optBoolean("monoEnabled", false),
         derbis360Experience = Derbis360Experience.fromStorage(json.optString("derbis360Experience")),
         preampDb = json.optDouble("preampDb", 0.0).toFloat(),
         limiterEnabled = json.optBoolean("limiterEnabled", true),
@@ -1847,6 +1850,8 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("motionArtworkEnabled", value.motionArtworkEnabled)
     .put("enhanceVideoMetadata", value.enhanceVideoMetadata)
     .put("blockAiContent", value.blockAiContent)
+    .put("explicitFilter", value.explicitFilter.storageValue)
+    .put("statusBarLyrics", value.statusBarLyrics)
     .put("pureBlack", value.pureBlack)
     .put("skin", value.skin.name)
     .put("prismAppearance", value.prism.appearance.name)
@@ -1922,6 +1927,8 @@ internal fun backupInterfaceSettingsFromJson(
         motionArtworkEnabled = json.optBoolean("motionArtworkEnabled", false),
         enhanceVideoMetadata = json.optBoolean("enhanceVideoMetadata", false),
         blockAiContent = json.optBoolean("blockAiContent", false),
+        explicitFilter = DerbisExplicitFilter.fromStorage(json.optString("explicitFilter")),
+        statusBarLyrics = json.optBoolean("statusBarLyrics", false),
         pureBlack = json.optBoolean("pureBlack", false),
         skin = com.yasuda.derbis.domain.DerbisSkin.from(json.optString("skin")),
         prism = com.yasuda.derbis.domain.PrismSettings.from(
