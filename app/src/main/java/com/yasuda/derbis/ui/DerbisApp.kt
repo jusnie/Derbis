@@ -629,6 +629,9 @@ import com.yasuda.derbis.data.findVerifiedTopResultArtist
 import com.yasuda.derbis.data.deduplicateSearchSongs
 import com.yasuda.derbis.data.selectSearchTopResultTracks
 import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
+import com.yasuda.derbis.data.subsonic.SubsonicFailure
+import com.yasuda.derbis.data.subsonic.SubsonicServerSummary
+import com.yasuda.derbis.data.subsonic.SubsonicTestState
 import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.data.spotify.SpotifyCookie
 import com.yasuda.derbis.player.NativeAudioIntegration
@@ -1924,6 +1927,8 @@ fun DerbisApp(
     val youtubeMusicState by youtubeMusicViewModel.state.collectAsStateWithLifecycle()
     var showYoutubeMusic by rememberSaveable { mutableStateOf(false) }
 
+    val subsonicSummary by viewModel.subsonicSummary.collectAsStateWithLifecycle()
+    val subsonicTest by viewModel.subsonicTest.collectAsStateWithLifecycle()
     val rawState by viewModel.state.collectAsStateWithLifecycle()
     // One choke point for both content settings, in the order the listener would expect: the AI
     // block first, then the explicit filter, so the explicit pass never has to consider tracks the
@@ -3054,6 +3059,8 @@ fun DerbisApp(
                     lastFmAuthorizationPending = state.lastFmAuthorizationPending,
                     listenBrainzConfigured = state.listenBrainzConfigured,
                     audDConfigured = state.audDConfigured,
+                    subsonicSummary = subsonicSummary,
+                    subsonicTest = subsonicTest,
                     networkSettings = state.networkSettings,
                     networkProxyPasswordSet = state.networkProxyPasswordSet,
                     networkTesting = state.networkTesting,
@@ -3300,6 +3307,10 @@ fun DerbisApp(
                     onDerbis360Enabled = viewModel::setDerbis360Enabled,
                     onDerbis360Experience = viewModel::setDerbis360Experience,
                     onKaraokeMode = viewModel::setKaraokeMode,
+                    onSaveSubsonic = viewModel::saveSubsonicServer,
+                    onTestSubsonic = viewModel::testSubsonicServer,
+                    onClearSubsonic = viewModel::clearSubsonicServer,
+                    onRefreshSubsonic = viewModel::refreshSubsonicSummary,
                     onMonoEnabled = viewModel::setMonoEnabled,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
@@ -20950,6 +20961,8 @@ private fun SettingsOverlay(
     lastFmAuthorizationPending: Boolean,
     listenBrainzConfigured: Boolean,
     audDConfigured: Boolean,
+    subsonicSummary: SubsonicServerSummary,
+    subsonicTest: SubsonicTestState,
     networkSettings: DerbisNetworkSettings,
     networkProxyPasswordSet: Boolean,
     networkTesting: Boolean,
@@ -21017,6 +21030,10 @@ private fun SettingsOverlay(
     onPickProfilePhoto: () -> Unit,
     onRemoveProfilePhoto: () -> Unit,
     onOpenYoutubeMusic: () -> Unit,
+    onSaveSubsonic: (String, String, String) -> Unit,
+    onTestSubsonic: (String, String, String) -> Unit,
+    onClearSubsonic: () -> Unit,
+    onRefreshSubsonic: () -> Unit,
     onClose: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
@@ -21287,6 +21304,16 @@ private fun SettingsOverlay(
                         }
                         "integrations" -> {
                             item { DeviceIntegrationSettingsPanel() }
+                            item {
+                                SubsonicServerTile(
+                                    summary = subsonicSummary,
+                                    test = subsonicTest,
+                                    onSave = onSaveSubsonic,
+                                    onTest = onTestSubsonic,
+                                    onClear = onClearSubsonic,
+                                    onRefresh = onRefreshSubsonic
+                                )
+                            }
                             item {
                                 IntegrationSettingsPanel(
                                     lastFmConfigured,
@@ -23757,6 +23784,168 @@ private fun String.smartOfflineEntries(): Set<String> = split(',')
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+/**
+ * The home-server row: three fields and a Test button.
+ *
+ * Test exists because the only other way to discover a wrong password is to save it and wait for
+ * a search to quietly come back without the server's results, which looks exactly like having no
+ * server at all.
+ *
+ * The password field is write-only: the stored secret is never read back into it. Once saved, the
+ * row says what it knows (host, user, state) and leaves the field empty for the next edit.
+ */
+@Composable
+private fun SubsonicServerTile(
+    summary: SubsonicServerSummary,
+    test: SubsonicTestState,
+    onSave: (String, String, String) -> Unit,
+    onTest: (String, String, String) -> Unit,
+    onClear: () -> Unit,
+    onRefresh: () -> Unit
+) {
+    val strings = LocalDerbisStrings.current
+    var open by remember { mutableStateOf(false) }
+    // The saved summary is read when the row appears, so it is current even if the server was
+    // configured on another screen or restored from a backup since this composable was composed.
+    LaunchedEffect(Unit) { onRefresh() }
+    SettingsTile(onClick = { open = true }) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            SettingsTileIcon(icon = Icons.Rounded.Storage, accent = LocalSettingsAccent.current ?: DerbisCyan)
+            SettingsTileText(
+                title = strings.subsonicHomeServer,
+                subtitle = when {
+                    summary.isConfigured && summary.enabled -> summary.displayHost
+                    summary.isConfigured -> strings.subsonicTileOff + " · " + summary.displayHost
+                    else -> strings.subsonicTileSubtitle
+                },
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                null,
+                tint = DerbisMuted.copy(alpha = 0.7f),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+
+    if (!open) return
+    // Keyed on the saved values: the summary is read off the main thread when the row appears, so
+    // without the keys the fields could be seeded with the empty summary and stay empty.
+    var serverUrl by remember(summary.serverUrl) { mutableStateOf(summary.serverUrl) }
+    var username by remember(summary.username) { mutableStateOf(summary.username) }
+    var password by remember { mutableStateOf("") }
+    val testing = test is SubsonicTestState.Testing
+    val canSubmit = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = { open = false },
+        title = { Text(strings.subsonicHomeServer, color = DerbisText, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    strings.subsonicPanelBody,
+                    color = DerbisMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                OutlinedTextField(
+                    serverUrl,
+                    { serverUrl = it },
+                    label = { Text(strings.subsonicServerAddress) },
+                    placeholder = { Text(strings.subsonicAddressHint) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    username,
+                    { username = it },
+                    label = { Text(strings.subsonicUsername) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    password,
+                    { password = it },
+                    label = { Text(if (summary.hasPassword) strings.subsonicPasswordSaved else strings.subsonicPassword) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val status = when (val state = test) {
+                    SubsonicTestState.Idle -> ""
+                    SubsonicTestState.Testing -> strings.subsonicContacting
+                    is SubsonicTestState.Ok -> strings.subsonicConnected + " · " + state.label
+                    is SubsonicTestState.Failed -> state.serverMessage.ifBlank {
+                        when (state.reason) {
+                            SubsonicFailure.IncompleteForm -> strings.subsonicFillAll
+                            SubsonicFailure.Rejected -> strings.subsonicRejected
+                            SubsonicFailure.Unreachable -> strings.subsonicUnreachable
+                        }
+                    }
+                }
+                if (status.isNotBlank()) {
+                    Text(
+                        status,
+                        color = if (test is SubsonicTestState.Ok) DerbisCyan else DerbisText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = { onTest(serverUrl, username, password) },
+                        enabled = canSubmit && !testing
+                    ) {
+                        Text(if (testing) strings.subsonicTesting else strings.subsonicTest, fontWeight = FontWeight.Bold)
+                    }
+                    if (summary.isConfigured) {
+                        TextButton(onClick = { onClear(); open = false }) {
+                            Text(strings.subsonicRemove, color = DerbisPink, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(serverUrl, username, password); open = false },
+                enabled = canSubmit
+            ) {
+                Text(strings.subsonicSave, color = DerbisCyan, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { open = false }) { Text(strings.subsonicCancel, color = DerbisMuted) }
+        }
+    )
+}
+
 private fun SettingsChoiceRow(
     icon: ImageVector,
     title: String,

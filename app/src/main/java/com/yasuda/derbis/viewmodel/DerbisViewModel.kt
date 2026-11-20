@@ -247,6 +247,15 @@ import com.yasuda.derbis.feature.providers.CachedPlaybackProvider
 import com.yasuda.derbis.feature.providers.DerbisNativePlaybackProvider
 import com.yasuda.derbis.feature.providers.DerbisProviderRouter
 import com.yasuda.derbis.feature.providers.MemoryCatalogProvider
+import com.yasuda.derbis.data.subsonic.SubsonicClient
+import com.yasuda.derbis.data.subsonic.SubsonicCredentials
+import com.yasuda.derbis.data.subsonic.SubsonicFailure
+import com.yasuda.derbis.data.subsonic.SubsonicResult
+import com.yasuda.derbis.data.subsonic.SubsonicServerSummary
+import com.yasuda.derbis.data.subsonic.SubsonicSettingsStore
+import com.yasuda.derbis.data.subsonic.SubsonicTestState
+import com.yasuda.derbis.feature.providers.SubsonicCatalogProvider
+import com.yasuda.derbis.feature.providers.SubsonicPlaybackProvider
 import com.yasuda.derbis.feature.providers.YoutubeMusicCatalogProvider
 import com.yasuda.derbis.feature.search.DerbisSearchEngine
 import com.yasuda.derbis.feature.search.LocalSearchAffinity
@@ -906,14 +915,32 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private val lyricsRepository = LyricsRepository(application.applicationContext)
     private val sponsorBlockRepository = SponsorBlockRepository()
     private val resolver = PlaybackResolver.getInstance(application.applicationContext)
+    private val subsonicSettings = SubsonicSettingsStore(application)
+    private val subsonicClient = SubsonicClient()
+
+    /**
+     * What the settings row shows about the home server.
+     *
+     * Deliberately not part of DerbisUiState: it is read by one screen, it changes only when the
+     * listener edits the form, and folding it into the main state would mean every screen
+     * recomposes when a server address changes.
+     */
+    private val _subsonicSummary = MutableStateFlow(SubsonicServerSummary())
+    val subsonicSummary: StateFlow<SubsonicServerSummary> = _subsonicSummary.asStateFlow()
+
+    private val _subsonicTest = MutableStateFlow<SubsonicTestState>(SubsonicTestState.Idle)
+    val subsonicTest: StateFlow<SubsonicTestState> = _subsonicTest.asStateFlow()
+
     private val providerRouter = DerbisProviderRouter(
         catalogProviders = listOf(
             YoutubeMusicCatalogProvider(repository),
-            MemoryCatalogProvider(repository)
+            MemoryCatalogProvider(repository),
+            SubsonicCatalogProvider(subsonicSettings, subsonicClient)
         ),
         playbackProviders = listOf(
             CachedPlaybackProvider(resolver),
-            DerbisNativePlaybackProvider(resolver)
+            DerbisNativePlaybackProvider(resolver),
+            SubsonicPlaybackProvider(subsonicSettings, subsonicClient)
         )
     )
     private val playlistImporter by lazy {
@@ -5828,6 +5855,75 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setDynamicColor(value: Boolean) {
         preferences.setDynamicColor(value)
         _state.update { it.copy(dynamicColor = value) }
+    }
+
+    fun refreshSubsonicSummary() {
+        // Reading the summary decrypts the stored password, so it never runs on the main thread —
+        // this is called from composition.
+        viewModelScope.launch {
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+        }
+    }
+
+    /**
+     * Saves a server and switches it on.
+     *
+     * The password goes straight to the Keystore-backed store and is not copied into any state
+     * object, which is why this takes three strings rather than a credentials object the UI could
+     * then keep holding.
+     */
+    fun saveSubsonicServer(serverUrl: String, username: String, password: String) {
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                subsonicSettings.save(
+                    SubsonicCredentials(
+                        serverUrl = serverUrl.trim(),
+                        username = username.trim(),
+                        password = password
+                    ),
+                    enabled = true
+                )
+            }
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+            _subsonicTest.value = SubsonicTestState.Idle
+        }
+    }
+
+    fun clearSubsonicServer() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { subsonicSettings.clear() }
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+            _subsonicTest.value = SubsonicTestState.Idle
+        }
+    }
+
+    fun testSubsonicServer(serverUrl: String, username: String, password: String) {
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            _subsonicTest.value = SubsonicTestState.Failed(SubsonicFailure.IncompleteForm)
+            return
+        }
+        if (_subsonicTest.value is SubsonicTestState.Testing) return
+        _subsonicTest.value = SubsonicTestState.Testing
+        viewModelScope.launch {
+            val result = subsonicClient.ping(
+                SubsonicCredentials(serverUrl = serverUrl.trim(), username = username.trim(), password = password)
+            )
+            _subsonicTest.value = when (result) {
+                is SubsonicResult.Ok -> SubsonicTestState.Ok(
+                    serverType = result.value.serverType,
+                    version = result.value.version
+                )
+                is SubsonicResult.Failed -> SubsonicTestState.Failed(
+                    reason = SubsonicFailure.Rejected,
+                    message = result.message
+                )
+                is SubsonicResult.Unreachable -> SubsonicTestState.Failed(
+                    reason = SubsonicFailure.Unreachable,
+                    message = result.message
+                )
+            }
+        }
     }
 
     fun setInterfaceSettings(value: DerbisInterfaceSettings) {

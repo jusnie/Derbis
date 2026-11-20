@@ -205,6 +205,7 @@ private fun MutableList<SettingsSearchEntry>.systemEntries(
         entry("app.updates", strings.updates, strings.checkNewVersions, "version update", categories.app)
     }
     entry("youtube_music.account", "YouTube Music", com.yasuda.derbis.ui.i18n.youtubeMusicCopy(strings.code).introduction, "youtube music google login account cookie library playlist likes", categories.youtubeMusic)
+    entry("integrations.subsonic", strings.subsonicHomeServer, strings.subsonicTileSubtitle, "subsonic navidrome gonic airsonic ampache home server own library stream", categories.integrations)
     entry("integrations.lastfm", "Last.fm", strings.integrations, "lastfm scrobble scrobbling", categories.integrations)
     entry("integrations.listenbrainz", "ListenBrainz", strings.integrations, "listenbrainz scrobble scrobbling", categories.integrations)
     entry("integrations.audd", "AudD", strings.integrations, "audd recognition identify", categories.integrations)
