@@ -68,6 +68,7 @@ private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: DerbisSt
     entry("design.app_font", strings.appFont, strings.appFontSubtitle, "font typography text", categories.design)
     entry("design.animations", strings.animations, strings.animationsSubtitle, "animation motion", categories.design)
     entry("design.visual_performance", strings.visualPerformance, strings.visualPerformanceFullSubtitle, "${strings.visualPerformanceAuto} ${strings.visualPerformanceSmooth} performance fps", categories.design)
+    entry("design.artwork_quality", strings.artworkQualityTitle, strings.artworkQualityMediumSubtitle, "artwork cover covers image images resolution px pixels quality bandwidth data saver slow connection thumbnails portraits photos ${strings.artworkQualityLow} ${strings.artworkQualityHigh}", categories.design)
     entry("design.liquid_glass", strings.liquidGlass, strings.liquidGlassSubtitle, "glass material frost refraction", categories.design)
     entry("design.dynamic_color", strings.dynamicColor, strings.dynamicColorSubtitle, "material you color wallpaper", categories.design)
     entry("design.explicit_filter", strings.explicitFilterTitle, strings.explicitFilterSubtitle, "explicit content clean filter hide only parental advisory", categories.design)

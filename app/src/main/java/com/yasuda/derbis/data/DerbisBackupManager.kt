@@ -47,6 +47,7 @@ import com.yasuda.derbis.domain.DerbisBackupFrequency
 import com.yasuda.derbis.domain.DerbisAutomationSettings
 import com.yasuda.derbis.domain.DerbisBackupSettings
 import com.yasuda.derbis.domain.DerbisBedtimeSchedule
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.DerbisVisualPerformance
 import com.yasuda.derbis.domain.DerbisCanvasSource
@@ -1837,6 +1838,7 @@ internal fun backupInterfaceSettingsToJson(value: DerbisInterfaceSettings): JSON
     .put("canvasQuality", value.canvasQuality.name)
     .put("canvasSource", DerbisCanvasSource.Auto.name)
     .put("visualPerformance", value.visualPerformance.name)
+    .put("artworkQuality", value.artworkQuality.name)
     .put("liquidGlassEnabled", value.liquidGlassEnabled)
     .put("liteMode", value.liteMode)
     .put("forceHighRefreshRate", value.forceHighRefreshRate)
@@ -1914,6 +1916,7 @@ internal fun backupInterfaceSettingsFromJson(
         canvasQuality = DerbisCanvasQuality.from(json.optString("canvasQuality")),
         canvasSource = DerbisCanvasSource.from(json.optString("canvasSource")),
         visualPerformance = DerbisVisualPerformance.from(json.optString("visualPerformance")),
+        artworkQuality = DerbisArtworkQuality.from(json.optString("artworkQuality")),
         liquidGlassEnabled = json.optBoolean("liquidGlassEnabled", true),
         liteMode = json.optBoolean("liteMode", false),
         forceHighRefreshRate = json.optBoolean("forceHighRefreshRate", false),

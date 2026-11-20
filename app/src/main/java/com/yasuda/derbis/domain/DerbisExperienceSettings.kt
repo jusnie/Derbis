@@ -32,6 +32,29 @@ enum class DerbisVisualPerformance {
 }
 
 /** Lyric treatment inside the Derbis Notch card. */
+/**
+ * How large a cover the CDNs are allowed to be asked for.
+ *
+ * A ceiling, not a target: nothing is ever raised. A 256 px thumbnail still asks for 256 with
+ * [High] selected, and the full-screen player is the only view that notices the difference
+ * between [Medium] and [High] at all.
+ *
+ * This exists because the app already asks each CDN for a size that suits the view, but never
+ * for a *cap* — so a full-screen player requests up to 1200 px, and on a weak connection that is
+ * a few hundred kilobytes before a single pixel is drawn. The three steps are the ones the
+ * preview quoted: halving the ceiling removes three quarters of the pixels, not half.
+ */
+enum class DerbisArtworkQuality(val pixels: Int) {
+    Low(480),
+    Medium(720),
+    High(1080);
+
+    companion object {
+        fun from(value: String): DerbisArtworkQuality =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Medium
+    }
+}
+
 enum class DerbisNotchStyle {
     Default,
     Spicy;
@@ -274,6 +297,7 @@ data class DerbisInterfaceSettings(
     val canvasQuality: DerbisCanvasQuality = DerbisCanvasQuality.Auto,
     val canvasSource: DerbisCanvasSource = DerbisCanvasSource.Auto,
     val visualPerformance: DerbisVisualPerformance = DerbisVisualPerformance.Full,
+    val artworkQuality: DerbisArtworkQuality = DerbisArtworkQuality.Medium,
     val liquidGlassEnabled: Boolean = true,
     val liteMode: Boolean = false,
     val forceHighRefreshRate: Boolean = false,

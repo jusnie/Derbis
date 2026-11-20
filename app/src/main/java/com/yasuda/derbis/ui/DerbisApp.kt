@@ -662,6 +662,7 @@ import com.yasuda.derbis.ui.youtubemusic.entryFor
 import com.yasuda.derbis.domain.SmartMusicProfile
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.DerbisExplicitFilter
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.DerbisVisualPerformance
 import com.yasuda.derbis.domain.DerbisContentLocales
 import com.yasuda.derbis.domain.DerbisLanguageCatalog
@@ -21473,6 +21474,22 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
+                            item {
+                                SettingsChoiceRow(
+                                    icon = Icons.Rounded.Image,
+                                    title = strings.artworkQualityTitle,
+                                    subtitle = artworkQualitySubtitle(interfaceSettings.artworkQuality, strings),
+                                    options = DerbisArtworkQuality.entries.map { band ->
+                                        band.name to artworkQualityLabel(band, strings)
+                                    },
+                                    selected = interfaceSettings.artworkQuality.name,
+                                    onSelect = { value ->
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(artworkQuality = DerbisArtworkQuality.from(value))
+                                        )
+                                    }
+                                )
+                            }
                             skinSettingsItems(interfaceSettings.skin, defaults = {
                             item {
                                 SettingsToggle(
@@ -23525,6 +23542,22 @@ private fun visualPerformanceLabel(mode: DerbisVisualPerformance, strings: Derbi
     DerbisVisualPerformance.Full -> strings.visualPerformanceFull
     DerbisVisualPerformance.Auto -> strings.visualPerformanceAuto
     DerbisVisualPerformance.Smooth -> strings.visualPerformanceSmooth
+}
+
+private fun artworkQualityLabel(band: DerbisArtworkQuality, strings: DerbisStrings): String = when (band) {
+    DerbisArtworkQuality.Low -> strings.artworkQualityLow
+    DerbisArtworkQuality.Medium -> strings.artworkQualityMedium
+    DerbisArtworkQuality.High -> strings.artworkQualityHigh
+}
+
+/**
+ * States the trade-off instead of implying it: the number is the ceiling the CDN is actually
+ * asked for, and the sentence says what lives at that size.
+ */
+private fun artworkQualitySubtitle(band: DerbisArtworkQuality, strings: DerbisStrings): String = when (band) {
+    DerbisArtworkQuality.Low -> strings.artworkQualityLowSubtitle
+    DerbisArtworkQuality.Medium -> strings.artworkQualityMediumSubtitle
+    DerbisArtworkQuality.High -> strings.artworkQualityHighSubtitle
 }
 
 private fun explicitFilterLabel(filter: DerbisExplicitFilter, strings: DerbisStrings): String = when (filter) {

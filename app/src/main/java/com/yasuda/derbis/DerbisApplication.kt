@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentCallbacks2
 import com.yasuda.derbis.data.AutomaticBackupScheduler
 import com.yasuda.derbis.data.FollowedArtistsStore
+import com.yasuda.derbis.data.ArtworkQualityCeiling
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisArtworkStartupMetrics
 import com.yasuda.derbis.data.DerbisPreferences
@@ -40,6 +41,11 @@ class DerbisApplication : Application() {
         RuntimeHooks.start(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         preloadDerbisPreferences(this)
+        // Before anything can request a cover: the ceiling has to be in place for the first
+        // image load, not the second one after settings finish restoring.
+        runCatching {
+            ArtworkQualityCeiling.update(DerbisPreferences(this@DerbisApplication).interfaceSettings().artworkQuality)
+        }.onFailure { Timber.w(it, "Artwork quality bootstrap failed") }
         DerbisArtworkStartupMetrics.beginSession()
         runCatching { DerbisNetworkController.applyStoredConfiguration(this) }
             .onFailure { Timber.w(it, "Network configuration bootstrap failed") }

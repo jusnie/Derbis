@@ -14,6 +14,7 @@ import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.yasuda.derbis.domain.AlbumHit
 import com.yasuda.derbis.domain.HighQualityAudioMode
 import com.yasuda.derbis.domain.DerbisAudioQuality
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.Derbis360Experience
 import com.yasuda.derbis.domain.HomeSection
 import com.yasuda.derbis.domain.DerbisGlassEffects
@@ -251,6 +252,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_CANVAS_QUALITY] = normalizedInterface.canvasQuality.name
             mutable[KEY_UI_CANVAS_SOURCE] = DerbisCanvasSource.Auto.name
             mutable[KEY_UI_VISUAL_PERFORMANCE] = normalizedInterface.visualPerformance.name
+            mutable[KEY_UI_ARTWORK_QUALITY] = normalizedInterface.artworkQuality.name
             mutable[KEY_UI_LIQUID_GLASS] = normalizedInterface.liquidGlassEnabled
             mutable[KEY_UI_LITE_MODE] = normalizedInterface.liteMode
             mutable[KEY_UI_FORCE_HIGH_REFRESH_RATE] = normalizedInterface.forceHighRefreshRate
@@ -449,6 +451,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_CANVAS_QUALITY] = normalized.canvasQuality.name
             it[KEY_UI_CANVAS_SOURCE] = DerbisCanvasSource.Auto.name
             it[KEY_UI_VISUAL_PERFORMANCE] = normalized.visualPerformance.name
+            it[KEY_UI_ARTWORK_QUALITY] = normalized.artworkQuality.name
             it[KEY_UI_LIQUID_GLASS] = normalized.liquidGlassEnabled
             it[KEY_UI_GLASS_BLUR] = normalized.glassBlur
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
@@ -927,6 +930,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             canvasQuality = DerbisCanvasQuality.from(preferences[KEY_UI_CANVAS_QUALITY].orEmpty()),
             canvasSource = DerbisCanvasSource.from(preferences[KEY_UI_CANVAS_SOURCE].orEmpty()),
             visualPerformance = DerbisVisualPerformance.from(preferences[KEY_UI_VISUAL_PERFORMANCE].orEmpty()),
+            artworkQuality = DerbisArtworkQuality.from(preferences[KEY_UI_ARTWORK_QUALITY].orEmpty()),
             liquidGlassEnabled = preferences[KEY_UI_LIQUID_GLASS] ?: true,
             liteMode = preferences[KEY_UI_LITE_MODE] ?: false,
             forceHighRefreshRate = preferences[KEY_UI_FORCE_HIGH_REFRESH_RATE] ?: false,
@@ -1499,6 +1503,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_CANVAS_QUALITY = stringPreferencesKey("ui_canvas_quality")
         val KEY_UI_CANVAS_SOURCE = stringPreferencesKey("ui_canvas_source")
         val KEY_UI_VISUAL_PERFORMANCE = stringPreferencesKey("ui_visual_performance")
+        val KEY_UI_ARTWORK_QUALITY = stringPreferencesKey("ui_artwork_quality")
         val KEY_UI_LIQUID_GLASS = booleanPreferencesKey("ui_liquid_glass")
         val KEY_UI_LITE_MODE = booleanPreferencesKey("ui_lite_mode")
         val KEY_UI_FORCE_HIGH_REFRESH_RATE = booleanPreferencesKey("ui_force_high_refresh_rate")

@@ -5939,6 +5939,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         DerbisTypographyController.apply(normalized.fontPreset)
         // The playback tick reads a volatile flag, not a preference, so it is pushed here.
         com.yasuda.derbis.player.LyricStatusLineSettings.update(normalized.statusBarLyrics)
+        // Same reason: every artwork URL is rewritten on Coil's decode threads, so the ceiling is
+        // a volatile read rather than a preference lookup per image.
+        com.yasuda.derbis.data.ArtworkQualityCeiling.update(normalized.artworkQuality)
         _state.update { it.copy(interfaceSettings = normalized) }
         if (!previous.blockAiContent && normalized.blockAiContent &&
             _state.value.currentTrack?.let(AiContentFilter::blocks) == true

@@ -84,6 +84,14 @@ internal fun isLikelyArtworkBytes(bytes: ByteArray): Boolean {
 object DerbisArtworkCache {
     private const val SMALL_SIZE = 512
     private const val LARGE_SIZE = 1200
+
+    /**
+     * What is written to disk, capped by the same setting the network request obeys — otherwise
+     * picking Low would save the download and then store a 1200 px file anyway, and the cache
+     * would be the reason the setting looked like it did nothing.
+     */
+    private val smallSize: Int get() = minOf(SMALL_SIZE, ArtworkQualityCeiling.current())
+    private val largeSize: Int get() = minOf(LARGE_SIZE, ArtworkQualityCeiling.current())
     private const val MAX_FILE_BYTES = 6L * 1024L * 1024L
     private const val MAX_PERSISTENT_FILES = 220
     private const val INDEX_PRIME_DELAY_MS = 1_200L
@@ -152,9 +160,9 @@ object DerbisArtworkCache {
         )
     }
 
-    fun small(url: String): String = resize(url, SMALL_SIZE)
+    fun small(url: String): String = resize(url, smallSize)
 
-    fun large(url: String): String = resize(url, LARGE_SIZE)
+    fun large(url: String): String = resize(url, largeSize)
 
     fun model(context: Context, track: Track, highRes: Boolean = false): Any? {
         return models(context, track, highRes).firstOrNull()
@@ -174,7 +182,7 @@ object DerbisArtworkCache {
 
     fun localFile(context: Context, track: Track, highRes: Boolean = false): File? {
         if (!localIndexPrimed || artworkUrlCandidates(track, highRes).isEmpty()) return null
-        val file = persistentFile(context.applicationContext, track, if (highRes) LARGE_SIZE else SMALL_SIZE)
+        val file = persistentFile(context.applicationContext, track, if (highRes) largeSize else smallSize)
         return if (localIndex.contains(file.name)) file else null
     }
 
@@ -247,7 +255,7 @@ object DerbisArtworkCache {
     private fun preloadRequest(context: Context, url: String): ImageRequest {
         return ImageRequest.Builder(context)
             .data(url)
-            .size(SMALL_SIZE)
+            .size(smallSize)
             .apply { extras.set(ArtworkTierOverride, ArtworkTier.Card) }
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
@@ -270,7 +278,7 @@ object DerbisArtworkCache {
     private fun target(context: Context, track: Track, highRes: Boolean): ArtworkTarget? {
         val urls = artworkUrlCandidates(track, highRes).filterNot(::isLocalArtworkModel)
         if (urls.isEmpty()) return null
-        val size = if (highRes) LARGE_SIZE else SMALL_SIZE
+        val size = if (highRes) largeSize else smallSize
         return ArtworkTarget(urls, persistentFile(context, track, size))
     }
 
@@ -335,7 +343,7 @@ object DerbisArtworkCache {
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .flatMap { raw ->
-                val resized = if (highRes) large(raw) else resize(raw, SMALL_SIZE)
+                val resized = if (highRes) large(raw) else resize(raw, smallSize)
                 sequenceOf(resized, fullResolutionArtworkUrl(raw), raw)
             }
             .distinct()
@@ -360,7 +368,10 @@ object DerbisArtworkCache {
     }
 
     private fun persistentKey(track: Track, size: Int): String {
-        val rawArtwork = artworkUrlCandidates(track, size >= LARGE_SIZE).firstOrNull().orEmpty()
+        // Compared against the capped large size, not the constant: with the ceiling in play a
+        // high-res target is 720 or 1080, and testing it against 1200 would name it as a
+        // thumbnail and pick the wrong candidate list.
+        val rawArtwork = artworkUrlCandidates(track, size >= largeSize).firstOrNull().orEmpty()
         val stable = buildString {
             append(size)
             append('|')

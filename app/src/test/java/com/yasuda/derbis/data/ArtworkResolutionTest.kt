@@ -31,6 +31,57 @@ class ArtworkResolutionTest {
     }
 
     @Test
+    fun theCapLowersAFullScreenRequest() {
+        val source = "https://lh3.googleusercontent.com/aAbBcC=w1200-h1200-l90-rj"
+        assertEquals(
+            "https://lh3.googleusercontent.com/aAbBcC=w480-h480-l90-rj",
+            ArtworkUrlResolver.resolve(source, ArtworkTier.Full, ceilingPixels = 480)
+        )
+        assertEquals(
+            "https://lh3.googleusercontent.com/aAbBcC=w720-h720-l90-rj",
+            ArtworkUrlResolver.resolve(source, ArtworkTier.Full, ceilingPixels = 720)
+        )
+    }
+
+    @Test
+    fun theCapNeverRaisesWhatASmallSurfaceAskedFor() {
+        val thumbnail = "https://lh3.googleusercontent.com/aAbBcC=w256-h256-l90-rj"
+        assertEquals(
+            thumbnail,
+            ArtworkUrlResolver.resolve(thumbnail, ArtworkTier.Thumbnail, ceilingPixels = 1080)
+        )
+        // and the ceiling still binds when it is below the surface: a thumbnail under Low
+        // asks for 256, because 480 is a ceiling and not a target.
+        assertEquals(
+            thumbnail,
+            ArtworkUrlResolver.resolve(thumbnail, ArtworkTier.Thumbnail, ceilingPixels = 480)
+        )
+    }
+
+    @Test
+    fun theCapRewritesAppleArtworkThatIsLargerThanIt() {
+        assertEquals(
+            "https://is1-ssl.mzstatic.com/image/thumb/abc/720x720bb.jpg",
+            ArtworkUrlResolver.resolve(
+                "https://is1-ssl.mzstatic.com/image/thumb/abc/1200x1200bb.jpg",
+                ArtworkTier.Full,
+                ceilingPixels = 720
+            )
+        )
+    }
+
+    @Test
+    fun deezerMovesDownToTheNearestPublishedAsset() {
+        // Deezer publishes fixed assets, so the cap chooses a step rather than a size. Under a
+        // 480 px ceiling a full-screen view takes the 500 px cover instead of the 1000 px one.
+        val medium = "https://e-cdns-images.dzcdn.net/images/cover_medium/abc.jpg"
+        assertEquals(
+            "https://e-cdns-images.dzcdn.net/images/cover_big/abc.jpg",
+            ArtworkUrlResolver.resolve(medium, ArtworkTier.Full, ceilingPixels = 480)
+        )
+    }
+
+    @Test
     fun smallSurfacesDoNotRequestHugeGoogleArtwork() {
         assertEquals(
             "https://lh3.googleusercontent.com/aAbBcC=w256-h256-l90-rj",
