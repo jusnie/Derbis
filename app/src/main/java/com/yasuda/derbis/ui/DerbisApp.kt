@@ -3197,6 +3197,10 @@ fun DerbisApp(
                     },
                     onRemoveProfilePhoto = viewModel::clearProfilePhoto,
                     onOpenYoutubeMusic = { viewModel.closeSettings(); showYoutubeMusic = true },
+                    onSaveSubsonic = viewModel::saveSubsonicServer,
+                    onTestSubsonic = viewModel::testSubsonicServer,
+                    onClearSubsonic = viewModel::clearSubsonicServer,
+                    onRefreshSubsonic = viewModel::refreshSubsonicSummary,
                     onClose = viewModel::closeSettings
                 )
             }
@@ -3307,10 +3311,6 @@ fun DerbisApp(
                     onDerbis360Enabled = viewModel::setDerbis360Enabled,
                     onDerbis360Experience = viewModel::setDerbis360Experience,
                     onKaraokeMode = viewModel::setKaraokeMode,
-                    onSaveSubsonic = viewModel::saveSubsonicServer,
-                    onTestSubsonic = viewModel::testSubsonicServer,
-                    onClearSubsonic = viewModel::clearSubsonicServer,
-                    onRefreshSubsonic = viewModel::refreshSubsonicSummary,
                     onMonoEnabled = viewModel::setMonoEnabled,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
@@ -23782,8 +23782,6 @@ private fun String.smartOfflineEntries(): Set<String> = split(',')
     .filter(String::isNotBlank)
     .toSet()
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
 /**
  * The home-server row: three fields and a Test button.
  *
@@ -23946,6 +23944,8 @@ private fun SubsonicServerTile(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
 private fun SettingsChoiceRow(
     icon: ImageVector,
     title: String,

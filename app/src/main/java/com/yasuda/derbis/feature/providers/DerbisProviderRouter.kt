@@ -49,6 +49,13 @@ interface DerbisPlaybackProvider {
 
 internal class DerbisProviderMissException(message: String) : IOException(message)
 
+/**
+ * The provider was reachable in principle but could not answer: wrong password, server down, a
+ * timeout. Distinct from a miss, which means the provider answered and had nothing — the first is
+ * worth telling the listener about, the second is not.
+ */
+internal class DerbisProviderDeclinedException(message: String) : Exception(message)
+
 data class DerbisProviderHealth(
     val providerId: String,
     val consecutiveFailures: Int,

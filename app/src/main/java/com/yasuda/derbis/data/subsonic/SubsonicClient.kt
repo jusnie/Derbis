@@ -1,6 +1,5 @@
 package com.yasuda.derbis.data.subsonic
 
-import com.yasuda.derbis.data.ArtworkQualityCeiling
 import com.yasuda.derbis.data.network.DerbisHttpClientFactory
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -181,7 +180,7 @@ class SubsonicClient(
     fun coverArtUrl(credentials: SubsonicCredentials, coverArtId: String): String? {
         if (coverArtId.isBlank()) return null
         val base = normalizeServerUrl(credentials.serverUrl) ?: return null
-        val size = ArtworkQualityCeiling.current()
+        val size = COVER_ART_SIZE_PX
         return buildSignedUrl(base, "getCoverArt", credentials, listOf("id" to coverArtId, "size" to size.toString()))
             ?.toString()
     }
@@ -315,6 +314,12 @@ class SubsonicClient(
         const val CLIENT_NAME = "Derbis"
         const val SOURCE = "Subsonic"
         const val SONG_ID_PREFIX = "subsonic:"
+
+        /**
+         * Full-resolution cover art. This line has no artwork-quality ceiling yet; when it does,
+         * this is the number that should follow it rather than a constant.
+         */
+        const val COVER_ART_SIZE_PX = 1200
         const val ALBUM_ID_PREFIX = "subsonic:album:"
         const val PLAYLIST_ID_PREFIX = "subsonic:playlist:"
         private const val SONGS_PER_SEARCH = 20

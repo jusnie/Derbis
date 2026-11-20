@@ -183,7 +183,7 @@ data class DerbisAudioSettings(
      * Off by default and deliberately a plain switch — this is centre-channel cancellation, not
      * stem separation, so it is instant, per-track and completely reversible.
      */
-    val karaokeMode: Boolean = false
+    val karaokeMode: Boolean = false,
     /**
      * Folds the stereo mix to one channel and sends it to both sides.
      *
