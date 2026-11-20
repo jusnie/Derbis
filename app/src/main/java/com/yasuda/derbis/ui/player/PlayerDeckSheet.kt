@@ -738,32 +738,39 @@ private fun VinylPreview(track: Track, artworkUrl: String, accent: Color) {
             )
     ) {
         Box(modifier = Modifier.align(Alignment.Center).fillMaxWidth()) {
-            // The record, half out of the sleeve, exactly as the playing deck draws it.
-            Canvas(modifier = Modifier.fillMaxWidth().height(96.dp)) {
-                val record = size.height * 0.92f
-                val radius = record / 2f
-                val centre = Offset(size.width * 0.66f, size.height / 2f)
-                drawCircle(Color(0xFF141417), radius = radius, center = centre)
-                var groove = radius * 0.36f
-                while (groove < radius * 0.96f) {
-                    drawCircle(
-                        color = Color.White.copy(alpha = 0.06f),
-                        radius = groove,
-                        center = centre,
-                        style = Stroke(width = 0.6.dp.toPx())
+            // The arc, as the playing deck draws it: two covers turned away behind the one that
+            // is playing. Same shift, angle and falloff, scaled to the tile.
+            Canvas(modifier = Modifier.fillMaxWidth().height(104.dp)) {
+                val card = size.height * 0.74f
+                val centreX = size.width / 2f
+                val centreY = size.height / 2f
+                val corner = CornerRadius(3.dp.toPx())
+                listOf(
+                    -1 to 0.30f,
+                    1 to 0.30f
+                ).forEach { (distance, alpha) ->
+                    val shift = centreX + distance * card * 0.58f
+                    drawRoundRect(
+                        color = Color(0xFF17171A),
+                        topLeft = Offset(shift - card / 2f, centreY - card / 2f),
+                        size = Size(card, card),
+                        cornerRadius = corner,
+                        alpha = alpha
                     )
-                    groove += radius * 0.10f
                 }
-                drawCircle(accent.copy(alpha = 0.9f), radius = radius * 0.30f, center = centre)
-                drawCircle(Color(0xFF08080A), radius = radius * 0.05f, center = centre)
+                drawRoundRect(
+                    color = accent.copy(alpha = 0.9f),
+                    topLeft = Offset(centreX - card / 2f, centreY - card / 2f),
+                    size = Size(card, card),
+                    cornerRadius = corner
+                )
             }
             DeckArtwork(
                 track = track,
                 artworkUrl = artworkUrl,
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 10.dp)
-                    .size(96.dp)
+                    .align(Alignment.Center)
+                    .size(72.dp)
                     .clip(RoundedCornerShape(3.dp))
             )
         }

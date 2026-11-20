@@ -114,6 +114,37 @@ internal class PlayerDeckPlayback(
 }
 
 @Immutable
+/**
+ * The tracks either side of the one playing, for a stage that shows the queue rather than a single
+ * cover.
+ *
+ * [previous] and [next] are null at the ends of a queue on purpose: a carousel that wraps is a
+ * different promise from one that does not, and a deck drawing a neighbour that will never play
+ * would be lying about what pressing next does.
+ */
+internal data class PlayerDeckQueue(
+    val previous: Track?,
+    val current: Track,
+    val next: Track?,
+    val index: Int,
+    val total: Int
+) {
+    val hasNeighbours: Boolean get() = previous != null || next != null
+}
+
+internal fun playerDeckQueue(queue: List<Track>, trackId: String): PlayerDeckQueue? {
+    if (trackId.isBlank() || queue.size < 2) return null
+    val index = queue.indexOfFirst { it.id == trackId }
+    if (index < 0) return null
+    return PlayerDeckQueue(
+        previous = queue.getOrNull(index - 1),
+        current = queue[index],
+        next = queue.getOrNull(index + 1),
+        index = index,
+        total = queue.size
+    )
+}
+
 internal data class PlayerDeckQueuePosition(
     val index: Int,
     val total: Int
@@ -265,6 +296,15 @@ internal class PlayerDeckSlots(
     val controlsWithoutMetadata: @Composable ColumnScope.(Track) -> Unit,
     val engagement: @Composable (Track) -> Unit,
     val progress: @Composable (style: PlayerProgressStyle) -> Unit,
+    /**
+     * Artwork for any track, at the size asked for.
+     *
+     * A deck whose stage shows its neighbours needs their covers too, and it must not open a
+     * second loading path to get them: this is the same renderer the centre card uses.
+     */
+    val cover: @Composable (Track, Dp, Dp?) -> Unit,
+    /** The queue around the current track; null when there is nothing either side of it. */
+    val queue: PlayerDeckQueue?,
     /**
      * The player's error line, on its own.
      *

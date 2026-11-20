@@ -1131,6 +1131,8 @@ private fun DerbisNowPlayingContent(
                 errorContent?.invoke()
             },
             error = { errorContent?.invoke() },
+            cover = mediaHeroBlock,
+            queue = playerDeckQueue(state.queue, track?.id.orEmpty()),
             dock = dockBlock,
             dockActions = dockActionsFor,
             // The Liquid Glass player keeps its stage clean: no written-by line over the cover.

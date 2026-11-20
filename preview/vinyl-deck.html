@@ -223,11 +223,27 @@
   .notes ul { margin: 0; padding-left: 18px; }
   .tag { display: inline-block; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
     color: color-mix(in srgb, var(--accent) 70%, #fff); }
+
+  .superseded {
+    max-width: 760px; margin: 0 auto 22px; padding: 14px 16px; border-radius: 12px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);
+    color: #cfcbd6; font-size: 13.5px; line-height: 1.5;
+  }
+  .superseded b { color: #fff; }
+  .superseded a { color: #9ecbff; }
+  h1 .old { font-size: 13px; font-weight: 500; opacity: .55; letter-spacing: .3px; }
 </style>
 </head>
 <body>
 
-<h1>Vinyl — player deck 7</h1>
+<div class="superseded">
+  <b>Superseded.</b> The deck still exists and is still called Vinyl, but the turntable is gone:
+  its stage is now the queue, drawn as a cover-flow arc. The current spec is
+  <a href="cover-flow-deck.html">cover-flow-deck.html</a>. This page is kept as the record of the
+  sleeve-and-disc stage that shipped before it, and describes nothing that runs now.
+</div>
+
+<h1>Vinyl — player deck 7 <span class="old">(old stage)</span></h1>
 <p class="sub">
   <b>The record is the sleeve's other half.</b> A square sleeve holds a disc that slides out while
   the track plays and back in when it pauses; the disc's own label is pressed from the artwork's

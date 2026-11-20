@@ -1,8 +1,8 @@
 package com.yasuda.derbis.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -36,7 +36,9 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -47,10 +49,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.yasuda.derbis.domain.RepeatMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
@@ -70,58 +73,70 @@ import com.yasuda.derbis.ui.components.PlayerControlLabels
 import com.yasuda.derbis.ui.components.PlayerIcon
 import com.yasuda.derbis.ui.components.derbisPressable
 import com.yasuda.derbis.ui.theme.DerbisHapticAction
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 
 /*
- * Vinyl — the deck whose stage is a turntable.
+ * Vinyl — the deck whose stage is the queue.
  *
- * One idea: the sleeve holds the record. A square cover sits on the left, the disc slides out from
- * behind it while the track plays and glides back in when it pauses, and the disc's label is
- * pressed from the artwork's own two accents. The disc turns with the playhead at a 33⅓ rpm
- * relationship, so scrubbing lands it in the same place every time, and every move is a tween that
- * snaps when animations are off.
+ * One idea: the cover, not the song, is what moves. The track playing sits forward and flat in
+ * the centre, its two neighbours are turned away on the Y axis, scaled down and dimmed, and a skip
+ * turns the whole row rather than swapping two pictures. The turn is one float — the cards read
+ * their position off it — so they move as a wheel instead of three things that happen to animate
+ * at once, and with animations off it snaps in one frame like the rest of the player.
  *
- * No image assets: the sleeve is the artwork slot every deck already gets, and the disc, grooves,
- * label and spindle are drawn.
+ * The name is older than the stage: this was the turntable deck, and the deck is still Vinyl, so a
+ * saved choice still lands here.
+ *
+ * No image assets: every card is the artwork slot every deck already gets, drawn through the same
+ * renderer the centre card uses.
  */
 
 private val VinylGround = Color(0xFF08080A)
 private val VinylInk = Color(0xFFF3F1EE)
-private val VinylDiscCore = Color(0xFF0B0B0D)
-private val VinylDiscEdge = Color(0xFF17171A)
 
 private const val VinylInkStrong = 0.78f
 private const val VinylInkMuted = 0.60f
 private const val VinylInkSoft = 0.50f
 private const val VinylInkFaint = 0.44f
 
-/** Disc diameter against the sleeve side. */
-private const val VinylDiscRatio = 0.94f
+/**
+ * The arc.
+ *
+ * A card's distance `d` from the playhead sets its whole transform: it shifts sideways by
+ * `d x 0.58` of a card, turns away by `d x 52°`, shrinks by `|d| x 0.12` and is dimmed by
+ * `|d| x 0.26`. One rule for three cards, so they cannot disagree about where the arc is.
+ */
+private const val VinylArcShift = 0.58f
+private const val VinylArcTurnDegrees = 52f
+private const val VinylArcScaleFalloff = 0.12f
+private const val VinylArcScrim = 0.26f
 
-/** How far the record travels out of its sleeve, against the sleeve side. */
-private const val VinylSlideRatio = 0.42f
+/** How long the row takes to turn one place. */
+private const val VinylTurnMs = 420
 
 /**
- * How far out the record rests while the deck is paused, as a fraction of its full travel.
+ * Camera distance as a multiple of the card's own width.
  *
- * A record sitting completely inside its sleeve leaves nothing on screen to say what deck this is:
- * the paused player and any ordinary cover-led player look identical. At rest the disc now clears
- * the sleeve by 10 % of its side, which is enough to read as a record without pretending the track
- * is playing. The figure is exactly derived rather than eyeballed: the disc's trailing edge lands
- * at `0.5 + 0.42 × 0.31 + 0.47 = 1.10 × side`, i.e. one tenth of the sleeve outside its edge.
- *
- * Nothing is loaded while a track resolves, and there the record does go all the way back in — the
- * sleeve is empty, and a record would claim a track that is not there yet.
+ * Compose measures this in pixels and defaults to 8, which is smaller than the card and so
+ * distorts a 52° turn into a trapezoid; its own guidance is to use at least the size of the
+ * view. Five card widths gives the shallow, even perspective the preview was drawn with, and it
+ * holds at any card size instead of drifting with screen density.
  */
-private const val VinylPausedPeek = 0.31f
+private const val VinylCameraFactor = 5f
 
-/** Stage width per sleeve side, so the disc's overhang is never clipped. */
-private const val VinylStageWidthFactor = 1.42f
+/**
+ * Past this distance a card is off the stage, so it is not drawn at all.
+ *
+ * A turn only ever carries a card between one and two places out, so this is where a neighbour
+ * fades in rather than appears: cutting it at a hard edge would drop a sliver of cover mid-turn.
+ */
+private const val VinylNeighbourLimit = 1.8f
 
-/** Degrees the disc turns per second of playback: 33⅓ rpm. */
-private const val VinylDegreesPerMs = 0.2f
+/** Card side as a fraction of the stage width: narrow enough to leave the neighbours room. */
+private const val VinylCardWidthFactor = 0.66f
 
 private val VinylSleeveCorner = 4.dp
 private val VinylPanelCorner = 24.dp
@@ -161,21 +176,32 @@ internal fun PlayerVinylDeck(
 ) {
     val glow = surfaces.glow
     val accent = if (glow.alpha > 0f) glow.copy(alpha = 1f) else surfaces.hero
-    // Three resting places, not two: out while playing, a visible tenth out while paused, and
-    // all the way in while a track is still resolving.
-    val discOut by animateFloatAsState(
-        targetValue = when {
-            isPlaying -> 1f
-            isResolving -> 0f
-            else -> VinylPausedPeek
-        },
-        animationSpec = if (animated) {
-            tween(durationMillis = 520, easing = FastOutSlowInEasing)
+    // The row's one degree of freedom. It rests at 0; a track change sets it to +1 or -1 (which
+    // way the queue moved) and it settles back, carrying all three cards with it.
+    val turn = remember { Animatable(0f) }
+    var lastQueueIndex by remember { mutableIntStateOf(slots.queue?.index ?: -1) }
+    LaunchedEffect(track.id) {
+        val index = slots.queue?.index ?: -1
+        val direction = if (index >= 0 && lastQueueIndex >= 0) {
+            (index - lastQueueIndex).coerceIn(-1, 1)
         } else {
-            snap()
-        },
-        label = "vinyl-disc-out"
-    )
+            0
+        }
+        lastQueueIndex = index
+        if (direction == 0) {
+            turn.snapTo(0f)
+            return@LaunchedEffect
+        }
+        turn.snapTo(direction.toFloat())
+        turn.animateTo(
+            targetValue = 0f,
+            animationSpec = if (animated) {
+                tween(durationMillis = VinylTurnMs, easing = FastOutSlowInEasing)
+            } else {
+                snap()
+            }
+        )
+    }
     Box(modifier = modifier.background(VinylGround)) {
         VinylBackdrop(accent = accent)
         Column(
@@ -200,17 +226,17 @@ internal fun PlayerVinylDeck(
                         if (scrollable) Modifier.height(VinylScrollStage)
                         else Modifier.weight(1f)
                     ),
-                contentAlignment = Alignment.CenterStart
+                contentAlignment = Alignment.Center
             ) {
-                val side = minOf(maxWidth / VinylStageWidthFactor, maxHeight, artworkCap)
+                // A card takes two thirds of the stage, so the neighbours have somewhere to
+                // turn into and the outermost one runs off the edge rather than being framed.
+                val side = minOf(maxWidth * VinylCardWidthFactor, maxHeight, artworkCap)
                 if (side > 0.dp) {
                     VinylStage(
                         track = track,
                         slots = slots,
-                        playback = playback,
-                        accent = accent,
                         side = side,
-                        discOut = discOut
+                        turn = turn.value
                     )
                 }
             }
@@ -249,7 +275,7 @@ internal fun PlayerVinylDeck(
 private fun VinylBackdrop(accent: Color, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.fillMaxSize()) {
         drawRect(VinylGround)
-        // The artwork's light, low behind the sleeve: two washes, no blur, no image.
+        // The artwork's light, low behind the row: two washes, no blur, no image.
         drawRect(
             Brush.radialGradient(
                 colors = listOf(accent.copy(alpha = 0.42f), Color.Transparent),
@@ -275,127 +301,117 @@ private fun VinylBackdrop(accent: Color, modifier: Modifier = Modifier) {
 }
 
 /**
- * The turntable: the sleeve is the artwork slot, the record is drawn behind it, and the record's
- * centre slides right as [discOut] goes from rest to playing, and rests a tenth out while paused.
+ * The stage is the queue.
+ *
+ * The current cover sits forward and flat; the two beside it are turned away on the Y axis,
+ * scaled down and dimmed. Pressing next or previous does not swap two pictures — the whole row
+ * turns, and the card that lands in the centre straightens up.
+ *
+ * The turn is one float, not one animation per card. On a track change it starts at ±1 and
+ * settles to 0 over [VinylTurnMs], and every card reads its position off that single value, so
+ * the three of them cannot drift apart the way three independent tweens would. With animations
+ * off it snaps in one frame, which is the same rule the rest of the player follows.
  */
 @Composable
 private fun VinylStage(
     track: Track,
     slots: PlayerDeckSlots,
-    playback: PlayerDeckPlayback,
-    accent: Color,
     side: Dp,
-    discOut: Float
+    turn: Float,
+    modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(side),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        VinylDisc(
-            accent = accent,
-            playback = playback,
-            side = side,
-            discOut = discOut,
-            modifier = Modifier.fillMaxSize()
-        )
-        slots.stage(track, Modifier.size(side), VinylSleeveCorner)
-        slots.gestures(track, Modifier.size(side))
+    val density = LocalDensity.current
+    val sidePx = with(density) { side.toPx() }
+    // Measured against the card, not the screen: Compose takes this in pixels, and anything
+    // under the card's own width fans a turned cover into a trapezoid.
+    val cameraDistance = sidePx * VinylCameraFactor
+    val corner = if (DerbisIsPixel) 0.dp else VinylSleeveCorner
+    val queue = slots.queue
+
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        // Drawn back to front: the neighbours first, then the card in the playhead, so the centre
+        // one is never cut by a neighbour that happens to be nearer during a turn.
+        queue?.previous?.let { previous ->
+            VinylNeighbour(
+                track = previous,
+                slots = slots,
+                side = side,
+                distance = -1f + turn,
+                cameraDistance = cameraDistance,
+                corner = corner
+            )
+        }
+        queue?.next?.let { next ->
+            VinylNeighbour(
+                track = next,
+                slots = slots,
+                side = side,
+                distance = 1f + turn,
+                cameraDistance = cameraDistance,
+                corner = corner
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(side)
+                .zIndex(1f)
+                .graphicsLayer {
+                    translationX = turn * VinylArcShift * sidePx
+                    rotationY = -turn * VinylArcTurnDegrees
+                    scaleX = 1f - kotlin.math.abs(turn) * VinylArcScaleFalloff
+                    scaleY = scaleX
+                    this.cameraDistance = cameraDistance
+                }
+        ) {
+            slots.stage(track, Modifier.size(side), corner)
+            slots.gestures(track, Modifier.size(side))
+        }
     }
 }
 
+/** One card beside the playhead: same artwork loader, transformed by its distance from centre. */
 @Composable
-private fun VinylDisc(
-    accent: Color,
-    playback: PlayerDeckPlayback,
+private fun VinylNeighbour(
+    track: Track,
+    slots: PlayerDeckSlots,
     side: Dp,
-    discOut: Float,
-    modifier: Modifier = Modifier
+    distance: Float,
+    cameraDistance: Float,
+    corner: Dp
 ) {
-    // 33⅓ rpm, read off the playhead: a seek lands the disc in the same place every time.
-    val angle = (playback.positionMs * VinylDegreesPerMs) % 360f
-    Canvas(modifier = modifier) {
-        val sidePx = side.toPx()
-        val diameter = sidePx * VinylDiscRatio
-        val radius = diameter / 2f
-        val centre = Offset(
-            x = sidePx * 0.5f + sidePx * VinylSlideRatio * discOut,
-            y = size.height / 2f
-        )
-        // A record has weight: a soft drop under it, then the vinyl itself.
-        drawCircle(
-            color = Color.Black.copy(alpha = 0.42f),
-            radius = radius * 1.01f,
-            center = centre + Offset(0f, 7.dp.toPx())
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(VinylDiscEdge, VinylDiscCore),
-                center = centre + Offset(-radius * 0.34f, -radius * 0.38f),
-                radius = radius * 1.5f
-            ),
-            radius = radius,
-            center = centre
-        )
-        rotate(degrees = angle, pivot = centre) {
-            // Grooves: rings, not a texture, so they stay crisp at any density.
-            val grooveStroke = 0.7.dp.toPx()
-            var groove = radius * 0.34f
-            var index = 0
-            while (groove < radius * 0.985f) {
-                drawCircle(
-                    color = Color.White.copy(alpha = if (index % 3 == 0) 0.055f else 0.032f),
-                    radius = groove,
-                    center = centre,
-                    style = Stroke(width = grooveStroke)
-                )
-                groove += radius * 0.028f
-                index++
+    val away = kotlin.math.abs(distance)
+    // Given up on once it has travelled far enough out to be off the stage: drawing it there
+    // costs a cover decode for nothing.
+    if (away > VinylNeighbourLimit) return
+    val density = LocalDensity.current
+    val sidePx = with(density) { side.toPx() }
+    val scrim = away * VinylArcScrim
+    // Full strength at rest, gone by the limit, and ramping in between so a card arriving from
+    // two places out does not appear as a hard edge on the way in.
+    val presence = ((VinylNeighbourLimit - away) / (VinylNeighbourLimit - 1f)).coerceIn(0f, 1f)
+    Box(
+        modifier = Modifier
+            .size(side)
+            .graphicsLayer {
+                translationX = distance * VinylArcShift * sidePx
+                rotationY = -distance * VinylArcTurnDegrees
+                scaleX = 1f - away * VinylArcScaleFalloff
+                scaleY = scaleX
+                alpha = presence
+                this.cameraDistance = cameraDistance
             }
-            // One sheen, so the disc reads as turning even on a still frame.
-            drawCircle(
-                brush = Brush.sweepGradient(
-                    0f to Color.Transparent,
-                    0.08f to Color.White.copy(alpha = 0.085f),
-                    0.20f to Color.Transparent,
-                    0.52f to Color.Transparent,
-                    0.58f to Color.White.copy(alpha = 0.045f),
-                    0.70f to Color.Transparent,
-                    1f to Color.Transparent,
-                    center = centre
-                ),
-                radius = radius * 0.985f,
-                center = centre
+    ) {
+        slots.cover(track, side, corner)
+        if (scrim > 0f) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = scrim))
             )
         }
-        // The pressed label: the artwork's two accents, mixed down so it reads as ink on vinyl.
-        val labelRadius = radius * 0.31f
-        drawCircle(
-            brush = Brush.linearGradient(
-                colors = listOf(accent, accent.copy(alpha = 0.62f)),
-                start = centre - Offset(labelRadius, labelRadius),
-                end = centre + Offset(labelRadius, labelRadius)
-            ),
-            radius = labelRadius,
-            center = centre
-        )
-        drawCircle(
-            color = Color.Black.copy(alpha = 0.30f),
-            radius = labelRadius,
-            center = centre,
-            style = Stroke(width = 1.dp.toPx())
-        )
-        // Spindle.
-        drawCircle(color = VinylGround, radius = radius * 0.032f, center = centre)
-        drawCircle(
-            color = Color.White.copy(alpha = 0.18f),
-            radius = radius * 0.032f,
-            center = centre,
-            style = Stroke(width = 0.8.dp.toPx())
-        )
     }
 }
+
 
 @Composable
 private fun VinylPanel(

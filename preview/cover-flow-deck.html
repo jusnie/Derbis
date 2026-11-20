@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Cover Flow — replacement for the Vinyl deck</title>
+<title>Cover Flow — the new stage for the Vinyl deck</title>
 <style>
   :root {
     --ground: #08080a;
@@ -11,8 +11,7 @@
     --accent: #d9863f;
     --accent-2: #f0b25e;
 
-    --card: 196;          /* card width in px */
-    --plate: 54;          /* title plate under the artwork */
+    --card: 177;          /* card width: 0.66 x the stage, as VinylCardWidthFactor */
     --step: 0.58;         /* how far each neighbour sits, against the card width */
     --tilt: 52;           /* degrees of Y rotation per step */
     --drop: 0.12;         /* scale lost per step */
@@ -88,9 +87,9 @@
     position: absolute;
     left: 50%; top: 50%;
     width: calc(var(--card) * 1px);
-    height: calc((var(--card) + var(--plate)) * 1px);
+    height: calc(var(--card) * 1px);
     margin-left: calc(var(--card) * -0.5px);
-    margin-top: calc((var(--card) + var(--plate)) * -0.5px);
+    margin-top: calc(var(--card) * -0.5px);
     border-radius: 16px;
     overflow: hidden;
     transform-style: preserve-3d;
@@ -98,22 +97,7 @@
     background: #16161a;
     box-shadow: 0 26px 46px rgba(0,0,0,.62), inset 0 0 0 1px rgba(255,255,255,.08);
   }
-  .card .art { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--card) * 1px); }
-  .card .plate {
-    position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--plate) * 1px);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 2px; text-align: center; padding: 0 10px;
-    background: linear-gradient(to bottom, rgba(10,10,12,.52), rgba(10,10,12,.86));
-    backdrop-filter: blur(2px);
-  }
-  .card .plate b {
-    font-size: 12.5px; font-weight: 650; letter-spacing: -.1px; color: #fff;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
-  }
-  .card .plate span {
-    font-size: 10px; letter-spacing: .3px; color: rgba(255,255,255,.58);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
-  }
+  .card .art { position: absolute; inset: 0; }
   /* the scrim that darkens the neighbours, over the whole card */
   .card .dim { position: absolute; inset: 0; background: #07070a; opacity: 0; pointer-events: none; }
 
@@ -140,6 +124,14 @@
 
   /* ---------- panel ---------- */
   .panel { position: relative; z-index: 4; padding: 0 22px; margin-top: auto; }
+  /* VinylHeadline: title, then the artist in caps. It stays under the stage; nothing is
+     printed on the card. */
+  .meta { padding: 12px 0 14px; }
+  .meta b { display: block; font-size: 22px; line-height: 1.16; font-weight: 600;
+    letter-spacing: -.3px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta span { display: block; margin-top: 6px; font-size: 11.5px; font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase; color: rgba(243,241,238,.60); }
   .seek { position: relative; height: 22px; display: flex; align-items: center; }
   .track { position: relative; width: 100%; height: 5px; border-radius: 99px;
     background: rgba(255,255,255,.16); }
@@ -204,24 +196,22 @@
   .frame .mini {
     position: relative; height: 132px; border-radius: 12px; overflow: hidden;
     background: radial-gradient(60% 60% at 30% 20%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%), #0c0c0e;
-    perspective: 520px;
+    perspective: 370px;   /* 5 x the 74px card, as the deck sets it */
   }
   .frame .mini .mcard {
-    position: absolute; left: 50%; top: 50%; width: 74px; height: 92px; border-radius: 7px;
-    margin: -46px 0 0 -37px; background: #191919;
+    position: absolute; left: 50%; top: 50%; width: 74px; height: 74px; border-radius: 7px;
+    margin: -37px 0 0 -37px; background: #191919;
     box-shadow: 0 10px 20px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08);
     overflow: hidden;
   }
-  .frame .mini .mcard i { position: absolute; inset: 0 0 26px 0; display: block; }
-  .frame .mini .mcard s { position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
-    display: block; background: rgba(8,8,10,.82); }
+  .frame .mini .mcard i { position: absolute; inset: 0; display: block; }
   .frame figcaption { margin-top: 7px; font-size: 10px; letter-spacing: .14em;
     text-transform: uppercase; color: rgba(255,255,255,.36); text-align: center; }
 </style>
 </head>
 <body>
 
-<h1>Cover Flow — what replaces the Vinyl deck</h1>
+<h1>Cover Flow — the new stage for the Vinyl deck</h1>
 <p class="sub">
   <b>The stage is the queue.</b> The current track sits forward and flat; the two on either side
   are turned away on the Y axis, scaled down and dimmed, each showing its own title. Pressing next
@@ -252,6 +242,7 @@
       </div>
 
       <div class="panel">
+        <div class="meta"><b>Blinding Lights</b><span>The Weeknd</span></div>
         <div class="seek">
           <div class="track"><div class="fill" style="--p:34%"></div><div class="thumb" style="left:34%"></div></div>
         </div>
@@ -324,8 +315,11 @@
             turning as it leaves, so the motion reads as a wheel, not a cross-fade.</li>
           <li><span class="tag">Snap</span> with animations off the float jumps in one frame —
             same rule the Vinyl deck already follows.</li>
-          <li><span class="tag">Depth</span> <code>cameraDistance = 14 × density</code>, raised from
-            the default so a 52° turn does not fan the card into a trapezoid.</li>
+          <li><span class="tag">Depth</span> <code>cameraDistance = 5 × card</code>. Compose measures
+            that in pixels and defaults to 8 — smaller than the card — so a 52° turn built on the
+            default fans the cover into a trapezoid. Five card widths is the shallow perspective
+            this page is drawn with, and it holds at any screen size because it follows the card
+            rather than the density.</li>
         </ul>
       </div>
     </div>
@@ -359,21 +353,26 @@
         <ul>
           <li><span class="tag">Deck</span> the deck API hands a deck one <code>Track</code>. This
             needs the queue: <code>PlayerDeckQueue(previous, current, next, index, total)</code>
-            added to <code>PlayerDeckSlots</code>, filled from <code>state.queue</code> and
-            <code>state.queueCurrentIndex</code> — both already in scope in
-            <code>DerbisNowPlaying</code>.</li>
-          <li><span class="tag">Direction</span> <code>rememberTrackStepDirection()</code> already
-            returns ±1 for a skip; it becomes the sign of the turn, so a native previous turns the
-            other way.</li>
-          <li><span class="tag">Rename</span> <code>PlayerVisualMode.Vinyl</code> →
-            <code>CoverFlow</code> and <code>PlayerDeckLayout.Vinyl</code> → <code>CoverFlow</code>,
-            with <code>"vinyl"</code> kept in <code>PlayerVisualMode.from()</code> so anyone who
-            picked Vinyl lands on the new deck rather than on the fallback.</li>
-          <li><span class="tag">Files</span> <code>PlayerDeckVinyl.kt</code> becomes
-            <code>PlayerDeckCoverFlow.kt</code>; the panel, seek, transport and lyric strip carry
-            over unchanged. The title moves onto the card's plate, so the separate headline goes.</li>
-          <li><span class="tag">Art</span> neighbours use the same <code>CoverImage</code> slot the
-            centre card uses; no extra loading path, no image assets.</li>
+            added to <code>PlayerDeckSlots</code> alongside a <code>cover</code> slot, and built
+            from <code>state.queue</code> plus the playing track's id — the index is found in the
+            queue rather than read from a second field that could disagree with it.</li>
+          <li><span class="tag">Direction</span> the sign of the turn is the change in queue
+            index, so a previous turns the row the other way without a second source of truth for
+            which way playback moved.</li>
+          <li><span class="tag">Name</span> unchanged. <code>PlayerVisualMode.Vinyl</code>,
+            <code>PlayerDeckLayout.Vinyl</code>, the stored <code>"vinyl"</code> value and the word
+            <b>Vinyl</b> in the deck chooser all stay as they are: the turntable picture is
+            replaced, the deck it belongs to is not renamed. Nobody's saved choice moves.</li>
+          <li><span class="tag">Files</span> <code>PlayerDeckVinyl.kt</code> keeps its name and
+            loses its record; the panel, seek, transport and lyric strip carry over unchanged, and
+            so does the headline under the card. Nothing is printed on the card itself: the title
+            stays where it has always been, so a track's name is on screen once, not twice.</li>
+          <li><span class="tag">Art</span> neighbours go through the deck's existing hero renderer —
+            the same one the centre card uses — so there is no second loading path, no second cache
+            and no image assets.</li>
+          <li><span class="tag">Ends</span> the queue does not wrap: at the first track there is no
+            card on the left and at the last none on the right, so the row shows what pressing
+            previous or next will actually do instead of promising a track that will not play.</li>
         </ul>
       </div>
     </div>
@@ -389,7 +388,7 @@
     { id: 'e', title: 'Night Swim', artist: 'Hana Koru', art: 'art-b', art2: 'art-c' }
   ];
 
-  var CARD = 196, PLATE = 54, STEP = 0.58, TILT = 52, DROP = 0.12, DIM = 0.26;
+  var CARD = 177, STEP = 0.58, TILT = 52, DROP = 0.12, DIM = 0.26, LIMIT = 1.8;
 
   var deckA = document.getElementById('deckA');
   var cards = [];
@@ -405,7 +404,6 @@
       el.className = 'card';
       el.innerHTML =
         '<div class="art ' + t.art + '"></div>' +
-        '<div class="plate"><b>' + t.title + '</b><span>' + t.artist + '</span></div>' +
         '<div class="dim"></div>';
       deckA.appendChild(el);
       return el;
@@ -418,12 +416,14 @@
       var d = i - position;
       var ad = Math.abs(d);
       var x = d * STEP * CARD;
-      var ry = Math.max(-86, Math.min(86, -d * TILT));
-      var sc = Math.max(0.62, 1 - Math.min(ad, 2.4) * DROP);
-      var dim = Math.min(0.82, ad * DIM);
+      var ry = -d * TILT;                    /* no clamp: the fade handles the edge */
+      var sc = 1 - ad * DROP;
+      var dim = Math.min(1, ad * DIM);
       el.style.transform =
         'translateX(' + x + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
-      el.style.opacity = ad > 2.35 ? '0' : '1';
+      /* away > LIMIT is not drawn at all; between 1 and LIMIT it fades, so a card arriving
+         from two places out has no hard edge. */
+      el.style.opacity = String(Math.max(0, Math.min(1, (LIMIT - ad) / (LIMIT - 1))));
       el.style.zIndex = String(200 - Math.round(ad * 20));
       el.querySelector('.dim').style.opacity = String(dim);
     });
@@ -485,15 +485,16 @@
     TRACKS.forEach(function (t, i) {
       var d = i - pos;
       var ad = Math.abs(d);
-      if (ad > 2.3) return;
+      if (ad > LIMIT) return;                    /* same cutoff as the deck */
       var x = d * STEP * 74;
-      var ry = Math.max(-86, Math.min(86, -d * TILT));
-      var sc = Math.max(0.62, 1 - Math.min(ad, 2.4) * DROP);
+      var ry = -d * TILT;
+      var sc = 1 - ad * DROP;
       var el = document.createElement('div');
       el.className = 'mcard';
       el.style.transform = 'translateX(' + x + 'px) rotateY(' + ry + 'deg) scale(' + sc + ')';
+      el.style.opacity = String(Math.max(0, Math.min(1, (LIMIT - ad) / (LIMIT - 1))));
       el.style.zIndex = String(100 - Math.round(ad * 10));
-      el.innerHTML = '<i class="' + t.art + '"></i><s></s>' +
+      el.innerHTML = '<i class="' + t.art + '"></i>' +
         '<div style="position:absolute;inset:0;background:#07070a;opacity:' +
         Math.min(0.82, ad * DIM) + '"></div>';
       stage.appendChild(el);
