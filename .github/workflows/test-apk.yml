@@ -46,7 +46,7 @@ jobs:
     # a commit that only changed a colour cost fourteen minutes of runner time and left a stale
     # artifact behind. A commit message containing [apk] is how a push asks for one; a dispatch
     # always builds.
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[apk]') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[apk]') || contains(github.event.head_commit.message, '[publish]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -144,7 +144,7 @@ jobs:
     # Two ways to ask. A dispatch sets the input. A push cannot, because this workflow only runs
     # on push from a branch that is not the default one — so a commit message containing
     # [publish] is the push-triggered equivalent. Ordinary pushes publish nothing.
-    if: ${{ !cancelled() && (inputs.publish || contains(github.event.head_commit.message, '[publish]')) }}
+    if: ${{ needs.prebuild-apk.result == 'success' && (inputs.publish || contains(github.event.head_commit.message, '[publish]')) }}
     # A separate, short job on purpose. Every attempt to create the release at the end of the
     # 14 minute build job failed while the same request from a fresh job succeeds, so publishing
     # lives here: it only has to download the artifact and push it. If it does fail, re-running
