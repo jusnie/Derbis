@@ -368,9 +368,10 @@
             loses its record; the panel, seek, transport and lyric strip carry over unchanged, and
             so does the headline under the card. Nothing is printed on the card itself: the title
             stays where it has always been, so a track's name is on screen once, not twice.</li>
-          <li><span class="tag">Art</span> neighbours go through the deck's existing hero renderer —
-            the same one the centre card uses — so there is no second loading path, no second cache
-            and no image assets.</li>
+          <li><span class="tag">Art</span> neighbours draw through <code>PlayerArtworkCover</code>
+            on top of <code>SeamlessArtworkImage</code> and <code>preferredPlayerArtworkUrl</code>
+            — the same image loader and Coil cache the centre card uses, resolving each neighbour's
+            own cover URL without claiming the centre card's Canvas, swipe offset or morph anchor.</li>
           <li><span class="tag">Ends</span> the queue does not wrap: at the first track there is no
             card on the left and at the last none on the right, so the row shows what pressing
             previous or next will actually do instead of promising a track that will not play.</li>

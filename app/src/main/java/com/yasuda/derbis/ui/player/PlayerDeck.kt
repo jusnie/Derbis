@@ -132,9 +132,18 @@ internal data class PlayerDeckQueue(
     val hasNeighbours: Boolean get() = previous != null || next != null
 }
 
-internal fun playerDeckQueue(queue: List<Track>, trackId: String): PlayerDeckQueue? {
+internal fun playerDeckQueue(
+    queue: List<Track>,
+    trackId: String,
+    playlistEntryId: String = ""
+): PlayerDeckQueue? {
     if (trackId.isBlank() || queue.size < 2) return null
-    val index = queue.indexOfFirst { it.id == trackId }
+    val index = if (playlistEntryId.isNotBlank()) {
+        queue.indexOfFirst { it.playlistEntryId == playlistEntryId }.takeIf { it >= 0 }
+            ?: queue.indexOfFirst { it.id == trackId }
+    } else {
+        queue.indexOfFirst { it.id == trackId }
+    }
     if (index < 0) return null
     return PlayerDeckQueue(
         previous = queue.getOrNull(index - 1),

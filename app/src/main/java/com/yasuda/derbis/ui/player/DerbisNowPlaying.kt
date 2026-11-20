@@ -1112,6 +1112,26 @@ private fun DerbisNowPlayingContent(
             .fillMaxSize()
             .onGloballyPositioned { rootCoordinates = it }
 
+        val coverBlock: @Composable (Track, Dp, Dp?) -> Unit = { coverTrack, coverSize, cornerOverride ->
+            val coverCorner = cornerOverride ?: DerbisPlayerShapes.artworkCorner(coverSize)
+            val coverUrl = remember(coverTrack.id, coverTrack.largeThumbnailUrl, coverTrack.thumbnailUrl) {
+                preferredPlayerArtworkUrl(coverTrack)
+            }
+            PlayerArtworkCover(
+                track = coverTrack,
+                artworkUrl = coverUrl,
+                cornerRadius = coverCorner,
+                modifier = Modifier.size(coverSize)
+            )
+        }
+        val deckQueue = remember(state.queue, track?.id, track?.playlistEntryId) {
+            playerDeckQueue(
+                queue = state.queue,
+                trackId = track?.id.orEmpty(),
+                playlistEntryId = track?.playlistEntryId.orEmpty()
+            )
+        }
+
         val deckSlots = PlayerDeckSlots(
             header = headerBlock,
             stage = stageBlock,
@@ -1131,8 +1151,8 @@ private fun DerbisNowPlayingContent(
                 errorContent?.invoke()
             },
             error = { errorContent?.invoke() },
-            cover = mediaHeroBlock,
-            queue = playerDeckQueue(state.queue, track?.id.orEmpty()),
+            cover = coverBlock,
+            queue = deckQueue,
             dock = dockBlock,
             dockActions = dockActionsFor,
             // The Liquid Glass player keeps its stage clean: no written-by line over the cover.

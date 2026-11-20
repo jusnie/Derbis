@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -179,20 +180,39 @@ internal fun PlayerVinylDeck(
     // The row's one degree of freedom. It rests at 0; a track change sets it to +1 or -1 (which
     // way the queue moved) and it settles back, carrying all three cards with it.
     val turn = remember { Animatable(0f) }
-    var lastQueueIndex by remember { mutableIntStateOf(slots.queue?.index ?: -1) }
-    LaunchedEffect(track.id) {
-        val index = slots.queue?.index ?: -1
-        val direction = if (index >= 0 && lastQueueIndex >= 0) {
-            (index - lastQueueIndex).coerceIn(-1, 1)
+    val trackIdentity = track.playlistEntryId.ifBlank { track.id }
+    val currentQueueIndex = slots.queue?.index ?: -1
+    var settledIdentity by remember { mutableStateOf(trackIdentity) }
+    var settledQueueIndex by remember { mutableIntStateOf(currentQueueIndex) }
+    val pendingTurn = if (
+        settledIdentity != trackIdentity &&
+        animated &&
+        currentQueueIndex >= 0 &&
+        settledQueueIndex >= 0
+    ) {
+        (currentQueueIndex - settledQueueIndex).coerceIn(-1, 1).toFloat()
+    } else {
+        0f
+    }
+    LaunchedEffect(trackIdentity, currentQueueIndex) {
+        if (settledIdentity == trackIdentity) {
+            settledQueueIndex = currentQueueIndex
+            return@LaunchedEffect
+        }
+        val direction = if (currentQueueIndex >= 0 && settledQueueIndex >= 0) {
+            (currentQueueIndex - settledQueueIndex).coerceIn(-1, 1)
         } else {
             0
         }
-        lastQueueIndex = index
         if (direction == 0) {
             turn.snapTo(0f)
+            settledQueueIndex = currentQueueIndex
+            settledIdentity = trackIdentity
             return@LaunchedEffect
         }
         turn.snapTo(direction.toFloat())
+        settledQueueIndex = currentQueueIndex
+        settledIdentity = trackIdentity
         turn.animateTo(
             targetValue = 0f,
             animationSpec = if (animated) {
@@ -202,6 +222,7 @@ internal fun PlayerVinylDeck(
             }
         )
     }
+    val stageTurn = if (settledIdentity != trackIdentity) pendingTurn else turn.value
     Box(modifier = modifier.background(VinylGround)) {
         VinylBackdrop(accent = accent)
         Column(
@@ -236,7 +257,7 @@ internal fun PlayerVinylDeck(
                         track = track,
                         slots = slots,
                         side = side,
-                        turn = turn.value
+                        turn = stageTurn
                     )
                 }
             }
@@ -332,24 +353,28 @@ private fun VinylStage(
         // Drawn back to front: the neighbours first, then the card in the playhead, so the centre
         // one is never cut by a neighbour that happens to be nearer during a turn.
         queue?.previous?.let { previous ->
-            VinylNeighbour(
-                track = previous,
-                slots = slots,
-                side = side,
-                distance = -1f + turn,
-                cameraDistance = cameraDistance,
-                corner = corner
-            )
+            key(previous.playlistEntryId.ifBlank { previous.id }) {
+                VinylNeighbour(
+                    track = previous,
+                    slots = slots,
+                    side = side,
+                    distance = -1f + turn,
+                    cameraDistance = cameraDistance,
+                    corner = corner
+                )
+            }
         }
         queue?.next?.let { next ->
-            VinylNeighbour(
-                track = next,
-                slots = slots,
-                side = side,
-                distance = 1f + turn,
-                cameraDistance = cameraDistance,
-                corner = corner
-            )
+            key(next.playlistEntryId.ifBlank { next.id }) {
+                VinylNeighbour(
+                    track = next,
+                    slots = slots,
+                    side = side,
+                    distance = 1f + turn,
+                    cameraDistance = cameraDistance,
+                    corner = corner
+                )
+            }
         }
         Box(
             modifier = Modifier
