@@ -135,7 +135,11 @@ jobs:
   publish:
     # Off unless the run asked for it. A build that only exists to be tested does not need a
     # tag: the APK stays a workflow artifact, and nothing appears on the Releases page.
-    if: ${{ inputs.publish }}
+    #
+    # Two ways to ask. A dispatch sets the input. A push cannot, because this workflow only runs
+    # on push from a branch that is not the default one — so a commit message containing
+    # [publish] is the push-triggered equivalent. Ordinary pushes publish nothing.
+    if: ${{ inputs.publish || contains(github.event.head_commit.message, '[publish]') }}
     # A separate, short job on purpose. Every attempt to create the release at the end of the
     # 14 minute build job failed while the same request from a fresh job succeeds, so publishing
     # lives here: it only has to download the artifact and push it. If it does fail, re-running
