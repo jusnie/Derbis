@@ -476,7 +476,7 @@ private fun WrappedTopBar(
         // 6 dp and leave it out of line with the pill and the year row below.
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 10.dp, vertical = 6.dp),
+            .padding(start = 16.dp, top = 6.dp, end = 10.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
