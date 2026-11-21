@@ -4688,7 +4688,7 @@ private fun AlbumOverlay(
         animated = state.animationsEnabled,
         labelPrefix = "album"
     )
-    val motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && !state.showPlayer
+    val motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && state.selectedTab != DerbisTab.Player
     var albumMenuExpanded by rememberSaveable(album?.browseId, album?.title) { mutableStateOf(false) }
     var albumDescriptionExpanded by rememberSaveable(album?.browseId, album?.title) { mutableStateOf(false) }
     var albumDescriptionOverflows by remember(description) { mutableStateOf(false) }
@@ -5647,7 +5647,7 @@ private fun ArtistOverlay(
                                 artworkUrl = fittedHeroArtwork,
                                 height = heroHeight,
                                 motionArtwork = heroMotion,
-                                motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && !state.showPlayer,
+                                motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && state.selectedTab != DerbisTab.Player,
                                 animated = animated,
                                 entrance = { heroEntrance.value },
                                 canvasQuality = state.interfaceSettings.canvasQuality,

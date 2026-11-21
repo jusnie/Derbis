@@ -740,6 +740,9 @@ private fun MotionArtworkVideo(
     val currentOnFirstFrame by rememberUpdatedState(onFirstFrame)
     val currentOnUnavailable by rememberUpdatedState(onUnavailable)
     val currentOnDynamicBackdropPalette by rememberUpdatedState(onDynamicBackdropPalette)
+    var decoderRetries by remember(artwork.identityKey, artwork.url, artwork.mimeType) {
+        mutableIntStateOf(0)
+    }
     var firstFrameRendered by remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
         mutableStateOf(false)
     }
@@ -748,9 +751,6 @@ private fun MotionArtworkVideo(
     }
     var videoSize by remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
         mutableStateOf(VideoSize.UNKNOWN)
-    }
-    var decoderRetries by remember(artwork.identityKey, artwork.url, artwork.mimeType) {
-        mutableIntStateOf(0)
     }
     var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
     val maxZoom = motionArtworkMaxZoom(presentation)

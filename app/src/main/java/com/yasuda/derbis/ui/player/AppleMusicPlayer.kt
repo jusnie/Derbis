@@ -59,6 +59,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -776,7 +777,6 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
             val clockSlotWidth = (46f * fontScale).dp
-            val badgeSlotWidth = (132f * fontScale).dp
             val timeStyle = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp,
@@ -793,11 +793,12 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                 modifier = Modifier.width(clockSlotWidth)
             )
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 AppleMusicAudioBadge(
-                    modifier = Modifier.width(badgeSlotWidth),
                     isCrossfading = crossfade.active
                 )
             }
@@ -819,19 +820,28 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: B
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
     val pixel = DerbisIsPixel
+    val badgeState = if (isCrossfading) CROSSFADING_BADGE_TOKEN else label
     Box(
-        modifier = modifier.heightIn(min = 19.dp),
+        modifier = modifier
+            .wrapContentWidth()
+            .heightIn(min = 19.dp),
         contentAlignment = Alignment.Center
     ) {
-        Crossfade(
-            targetState = isCrossfading,
-            animationSpec = tween(durationMillis = 400),
+        AnimatedContent(
+            targetState = badgeState,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(durationMillis = 260)) togetherWith
+                    fadeOut(animationSpec = tween(durationMillis = 200))
+            },
+            contentAlignment = Alignment.Center,
             label = "apple-music-badge-crossfade-text"
-        ) { crossfading ->
-            if (crossfading) {
+        ) { currentState ->
+            if (currentState == CROSSFADING_BADGE_TOKEN) {
                 Text(
                     text = "Crossfading",
                     maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Medium,
                         fontSize = 12.sp,
@@ -839,7 +849,7 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: B
                     ),
                     color = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
                 )
-            } else if (label.isNotEmpty()) {
+            } else if (currentState.isNotEmpty()) {
                 val badgeShape = if (pixel) RectangleShape else RoundedCornerShape(6.dp)
                 val badgeBg = if (pixel) PixelPalette.panel else Color.White.copy(alpha = 0.08f)
                 val badgeFg = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
@@ -847,33 +857,36 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: B
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .wrapContentWidth()
                         .clip(badgeShape)
                         .background(badgeBg)
                         .then(
                             if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape)
                             else Modifier
                         )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     SoundWaveIcon(
                         tint = badgeFg,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
-                        label,
+                        currentState,
                         maxLines = 1,
                         softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
                         color = badgeFg
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.fillMaxWidth().height(19.dp))
+                Spacer(modifier = Modifier.height(19.dp))
             }
         }
     }
 }
+
+private const val CROSSFADING_BADGE_TOKEN = "__crossfading__"
 
 @Composable
 internal fun SoundWaveIcon(
