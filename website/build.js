@@ -5,42 +5,44 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const requiredFiles = [
+const requiredSourceFiles = [
   "index.html",
   "vercel.json",
-  "fonts/pixelify.css",
   "fonts/pixelify-sans-latin-400-normal.woff2",
   "fonts/pixelify-sans-latin-700-normal.woff2",
-  "assets/derbis-logo.png",
+  "public/screens/apple-music-13.jpg",
+  "public/screens/pixel-ui.jpg",
+  "public/screens/derbis-default.jpg",
+  "public/screens/synced-lyrics.jpg",
+  "public/screens/late-night.jpg",
   "api/track.js",
   "api/jam.js"
 ];
 
-for (const relPath of requiredFiles) {
+for (const relPath of requiredSourceFiles) {
   const fullPath = path.resolve(__dirname, relPath);
   if (!fs.existsSync(fullPath)) {
     throw new Error(`Missing required website file: ${relPath}`);
   }
 }
 
-// Populate dist/ as well so both "." and "dist" output directory configs work seamlessly
 const distDir = path.resolve(__dirname, "dist");
-fs.mkdirSync(distDir, { recursive: true });
-for (const file of ["index.html", "install.html", "manifest.plist", "config.js"]) {
-  const src = path.resolve(__dirname, file);
-  if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.resolve(distDir, file));
+const requiredDistFiles = [
+  "index.html",
+  "install.html",
+  "manifest.plist",
+  "screens/apple-music-13.jpg",
+  "screens/pixel-ui.jpg",
+  "screens/derbis-default.jpg",
+  "screens/synced-lyrics.jpg",
+  "screens/late-night.jpg"
+];
+
+for (const relPath of requiredDistFiles) {
+  const fullPath = path.resolve(distDir, relPath);
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Missing built dist file: ${relPath}`);
   }
-}
-for (const dir of ["fonts", "assets"]) {
-  const srcDir = path.resolve(__dirname, dir);
-  if (fs.existsSync(srcDir)) {
-    fs.cpSync(srcDir, path.resolve(distDir, dir), { recursive: true });
-  }
-}
-const publicDir = path.resolve(__dirname, "public");
-if (fs.existsSync(publicDir)) {
-  fs.cpSync(publicDir, distDir, { recursive: true });
 }
 
-console.log("Derbis download website verified and staged successfully.");
+console.log("Derbis React + Vite website verified in dist/ successfully.");
