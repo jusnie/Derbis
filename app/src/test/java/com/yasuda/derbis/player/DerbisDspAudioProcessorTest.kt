@@ -3,6 +3,7 @@ package com.yasuda.derbis.player
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor.AudioFormat
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
+import com.yasuda.derbis.player.enhanced.EnhancedAudioProcessor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
@@ -186,7 +187,7 @@ class DerbisDspAudioProcessorTest {
         val derbisProcessors = listOf(
             NormalizationAudioProcessor(),
             DerbisEqualizerAudioProcessor(),
-            ParametricEqualizerAudioProcessor(),
+            DerbisParametricEqualizerAudioProcessor(),
             StereoSpatialAudioProcessor(),
             EightDAudioProcessor(),
             VocalCancelAudioProcessor(),
@@ -203,6 +204,72 @@ class DerbisDspAudioProcessorTest {
         val silenceSkipping = SilenceSkippingAudioProcessor().apply { setEnabled(false) }
         assertEquals(C.ENCODING_PCM_16BIT, outputFormat.encoding)
         silenceSkipping.configure(outputFormat)
+    }
+
+    @Test
+    fun monoProcessorEmitsPassthroughAndFoldedSamples() {
+        val processor = MonoAudioProcessor()
+        processor.configure(AudioFormat(48_000, 2, C.ENCODING_PCM_FLOAT))
+
+        val passthroughInput = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.LITTLE_ENDIAN).apply {
+            listOf(0.5f, -0.25f, -0.6f, 0.2f).forEach(::putFloat)
+            flip()
+        }
+        processor.enabled = false
+        processor.queueInput(passthroughInput)
+        val passthroughSamples = readFloat(processor.output)
+        assertEquals(4, passthroughSamples.size)
+        listOf(0.5f, -0.25f, -0.6f, 0.2f).zip(passthroughSamples).forEach { (expected, actual) ->
+            assertTrue(abs(expected - actual) < 1e-6f)
+        }
+
+        val foldInput = ByteBuffer.allocateDirect(4 * 4).order(ByteOrder.LITTLE_ENDIAN).apply {
+            listOf(0.5f, -0.25f, -0.6f, 0.2f).forEach(::putFloat)
+            flip()
+        }
+        processor.enabled = true
+        processor.queueInput(foldInput)
+        val foldedSamples = readFloat(processor.output)
+        assertEquals(4, foldedSamples.size)
+        listOf(0.125f, 0.125f, -0.2f, -0.2f).zip(foldedSamples).forEach { (expected, actual) ->
+            assertTrue(abs(expected - actual) < 1e-6f)
+        }
+    }
+
+    @Test
+    fun fullPlaybackServiceDspChainProducesAudiblePcm16Output() {
+        val pcm16Input = AudioFormat(48_000, 2, C.ENCODING_PCM_16BIT)
+        val chain = listOf(
+            EnhancedAudioProcessor().apply { userEnabled = false },
+            NormalizationAudioProcessor(),
+            DerbisEqualizerAudioProcessor(),
+            DerbisParametricEqualizerAudioProcessor(),
+            StereoSpatialAudioProcessor(),
+            EightDAudioProcessor(),
+            VocalCancelAudioProcessor(),
+            MonoAudioProcessor(),
+            TruePeakLimiterAudioProcessor(),
+            VisualizerAudioProcessor(),
+            BeatGridAnalysisAudioProcessor { _, _ -> },
+            Pcm16OutputAudioProcessor()
+        )
+        val finalFormat = chain.fold(pcm16Input) { format, processor ->
+            val next = processor.configure(format)
+            if (processor.isActive) next else format
+        }
+        assertEquals(C.ENCODING_PCM_16BIT, finalFormat.encoding)
+
+        // Push 20ms (960 stereo frames > 5ms limiter lookahead) through every active stage.
+        var buffer = pcm16(*IntArray(960 * 2) { idx -> if (idx % 2 == 0) 10_000 else -6_000 })
+        for (processor in chain) {
+            if (!processor.isActive) continue
+            processor.queueInput(buffer)
+            buffer = processor.output
+        }
+        val out = buffer.order(ByteOrder.LITTLE_ENDIAN)
+        val samples = buildList { while (out.remaining() >= 2) add(out.short.toInt()) }
+        assertTrue("Expected audible frames after 5ms limiter lookahead", samples.isNotEmpty())
+        assertTrue("Expected non-zero PCM16 output", samples.any { it != 0 })
     }
 
     @Test

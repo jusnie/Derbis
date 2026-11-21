@@ -138,11 +138,13 @@ class MonoAudioProcessor : AudioProcessor {
     /** Grows [buffer] to at least [size] bytes and hands out a cleared buffer of exactly that size. */
     private fun replaceOutputBuffer(size: Int): ByteBuffer {
         if (buffer.capacity() < size) {
-            buffer = ByteBuffer.allocateDirect(size).order(ByteOrder.LITTLE_ENDIAN)
+            buffer = ByteBuffer.allocateDirect(size)
         } else {
             buffer.clear()
         }
+        buffer.order(ByteOrder.LITTLE_ENDIAN)
         buffer.limit(size)
+        outputBuffer = buffer
         return buffer
     }
 }
