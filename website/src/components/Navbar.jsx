@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NAV_ITEMS, REPO_URL } from "../data/siteData";
 import { PixelMark, StarIcon } from "./Icons";
 
-export function Navbar({ scrollProgress, activeSection, stars }) {
+export function Navbar({ scrollProgress, activeSection, stars, fontMode, onFontChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -27,6 +27,25 @@ export function Navbar({ scrollProgress, activeSection, stars }) {
         </nav>
 
         <div className="nav-actions">
+          <div className="font-switch" role="group" aria-label="Choose website font">
+            <button
+              type="button"
+              className={fontMode === "pixel" ? "font-opt font-opt-pixel is-active" : "font-opt font-opt-pixel"}
+              aria-pressed={fontMode === "pixel"}
+              onClick={() => onFontChange("pixel")}
+            >
+              Pixel
+            </button>
+            <button
+              type="button"
+              className={fontMode === "sfpro" ? "font-opt font-opt-sf is-active" : "font-opt font-opt-sf"}
+              aria-pressed={fontMode === "sfpro"}
+              onClick={() => onFontChange("sfpro")}
+            >
+              SF Pro
+            </button>
+          </div>
+
           <a
             className="star-btn"
             href={REPO_URL}

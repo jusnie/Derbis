@@ -18,9 +18,20 @@ import {
 } from "./data/siteData";
 import { usePageScroll } from "./hooks/useScrollEffects";
 
+const FONT_STORAGE_KEY = "derbis-site-font";
+
 export default function App() {
   const sectionIds = useMemo(() => NAV_ITEMS.map((item) => item.id), []);
   const { progress, activeSection } = usePageScroll(sectionIds);
+
+  const [fontMode, setFontMode] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(FONT_STORAGE_KEY);
+      return saved === "sfpro" ? "sfpro" : "pixel";
+    } catch {
+      return "pixel";
+    }
+  });
 
   const [stars, setStars] = useState(7);
   const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
@@ -28,6 +39,13 @@ export default function App() {
   const [sizeLabel, setSizeLabel] = useState(RELEASE_META.sizeLabel);
   const [totalDownloads, setTotalDownloads] = useState(null);
   const [releases, setReleases] = useState(INITIAL_RELEASES);
+
+  useEffect(() => {
+    document.documentElement.dataset.font = fontMode;
+    try {
+      window.localStorage.setItem(FONT_STORAGE_KEY, fontMode);
+    } catch {}
+  }, [fontMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +123,8 @@ export default function App() {
         scrollProgress={progress}
         activeSection={activeSection}
         stars={stars}
+        fontMode={fontMode}
+        onFontChange={setFontMode}
       />
 
       <main id="main-content">
@@ -115,15 +135,20 @@ export default function App() {
                 YouTube Music and your own library, in one Android player
               </h1>
               <p className="hero-lede">
-                Stream songs with no account, connect Navidrome or Subsonic for your personal FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
+                Stream songs with no account, connect Navidrome or Subsonic for your FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
               </p>
               <div className="hero-ctas">
                 <a className="btn btn-primary" href={apkUrl}>
                   <DownloadIcon />
                   <span>Download Derbis.apk</span>
                 </a>
-                <a className="btn btn-secondary" href="#screens">
-                  <span>Browse screens</span>
+                <a
+                  className="btn btn-secondary"
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span>View on GitHub</span>
                 </a>
               </div>
             </div>
@@ -147,9 +172,10 @@ export default function App() {
               </div>
             </dl>
           </div>
+
+          <ScreenGallery />
         </section>
 
-        <ScreenGallery />
         <FeaturesSection />
         <DownloadSection
           apkUrl={apkUrl}

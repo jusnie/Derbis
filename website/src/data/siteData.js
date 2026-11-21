@@ -43,10 +43,10 @@ export const APP_SCREENS = [
     title: "Pixel UI",
     category: "Skin",
     caption: "Graph-paper home, Pixelify type, and square dock",
-    detail: "Warm blush graph-paper background, square hard-shadow cards, Pixelify typography, mood chips, Your orbit shelf, and four-tab pixel navigation",
-    src: "/screens/pixel-ui.jpg",
+    detail: "Warm blush graph-paper stage, square hard-shadow cards, Pixelify typography, mood chips, Your orbit shelf, and four-tab pixel navigation",
+    src: "/screens/pixel-ui-full.jpg",
     width: 720,
-    height: 1511,
+    height: 1612,
     stageBg: "#ffedf1",
     alt: "Derbis Pixel UI home screen with blush graph-paper stage, My soundtrack card, Your orbit album shelf, and square pixel tab bar"
   },
@@ -88,6 +88,19 @@ export const APP_SCREENS = [
     height: 1612,
     stageBg: "#0b0b0e",
     alt: "Derbis Late Night player deck showing artist avatars, Written by credits, square cover art with next-card peek, and bottom lyric strip"
+  },
+  {
+    id: "pixel-ui-shelves",
+    index: "06",
+    title: "Pixel UI shelves",
+    category: "Skin",
+    caption: "Hard-shadow cards and Derbis Collections",
+    detail: "Borderless Pixel UI view highlighting square album sleeves, rose play controls, and curated Derbis Collections cards",
+    src: "/screens/pixel-ui.jpg",
+    width: 720,
+    height: 1511,
+    stageBg: "#ffedf1",
+    alt: "Derbis Pixel UI shelves showing Your orbit square covers and Charting now collection card"
   }
 ];
 

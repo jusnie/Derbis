@@ -1,102 +1,165 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { APP_SCREENS } from "../data/siteData";
-import { useScrollReveal } from "../hooks/useScrollEffects";
-import { ArrowLeftIcon, ArrowRightIcon, CloseIcon, ExpandIcon } from "./Icons";
+import { ArrowLeftIcon, ArrowRightIcon, CloseIcon } from "./Icons";
+
+const SCREEN_COUNT = APP_SCREENS.length;
+const AUTO_SWIPE_MS = 2800;
+const RESUME_IDLE_MS = 3000;
 
 export function ScreenGallery() {
-  const { ref: sectionRef, visible } = useScrollReveal();
+  const loopScreens = useMemo(
+    () => [
+      ...APP_SCREENS.map((s) => ({ ...s, loopKey: `a-${s.id}` })),
+      ...APP_SCREENS.map((s) => ({ ...s, loopKey: `b-${s.id}` })),
+      ...APP_SCREENS.map((s) => ({ ...s, loopKey: `c-${s.id}` }))
+    ],
+    []
+  );
+
   const railRef = useRef(null);
   const cardRefs = useRef([]);
-  const dragState = useRef({ active: false, moved: false, startX: 0, startScrollLeft: 0 });
+  const interactingRef = useRef(false);
+  const lastInteractionRef = useRef(0);
+  const dragRef = useRef({ active: false, moved: false, startX: 0, startScrollLeft: 0 });
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [railProgress, setRailProgress] = useState(0.2);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(true);
+  const [activeRealIndex, setActiveRealIndex] = useState(0);
   const [inspectedIndex, setInspectedIndex] = useState(null);
 
-  const syncRailMetrics = useCallback(() => {
-    const rail = railRef.current;
-    if (!rail) return;
+  const getPadStart = useCallback((rail) => {
+    const first = cardRefs.current[0];
+    return first ? first.offsetLeft : 24;
+  }, []);
 
-    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+  const getSetSpan = useCallback(() => {
+    const first = cardRefs.current[0];
+    const middle = cardRefs.current[SCREEN_COUNT];
+    if (!first || !middle) return 0;
+    return middle.offsetLeft - first.offsetLeft;
+  }, []);
+
+  const findClosestLoopIndex = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return SCREEN_COUNT;
+    const padStart = getPadStart(rail);
     const current = rail.scrollLeft;
 
-    setCanPrev(current > 8);
-    setCanNext(current < maxScroll - 8);
-
-    if (maxScroll <= 0) {
-      setRailProgress(1);
-    } else {
-      const ratio = current / maxScroll;
-      setRailProgress(Math.min(1, Math.max(0.2, 0.2 + ratio * 0.8)));
-    }
-
-    const railRect = rail.getBoundingClientRect();
-    const targetLeft = railRect.left + 24;
-    let closestIdx = 0;
-    let closestDist = Number.POSITIVE_INFINITY;
+    let bestIdx = SCREEN_COUNT;
+    let bestDist = Number.POSITIVE_INFINITY;
 
     cardRefs.current.forEach((card, idx) => {
       if (!card) return;
-      const dist = Math.abs(card.getBoundingClientRect().left - targetLeft);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closestIdx = idx;
+      const targetLeft = card.offsetLeft - padStart;
+      const dist = Math.abs(targetLeft - current);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestIdx = idx;
       }
     });
 
-    setActiveIndex(closestIdx);
-  }, []);
+    return bestIdx;
+  }, [getPadStart]);
+
+  const normalizeLoopPosition = useCallback(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const span = getSetSpan();
+    if (span <= 0) return;
+
+    if (rail.scrollLeft < span * 0.5) {
+      rail.scrollLeft += span;
+    } else if (rail.scrollLeft >= span * 1.5) {
+      rail.scrollLeft -= span;
+    }
+  }, [getSetSpan]);
 
   useEffect(() => {
     const rail = railRef.current;
     if (!rail) return undefined;
 
-    let rafId = 0;
-    const onScroll = () => {
-      if (!rafId) {
-        rafId = window.requestAnimationFrame(() => {
-          rafId = 0;
-          syncRailMetrics();
-        });
+    const placeAtMiddleStart = () => {
+      const span = getSetSpan();
+      if (span > 0) {
+        rail.scrollLeft = span;
       }
     };
 
-    syncRailMetrics();
-    rail.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    placeAtMiddleStart();
+    const raf = window.requestAnimationFrame(placeAtMiddleStart);
 
-    return () => {
-      rail.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (rafId) window.cancelAnimationFrame(rafId);
+    let settleTimer = 0;
+    const onScroll = () => {
+      const closest = findClosestLoopIndex();
+      setActiveRealIndex(closest % SCREEN_COUNT);
+
+      if (settleTimer) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        if (!interactingRef.current && !dragRef.current.active) {
+          normalizeLoopPosition();
+        }
+      }, 180);
     };
-  }, [syncRailMetrics]);
 
-  const scrollToIndex = useCallback((nextIdx) => {
-    const clamped = Math.max(0, Math.min(APP_SCREENS.length - 1, nextIdx));
-    const rail = railRef.current;
-    const card = cardRefs.current[clamped];
-    if (!rail || !card) return;
+    rail.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (settleTimer) window.clearTimeout(settleTimer);
+      rail.removeEventListener("scroll", onScroll);
+    };
+  }, [findClosestLoopIndex, getSetSpan, normalizeLoopPosition]);
 
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    const targetLeft = card.offsetLeft - rail.offsetLeft;
-    rail.scrollTo({
-      left: Math.max(0, targetLeft),
-      behavior: reduced ? "auto" : "smooth"
-    });
-    setActiveIndex(clamped);
-  }, []);
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (inspectedIndex !== null) return;
+      if (document.hidden) return;
+      if (interactingRef.current || dragRef.current.active) return;
+      if (Date.now() - lastInteractionRef.current < RESUME_IDLE_MS) return;
+
+      const rail = railRef.current;
+      if (!rail) return;
+
+      normalizeLoopPosition();
+      const currentIdx = findClosestLoopIndex();
+      const safeIdx =
+        currentIdx < SCREEN_COUNT || currentIdx >= SCREEN_COUNT * 2
+          ? SCREEN_COUNT + (currentIdx % SCREEN_COUNT)
+          : currentIdx;
+
+      const nextCard = cardRefs.current[safeIdx + 1];
+      if (!nextCard) return;
+
+      const padStart = getPadStart(rail);
+      rail.scrollTo({
+        left: Math.max(0, nextCard.offsetLeft - padStart),
+        behavior: "smooth"
+      });
+    }, AUTO_SWIPE_MS);
+
+    return () => window.clearInterval(interval);
+  }, [findClosestLoopIndex, getPadStart, inspectedIndex, normalizeLoopPosition]);
+
+  const markTouchStart = () => {
+    interactingRef.current = true;
+    lastInteractionRef.current = Date.now();
+  };
+
+  const markTouchEnd = () => {
+    interactingRef.current = false;
+    lastInteractionRef.current = Date.now();
+  };
 
   const handlePointerDown = (event) => {
-    dragState.current.moved = false;
-    if (event.pointerType === "touch") return;
-    if (event.target.closest("button")) return;
+    dragRef.current.moved = false;
+    lastInteractionRef.current = Date.now();
+    if (event.pointerType === "touch") {
+      interactingRef.current = true;
+      return;
+    }
+
     const rail = railRef.current;
     if (!rail) return;
 
-    dragState.current = {
+    interactingRef.current = true;
+    dragRef.current = {
       active: true,
       moved: false,
       startX: event.clientX,
@@ -106,7 +169,7 @@ export function ScreenGallery() {
   };
 
   const handlePointerMove = (event) => {
-    const state = dragState.current;
+    const state = dragRef.current;
     const rail = railRef.current;
     if (!state.active || !rail) return;
 
@@ -115,12 +178,15 @@ export function ScreenGallery() {
       state.moved = true;
     }
     rail.scrollLeft = state.startScrollLeft - delta;
+    lastInteractionRef.current = Date.now();
   };
 
   const endPointerDrag = () => {
     const rail = railRef.current;
     if (rail) rail.classList.remove("is-dragging");
-    dragState.current.active = false;
+    dragRef.current.active = false;
+    interactingRef.current = false;
+    lastInteractionRef.current = Date.now();
   };
 
   useEffect(() => {
@@ -130,9 +196,9 @@ export function ScreenGallery() {
       if (event.key === "Escape") {
         setInspectedIndex(null);
       } else if (event.key === "ArrowRight") {
-        setInspectedIndex((prev) => (prev + 1) % APP_SCREENS.length);
+        setInspectedIndex((prev) => (prev + 1) % SCREEN_COUNT);
       } else if (event.key === "ArrowLeft") {
-        setInspectedIndex((prev) => (prev - 1 + APP_SCREENS.length) % APP_SCREENS.length);
+        setInspectedIndex((prev) => (prev - 1 + SCREEN_COUNT) % SCREEN_COUNT);
       }
     };
 
@@ -143,128 +209,53 @@ export function ScreenGallery() {
   const inspected = inspectedIndex !== null ? APP_SCREENS[inspectedIndex] : null;
 
   return (
-    <section
-      id="screens"
-      ref={sectionRef}
-      className={visible ? "section-band screens-band reveal is-visible" : "section-band screens-band reveal"}
-      aria-labelledby="screens-heading"
-    >
-      <div className="wrap">
-        <div className="rail-header">
-          <div className="rail-heading-group">
-            <h2 id="screens-heading" className="section-title">
-              Inside the Android build
-            </h2>
-            <p className="section-sub">
-              Scroll sideways across five live captures from Derbis v1.8.0
-            </p>
-          </div>
-
-          <div className="rail-controls" aria-label="Screenshot gallery navigation">
-            <span className="rail-counter">
-              {String(activeIndex + 1).padStart(2, "0")} / {String(APP_SCREENS.length).padStart(2, "0")}
-            </span>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => scrollToIndex(activeIndex - 1)}
-              disabled={!canPrev && activeIndex === 0}
-              aria-label="Scroll to previous screen"
-            >
-              <ArrowLeftIcon />
-            </button>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => scrollToIndex(activeIndex + 1)}
-              disabled={!canNext && activeIndex === APP_SCREENS.length - 1}
-              aria-label="Scroll to next screen"
-            >
-              <ArrowRightIcon />
-            </button>
-          </div>
-        </div>
-
-        <div className="rail-tabs" role="tablist" aria-label="Jump to app screen">
-          {APP_SCREENS.map((screen, idx) => {
-            const isActive = idx === activeIndex;
-            return (
-              <button
-                key={screen.id}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={isActive ? "rail-tab is-active" : "rail-tab"}
-                onClick={() => scrollToIndex(idx)}
-              >
-                <span className="tab-num">{screen.index}</span>
-                <span>{screen.title}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="rail-progress" aria-hidden="true">
-          <div
-            className="rail-progress-fill"
-            style={{ transform: `scaleX(${railProgress.toFixed(4)})` }}
-          />
-        </div>
-      </div>
-
+    <section id="screens" className="screens-showcase" aria-label="Derbis Android app screens">
       <div className="rail-viewport">
         <div
           ref={railRef}
           className="screens-rail"
           role="region"
-          aria-label="Derbis Android screenshots, scrollable left and right"
+          aria-label="Derbis Android screenshots, auto-swiping and swipeable left or right"
           tabIndex={0}
+          onTouchStart={markTouchStart}
+          onTouchMove={() => {
+            lastInteractionRef.current = Date.now();
+          }}
+          onTouchEnd={markTouchEnd}
+          onTouchCancel={markTouchEnd}
+          onWheel={() => {
+            lastInteractionRef.current = Date.now();
+          }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerDrag}
           onPointerCancel={endPointerDrag}
-          onPointerLeave={endPointerDrag}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowRight") {
-              event.preventDefault();
-              scrollToIndex(activeIndex + 1);
-            } else if (event.key === "ArrowLeft") {
-              event.preventDefault();
-              scrollToIndex(activeIndex - 1);
-            }
+          onPointerLeave={() => {
+            if (dragRef.current.active) endPointerDrag();
           }}
         >
-          {APP_SCREENS.map((screen, idx) => {
-            const isCurrent = idx === activeIndex;
+          {loopScreens.map((screen, idx) => {
+            const realIdx = idx % SCREEN_COUNT;
+            const isCurrent = realIdx === activeRealIndex;
             return (
               <article
-                key={screen.id}
+                key={screen.loopKey}
                 ref={(el) => {
                   cardRefs.current[idx] = el;
                 }}
                 className={isCurrent ? "shot-card is-current" : "shot-card"}
               >
                 <div className="shot-top">
-                  <div className="shot-index-group">
-                    <span className="shot-index">{screen.index}</span>
-                    <span className="shot-tag">{screen.category}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="shot-expand"
-                    onClick={() => setInspectedIndex(idx)}
-                    aria-label={`Inspect ${screen.title} full screen`}
-                  >
-                    <ExpandIcon />
-                  </button>
+                  <span className="shot-index">{screen.index}</span>
+                  <span className="shot-tag">{screen.category}</span>
                 </div>
 
                 <div
                   className="shot-frame"
                   style={{ backgroundColor: screen.stageBg }}
                   onClick={() => {
-                    if (!dragState.current.moved) {
-                      setInspectedIndex(idx);
+                    if (!dragRef.current.moved) {
+                      setInspectedIndex(realIdx);
                     }
                   }}
                 >
@@ -273,7 +264,7 @@ export function ScreenGallery() {
                     alt={screen.alt}
                     width={screen.width}
                     height={screen.height}
-                    loading={idx < 2 ? "eager" : "lazy"}
+                    loading={idx >= SCREEN_COUNT && idx < SCREEN_COUNT * 2 ? "eager" : "lazy"}
                     decoding="async"
                     draggable={false}
                     className="shot-img"
@@ -281,7 +272,7 @@ export function ScreenGallery() {
                 </div>
 
                 <div className="shot-meta">
-                  <h3 className="shot-title">{screen.title}</h3>
+                  <h2 className="shot-title">{screen.title}</h2>
                   <p className="shot-caption">{screen.caption}</p>
                 </div>
               </article>
@@ -316,7 +307,7 @@ export function ScreenGallery() {
                   type="button"
                   className="icon-btn"
                   onClick={() =>
-                    setInspectedIndex((prev) => (prev - 1 + APP_SCREENS.length) % APP_SCREENS.length)
+                    setInspectedIndex((prev) => (prev - 1 + SCREEN_COUNT) % SCREEN_COUNT)
                   }
                   aria-label="Previous screenshot"
                 >
@@ -325,7 +316,7 @@ export function ScreenGallery() {
                 <button
                   type="button"
                   className="icon-btn"
-                  onClick={() => setInspectedIndex((prev) => (prev + 1) % APP_SCREENS.length)}
+                  onClick={() => setInspectedIndex((prev) => (prev + 1) % SCREEN_COUNT)}
                   aria-label="Next screenshot"
                 >
                   <ArrowRightIcon />
