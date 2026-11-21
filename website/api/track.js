@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   const safeTitle = escapeHtml(title);
   const safeArtist = escapeHtml(artist);
   const pageUrl = `https://derbis-web.vercel.app/t/${videoId}`;
-  const webPlayerUrl = `/?play=${videoId}`;
+  const siteHomeUrl = "/";
   const deepLinkApp = `derbis://play?id=${videoId}`;
   const apkDownloadUrl = `https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk`;
 
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
   <!-- Native Android App Link Metadata -->
   <meta property="al:android:url" content="${deepLinkApp}" />
   <meta property="al:android:app_name" content="Derbis" />
-  <meta property="al:android:package" content="com.yasuda.derbis" />
+  <meta property="al:android:package" content="com.derbis.app" />
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -347,22 +347,22 @@ export default async function handler(req, res) {
         Open in Derbis App
       </a>
 
-      <a href="${webPlayerUrl}" class="btn-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="2" y1="12" x2="22" y2="12"></line>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-        </svg>
-        Play in Web Player
-      </a>
-
       <a href="${apkDownloadUrl}" class="btn-secondary">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        Download Android APK
+        Download Derbis.apk
+      </a>
+
+      <a href="${siteHomeUrl}" class="btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        Derbis Download Page
       </a>
     </div>
 

@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   <meta name="twitter:description" content="Stream synchronously in real time on Derbis Music." />
 
   <meta property="al:android:url" content="${appIntentUrl}" />
-  <meta property="al:android:package" content="com.yasuda.derbis" />
+  <meta property="al:android:package" content="com.derbis.app" />
   <meta property="al:android:app_name" content="Derbis" />
   <meta property="al:web:url" content="https://derbis-web.vercel.app" />
 

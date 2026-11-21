@@ -81,6 +81,9 @@ path = [
   "app/src/main/res/font/pixelify_sans_regular.ttf",
   "app/src/main/res/font/pixelify_sans_bold.ttf",
   "app/src/main/assets/licenses/pixelify-sans.txt",
+  "website/fonts/pixelify-sans-latin-400-normal.woff2",
+  "website/fonts/pixelify-sans-latin-700-normal.woff2",
+  "website/fonts/OFL-pixelifysans.txt",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)"

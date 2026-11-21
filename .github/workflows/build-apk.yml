@@ -8,21 +8,21 @@ on:
       release_tag:
         description: "Stable Android release tag"
         required: true
-        default: "v1.5.0"
+        default: "v1.8.0"
       release_name:
         description: "Visible release name"
         required: true
-        default: "Derbis v1.5.0"
+        default: "Derbis v1.8.0"
       release_version:
         description: "Version embedded in the Android package"
         required: true
-        default: "1.5.0"
+        default: "1.8.0"
       release_version_code:
         description: "Monotonically increasing Android versionCode"
         required: true
-        # 1.5.0 has to outrank the 1.5.0 test build (3000212) and the 1.6.0 prebuild (3000211) so
-        # Android installs it over either of them instead of refusing it as a downgrade.
-        default: "3000213"
+        # 1.8.0 has to outrank both official 1.5.0 (3000213) and the 1.8.0 prebuilds (3000214) so
+        # Android installs it straight over either of them instead of refusing it as a downgrade.
+        default: "3000215"
 
 permissions:
   contents: write
@@ -40,10 +40,10 @@ jobs:
         env:
           # A dispatch normally supplies all four. The fallbacks are the release they were last
           # set from, so an empty dispatch still cuts a valid tag instead of an empty one.
-          RELEASE_TAG: ${{ inputs.release_tag || 'v1.5.0' }}
-          RELEASE_NAME: ${{ inputs.release_name || 'Derbis v1.5.0' }}
-          RELEASE_VERSION: ${{ inputs.release_version || '1.5.0' }}
-          RELEASE_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
+          RELEASE_TAG: ${{ inputs.release_tag || 'v1.8.0' }}
+          RELEASE_NAME: ${{ inputs.release_name || 'Derbis v1.8.0' }}
+          RELEASE_VERSION: ${{ inputs.release_version || '1.8.0' }}
+          RELEASE_VERSION_CODE: ${{ inputs.release_version_code || '3000215' }}
         run: |
           set -euo pipefail
           tag="${RELEASE_TAG}"
@@ -112,8 +112,8 @@ jobs:
         # These optional release secrets enable only the owner-operated Canvas Catalog.
         # Do not echo their values: the key is a distribution credential, not a user setting.
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.8.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000215' }}
           DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
           DERBIS_CANVAS_CATALOG_URL: ${{ secrets.DERBIS_CANVAS_CATALOG_URL }}
           DERBIS_CANVAS_CATALOG_KEY: ${{ secrets.DERBIS_CANVAS_CATALOG_KEY }}
@@ -137,8 +137,8 @@ jobs:
 
       - name: Verify Sidecar Release APK identity
         env:
-          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.5.0' }}
-          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000213' }}
+          DERBIS_VERSION_NAME: ${{ inputs.release_version || '1.8.0' }}
+          DERBIS_VERSION_CODE: ${{ inputs.release_version_code || '3000215' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -174,14 +174,14 @@ jobs:
         if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.release_tag || 'v1.5.0' }}
-          name: ${{ inputs.release_name || 'Derbis v1.5.0' }}
+          tag_name: ${{ inputs.release_tag || 'v1.8.0' }}
+          name: ${{ inputs.release_name || 'Derbis v1.8.0' }}
           # Cut the tag at the commit this run built. Without it the tag is created at the default
           # branch's head, which is not necessarily the code in the APK.
           target_commitish: ${{ github.sha }}
           # docs/releases/v<version>.md is checked in, so the release page and the changelog cannot
           # drift apart and no placeholder body has to live in this workflow.
-          body_path: docs/releases/${{ inputs.release_tag || 'v1.5.0' }}.md
+          body_path: docs/releases/${{ inputs.release_tag || 'v1.8.0' }}.md
           draft: false
           prerelease: false
           make_latest: true
