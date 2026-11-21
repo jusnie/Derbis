@@ -139,11 +139,20 @@ class MotionCanvasQualityPolicyTest {
     }
 
     @Test
-    fun `only the owned catalog remains in provider order`() {
-        val order = listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID)
+    fun `untrusted providers are stripped from provider order`() {
+        val order = listOf(
+            "untrusted-provider",
+            AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+            SpotifyCanvasProvider.PROVIDER_ID,
+            DerbisCanvasCatalogProvider.PROVIDER_ID
+        )
         assertEquals(
-            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
-            motionArtworkProviderOrder(order, DerbisCanvasSource.Auto)
+            listOf(
+                AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                SpotifyCanvasProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID
+            ),
+            motionArtworkProviderOrder(order, DerbisCanvasSource.Auto, preferSpotifyCanvas = false)
         )
     }
 

@@ -7,16 +7,24 @@ import org.junit.Test
 
 class MotionArtworkRuntimeTest {
     @Test
-    fun configurationAllowsOnlyTheOwnedCatalogProvider() {
+    fun configurationAllowsTrustedProvidersAndDeduplicates() {
         val normalized = MotionArtworkConfig(
-            providerOrder = listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID, DerbisCanvasCatalogProvider.PROVIDER_ID),
+            providerOrder = listOf(
+                "untrusted-provider",
+                SpotifyCanvasProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID
+            ),
             minimumConfidence = 500,
             requestTimeoutMs = 100L,
             positiveTtlMs = Long.MAX_VALUE,
             negativeTtlMs = 1L
         ).normalized()
 
-        assertEquals(listOf(DerbisCanvasCatalogProvider.PROVIDER_ID), normalized.providerOrder)
+        assertEquals(
+            listOf(SpotifyCanvasProvider.PROVIDER_ID, DerbisCanvasCatalogProvider.PROVIDER_ID),
+            normalized.providerOrder
+        )
         assertEquals(100, normalized.minimumConfidence)
         assertEquals(2_500L, normalized.requestTimeoutMs)
         assertTrue(normalized.positiveTtlMs <= 7L * 24L * 60L * 60L * 1000L)
@@ -24,16 +32,21 @@ class MotionArtworkRuntimeTest {
     }
 
     @Test
-    fun autoResolutionUsesOnlyTheOwnedCatalog() {
+    fun autoResolutionFiltersUntrustedProvidersAndPrioritizesSpotifyWhenConnected() {
         assertEquals(
-            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
+            listOf(
+                AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                SpotifyCanvasProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID
+            ),
             MotionArtworkConfig().providerOrder
         )
         assertEquals(
-            listOf(DerbisCanvasCatalogProvider.PROVIDER_ID),
+            listOf(SpotifyCanvasProvider.PROVIDER_ID, DerbisCanvasCatalogProvider.PROVIDER_ID),
             motionArtworkProviderOrder(
-                listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID),
-                DerbisCanvasSource.Auto
+                listOf("untrusted-provider", DerbisCanvasCatalogProvider.PROVIDER_ID, SpotifyCanvasProvider.PROVIDER_ID),
+                DerbisCanvasSource.Auto,
+                preferSpotifyCanvas = true
             )
         )
     }

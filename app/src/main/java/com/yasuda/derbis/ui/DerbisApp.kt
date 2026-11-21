@@ -23019,6 +23019,7 @@ private fun SpotifyConnectionSettingsPanel(
             clearSpotifyWebCookies()
             SpotifyOfficialCanvas.invalidate()
             SpotifyTokenProvider.invalidate()
+            com.yasuda.derbis.feature.motion.MotionArtworkRuntime.bumpSessionGeneration()
         }
     }
     val cardTapAction: () -> Unit = {

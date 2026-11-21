@@ -80,6 +80,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.data.spotify.SpotifyCookie
+import com.yasuda.derbis.feature.motion.MotionArtworkRuntime
 import com.yasuda.derbis.feature.motion.SpotifyOfficialCanvas
 import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.ui.DerbisIsLight
@@ -248,7 +249,11 @@ internal fun clearSpotifyWebCookies() {
  * a Canvas: a miss is reported as "the session works, this track has none", which is exactly the
  * difference the test exists to show.
  */
-private const val CANVAS_TEST_TRACK_ID = "0VjIjW4GlUZAMYd2vXMi3b"
+private val CANVAS_TEST_TRACK_IDS = listOf(
+    "0VjIjW4GlUZAMYd2vXMi3b", // The Weeknd — Blinding Lights
+    "2plbrEY59IikOBgBGLjaoe", // Lady Gaga & Bruno Mars — Die With A Smile
+    "6dOtVTDdiauQNBQEDOtlAB"  // Billie Eilish — BIRDS OF A FEATHER
+)
 
 private val SpotifyGreen = Color(0xFF1ED760)
 
@@ -382,11 +387,21 @@ internal fun SpotifyCanvasSheet(
                                 scope.launch {
                                     busy = true
                                     status = ""
-                                    status = when (val result = SpotifyOfficialCanvas.probe(CANVAS_TEST_TRACK_ID)) {
-                                        is SpotifyOfficialCanvas.Result.Found -> strings.spotifyCanvasTestOk
-                                        is SpotifyOfficialCanvas.Result.NoCanvas -> strings.spotifyCanvasTestNoCanvas
-                                        is SpotifyOfficialCanvas.Result.Failed -> result.reason
+                                    var finalMessage = strings.spotifyCanvasTestNoCanvas
+                                    for (testId in CANVAS_TEST_TRACK_IDS) {
+                                        when (val result = SpotifyOfficialCanvas.probe(testId)) {
+                                            is SpotifyOfficialCanvas.Result.Found -> {
+                                                finalMessage = strings.spotifyCanvasTestOk
+                                                break
+                                            }
+                                            is SpotifyOfficialCanvas.Result.Failed -> {
+                                                finalMessage = result.reason
+                                                break
+                                            }
+                                            is SpotifyOfficialCanvas.Result.NoCanvas -> continue
+                                        }
                                     }
+                                    status = finalMessage
                                     busy = false
                                 }
                             }
@@ -429,6 +444,7 @@ internal fun SpotifyCanvasSheet(
                             clearSpotifyWebCookies()
                             SpotifyOfficialCanvas.invalidate()
                             SpotifyTokenProvider.invalidate()
+                            MotionArtworkRuntime.bumpSessionGeneration()
                             detected = null
                             draft = ""
                             status = strings.spotifyCanvasRemoved
@@ -488,6 +504,8 @@ private fun applySession(
     runCatching { CookieManager.getInstance().flush() }
     SpotifyTokenProvider.invalidate()
     SpotifyOfficialCanvas.invalidate()
+    MotionArtworkRuntime.bumpSessionGeneration()
+    SpotifyTokenProvider.warmUp()
     // Whatever was playing a second ago was resolved without this session; let it try again.
     onSaved()
     return true to saved.lastError.ifBlank { strings.spotifyCanvasSaved }

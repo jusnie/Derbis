@@ -3,7 +3,8 @@ package com.yasuda.derbis.feature.motion
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -12,9 +13,16 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -27,31 +35,46 @@ import org.json.JSONObject
 import timber.log.Timber
 
 /**
- * The bearer token behind Spotify's own web player, minted from the listener's session cookie
- * rather than from an app credential. Ported from BitChord (`data/canvas/SpotifyToken.kt`), which
- * explains why it has to work this way: `/api/token` checks a TOTP computed from a secret in the
- * web player's own JS bundle, and a token signed by hand gets a 429 from both api.spotify.com and
- * spclient on its very first request. So instead of signing anything, this loads
- * open.spotify.com for real in an offscreen WebView with the cookie applied, and reads the token
- * the page mints for itself by hooking `fetch`/XHR before its own bundle runs.
+ * Mints and caches Spotify's own web-player credentials (`Bearer` access token, `client-token`,
+ * `spotify-app-version`, and live Pathfinder persisted-query hashes) from the listener's stored
+ * `sp_dc` cookie.
  *
- * Call [init] once at process start. Every method here is best-effort: a null answer means "no
- * Canvas this time", never an exception.
+ * `/api/token` checks a TOTP derived inside Spotify's web-player JS bundle, so we load
+ * `open.spotify.com` in an offscreen `WebView` with `sp_dc` attached and capture both the signed-in
+ * token and the `client-token` / `spotify-app-version` headers the web player mints for itself.
  */
 internal object SpotifyTokenProvider {
     private const val BRIDGE_NAME = "DerbisSpotifyTokenBridge"
     private const val HARVEST_TIMEOUT_MS = 20_000L
+    private const val CLIENT_TOKEN_SETTLE_MS = 500L
     private const val DEFAULT_LIFETIME_MS = 3_600_000L
+    private const val DEFAULT_WEB_CLIENT_ID = "d8a5ed958d274c2e8ee717e6a4b0971d"
+    private const val FALLBACK_CLIENT_VERSION = "1.2.60.564.g8cd2f22c"
     private const val CLIENT_TOKEN_URL = "https://clienttoken.spotify.com/v1/clienttoken"
-    private const val WEB_PLAYER_URL = "https://open.spotify.com"
+    private const val WEB_PLAYER_URL = "https://open.spotify.com/"
 
-    /**
-     * The browser UA these endpoints expect. spclient turns away anything that is not a known
-     * client, so the requests below wear this instead of the app's own.
-     */
     const val BROWSER_UA =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/124.0.0.0 Safari/537.36"
+            "Chrome/131.0.0.0 Safari/537.36"
+
+    data class SessionCredentials(
+        val accessToken: String,
+        val clientId: String,
+        val clientToken: String?,
+        val clientVersion: String,
+        val expiresAtMs: Long
+    )
+
+    internal data class HarvestedToken(
+        val token: String,
+        val expiresAtMs: Long,
+        val clientId: String?,
+        val clientToken: String?,
+        val clientVersion: String?,
+        val sawAnonymousOnly: Boolean = false
+    )
+
+    private data class SessionInfo(val clientVersion: String, val deviceId: String)
 
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
@@ -59,9 +82,12 @@ internal object SpotifyTokenProvider {
         .callTimeout(16, TimeUnit.SECONDS)
         .build()
 
+    private val harvestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val harvestMutex = Mutex()
 
     @Volatile private var appContext: Context? = null
+    @Volatile private var inFlightHarvest: Deferred<HarvestedToken?>? = null
+    @Volatile private var inFlightCookie: String = ""
 
     @Volatile private var cachedToken: String? = null
     @Volatile private var tokenExpiresAtMs = 0L
@@ -70,16 +96,40 @@ internal object SpotifyTokenProvider {
 
     @Volatile private var cachedClientToken: String? = null
     @Volatile private var clientTokenExpiresAtMs = 0L
-
+    @Volatile private var cachedClientVersion: String? = null
     @Volatile private var cachedSession: SessionInfo? = null
+    @Volatile private var lastHarvestRejectedCookie: Boolean = false
 
-    private data class SessionInfo(val clientVersion: String, val deviceId: String)
-    // Internal, not private: TokenBridge is internal (WebView reflects into it), and a
-    // private-in-class type cannot appear in its constructor or it fails to compile.
-    internal data class HarvestedToken(val token: String, val expiresAtMs: Long, val clientId: String?)
+    private val pathfinderHashes = ConcurrentHashMap<String, String>()
 
     fun init(context: Context) {
         appContext = context.applicationContext
+    }
+
+    fun hasWarmToken(): Boolean {
+        val cookie = DerbisSpotifySession.cookie()
+        if (cookie.isBlank()) return false
+        val token = cachedToken ?: return false
+        return token.isNotBlank() &&
+            tokenCookie == cookie &&
+            System.currentTimeMillis() < tokenExpiresAtMs - 30_000L
+    }
+
+    fun warmUp() {
+        if (!DerbisSpotifySession.hasSession() || hasWarmToken()) return
+        harvestScope.launch {
+            runCatching { credentials() }
+        }
+    }
+
+    fun lastHarvestSawExpiredCookie(): Boolean = lastHarvestRejectedCookie
+
+    fun pathfinderHash(operationName: String): String? = pathfinderHashes[operationName]
+
+    internal fun recordPathfinderHash(operationName: String, sha256Hash: String) {
+        if (operationName.isNotBlank() && HEX_64.matches(sha256Hash)) {
+            pathfinderHashes[operationName] = sha256Hash
+        }
     }
 
     /** Drops every cached credential. Called when the session cookie is replaced or removed. */
@@ -90,85 +140,162 @@ internal object SpotifyTokenProvider {
         cachedClientId = null
         cachedClientToken = null
         clientTokenExpiresAtMs = 0L
+        lastHarvestRejectedCookie = false
     }
 
-    /**
-     * A live bearer token, or null when there is no cookie, [init] was never called, or the
-     * harvest failed. Cached until shortly before it expires, and thrown away as soon as the
-     * cookie it was minted from changes.
-     */
-    suspend fun accessToken(): String? {
+    suspend fun accessToken(): String? = credentials()?.accessToken
+
+    suspend fun credentials(forceRefresh: Boolean = false): SessionCredentials? {
         val cookie = DerbisSpotifySession.cookie()
         if (cookie.isBlank()) return null
 
-        val now = System.currentTimeMillis()
-        cachedToken?.let { token ->
-            if (tokenCookie == cookie && now < tokenExpiresAtMs - 30_000) return token
+        if (forceRefresh) {
+            invalidate()
         }
 
-        return harvestMutex.withLock {
-            val stillNow = System.currentTimeMillis()
-            cachedToken?.let { token ->
-                if (tokenCookie == cookie && stillNow < tokenExpiresAtMs - 30_000) return@withLock token
+        val now = System.currentTimeMillis()
+        cachedToken?.let { token ->
+            if (tokenCookie == cookie && now < tokenExpiresAtMs - 30_000L) {
+                val clientId = cachedClientId ?: DEFAULT_WEB_CLIENT_ID
+                val cToken = cachedClientToken?.takeIf { now < clientTokenExpiresAtMs - 30_000L }
+                    ?: mintClientToken(clientId)
+                val cVersion = cachedClientVersion ?: cachedSession?.clientVersion ?: FALLBACK_CLIENT_VERSION
+                return SessionCredentials(
+                    accessToken = token,
+                    clientId = clientId,
+                    clientToken = cToken,
+                    clientVersion = cVersion,
+                    expiresAtMs = tokenExpiresAtMs
+                )
             }
+        }
 
+        val sharedDeferred = harvestMutex.withLock {
+            val checkNow = System.currentTimeMillis()
+            cachedToken?.let { token ->
+                if (tokenCookie == cookie && checkNow < tokenExpiresAtMs - 30_000L) {
+                    return@withLock CompletableDeferred(
+                        HarvestedToken(
+                            token = token,
+                            expiresAtMs = tokenExpiresAtMs,
+                            clientId = cachedClientId,
+                            clientToken = cachedClientToken,
+                            clientVersion = cachedClientVersion
+                        )
+                    )
+                }
+            }
+            val existing = inFlightHarvest
+            if (existing != null && existing.isActive && inFlightCookie == cookie) {
+                return@withLock existing
+            }
             val context = appContext
             if (context == null) {
                 Timber.w("SpotifyTokenProvider.init was never called; no context for the harvest")
                 return@withLock null
             }
+            inFlightCookie = cookie
+            harvestScope.async {
+                try {
+                    val harvested = withContext(Dispatchers.Main) { harvest(context, cookie) }
+                    if (harvested != null && harvested.token.isNotBlank()) {
+                        lastHarvestRejectedCookie = false
+                        cachedToken = harvested.token
+                        tokenExpiresAtMs = harvested.expiresAtMs
+                        tokenCookie = cookie
+                        cachedClientId = harvested.clientId ?: DEFAULT_WEB_CLIENT_ID
+                        harvested.clientVersion?.takeIf { it.isNotBlank() }?.let { cachedClientVersion = it }
+                        harvested.clientToken?.takeIf { it.isNotBlank() }?.let { ct ->
+                            cachedClientToken = ct
+                            clientTokenExpiresAtMs = System.currentTimeMillis() + DEFAULT_LIFETIME_MS
+                        }
+                    } else if (harvested?.sawAnonymousOnly == true) {
+                        lastHarvestRejectedCookie = true
+                    }
+                    harvested
+                } finally {
+                    if (inFlightCookie == cookie) {
+                        inFlightHarvest = null
+                    }
+                }
+            }.also { inFlightHarvest = it }
+        } ?: return null
 
-            val harvested = withContext(Dispatchers.Main) { harvest(context, cookie) }
-            if (harvested == null) {
-                Timber.d("Spotify token harvest failed or timed out")
-                return@withLock null
-            }
+        val harvested = try {
+            sharedDeferred.await()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            Timber.d(error, "Spotify token harvest await failed")
+            null
+        } ?: return null
 
-            cachedToken = harvested.token
-            tokenExpiresAtMs = harvested.expiresAtMs
-            tokenCookie = cookie
-            harvested.clientId?.let { cachedClientId = it }
-            harvested.token
-        }
+        if (harvested.token.isBlank()) return null
+
+        val clientId = harvested.clientId ?: cachedClientId ?: DEFAULT_WEB_CLIENT_ID
+        val nowAfter = System.currentTimeMillis()
+        val resolvedClientToken = harvested.clientToken?.takeIf { it.isNotBlank() }
+            ?: cachedClientToken?.takeIf { nowAfter < clientTokenExpiresAtMs - 30_000L }
+            ?: mintClientToken(clientId)
+        val resolvedVersion = harvested.clientVersion?.takeIf { it.isNotBlank() }
+            ?: cachedClientVersion
+            ?: cachedSession?.clientVersion
+            ?: FALLBACK_CLIENT_VERSION
+
+        return SessionCredentials(
+            accessToken = harvested.token,
+            clientId = clientId,
+            clientToken = resolvedClientToken,
+            clientVersion = resolvedVersion,
+            expiresAtMs = harvested.expiresAtMs
+        )
     }
 
-    /**
-     * The second header these endpoints demand next to the bearer — a request carrying only the
-     * bearer is answered with a 429 that reads exactly like rate limiting. Needs [accessToken] to
-     * have succeeded at least once, because the client id it takes comes off that response.
-     */
     suspend fun clientToken(): String? {
         val now = System.currentTimeMillis()
-        cachedClientToken?.let { if (now < clientTokenExpiresAtMs - 30_000) return it }
+        cachedClientToken?.let { if (now < clientTokenExpiresAtMs - 30_000L) return it }
+        val clientId = cachedClientId ?: credentials()?.clientId ?: DEFAULT_WEB_CLIENT_ID
+        cachedClientToken?.let { if (System.currentTimeMillis() < clientTokenExpiresAtMs - 30_000L) return it }
+        return mintClientToken(clientId)
+    }
 
-        val clientId = cachedClientId ?: return null
-        val session = session() ?: return null
+    private suspend fun mintClientToken(clientId: String): String? {
+        val now = System.currentTimeMillis()
+        cachedClientToken?.let { if (now < clientTokenExpiresAtMs - 30_000L) return it }
+
+        val session = session()
+        val clientVersion = cachedClientVersion
+            ?.takeIf { it.isNotBlank() }
+            ?: session?.clientVersion
+            ?: FALLBACK_CLIENT_VERSION
+        val deviceId = session?.deviceId ?: UUID.randomUUID().toString()
 
         val payload = JSONObject()
             .put(
                 "client_data",
                 JSONObject()
-                    .put("client_version", session.clientVersion)
-                    .put("client_id", clientId)
+                    .put("client_version", clientVersion)
+                    .put("client_id", clientId.ifBlank { DEFAULT_WEB_CLIENT_ID })
                     .put(
                         "js_sdk_data",
                         JSONObject()
                             .put("device_brand", "unknown")
                             .put("device_model", "unknown")
-                            .put("os", "android")
-                            .put("os_version", Build.VERSION.RELEASE.orEmpty())
-                            .put("device_id", session.deviceId)
-                            .put("device_type", "smartphone")
+                            .put("os", "windows")
+                            .put("os_version", "NT 10.0")
+                            .put("device_id", deviceId)
+                            .put("device_type", "computer")
                     )
             )
             .toString()
 
-        // The ByteArray overload, deliberately: the String overload rewrites a charset-less
-        // MediaType to "application/json; charset=utf-8", and clienttoken 400s on exactly that.
+        // Use ByteArray to keep MediaType strictly "application/json" without "; charset=utf-8".
         val request = Request.Builder()
             .url(CLIENT_TOKEN_URL)
             .post(payload.toByteArray(Charsets.UTF_8).toRequestBody("application/json".toMediaType()))
             .header("Accept", "application/json")
+            .header("Origin", "https://open.spotify.com")
+            .header("Referer", "https://open.spotify.com/")
             .header("User-Agent", BROWSER_UA)
             .build()
 
@@ -191,17 +318,13 @@ internal object SpotifyTokenProvider {
         return token
     }
 
-    /**
-     * [SessionInfo.clientVersion] and [SessionInfo.deviceId] both come off the plain,
-     * unauthenticated web player page: the client version from the JSON blob the page embeds for
-     * itself, the device id from the `sp_t` cookie it hands to every visitor.
-     */
     private suspend fun session(): SessionInfo? {
         cachedSession?.let { return it }
 
         val request = Request.Builder()
             .url(WEB_PLAYER_URL)
             .header("User-Agent", BROWSER_UA)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
             .build()
         val page = runCatching {
             withContext(Dispatchers.IO) {
@@ -209,38 +332,53 @@ internal object SpotifyTokenProvider {
                     if (!response.isSuccessful) return@use null
                     val body = response.body?.string()
                     val deviceId = response.headers("Set-Cookie").firstNotNullOfOrNull { header ->
-                        Regex("""sp_t=([^;]+)""").find(header)?.groupValues?.getOrNull(1)
+                        SP_T_COOKIE_REGEX.find(header)?.groupValues?.getOrNull(1)
                     }
                     body to deviceId
                 }
             }
         }.getOrNull() ?: (null to null)
-        val html = page.first ?: return null
 
-        val configBase64 = Regex("""<script id="appServerConfig" type="text/plain">([^<]+)</script>""")
-            .find(html)?.groupValues?.getOrNull(1) ?: return null
-        val clientVersion = runCatching {
-            val decoded = String(Base64.decode(configBase64, Base64.DEFAULT), Charsets.UTF_8)
-            JSONObject(decoded).optString("clientVersion").trim()
-        }.getOrNull()?.takeIf { it.isNotBlank() } ?: return null
-
-        val info = SessionInfo(clientVersion, page.second ?: UUID.randomUUID().toString())
-        cachedSession = info
+        val html = page.first
+        val parsedVersion = html?.let(::extractClientVersionFromHtml)
+            ?: cachedClientVersion
+            ?: FALLBACK_CLIENT_VERSION
+        val info = SessionInfo(parsedVersion, page.second ?: UUID.randomUUID().toString())
+        if (html != null) {
+            cachedSession = info
+        }
         return info
+    }
+
+    private fun extractClientVersionFromHtml(html: String): String? {
+        APP_SERVER_CONFIG_SCRIPT_REGEX.find(html)?.groupValues?.getOrNull(1)?.trim()?.let { raw ->
+            val fromJson = runCatching { JSONObject(raw).optString("clientVersion").trim() }
+                .getOrNull()?.takeIf { it.isNotBlank() }
+            if (fromJson != null) return fromJson
+            val fromBase64 = runCatching {
+                val decoded = String(Base64.decode(raw, Base64.DEFAULT), Charsets.UTF_8)
+                JSONObject(decoded).optString("clientVersion").trim()
+            }.getOrNull()?.takeIf { it.isNotBlank() }
+            if (fromBase64 != null) return fromBase64
+        }
+        CLIENT_VERSION_JSON_REGEX.find(html)?.groupValues?.getOrNull(1)?.trim()?.let { direct ->
+            if (direct.isNotBlank()) return direct
+        }
+        return null
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     private suspend fun harvest(context: Context, cookie: String): HarvestedToken? {
         val deferred = CompletableDeferred<HarvestedToken?>()
+        val bridge = TokenBridge(deferred)
 
         val cookieManager = CookieManager.getInstance().apply {
             setAcceptCookie(true)
+            setCookie("https://spotify.com/", "sp_dc=$cookie; Domain=.spotify.com; Path=/; Secure")
             setCookie("https://open.spotify.com/", "sp_dc=$cookie; Domain=.spotify.com; Path=/; Secure")
             setCookie("https://accounts.spotify.com/", "sp_dc=$cookie; Domain=.spotify.com; Path=/; Secure")
             flush()
         }
-        // The player keeps its token in web storage and skips a fresh /api/token call whenever a
-        // live one is already there, which would leave the hook with nothing to see.
         runCatching { WebStorage.getInstance().deleteAllData() }
 
         var webView: WebView? = null
@@ -250,7 +388,7 @@ internal object SpotifyTokenProvider {
                 settings.domStorageEnabled = true
                 settings.userAgentString = BROWSER_UA
                 cookieManager.setAcceptThirdPartyCookies(this, true)
-                addJavascriptInterface(TokenBridge(deferred), BRIDGE_NAME)
+                addJavascriptInterface(bridge, BRIDGE_NAME)
 
                 webViewClient = object : WebViewClient() {
                     override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
@@ -260,18 +398,22 @@ internal object SpotifyTokenProvider {
 
                     override fun onPageFinished(view: WebView, url: String?) {
                         super.onPageFinished(view, url)
-                        // Re-assert: the player can navigate client-side after the first injection.
                         view.evaluateJavascript(HOOK_SCRIPT, null)
+                        view.evaluateJavascript(DOM_SCAN_SCRIPT, null)
                     }
                 }
                 loadUrl(WEB_PLAYER_URL)
             }
 
-            withTimeoutOrNull(HARVEST_TIMEOUT_MS) { deferred.await() }
+            val completed = withTimeoutOrNull(HARVEST_TIMEOUT_MS) { deferred.await() }
+            completed ?: bridge.snapshotOnTimeout()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: Exception) {
             Timber.d(error, "Spotify token harvest threw")
-            null
+            bridge.snapshotOnTimeout()
         } finally {
+            bridge.dispose()
             runCatching {
                 webView?.removeJavascriptInterface(BRIDGE_NAME)
                 webView?.stopLoading()
@@ -280,47 +422,222 @@ internal object SpotifyTokenProvider {
         }
     }
 
-    /** Receives the raw `/api/token` body from the hooked page. */
-    // internal, not private: the bridge is reached by reflection from android.webkit, which
-    // cannot open a package-private class. Kotlin `internal` stays public in bytecode.
+    // internal so android.webkit reflection can reach the @JavascriptInterface entry points.
     internal class TokenBridge(private val deferred: CompletableDeferred<HarvestedToken?>) {
+        private val mainHandler = Handler(Looper.getMainLooper())
+        @Volatile private var pendingToken: String? = null
+        @Volatile private var pendingExpiresAtMs: Long = 0L
+        @Volatile private var pendingClientId: String? = null
+        @Volatile private var pendingClientToken: String? = null
+        @Volatile private var pendingClientVersion: String? = null
+        @Volatile private var sawAnonymousToken: Boolean = false
+        @Volatile private var settleScheduled: Boolean = false
+
+        private val settleRunnable = Runnable {
+            completeIfReady(force = true)
+        }
+
+        fun dispose() {
+            mainHandler.removeCallbacks(settleRunnable)
+        }
+
+        fun snapshotOnTimeout(): HarvestedToken? {
+            val token = pendingToken
+            if (!token.isNullOrBlank()) {
+                return HarvestedToken(
+                    token = token,
+                    expiresAtMs = pendingExpiresAtMs.takeIf { it > System.currentTimeMillis() }
+                        ?: (System.currentTimeMillis() + DEFAULT_LIFETIME_MS),
+                    clientId = pendingClientId,
+                    clientToken = pendingClientToken,
+                    clientVersion = pendingClientVersion
+                )
+            }
+            if (sawAnonymousToken) {
+                return HarvestedToken(
+                    token = "",
+                    expiresAtMs = 0L,
+                    clientId = null,
+                    clientToken = null,
+                    clientVersion = null,
+                    sawAnonymousOnly = true
+                )
+            }
+            return null
+        }
+
+        private fun completeIfReady(force: Boolean) {
+            if (deferred.isCompleted) return
+            val token = pendingToken?.takeIf { it.isNotBlank() } ?: return
+            val hasClientMeta = !pendingClientToken.isNullOrBlank()
+            if (hasClientMeta || force) {
+                mainHandler.removeCallbacks(settleRunnable)
+                deferred.complete(
+                    HarvestedToken(
+                        token = token,
+                        expiresAtMs = pendingExpiresAtMs.takeIf { it > System.currentTimeMillis() }
+                            ?: (System.currentTimeMillis() + DEFAULT_LIFETIME_MS),
+                        clientId = pendingClientId,
+                        clientToken = pendingClientToken,
+                        clientVersion = pendingClientVersion
+                    )
+                )
+            } else if (!settleScheduled) {
+                settleScheduled = true
+                mainHandler.postDelayed(settleRunnable, CLIENT_TOKEN_SETTLE_MS)
+            }
+        }
+
         @JavascriptInterface
         fun onTokenPayload(payload: String?) {
             if (payload.isNullOrBlank() || deferred.isCompleted) return
             runCatching {
                 val root = JSONObject(payload)
                 val token = root.optString("accessToken").trim()
-                // The player mints an anonymous token before the cookie takes effect; that one
-                // cannot read a Canvas, so keep waiting for the signed-in one.
-                if (token.isBlank() || root.optBoolean("isAnonymous", false)) return
-                val expiresAt = root.optLong("accessTokenExpirationTimestampMs")
+                if (token.isBlank()) return
+                if (root.optBoolean("isAnonymous", false)) {
+                    sawAnonymousToken = true
+                    return
+                }
+                pendingToken = token
+                pendingExpiresAtMs = root.optLong("accessTokenExpirationTimestampMs")
                     .takeIf { it > System.currentTimeMillis() }
                     ?: (System.currentTimeMillis() + DEFAULT_LIFETIME_MS)
-                val clientId = root.optString("clientId").trim().ifBlank { null }
-                deferred.complete(HarvestedToken(token, expiresAt, clientId))
-            }.onFailure { Timber.d(it, "Unreadable /api/token payload") }
+                root.optString("clientId").trim().takeIf { it.isNotBlank() }?.let { pendingClientId = it }
+                completeIfReady(force = false)
+            }.onFailure { Timber.d(it, "Unreadable Spotify token payload") }
+        }
+
+        @JavascriptInterface
+        fun onClientTokenPayload(payload: String?) {
+            if (payload.isNullOrBlank()) return
+            runCatching {
+                val root = JSONObject(payload)
+                val granted = root.optJSONObject("granted_token") ?: return
+                val token = granted.optString("token").trim()
+                if (token.isNotBlank()) {
+                    pendingClientToken = token
+                    completeIfReady(force = false)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun onObservedHeaders(authHeader: String?, clientToken: String?, appVersion: String?) {
+            if (!clientToken.isNullOrBlank()) {
+                pendingClientToken = clientToken.trim()
+            }
+            if (!appVersion.isNullOrBlank()) {
+                pendingClientVersion = appVersion.trim()
+            }
+            if (!authHeader.isNullOrBlank() && pendingToken.isNullOrBlank()) {
+                val bearer = authHeader.trim()
+                if (bearer.startsWith("Bearer ", ignoreCase = true)) {
+                    val rawToken = bearer.substring(7).trim()
+                    // Only accept observed Bearer header if we have not seen an anonymous session.
+                    if (rawToken.length > 40 && !sawAnonymousToken) {
+                        pendingToken = rawToken
+                        if (pendingExpiresAtMs <= 0L) {
+                            pendingExpiresAtMs = System.currentTimeMillis() + DEFAULT_LIFETIME_MS
+                        }
+                    }
+                }
+            }
+            if (!pendingToken.isNullOrBlank() && !pendingClientToken.isNullOrBlank()) {
+                completeIfReady(force = true)
+            }
+        }
+
+        @JavascriptInterface
+        fun onPathfinderHash(operationName: String?, sha256Hash: String?) {
+            if (!operationName.isNullOrBlank() && !sha256Hash.isNullOrBlank()) {
+                recordPathfinderHash(operationName.trim(), sha256Hash.trim())
+            }
         }
     }
+
+    private val SP_T_COOKIE_REGEX = Regex("""sp_t=([^;]+)""")
+    private val HEX_64 = Regex("^[0-9a-fA-F]{64}$")
+    private val APP_SERVER_CONFIG_SCRIPT_REGEX =
+        Regex("""<script[^>]*\bid=["']appServerConfig["'][^>]*>([^<]+)</script>""", RegexOption.IGNORE_CASE)
+    private val CLIENT_VERSION_JSON_REGEX =
+        Regex(""""clientVersion"\s*:\s*"([^"]+)"""")
 
     private val HOOK_SCRIPT = """
         (function () {
           if (window.__derbisTokenHook) return;
           window.__derbisTokenHook = true;
-          var report = function (body) {
+          var reportToken = function (body) {
             try { $BRIDGE_NAME.onTokenPayload(body); } catch (e) {}
           };
-          var isToken = function (u) {
-            try { return String(u).indexOf('/api/token') !== -1; } catch (e) { return false; }
+          var reportClientToken = function (body) {
+            try { $BRIDGE_NAME.onClientTokenPayload(body); } catch (e) {}
+          };
+          var reportHeaders = function (auth, ct, ver) {
+            try { $BRIDGE_NAME.onObservedHeaders(auth || '', ct || '', ver || ''); } catch (e) {}
+          };
+          var reportHash = function (op, hash) {
+            try { $BRIDGE_NAME.onPathfinderHash(op || '', hash || ''); } catch (e) {}
+          };
+          var isTokenUrl = function (u) {
+            try {
+              var s = String(u);
+              return s.indexOf('/api/token') !== -1 || s.indexOf('/get_access_token') !== -1;
+            } catch (e) { return false; }
+          };
+          var isClientTokenUrl = function (u) {
+            try { return String(u).indexOf('clienttoken.spotify.com') !== -1; } catch (e) { return false; }
+          };
+          var readHeader = function (headers, name) {
+            if (!headers) return '';
+            try {
+              if (typeof headers.get === 'function') return headers.get(name) || headers.get(name.toLowerCase()) || '';
+              if (Array.isArray(headers)) {
+                for (var i = 0; i < headers.length; i++) {
+                  if (headers[i] && String(headers[i][0]).toLowerCase() === name.toLowerCase()) return headers[i][1] || '';
+                }
+              } else if (typeof headers === 'object') {
+                for (var k in headers) {
+                  if (Object.prototype.hasOwnProperty.call(headers, k) && k.toLowerCase() === name.toLowerCase()) {
+                    return headers[k] || '';
+                  }
+                }
+              }
+            } catch (e) {}
+            return '';
+          };
+          var inspectBody = function (body) {
+            try {
+              if (typeof body !== 'string' || body.indexOf('persistedQuery') === -1) return;
+              var j = JSON.parse(body);
+              var op = j && j.operationName;
+              var h = j && j.extensions && j.extensions.persistedQuery && j.extensions.persistedQuery.sha256Hash;
+              if (op && h) reportHash(op, h);
+            } catch (e) {}
           };
           var origFetch = window.fetch;
           if (origFetch) {
             window.fetch = function (input, init) {
               var url = (input && input.url) ? input.url : input;
+              try {
+                var hdrs = (init && init.headers) || (input && input.headers);
+                var auth = readHeader(hdrs, 'authorization');
+                var ct = readHeader(hdrs, 'client-token');
+                var ver = readHeader(hdrs, 'spotify-app-version');
+                if (auth || ct || ver) reportHeaders(auth, ct, ver);
+                if (init && init.body) inspectBody(init.body);
+              } catch (e) {}
               var result = origFetch.apply(this, arguments);
-              if (isToken(url)) {
+              if (isTokenUrl(url)) {
                 try {
                   result.then(function (res) {
-                    res.clone().text().then(report).catch(function () {});
+                    res.clone().text().then(reportToken).catch(function () {});
+                  }).catch(function () {});
+                } catch (e) {}
+              } else if (isClientTokenUrl(url)) {
+                try {
+                  result.then(function (res) {
+                    res.clone().text().then(reportClientToken).catch(function () {});
                   }).catch(function () {});
                 } catch (e) {}
               }
@@ -330,20 +647,76 @@ internal object SpotifyTokenProvider {
           var origOpen = XMLHttpRequest.prototype.open;
           XMLHttpRequest.prototype.open = function (method, url) {
             this.__derbisUrl = url;
+            this.__derbisHeaders = {};
             return origOpen.apply(this, arguments);
           };
+          var origSetHeader = XMLHttpRequest.prototype.setRequestHeader;
+          XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+            try {
+              if (this.__derbisHeaders && name) this.__derbisHeaders[String(name).toLowerCase()] = String(value || '');
+            } catch (e) {}
+            return origSetHeader.apply(this, arguments);
+          };
           var origSend = XMLHttpRequest.prototype.send;
-          XMLHttpRequest.prototype.send = function () {
+          XMLHttpRequest.prototype.send = function (body) {
             var xhr = this;
             try {
+              var h = xhr.__derbisHeaders || {};
+              if (h['authorization'] || h['client-token'] || h['spotify-app-version']) {
+                reportHeaders(h['authorization'], h['client-token'], h['spotify-app-version']);
+              }
+              if (typeof body === 'string') inspectBody(body);
               xhr.addEventListener('load', function () {
-                if (isToken(xhr.__derbisUrl)) {
-                  try { report(xhr.responseText); } catch (e) {}
+                if (isTokenUrl(xhr.__derbisUrl)) {
+                  try { reportToken(xhr.responseText); } catch (e) {}
+                } else if (isClientTokenUrl(xhr.__derbisUrl)) {
+                  try { reportClientToken(xhr.responseText); } catch (e) {}
                 }
               });
             } catch (e) {}
             return origSend.apply(this, arguments);
           };
+        })();
+    """.trimIndent()
+
+    private val DOM_SCAN_SCRIPT = """
+        (function () {
+          try {
+            var sessionEl = document.getElementById('session') || document.querySelector('script[data-testid="session"]');
+            if (sessionEl && sessionEl.textContent) {
+              $BRIDGE_NAME.onTokenPayload(sessionEl.textContent);
+            }
+            var cfgEl = document.getElementById('appServerConfig');
+            if (cfgEl && cfgEl.textContent) {
+              try {
+                var raw = cfgEl.textContent.trim();
+                var decoded = raw.charAt(0) === '{' ? raw : atob(raw);
+                var cfg = JSON.parse(decoded);
+                if (cfg && cfg.clientVersion) {
+                  $BRIDGE_NAME.onObservedHeaders('', '', String(cfg.clientVersion));
+                }
+              } catch (e) {}
+            }
+            if (!window.__derbisBundleScanned) {
+              window.__derbisBundleScanned = true;
+              var scripts = document.querySelectorAll('script[src]');
+              for (var i = 0; i < scripts.length; i++) {
+                var src = scripts[i].src || '';
+                if (src.indexOf('xpui') !== -1 || src.indexOf('web-player') !== -1) {
+                  fetch(src).then(function (r) { return r.text(); }).then(function (txt) {
+                    var ops = ['canvas', 'searchDesktop'];
+                    for (var j = 0; j < ops.length; j++) {
+                      var op = ops[j];
+                      var m = new RegExp('"' + op + '","query","([0-9a-f]{64})"').exec(txt) ||
+                              new RegExp('name:"' + op + '",operation:"query",value:"([0-9a-f]{64})"').exec(txt) ||
+                              new RegExp('"name":"' + op + '","operation":"query","value":"([0-9a-f]{64})"').exec(txt);
+                      if (m && m[1]) $BRIDGE_NAME.onPathfinderHash(op, m[1]);
+                    }
+                  }).catch(function () {});
+                }
+              }
+            }
+          } catch (e) {}
         })();
     """.trimIndent()
 }

@@ -171,6 +171,9 @@ class MainActivity : ComponentActivity() {
             // store and the token harvester need the application context before the first track.
             DerbisSpotifySession.initialize(applicationContext)
             SpotifyTokenProvider.init(applicationContext)
+            if (DerbisSpotifySession.hasSession()) {
+                SpotifyTokenProvider.warmUp()
+            }
         }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
         runCatching {
             DerbisDiscordRichPresence.attach(this)
