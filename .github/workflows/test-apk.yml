@@ -295,7 +295,7 @@ jobs:
 
           id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}" || true)
           if [[ -z "${id}" ]]; then
-            payload=$(jq -n --arg tag "${tag}" --arg target "${FULL_SHA}" \
+            payload=$(jq -n --arg tag "${tag}" --arg target "${GITHUB_REF_NAME}" \
               --arg name "Derbis APK (${SHORT_SHA}, unlisted)" --arg body "${body}" \
               '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
             for attempt in 1 2 3; do
