@@ -125,12 +125,17 @@ internal object PixelDesign {
 }
 
 internal fun pixelMiniSettings(saved: DerbisMiniPlayerStudioSettings): DerbisMiniPlayerStudioSettings {
+    val userTuning = saved.tunings[MiniPlayerStyle.Floating] ?: saved.activeTuning()
     val tuning = DerbisMiniPlayerStudioSettings.spec(MiniPlayerStyle.Floating).defaults.copy(
         cornerDp = 0, heightDp = 66, artworkDp = 44, shadow = 0, glow = 0,
         artworkShape = MiniArtworkShape.Square, progress = MiniProgressStyle.Line,
         buttons = MiniButtonStyle.Outlined, colorMode = MiniColorMode.Theme,
-        background = MiniBackground.Solid, motion = MiniMotion.Reduced,
-        controls = saved.activeTuning().controls, showClose = saved.activeTuning().showClose
+        background = userTuning.background,
+        opacity = userTuning.opacity,
+        mascotHead = userTuning.mascotHead,
+        pixelCharm = userTuning.pixelCharm,
+        motion = MiniMotion.Reduced,
+        controls = userTuning.controls, showClose = userTuning.showClose
     )
     return saved.copy(style = MiniPlayerStyle.Floating, tunings = saved.tunings + (MiniPlayerStyle.Floating to tuning))
 }

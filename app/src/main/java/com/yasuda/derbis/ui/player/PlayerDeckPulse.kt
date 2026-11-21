@@ -10,6 +10,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -647,21 +648,36 @@ private fun NightFavoriteButton(
 @Composable
 private fun NightSpecChip() {
     val spec by rememberPlayerAudioSpec()
-    val label = remember(spec) { playerAudioSpecLabels(spec).joinToString("  ·  ") }
+    val label = remember(spec) { playerAudioBadgeLabel(spec) }
     if (label.isEmpty()) return
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val chipShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
+    val chipBg = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.panel else Color.White.copy(alpha = 0.14f)
+    val chipFg = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.text else Color.White.copy(alpha = 0.92f)
     Row(
         modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.14f))
+            .clip(chipShape)
+            .background(chipBg)
+            .then(
+                if (pixel) {
+                    Modifier.border(
+                        1.dp,
+                        com.yasuda.derbis.ui.theme.PixelPalette.outline,
+                        androidx.compose.ui.graphics.RectangleShape
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .padding(horizontal = DerbisPlayerDesign.SpaceMd, vertical = 6.dp)
             .heightIn(min = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DerbisPlayerDesign.SpaceSm)
     ) {
-        PlayerIcon(Icons.Rounded.GraphicEq, Color.White.copy(alpha = 0.92f), Modifier.size(14.dp))
+        PlayerIcon(Icons.Rounded.GraphicEq, chipFg, Modifier.size(14.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.92f),
+            color = chipFg,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.8.sp,

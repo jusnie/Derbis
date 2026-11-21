@@ -31,6 +31,7 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import com.yasuda.derbis.ui.components.DerbisPlayingIndicator
 import com.yasuda.derbis.ui.components.derbisPressable
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import com.yasuda.derbis.ui.theme.PixelDerbisLogoMark
 import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PixelIcons
 import com.yasuda.derbis.ui.theme.PixelPalette
@@ -97,7 +98,7 @@ internal fun PixelHomeHeader(
     val strings = LocalDerbisStrings.current
     val p = PixelPalette
     Column(Modifier.fillMaxWidth().background(p.black).pixelPaperGrid()) {
-        // Pixel top app bar — band fill (#FFD9E2), 2dp plum/rose bottom rule, rotated pink diamond mark, square icon plates.
+        // Pixel top app bar — band fill (#FFD9E2), 2dp plum/rose bottom rule, 21x28 pixelated Derbis mark, square icon plates.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,13 +107,7 @@ internal fun PixelHomeHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(13.dp)
-                    .graphicsLayer { rotationZ = 45f }
-                    .background(p.pink, RectangleShape)
-                    .border(2.dp, p.text, RectangleShape)
-            )
+            PixelDerbisLogoMark(size = 24.dp, contentDescription = null)
             Text(
                 text = "DERBIS",
                 color = p.text,

@@ -18,6 +18,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -46,9 +47,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -87,6 +90,8 @@ import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.AppleMusicDesign
 import com.yasuda.derbis.ui.theme.AppleMusicShapes
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelPalette
 import com.yasuda.derbis.ui.theme.AppleMusic13SfProFallbackFont
 import com.yasuda.derbis.ui.theme.AppleMusic13Typography
 import com.yasuda.derbis.ui.theme.AppleMusicVibrant
@@ -769,13 +774,41 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
             }
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            val timeStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp)
+            val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+            val clockSlotWidth = (46f * fontScale).dp
+            val badgeSlotWidth = (132f * fontScale).dp
+            val timeStyle = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                fontFeatureSettings = "tnum"
+            )
             val shown = dragging?.let { (durationMs * it).toLong() } ?: positionMs
-            Text(formatSeekbarMillis(shown), style = timeStyle, color = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary)
-            AppleMusicAudioBadge(Modifier.weight(1f), isCrossfading = crossfade.active)
+            val timeColor = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary
             Text(
-                if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - shown).coerceAtLeast(0L)) else formatSeekbarMillis(0L),
-                style = timeStyle, color = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary
+                text = formatSeekbarMillis(shown),
+                style = timeStyle,
+                color = timeColor,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.width(clockSlotWidth)
+            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                AppleMusicAudioBadge(
+                    modifier = Modifier.width(badgeSlotWidth),
+                    isCrossfading = crossfade.active
+                )
+            }
+            Text(
+                text = if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - shown).coerceAtLeast(0L)) else formatSeekbarMillis(0L),
+                style = timeStyle,
+                color = timeColor,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.width(clockSlotWidth)
             )
         }
     }
@@ -785,12 +818,11 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
 private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: Boolean = false) {
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+    val pixel = DerbisIsPixel
+    Box(
+        modifier = modifier.heightIn(min = 19.dp),
+        contentAlignment = Alignment.Center
     ) {
-        val displayLabel = if (label.isNotEmpty()) label else "73 kbps · 48 kHz"
         Crossfade(
             targetState = isCrossfading,
             animationSpec = tween(durationMillis = 400),
@@ -805,28 +837,39 @@ private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: B
                         fontSize = 12.sp,
                         letterSpacing = 0.2.sp
                     ),
-                    color = AppleMusicVibrant.secondary
+                    color = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
                 )
-            } else {
+            } else if (label.isNotEmpty()) {
+                val badgeShape = if (pixel) RectangleShape else RoundedCornerShape(6.dp)
+                val badgeBg = if (pixel) PixelPalette.panel else Color.White.copy(alpha = 0.08f)
+                val badgeFg = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .fillMaxWidth()
+                        .clip(badgeShape)
+                        .background(badgeBg)
+                        .then(
+                            if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape)
+                            else Modifier
+                        )
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     SoundWaveIcon(
-                        tint = AppleMusicVibrant.secondary,
+                        tint = badgeFg,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
-                        displayLabel,
+                        label,
                         maxLines = 1,
+                        softWrap = false,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
-                        color = AppleMusicVibrant.secondary
+                        color = badgeFg
                     )
                 }
+            } else {
+                Spacer(modifier = Modifier.fillMaxWidth().height(19.dp))
             }
         }
     }
@@ -867,26 +910,8 @@ internal fun SoundWaveIcon(
  * source reads Lossless, a hi-res one or a 320 kbps upgrade reads Hi-Fi, and only the lossy
  * streams below that name their codec with the bitrate that backs it up.
  */
-internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {
-    val mime = spec.mimeType.lowercase(java.util.Locale.ROOT)
-    val codecs = spec.codecString.lowercase(java.util.Locale.ROOT)
-    if (isDolbyAtmosStream(mime, codecs)) return "Dolby Atmos"
-    val lossless = isLosslessAudioStream(mime, codecs)
-    val quality = when {
-        spec.quality == "HI-FI" -> "Hi-Fi"
-        spec.quality == "LOSSLESS" -> "Lossless"
-        // Specs built by hand (tests, older call sites) still read correctly off the mime type.
-        lossless && (spec.sampleRateHz ?: 0) >= 88_200 -> "Hi-Fi"
-        lossless -> "Lossless"
-        else -> null
-    }
-    if (quality != null) {
-        // A lossless bitrate is just the compression ratio, so only the lossy upgrade gets a number.
-        val kbps = spec.bitrateKbps?.takeIf { it > 0 && !lossless }
-        return if (kbps != null) "$quality · $kbps kbps" else quality
-    }
-    return playerAudioSpecLabels(spec).joinToString(" · ")
-}
+internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String =
+    playerAudioBadgeLabel(spec)
 
 @Composable
 private fun AppleMusicDockRow(actions: List<PlayerDockAction>) {

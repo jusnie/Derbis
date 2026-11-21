@@ -53,6 +53,7 @@ import com.yasuda.derbis.data.DerbisBackupManager
 import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
 import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+import com.yasuda.derbis.feature.icon.DerbisAppIconManager
 import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.domain.AppUpdateInfo
 import com.yasuda.derbis.domain.ChartsCatalog
@@ -161,6 +162,9 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = startPalette.isLight
             isAppearanceLightNavigationBars = startPalette.isLight
         }
+        runCatching {
+            DerbisAppIconManager.initialize(applicationContext)
+        }.onFailure { Timber.w(it, "Launcher icon state sync failed") }
         runCatching {
             DerbisSpotifyConnection.initialize(applicationContext)
             // Canvas unlocks through the web session now, not only through OAuth; both the cookie

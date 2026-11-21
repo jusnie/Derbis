@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -54,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -86,6 +88,7 @@ import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisBlack
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisInk
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisOrange
 import com.yasuda.derbis.ui.theme.DerbisPanel
@@ -93,6 +96,9 @@ import com.yasuda.derbis.ui.theme.DerbisPink
 import com.yasuda.derbis.ui.theme.DerbisText
 import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import com.yasuda.derbis.ui.theme.DerbisViolet
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.pixelPaperGrid
 import java.text.NumberFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -121,47 +127,88 @@ fun DerbisListeningRecapOverlay(
     val strings = LocalDerbisStrings.current
     val locale = remember(strings.code) { Locale.forLanguageTag(strings.code) }
     val number = remember(locale) { NumberFormat.getIntegerInstance(locale) }
-    val isDark = MaterialTheme.colorScheme.background.run { (red * 0.299 + green * 0.587 + blue * 0.114) < 0.5 }
+    val pixel = DerbisIsPixel
+    val isDark = !pixel && MaterialTheme.colorScheme.background.run { (red * 0.299 + green * 0.587 + blue * 0.114) < 0.5 }
     val bgGradient = if (isDark) {
         Brush.verticalGradient(listOf(DerbisInk, DerbisBlack))
     } else {
         Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.background))
     }
 
-    val style = DerbisConnectedDefaults.style(accent = DerbisCyan)
+    val style = if (pixel) {
+        DerbisConnectedDefaults.style(accent = PixelPalette.cyan).copy(
+            outerCorner = 0.dp,
+            innerCorner = 0.dp,
+            gap = 0.dp,
+            surface = PixelPalette.ink,
+            selectedSurface = PixelPalette.pink,
+            border = PixelPalette.outline.copy(alpha = 0.28f),
+            selectedBorder = PixelPalette.outline
+        )
+    } else {
+        DerbisConnectedDefaults.style(accent = DerbisCyan)
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(bgGradient)
+            .then(
+                if (pixel) {
+                    Modifier
+                        .background(PixelPalette.black)
+                        .pixelPaperGrid(PixelPalette.outline.copy(alpha = 0.20f))
+                } else {
+                    Modifier.background(bgGradient)
+                }
+            )
     ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding(),
             contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 12.dp, bottom = overlayScreenBottomPadding()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(if (pixel) 13.dp else 16.dp)
         ) {
             item(contentType = "recap-header") {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(if (pixel) 10.dp else 0.dp)
                 ) {
-                    DerbisBackButton(onClick = onClose, contentDescription = strings.back)
-                    Column(modifier = Modifier.padding(start = 6.dp)) {
+                    if (pixel) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(PixelPalette.ink, RectangleShape)
+                                .border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+                                .clickable(role = Role.Button, onClick = onClose),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = strings.back,
+                                tint = PixelPalette.cyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else {
+                        DerbisBackButton(onClick = onClose, contentDescription = strings.back)
+                    }
+                    Column(modifier = Modifier.padding(start = if (pixel) 2.dp else 6.dp)) {
                         Text(
                             text = strings.listeningRecap,
                             color = DerbisText,
-                            fontSize = 24.sp,
-                            lineHeight = DerbisTypeRhythm.lineHeight(24.sp),
+                            fontSize = if (pixel) 22.sp else 24.sp,
+                            lineHeight = DerbisTypeRhythm.lineHeight(if (pixel) 22.sp else 24.sp),
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = strings.recapSubtitle,
+                            text = if (pixel) periodLabel(period, strings).uppercase() else strings.recapSubtitle,
                             color = DerbisMuted,
-                            fontSize = 12.sp,
+                            fontSize = if (pixel) 10.5.sp else 12.sp,
+                            letterSpacing = if (pixel) 1.1.sp else 0.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -171,7 +218,7 @@ fun DerbisListeningRecapOverlay(
             item(contentType = "recap-period-selector") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(style.gap)
+                    horizontalArrangement = Arrangement.spacedBy(if (pixel) 6.dp else style.gap)
                 ) {
                     RecapPeriods.forEachIndexed { index, entry ->
                         RecapPeriodChip(
@@ -214,7 +261,12 @@ fun DerbisListeningRecapOverlay(
                 }
 
                 item(contentType = "recap-highlights-title") {
-                    RecapSectionTitle(title = strings.highlightsTitle, icon = Icons.Rounded.AutoAwesome, accent = DerbisViolet)
+                    RecapSectionTitle(
+                        title = strings.highlightsTitle,
+                        icon = Icons.Rounded.AutoAwesome,
+                        accent = DerbisViolet,
+                        trailingTag = if (pixel) periodLabel(period, strings) else null
+                    )
                 }
                 item(contentType = "recap-highlights") {
                     RecapHighlightsGrid(
@@ -327,6 +379,33 @@ private fun RowScope.RecapPeriodChip(
     accent: Color,
     onClick: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    if (pixel) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .background(if (selected) PixelPalette.pink else Color.Transparent, RectangleShape)
+                .border(
+                    width = PixelDesign.border,
+                    color = if (selected) PixelPalette.pink else PixelPalette.outline,
+                    shape = RectangleShape
+                )
+                .clickable(role = Role.Tab, onClick = onClick)
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label.uppercase(),
+                color = if (selected) PixelPalette.text else PixelPalette.muted,
+                fontSize = 10.5.sp,
+                letterSpacing = 0.8.sp,
+                fontWeight = if (selected) FontWeight.Black else FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        return
+    }
     Box(
         modifier = Modifier
             .weight(1f)
@@ -359,67 +438,98 @@ private fun RecapHeroCard(
     number: NumberFormat,
     isDark: Boolean
 ) {
-    val shape = RoundedCornerShape(26.dp)
-    val borderColor = if (isDark) Color.White.copy(alpha = 0.09f) else Color.Black.copy(alpha = 0.08f)
-    val panelBg = if (isDark) DerbisPanel.copy(alpha = 0.95f) else MaterialTheme.colorScheme.surface
+    val pixel = DerbisIsPixel
+    val shape = if (pixel) RectangleShape else RoundedCornerShape(26.dp)
+    val borderColor = when {
+        pixel -> PixelPalette.outline
+        isDark -> Color.White.copy(alpha = 0.09f)
+        else -> Color.Black.copy(alpha = 0.08f)
+    }
+    val panelBg = when {
+        pixel -> PixelPalette.ink
+        isDark -> DerbisPanel.copy(alpha = 0.95f)
+        else -> MaterialTheme.colorScheme.surface
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = shape,
         color = panelBg,
-        border = BorderStroke(1.dp, borderColor)
+        border = BorderStroke(if (pixel) PixelDesign.border else 1.dp, borderColor)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            DerbisCyan.copy(alpha = if (isDark) 0.12f else 0.08f),
-                            DerbisViolet.copy(alpha = if (isDark) 0.08f else 0.04f),
-                            Color.Transparent
+                .then(
+                    if (pixel) {
+                        Modifier
+                    } else {
+                        Modifier.background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    DerbisCyan.copy(alpha = if (isDark) 0.12f else 0.08f),
+                                    DerbisViolet.copy(alpha = if (isDark) 0.08f else 0.04f),
+                                    Color.Transparent
+                                )
+                            )
                         )
-                    )
+                    }
                 )
-                .padding(22.dp)
+                .padding(if (pixel) 16.dp else 22.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(if (pixel) 12.dp else 16.dp)) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DerbisCyan.copy(alpha = 0.14f))
-                        .border(1.dp, DerbisCyan.copy(alpha = 0.28f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                    modifier = if (pixel) {
+                        Modifier
+                            .border(PixelDesign.border, PixelPalette.cyan, RectangleShape)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    } else {
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DerbisCyan.copy(alpha = 0.14f))
+                            .border(1.dp, DerbisCyan.copy(alpha = 0.28f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    }
                 ) {
                     Text(
                         text = periodLabel(period, strings).uppercase(),
-                        color = DerbisCyan,
-                        fontSize = 10.5.sp,
+                        color = if (pixel) PixelPalette.cyan else DerbisCyan,
+                        fontSize = if (pixel) 9.5.sp else 10.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp
+                        letterSpacing = if (pixel) 1.4.sp else 0.8.sp
                     )
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (pixel) 4.dp else 2.dp)) {
                     Text(
                         text = formatRecapDuration(recap.totalListenMs, strings, number),
                         color = DerbisText,
-                        fontSize = 38.sp,
-                        lineHeight = DerbisTypeRhythm.lineHeight(38.sp),
+                        fontSize = if (pixel) 34.sp else 38.sp,
+                        lineHeight = DerbisTypeRhythm.lineHeight(if (pixel) 34.sp else 38.sp),
                         fontWeight = FontWeight.Black,
-                        letterSpacing = (-1.0).sp
+                        letterSpacing = if (pixel) 0.sp else (-1.0).sp
                     )
                     Text(
-                        text = strings.pulseMinutes,
+                        text = if (pixel) strings.pulseMinutes.uppercase() else strings.pulseMinutes,
                         color = DerbisMuted,
-                        fontSize = 12.sp,
+                        fontSize = if (pixel) 10.sp else 12.sp,
+                        letterSpacing = if (pixel) 1.2.sp else 0.sp,
                         fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (pixel) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(PixelDesign.border)
+                            .background(PixelPalette.outline)
                     )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(if (pixel) 12.dp else 8.dp)
                 ) {
                     RecapMiniStat(
                         icon = Icons.Rounded.PlayArrow,
@@ -465,6 +575,30 @@ private fun RowScope.RecapMiniStat(
     accent: Color,
     isDark: Boolean = true
 ) {
+    if (DerbisIsPixel) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = value,
+                color = PixelPalette.text,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black,
+                maxLines = 1
+            )
+            Text(
+                text = label.uppercase(),
+                color = PixelPalette.muted,
+                fontSize = 8.5.sp,
+                letterSpacing = 1.0.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        return
+    }
     val bg = if (isDark) Color.White.copy(alpha = 0.035f) else Color.Black.copy(alpha = 0.03f)
     val border = if (isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.06f)
     Column(
@@ -614,29 +748,41 @@ private fun RecapHighlightCard(
     subtitle: String,
     isDark: Boolean
 ) {
-    val cardShape = RoundedCornerShape(18.dp)
-    val panelBg = if (isDark) DerbisPanel.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface
-    val borderCol = if (isDark) Color.White.copy(alpha = 0.07f) else Color.Black.copy(alpha = 0.06f)
+    val pixel = DerbisIsPixel
+    val cardShape = if (pixel) RectangleShape else RoundedCornerShape(18.dp)
+    val panelBg = when {
+        pixel -> PixelPalette.ink
+        isDark -> DerbisPanel.copy(alpha = 0.85f)
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val borderCol = when {
+        pixel -> PixelPalette.outline
+        isDark -> Color.White.copy(alpha = 0.07f)
+        else -> Color.Black.copy(alpha = 0.06f)
+    }
 
     Surface(
         modifier = modifier,
         shape = cardShape,
         color = panelBg,
-        border = BorderStroke(1.dp, borderCol)
+        border = BorderStroke(if (pixel) PixelDesign.border else 1.dp, borderCol)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(if (pixel) 12.dp else 14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(15.dp))
+                if (!pixel) {
+                    Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(15.dp))
+                }
                 Text(
-                    text = title,
-                    color = DerbisMuted,
-                    fontSize = 11.sp,
+                    text = if (pixel) title.uppercase() else title,
+                    color = if (pixel) PixelPalette.outline else DerbisMuted,
+                    fontSize = if (pixel) 9.5.sp else 11.sp,
+                    letterSpacing = if (pixel) 1.0.sp else 0.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -673,6 +819,8 @@ private fun TopTrackRow(
     number: NumberFormat,
     onPlay: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val coverShape = if (pixel) RectangleShape else RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -688,19 +836,28 @@ private fun TopTrackRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "#${number.format(track.rank)}",
-            color = if (track.rank == 1) DerbisCyan else DerbisMuted,
-            fontSize = 14.sp,
+            text = if (pixel) number.format(track.rank) else "#${number.format(track.rank)}",
+            color = when {
+                pixel && track.rank == 1 -> PixelPalette.cyan
+                pixel -> PixelPalette.outline
+                track.rank == 1 -> DerbisCyan
+                else -> DerbisMuted
+            },
+            fontSize = if (pixel) 12.sp else 14.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width(if (pixel) 22.dp else 28.dp),
             textAlign = TextAlign.Center
         )
 
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.06f)),
+                .size(if (pixel) 40.dp else 44.dp)
+                .clip(coverShape)
+                .background(if (pixel) PixelPalette.panelSoft else Color.White.copy(alpha = 0.06f))
+                .then(
+                    if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape)
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (track.thumbnailUrl.isNotBlank()) {
@@ -714,7 +871,7 @@ private fun TopTrackRow(
                 Icon(
                     imageVector = Icons.Rounded.MusicNote,
                     contentDescription = null,
-                    tint = DerbisMuted,
+                    tint = if (pixel) PixelPalette.cyan else DerbisMuted,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -742,7 +899,7 @@ private fun TopTrackRow(
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = "${number.format(track.plays)} ${strings.pulsePlays}",
-                color = DerbisCyan,
+                color = if (pixel) PixelPalette.cyan else DerbisCyan,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black
             )
@@ -765,6 +922,7 @@ private fun TopArtistRow(
     number: NumberFormat,
     onOpen: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
     val artistAccents = remember(artist.name) { derbisArtistAccent(artist.name) }
     Row(
         modifier = Modifier
@@ -781,20 +939,26 @@ private fun TopArtistRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "#${number.format(artist.rank)}",
-            color = if (artist.rank == 1) DerbisPink else DerbisMuted,
-            fontSize = 14.sp,
+            text = if (pixel) number.format(artist.rank) else "#${number.format(artist.rank)}",
+            color = when {
+                pixel && artist.rank == 1 -> PixelPalette.cyan
+                pixel -> PixelPalette.outline
+                artist.rank == 1 -> DerbisPink
+                else -> DerbisMuted
+            },
+            fontSize = if (pixel) 12.sp else 14.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width(if (pixel) 22.dp else 28.dp),
             textAlign = TextAlign.Center
         )
 
+        // Circular artist avatar is preserved even in Pixel (preview/replay-recap.html §3).
         DerbisArtistAvatar(
             name = artist.name,
             thumbnailUrl = artist.thumbnailUrl,
             accentStart = artistAccents.first,
             accentEnd = artistAccents.second,
-            size = 44.dp
+            size = if (pixel) 40.dp else 44.dp
         )
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -819,7 +983,7 @@ private fun TopArtistRow(
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = "${number.format(artist.plays)} ${strings.pulsePlays}",
-                color = DerbisPink,
+                color = if (pixel) PixelPalette.cyan else DerbisPink,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black
             )
@@ -841,6 +1005,8 @@ private fun TopAlbumRow(
     strings: DerbisStrings,
     number: NumberFormat
 ) {
+    val pixel = DerbisIsPixel
+    val coverShape = if (pixel) RectangleShape else RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -850,19 +1016,28 @@ private fun TopAlbumRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "#${number.format(album.rank)}",
-            color = if (album.rank == 1) DerbisOrange else DerbisMuted,
-            fontSize = 14.sp,
+            text = if (pixel) number.format(album.rank) else "#${number.format(album.rank)}",
+            color = when {
+                pixel && album.rank == 1 -> PixelPalette.cyan
+                pixel -> PixelPalette.outline
+                album.rank == 1 -> DerbisOrange
+                else -> DerbisMuted
+            },
+            fontSize = if (pixel) 12.sp else 14.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.width(28.dp),
+            modifier = Modifier.width(if (pixel) 22.dp else 28.dp),
             textAlign = TextAlign.Center
         )
 
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(DerbisOrange.copy(alpha = 0.12f)),
+                .size(if (pixel) 40.dp else 44.dp)
+                .clip(coverShape)
+                .background(if (pixel) PixelPalette.panelSoft else DerbisOrange.copy(alpha = 0.12f))
+                .then(
+                    if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape)
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (album.thumbnailUrl.isNotBlank()) {
@@ -876,7 +1051,7 @@ private fun TopAlbumRow(
                 Icon(
                     imageVector = Icons.Rounded.Album,
                     contentDescription = null,
-                    tint = DerbisOrange,
+                    tint = if (pixel) PixelPalette.cyan else DerbisOrange,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -904,7 +1079,7 @@ private fun TopAlbumRow(
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(
                 text = "${number.format(album.plays)} ${strings.pulsePlays}",
-                color = DerbisOrange,
+                color = if (pixel) PixelPalette.cyan else DerbisOrange,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black
             )
@@ -925,25 +1100,37 @@ private fun RecapTimelineChart(
     strings: DerbisStrings,
     isDark: Boolean
 ) {
+    val pixel = DerbisIsPixel
     val peakMs = points.maxOfOrNull { it.listenedMs } ?: 0L
-    val panelBg = if (isDark) DerbisPanel.copy(alpha = 0.85f) else MaterialTheme.colorScheme.surface
-    val borderCol = if (isDark) Color.White.copy(alpha = 0.07f) else Color.Black.copy(alpha = 0.06f)
+    val panelBg = when {
+        pixel -> PixelPalette.ink
+        isDark -> DerbisPanel.copy(alpha = 0.85f)
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val borderCol = when {
+        pixel -> PixelPalette.outline
+        isDark -> Color.White.copy(alpha = 0.07f)
+        else -> Color.Black.copy(alpha = 0.06f)
+    }
+    val axisFormatter = remember(locale) {
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale)
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = if (pixel) RectangleShape else RoundedCornerShape(20.dp),
         color = panelBg,
-        border = BorderStroke(1.dp, borderCol)
+        border = BorderStroke(if (pixel) PixelDesign.border else 1.dp, borderCol)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.padding(if (pixel) 14.dp else 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(64.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(if (pixel) 2.dp else 4.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
                 points.forEach { point ->
@@ -952,20 +1139,41 @@ private fun RecapTimelineChart(
                     } else {
                         0.08f
                     }
+                    val barShape = if (pixel) RectangleShape else RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                    val barColor = when {
+                        pixel && point.listenedMs == peakMs && peakMs > 0L -> PixelPalette.pink
+                        pixel && point.listenedMs > 0L -> PixelPalette.outline.copy(alpha = 0.34f)
+                        pixel -> PixelPalette.outline.copy(alpha = 0.10f)
+                        point.listenedMs == peakMs && peakMs > 0L -> DerbisCyan
+                        point.listenedMs > 0L -> DerbisCyan.copy(alpha = 0.65f)
+                        isDark -> Color.White.copy(alpha = 0.06f)
+                        else -> Color.Black.copy(alpha = 0.06f)
+                    }
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(fraction)
-                            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                            .background(
-                                if (point.listenedMs == peakMs && peakMs > 0L) {
-                                    DerbisCyan
-                                } else if (point.listenedMs > 0L) {
-                                    DerbisCyan.copy(alpha = 0.65f)
-                                } else {
-                                    Color.White.copy(alpha = 0.06f)
-                                }
-                            )
+                            .clip(barShape)
+                            .background(barColor)
+                    )
+                }
+            }
+            if (points.size >= 2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = points.first().date.format(axisFormatter),
+                        color = DerbisMuted,
+                        fontSize = 10.sp,
+                        letterSpacing = if (pixel) 0.7.sp else 0.sp
+                    )
+                    Text(
+                        text = points.last().date.format(axisFormatter),
+                        color = DerbisMuted,
+                        fontSize = 10.sp,
+                        letterSpacing = if (pixel) 0.7.sp else 0.sp
                     )
                 }
             }
@@ -978,8 +1186,37 @@ private fun RecapSectionTitle(
     title: String,
     icon: ImageVector,
     accent: Color,
-    subtitle: String? = null
+    subtitle: String? = null,
+    trailingTag: String? = null
 ) {
+    if (DerbisIsPixel) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp, bottom = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = title.uppercase(),
+                color = PixelPalette.cyan,
+                fontSize = 11.5.sp,
+                letterSpacing = 1.8.sp,
+                fontWeight = FontWeight.Black
+            )
+            val rightText = trailingTag ?: subtitle
+            if (!rightText.isNullOrBlank()) {
+                Text(
+                    text = rightText.uppercase(),
+                    color = PixelPalette.outline,
+                    fontSize = 9.5.sp,
+                    letterSpacing = 0.9.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+        return
+    }
     Column(modifier = Modifier.padding(top = 10.dp, bottom = 2.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -1007,6 +1244,47 @@ private fun RecapSectionTitle(
 
 @Composable
 private fun RecapEmptyView(strings: DerbisStrings) {
+    if (DerbisIsPixel) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 18.dp),
+            shape = RectangleShape,
+            color = PixelPalette.ink,
+            border = BorderStroke(PixelDesign.border, PixelPalette.outline)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 30.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Headphones,
+                    contentDescription = null,
+                    tint = PixelPalette.outline,
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = strings.emptyRecapTitle,
+                    color = PixelPalette.text,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = strings.emptyRecapSubtitle,
+                    color = PixelPalette.muted,
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()

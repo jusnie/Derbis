@@ -132,10 +132,6 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
@@ -206,6 +202,179 @@
                 <data android:mimeType="application/xspf+xml" />
             </intent-filter>
         </activity>
+
+        <!-- Launcher aliases for Settings -> Appearance -> App icon. MainActivity stays enabled at
+             all times so deep links, OAuth callbacks, widgets and static shortcuts never lose their
+             target; switching the app icon only toggles which alias carries MAIN/LAUNCHER. -->
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherOriginal"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherPixelated"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_pixel"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_pixel"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherBear"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bear"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_bear"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherBunny"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bunny"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_bunny"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherCat"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_cat"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_cat"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherChick"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_chick"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_chick"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherFrog"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_frog"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_frog"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherPenguin"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_penguin"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_penguin"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherSheep"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sheep"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_sheep"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherCloud"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_cloud"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_cloud"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name="androidx.media3.session.MediaButtonReceiver"

@@ -2,6 +2,13 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.domain.LyricsProviderId
+import com.yasuda.derbis.feature.icon.DerbisAppIcon
+import com.yasuda.derbis.feature.icon.DerbisAppIconManager
+import com.yasuda.derbis.ui.components.DiscordBrandColor
+import com.yasuda.derbis.ui.components.DiscordBrandVector
+import com.yasuda.derbis.ui.components.SpotifyBrandBlack
+import com.yasuda.derbis.ui.components.SpotifyBrandColor
+import com.yasuda.derbis.ui.components.SpotifyBrandVector
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.theme.pixelMiniSettings
 import com.yasuda.derbis.ui.theme.pixelNavSettings
@@ -4092,6 +4099,8 @@ private fun tabBarBottomContentInset(miniPlayerVisible: Boolean, animationsEnabl
     val collapsed = navigationHeight + navigationBarInset + DerbisBottomContentGap + LocalNavDockExtraClearance.current
     val miniPlayerExtra = if (DerbisIsPrism) {
         84.dp
+    } else if (DerbisIsPixel) {
+        98.dp
     } else if (derbisWindowIsCompactLandscape()) {
         (DerbisMiniPlayerHeight - DerbisTabBarHeight).coerceAtLeast(0.dp)
     } else {
@@ -21403,9 +21412,12 @@ private fun SettingsOverlay(
                                     icon = Icons.Rounded.SmartDisplay,
                                     title = strings.miniPlayerStudioCopy[MiniStudioText.Title],
                                     subtitle = miniPlayerStyleName(miniPlayerStyle) + " · " + strings.miniPlayerStudioCopy[MiniStudioText.Subtitle],
-                                    enabled = interfaceSettings.skin == DerbisSkin.Default,
+                                    enabled = interfaceSettings.skin == DerbisSkin.Default || interfaceSettings.skin == DerbisSkin.Pixel,
                                     onClick = onOpenMiniPlayerStudio
                                 )
+                            }
+                            item {
+                                SettingsAppIconSection()
                             }
                             item {
                                 SettingsButton(
@@ -22604,12 +22616,13 @@ private fun DiscordRichPresenceSettingsPanel() {
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable,
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Disconnected -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Connect Discord",
                 subtitle = connection.detail.ifBlank {
                     if (discordInstalled) "Sign in with your Discord account inside the Discord app"
                     else "Sign in with your Discord account in the browser"
                 },
+                brandTint = DiscordBrandColor,
                 onClick = authorizeDiscord
             )
             SettingsButton(
@@ -22630,12 +22643,13 @@ private fun DiscordRichPresenceSettingsPanel() {
             // home screen if the app was backgrounded - and both ways out are here, because a
             // card that only says "Connecting" can otherwise never be left.
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Connecting Discord",
                 subtitle = connection.detail.ifBlank {
                     if (discordInstalled) "Approve Derbis in Discord to finish signing in."
                     else "Approve Derbis in the browser to finish signing in."
                 },
+                brandTint = DiscordBrandColor,
                 onClick = authorizeDiscord
             )
             Row(
@@ -22660,18 +22674,20 @@ private fun DiscordRichPresenceSettingsPanel() {
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Connecting Discord",
                 subtitle = connection.detail.ifBlank { "Verifying session with Discord..." },
                 enabled = false,
+                brandTint = DiscordBrandColor,
                 onClick = {}
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Error -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Reconnect Discord",
                 subtitle = connection.detail.ifBlank { "Discord connection failed. Tap to reconnect." },
+                brandTint = DiscordBrandColor,
                 onClick = authorizeDiscord
             )
             SettingsButton(
@@ -22688,14 +22704,26 @@ private fun DiscordRichPresenceSettingsPanel() {
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connected -> {
+            val pixel = DerbisIsPixel
+            val cardShape = if (pixel) RectangleShape else RoundedCornerShape(16.dp)
+            val cardFill = if (pixel) PixelPalette.ink else Color(0xFF16181F)
+            val cardBorder = if (pixel) PixelPalette.outline else Color(0xFF262835)
+            val avatarShape = if (pixel) RectangleShape else CircleShape
+            val avatarWell = if (pixel) PixelPalette.panelSoft else Color(0xFF2C2E38)
+            val nameColor = if (pixel) PixelPalette.text else Color.White
+            val subColor = if (pixel) PixelPalette.muted else Color.LightGray
+            val pillShape = if (pixel) RectangleShape else RoundedCornerShape(8.dp)
+            val pillFill = if (pixel) PixelPalette.panel else Color(0xFF1B3D2F)
+            val pillText = if (pixel) PixelPalette.cyan else Color(0xFF4CAF50)
+
             // User profile card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF16181F))
-                    .border(1.dp, Color(0xFF262835), RoundedCornerShape(16.dp))
+                    .clip(cardShape)
+                    .background(cardFill)
+                    .border(1.dp, cardBorder, cardShape)
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -22704,18 +22732,23 @@ private fun DiscordRichPresenceSettingsPanel() {
                         model = connection.avatarUrl,
                         contentDescription = "Discord Avatar",
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
+                            .size(if (pixel) 40.dp else 44.dp)
+                            .clip(avatarShape)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2C2E38)),
+                            .size(if (pixel) 40.dp else 44.dp)
+                            .clip(avatarShape)
+                            .background(avatarWell),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        Icon(
+                            imageVector = DiscordBrandVector,
+                            contentDescription = null,
+                            tint = DiscordBrandColor,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
 
@@ -22725,25 +22758,25 @@ private fun DiscordRichPresenceSettingsPanel() {
                     Text(
                         text = connection.globalName.ifBlank { connection.username.ifBlank { "Discord User" } },
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = nameColor,
                         fontSize = 15.sp
                     )
                     Text(
                         text = if (connection.username.isNotBlank()) "@${connection.username}" else "Connected",
-                        color = Color.LightGray,
+                        color = subColor,
                         fontSize = 12.sp
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1B3D2F))
+                        .clip(pillShape)
+                        .background(pillFill)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (connection.latencyMs > 0L) "${connection.latencyMs} ms" else "Active",
-                        color = Color(0xFF4CAF50),
+                        color = pillText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -22751,10 +22784,11 @@ private fun DiscordRichPresenceSettingsPanel() {
             }
 
             SettingsToggle(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Discord Rich Presence",
                 subtitle = "Show Listening in Derbis on your profile: track, cover art, artist icon, progress bar and links",
                 checked = presenceEnabled,
+                brandTint = DiscordBrandColor,
                 onCheckedChange = { value ->
                     presenceEnabled = value
                     discord.setEnabled(context, value)
@@ -22912,20 +22946,51 @@ private fun SpotifyConnectionSettingsPanel(
         showSpotifyCanvasSheet = true
     }
 
+    val pixel = DerbisIsPixel
+    val spotifySkin = DerbisIsSpotify
+    val cardShape = if (pixel) RectangleShape else RoundedCornerShape(18.dp)
+    val cardBg = when {
+        pixel -> PixelPalette.ink
+        spotifySkin -> SpotifyBrandBlack
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.08f)
+        else -> Color.White.copy(alpha = 0.04f)
+    }
+    val cardBorder = when {
+        pixel -> PixelPalette.outline
+        spotifySkin -> Color(0xFF2A2A2A)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.32f)
+        else -> Color.White.copy(alpha = 0.10f)
+    }
+    val plateShape = if (pixel) RectangleShape else CircleShape
+    val plateBg = when {
+        // Spotify green on the blush band measures 1.8:1; on Spotify's own black it is 7.2:1.
+        pixel -> SpotifyBrandBlack
+        spotifySkin -> SpotifyBrandColor.copy(alpha = 0.20f)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.20f)
+        else -> Color.White.copy(alpha = 0.08f)
+    }
+    val chipShape = if (pixel) RectangleShape else RoundedCornerShape(99.dp)
+    val chipBg = when {
+        pixel && canvasUnlocked -> PixelPalette.panel
+        pixel -> PixelPalette.cyan.copy(alpha = 0.14f)
+        spotifySkin -> SpotifyBrandColor.copy(alpha = 0.20f)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.20f)
+        else -> Color(0xFFFF5E3A).copy(alpha = 0.15f)
+    }
+    val chipText = when {
+        pixel -> PixelPalette.cyan
+        spotifySkin -> SpotifyBrandColor
+        canvasUnlocked -> SpotifyBrandColor
+        else -> Color(0xFFFF5E3A)
+    }
+    val connectText = if (pixel) PixelPalette.cyan else SpotifyBrandColor
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.08f)
-                else Color.White.copy(alpha = 0.04f)
-            )
-            .border(
-                1.dp,
-                if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.32f)
-                else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(18.dp)
-            )
+            .clip(cardShape)
+            .background(cardBg)
+            .border(1.dp, cardBorder, cardShape)
             .clickable(enabled = !connecting, onClick = cardTapAction)
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
@@ -22937,26 +23002,19 @@ private fun SpotifyConnectionSettingsPanel(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
-                        else Color.White.copy(alpha = 0.08f)
-                    ),
+                    .clip(plateShape)
+                    .background(plateBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (canvasUnlocked) Icons.Rounded.AutoAwesome else Icons.Rounded.AccountCircle,
+                    imageVector = SpotifyBrandVector,
                     contentDescription = null,
-                    tint = if (canvasUnlocked) Color(0xFF1ED760) else DerbisMuted,
+                    tint = SpotifyBrandColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                // Title, then the status chip on its own line. The chip used to sit inline next to
-                // the title, and on a narrow phone there was never room for both: the title kept
-                // its full width, the chip was squeezed into "LOGIN / REQUIRED" on two lines and
-                // spilled over the card, and the action was pushed past the edge.
                 Text(
                     text = strings.motionArtworkEnabled,
                     color = DerbisText,
@@ -22976,11 +23034,8 @@ private fun SpotifyConnectionSettingsPanel(
                 Box(
                     modifier = Modifier
                         .padding(top = 4.dp)
-                        .clip(RoundedCornerShape(99.dp))
-                        .background(
-                            if (canvasUnlocked) Color(0xFF1ED760).copy(alpha = 0.20f)
-                            else Color(0xFFFF5E3A).copy(alpha = 0.15f)
-                        )
+                        .clip(chipShape)
+                        .background(chipBg)
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
@@ -22989,7 +23044,7 @@ private fun SpotifyConnectionSettingsPanel(
                             canvasUnlocked -> "UNLOCKED"
                             else -> "LOGIN REQUIRED"
                         },
-                        color = if (canvasUnlocked) Color(0xFF1ED760) else Color(0xFFFF5E3A),
+                        color = chipText,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.6.sp,
@@ -23003,13 +23058,13 @@ private fun SpotifyConnectionSettingsPanel(
             // tapping Connect opens the sign-in browser directly.
             Text(
                 text = if (canvasUnlocked) "Disconnect" else "Connect",
-                color = if (canvasUnlocked) DerbisMuted else Color(0xFF1ED760),
+                color = if (canvasUnlocked) DerbisMuted else connectText,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(99.dp))
+                    .clip(chipShape)
                     .clickable(
                         enabled = !connecting,
                         onClick = if (canvasUnlocked) disconnectAction else cardTapAction
@@ -23144,6 +23199,8 @@ private fun IntegrationSettingsPanel(
 private fun SettingsHubFooter(onExitApplication: () -> Unit) {
     val strings = LocalDerbisStrings.current
     val context = LocalContext.current
+    LaunchedEffect(context) { DerbisAppIconManager.initialize(context) }
+    val activeIcon by DerbisAppIconManager.selected.collectAsStateWithLifecycle()
     val footerVersion = BuildConfig.VERSION_NAME.removeSuffix("-pr-diagnostics")
     Column(
         modifier = Modifier
@@ -23161,6 +23218,23 @@ private fun SettingsHubFooter(onExitApplication: () -> Unit) {
                 .background(DerbisAdaptiveHairline)
         )
         Spacer(modifier = Modifier.height(18.dp))
+        if (activeIcon != DerbisAppIcon.Original) {
+            Box(
+                modifier = Modifier
+                    .border(
+                        width = if (DerbisIsPixel) PixelDesign.border else 1.dp,
+                        color = if (DerbisIsPixel) PixelPalette.outline else DerbisAdaptiveHairline,
+                        shape = if (DerbisIsPixel) RectangleShape else RoundedCornerShape(12.dp)
+                    )
+                    .clip(if (DerbisIsPixel) RectangleShape else RoundedCornerShape(12.dp))
+            ) {
+                PixelAppIconTilePreview(icon = activeIcon, size = 56.dp)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        } else if (DerbisIsPixel) {
+            PixelDerbisLogoMark(size = 36.dp, contentDescription = null)
+            Spacer(modifier = Modifier.height(10.dp))
+        }
         Text(
             "DERBIS $footerVersion",
             color = DerbisMuted.copy(alpha = 0.86f),
@@ -23420,7 +23494,12 @@ private fun SettingsTile(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SettingsTileIcon(icon: ImageVector, accent: Color, shape: Shape = MaterialShapes.Cookie4Sided.toShape()) {
+private fun SettingsTileIcon(
+    icon: ImageVector,
+    accent: Color,
+    shape: Shape = MaterialShapes.Cookie4Sided.toShape(),
+    brandTint: Color? = null
+) {
     Box(
         modifier = Modifier
             .size(if (DerbisIsAppleMusic) 30.dp else 44.dp)
@@ -23428,7 +23507,12 @@ private fun SettingsTileIcon(icon: ImageVector, accent: Color, shape: Shape = Ma
             .background(if (SkinChrome.active) SkinChrome.iconBackground else accent.copy(alpha = 0.18f)),
         contentAlignment = Alignment.Center
     ) {
-        Icon(icon, null, tint = if (SkinChrome.active) SkinChrome.iconTint else accent, modifier = Modifier.size(if (DerbisIsAppleMusic) 19.dp else 22.dp))
+        Icon(
+            icon,
+            null,
+            tint = brandTint ?: if (SkinChrome.active) SkinChrome.iconTint else accent,
+            modifier = Modifier.size(if (DerbisIsAppleMusic) 19.dp else 22.dp)
+        )
     }
 }
 
@@ -24289,14 +24373,21 @@ private fun SettingsSectionLabel(text: String) {
 }
 
 @Composable
-private fun SettingsToggle(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SettingsToggle(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    brandTint: Color? = null,
+    onCheckedChange: (Boolean) -> Unit
+) {
     SettingsTile(checked = checked, onCheckedChange = onCheckedChange) {
         Row(
             modifier = Modifier.padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisCyan)
+            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisCyan, brandTint = brandTint)
             SettingsTileText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
             if (DerbisIsPixel || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) SkinSwitch(checked) else Switch(
                 checked = checked,
@@ -24320,7 +24411,14 @@ private fun SettingsToggle(icon: ImageVector, title: String, subtitle: String, c
 }
 
 @Composable
-private fun SettingsButton(icon: ImageVector, title: String, subtitle: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SettingsButton(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    enabled: Boolean = true,
+    brandTint: Color? = null,
+    onClick: () -> Unit
+) {
     SettingsTile(onClick = onClick, enabled = enabled) {
         Row(
             modifier = Modifier
@@ -24329,7 +24427,7 @@ private fun SettingsButton(icon: ImageVector, title: String, subtitle: String, e
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisPink)
+            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisPink, brandTint = brandTint)
             SettingsTileText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
@@ -24491,10 +24589,22 @@ internal fun DerbisLogoMark(
     size: Dp = 58.dp,
     contentDescription: String? = "Derbis"
 ) {
-    com.yasuda.derbis.ui.components.DerbisVectorLogo(
-        size = size,
-        tint = Color.White
-    )
+    if (DerbisIsPixel) {
+        PixelDerbisLogoMark(size = size, contentDescription = contentDescription)
+        return
+    }
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+        com.yasuda.derbis.ui.components.DerbisVectorLogo(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.45f
+                    scaleY = 1.45f
+                },
+            size = size,
+            tint = Color.White
+        )
+    }
 }
 
 @Composable
@@ -24514,10 +24624,17 @@ internal fun HomeLogoBadge() {
         modifier = Modifier.size(DerbisHomeDesign.SettingsControlHeight),
         contentAlignment = Alignment.Center
     ) {
-        com.yasuda.derbis.ui.components.DerbisVectorLogo(
-            size = DerbisHomeDesign.SettingsControlHeight * 0.72f,
-            tint = Color.White
-        )
+        if (DerbisIsPixel) {
+            PixelDerbisLogoMark(
+                size = DerbisHomeDesign.SettingsControlHeight * 0.68f,
+                contentDescription = null
+            )
+        } else {
+            com.yasuda.derbis.ui.components.DerbisVectorLogo(
+                size = DerbisHomeDesign.SettingsControlHeight * 0.72f,
+                tint = Color.White
+            )
+        }
     }
 }
 
@@ -29103,8 +29220,10 @@ private fun LazyListScope.skinSettingsItems(
 private fun skinHomeStyleLabel(style: HomeStyle): String =
     if (DerbisSkinManagesLayout) DerbisSkinLabel else homeStyleName(style)
 
-private fun skinManagesStudio(id: String): Boolean =
-    DerbisSkinManagesLayout && id in setOf("theme", "mini_player", "navigation")
+private fun skinManagesStudio(id: String): Boolean {
+    if (DerbisIsPixel && id == "mini_player") return false
+    return DerbisSkinManagesLayout && id in setOf("theme", "mini_player", "navigation")
+}
 
 private fun searchFieldContainer(focused: Boolean, scheme: androidx.compose.material3.ColorScheme): Color = when {
     DerbisIsTorque -> Color(0xFFF1F1F1)
@@ -29189,6 +29308,106 @@ private fun SettingsSkinSelection(interfaceSettings: DerbisInterfaceSettings, on
     }
     if (interfaceSettings.skin == DerbisSkin.Ivory) {
         IvorySettingsPanel(interfaceSettings.ivory) { onInterfaceSettings(interfaceSettings.copy(ivory = it)) }
+    }
+    if (interfaceSettings.skin == DerbisSkin.Pixel) {
+        Spacer(modifier = Modifier.height(14.dp))
+        SettingsAppIconSection()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SettingsAppIconSection() {
+    val context = LocalContext.current
+    LaunchedEffect(context) { DerbisAppIconManager.initialize(context) }
+    val selected by DerbisAppIconManager.selected.collectAsStateWithLifecycle()
+    val pixel = DerbisIsPixel
+    val cardShape = if (pixel) RectangleShape else RoundedCornerShape(if (SkinChrome.active) SkinChrome.outerCorner else 22.dp)
+    val cardFill = if (pixel) PixelPalette.ink else DerbisAdaptiveCard
+    val cardBorder = if (pixel) PixelPalette.outline else DerbisAdaptiveHairline
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .background(cardFill)
+            .border(if (pixel) PixelDesign.border else 1.dp, cardBorder, cardShape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "App icon",
+                color = DerbisText,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Choose which icon the launcher draws: the shipped mark, the pixel mark, or one of the eight Derbis pixel mascots.",
+                color = DerbisMuted,
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            DerbisAppIcon.entries.forEach { entry ->
+                val isSelected = entry == selected
+                val tileShape = if (pixel) RectangleShape else RoundedCornerShape(14.dp)
+                val borderWidth = if (isSelected) 2.dp else 1.dp
+                val borderColor = when {
+                    isSelected && pixel -> PixelPalette.cyan
+                    isSelected -> DerbisCyan
+                    pixel -> PixelPalette.outline
+                    else -> DerbisAdaptiveHairline
+                }
+                Column(
+                    modifier = Modifier
+                        .width(84.dp)
+                        .clickable(role = Role.RadioButton) {
+                            DerbisAppIconManager.select(context, entry)
+                        }
+                        .semantics {
+                            contentDescription = entry.label
+                            this.selected = isSelected
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .clip(tileShape)
+                            .background(Color(0xFFFFEDF1))
+                            .border(borderWidth, borderColor, tileShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PixelAppIconTilePreview(
+                            icon = entry,
+                            size = if (entry == DerbisAppIcon.Original) 84.dp else 72.dp
+                        )
+                    }
+                    Text(
+                        text = entry.label.uppercase(),
+                        color = if (isSelected) (if (pixel) PixelPalette.cyan else DerbisCyan) else DerbisMuted,
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        letterSpacing = 0.8.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        Text(
+            text = "Switching an alias asks your home launcher to redraw the shortcut; some launchers refresh after returning to the home screen.",
+            color = DerbisMuted.copy(alpha = 0.82f),
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+        )
     }
 }
 

@@ -65,6 +65,7 @@ private fun MutableList<SettingsSearchEntry>.entry(
 
 private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: DerbisStrings, categories: SettingsSearchCategories) {
     entry("design.theme_studio", strings.themeStudio, strings.themeStudioSubtitle, "${strings.theme} ${strings.themeAccent} theme color palette accent", categories.design)
+    entry("design.app_icon", "App icon", "Choose the launcher icon: Original, Pixelated, or one of the eight Derbis pixel mascots", "app icon launcher shortcut mascot bear bunny cat chick frog penguin sheep cloud pixelated", categories.design)
     entry("design.app_font", strings.appFont, strings.appFontSubtitle, "font typography text", categories.design)
     entry("design.animations", strings.animations, strings.animationsSubtitle, "animation motion", categories.design)
     entry("design.visual_performance", strings.visualPerformance, strings.visualPerformanceFullSubtitle, "${strings.visualPerformanceAuto} ${strings.visualPerformanceSmooth} performance fps", categories.design)

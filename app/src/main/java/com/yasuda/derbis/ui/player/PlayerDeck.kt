@@ -200,8 +200,53 @@ internal data class PlayerAudioSpec(
             mimeType.isEmpty() && codecString.isEmpty()
 }
 
-/** Lossy bitrate from which a stream counts as the Hi-Fi tier: the 320 kbps HQ upgrade. */
+/** Lossy bitrate from which a stream counts as the Hi-Fi / High tier: the 320 kbps HQ upgrade. */
 internal const val PLAYER_HIFI_MIN_KBPS = 256
+
+/** Lossy bitrate from which a stream counts as the Medium tier (96..255 kbps balanced). */
+internal const val PLAYER_MEDIUM_MIN_KBPS = 96
+
+/**
+ * The listener-facing quality band for [spec], matching the Low / Medium / High / Lossless / Hi-Fi
+ * vocabulary in audio settings (preview/player-audio-chip.html).
+ */
+internal fun playerAudioTierLabel(spec: PlayerAudioSpec): String {
+    val mime = spec.mimeType.lowercase(Locale.ROOT)
+    val codecs = spec.codecString.lowercase(Locale.ROOT)
+    if (isDolbyAtmosStream(mime, codecs)) return ""
+    if (isLosslessAudioStream(mime, codecs)) {
+        val hiRes = spec.quality == "HI-FI" || (spec.sampleRateHz ?: 0) >= 88_200
+        return if (hiRes) "Hi-Fi" else "Lossless"
+    }
+    val kbps = spec.bitrateKbps ?: 0
+    return when {
+        kbps >= PLAYER_HIFI_MIN_KBPS -> "High"
+        kbps >= PLAYER_MEDIUM_MIN_KBPS -> "Medium"
+        kbps > 0 -> "Low"
+        spec.quality == "HI-FI" -> "High"
+        spec.quality == "LOSSLESS" -> "Lossless"
+        else -> ""
+    }
+}
+
+/**
+ * Compact two-token badge string shared by every player deck (`AAC · Medium`, `FLAC · Lossless`,
+ * `FLAC · Hi-Fi`, `Dolby Atmos`), returning `""` before a stream resolves rather than inventing
+ * a placeholder bitrate.
+ */
+internal fun playerAudioBadgeLabel(spec: PlayerAudioSpec): String {
+    val mime = spec.mimeType.lowercase(Locale.ROOT)
+    val codecs = spec.codecString.lowercase(Locale.ROOT)
+    if (isDolbyAtmosStream(mime, codecs)) return "Dolby Atmos"
+    val codec = spec.codec.ifEmpty { playerAudioCodecLabel(spec.mimeType, spec.codecString) }
+    val tier = playerAudioTierLabel(spec)
+    return when {
+        codec.isNotEmpty() && tier.isNotEmpty() -> "$codec · $tier"
+        tier.isNotEmpty() -> tier
+        codec.isNotEmpty() -> codec
+        else -> ""
+    }
+}
 
 /**
  * What a listener is actually getting, when the codec name would undersell it.
