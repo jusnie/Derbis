@@ -76,6 +76,7 @@ import com.yasuda.derbis.domain.recap.TopTrackStat
 import com.yasuda.derbis.ui.components.DerbisArtistAvatar
 import com.yasuda.derbis.ui.components.DerbisConnectedDefaults
 import com.yasuda.derbis.ui.components.DerbisConnectedPosition
+import com.yasuda.derbis.ui.components.DerbisConnectedShapes
 import com.yasuda.derbis.ui.components.DerbisConnectedStyle
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.DerbisSkeletonBlock
@@ -136,15 +137,18 @@ fun DerbisListeningRecapOverlay(
     }
 
     val style = if (pixel) {
-        DerbisConnectedDefaults.style(accent = PixelPalette.cyan).copy(
-            outerCorner = 0.dp,
-            innerCorner = 0.dp,
-            gap = 0.dp,
-            surface = PixelPalette.ink,
-            selectedSurface = PixelPalette.pink,
-            border = PixelPalette.outline.copy(alpha = 0.28f),
-            selectedBorder = PixelPalette.outline
-        )
+        remember {
+            DerbisConnectedStyle(
+                gap = 0.dp,
+                shapes = DerbisConnectedShapes(0.dp, 0.dp),
+                fill = PixelPalette.ink,
+                selectedFill = PixelPalette.pink,
+                disabledFill = PixelPalette.panelSoft,
+                borderColor = PixelPalette.outline,
+                selectedBorderColor = PixelPalette.outline,
+                borderWidth = PixelDesign.border
+            )
+        }
     } else {
         DerbisConnectedDefaults.style(accent = DerbisCyan)
     }

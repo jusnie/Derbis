@@ -450,7 +450,7 @@ internal object TrackStoryCard {
         val bars = 28
         val gap = 8f
         val barW = ((maxTextW - gap * (bars - 1)) / bars).coerceAtLeast(6f)
-        val progress = snapshot.progressFraction.coerceIn(0f, 1f)
+        val progress = snapshot.progress.coerceIn(0f, 1f)
         val filledBars = (bars * progress).toInt().coerceIn(1, bars)
         for (i in 0 until bars) {
             val step = ((i * 7 + 3) % 5 + 2) / 6f
