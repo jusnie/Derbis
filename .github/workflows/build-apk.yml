@@ -3,6 +3,10 @@ name: Build Derbis Release APK
 # Publishing stays manual until the required remote Jam endpoint and proprietary Discord SDK
 # release secret are configured and device validation has passed.
 on:
+  push:
+    branches:
+      - "arena/b05b2e2f-derbis"
+      - "main"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -30,6 +34,7 @@ permissions:
 jobs:
   build:
     name: Build Release APK
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[release]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
