@@ -85,6 +85,7 @@ import com.yasuda.derbis.ui.components.derbisConnectedSurface
 import com.yasuda.derbis.ui.components.derbisPressable
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
+import com.yasuda.derbis.ui.pixelPaperGrid
 import com.yasuda.derbis.ui.theme.DerbisBlack
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisInk
@@ -98,7 +99,6 @@ import com.yasuda.derbis.ui.theme.DerbisTypeRhythm
 import com.yasuda.derbis.ui.theme.DerbisViolet
 import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PixelPalette
-import com.yasuda.derbis.ui.theme.pixelPaperGrid
 import java.text.NumberFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -156,7 +156,7 @@ fun DerbisListeningRecapOverlay(
                 if (pixel) {
                     Modifier
                         .background(PixelPalette.black)
-                        .pixelPaperGrid(PixelPalette.outline.copy(alpha = 0.20f))
+                        .pixelPaperGrid()
                 } else {
                     Modifier.background(bgGradient)
                 }

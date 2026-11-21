@@ -686,7 +686,7 @@ class PlaybackService : MediaLibraryService() {
         var changed = false
         if (!audioOffloadRuntimeBlocked) {
             val offloadState = audioOffloadController.state
-            if (offloadState.decision.allowed || offloadState.output == AudioOffloadOutput.OFFLOADED) {
+            if (offloadState.decision?.allowed == true || offloadState.output == AudioOffloadOutput.OFFLOADED) {
                 audioOffloadRuntimeBlocked = true
                 refreshAudioOffloadPolicy()
                 changed = true

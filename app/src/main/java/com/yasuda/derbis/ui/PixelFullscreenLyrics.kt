@@ -50,6 +50,7 @@ import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PixelIcons
 import com.yasuda.derbis.ui.theme.PixelPalette
 import com.yasuda.derbis.ui.theme.PixelifyFont
+import com.yasuda.derbis.viewmodel.DerbisUiState
 
 /**
  * Opaque blush-paper fullscreen lyric page for the Pixel skin.
@@ -123,11 +124,6 @@ internal fun PixelFullscreenLyrics(
         }
     }
 
-    val progress = if (state.durationMs > 0L) {
-        (state.positionMs.toFloat() / state.durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
     val canShare = track != null && lyrics.any(::isLyricsShareSelectable)
     val isFavorite = track?.let { state.favoriteIds.contains(it.id) } == true
 
@@ -393,7 +389,7 @@ internal fun PixelFullscreenLyrics(
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     PremiumSeekbar(
-                        progress = progress,
+                        positionMs = state.positionMs,
                         durationMs = state.durationMs,
                         onSeekTo = onSeekToMs,
                         activeColor = p.cyan,
