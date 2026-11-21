@@ -75,10 +75,33 @@ class MotionArtworkPriorityHoldTest {
     }
 
     @Test
-    fun runtimeProviderOrderContainsOnlyTheOwnedCatalog() {
-        val order = motionArtworkProviderOrder(MotionArtworkConfig().normalized().providerOrder, com.yasuda.derbis.domain.DerbisCanvasSource.Auto)
+    fun runtimeProviderOrderHonorsActiveProvidersAndSpotifyPreference() {
+        val configured = MotionArtworkConfig().normalized().providerOrder
+        val withoutSpotifySession = motionArtworkProviderOrder(
+            configured,
+            com.yasuda.derbis.domain.DerbisCanvasSource.Auto,
+            preferSpotifyCanvas = false
+        )
+        val withSpotifySession = motionArtworkProviderOrder(
+            configured,
+            com.yasuda.derbis.domain.DerbisCanvasSource.Auto,
+            preferSpotifyCanvas = true
+        )
 
-        assertTrue(order == listOf(DerbisCanvasCatalogProvider.PROVIDER_ID))
+        assertTrue(
+            withoutSpotifySession == listOf(
+                AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                SpotifyCanvasProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID
+            )
+        )
+        assertTrue(
+            withSpotifySession == listOf(
+                SpotifyCanvasProvider.PROVIDER_ID,
+                AppleMusicAnimatedArtworkProvider.PROVIDER_ID,
+                DerbisCanvasCatalogProvider.PROVIDER_ID
+            )
+        )
     }
 
     @Test

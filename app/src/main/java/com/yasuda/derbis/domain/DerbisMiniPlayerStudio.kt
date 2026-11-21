@@ -95,10 +95,39 @@ enum class MiniMotion(val storageId: String) {
 enum class MiniBackground(val storageId: String) {
     Gradient("gradient"),
     Solid("solid"),
-    Artwork("artwork");
+    Artwork("artwork"),
+    Mascots("mascots");
 
     companion object {
         fun from(value: String?): MiniBackground? = entries.firstOrNull { it.storageId == value }
+    }
+}
+
+enum class PixelMascotHead(val storageId: String, val label: String) {
+    All("all", "All eight"),
+    Cat("cat", "Cat"),
+    Bear("bear", "Bear"),
+    Bunny("bunny", "Bunny"),
+    Chick("chick", "Chick"),
+    Frog("frog", "Frog"),
+    Penguin("penguin", "Penguin"),
+    Sheep("sheep", "Sheep"),
+    Cloud("cloud", "Cloud");
+
+    companion object {
+        fun from(value: String?): PixelMascotHead? = entries.firstOrNull { it.storageId == value }
+    }
+}
+
+enum class PixelCharmChoice(val storageId: String, val label: String) {
+    Auto("auto", "Auto"),
+    Bow("bow", "Bow"),
+    Star("star", "Star"),
+    Heart("heart", "Heart"),
+    None("none", "Off");
+
+    companion object {
+        fun from(value: String?): PixelCharmChoice? = entries.firstOrNull { it.storageId == value }
     }
 }
 
@@ -153,11 +182,23 @@ data class MiniPlayerTuning(
     val customColor: Int,
     val motion: MiniMotion,
     val typography: MiniTypography,
-    val background: MiniBackground
+    val background: MiniBackground,
+    val mascotHead: PixelMascotHead = PixelMascotHead.All,
+    val pixelCharm: PixelCharmChoice = PixelCharmChoice.Auto
 ) {
     fun normalized(style: MiniPlayerStyle): MiniPlayerTuning {
         val spec = DerbisMiniPlayerStudioSettings.spec(style)
         val height = heightDp.coerceIn(spec.height)
+        val allowedBackground = if (style == MiniPlayerStyle.Floating) {
+            background
+        } else {
+            background.takeIf { it in spec.backgrounds } ?: spec.defaults.background
+        }
+        val effectiveOpacity = if (allowedBackground == MiniBackground.Mascots) {
+            opacity.coerceIn(10, 100)
+        } else {
+            opacity.coerceIn(spec.opacity)
+        }
         return copy(
             heightDp = height,
             cornerDp = cornerDp.coerceIn(spec.corner).coerceAtMost(height / 2),
@@ -165,12 +206,12 @@ data class MiniPlayerTuning(
             artworkDp = artworkDp.coerceIn(spec.artwork).coerceAtMost(height - MIN_ARTWORK_MARGIN),
             shadow = shadow.coerceIn(0, 100),
             glow = glow.coerceIn(0, 100),
-            opacity = opacity.coerceIn(spec.opacity),
+            opacity = effectiveOpacity,
             progress = progress.takeIf { it in spec.progressStyles } ?: spec.defaults.progress,
             buttons = buttons.takeIf { it in spec.buttonStyles } ?: spec.defaults.buttons,
             controlScale = controlScale.coerceIn(CONTROL_SCALE_RANGE),
             customColor = customColor or OPAQUE,
-            background = background.takeIf { it in spec.backgrounds } ?: spec.defaults.background
+            background = allowedBackground
         )
     }
 
@@ -193,6 +234,8 @@ data class MiniPlayerTuning(
         put("motion", motion.storageId)
         put("typography", typography.storageId)
         put("background", background.storageId)
+        put("mascotHead", mascotHead.storageId)
+        put("pixelCharm", pixelCharm.storageId)
     }
 
     companion object {
@@ -220,7 +263,9 @@ data class MiniPlayerTuning(
                 customColor = json.optInt("customColor", defaults.customColor),
                 motion = MiniMotion.from(json.optString("motion")) ?: defaults.motion,
                 typography = MiniTypography.from(json.optString("typography")) ?: defaults.typography,
-                background = MiniBackground.from(json.optString("background")) ?: defaults.background
+                background = MiniBackground.from(json.optString("background")) ?: defaults.background,
+                mascotHead = PixelMascotHead.from(json.optString("mascotHead")) ?: defaults.mascotHead,
+                pixelCharm = PixelCharmChoice.from(json.optString("pixelCharm")) ?: defaults.pixelCharm
             ).normalized(style)
         }
     }

@@ -7,6 +7,7 @@ import com.yasuda.derbis.ui.components.derbisExpressiveCorner
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -165,19 +166,31 @@ internal fun PlayerToggleControl(
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.standardTween(200)),
         label = "player-toggle-fill"
     )
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
     val corner = derbisExpressiveToggleCorner(
         checked = active,
         unchecked = DerbisPlayerDesign.MinimumTouchTarget / 2,
         checkedCorner = ToggleCheckedCorner,
         label = "player-toggle-corner"
     )
-    val shape = RoundedCornerShape(corner)
+    val shape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(corner)
     Box(
         modifier = Modifier
             .size(DerbisPlayerDesign.MinimumTouchTarget)
             .graphicsLayer { alpha = if (enabled) 1f else DisabledDockAlpha }
             .clip(shape)
             .background(fill)
+            .then(
+                if (pixel) {
+                    Modifier.border(
+                        com.yasuda.derbis.ui.theme.PixelDesign.border,
+                        if (active) com.yasuda.derbis.ui.theme.PixelPalette.cyan else surfaces.outline,
+                        shape
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .derbisPressable(
                 onClick = { if (!busy) onClick() },
                 enabled = enabled,

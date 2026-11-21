@@ -18,6 +18,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,11 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Pause
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.*
@@ -46,9 +47,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -56,13 +59,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yasuda.derbis.player.audio.isDolbyAtmosStream
 import com.yasuda.derbis.data.KanjiFurigana
 import com.yasuda.derbis.ui.lyrics.KaraokeFuriganaWordTimedText
+import com.yasuda.derbis.ui.lyrics.wordHighlightTimings
 import com.yasuda.derbis.player.PlaybackService
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.domain.RepeatMode
@@ -85,6 +91,8 @@ import com.yasuda.derbis.ui.components.formatSeekbarMillis
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.AppleMusicDesign
 import com.yasuda.derbis.ui.theme.AppleMusicShapes
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelPalette
 import com.yasuda.derbis.ui.theme.AppleMusic13SfProFallbackFont
 import com.yasuda.derbis.ui.theme.AppleMusic13Typography
 import com.yasuda.derbis.ui.theme.AppleMusicVibrant
@@ -145,7 +153,8 @@ internal fun AppleMusicPlayerScene(
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier,
     canvas: AppleMusicCanvas? = null, video: Boolean = false,
     activeLyric: LyricLine? = null,
-    lyricPositionMs: Long = 0L
+    lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     // The Apple Music 13 deck deliberately lets the adaptive artwork ambience show through,
     // then protects controls with a neutral, translucent lower scrim.
@@ -177,7 +186,8 @@ internal fun AppleMusicPlayerScene(
                 metadata = metadata,
                 transport = transport,
                 activeLyric = activeLyric,
-                lyricPositionMs = lyricPositionMs
+                lyricPositionMs = lyricPositionMs,
+                lyricPositionProvider = lyricPositionProvider
             )
         } else {
             AppleMusicPortraitDeck(
@@ -191,6 +201,7 @@ internal fun AppleMusicPlayerScene(
                 transport = transport,
                 activeLyric = activeLyric,
                 lyricPositionMs = lyricPositionMs,
+                lyricPositionProvider = lyricPositionProvider,
                 canvas = canvas,
                 playing = playing
             )
@@ -249,13 +260,20 @@ private fun AppleMusicPortraitDeck(
     transport: @Composable () -> Unit,
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null,
     canvas: AppleMusicCanvas? = null,
     playing: Boolean = false
 ) {
     if (video) {
-        AppleMusicVideoPortraitDeck(track, slots, artworkCap, immersive, artwork, metadata, transport, activeLyric, lyricPositionMs)
+        AppleMusicVideoPortraitDeck(
+            track, slots, artworkCap, immersive, artwork, metadata, transport,
+            activeLyric, lyricPositionMs, lyricPositionProvider
+        )
     } else {
-        AppleMusic13ReferencePortraitDeck(track, slots, metadata, transport, activeLyric, lyricPositionMs, canvas, playing)
+        AppleMusic13ReferencePortraitDeck(
+            track, slots, metadata, transport, activeLyric, lyricPositionMs,
+            lyricPositionProvider, canvas, playing
+        )
     }
 }
 
@@ -272,6 +290,7 @@ private fun AppleMusic13ReferencePortraitDeck(
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
     lyricPositionMs: Long,
+    lyricPositionProvider: (() -> Long)?,
     canvas: AppleMusicCanvas?,
     playing: Boolean
 ) {
@@ -326,7 +345,8 @@ private fun AppleMusic13ReferencePortraitDeck(
             AppleMusic13InlineLyrics(
                 line = activeLyric,
                 positionMs = lyricPositionMs,
-                modifier = Modifier.padding(top = 12.dp, bottom = 6.dp)
+                modifier = Modifier.padding(top = 10.dp, bottom = 4.dp),
+                positionProvider = lyricPositionProvider
             )
             Box(Modifier.padding(horizontal = 2.dp)) {
                 slots.progress(PlayerProgressStyle.Classic)
@@ -347,6 +367,17 @@ private fun AppleMusic13ReferencePortraitDeck(
         }
     }
 }
+
+/**
+ * The inline lyric sits directly above the seek bar. The row is a fixed two-line box and it is
+ * clipped, for three reasons: the swipe-up transition used to draw the incoming line outside the
+ * row and straight over the seek bar, a long line used to wrap and shove the bar down, and lines
+ * of different lengths used to sit on different heights. Fixed height + clip pins all three, and
+ * the type is smaller so a normal line still reads on one row inside it.
+ */
+private val AppleMusic13InlineLyricSize = 15.sp
+private val AppleMusic13InlineLyricLineHeight = 20.sp
+private val AppleMusic13InlineLyricHeight = 40.dp
 
 private const val AppleMusic13StretchedArtworkHeight = 0.74f
 private const val AppleMusic13GestureStageHeight = 0.58f
@@ -445,7 +476,8 @@ private fun AppleMusicVideoPortraitDeck(
     metadata: @Composable () -> Unit,
     transport: @Composable () -> Unit,
     activeLyric: LyricLine?,
-    lyricPositionMs: Long
+    lyricPositionMs: Long,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
@@ -472,26 +504,25 @@ private fun AppleMusicVideoPortraitDeck(
 internal fun appleMusic13UsesWordTiming(line: LyricLine?): Boolean =
     line?.words?.any { word -> word.text.isNotBlank() && word.endMs > word.startMs } == true
 
-internal fun resolveOrSynthesizeLineWords(line: LyricLine): List<LyricWord> {
-    if (appleMusic13UsesWordTiming(line)) return line.words
-    val rawWords = line.text.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
-    if (rawWords.isEmpty()) return emptyList()
-    val lineDuration = (line.endMs - line.startMs).takeIf { it > 400L } ?: 3_500L
-    val totalChars = rawWords.sumOf { it.length.coerceAtLeast(1) }
-    var currentStart = line.startMs
-    return rawWords.map { wordText ->
-        val weight = wordText.length.toFloat() / totalChars.toFloat()
-        val duration = (lineDuration * weight).toLong().coerceAtLeast(120L)
-        val wordEnd = (currentStart + duration).coerceAtMost(line.startMs + lineDuration)
-        val word = LyricWord(startMs = currentStart, endMs = wordEnd, text = wordText)
-        currentStart = wordEnd
-        word
-    }
-}
+/**
+ * The inline line and the lyrics page share one word timeline. The deck used to build its own
+ * by stretching the tokens across the whole line - the same mistake that made the highlight lag
+ * the vocal, fixed once in [wordHighlightTimings] instead of twice.
+ */
+internal fun resolveOrSynthesizeLineWords(line: LyricLine): List<LyricWord> =
+    wordHighlightTimings(line)
 
 @Composable
-private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifier: Modifier = Modifier) {
+private fun AppleMusic13InlineLyrics(
+    line: LyricLine?,
+    positionMs: Long,
+    modifier: Modifier = Modifier,
+    positionProvider: (() -> Long)? = null
+) {
     val activeLine = line?.takeIf { it.text.isNotBlank() }
+    // Reading the clock through a lambda keeps the per-frame update inside the word row: the
+    // deck composable above it only recomposes when the line itself changes.
+    val readPosition: () -> Long = positionProvider ?: { positionMs }
     AnimatedContent(
         targetState = activeLine,
         transitionSpec = {
@@ -512,7 +543,12 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                 ) + fadeOut(animationSpec = tween(240))
             )
         },
-        modifier = modifier.fillMaxWidth(),
+        // One fixed height, clipped: the incoming line rises inside this box and cannot paint
+        // over the seek bar beneath it, and a wrapped long line cannot push the bar down.
+        modifier = modifier
+            .fillMaxWidth()
+            .height(AppleMusic13InlineLyricHeight)
+            .clipToBounds(),
         label = "apple-music-inline-lyrics-swipe-up"
     ) { currentLine ->
         if (currentLine != null) {
@@ -523,10 +559,10 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                     KaraokeFuriganaWordTimedText(
                         lineText = currentLine.text,
                         words = words,
-                        positionProvider = { positionMs },
+                        positionProvider = readPosition,
                         isActive = true,
-                        fontSize = 17.sp,
-                        lineHeight = 23.sp,
+                        fontSize = AppleMusic13InlineLyricSize,
+                        lineHeight = AppleMusic13InlineLyricLineHeight,
                         textAlign = TextAlign.Start,
                         inactiveColor = Color.White.copy(alpha = 0.45f),
                         completedColor = Color.White,
@@ -544,10 +580,10 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
                     KaraokeWordTimedText(
                         lineText = currentLine.text,
                         words = words,
-                        positionProvider = { positionMs },
+                        positionProvider = readPosition,
                         isActive = true,
-                        fontSize = 17.sp,
-                        lineHeight = 23.sp,
+                        fontSize = AppleMusic13InlineLyricSize,
+                        lineHeight = AppleMusic13InlineLyricLineHeight,
                         textAlign = TextAlign.Start,
                         inactiveColor = Color.White.copy(alpha = 0.45f),
                         completedColor = Color.White,
@@ -571,7 +607,8 @@ private fun AppleMusic13InlineLyrics(line: LyricLine?, positionMs: Long, modifie
 private fun AppleMusicLandscapeDeck(
     track: Track, slots: PlayerDeckSlots, artworkSize: Dp, artwork: @Composable (Dp) -> Unit,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit,
-    activeLyric: LyricLine? = null, lyricPositionMs: Long = 0L
+    activeLyric: LyricLine? = null, lyricPositionMs: Long = 0L,
+    lyricPositionProvider: (() -> Long)? = null
 ) {
     Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().displayCutoutPadding()) {
         AppleMusicGrabber()
@@ -589,7 +626,8 @@ private fun AppleMusicLandscapeDeck(
                 AppleMusic13InlineLyrics(
                     line = activeLyric,
                     positionMs = lyricPositionMs,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    positionProvider = lyricPositionProvider
                 )
                 slots.progress(PlayerProgressStyle.Classic)
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) { transport() }
@@ -737,13 +775,41 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
             }
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            val timeStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium, fontSize = 12.sp)
+            val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
+            val clockSlotWidth = (46f * fontScale).dp
+            val timeStyle = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp,
+                fontFeatureSettings = "tnum"
+            )
             val shown = dragging?.let { (durationMs * it).toLong() } ?: positionMs
-            Text(formatSeekbarMillis(shown), style = timeStyle, color = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary)
-            AppleMusicAudioBadge(Modifier.weight(1f), isCrossfading = crossfade.active)
+            val timeColor = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary
             Text(
-                if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - shown).coerceAtLeast(0L)) else formatSeekbarMillis(0L),
-                style = timeStyle, color = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary
+                text = formatSeekbarMillis(shown),
+                style = timeStyle,
+                color = timeColor,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.width(clockSlotWidth)
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AppleMusicAudioBadge(
+                    isCrossfading = crossfade.active
+                )
+            }
+            Text(
+                text = if (durationMs > 0L) "-" + formatSeekbarMillis((durationMs - shown).coerceAtLeast(0L)) else formatSeekbarMillis(0L),
+                style = timeStyle,
+                color = timeColor,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.width(clockSlotWidth)
             )
         }
     }
@@ -753,52 +819,74 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
 private fun AppleMusicAudioBadge(modifier: Modifier = Modifier, isCrossfading: Boolean = false) {
     val spec by rememberPlayerAudioSpec()
     val label = remember(spec) { appleMusicAudioBadgeLabel(spec) }
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+    val pixel = DerbisIsPixel
+    val badgeState = if (isCrossfading) CROSSFADING_BADGE_TOKEN else label
+    Box(
+        modifier = modifier
+            .wrapContentWidth()
+            .heightIn(min = 19.dp),
+        contentAlignment = Alignment.Center
     ) {
-        val displayLabel = if (label.isNotEmpty()) label else "73 kbps · 48 kHz"
-        Crossfade(
-            targetState = isCrossfading,
-            animationSpec = tween(durationMillis = 400),
+        AnimatedContent(
+            targetState = badgeState,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(durationMillis = 260)) togetherWith
+                    fadeOut(animationSpec = tween(durationMillis = 200))
+            },
+            contentAlignment = Alignment.Center,
             label = "apple-music-badge-crossfade-text"
-        ) { crossfading ->
-            if (crossfading) {
+        ) { currentState ->
+            if (currentState == CROSSFADING_BADGE_TOKEN) {
                 Text(
                     text = "Crossfading",
                     maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Medium,
                         fontSize = 12.sp,
                         letterSpacing = 0.2.sp
                     ),
-                    color = AppleMusicVibrant.secondary
+                    color = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
                 )
-            } else {
+            } else if (currentState.isNotEmpty()) {
+                val badgeShape = if (pixel) RectangleShape else RoundedCornerShape(6.dp)
+                val badgeBg = if (pixel) PixelPalette.panel else Color.White.copy(alpha = 0.08f)
+                val badgeFg = if (pixel) PixelPalette.text else AppleMusicVibrant.secondary
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .wrapContentWidth()
+                        .clip(badgeShape)
+                        .background(badgeBg)
+                        .then(
+                            if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape)
+                            else Modifier
+                        )
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     SoundWaveIcon(
-                        tint = AppleMusicVibrant.secondary,
+                        tint = badgeFg,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
-                        displayLabel,
+                        currentState,
                         maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium, fontSize = 11.sp),
-                        color = AppleMusicVibrant.secondary
+                        color = badgeFg
                     )
                 }
+            } else {
+                Spacer(modifier = Modifier.height(19.dp))
             }
         }
     }
 }
+
+private const val CROSSFADING_BADGE_TOKEN = "__crossfading__"
 
 @Composable
 internal fun SoundWaveIcon(
@@ -828,35 +916,15 @@ internal fun SoundWaveIcon(
     }
 }
 
-internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String {
-    val mime = spec.mimeType.lowercase(java.util.Locale.ROOT)
-    val codec = spec.codecString.lowercase(java.util.Locale.ROOT)
-    val specCodec = spec.codec.uppercase(java.util.Locale.ROOT)
-    val lossless = spec.codec == "FLAC" || spec.codec == "ALAC" || spec.codec == "PCM"
-    return when {
-        mime == "audio/eac3-joc" || codec.startsWith("ec+3") -> "Dolby Atmos"
-        lossless && (spec.sampleRateHz ?: 0) > 48_000 -> "Hi-Res Lossless"
-        lossless -> "Lossless"
-        specCodec.contains("OPUS") || mime.contains("opus") || codec.contains("opus") -> {
-            val tier = when {
-                spec.bitrateKbps != null && spec.bitrateKbps <= 70 -> "Low"
-                spec.bitrateKbps != null && spec.bitrateKbps in 71..140 -> "Medium"
-                else -> "High"
-            }
-            "OPUS $tier"
-        }
-        specCodec.contains("AAC") || mime.contains("mp4a") || codec.contains("mp4a") -> {
-            val tier = when {
-                spec.bitrateKbps != null && spec.bitrateKbps <= 70 -> "Low"
-                spec.bitrateKbps != null && spec.bitrateKbps in 71..140 -> "Medium"
-                else -> "High"
-            }
-            "AAC $tier"
-        }
-        spec.codec.isNotEmpty() -> spec.codec
-        else -> "OPUS High"
-    }
-}
+/**
+ * The single label the Apple Music skin puts on the now-playing badge.
+ *
+ * It reads the same [PlayerAudioSpec.quality] the other skins badge, so both agree: a lossless
+ * source reads Lossless, a hi-res one or a 320 kbps upgrade reads Hi-Fi, and only the lossy
+ * streams below that name their codec with the bitrate that backs it up.
+ */
+internal fun appleMusicAudioBadgeLabel(spec: PlayerAudioSpec): String =
+    playerAudioBadgeLabel(spec)
 
 @Composable
 private fun AppleMusicDockRow(actions: List<PlayerDockAction>) {

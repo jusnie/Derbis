@@ -22,7 +22,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -125,20 +125,31 @@ internal fun PlayerLyricsCard(
             }
         }
     }
-    val background = remember(accent) {
-        Brush.verticalGradient(
-            listOf(
-                accent.darkened(LyricsCardAccentShade).copy(alpha = LyricsCardSurfaceAlpha),
-                Color.Black.copy(alpha = LyricsCardSurfaceAlpha)
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val background = remember(accent, pixel) {
+        if (pixel) {
+            androidx.compose.ui.graphics.SolidColor(com.yasuda.derbis.ui.theme.PixelPalette.ink)
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    accent.darkened(LyricsCardAccentShade).copy(alpha = LyricsCardSurfaceAlpha),
+                    Color.Black.copy(alpha = LyricsCardSurfaceAlpha)
+                )
             )
-        )
+        }
     }
 
     Box(
         modifier = modifier
             .clip(shape)
             .background(background)
-            .border(BorderStroke(DerbisPlayerDesign.Hairline, surfaces.outline), shape)
+            .border(
+                BorderStroke(
+                    if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else DerbisPlayerDesign.Hairline,
+                    surfaces.outline
+                ),
+                shape
+            )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(

@@ -23,12 +23,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.Mic
-import com.yasuda.derbis.ui.icons.MoreVert
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Sensors
-import com.yasuda.derbis.ui.icons.Shuffle
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text

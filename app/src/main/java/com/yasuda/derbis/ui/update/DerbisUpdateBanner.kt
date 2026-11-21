@@ -24,8 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.CheckCircle
-import com.yasuda.derbis.ui.icons.Close
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -106,23 +106,41 @@ fun DerbisUpdateBanner(
 ) {
     if (phase is DerbisUpdatePhase.Idle) return
     var notesExpanded by rememberSaveable(phaseIdentity(phase)) { mutableStateOf(false) }
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val bannerShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else BannerShape
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(elevation = 10.dp, shape = BannerShape)
-            .clip(BannerShape)
-            .background(DerbisPanel)
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        DerbisCyan.copy(alpha = if (phase is DerbisUpdatePhase.Available) 0.16f else 0.10f),
-                        DerbisViolet.copy(alpha = 0.10f),
-                        Color.Transparent
-                    )
-                )
+            .then(
+                if (pixel) {
+                    Modifier
+                } else {
+                    Modifier.shadow(elevation = 10.dp, shape = bannerShape)
+                }
             )
-            .border(width = 1.dp, color = DerbisGlassBorder, shape = BannerShape)
+            .clip(bannerShape)
+            .background(if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else DerbisPanel)
+            .then(
+                if (pixel) {
+                    Modifier
+                } else {
+                    Modifier.background(
+                        Brush.linearGradient(
+                            listOf(
+                                DerbisCyan.copy(alpha = if (phase is DerbisUpdatePhase.Available) 0.16f else 0.10f),
+                                DerbisViolet.copy(alpha = 0.10f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+                }
+            )
+            .border(
+                width = if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                color = DerbisGlassBorder,
+                shape = bannerShape
+            )
     ) {
         Column(modifier = Modifier.padding(start = 18.dp, end = 10.dp, top = 16.dp, bottom = 12.dp)) {
             BannerHeader(
@@ -181,6 +199,7 @@ private fun BannerHeader(
                 overflow = TextOverflow.Ellipsis
             )
             if (!version.isNullOrBlank()) {
+                val versionShape = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
                 Text(
                     text = version,
                     color = DerbisCyan,
@@ -190,7 +209,7 @@ private fun BannerHeader(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .padding(top = 4.dp)
-                        .clip(CircleShape)
+                        .clip(versionShape)
                         .background(DerbisCyan.copy(alpha = 0.14f))
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 )
@@ -528,12 +547,15 @@ internal fun derbisUpdateNoteLines(notes: String, version: String): List<String>
 }
 
 private val BannerShape = RoundedCornerShape(28.dp)
-private val UpdateOnAccent = Color(0xFF00201F)
+private val UpdateOnAccent: Color
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else Color(0xFF00201F)
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun updateBadgeShape(): Shape = MaterialShapes.Cookie9Sided.toShape()
-private val TrackShape = RoundedCornerShape(2.dp)
+private fun updateBadgeShape(): Shape =
+    if (com.yasuda.derbis.ui.theme.DerbisIsPixel) androidx.compose.ui.graphics.RectangleShape else MaterialShapes.Cookie9Sided.toShape()
+private val TrackShape: Shape
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(2.dp)
 
 private fun phaseIdentity(phase: DerbisUpdatePhase): String = when (phase) {
     DerbisUpdatePhase.Idle -> "idle"

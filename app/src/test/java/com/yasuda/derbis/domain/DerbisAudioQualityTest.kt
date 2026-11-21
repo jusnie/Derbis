@@ -1,6 +1,8 @@
 package com.yasuda.derbis.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DerbisAudioQualityTest {
@@ -12,11 +14,16 @@ class DerbisAudioQualityTest {
     @Test
     fun explicitChoicesArePreservedRegardlessOfCaseAndSpacing() {
         assertEquals("High", DerbisAudioQuality.normalize("High"))
-        assertEquals("Auto", DerbisAudioQuality.normalize("Auto"))
-        assertEquals("Low", DerbisAudioQuality.normalize("Low"))
-        assertEquals("Auto", DerbisAudioQuality.normalize(" auto "))
+        assertEquals("Medium", DerbisAudioQuality.normalize(" medium "))
         assertEquals("Low", DerbisAudioQuality.normalize("LOW"))
-        assertEquals("High", DerbisAudioQuality.normalize("high"))
+        assertEquals("Lossless", DerbisAudioQuality.normalize("Lossless"))
+        assertEquals("Lossless", DerbisAudioQuality.normalize("  LOSSLESS  "))
+    }
+
+    @Test
+    fun legacyAutoReadsAsHighBecauseThatIsTheBranchItTook() {
+        assertEquals("High", DerbisAudioQuality.normalize("Auto"))
+        assertEquals("High", DerbisAudioQuality.normalize(" auto "))
     }
 
     @Test
@@ -28,8 +35,17 @@ class DerbisAudioQualityTest {
 
     @Test
     fun corruptOrUnknownValuesFallBackToTheDefault() {
-        assertEquals(DerbisAudioQuality.DEFAULT, DerbisAudioQuality.normalize("Medium"))
         assertEquals(DerbisAudioQuality.DEFAULT, DerbisAudioQuality.normalize("null"))
         assertEquals(DerbisAudioQuality.DEFAULT, DerbisAudioQuality.normalize("320"))
+        assertEquals(DerbisAudioQuality.DEFAULT, DerbisAudioQuality.normalize("Ultra"))
+    }
+
+    @Test
+    fun onlyTheLosslessStepAsksForLossless() {
+        assertTrue(DerbisAudioQuality.prefersLossless("Lossless"))
+        assertTrue(DerbisAudioQuality.prefersLossless("lossless"))
+        assertFalse(DerbisAudioQuality.prefersLossless("High"))
+        assertFalse(DerbisAudioQuality.prefersLossless("Low"))
+        assertFalse(DerbisAudioQuality.prefersLossless(null))
     }
 }

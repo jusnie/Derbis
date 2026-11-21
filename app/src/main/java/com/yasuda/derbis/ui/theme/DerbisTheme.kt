@@ -4,9 +4,11 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Shapes
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
@@ -464,7 +466,7 @@ object DerbisThemeController {
     ) {
         val base = when (skin) {
             DerbisSkin.Default -> DerbisThemes.byId(presetId)
-            DerbisSkin.Nocturne78 -> Nocturne78Palette
+            DerbisSkin.Pixel -> PixelPalette
             DerbisSkin.LiquidGlass -> prismPalette(prism, systemDark)
             DerbisSkin.Torque -> torquePalette(torque, coverAccentStart)
             DerbisSkin.Ivory -> ivoryPalette(ivory, systemDark)
@@ -591,15 +593,15 @@ val DerbisIsPureBlack: Boolean
 
 val DerbisGlass: Color
     get() = when {
-        DerbisIsNocturne -> Nocturne78Palette.panel
+        DerbisIsPixel -> PixelPalette.panel
         activePaletteState.value.isLight -> Color(0x14101322)
         DerbisIsPureBlack -> Color(0x0AFFFFFF)
         else -> Color(0x0FFFFFFF)
     }
 
 val DerbisGlassBorder: Color
-    get() = if (DerbisIsNocturne) {
-        Nocturne78Palette.outline
+    get() = if (DerbisIsPixel) {
+        PixelPalette.outline
     } else if (activePaletteState.value.isLight) {
         Color(0x26101322)
     } else {
@@ -607,10 +609,10 @@ val DerbisGlassBorder: Color
     }
 
 val DerbisOnAccent: Color
-    get() = if (activePaletteState.value.isLight) {
-        Color(0xFFF8F7FF)
-    } else {
-        activePaletteState.value.black
+    get() = when {
+        DerbisIsPixel -> PixelPalette.ink
+        activePaletteState.value.isLight -> Color(0xFFF8F7FF)
+        else -> activePaletteState.value.black
     }
 
 private val DerbisExpressiveShapes = Shapes(
@@ -661,13 +663,13 @@ fun DerbisTheme(
     val palette = activePaletteState.value
     val colorScheme = remember(palette) { derbisColorScheme(palette) }
     val cornerScale = activeCornerScaleState.value
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val prism = DerbisIsPrism
     val torque = DerbisIsTorque
     val ivory = DerbisIsIvory
     val spotify = DerbisIsSpotify
-    val shapes = remember(cornerScale, nocturne, prism, torque, ivory, spotify) {
-        if (nocturne) Nocturne78Shapes
+    val shapes = remember(cornerScale, pixel, prism, torque, ivory, spotify) {
+        if (pixel) PixelShapes
         else if (prism) PrismShapes
         else if (cornerScale == 1f) DerbisExpressiveShapes else scaledExpressiveShapes(cornerScale)
     }
@@ -678,7 +680,16 @@ fun DerbisTheme(
         colorScheme = colorScheme,
         motionScheme = motionScheme,
         shapes = shapes,
-        typography = if (nocturne) Nocturne78Typography else if (DerbisIsSpotify) SpotifyTypography else if (DerbisIsAppleMusic) AppleMusicTypography else if (DerbisIsYouTubeMusic) YouTubeMusicTypography else if (ivory) IvoryTypography else if (prism) PrismTypography else derbisTypographyFor(fontPreset ?: activeFontPresetState.value),
-        content = content
+        typography = if (pixel) PixelTypography else if (DerbisIsSpotify) SpotifyTypography else if (DerbisIsAppleMusic) AppleMusicTypography else if (DerbisIsYouTubeMusic) YouTubeMusicTypography else if (ivory) IvoryTypography else if (prism) PrismTypography else derbisTypographyFor(fontPreset ?: activeFontPresetState.value),
+        content = {
+            if (pixel) {
+                CompositionLocalProvider(
+                    LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = PixelifyFont),
+                    content = content
+                )
+            } else {
+                content()
+            }
+        }
     )
 }

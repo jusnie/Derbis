@@ -12,20 +12,25 @@ import androidx.compose.ui.unit.dp
 
 object DerbisPlayerDesign {
 
-    val CornerXxs: Dp = 8.dp
-    val CornerXs: Dp = 12.dp
-    val CornerSm: Dp = 16.dp
-    val CornerMd: Dp = 22.dp
-    val CornerLg: Dp = 28.dp
-    val CornerXl: Dp = 34.dp
+    // Pixel has no corners anywhere in the app, the player included: every shape role collapses
+    // to a hard rectangle. These are getters rather than constants for two reasons — the skin can
+    // change while the process is alive, and a `val Shape` built from a `val Corner` would bake in
+    // whichever skin happened to be active the first time the object was touched and keep it for
+    // the life of the process.
+    val CornerXxs: Dp get() = if (DerbisIsPixel) 0.dp else 8.dp
+    val CornerXs: Dp get() = if (DerbisIsPixel) 0.dp else 12.dp
+    val CornerSm: Dp get() = if (DerbisIsPixel) 0.dp else 16.dp
+    val CornerMd: Dp get() = if (DerbisIsPixel) 0.dp else 22.dp
+    val CornerLg: Dp get() = if (DerbisIsPixel) 0.dp else 28.dp
+    val CornerXl: Dp get() = if (DerbisIsPixel) 0.dp else 34.dp
 
-    val ShapeXxs: Shape = RoundedCornerShape(CornerXxs)
-    val ShapeXs: Shape = RoundedCornerShape(CornerXs)
-    val ShapeSm: Shape = RoundedCornerShape(CornerSm)
-    val ShapeMd: Shape = RoundedCornerShape(CornerMd)
-    val ShapeLg: Shape = RoundedCornerShape(CornerLg)
-    val ShapeXl: Shape = RoundedCornerShape(CornerXl)
-    val ShapePill: Shape = RoundedCornerShape(percent = 50)
+    val ShapeXxs: Shape get() = RoundedCornerShape(CornerXxs)
+    val ShapeXs: Shape get() = RoundedCornerShape(CornerXs)
+    val ShapeSm: Shape get() = RoundedCornerShape(CornerSm)
+    val ShapeMd: Shape get() = RoundedCornerShape(CornerMd)
+    val ShapeLg: Shape get() = RoundedCornerShape(CornerLg)
+    val ShapeXl: Shape get() = RoundedCornerShape(CornerXl)
+    val ShapePill: Shape get() = if (DerbisIsPixel) RoundedCornerShape(0.dp) else RoundedCornerShape(percent = 50)
 
     val SpaceXxs: Dp = 2.dp
     val SpaceXs: Dp = 4.dp
@@ -40,13 +45,13 @@ object DerbisPlayerDesign {
     val HeaderButton: Dp = 40.dp
     val HeaderButtonCompact: Dp = 36.dp
     val ModeIndicator: Dp = 4.dp
-    val PrimaryCornerPlaying: Dp = 22.dp
+    val PrimaryCornerPlaying: Dp get() = if (DerbisIsPixel) 0.dp else 22.dp
     val MinimumTouchTarget: Dp = 48.dp
 
     val TransportHeight: Dp = 76.dp
     val TransportHeightCompact: Dp = 64.dp
     val TransportGap: Dp = 8.dp
-    val TransportInnerCorner: Dp = 12.dp
+    val TransportInnerCorner: Dp get() = if (DerbisIsPixel) 0.dp else 12.dp
     val TransportGlyph: Dp = 30.dp
     val TransportGlyphCompact: Dp = 26.dp
     val TransportModeGlyph: Dp = 22.dp
@@ -56,34 +61,34 @@ object DerbisPlayerDesign {
     val DockHeightCompact: Dp = 50.dp
     val DockMaxWidth: Dp = 340.dp
     val DockGap: Dp = 3.dp
-    val DockInnerCorner: Dp = 6.dp
+    val DockInnerCorner: Dp get() = if (DerbisIsPixel) 0.dp else 6.dp
     val DockGlyph: Dp = 22.dp
-    val SegmentPressedInnerCorner: Dp = 22.dp
+    val SegmentPressedInnerCorner: Dp get() = if (DerbisIsPixel) 0.dp else 22.dp
     const val SegmentPressGrowth: Float = 0.16f
 
     const val ArtworkCornerRatio: Float = 0.075f
-    val ArtworkCornerMin: Dp get() = if (DerbisIsNocturne) 6.dp else 18.dp
-    val ArtworkCornerMax: Dp get() = if (DerbisIsNocturne) 6.dp else 32.dp
+    val ArtworkCornerMin: Dp get() = if (DerbisIsPixel) 0.dp else 18.dp
+    val ArtworkCornerMax: Dp get() = if (DerbisIsPixel) 0.dp else 32.dp
     const val ArtworkPausedScale: Float = 0.92f
     const val ArtworkTrackChangeScale: Float = 0.965f
 
-    val MiniCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 6.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsNocturne) 10.dp else 20.dp
+    val MiniCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 6.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 20.dp
     val MiniArtwork: Dp = 46.dp
-    val MiniArtworkCorner: Dp get() = if (DerbisIsNocturne) 6.dp else 13.dp
+    val MiniArtworkCorner: Dp get() = if (DerbisIsPixel) 0.dp else 13.dp
     val MiniHeight: Dp = 64.dp
     val MiniHeightCompact: Dp = 50.dp
     val MiniArtworkCompact: Dp = 36.dp
-    val DockTrayCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsNocturne) 14.dp else 28.dp
+    val DockTrayCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 28.dp
 
     val Hairline: Dp = 1.dp
-    val TrackHeight: Dp get() = if (DerbisIsNocturne) 2.dp else 5.dp
-    val TrackHeightActive: Dp get() = if (DerbisIsNocturne) 4.dp else 8.dp
-    val ThumbRadius: Dp get() = if (DerbisIsNocturne) 4.dp else 7.dp
-    val ThumbRadiusActive: Dp get() = if (DerbisIsNocturne) 6.dp else 10.dp
-    val HandleWidth: Dp get() = if (DerbisIsNocturne) 5.dp else 12.dp
-    val HandleWidthActive: Dp get() = if (DerbisIsNocturne) 7.dp else 17.dp
-    val HandleHeight: Dp get() = if (DerbisIsNocturne) 10.dp else 12.dp
-    val HandleHeightActive: Dp get() = if (DerbisIsNocturne) 14.dp else 17.dp
+    val TrackHeight: Dp get() = if (DerbisIsPixel) 2.dp else 5.dp
+    val TrackHeightActive: Dp get() = if (DerbisIsPixel) 4.dp else 8.dp
+    val ThumbRadius: Dp get() = if (DerbisIsPixel) 4.dp else 7.dp
+    val ThumbRadiusActive: Dp get() = if (DerbisIsPixel) 6.dp else 10.dp
+    val HandleWidth: Dp get() = if (DerbisIsPixel) 5.dp else 12.dp
+    val HandleWidthActive: Dp get() = if (DerbisIsPixel) 7.dp else 17.dp
+    val HandleHeight: Dp get() = if (DerbisIsPixel) 10.dp else 12.dp
+    val HandleHeightActive: Dp get() = if (DerbisIsPixel) 14.dp else 17.dp
 
     val Emphasized: Easing = DerbisMotion.Easings.Emphasized
     val Standard: Easing = DerbisMotion.Easings.Standard

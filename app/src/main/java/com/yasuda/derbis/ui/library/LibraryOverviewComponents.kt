@@ -2,7 +2,7 @@ package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.material3.toShape
@@ -39,25 +39,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.automirrored.rounded.ViewList
-import com.yasuda.derbis.ui.icons.ArrowDownward
-import com.yasuda.derbis.ui.icons.ArrowUpward
-import com.yasuda.derbis.ui.icons.AutoAwesome
-import com.yasuda.derbis.ui.icons.Check
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.yasuda.derbis.domain.LibrarySort
 import com.yasuda.derbis.domain.LibrarySortDirection
 import androidx.compose.material.icons.rounded.DoneAll
-import com.yasuda.derbis.ui.icons.Favorite
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.GridView
-import com.yasuda.derbis.ui.icons.History
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
-import com.yasuda.derbis.ui.icons.LibraryMusic
-import com.yasuda.derbis.ui.icons.MusicNote
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.OfflinePin
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay
-import com.yasuda.derbis.ui.icons.Shuffle
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -124,7 +124,7 @@ internal fun LibraryHero(title: String, subtitle: String, onBack: (() -> Unit)? 
         if (onBack != null) {
             DerbisBackButton(onClick = onBack, contentDescription = strings.back, modifier = Modifier.padding(bottom = 4.dp))
         }
-        Text(title, color = colors.onSurface, style = if (DerbisIsNocturne) DerbisType.screenTitle else DerbisType.heroTitle, softWrap = true, modifier = Modifier.semantics { heading() })
+        Text(title, color = colors.onSurface, style = if (DerbisIsPixel) DerbisType.screenTitle else DerbisType.heroTitle, softWrap = true, modifier = Modifier.semantics { heading() })
         if (subtitle.isNotBlank()) {
             Text(subtitle, color = colors.onSurfaceVariant, style = DerbisType.metadata, softWrap = true)
         }

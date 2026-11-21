@@ -1,170 +1,194 @@
-import React, { useState } from "react";
-import { PlayerProvider, usePlayer } from "./context/PlayerContext";
-import TidalSidebar from "./components/TidalSidebar";
-import TidalTopbar from "./components/TidalTopbar";
-import TidalHomeHeader from "./components/TidalHomeHeader";
-import TidalTheHits from "./components/TidalTheHits";
-import HomeYouTubeShelves from "./components/HomeYouTubeShelves";
-import TidalPopularAlbums from "./components/TidalPopularAlbums";
-import TidalTrackList from "./components/TidalTrackList";
-import TidalVideos from "./components/TidalVideos";
-import SearchView from "./components/SearchView";
-import LibraryView from "./components/LibraryView";
-import TidalPlayerBar from "./components/TidalPlayerBar";
-import TidalMobileMiniPlayer from "./components/TidalMobileMiniPlayer";
-import TidalMobileNav from "./components/TidalMobileNav";
-import TidalFullScreenPlayer from "./components/TidalFullScreenPlayer";
-import TidalQueueDrawer from "./components/TidalQueueDrawer";
-import LyricsModal from "./components/LyricsModal";
-import SettingsModal from "./components/SettingsModal";
-import IosWebInstallerModal from "./components/IosWebInstallerModal";
-import { X } from "lucide-react";
-
-function MainShell() {
-  const {
-    activeTab,
-    setActiveTab,
-    searchQuery,
-    playbackMode,
-    setPlaybackMode,
-    currentTrack
-  } = usePlayer();
-
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isIosInstallerOpen, setIsIosInstallerOpen] = useState(false);
-
-  // Automatically open iOS installer modal if URL has ?install=ios or ?ota=true
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const p = new URLSearchParams(window.location.search);
-      if (p.get("install") === "ios" || p.get("ota") === "true" || p.get("ios") === "true") {
-        setIsIosInstallerOpen(true);
-      }
-    }
-  }, []);
-
-  // If user is actively typing in the search bar, automatically present search view
-  const isSearchActive = activeTab === "search" || searchQuery.trim().length > 0;
-
-  return (
-    <div className="relative min-h-screen bg-[#000000] text-white flex flex-col font-sans selection:bg-white selection:text-black">
-      
-      {/* Persistent Audio Engine (Song mode = offscreen, Video mode = floating PiP) */}
-      <div
-        className={`transition-all duration-300 ${
-          playbackMode === "video"
-            ? "fixed top-20 right-6 z-40 w-[320px] sm:w-[440px] aspect-video rounded-2xl overflow-hidden bg-black/95 border border-[#22222a] shadow-2xl backdrop-blur-2xl"
-            : "fixed -left-[9999px] -top-[9999px] w-[320px] h-[240px] opacity-0 pointer-events-none"
-        }`}
-      >
-        {playbackMode === "video" && (
-          <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent">
-            <span className="text-xs font-bold text-white/90 truncate max-w-[200px]">
-              {currentTrack?.title}
-            </span>
-            <button
-              onClick={() => setPlaybackMode("song")}
-              className="p-1 rounded-lg bg-black/60 text-white/70 hover:text-white border border-white/10"
-              title="Close Video View"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-        <div id="yt-audio-engine" className="w-full h-full" />
-      </div>
-
-      {/* Desktop Left Sidebar (240px) */}
-      <TidalSidebar
-        isMobileOpen={isMobileMenuOpen}
-        setIsMobileOpen={setIsMobileMenuOpen}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
-
-      {/* Main Content Area (offset by 240px / md:ml-60 on desktop) */}
-      <div className="flex-1 flex flex-col md:ml-60 min-h-screen pb-32 md:pb-24">
-        
-        {/* Topbar */}
-        <TidalTopbar
-          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenAuth={() => setIsSettingsOpen(true)}
-        />
-
-        {/* Dynamic Page Views */}
-        <main className="flex-1 px-4 sm:px-8 py-3 sm:py-5 max-w-[1500px] w-full mx-auto">
-          {isSearchActive ? (
-            <SearchView />
-          ) : (
-            <>
-              {activeTab === "home" && (
-                <>
-                  <TidalHomeHeader onOpenAuth={() => setIsSettingsOpen(true)} />
-                  <TidalTheHits />
-                  <HomeYouTubeShelves />
-                  <TidalPopularAlbums />
-                  <TidalTrackList />
-                </>
-              )}
-
-              {activeTab === "explore" && (
-                <div className="py-2">
-                  <SearchView />
-                </div>
-              )}
-
-              {activeTab === "videos" && (
-                <TidalVideos />
-              )}
-
-              {activeTab === "collection" && (
-                <LibraryView />
-              )}
-            </>
-          )}
-        </main>
-      </div>
-
-      {/* Desktop Player Bar (Fixed across bottom on desktop) */}
-      <TidalPlayerBar />
-
-      {/* Mobile Floating Mini Player (Fixed above bottom nav on mobile) */}
-      <TidalMobileMiniPlayer />
-
-      {/* Mobile Bottom Navigation Bar (5 icons matching screenshot) */}
-      <TidalMobileNav onOpenAuth={() => setIsSettingsOpen(true)} />
-
-      {/* Mobile Full-Screen Now Playing View (Tidal style bottom sheet) */}
-      <TidalFullScreenPlayer />
-
-      {/* Up Next Play Queue Drawer */}
-      <TidalQueueDrawer />
-
-      {/* Synchronized Lyrics Modal */}
-      <LyricsModal />
-
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onOpenIosInstaller={() => setIsIosInstallerOpen(true)}
-      />
-
-      {/* iOS Over-The-Air Web Installer Modal */}
-      <IosWebInstallerModal
-        isOpen={isIosInstallerOpen}
-        onClose={() => setIsIosInstallerOpen(false)}
-      />
-
-    </div>
-  );
-}
+import { useEffect, useMemo, useState } from "react";
+import { DownloadSection } from "./components/DownloadSection";
+import { FeaturesSection } from "./components/FeaturesSection";
+import { DownloadIcon, PixelMark } from "./components/Icons";
+import { Navbar } from "./components/Navbar";
+import { ScreenGallery } from "./components/ScreenGallery";
+import { SourceSection } from "./components/SourceSection";
+import { VersionsSection } from "./components/VersionsSection";
+import {
+  APK_DOWNLOAD_URL,
+  GITHUB_REPO,
+  INITIAL_RELEASES,
+  LATEST_RELEASE_URL,
+  NAV_ITEMS,
+  RELEASE_META,
+  RELEASES_URL,
+  REPO_URL
+} from "./data/siteData";
+import { usePageScroll } from "./hooks/useScrollEffects";
 
 export default function App() {
+  const sectionIds = useMemo(() => NAV_ITEMS.map((item) => item.id), []);
+  const { progress, activeSection } = usePageScroll(sectionIds);
+
+  const [stars, setStars] = useState(7);
+  const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
+  const [releaseTag, setReleaseTag] = useState(RELEASE_META.version);
+  const [sizeLabel, setSizeLabel] = useState(RELEASE_META.sizeLabel);
+  const [totalDownloads, setTotalDownloads] = useState(null);
+  const [releases, setReleases] = useState(INITIAL_RELEASES);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGitHubMetadata = async () => {
+      try {
+        const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
+          headers: { Accept: "application/vnd.github+json" }
+        });
+        if (repoRes.ok) {
+          const repoJson = await repoRes.json();
+          if (!cancelled && typeof repoJson.stargazers_count === "number") {
+            setStars(repoJson.stargazers_count);
+          }
+        }
+      } catch {}
+
+      try {
+        const relRes = await fetch(
+          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
+          { headers: { Accept: "application/vnd.github+json" } }
+        );
+        if (!relRes.ok) return;
+        const relList = await relRes.json();
+        if (cancelled || !Array.isArray(relList) || !relList.length) return;
+
+        const official = relList.filter((r) => !r.draft && !r.prerelease);
+        const primary = official[0] || relList[0];
+        if (primary) {
+          const apkAsset = (primary.assets || []).find(
+            (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".apk")
+          );
+          if (primary.tag_name) setReleaseTag(primary.tag_name);
+          if (apkAsset?.browser_download_url) setApkUrl(apkAsset.browser_download_url);
+          if (typeof apkAsset?.size === "number") {
+            setSizeLabel(`${(apkAsset.size / (1024 * 1024)).toFixed(1)} MB`);
+          }
+        }
+
+        let downloadSum = 0;
+        const byTag = new Map();
+        relList.forEach((r) => {
+          const count = (r.assets || []).reduce(
+            (acc, asset) => acc + (typeof asset.download_count === "number" ? asset.download_count : 0),
+            0
+          );
+          downloadSum += count;
+          if (r.tag_name) {
+            byTag.set(r.tag_name, count);
+          }
+        });
+
+        setTotalDownloads(downloadSum);
+        setReleases((prev) =>
+          prev.map((entry) =>
+            byTag.has(entry.tag) ? { ...entry, downloads: byTag.get(entry.tag) } : entry
+          )
+        );
+      } catch {}
+    };
+
+    loadGitHubMetadata();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <PlayerProvider>
-      <MainShell />
-    </PlayerProvider>
+    <div id="top" className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+
+      <Navbar
+        scrollProgress={progress}
+        activeSection={activeSection}
+        stars={stars}
+      />
+
+      <main id="main-content">
+        <section className="hero-section" aria-labelledby="hero-heading">
+          <div className="wrap hero-inner">
+            <div className="hero-copy">
+              <h1 id="hero-heading" className="hero-title">
+                YouTube Music and your own library, in one Android player
+              </h1>
+              <p className="hero-lede">
+                Stream songs with no account, connect Navidrome or Subsonic for your personal FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
+              </p>
+              <div className="hero-ctas">
+                <a className="btn btn-primary" href={apkUrl}>
+                  <DownloadIcon />
+                  <span>Download Derbis.apk</span>
+                </a>
+                <a className="btn btn-secondary" href="#screens">
+                  <span>Browse screens</span>
+                </a>
+              </div>
+            </div>
+
+            <dl className="hero-specs" aria-label="Current release summary">
+              <div className="spec-cell">
+                <dt>Release</dt>
+                <dd>{releaseTag}</dd>
+              </div>
+              <div className="spec-cell">
+                <dt>Package</dt>
+                <dd>{sizeLabel}</dd>
+              </div>
+              <div className="spec-cell">
+                <dt>Target</dt>
+                <dd>{RELEASE_META.androidMin}</dd>
+              </div>
+              <div className="spec-cell">
+                <dt>License</dt>
+                <dd>GPL-3.0-only</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <ScreenGallery />
+        <FeaturesSection />
+        <DownloadSection
+          apkUrl={apkUrl}
+          releaseTag={releaseTag}
+          sizeLabel={sizeLabel}
+          totalDownloads={totalDownloads}
+        />
+        <VersionsSection releases={releases} />
+        <SourceSection stars={stars} />
+      </main>
+
+      <footer className="site-footer">
+        <div className="wrap footer-inner">
+          <div className="footer-brand">
+            <PixelMark size={16} />
+            <span>Derbis {releaseTag} · GPL-3.0-only</span>
+          </div>
+
+          <div className="footer-links">
+            <a href={LATEST_RELEASE_URL} target="_blank" rel="noopener noreferrer">
+              Latest APK
+            </a>
+            <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
+              Releases
+            </a>
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener noreferrer">
+              Issues
+            </a>
+          </div>
+        </div>
+        <div className="wrap">
+          <p className="footer-note">
+            Derbis is an independent open-source project and is not affiliated with Google, YouTube, Apple, Spotify, Discord, or Last.fm
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

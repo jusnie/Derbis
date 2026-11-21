@@ -35,6 +35,18 @@ object NativeAudioIntegration {
     fun redirectFailedBackgroundDecoder(error: PlaybackException): String? =
         redirectFailedPlatformDecoder(error, rememberControllerError = false)
 
+    fun redirectStalledPlatformDecoder(mimeType: String?): Boolean {
+        val clean = mimeType?.trim()?.takeIf { it.isNotEmpty() } ?: return false
+        return decoderFallbackRegistry.redirect(clean)
+    }
+
+    fun rememberRecoveredControllerError(error: PlaybackException) {
+        synchronized(pendingControllerErrorLock) {
+            pendingControllerErrorCode = error.errorCode
+            pendingControllerErrorTimestampMs = error.timestampMs
+        }
+    }
+
     private fun redirectFailedPlatformDecoder(
         error: PlaybackException,
         rememberControllerError: Boolean

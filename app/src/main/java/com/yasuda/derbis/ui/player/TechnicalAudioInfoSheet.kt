@@ -2,6 +2,7 @@
 
 package com.yasuda.derbis.ui.player
 
+import android.media.AudioFormat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,6 +40,10 @@ import com.yasuda.derbis.feature.audio.rememberDerbisAudioOutputState
 import com.yasuda.derbis.feature.cast.RemotePlaybackState
 import com.yasuda.derbis.player.NativeAudioIntegration
 import com.yasuda.derbis.player.PlaybackService
+import com.yasuda.derbis.player.audio.DerbisAtmosStatus
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
+import com.yasuda.derbis.player.audio.DerbisLosslessOutput
+import com.yasuda.derbis.player.audio.derbisAtmosStatus
 import com.yasuda.derbis.player.enhanced.EnhancedAudioMetrics
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import kotlin.math.roundToInt
@@ -46,9 +52,12 @@ import com.yasuda.derbis.ui.i18n.systemPlayerCopy
 import com.yasuda.derbis.ui.i18n.technicalAudioInfoCopy
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisGlassBorder
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisText
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 import java.util.Locale
 
 private val TechnicalAudioCardShape = RoundedCornerShape(18.dp)
@@ -112,13 +121,15 @@ internal fun TechnicalAudioInfoSheet(
         )
     }
 
+    val atmosDecoderAvailable = remember { DerbisDolbyAtmos.decoderAvailable }
     val outputRows = remember(
         output,
         audioSettings,
         audioNormalization,
         copy,
         systemCopy,
-        remotePlayback
+        remotePlayback,
+        atmosDecoderAvailable
     ) {
         buildTechnicalOutputRows(
             output = output,
@@ -126,14 +137,17 @@ internal fun TechnicalAudioInfoSheet(
             audioNormalization = audioNormalization,
             copy = copy,
             systemCopy = systemCopy,
-            remotePlayback = remotePlayback
+            remotePlayback = remotePlayback,
+            dolbyAtmosSupported = atmosDecoderAvailable
         )
     }
 
+    val pixel = DerbisIsPixel
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DerbisPanel
+        shape = if (pixel) RectangleShape else androidx.compose.material3.BottomSheetDefaults.ExpandedShape,
+        containerColor = if (pixel) PixelPalette.black else DerbisPanel
     ) {
         Column(
             modifier = Modifier
@@ -177,13 +191,17 @@ internal fun TechnicalAudioInfoSheet(
 
 @Composable
 private fun TechnicalAudioHero(codec: String, quality: String, sampleRate: String) {
+    val pixel = DerbisIsPixel
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 18.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = DerbisCyan.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, DerbisCyan.copy(alpha = 0.22f))
+        shape = if (pixel) RectangleShape else RoundedCornerShape(22.dp),
+        color = if (pixel) PixelPalette.panel else DerbisCyan.copy(alpha = 0.08f),
+        border = BorderStroke(
+            if (pixel) PixelDesign.border else 1.dp,
+            if (pixel) PixelPalette.outline else DerbisCyan.copy(alpha = 0.22f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 15.dp),
@@ -212,6 +230,7 @@ private fun TechnicalHeroMetric(value: String, modifier: Modifier = Modifier) {
 @Composable
 private fun TechnicalAudioSection(title: String, rows: List<Pair<String, String>>) {
     if (rows.isEmpty()) return
+    val pixel = DerbisIsPixel
     Text(
         text = title,
         color = DerbisCyan,
@@ -224,16 +243,16 @@ private fun TechnicalAudioSection(title: String, rows: List<Pair<String, String>
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 18.dp),
-        shape = TechnicalAudioCardShape,
-        color = DerbisText.copy(alpha = 0.025f),
-        border = BorderStroke(1.dp, DerbisGlassBorder.copy(alpha = 0.7f))
+        shape = if (pixel) RectangleShape else TechnicalAudioCardShape,
+        color = if (pixel) PixelPalette.ink else DerbisText.copy(alpha = 0.025f),
+        border = BorderStroke(1.dp, if (pixel) PixelPalette.outline else DerbisGlassBorder.copy(alpha = 0.7f))
     ) {
         Column {
             rows.forEachIndexed { index, row ->
                 TechnicalAudioRow(row.first, row.second)
                 if (index != rows.lastIndex) {
                     HorizontalDivider(
-                        color = DerbisGlassBorder.copy(alpha = 0.55f),
+                        color = if (pixel) PixelPalette.panel else DerbisGlassBorder.copy(alpha = 0.55f),
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )
                 }
@@ -277,7 +296,8 @@ internal fun buildTechnicalOutputRows(
     audioNormalization: Boolean,
     copy: TechnicalAudioInfoCopy,
     systemCopy: com.yasuda.derbis.ui.i18n.DerbisSystemPlayerCopy,
-    remotePlayback: RemotePlaybackState
+    remotePlayback: RemotePlaybackState,
+    dolbyAtmosSupported: Boolean = true
 ): List<Pair<String, String>> {
     if (remotePlayback.connected) {
         val device = remotePlayback.deviceName?.trim()?.takeIf(String::isNotBlank) ?: copy.remotePlayback
@@ -297,8 +317,39 @@ internal fun buildTechnicalOutputRows(
         copy.volume to "${output.volumePercent}%",
         copy.engine to "Media3 · ExoPlayer",
         copy.path to technicalOutputPath(settings, copy),
-        copy.processing to buildProcessingLabel(settings, audioNormalization, copy)
+        copy.processing to buildProcessingLabel(settings, audioNormalization, copy),
+        copy.lossless to technicalLosslessOutputLabel(route),
+        copy.dolbyAtmos to technicalDolbyAtmosLabel(settings.dolbyAtmosEnabled, dolbyAtmosSupported)
     )
+}
+
+/**
+ * Whether an Atmos rendition would actually be taken, and why not when it would not.
+ *
+ * Neither half alone is the answer: a phone with the decoder and the switch off will not play
+ * Atmos, and neither will one with the switch on and no decoder — that one is the case that
+ * ends in silence rather than in sound.
+ */
+internal fun technicalDolbyAtmosLabel(enabled: Boolean, decoderAvailable: Boolean): String =
+    when (derbisAtmosStatus(decoderAvailable, enabled)) {
+        DerbisAtmosStatus.WANTED -> "Yes · E-AC-3 decoder available"
+        DerbisAtmosStatus.DISABLED -> "Off · switched off in Settings"
+        DerbisAtmosStatus.NO_DECODER -> "No · no E-AC-3 decoder on this phone"
+    }
+
+/**
+ * Whether the connected route can carry the source's samples without a lossy step, and whether
+ * the sink is able to keep them above 16-bit. Same rule the player itself applies when it picks
+ * float or PCM16 output.
+ */
+internal fun technicalLosslessOutputLabel(route: DerbisAudioOutputRoute?): String {
+    if (route == null) return "Unavailable"
+    val decision = DerbisLosslessOutput.decide(setOf(route.type))
+    return when {
+        !decision.capable -> "No · 16-bit path"
+        route.encodings.contains(AudioFormat.ENCODING_PCM_FLOAT) -> "Yes · 24-bit capable"
+        else -> "Yes · 16-bit path"
+    }
 }
 
 internal fun selectedAudioDescriptor(track: Track): PlaybackStreamDescriptor? {
@@ -402,6 +453,9 @@ internal fun buildProcessingLabel(
         (equalizerActive || virtualizerActive || replayGainActive || audioNormalization)
 
     if (audioNormalization) add(copy.normalization)
+    // Karaoke changes what leaves the DAC, so the technical sheet has to say so.
+    if (settings.karaokeMode) add("Karaoke")
+    if (settings.monoEnabled) add("Mono")
     if (equalizerActive) add(copy.equalizer)
     if (replayGainActive) add("ReplayGain ${settings.effectiveReplayGainMode.name}")
     if (limiterActive) add(copy.limiter)

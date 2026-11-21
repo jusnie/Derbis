@@ -23,10 +23,29 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
     <uses-permission android:name="androidx.car.app.MEDIA_TEMPLATES" />
 
+    <!-- Android 11 hides other packages from this app unless they are named here. The Discord
+         hand-off does not need it to launch - startActivity() is not restricted - but the panel
+         asks whether Discord is installed at all before promising to open it, and that question
+         is answered from package visibility. -->
+    <queries>
+        <package android:name="com.discord" />
+        <package android:name="com.discord.beta" />
+        <package android:name="com.discord.preview" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="discord" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" android:host="discord.com" />
+        </intent>
+    </queries>
+
     <application
         android:name=".DerbisApplication"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:localeConfig="@xml/locales_config"
@@ -90,24 +109,20 @@
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
             android:value="8" />
-        <!-- Discord Social SDK's PKCE callback. It is disabled in source-only/F-Droid builds,
-             where the proprietary SDK is intentionally absent. -->
+        <!-- Discord Social SDK's internal PKCE activity. Disabled because MainActivity handles
+             the discord-<applicationId>:/authorize/callback redirect directly and hands the
+             verified OAuth session into the native bridge; leaving both activities enabled lets
+             Android route the callback to AuthenticationActivity when nativeBeginSignIn never ran. -->
         <activity
             android:name="com.discord.socialsdk.AuthenticationActivity"
-            android:enabled="${discordSocialSdkAvailable}"
+            android:enabled="false"
             android:exported="true"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="discord-${discordApplicationId}" />
-            </intent-filter>
-        </activity>
+            android:launchMode="singleTask" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
@@ -116,10 +131,6 @@
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter>
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -168,6 +179,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="derbis-spotify" android:host="callback" />
             </intent-filter>
+            <!-- Discord mobile redirect: discord-<app id>:/authorize/callback. That URI has a
+                 scheme and a path but no authority, and an intent filter that declares a host
+                 anywhere refuses a hostless URI — so this cannot share a filter with the spotify
+                 callback above. The scheme is all the filter can key on here; the path is checked
+                 in DerbisDiscordRichPresence.receives(). -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="discord-${discordApplicationId}" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -180,6 +202,179 @@
                 <data android:mimeType="application/xspf+xml" />
             </intent-filter>
         </activity>
+
+        <!-- Launcher aliases for Settings -> Appearance -> App icon. MainActivity stays enabled at
+             all times so deep links, OAuth callbacks, widgets and static shortcuts never lose their
+             target; switching the app icon only toggles which alias carries MAIN/LAUNCHER. -->
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherOriginal"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherPixelated"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_pixel"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_pixel"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherBear"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bear"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_bear"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherBunny"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bunny"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_bunny"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherCat"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_cat"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_cat"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherChick"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_chick"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_chick"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherFrog"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_frog"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_frog"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherPenguin"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_penguin"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_penguin"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherSheep"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sheep"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_sheep"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.yasuda.derbis.LauncherCloud"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_cloud"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_cloud"
+            android:targetActivity=".MainActivity">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name="androidx.media3.session.MediaButtonReceiver"

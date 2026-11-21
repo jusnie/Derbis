@@ -149,6 +149,52 @@ internal fun PlayerArtworkHero(
     }
 }
 
+/**
+ * Static cover card for queue neighbours.
+ *
+ * Draws through the same [SeamlessArtworkImage] and Coil cache as [PlayerArtworkHero], with the
+ * same shadow and hairline rim, without claiming the centre card's morph anchor, Canvas stream,
+ * swipe offset or lyrics flip face.
+ */
+@Composable
+internal fun PlayerArtworkCover(
+    track: Track,
+    artworkUrl: String,
+    cornerRadius: Dp,
+    modifier: Modifier = Modifier
+) {
+    val artworkShape = RoundedCornerShape(nonNegativeCornerRadius(cornerRadius))
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = 12.dp,
+                shape = artworkShape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.46f),
+                spotColor = Color.Black.copy(alpha = 0.80f)
+            )
+            .clip(artworkShape)
+            .background(Color.Black.copy(alpha = 0.24f), artworkShape)
+    ) {
+        if (track.isLiveRadio()) {
+            LiveRadioLogoArtwork(track = track, artworkUrl = artworkUrl)
+        } else {
+            SeamlessArtworkImage(url = artworkUrl, modifier = Modifier.fillMaxSize()) {
+                InstantArtworkPlaceholder(modifier = Modifier.fillMaxSize())
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(
+                    width = DerbisPlayerDesign.Hairline,
+                    color = Color.White.copy(alpha = 0.10f),
+                    shape = artworkShape
+                )
+        )
+    }
+}
+
 @Composable
 private fun rememberArtworkLanding(morphing: Boolean, animationsEnabled: Boolean): State<Float> =
     animateFloatAsState(

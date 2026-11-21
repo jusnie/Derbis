@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui.album
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -15,7 +15,7 @@ internal val AlbumNeutralPaletteStart = Color(0xFF8E95A1)
 internal val AlbumNeutralPaletteEnd = Color(0xFF585E69)
 
 internal fun albumStageColors(primary: Color, secondary: Color, lightTheme: Boolean): AlbumStageColors {
-    return immersiveMediaColors(primary, secondary, lightTheme, DerbisIsNocturne)
+    return immersiveMediaColors(primary, secondary, lightTheme, DerbisIsPixel)
 }
 
 internal fun albumStackedHeroHeight(width: Dp, height: Dp): Dp =

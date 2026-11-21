@@ -36,6 +36,18 @@ SPDX-License-Identifier = "MIT"
 
 [[annotations]]
 path = [
+  "app/src/main/java/com/yasuda/derbis/ui/components/backdrop/**",
+  "app/src/main/assets/licenses/kyant-backdrop.txt",
+]
+precedence = "override"
+SPDX-FileCopyrightText = [
+  "2025 Kyant0",
+  "2026 Yasuda",
+]
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = [
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioDecoder.java",
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegAudioRenderer.java",
   "derbis-native-audio/src/main/java/androidx/media3/decoder/ffmpeg/FfmpegDecoderException.java",
@@ -63,3 +75,16 @@ SPDX-FileCopyrightText = [
   "2024 hufrea",
 ]
 SPDX-License-Identifier = "GPL-3.0-only AND MIT"
+
+[[annotations]]
+path = [
+  "app/src/main/res/font/pixelify_sans_regular.ttf",
+  "app/src/main/res/font/pixelify_sans_bold.ttf",
+  "app/src/main/assets/licenses/pixelify-sans.txt",
+  "website/fonts/pixelify-sans-latin-400-normal.woff2",
+  "website/fonts/pixelify-sans-latin-700-normal.woff2",
+  "website/fonts/OFL-pixelifysans.txt",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)"
+SPDX-License-Identifier = "OFL-1.1"

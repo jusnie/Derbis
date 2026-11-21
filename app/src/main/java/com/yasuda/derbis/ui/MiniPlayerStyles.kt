@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExitTransition
@@ -36,9 +36,9 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -64,6 +64,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -103,6 +104,9 @@ import com.yasuda.derbis.domain.MiniTypography
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.radio.isLiveRadio
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
+import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
+import com.yasuda.derbis.ui.components.derbisChromeGlass
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import com.yasuda.derbis.ui.components.DerbisPlayPauseGlyph
 import com.yasuda.derbis.ui.components.DerbisPressScale
 import com.yasuda.derbis.ui.components.dockFoldHeight
@@ -201,8 +205,9 @@ internal fun rememberMiniPlayerPalette(
 @Composable
 private fun rememberSkinMiniPlayerPalette(track: Track, animated: Boolean): MiniPlayerPalette? {
     val scheme = MaterialTheme.colorScheme
-    if (DerbisIsNocturne) {
-        return MiniPlayerPalette(scheme.primary, scheme.primary, scheme.surfaceContainerHigh, scheme.onSurface, scheme.onSurfaceVariant, true)
+    if (DerbisIsPixel) {
+        val p = PixelPalette
+        return MiniPlayerPalette(p.cyan, p.violet, p.ink, p.text, p.muted, false)
     }
     if (DerbisIsSpotify) {
         val artwork = rememberMiniArtworkPalette(track)
@@ -273,24 +278,27 @@ internal fun miniArtworkShape(shape: MiniArtworkShape): Shape = when (shape) {
 
 private fun miniTitleStyle(typography: MiniTypography, compact: Boolean): TextStyle {
     val base = if (compact) 14f else 15f
+    val pixelFamily = if (DerbisIsPixel) PixelifyFont else null
     return when (typography) {
         MiniTypography.Standard -> TextStyle(
+            fontFamily = pixelFamily,
             fontSize = base.sp,
             lineHeight = DerbisTypeRhythm.lineHeight(base.sp),
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = (-0.2).sp
+            fontWeight = if (DerbisIsPixel) FontWeight.Bold else FontWeight.SemiBold,
+            letterSpacing = if (DerbisIsPixel) 0.sp else (-0.2).sp
         )
         MiniTypography.Bold -> TextStyle(
+            fontFamily = pixelFamily,
             fontSize = (base + 1f).sp,
             lineHeight = DerbisTypeRhythm.lineHeight((base + 1f).sp),
             fontWeight = FontWeight.ExtraBold,
-            letterSpacing = (-0.4).sp
+            letterSpacing = if (DerbisIsPixel) 0.sp else (-0.4).sp
         )
         MiniTypography.Editorial -> TextStyle(
-            fontFamily = FontFamily.Serif,
+            fontFamily = pixelFamily ?: FontFamily.Serif,
             fontSize = (base + 2f).sp,
             lineHeight = DerbisTypeRhythm.lineHeight((base + 2f).sp),
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (DerbisIsPixel) FontWeight.Bold else FontWeight.Medium,
             letterSpacing = 0.sp
         )
     }
@@ -298,14 +306,17 @@ private fun miniTitleStyle(typography: MiniTypography, compact: Boolean): TextSt
 
 private fun miniArtistStyle(typography: MiniTypography, compact: Boolean): TextStyle {
     val base = if (compact) 12f else 13f
+    val pixelFamily = if (DerbisIsPixel) PixelifyFont else null
     return when (typography) {
         MiniTypography.Editorial -> TextStyle(
+            fontFamily = pixelFamily,
             fontSize = (base - 2f).sp,
             lineHeight = DerbisTypeRhythm.lineHeight(base.sp),
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.2.sp
         )
         else -> TextStyle(
+            fontFamily = pixelFamily,
             fontSize = base.sp,
             lineHeight = DerbisTypeRhythm.lineHeight(base.sp),
             fontWeight = FontWeight.Medium
@@ -389,7 +400,6 @@ internal fun StyledMiniPlayer(
     artworkHidden: () -> Boolean,
     playbackActions: MiniPlayerPlaybackActions,
     expansionActions: MiniPlayerExpansionActions,
-    glass: GlassBackdropState?,
     interactive: Boolean = true,
     link: DockLink? = null
 ) {
@@ -414,6 +424,10 @@ internal fun StyledMiniPlayer(
     val fuse = link?.fuse ?: dockCompaction
     val seam = if (connected) rememberConnectedSeam(model.isPlaying, animated, attach, fuse) else null
     val connectedOuter = minOf(link?.outerCorner ?: ConnectedMiniDefaultCorner, layout.height / 2)
+    val pixelCharm = if (DerbisIsPixel) resolvePixelCharm(tuning.pixelCharm, track.id) else null
+    val charmExtra = if (pixelCharm != null) 24.dp else 0.dp
+    val effectiveHeight = layout.height + charmExtra
+    val effectiveCompactHeight = layout.compactHeight + charmExtra
 
     Box(
         modifier = Modifier
@@ -431,7 +445,7 @@ internal fun StyledMiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .dockLerpHeight(dockCompaction, layout.height, layout.compactHeight)
+                .dockLerpHeight(dockCompaction, effectiveHeight, effectiveCompactHeight)
                 .morphAnchorWhen(interactive, morphAnchors, PlayerMorphSlot.MiniCard)
                 .then(
                     if (connected) {
@@ -444,51 +458,64 @@ internal fun StyledMiniPlayer(
                             .clip(containerShape)
                     }
                 )
-                .miniBackground(style, tuning, palette, glass, containerShape)
+                .miniBackground(style, tuning, palette, containerShape)
                 .miniOutline(style, palette, containerShape)
                 .then(interaction)
         ) {
             MiniBackdropLayers(style, tuning, track, palette, progress, liveRadio)
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        start = miniContentStart(style, tuning),
-                        end = 6.dp,
-                        bottom = miniContentBottom(tuning)
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                MiniTrackContent(
-                    style = style,
-                    tuning = tuning,
-                    model = model,
-                    palette = palette,
-                    layout = layout,
-                    swipe = swipe,
-                    animated = animated,
-                    liveRadio = liveRadio,
-                    anchors = morphAnchors.takeIf { interactive },
-                    compaction = dockCompaction,
-                    artworkHidden = artworkHidden
-                )
-                MiniStyledControls(
-                    style = style,
-                    tuning = tuning,
-                    palette = palette,
-                    isPlaying = model.isPlaying,
-                    isResolving = model.isResolving,
-                    liveRadio = liveRadio,
-                    progress = progress,
-                    animated = animated,
-                    compaction = dockCompaction,
-                    playbackActions = playbackActions,
-                    onToggle = {
-                        if (tuning.motion == MiniMotion.Expressive) haptics.perform(DerbisHapticAction.Transport)
-                        playbackActions.toggle()
-                    }
-                )
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (pixelCharm != null) {
+                    PixelCharmBanner(
+                        charm = pixelCharm,
+                        paused = !model.isPlaying
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(
+                            start = miniContentStart(style, tuning),
+                            end = 6.dp,
+                            bottom = if (DerbisIsPixel && tuning.progress == MiniProgressStyle.Line && !liveRadio) {
+                                6.dp
+                            } else {
+                                miniContentBottom(tuning)
+                            }
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MiniTrackContent(
+                        style = style,
+                        tuning = tuning,
+                        model = model,
+                        palette = palette,
+                        layout = layout,
+                        swipe = swipe,
+                        animated = animated,
+                        liveRadio = liveRadio,
+                        anchors = morphAnchors.takeIf { interactive },
+                        compaction = dockCompaction,
+                        artworkHidden = artworkHidden
+                    )
+                    MiniStyledControls(
+                        style = style,
+                        tuning = tuning,
+                        palette = palette,
+                        isPlaying = model.isPlaying,
+                        isResolving = model.isResolving,
+                        liveRadio = liveRadio,
+                        progress = progress,
+                        animated = animated,
+                        compaction = dockCompaction,
+                        playbackActions = playbackActions,
+                        onToggle = {
+                            if (tuning.motion == MiniMotion.Expressive) haptics.perform(DerbisHapticAction.Transport)
+                            playbackActions.toggle()
+                        }
+                    )
+                }
             }
             if (!liveRadio) {
                 MiniBottomProgress(
@@ -497,7 +524,7 @@ internal fun StyledMiniPlayer(
                     palette = palette,
                     progress = progress,
                     attach = attach,
-                    height = layout.height,
+                    height = effectiveHeight,
                     waving = model.isPlaying && animated
                 )
             }
@@ -616,7 +643,12 @@ private fun MiniBackdropLayers(
     progress: () -> Float,
     liveRadio: Boolean
 ) {
-    if (style == MiniPlayerStyle.ArtworkFocus && tuning.background == MiniBackground.Artwork) {
+    if (DerbisIsPixel && tuning.background == MiniBackground.Mascots) {
+        PixelMascotTiledBackdrop(
+            head = tuning.mascotHead,
+            opacityPercent = tuning.opacity
+        )
+    } else if ((style == MiniPlayerStyle.ArtworkFocus || DerbisIsPixel) && tuning.background == MiniBackground.Artwork) {
         MiniArtworkBackdrop(track = track, palette = palette)
     }
     if (tuning.progress == MiniProgressStyle.Fill && !liveRadio) {
@@ -758,7 +790,7 @@ private fun BoxScope.MiniBottomProgress(
             else -> MiniLineProgress(
                 progress = progress,
                 palette = palette,
-                inset = if (DerbisIsSpotify) 8.dp else (tuning.cornerDp.dp * 0.7f).coerceAtLeast(12.dp),
+                inset = if (DerbisIsPixel) 0.dp else if (DerbisIsSpotify) 8.dp else (tuning.cornerDp.dp * 0.7f).coerceAtLeast(12.dp),
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }
@@ -814,12 +846,18 @@ private fun Modifier.miniDepth(
             ambientColor = palette.accent.copy(alpha = 0.30f),
             spotColor = Color.Black.copy(alpha = 0.50f)
         )
-        else -> if (tuning.shadow == 0) this else shadow(
-            elevation = shadowElevation,
-            shape = shape,
-            ambientColor = Color.Black.copy(alpha = 0.18f),
-            spotColor = Color.Black.copy(alpha = 0.32f)
-        )
+        else -> if (DerbisIsPixel) {
+            pixelHardShadow(offset = 2.dp, color = PixelPalette.outline)
+        } else if (tuning.shadow == 0) {
+            this
+        } else {
+            shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.18f),
+                spotColor = Color.Black.copy(alpha = 0.32f)
+            )
+        }
     }
 }
 
@@ -827,36 +865,34 @@ private fun Modifier.miniBackground(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     palette: MiniPlayerPalette,
-    glass: GlassBackdropState?,
     shape: Shape
 ): Modifier = when (style) {
     MiniPlayerStyle.LiquidGlass -> {
         val tint = palette.surface.playerMix(palette.accent, 0.10f)
         val alpha = tuning.opacity / 100f
-        val solidAlpha = (alpha + 0.32f).coerceAtMost(0.96f)
+        val fill = tint.copy(alpha = (alpha + 0.32f).coerceAtMost(0.96f))
         val sheen = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent))
-        if (glass != null) {
-            glassFrost(
-                state = glass,
-                blurRadius = 24.dp,
-                refractionShape = shape,
-                onDrawFrosted = {
-                    drawRect(tint.copy(alpha = alpha))
-                    drawRect(sheen)
-                },
-                onDrawFallback = {
-                    drawRect(tint.copy(alpha = solidAlpha))
-                    drawRect(sheen)
-                }
-            )
-        } else {
-            drawBehind {
-                drawRect(tint.copy(alpha = (alpha + 0.12f).coerceAtMost(0.96f)))
-                drawRect(sheen)
-            }
-        }
+        // Real page glass on the Liquid Glass skin; BitChord's lightweight material — same
+        // tint, same edge, no backdrop sample — everywhere else. No frost layer.
+        derbisChromeGlass(
+            shape = shape,
+            tint = defaultGlassSurfaceTint(isLight = !palette.onDark),
+            fallback = Modifier.derbisLightweightGlass(shape, fill, rim = true)
+        ).drawBehind { drawRect(sheen) }
     }
-    MiniPlayerStyle.Floating, MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,
+    MiniPlayerStyle.Floating -> if (DerbisIsPixel) {
+        when (tuning.background) {
+            MiniBackground.Mascots -> background(PixelPalette.black)
+            MiniBackground.Gradient -> background(
+                Brush.horizontalGradient(listOf(PixelPalette.ink, PixelPalette.panel))
+            )
+            MiniBackground.Artwork -> background(PixelPalette.ink)
+            MiniBackground.Solid -> background(PixelPalette.ink)
+        }
+    } else {
+        background(palette.surface)
+    }
+    MiniPlayerStyle.UltraCompact, MiniPlayerStyle.YtMusic,
     MiniPlayerStyle.Connected -> background(palette.surface)
     MiniPlayerStyle.ArtworkFocus -> if (tuning.background == MiniBackground.Artwork) {
         background(StyledMiniDarkBase)
@@ -909,11 +945,16 @@ private fun Modifier.miniOutline(style: MiniPlayerStyle, palette: MiniPlayerPale
             ),
             shape = shape
         )
-        MiniPlayerStyle.Floating -> if (DerbisIsSpotify) this else if (DerbisIsAppleMusic) border(0.5.dp, AppleMusicDesign.chromeStroke, shape) else border(
-            width = DerbisPlayerDesign.Hairline,
-            color = palette.content.copy(alpha = 0.08f),
-            shape = shape
-        )
+        MiniPlayerStyle.Floating -> when {
+            DerbisIsSpotify -> this
+            DerbisIsPixel -> border(PixelDesign.border, PixelPalette.outline, shape)
+            DerbisIsAppleMusic -> border(0.5.dp, AppleMusicDesign.chromeStroke, shape)
+            else -> border(
+                width = DerbisPlayerDesign.Hairline,
+                color = palette.content.copy(alpha = 0.08f),
+                shape = shape
+            )
+        }
         else -> this
     }
 
@@ -934,13 +975,23 @@ private fun MiniArtworkBackdrop(track: Track, palette: MiniPlayerPalette) {
             modifier = Modifier
                 .fillMaxSize()
                 .drawWithCache {
-                    val scrim = Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0f to StyledMiniDarkBase.playerAmbienceMix(palette.accent, 0.30f).copy(alpha = 0.55f),
-                            0.45f to StyledMiniDarkBase.playerAmbienceMix(palette.accent, 0.34f).copy(alpha = 0.86f),
-                            1f to StyledMiniDarkBase.playerAmbienceMix(palette.accentAlt, 0.24f).copy(alpha = 0.94f)
+                    val scrim = if (!palette.onDark) {
+                        Brush.horizontalGradient(
+                            colorStops = arrayOf(
+                                0f to palette.surface.copy(alpha = 0.72f),
+                                0.5f to palette.surface.copy(alpha = 0.86f),
+                                1f to palette.surface.copy(alpha = 0.92f)
+                            )
                         )
-                    )
+                    } else {
+                        Brush.horizontalGradient(
+                            colorStops = arrayOf(
+                                0f to StyledMiniDarkBase.playerAmbienceMix(palette.accent, 0.30f).copy(alpha = 0.55f),
+                                0.45f to StyledMiniDarkBase.playerAmbienceMix(palette.accent, 0.34f).copy(alpha = 0.86f),
+                                1f to StyledMiniDarkBase.playerAmbienceMix(palette.accentAlt, 0.24f).copy(alpha = 0.94f)
+                            )
+                        )
+                    }
                     onDrawBehind { drawRect(scrim) }
                 }
         )
@@ -967,6 +1018,10 @@ private fun MiniStyledArtwork(
     }
     if (DerbisIsYouTubeMusic) {
         Box(modifier.background(YouTubeMusicDesign.placeholder)) { CoverImage(track, Modifier.fillMaxSize()) }
+        return
+    }
+    if (DerbisIsPixel) {
+        Box(modifier.border(1.5.dp, PixelPalette.text, RectangleShape)) { CoverImage(track, Modifier.fillMaxSize()) }
         return
     }
     if (DerbisIsPrism) {
@@ -1100,24 +1155,36 @@ private fun MiniLineProgress(
     inset: Dp,
     modifier: Modifier
 ) {
+    val pixel = DerbisIsPixel
     val emphasis = if (palette.onDark) Color.White else Color.Black
     val spotify = DerbisIsSpotify
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = inset, end = inset, bottom = if (spotify) 0.dp else 4.dp)
-            .height(if (spotify) 2.dp else StyledMiniLineHeight)
+            .padding(start = inset, end = inset, bottom = if (spotify || pixel) 0.dp else 4.dp)
+            .height(if (pixel) 6.dp else if (spotify) 2.dp else StyledMiniLineHeight)
             .drawBehind {
-                val radius = CornerRadius(size.height / 2f)
-                drawRoundRect(color = palette.content.copy(alpha = if (spotify) 0.3f else 0.14f), cornerRadius = radius)
-                val width = size.width * progress().coerceIn(0f, 1f)
-                val start = if (layoutDirection == LayoutDirection.Rtl) size.width - width else 0f
-                drawRoundRect(
-                    color = palette.accent.playerMix(emphasis, 0.25f),
-                    topLeft = Offset(start, 0f),
-                    size = Size(width, size.height),
-                    cornerRadius = radius
-                )
+                if (pixel) {
+                    val rule = 1.5.dp.toPx()
+                    drawRect(color = PixelPalette.outline, topLeft = Offset.Zero, size = Size(size.width, rule))
+                    val barTop = rule
+                    val barH = (size.height - rule).coerceAtLeast(1f)
+                    drawRect(color = PixelPalette.panel, topLeft = Offset(0f, barTop), size = Size(size.width, barH))
+                    val width = size.width * progress().coerceIn(0f, 1f)
+                    val start = if (layoutDirection == LayoutDirection.Rtl) size.width - width else 0f
+                    drawRect(color = PixelPalette.pink, topLeft = Offset(start, barTop), size = Size(width, barH))
+                } else {
+                    val radius = CornerRadius(size.height / 2f)
+                    drawRoundRect(color = palette.content.copy(alpha = if (spotify) 0.3f else 0.14f), cornerRadius = radius)
+                    val width = size.width * progress().coerceIn(0f, 1f)
+                    val start = if (layoutDirection == LayoutDirection.Rtl) size.width - width else 0f
+                    drawRoundRect(
+                        color = palette.accent.playerMix(emphasis, 0.25f),
+                        topLeft = Offset(start, 0f),
+                        size = Size(width, size.height),
+                        cornerRadius = radius
+                    )
+                }
             }
     )
 }
@@ -1220,6 +1287,7 @@ private fun MiniStyledIconButton(
     size: Dp,
     onClick: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
     Box(
         modifier = Modifier
             .sizeIn(minWidth = DerbisPlayerDesign.MinimumTouchTarget, minHeight = DerbisPlayerDesign.MinimumTouchTarget)
@@ -1229,10 +1297,15 @@ private fun MiniStyledIconButton(
         Box(
             modifier = Modifier
                 .size(size)
-                .background(background, CircleShape),
+                .background(background, if (pixel) RectangleShape else CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(size * 0.58f))
+            Icon(
+                imageVector = if (pixel) PixelIcons.resolve(icon) else icon,
+                contentDescription = contentDescription,
+                tint = tint,
+                modifier = Modifier.size(size * 0.58f)
+            )
         }
     }
 }
@@ -1255,10 +1328,13 @@ private fun MiniStyledPlayButton(
     val core = baseCore * (tuning.controlScale / 100f)
     val ring = tuning.progress == MiniProgressStyle.Ring
     val outer = if (ring) core + 16.dp else core
+    val pixel = DerbisIsPixel
     val morphShape = rememberDerbisPlayMorphShape(playing = isPlaying, animated = animated)
-    val coreShape = if (style == MiniPlayerStyle.SuperExpressive) morphShape else CircleShape
-    val fillColor = miniPlayFillColor(tuning.buttons, palette)
-    val glyphColor = miniPlayGlyphColor(tuning.buttons, palette, fillColor)
+    val coreShape = if (pixel) RectangleShape else if (style == MiniPlayerStyle.SuperExpressive) morphShape else CircleShape
+    val fillColor = if (pixel) PixelPalette.cyan else miniPlayFillColor(tuning.buttons, palette)
+    val glyphColor = if (pixel) PixelPalette.ink else miniPlayGlyphColor(tuning.buttons, palette, fillColor)
+    val outlineColor = if (pixel) PixelPalette.text else palette.content.copy(alpha = 0.45f)
+    val buttonStyle = if (pixel) MiniButtonStyle.Outlined else tuning.buttons
     Box(
         modifier = Modifier
             .sizeIn(minWidth = DerbisPlayerDesign.MinimumTouchTarget, minHeight = DerbisPlayerDesign.MinimumTouchTarget)
@@ -1281,10 +1357,10 @@ private fun MiniStyledPlayButton(
         MiniPlayCore(
             size = core,
             shape = coreShape,
-            buttons = tuning.buttons,
+            buttons = buttonStyle,
             fill = fillColor,
             glyph = glyphColor,
-            outline = palette.content.copy(alpha = 0.45f),
+            outline = outlineColor,
             loading = isResolving && !ring,
             isPlaying = isPlaying,
             description = if (isPlaying) strings.pause else strings.play
@@ -1383,7 +1459,6 @@ internal fun MiniPlayerStylePreview(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     model: MiniPlayerModel,
-    glass: GlassBackdropState?,
     modifier: Modifier = Modifier
 ) {
     val playback = remember { MiniPlayerPlaybackActions({}, {}, {}, {}, {}) }
@@ -1409,7 +1484,6 @@ internal fun MiniPlayerStylePreview(
                 artworkHidden = { false },
                 playbackActions = playback,
                 expansionActions = expansion,
-                glass = glass,
                 interactive = false
             )
         }

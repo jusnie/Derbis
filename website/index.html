@@ -1,25 +1,19 @@
 <!doctype html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Derbis — Modern Hi-Fi Web Music Player in pure Black and White." />
-    <title>Derbis — Hi-Fi Music Player</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-
-    <link rel="icon" type="image/png" href="/assets/derbis-logo.png" />
-
-    <!-- Google Identity Services for YouTube OAuth 2.0 Client -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="/config.js"></script>
-    <script type="module" crossorigin src="/assets/index-rTq1BDYL.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-B4QjX6PJ.css">
-  </head>
-  <body class="bg-[#000000] text-white antialiased overflow-x-hidden selection:bg-white selection:text-black">
-    <div id="root"></div>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f0f10" />
+  <title>Derbis — Android music player for YouTube Music and your own library</title>
+  <meta name="description" content="Derbis is an open-source Android music player for YouTube Music, Navidrome, Subsonic, and offline FLAC libraries, featuring Apple Music 13, Pixel UI, synced lyrics, and Jam rooms." />
+  <meta property="og:title" content="Derbis — Open-source Android music player" />
+  <meta property="og:description" content="Stream YouTube Music, connect Navidrome or Subsonic, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/screens/apple-music-13.jpg" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23ff5c8a'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='9' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='3' y='9' width='10' height='4' fill='%23fff8f6'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
 </html>

@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 
 import androidx.compose.ui.graphics.lerp
@@ -16,7 +16,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
-import com.yasuda.derbis.ui.icons.Check
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.role
@@ -61,13 +61,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.Equalizer
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.FileOpen
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.Headphones
-import com.yasuda.derbis.ui.icons.RestartAlt
-import com.yasuda.derbis.ui.icons.Search
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SurroundSound
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -184,6 +184,9 @@ internal fun AudioSettingsPanel(
     onSelect: (String) -> Unit,
     highQualityAudioMode: HighQualityAudioMode,
     onHighQualityAudioMode: (HighQualityAudioMode) -> Unit,
+    dolbyAtmosEnabled: Boolean = true,
+    dolbyAtmosSupported: Boolean = true,
+    onDolbyAtmos: (Boolean) -> Unit = {},
     onEqualizerEnabled: (Boolean) -> Unit,
     onPreset: (String) -> Unit,
     onBandLevel: (Int, Int) -> Unit,
@@ -191,12 +194,13 @@ internal fun AudioSettingsPanel(
     onVirtualizer: (Int) -> Unit,
     onDerbis360Enabled: (Boolean) -> Unit,
     onDerbis360Experience: (Derbis360Experience) -> Unit,
+    onKaraokeMode: (Boolean) -> Unit = {},
+    onMonoEnabled: (Boolean) -> Unit = {},
     onPreamp: (Float) -> Unit,
     onLimiter: (Boolean) -> Unit,
     onEnhancedAudio: (Boolean) -> Unit = {},
     onCrossfade: (Int) -> Unit,
     onDjSoft: (Boolean) -> Unit,
-    onBeatSync: (Boolean) -> Unit,
     onReplayGain: (Boolean) -> Unit,
     onTempo: (Float) -> Unit,
     onPitch: (Float) -> Unit,
@@ -287,22 +291,23 @@ internal fun AudioSettingsPanel(
                 item { AudioSectionLabel(strings.audioSectionQuality) }
                 item {
                     AudioQualityRow(
-                        selected = selected,
+                        // A stale "Auto" from an old backup can never leave the row with no segment lit.
+                        selected = DerbisAudioQuality.normalize(selected),
                         labels = listOf(
-                            strings.audioQualityAuto to DerbisAudioQuality.AUTO,
-                            strings.audioQualityHigh to DerbisAudioQuality.HIGH,
+                            strings.audioQualityLow to DerbisAudioQuality.LOW,
                             strings.audioQualityMedium to DerbisAudioQuality.MEDIUM,
-                            strings.audioQualityLow to DerbisAudioQuality.LOW
+                            strings.audioQualityHigh to DerbisAudioQuality.HIGH,
+                            strings.audioQualityLossless to DerbisAudioQuality.LOSSLESS
                         ),
                         onSelect = onSelect
                     )
                 }
                 item {
-                    val qualitySubtitle = when (selected.trim().lowercase()) {
-                        "low" -> "Low · Sets audio to 48 kbps data saver (AAC/Opus)"
-                        "medium" -> "Medium · Sets audio to 98 kbps – 128 kbps balanced audio"
-                        "high" -> "High · Sets audio to 300+ kbps (320 kbps HQ upgrade with highest fallback)"
-                        else -> "Auto · Selects best stream based on network and quality availability"
+                    val qualitySubtitle = when (DerbisAudioQuality.normalize(selected).lowercase()) {
+                        "low" -> "Low · 48 kbps data saver (AAC/Opus)"
+                        "medium" -> "Medium · 98 – 128 kbps balanced audio"
+                        "high" -> "High · 300+ kbps (320 kbps HQ upgrade with highest fallback)"
+                        else -> "Lossless · FLAC / ALAC when the source has it; the player badge shows Lossless or Hi-Fi instead of the codec"
                     }
                     Text(
                         text = qualitySubtitle,
@@ -311,6 +316,22 @@ internal fun AudioSettingsPanel(
                         lineHeight = 16.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = "Dolby Atmos",
+                        subtitle = when {
+                            !dolbyAtmosSupported ->
+                                "This phone ships no Dolby E-AC-3 decoder, so an Atmos rendition would play as silence. Off here, and the stereo copy is taken instead."
+                            dolbyAtmosEnabled ->
+                                "Take the E-AC-3 JOC mix when a source has one. It carries height objects but it is lossy, so Lossless still prefers FLAC."
+                            else ->
+                                "Off. Atmos is lossy E-AC-3; Derbis takes the stereo copy instead, which is also what a wired lossless listener wants."
+                        },
+                        checked = dolbyAtmosEnabled && dolbyAtmosSupported,
+                        enabled = dolbyAtmosSupported,
+                        onCheckedChange = onDolbyAtmos
                     )
                 }
                 item {
@@ -537,6 +558,26 @@ internal fun AudioSettingsPanel(
                     }
                 }
 
+                // Sits with the other "what you hear" switches, above Restoration & Enhancement:
+                // this one takes the singer out rather than putting detail back in.
+                item { AudioSectionLabel(strings.karaokeSection) }
+                item {
+                    AudioToggleRow(
+                        title = strings.karaokeTitle,
+                        subtitle = strings.karaokeSubtitle,
+                        checked = audioSettings.karaokeMode,
+                        onCheckedChange = onKaraokeMode
+                    )
+                }
+                item {
+                    AudioToggleRow(
+                        title = strings.monoTitle,
+                        subtitle = strings.monoSubtitle,
+                        checked = audioSettings.monoEnabled,
+                        onCheckedChange = onMonoEnabled
+                    )
+                }
+
                 item { AudioSectionLabel(strings.audioSectionEnhancement) }
                 item {
                     AudioToggleRow(
@@ -622,27 +663,10 @@ internal fun AudioSettingsPanel(
                 }
                 item {
                     AudioToggleRow(
-                        title = "Beat Sync",
-                        subtitle = if (audioSettings.djSoftMode) {
-                            "Unavailable while DJ Crossfade is on. Turn DJ Crossfade off to use verified Mix Studio beat alignment."
-                        } else {
-                            "Enables verified BPM and beat-grid alignment for transitions selected in Mix Studio."
-                        },
-                        checked = audioSettings.beatSyncEnabled,
-                        enabled = !audioSettings.djSoftMode,
-                        onCheckedChange = onBeatSync
-                    )
-                }
-                item {
-                    AudioToggleRow(
                         title = "DJ Crossfade",
-                        subtitle = if (audioSettings.beatSyncEnabled) {
-                            "Unavailable while Beat Sync is on. Turn Beat Sync off to restore energy-adaptive crossfades."
-                        } else {
-                            "${strings.crossfade} ${audioSettings.crossfadeSeconds}s"
-                        },
+                        subtitle = "${strings.crossfade} ${audioSettings.crossfadeSeconds}s",
                         checked = audioSettings.djSoftMode,
-                        enabled = !audioSettings.beatSyncEnabled,
+                        enabled = true,
                         onCheckedChange = onDjSoft
                     )
                 }
@@ -2412,8 +2436,8 @@ private fun AudioLevelSlider(
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val density = LocalDensity.current
     val thumbRadius = with(density) { 9.dp.toPx() }
-    val nocturne = DerbisIsNocturne
-    val trackHeight = with(density) { (if (nocturne || DerbisIsPrism) 3.dp else 14.dp).toPx() }
+    val pixel = DerbisIsPixel
+    val trackHeight = with(density) { (if (pixel || DerbisIsPrism) 3.dp else 14.dp).toPx() }
     val handleWidth = with(density) { 4.dp.toPx() }
     val handleHeight = with(density) { 36.dp.toPx() }
     val handleGap = with(density) { 5.dp.toPx() }

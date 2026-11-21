@@ -2,9 +2,9 @@ package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelIcons
 
 import com.yasuda.derbis.ui.components.rememberDerbisPlayMorphShape
 import androidx.compose.animation.animateColorAsState
@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -101,7 +101,6 @@ internal fun PlayerTransportBar(
     surfaces: PlayerSurfaceTokens,
     compact: Boolean,
     animated: Boolean,
-    useAuraPlayPause: Boolean = false,
     labels: PlayerControlLabels,
     onShuffle: () -> Unit,
     onPrevious: () -> Unit,
@@ -153,28 +152,17 @@ internal fun PlayerTransportBar(
             ) {
                 PlayerIcon(Icons.Rounded.SkipPrevious, surfaces.content, Modifier.size(skipGlyph))
             }
-            if (useAuraPlayPause) {
-                PlayerModeSlot(weight = weights.playWeight) {
-                    PlayerAuraPlayPauseButton(
-                        isPlaying = isPlaying,
-                        isResolving = isResolving,
-                        labels = labels,
-                        onTogglePlay = onTogglePlay
-                    )
-                }
-            } else {
-                PlayerPlaySegment(
-                    isPlaying = isPlaying,
-                    isResolving = isResolving,
-                    surfaces = surfaces,
-                    height = height,
-                    glyph = if (compact) DerbisPlayerDesign.TransportPlayGlyphCompact else DerbisPlayerDesign.TransportPlayGlyph,
-                    animated = animated,
-                    labels = labels,
-                    weight = weights.playWeight,
-                    onClick = onTogglePlay
-                )
-            }
+            PlayerPlaySegment(
+                isPlaying = isPlaying,
+                isResolving = isResolving,
+                surfaces = surfaces,
+                height = height,
+                glyph = if (compact) DerbisPlayerDesign.TransportPlayGlyphCompact else DerbisPlayerDesign.TransportPlayGlyph,
+                animated = animated,
+                labels = labels,
+                weight = weights.playWeight,
+                onClick = onTogglePlay
+            )
             PlayerSegmentButton(
                 position = DerbisSegment.Single,
                 weight = weights.skipWeight,
@@ -257,8 +245,8 @@ private fun RowScope.PlayerPlaySegment(
         contentDescription = playDescription(isPlaying, labels),
         animated = animated,
         haptic = DerbisHapticAction.Transport,
-        shapeOverride = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner) else morphShape,
-        outline = if (DerbisIsNocturne) surfaces.outline else Color.Transparent,
+        shapeOverride = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner) else morphShape,
+        outline = if (DerbisIsPixel) surfaces.outline else Color.Transparent,
         onClick = onClick
     ) {
         PlayGlyphContent(
@@ -285,9 +273,9 @@ private fun PlayGlyphContent(
             color = content,
             modifier = Modifier.size(glyph * 1.2f)
         )
-    } else if (DerbisIsNocturne) {
+    } else if (DerbisIsPixel) {
         androidx.compose.material3.Icon(
-            imageVector = if (isPlaying) Nocturne78Icons.Pause else Nocturne78Icons.Play,
+            imageVector = if (isPlaying) PixelIcons.Pause else PixelIcons.Play,
             contentDescription = null,
             tint = content,
             modifier = Modifier.size(glyph)

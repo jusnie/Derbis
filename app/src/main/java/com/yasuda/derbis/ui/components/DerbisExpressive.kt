@@ -1,12 +1,19 @@
 package com.yasuda.derbis.ui.components
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.ui.theme.PrismDesign
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelIcons
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.pixelHardShadow
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.interaction.InteractionSource
@@ -27,8 +34,12 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -40,6 +51,29 @@ internal fun DerbisBackButton(
     size: Dp = DerbisBackButtonSize,
     colors: IconButtonColors = IconButtonDefaults.filledTonalIconButtonColors()
 ) {
+    if (DerbisIsPixel) {
+        val p = PixelPalette
+        val boxSize = size.coerceAtMost(42.dp)
+        Box(
+            modifier = modifier
+                .padding(end = 2.dp, bottom = 2.dp)
+                .size(boxSize)
+                .pixelHardShadow(offset = 2.dp, color = p.outline)
+                .background(p.ink, RectangleShape)
+                .border(PixelDesign.border, p.outline, RectangleShape)
+                .derbisPressable(onClick = onClick, onClickLabel = contentDescription, role = Role.Button)
+                .semantics { this.contentDescription = contentDescription },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = PixelIcons.Back,
+                contentDescription = null,
+                tint = p.text,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        return
+    }
     IconButton(
         onClick = onClick,
         colors = colors,
@@ -135,8 +169,8 @@ internal fun DerbisWavyProgress(
     )
 }
 
-internal val DerbisGroupedOuterCorner: Dp get() = if (DerbisIsPrism) PrismDesign.surfaceCorner else if (DerbisIsNocturne) Nocturne78Design.panelCorner else 24.dp
-internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsNocturne) 2.dp else 6.dp
+internal val DerbisGroupedOuterCorner: Dp get() = if (DerbisIsPrism) PrismDesign.surfaceCorner else if (DerbisIsPixel) PixelDesign.panelCorner else 24.dp
+internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsPixel) 0.dp else 6.dp
 
 internal fun derbisGroupedListShape(index: Int, count: Int): Shape {
     val first = index == 0

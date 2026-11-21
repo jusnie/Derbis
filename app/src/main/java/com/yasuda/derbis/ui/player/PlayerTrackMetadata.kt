@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Favorite
-import com.yasuda.derbis.ui.icons.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import com.yasuda.derbis.ui.icons.CheckCircle
-import com.yasuda.derbis.ui.icons.Star
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbUp as OutlinedThumbUp
@@ -209,7 +209,7 @@ private fun metadataTitleSize(compact: Boolean, appleMusic: Boolean, prism: Bool
     DerbisIsSpotify -> 22.sp
     appleMusic -> 20.sp
     prism -> 23.sp
-    DerbisIsNocturne -> if (compact) 22.sp else 25.sp
+    DerbisIsPixel -> if (compact) 22.sp else 25.sp
     compact -> 23.sp
     else -> 27.sp
 }
@@ -226,7 +226,7 @@ private fun metadataTitleWeight(appleMusic: Boolean, prism: Boolean): FontWeight
     DerbisIsYouTubeMusic -> FontWeight.Bold
     DerbisIsSpotify -> FontWeight.Bold
     appleMusic -> FontWeight.Medium
-    DerbisIsNocturne || prism -> FontWeight.Medium
+    DerbisIsPixel || prism -> FontWeight.Medium
     else -> FontWeight.ExtraBold
 }
 
@@ -345,7 +345,7 @@ private fun DefaultPlayerFavoriteButton(
         fill = fill,
         borderTop = outline,
         borderBottom = outline,
-        shape = if (PlayerPrismStyle) androidx.compose.foundation.shape.CircleShape else rememberDerbisFavoriteMorphShape(favorite = isFavorite, animated = animated),
+        shape = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) androidx.compose.ui.graphics.RectangleShape else if (PlayerPrismStyle) androidx.compose.foundation.shape.CircleShape else rememberDerbisFavoriteMorphShape(favorite = isFavorite, animated = animated),
         modifier = Modifier
             .size(DerbisPlayerDesign.MinimumTouchTarget)
             .graphicsLayer {

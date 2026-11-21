@@ -60,6 +60,27 @@ class DerbisMiniPlayerStudioSettingsTest {
     }
 
     @Test
+    fun pixelMascotAndCharmCustomizationRoundTripsOnFloating() {
+        val settings = DerbisMiniPlayerStudioSettings()
+            .withStyle(MiniPlayerStyle.Floating)
+            .updateTuning(MiniPlayerStyle.Floating) {
+                it.copy(
+                    background = MiniBackground.Mascots,
+                    opacity = 32,
+                    mascotHead = PixelMascotHead.Cat,
+                    pixelCharm = PixelCharmChoice.Bow
+                )
+            }
+        val decoded = DerbisMiniPlayerStudioSettings.decode(settings.encode())
+        assertEquals(settings, decoded)
+        val floating = decoded.tuningFor(MiniPlayerStyle.Floating)
+        assertEquals(MiniBackground.Mascots, floating.background)
+        assertEquals(32, floating.opacity)
+        assertEquals(PixelMascotHead.Cat, floating.mascotHead)
+        assertEquals(PixelCharmChoice.Bow, floating.pixelCharm)
+    }
+
+    @Test
     fun originalIsNeverCustomized() {
         val settings = DerbisMiniPlayerStudioSettings().updateTuning(MiniPlayerStyle.Original) { it.copy(heightDp = 80) }
         assertTrue(settings.tunings.isEmpty())

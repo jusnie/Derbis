@@ -45,7 +45,7 @@ internal fun SkinOrbitTracks(
         return
     }
     val strings = LocalDerbisStrings.current
-    val corner = if (DerbisIsNocturne) Nocturne78Design.artworkCorner else PrismDesign.artworkCorner
+    val corner = if (DerbisIsPixel) PixelDesign.artworkCorner else PrismDesign.artworkCorner
     LazyRow(
         Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp)

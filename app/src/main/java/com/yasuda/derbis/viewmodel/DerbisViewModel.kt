@@ -127,6 +127,7 @@ import com.yasuda.derbis.domain.ChartsCatalog
 import com.yasuda.derbis.domain.DownloadedTrack
 import com.yasuda.derbis.domain.ExploreCatalog
 import com.yasuda.derbis.domain.ExploreCategory
+import com.yasuda.derbis.update.AUTO_UPDATE_CHECK_INTERVAL_MS
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.smartOfflineCopy
 import com.yasuda.derbis.ui.i18n.DerbisLiveRadioCatalog
@@ -246,6 +247,15 @@ import com.yasuda.derbis.feature.providers.CachedPlaybackProvider
 import com.yasuda.derbis.feature.providers.DerbisNativePlaybackProvider
 import com.yasuda.derbis.feature.providers.DerbisProviderRouter
 import com.yasuda.derbis.feature.providers.MemoryCatalogProvider
+import com.yasuda.derbis.data.subsonic.SubsonicClient
+import com.yasuda.derbis.data.subsonic.SubsonicCredentials
+import com.yasuda.derbis.data.subsonic.SubsonicFailure
+import com.yasuda.derbis.data.subsonic.SubsonicResult
+import com.yasuda.derbis.data.subsonic.SubsonicServerSummary
+import com.yasuda.derbis.data.subsonic.SubsonicSettingsStore
+import com.yasuda.derbis.data.subsonic.SubsonicTestState
+import com.yasuda.derbis.feature.providers.SubsonicCatalogProvider
+import com.yasuda.derbis.feature.providers.SubsonicPlaybackProvider
 import com.yasuda.derbis.feature.providers.YoutubeMusicCatalogProvider
 import com.yasuda.derbis.feature.search.DerbisSearchEngine
 import com.yasuda.derbis.feature.search.LocalSearchAffinity
@@ -329,6 +339,7 @@ import com.yasuda.derbis.player.PlaybackService
 import com.yasuda.derbis.player.incomingPlaybackFor
 import com.yasuda.derbis.player.PlaybackSleepTimerState
 import com.yasuda.derbis.player.PlaybackWarmup
+import com.yasuda.derbis.player.STREAM_BUFFERING_STALL_MESSAGE
 import com.yasuda.derbis.player.SponsorBlockSkipOnceTracker
 import com.yasuda.derbis.player.queuePrefetchPrimeBytes
 import com.yasuda.derbis.player.queue.AutoQueueTombstones
@@ -905,14 +916,32 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private val lyricsRepository = LyricsRepository(application.applicationContext)
     private val sponsorBlockRepository = SponsorBlockRepository()
     private val resolver = PlaybackResolver.getInstance(application.applicationContext)
+    private val subsonicSettings = SubsonicSettingsStore(application)
+    private val subsonicClient = SubsonicClient()
+
+    /**
+     * What the settings row shows about the home server.
+     *
+     * Deliberately not part of DerbisUiState: it is read by one screen, it changes only when the
+     * listener edits the form, and folding it into the main state would mean every screen
+     * recomposes when a server address changes.
+     */
+    private val _subsonicSummary = MutableStateFlow(SubsonicServerSummary())
+    val subsonicSummary: StateFlow<SubsonicServerSummary> = _subsonicSummary.asStateFlow()
+
+    private val _subsonicTest = MutableStateFlow<SubsonicTestState>(SubsonicTestState.Idle)
+    val subsonicTest: StateFlow<SubsonicTestState> = _subsonicTest.asStateFlow()
+
     private val providerRouter = DerbisProviderRouter(
         catalogProviders = listOf(
             YoutubeMusicCatalogProvider(repository),
-            MemoryCatalogProvider(repository)
+            MemoryCatalogProvider(repository),
+            SubsonicCatalogProvider(subsonicSettings, subsonicClient)
         ),
         playbackProviders = listOf(
             CachedPlaybackProvider(resolver),
-            DerbisNativePlaybackProvider(resolver)
+            DerbisNativePlaybackProvider(resolver),
+            SubsonicPlaybackProvider(subsonicSettings, subsonicClient)
         )
     )
     private val playlistImporter by lazy {
@@ -1566,6 +1595,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     val playerController get() = player.controller
 
     init {
+        // Award the lyric line its switch before playback can start, so a listener who turned it on
+        // gets it on the very first track of the process rather than the second.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(
+            startupSettings.interfaceSettings.statusBarLyrics
+        )
         viewModelScope.launch {
             searchEngine.state.collect(::applySearchSnapshot)
         }
@@ -4385,12 +4419,42 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         playWhenReady: Boolean,
         errorMessage: String
     ) {
-        if (isLocalPlaybackTrack(failedTrack) || PlaybackService.isExplicitPauseActive) return
+        if (isLocalPlaybackTrack(failedTrack)) {
+            player.clearRecoveryState()
+            return
+        }
+        if (errorMessage == STREAM_BUFFERING_STALL_MESSAGE && player.isRendering && _state.value.currentTrack?.id == failedTrack.id) {
+            player.clearRecoveryState()
+            player.markRecoverySucceeded()
+            return
+        }
+        // Always report and quarantine the failing stream URL (including an alternative HQ stream
+        // such as JioSaavn) before checking the pause fence, so the next Play falls back to a
+        // working source instead of replaying the dead URL.
+        resolver.reportPlaybackFailure(failedTrack, videoMode, errorMessage)
+        if (PlaybackService.isExplicitPauseActive) {
+            player.clearRecoveryState()
+            val currentIndex = queueEngine.state.value.currentIndex
+            val cleared = failedTrack.copy(streamUrl = "")
+            if (currentIndex >= 0 && queueEngine.state.value.currentTrack?.id == failedTrack.id) {
+                queueEngine.updateTrackAt(currentIndex, cleared)
+            }
+            _state.update { current ->
+                current.copy(
+                    isResolving = false,
+                    isPlaying = false,
+                    isAudioRendering = false,
+                    currentTrack = current.currentTrack?.let { active ->
+                        if (active.id == failedTrack.id) active.copy(streamUrl = "") else active
+                    }
+                )
+            }
+            return
+        }
         val transitionId = ++streamTransitionId
         modeSwitchJob?.cancel()
         streamRecoveryJob?.cancel()
-        resolver.reportPlaybackFailure(failedTrack, videoMode, errorMessage)
-        _state.update { it.copy(isResolving = true, isPlaying = playWhenReady, playerError = null) }
+        _state.update { it.copy(isResolving = true, isPlaying = playWhenReady, isAudioRendering = false, playerError = null) }
         streamRecoveryJob = viewModelScope.launch {
             try {
                 val selectedSource = if (videoMode) {
@@ -4404,6 +4468,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 if (!isActive || transitionId != streamTransitionId) return@launch
                 if (PlaybackService.isExplicitPauseActive) {
                     _state.update { it.copy(isResolving = false, isPlaying = false) }
+                    return@launch
+                }
+                if (errorMessage == STREAM_BUFFERING_STALL_MESSAGE && player.isRendering && _state.value.currentTrack?.id == failedTrack.id) {
+                    player.clearRecoveryState()
+                    player.markRecoverySucceeded()
+                    _state.update { it.copy(isResolving = false, isPlaying = true, playerError = null) }
                     return@launch
                 }
                 val shouldResume = playWhenReady && !PlaybackService.isExplicitPauseActive
@@ -4424,6 +4494,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                         selectedVideoSubtitleId = null,
                         isResolving = false,
                         isPlaying = shouldResume,
+                        isAudioRendering = false,
                         positionMs = positionMs,
                         bufferedPositionMs = positionMs,
                         durationMs = resolved.durationMs.takeIf { duration -> duration > 0L } ?: it.durationMs,
@@ -4446,13 +4517,22 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 if (error is CancellationException) throw error
                 if (transitionId != streamTransitionId) return@launch
                 if (playWhenReady && !PlaybackService.isExplicitPauseActive && isTransientNetworkFailure(error)) {
-                    player.deferRecoveryToService()
-                    _state.update { it.copy(isResolving = false, isPlaying = player.isPlaying, playerError = null) }
-                    return@launch
+                    if (PlaybackService.requestBackgroundStreamRecovery(positionMs)) {
+                        player.deferRecoveryToService()
+                        _state.update {
+                            it.copy(
+                                isResolving = false,
+                                isPlaying = true,
+                                isAudioRendering = false,
+                                playerError = null
+                            )
+                        }
+                        return@launch
+                    }
                 }
                 val message = cleanPlaybackError(error)
                 player.failRecovery(message)
-                _state.update { it.copy(isResolving = false, isPlaying = false, playerError = message) }
+                _state.update { it.copy(isResolving = false, isPlaying = false, isAudioRendering = false, playerError = message) }
             }
         }
     }
@@ -4783,6 +4863,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setDerbis360Experience(value: Derbis360Experience) =
         updateAudioSettings(_state.value.audioSettings.copy(derbis360Experience = value))
 
+    fun setKaraokeMode(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(karaokeMode = value))
+
+    fun setMonoEnabled(value: Boolean) =
+        updateAudioSettings(_state.value.audioSettings.copy(monoEnabled = value))
+
     fun setCrossfadeSeconds(seconds: Int) {
         updateAudioSettings(_state.value.audioSettings.copy(crossfadeSeconds = seconds))
     }
@@ -4791,14 +4877,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val settings = _state.value.audioSettings
         updateAudioSettings(settings.copy(
             djSoftMode = value,
-            beatSyncEnabled = if (value) false else settings.beatSyncEnabled,
             crossfadeSeconds = if (value && settings.crossfadeSeconds == 0) 6 else settings.crossfadeSeconds
         ))
-    }
-
-    fun setBeatSyncEnabled(value: Boolean) {
-        val settings = _state.value.audioSettings
-        updateAudioSettings(settings.copy(beatSyncEnabled = value, djSoftMode = if (value) false else settings.djSoftMode))
     }
 
     fun setReplayGainEnabled(value: Boolean) {
@@ -4830,6 +4910,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     fun setPitch(value: Float) {
         updateAudioSettings(_state.value.audioSettings.copy(pitch = value))
+    }
+
+    fun setDolbyAtmosEnabled(value: Boolean) {
+        updateAudioSettings(_state.value.audioSettings.copy(dolbyAtmosEnabled = value))
     }
 
     fun setGaplessEnabled(value: Boolean) {
@@ -5685,9 +5769,20 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(showSettings = false) }
     }
 
+    /**
+     * Asks GitHub for the release this build should be comparing against.
+     *
+     * [silent] is the automatic check that runs shortly after a cold start: it never posts a
+     * message, it respects a dismissal, and it is skipped entirely when a check already ran
+     * inside [AUTO_UPDATE_CHECK_INTERVAL_MS]. A manual check from Settings always runs, so
+     * "check now" means now.
+     */
     fun checkForUpdates(silent: Boolean = false) {
         if (!BuildConfig.UPSTREAM_UPDATES_ENABLED) return
         if (updateJob?.isActive == true) return
+        if (silent && System.currentTimeMillis() - preferences.lastUpdateCheckMs() < AUTO_UPDATE_CHECK_INTERVAL_MS) {
+            return
+        }
         updateJob = viewModelScope.launch {
             _state.update {
                 it.copy(
@@ -5697,12 +5792,21 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             }
             val result = runCatching { appUpdateRepository.latest() }
             result.onSuccess { info ->
-                val dismissed = preferences.dismissedUpdateVersion()
+                preferences.setLastUpdateCheckMs(System.currentTimeMillis())
+                // Dismissals are remembered per release tag. A version name is not unique -
+                // two different prebuilds can both be called 1.5.0 - and the old key made
+                // dismissing one hide the other. The name stays as the fallback for a
+                // dismissal written before tags were stored.
+                val dismissedTag = preferences.dismissedUpdateTag()
+                val dismissedVersion = preferences.dismissedUpdateVersion()
+                val dismissed = info.latestTag.isNotBlank() &&
+                    (dismissedTag == info.latestTag ||
+                        (dismissedTag.isBlank() && dismissedVersion == info.latestVersionName))
                 _state.update {
                     it.copy(
                         updateInfo = info,
                         isCheckingUpdates = false,
-                        showUpdatePrompt = info.isNewer && (!silent || dismissed != info.latestVersionName),
+                        showUpdatePrompt = info.isNewer && (!silent || !dismissed),
                         updateMessage = when {
                             silent -> null
                             info.isNewer -> DerbisStrings.forCode(it.languageCode).appUpdateAvailable(info.latestVersionName)
@@ -5712,6 +5816,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }.onFailure { error ->
                 if (error is CancellationException) throw error
+                // A failed check is not recorded, so the next cold start tries again instead of
+                // sitting out the interval.
                 _state.update {
                     it.copy(
                         isCheckingUpdates = false,
@@ -5723,7 +5829,10 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun dismissUpdatePrompt() {
-        _state.value.updateInfo?.latestVersionName?.let { preferences.setDismissedUpdateVersion(it) }
+        _state.value.updateInfo?.let { info ->
+            if (info.latestTag.isNotBlank()) preferences.setDismissedUpdateTag(info.latestTag)
+            preferences.setDismissedUpdateVersion(info.latestVersionName)
+        }
         _state.update { it.copy(showUpdatePrompt = false) }
     }
 
@@ -5757,6 +5866,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun setMotionArtworkEnabled(value: Boolean) {
         // Canvas is a deliberate opt-in. Turning it off clears every resolved loop immediately;
         // turning it on resolves only provider-supplied artwork and always falls back to the cover.
+        //
+        // This is the only control for animated artwork (Settings -> Interface). The interface
+        // snapshot owns the same flag for backup and the startup restore, and it also arms the
+        // motion-artwork network policy, so both have to move together or the switch would draw
+        // one state while the engine obeys another.
+        val interfaceSettings = _state.value.interfaceSettings
+        if (interfaceSettings.motionArtworkEnabled != value) {
+            val updated = interfaceSettings.copy(motionArtworkEnabled = value)
+            preferences.setInterfaceSettings(updated)
+            com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy.updateEnabled(value)
+            _state.update { it.copy(interfaceSettings = updated) }
+        }
         _state.update {
             it.copy(
                 motionArtworkEnabled = value,
@@ -5783,6 +5904,75 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(dynamicColor = value) }
     }
 
+    fun refreshSubsonicSummary() {
+        // Reading the summary decrypts the stored password, so it never runs on the main thread —
+        // this is called from composition.
+        viewModelScope.launch {
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+        }
+    }
+
+    /**
+     * Saves a server and switches it on.
+     *
+     * The password goes straight to the Keystore-backed store and is not copied into any state
+     * object, which is why this takes three strings rather than a credentials object the UI could
+     * then keep holding.
+     */
+    fun saveSubsonicServer(serverUrl: String, username: String, password: String) {
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                subsonicSettings.save(
+                    SubsonicCredentials(
+                        serverUrl = serverUrl.trim(),
+                        username = username.trim(),
+                        password = password
+                    ),
+                    enabled = true
+                )
+            }
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+            _subsonicTest.value = SubsonicTestState.Idle
+        }
+    }
+
+    fun clearSubsonicServer() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { subsonicSettings.clear() }
+            _subsonicSummary.value = withContext(Dispatchers.IO) { subsonicSettings.summary() }
+            _subsonicTest.value = SubsonicTestState.Idle
+        }
+    }
+
+    fun testSubsonicServer(serverUrl: String, username: String, password: String) {
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            _subsonicTest.value = SubsonicTestState.Failed(SubsonicFailure.IncompleteForm)
+            return
+        }
+        if (_subsonicTest.value is SubsonicTestState.Testing) return
+        _subsonicTest.value = SubsonicTestState.Testing
+        viewModelScope.launch {
+            val result = subsonicClient.ping(
+                SubsonicCredentials(serverUrl = serverUrl.trim(), username = username.trim(), password = password)
+            )
+            _subsonicTest.value = when (result) {
+                is SubsonicResult.Ok -> SubsonicTestState.Ok(
+                    serverType = result.value.serverType,
+                    version = result.value.version
+                )
+                is SubsonicResult.Failed -> SubsonicTestState.Failed(
+                    reason = SubsonicFailure.Rejected,
+                    message = result.message
+                )
+                is SubsonicResult.Unreachable -> SubsonicTestState.Failed(
+                    reason = SubsonicFailure.Unreachable,
+                    message = result.message
+                )
+            }
+        }
+    }
+
     fun setInterfaceSettings(value: DerbisInterfaceSettings) {
         val normalized = value.normalized()
         val previous = _state.value.interfaceSettings
@@ -5794,6 +5984,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             normalized.motionArtworkEnabled
         )
         DerbisTypographyController.apply(normalized.fontPreset)
+        // The playback tick reads a volatile flag, not a preference, so it is pushed here.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(normalized.statusBarLyrics)
+        // Same reason: every artwork URL is rewritten on Coil's decode threads, so the ceiling is
+        // a volatile read rather than a preference lookup per image.
+        com.yasuda.derbis.data.ArtworkQualityCeiling.update(normalized.artworkQuality)
         _state.update { it.copy(interfaceSettings = normalized) }
         if (!previous.blockAiContent && normalized.blockAiContent &&
             _state.value.currentTrack?.let(AiContentFilter::blocks) == true
@@ -6167,11 +6362,30 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     fun refreshPlaybackDiagnostics(): String {
         val diagnostics = listOf(
             resolver.playbackDiagnostics(),
-            providerRouter.diagnostics()
+            providerRouter.diagnostics(),
+            beatGridDiagnostics(),
+            com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety.describe()
         ).filter { it.isNotBlank() }.joinToString("\n")
         _state.update { it.copy(playbackDiagnostics = diagnostics) }
         return diagnostics
     }
+
+    /** What the beat analyser has managed to measure, so the player visuals are explainable. */
+    private fun beatGridDiagnostics(): String = runCatching {
+        val analysed = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).analysedCount()
+        buildString {
+            appendLine("beat grids analysed on this device: $analysed")
+            val current = _state.value.currentTrack
+            if (current != null) {
+                val grid = com.yasuda.derbis.data.DerbisBeatGridStore(getApplication()).gridFor(current.id)
+                appendLine(
+                    "current track grid: " + (grid?.let { g ->
+                        "bpm=${g.validBpm?.let { "%.1f".format(it) } ?: "?"} confidence=${"%.2f".format(g.confidence)}"
+                    } ?: "not analysed yet")
+                )
+            }
+        }
+    }.getOrDefault("")
 
     private suspend fun refreshAfterRestore() {
         val snapshot = withContext(Dispatchers.IO) { preferences.snapshot() }
@@ -6234,6 +6448,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         localLibrarySortFlow.value =
             snapshot.interfaceSettings.librarySort to snapshot.interfaceSettings.librarySortDirection
         DerbisTypographyController.apply(snapshot.interfaceSettings.fontPreset)
+        // A backup restore is the other way this value changes without the settings screen.
+        com.yasuda.derbis.player.LyricStatusLineSettings.update(snapshot.interfaceSettings.statusBarLyrics)
         applyLanguageContent(snapshot.languageCode, refreshRemote = true)
         player.setSkipSilence(snapshot.skipSilence)
         player.setPremiumAudioSettings(snapshot.audioSettings, snapshot.audioNormalization)
@@ -10394,6 +10610,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 currentTrack = track.copy(streamUrl = ""),
                 youtubeEngagement = YoutubeEngagementState(videoId = engagementVideoId),
                 isPlaying = false,
+                isAudioRendering = false,
                 positionMs = 0L,
                 bufferedPositionMs = 0L,
                 durationMs = track.durationMs,
@@ -10514,6 +10731,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 isResolving = false,
                 isPlaying = false,
+                isAudioRendering = false,
                 positionMs = 0L,
                 bufferedPositionMs = 0L,
                 durationMs = track.durationMs,
@@ -11495,6 +11713,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 searchResults = mergeTracks(it.searchResults, listOf(resolved)),
                 activeLyric = lyricsEngine.currentLine(resumeMs, it.lyrics),
                 isPlaying = !startPaused,
+                isAudioRendering = false,
                 isResolving = false,
                 durationMs = effectiveDuration(resolved),
                 positionMs = resumeMs,
@@ -13342,6 +13561,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             pendingSeekMs = queue.positionMs
             startResolve(current)
         } else {
+            PlaybackService.beginExplicitPlaybackRequest()
             player.play(current, _state.value.isVideoMode, startPositionMs = resumePositionFor(current))
             _state.update { it.copy(isPlaying = true) }
         }
@@ -13363,6 +13583,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         _state.update {
             it.copy(
                 isPlaying = false,
+                isAudioRendering = false,
                 isResolving = false,
                 liveRadioReconnectAttempt = 0
             )
@@ -13467,6 +13688,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 sleepTimerTotalMs = 0L,
                 showSleepTimer = false,
                 isPlaying = false,
+                isAudioRendering = false,
                 pendingVideoMode = null,
                 isResolving = false,
                 positionMs = 0L,
@@ -13707,6 +13929,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             var lastBackgroundUiUpdateMs = 0L
             var lastQueueUpdateMs = 0L
             var lastPlaybackSaveMs = 0L
+            var lastProgressTrackId: String? = null
+            var lastProgressPositionMs = -1L
+            var lastProgressAdvanceElapsedMs = 0L
             while (isActive && !exitingApplication) {
                 val snapshot = _state.value
                 val current = snapshot.currentTrack
@@ -13742,10 +13967,20 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 } else {
                     player.positionMs
                 }
+                val rawRendering = incomingCrossfadePlayback != null || player.isRendering
+                val trackId = current?.id
+                if (trackId != lastProgressTrackId || !rawRendering || position != lastProgressPositionMs) {
+                    lastProgressTrackId = trackId
+                    lastProgressPositionMs = position
+                    lastProgressAdvanceElapsedMs = nowElapsed
+                }
+                val audioRendering = rawRendering &&
+                    (current?.isLiveRadio() == true || nowElapsed - lastProgressAdvanceElapsedMs < 1_250L)
                 val buffered = incomingCrossfadePlayback?.bufferedPositionMs
                     ?: (player.bufferedPositionMs / 1_000L) * 1_000L
                 val active = lyricsEngine.currentLine(position, snapshot.lyrics)
-                val playbackStateChanged = snapshot.isPlaying != player.isPlaying
+                val playbackStateChanged = snapshot.isPlaying != player.isPlaying ||
+                    snapshot.isAudioRendering != audioRendering
                 val shouldPublishUi = snapshot.selectedTab == DerbisTab.Player ||
                     snapshot.showLyrics ||
                     nowElapsed - lastBackgroundUiUpdateMs >= 1_000L ||
@@ -13758,6 +13993,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                             bufferedPositionMs = buffered.coerceAtLeast(position),
                             durationMs = duration,
                             isPlaying = player.isPlaying,
+                            isAudioRendering = audioRendering,
                             activeLyric = active
                         )
                     }

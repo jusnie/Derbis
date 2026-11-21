@@ -2,9 +2,16 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.domain.LyricsProviderId
+import com.yasuda.derbis.feature.icon.DerbisAppIcon
+import com.yasuda.derbis.feature.icon.DerbisAppIconManager
+import com.yasuda.derbis.ui.components.DiscordBrandColor
+import com.yasuda.derbis.ui.components.DiscordBrandVector
+import com.yasuda.derbis.ui.components.SpotifyBrandBlack
+import com.yasuda.derbis.ui.components.SpotifyBrandColor
+import com.yasuda.derbis.ui.components.SpotifyBrandVector
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.nocturneMiniSettings
-import com.yasuda.derbis.ui.theme.nocturneNavSettings
+import com.yasuda.derbis.ui.theme.pixelMiniSettings
+import com.yasuda.derbis.ui.theme.pixelNavSettings
 
 import com.yasuda.derbis.ui.components.derbisMarquee
 import com.yasuda.derbis.ui.components.DerbisBackButton
@@ -21,8 +28,11 @@ import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import com.yasuda.derbis.ui.icons.Lock
 import androidx.compose.material.icons.rounded.Whatshot
+import com.yasuda.derbis.ui.components.LocalDerbisAppBackdrop
+import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
+import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
+import com.yasuda.derbis.ui.components.LiquidGlassBottomChrome
 import com.yasuda.derbis.ui.components.DerbisIonicons
 import com.yasuda.derbis.data.fullResolutionArtworkUrl
 import androidx.compose.material.icons.rounded.FormatQuote
@@ -69,7 +79,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
@@ -123,6 +133,10 @@ import com.yasuda.derbis.ui.lyrics.lyricsProviderDisplayName
 import com.yasuda.derbis.ui.lyrics.lyricsShouldFollowActiveLine
 import com.yasuda.derbis.ui.lyrics.LyricsShareSheet
 import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
+import com.yasuda.derbis.ui.spotify.SpotifyCanvasSheet
+import com.yasuda.derbis.ui.spotify.clearSpotifyWebCookies
+import com.yasuda.derbis.feature.motion.SpotifyOfficialCanvas
+import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.ui.lyrics.LyricsShareSnapshot
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
@@ -150,6 +164,7 @@ import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalDotIntensity
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalGaps
 import com.yasuda.derbis.ui.lyrics.lyricsInstrumentalProgress
+import com.yasuda.derbis.ui.lyrics.KARAOKE_VISUAL_LEAD_MS
 import com.yasuda.derbis.ui.lyrics.lyricsLineFocusPositionMs
 import com.yasuda.derbis.ui.lyrics.rememberLyricsPlaybackClock
 import com.yasuda.derbis.ui.lyrics.LYRICS_LANDSCAPE_CHROME_HEIGHT_DP
@@ -169,8 +184,6 @@ import com.yasuda.derbis.ui.theme.DerbisPlayerShapes
 import com.yasuda.derbis.ui.theme.DerbisHomeDesign
 import com.yasuda.derbis.ui.player.*
 import com.yasuda.derbis.domain.PlayerVisualMode
-import com.yasuda.derbis.domain.PlayerBackgroundMode
-import com.yasuda.derbis.domain.ReactiveAuraPreset
 import com.yasuda.derbis.domain.PlayerColorMode
 import com.yasuda.derbis.domain.ResonanceCommentSnippet
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -325,13 +338,13 @@ import com.yasuda.derbis.domain.MiniPlayerStyle
 import com.yasuda.derbis.domain.NavColorSource
 import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.DerbisSkin
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.SkinSelector
 import com.yasuda.derbis.ui.i18n.NavStudioText
 import com.yasuda.derbis.ui.i18n.navigationStudioCopy
-import com.yasuda.derbis.ui.icons.Public
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Groups
 import com.yasuda.derbis.ui.i18n.settingsHubCopy
@@ -359,63 +372,64 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Search
-import com.yasuda.derbis.ui.icons.Album
-import com.yasuda.derbis.ui.icons.AutoAwesome
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.Explore
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
-import com.yasuda.derbis.ui.icons.GraphicEq
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Radio
-import com.yasuda.derbis.ui.icons.Headphones
-import com.yasuda.derbis.ui.icons.Equalizer
-import com.yasuda.derbis.ui.icons.Favorite
-import com.yasuda.derbis.ui.icons.FavoriteBorder
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SmartDisplay
-import com.yasuda.derbis.ui.icons.LibraryMusic
+import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Mood
-import com.yasuda.derbis.ui.icons.MusicNote
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.SlowMotionVideo
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.BookmarkAdd
-import com.yasuda.derbis.ui.icons.Bolt
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Block
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.CloseFullscreen
-import com.yasuda.derbis.ui.icons.Fullscreen
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.CloseFullscreen
+import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ColorLens
-import com.yasuda.derbis.ui.icons.ContentCopy
-import com.yasuda.derbis.ui.icons.CheckCircle
-import com.yasuda.derbis.ui.icons.Delete
-import com.yasuda.derbis.ui.icons.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.rounded.Translate
-import com.yasuda.derbis.ui.icons.Download
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Search
-import com.yasuda.derbis.ui.icons.AccountCircle
-import com.yasuda.derbis.ui.icons.Settings
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.PersonOff
 import androidx.compose.material.icons.rounded.PlaylistRemove
 import androidx.compose.material3.IconButtonDefaults
 import com.yasuda.derbis.ui.components.DerbisExpressiveIconButton
-import com.yasuda.derbis.ui.icons.Share
-import com.yasuda.derbis.ui.icons.Shuffle
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.OfflinePin
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.LibraryAdd
@@ -429,38 +443,38 @@ import androidx.compose.material.icons.rounded.Swipe
 import androidx.compose.material.icons.rounded.SwipeVertical
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material.icons.rounded.Vibration
-import com.yasuda.derbis.ui.icons.Mic
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.Recommend
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.Nightlight
-import com.yasuda.derbis.ui.icons.Person
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Nightlight
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonAdd
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Palette
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Verified
-import com.yasuda.derbis.ui.icons.KeyboardArrowDown
-import com.yasuda.derbis.ui.icons.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
-import com.yasuda.derbis.ui.icons.History
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
-import com.yasuda.derbis.ui.icons.Info
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import com.yasuda.derbis.ui.icons.Schedule
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material.icons.rounded.Style
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import com.yasuda.derbis.ui.icons.PushPin
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.automirrored.rounded.Reply
-import com.yasuda.derbis.ui.icons.Refresh
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import com.yasuda.derbis.ui.icons.Visibility
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material.icons.rounded.ViewCompact
 import androidx.compose.material.icons.rounded.TextFields
@@ -477,13 +491,14 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.SwipeToDismissBoxDefaults
 import androidx.compose.material3.SwipeToDismissBoxState
-import com.yasuda.derbis.ui.icons.Add
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCircleOutline
-import com.yasuda.derbis.ui.icons.Star
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
@@ -624,7 +639,14 @@ import com.yasuda.derbis.data.filterSearchSongsExcludingTopResult
 import com.yasuda.derbis.data.findVerifiedTopResultArtist
 import com.yasuda.derbis.data.deduplicateSearchSongs
 import com.yasuda.derbis.data.selectSearchTopResultTracks
+import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
+import com.yasuda.derbis.data.subsonic.SubsonicFailure
+import com.yasuda.derbis.data.subsonic.SubsonicServerSummary
+import com.yasuda.derbis.data.subsonic.SubsonicTestState
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
+import com.yasuda.derbis.data.spotify.SpotifyCookie
 import com.yasuda.derbis.player.NativeAudioIntegration
+import com.yasuda.derbis.player.audio.DerbisDolbyAtmos
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OPTIONS
 import com.yasuda.derbis.domain.AppUpdateInfo
@@ -650,6 +672,8 @@ import com.yasuda.derbis.domain.availableSearchAlbumKinds
 import com.yasuda.derbis.ui.youtubemusic.entryFor
 import com.yasuda.derbis.domain.SmartMusicProfile
 import com.yasuda.derbis.domain.DerbisCanvasQuality
+import com.yasuda.derbis.domain.DerbisExplicitFilter
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.DerbisVisualPerformance
 import com.yasuda.derbis.domain.DerbisContentLocales
 import com.yasuda.derbis.domain.DerbisLanguageCatalog
@@ -752,6 +776,11 @@ import com.yasuda.derbis.ui.theme.derbisFontFamilyFor
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsRendererMode
 import com.yasuda.derbis.ui.island.DerbisMusicNotch
+import com.yasuda.derbis.ui.island.NotchCustomizeSheet
+import com.yasuda.derbis.ui.island.NotchBaseTopDp
+import com.yasuda.derbis.ui.island.NotchPreview
+import com.yasuda.derbis.ui.island.NotchSideInsetDp
+import com.yasuda.derbis.ui.island.notchSummary
 import com.yasuda.derbis.ui.lyrics.spicy.SpicyFullscreenLyrics
 import com.yasuda.derbis.domain.LyricsActiveColorMode
 import com.yasuda.derbis.domain.LyricsAlignment
@@ -804,6 +833,7 @@ import com.yasuda.derbis.viewmodel.buildHomeRenderSnapshot
 import com.yasuda.derbis.viewmodel.HomeViewModel
 import com.yasuda.derbis.viewmodel.DerbisScreenViewModelFactory
 import com.yasuda.derbis.viewmodel.withAiContentBlocked
+import com.yasuda.derbis.viewmodel.withExplicitFiltered
 import com.yasuda.derbis.ui.discovery.discoverySection
 import com.yasuda.derbis.ui.discovery.DiscoveryHomeHost
 import com.yasuda.derbis.ui.discovery.LocalHomeDiscovery
@@ -922,7 +952,7 @@ private val DerbisTabIndicatorTop = 11.dp
 private val DerbisTabIndicatorHeight = 36.dp
 private val DerbisTabIndicatorShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 15.dp, bottomEnd = 15.dp)
 private val DerbisTabScrimHeight = 22.dp
-private val DerbisNavigationBlue: Color get() = if (DerbisIsNocturne) DerbisCyan else Color(0xFF0A84FF)
+private val DerbisNavigationBlue: Color get() = if (DerbisIsPixel) DerbisCyan else Color(0xFF0A84FF)
 private val DerbisHomeGlowViolet = Color(0xFF6E5CF0)
 
 internal val DerbisIsLight: Boolean get() = DerbisActivePalette.isLight
@@ -1098,7 +1128,7 @@ private fun cinematicGlassBrush(
     accentEnd: Color = DerbisViolet,
     intensity: Float = 1f
 ): Brush {
-    if (DerbisIsNocturne) return Brush.linearGradient(listOf(DerbisPanel, DerbisPanel))
+    if (DerbisIsPixel) return Brush.linearGradient(listOf(DerbisPanel, DerbisPanel))
     return if (DerbisIsLight) {
         Brush.linearGradient(
             listOf(
@@ -1153,13 +1183,13 @@ internal data class DerbisTabEntry(
 @Composable
 internal fun rememberDerbisTabEntries(): List<DerbisTabEntry> {
     val strings = LocalDerbisStrings.current
-    val nocturne = DerbisIsNocturne
-    return remember(strings, nocturne) {
+    val pixel = DerbisIsPixel
+    return remember(strings, pixel) {
         listOf(
-            DerbisTabEntry(DerbisTab.Home, if (nocturne) Icons.Outlined.Home else Icons.Rounded.Home, Icons.Outlined.Home, strings.home),
-            DerbisTabEntry(DerbisTab.Search, if (nocturne) Icons.Outlined.Search else Icons.Rounded.Search, Icons.Outlined.Search, strings.search),
-            DerbisTabEntry(DerbisTab.Explore, if (nocturne) Icons.Outlined.Explore else Icons.Rounded.Explore, Icons.Outlined.Explore, strings.explore),
-            DerbisTabEntry(DerbisTab.Library, if (nocturne) Icons.Outlined.LibraryMusic else Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic, strings.library)
+            DerbisTabEntry(DerbisTab.Home, if (pixel) Icons.Outlined.Home else Icons.Rounded.Home, Icons.Outlined.Home, strings.home),
+            DerbisTabEntry(DerbisTab.Search, if (pixel) Icons.Outlined.Search else Icons.Rounded.Search, Icons.Outlined.Search, strings.search),
+            DerbisTabEntry(DerbisTab.Explore, if (pixel) Icons.Outlined.Explore else Icons.Rounded.Explore, Icons.Outlined.Explore, strings.explore),
+            DerbisTabEntry(DerbisTab.Library, if (pixel) Icons.Outlined.LibraryMusic else Icons.Rounded.LibraryMusic, Icons.Outlined.LibraryMusic, strings.library)
         )
     }
 }
@@ -1909,8 +1939,17 @@ fun DerbisApp(
     val youtubeMusicState by youtubeMusicViewModel.state.collectAsStateWithLifecycle()
     var showYoutubeMusic by rememberSaveable { mutableStateOf(false) }
 
+    val subsonicSummary by viewModel.subsonicSummary.collectAsStateWithLifecycle()
+    val subsonicTest by viewModel.subsonicTest.collectAsStateWithLifecycle()
     val rawState by viewModel.state.collectAsStateWithLifecycle()
-    val state = remember(rawState, rawState.interfaceSettings.blockAiContent) { rawState.withAiContentBlocked() }
+    // One choke point for both content settings, in the order the listener would expect: the AI
+    // block first, then the explicit filter, so the explicit pass never has to consider tracks the
+    // AI block has already removed. The key carries both values, so flipping either rebuilds once.
+    val state = remember(
+        rawState,
+        rawState.interfaceSettings.blockAiContent,
+        rawState.interfaceSettings.explicitFilter
+    ) { rawState.withAiContentBlocked().withExplicitFiltered() }
     val miniPlayerStudio by viewModel.miniPlayerStudio.collectAsStateWithLifecycle()
     val customThemes by viewModel.customThemes.collectAsStateWithLifecycle()
     val navigationStudio by viewModel.navigationStudio.collectAsStateWithLifecycle()
@@ -2050,9 +2089,9 @@ fun DerbisApp(
     }
     val rootView = LocalView.current
     LaunchedEffect(state.themePreset, pureBlack, customThemes, state.interfaceSettings.skin, DerbisActivePalette.isLight) {
-        val nocturne = state.interfaceSettings.skin == DerbisSkin.Nocturne78
+        val pixel = state.interfaceSettings.skin == DerbisSkin.Pixel
         val base = when (state.interfaceSettings.skin) {
-            DerbisSkin.Nocturne78 -> Nocturne78Palette
+            DerbisSkin.Pixel -> PixelPalette
             DerbisSkin.LiquidGlass, DerbisSkin.Torque, DerbisSkin.Ivory, DerbisSkin.AppleMusicStyle, DerbisSkin.TidalStyle, DerbisSkin.YouTubeMusicStyle -> DerbisActivePalette
             DerbisSkin.SpotifyStyle -> spotifyPalette()
             DerbisSkin.Default -> DerbisThemes.byId(state.themePreset)
@@ -2207,14 +2246,29 @@ fun DerbisApp(
     val glassLensTier = com.yasuda.derbis.ui.rememberDerbisGlassTier(
         heavyBlur = visualCapabilities.heavyBlur
     )
+    // Liquid Glass records the page into a backdrop layer that every glass surface samples.
+    // Only the Liquid Glass skin pays for it; other skins draw their own opaque materials.
+    // The glass has no options any more: the Liquid Glass skin always renders it. Low RAM and
+    // the battery saver drop it to the cheap tier (no lens, coarser sampling) instead of
+    // removing it, because "the skin is liquid glass and nothing is glass" was the bug.
+    val appBackdrop = rememberDerbisAppBackdrop(
+        enabled = DerbisIsLiquidGlass &&
+            !glassMaterialIsOpaque &&
+            rememberLiquidGlassEngineAllowed(
+                explicitlyReduced = state.interfaceSettings.visualPerformance ==
+                    DerbisVisualPerformance.Smooth
+            ),
+        background = DerbisBlack
+    )
     CompositionLocalProvider(
+        LocalDerbisAppBackdrop provides appBackdrop,
         LocalAnimationsEnabled provides state.animationsEnabled,
         LocalDerbisVisualCapabilities provides visualCapabilities,
         com.yasuda.derbis.ui.LocalDerbisGlassTier provides glassLensTier,
         LocalDerbisStrings provides currentStrings,
         LocalDerbisHaptics provides rememberDerbisHaptics(state.interfaceSettings.hapticFeedback),
         LocalLayoutDirection provides layoutDirection,
-        LocalNocturneNavigationHeight provides remember { mutableStateOf(64.dp) },
+        LocalPixelNavigationHeight provides remember { mutableStateOf(64.dp) },
         LocalNavDockExtraClearance provides if (DerbisSkinManagesLayout) 0.dp else navDockExtraClearance(navigationStudio.settings.style, navigationStudio.settings.activeTuning()),
         LocalNavArtworkSeed provides navArtworkSeed,
         LocalDerbisGlassAccessibility provides glassAccessibility
@@ -2226,15 +2280,6 @@ fun DerbisApp(
                     .background(DerbisBlack)
             ) {
             val dockState = rememberDerbisDockState()
-            val glassBlurAllowed = rememberGlassBlurAllowed()
-            val dockGlass = rememberGlassBackdropState(
-                enabled = (state.interfaceSettings.liquidGlassEnabled ||
-                    state.interfaceSettings.skin == DerbisSkin.LiquidGlass) &&
-                    !glassMaterialIsOpaque &&
-                    glassBlurAllowed &&
-                    (!DerbisSkinManagesLayout || state.interfaceSettings.skin == DerbisSkin.LiquidGlass)
-            )
-
             val homeListState = rememberLazyListState()
             val homeDeferredSectionsRevealed = remember { mutableStateOf(false) }
             val rootDensity = LocalDensity.current
@@ -2389,150 +2434,165 @@ fun DerbisApp(
                     .fillMaxSize()
                     .nestedScroll(dockState)
             ) {
-                // The shared layer intentionally contains only the atmospheric backdrop. Recording
-                // foreground content here would turn a glass panel into a blurred echo of itself.
-                DerbisHomeAtmosphere(
-                    isLight = DerbisIsLight,
-                    accent = yourSoundAccent,
-                    modifier = Modifier.glassBackdropSource(dockGlass)
-                )
-                CompositionLocalProvider(LocalGlassBackdrop provides dockGlass) {
-            val homeSaveableState = rememberSaveableStateHolder()
-            AnimatedContent(
-                targetState = backgroundTab,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        val depth = playerBackgroundScale(expansionProvider())
-                        scaleX = depth
-                        scaleY = depth
-                    },
-                transitionSpec = {
-                    val forward = targetState.ordinal >= initialState.ordinal
-                    val rtl = layoutDirection == LayoutDirection.Rtl
-                    DerbisMotion.tabSwap(state.animationsEnabled, if (forward != rtl) 1 else -1)
-                },
-                label = "derbis-page-transition"
-            ) { tab ->
+                // Only the page is recorded: the atmosphere it sits on, plus the screen inside
+                // it. The chrome below is a sibling of this box, so the dock, the mini player,
+                // the player and the sheets sample a layer that has already finished
+                // recording this frame. The recorded layer used to wrap the chrome as well,
+                // and a surface that samples the layer it is being drawn into cannot work —
+                // every one of them failed its draw, tripped the safety guard, and left the
+                // whole app on the flat tinted fallback.
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .windowInsetsPadding(DerbisHorizontalSafeInsets)
-                        .derbisSystemGlass()
+                        .then(if (appBackdrop != null) Modifier.layerBackdrop(appBackdrop) else Modifier)
                 ) {
-                    when (tab) {
-                        DerbisTab.Home -> {
-                            val homeViewModel: HomeViewModel = composeViewModel(key = "derbis-home", factory = screenViewModelFactory)
-                            val renderSnapshot by homeViewModel.renderState.collectAsStateWithLifecycle()
-                            homeSaveableState.SaveableStateProvider("derbis-home") {
-                                CompositionLocalProvider(
-                                    LocalHomeCompactDensity provides
-                                        renderSnapshot.state.interfaceSettings.compactHome
-                                ) {
-                                    val youtubeMusicLibrary = youtubeMusicState.library
-                                    val youtubeMusicCreatedLabel = com.yasuda.derbis.ui.i18n.youtubeMusicHomeCopy(state.languageCode).createdByYou
-                                    val youtubeMusicShelf = remember(youtubeMusicLibrary, youtubeMusicCreatedLabel) {
-                                        youtubeMusicLibrary?.let { library ->
-                                            com.yasuda.derbis.ui.youtubemusic.youtubeMusicShelfAlbums(library, youtubeMusicCreatedLabel)
-                                        }.orEmpty()
-                                    }
-                                    LaunchedEffect(youtubeMusicState.active?.id, state.languageCode, youtubeMusicState.restoring) {
-                                        youtubeMusicViewModel.loadLibraryShelf(state.languageCode)
-                                    }
-                                    val youtubeMusicHome = youtubeMusicState.active?.let { account ->
-                                        com.yasuda.derbis.ui.youtubemusic.YoutubeMusicHomeShelfUi(
-                                            accountName = account.name,
-                                            avatarUrl = account.avatarUrl,
-                                            albums = youtubeMusicShelf,
-                                            loading = youtubeMusicState.libraryLoading,
-                                            error = youtubeMusicState.libraryError,
-                                            onOpen = { album ->
-                                                val entry = youtubeMusicLibrary?.entryFor(album)
-                                                if (entry != null) {
-                                                    if (entry.collection == com.yasuda.derbis.data.youtubemusic.YoutubeMusicCollection.Albums) {
-                                                        viewModel.openAlbum(album)
-                                                    } else {
-                                                        youtubeMusicViewModel.open(state.languageCode)
-                                                        youtubeMusicViewModel.openDetail(entry)
-                                                        showYoutubeMusic = true
-                                                    }
+                    DerbisHomeAtmosphere(
+                        isLight = DerbisIsLight,
+                        accent = yourSoundAccent,
+                        modifier = Modifier
+                    )
+                    // Everything inside this box is recorded into the backdrop layer, so it must
+                    // not sample that same layer: drawing a GraphicsLayer while it is being
+                    // recorded throws. Page-level glass keeps the cheap material; the chrome
+                    // outside this box reads the real backdrop.
+                    CompositionLocalProvider(LocalDerbisAppBackdrop provides null) {
+                        val homeSaveableState = rememberSaveableStateHolder()
+                        AnimatedContent(
+                            targetState = backgroundTab,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val depth = playerBackgroundScale(expansionProvider())
+                                    scaleX = depth
+                                    scaleY = depth
+                                },
+                            transitionSpec = {
+                                val forward = targetState.ordinal >= initialState.ordinal
+                                val rtl = layoutDirection == LayoutDirection.Rtl
+                                DerbisMotion.tabSwap(state.animationsEnabled, if (forward != rtl) 1 else -1)
+                            },
+                            label = "derbis-page-transition"
+                        ) { tab ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .windowInsetsPadding(DerbisHorizontalSafeInsets)
+                                    .derbisSystemGlass()
+                            ) {
+                                when (tab) {
+                                    DerbisTab.Home -> {
+                                        val homeViewModel: HomeViewModel = composeViewModel(key = "derbis-home", factory = screenViewModelFactory)
+                                        val renderSnapshot by homeViewModel.renderState.collectAsStateWithLifecycle()
+                                        homeSaveableState.SaveableStateProvider("derbis-home") {
+                                            CompositionLocalProvider(
+                                                LocalHomeCompactDensity provides
+                                                    renderSnapshot.state.interfaceSettings.compactHome
+                                            ) {
+                                                val youtubeMusicLibrary = youtubeMusicState.library
+                                                val youtubeMusicCreatedLabel = com.yasuda.derbis.ui.i18n.youtubeMusicHomeCopy(state.languageCode).createdByYou
+                                                val youtubeMusicShelf = remember(youtubeMusicLibrary, youtubeMusicCreatedLabel) {
+                                                    youtubeMusicLibrary?.let { library ->
+                                                        com.yasuda.derbis.ui.youtubemusic.youtubeMusicShelfAlbums(library, youtubeMusicCreatedLabel)
+                                                    }.orEmpty()
                                                 }
-                                            },
-                                            onRefresh = { youtubeMusicViewModel.loadLibraryShelf(state.languageCode, force = true) },
-                                            onShowAll = {
-                                                youtubeMusicViewModel.open(state.languageCode)
-                                                showYoutubeMusic = true
-                                            },
-                                            onReconnect = {
-                                                showYoutubeMusic = true
-                                                youtubeMusicViewModel.open(state.languageCode)
-                                                youtubeMusicViewModel.beginLogin()
+                                                LaunchedEffect(youtubeMusicState.active?.id, state.languageCode, youtubeMusicState.restoring) {
+                                                    youtubeMusicViewModel.loadLibraryShelf(state.languageCode)
+                                                }
+                                                val youtubeMusicHome = youtubeMusicState.active?.let { account ->
+                                                    com.yasuda.derbis.ui.youtubemusic.YoutubeMusicHomeShelfUi(
+                                                        accountName = account.name,
+                                                        avatarUrl = account.avatarUrl,
+                                                        albums = youtubeMusicShelf,
+                                                        loading = youtubeMusicState.libraryLoading,
+                                                        error = youtubeMusicState.libraryError,
+                                                        onOpen = { album ->
+                                                            val entry = youtubeMusicLibrary?.entryFor(album)
+                                                            if (entry != null) {
+                                                                if (entry.collection == com.yasuda.derbis.data.youtubemusic.YoutubeMusicCollection.Albums) {
+                                                                    viewModel.openAlbum(album)
+                                                                } else {
+                                                                    youtubeMusicViewModel.open(state.languageCode)
+                                                                    youtubeMusicViewModel.openDetail(entry)
+                                                                    showYoutubeMusic = true
+                                                                }
+                                                            }
+                                                        },
+                                                        onRefresh = { youtubeMusicViewModel.loadLibraryShelf(state.languageCode, force = true) },
+                                                        onShowAll = {
+                                                            youtubeMusicViewModel.open(state.languageCode)
+                                                            showYoutubeMusic = true
+                                                        },
+                                                        onReconnect = {
+                                                            showYoutubeMusic = true
+                                                            youtubeMusicViewModel.open(state.languageCode)
+                                                            youtubeMusicViewModel.beginLogin()
+                                                        }
+                                                    )
+                                                }?.takeIf { it.albums.isNotEmpty() || it.loading || it.error != null }
+                                                DiscoveryHomeHost(
+                                                    factory = screenViewModelFactory,
+                                                    open = discoveryOpen,
+                                                    onOpenChange = { discoveryOpen = it },
+                                                    backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Home,
+                                                    style = state.homeStudioSettings.style,
+                                                    animationsEnabled = state.animationsEnabled,
+                                                    bottomInset = tabBarBottomContentInset(
+                                                        miniPlayerVisible = state.currentTrack != null,
+                                                        animationsEnabled = state.animationsEnabled
+                                                    )
+                                                ) {
+                                                    HomeStudioHost(
+                                                        viewModel = homeViewModel,
+                                                        renderSnapshot = renderSnapshot,
+                                                        homeListState = homeListState,
+                                                        deferredSectionsRevealed = homeDeferredSectionsRevealed,
+                                                        accountAvatarUrl = youtubeMusicState.active?.avatarUrl.orEmpty(),
+                                                        youtubeMusicHome = youtubeMusicHome,
+                                                        homeStudio = state.homeStudioSettings,
+                                                        onPullRefresh = {
+                                                            homeViewModel.refreshHome { youtubeMusicViewModel.refreshHomeAndAwait(state.languageCode) }
+                                                        },
+                                                        onTrackActions = { track ->
+                                                            queueRemovalTarget = null
+                                                            trackActionTarget = track
+                                                        }
+                                                    )
+                                                }
                                             }
-                                        )
-                                    }?.takeIf { it.albums.isNotEmpty() || it.loading || it.error != null }
-                                    DiscoveryHomeHost(
-                                        factory = screenViewModelFactory,
-                                        open = discoveryOpen,
-                                        onOpenChange = { discoveryOpen = it },
-                                        backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Home,
-                                        style = state.homeStudioSettings.style,
-                                        animationsEnabled = state.animationsEnabled,
-                                        bottomInset = tabBarBottomContentInset(
-                                            miniPlayerVisible = state.currentTrack != null,
-                                            animationsEnabled = state.animationsEnabled
-                                        )
-                                    ) {
-                                        HomeStudioHost(
-                                            viewModel = homeViewModel,
-                                            renderSnapshot = renderSnapshot,
-                                            homeListState = homeListState,
-                                            deferredSectionsRevealed = homeDeferredSectionsRevealed,
-                                            accountAvatarUrl = youtubeMusicState.active?.avatarUrl.orEmpty(),
-                                            youtubeMusicHome = youtubeMusicHome,
-                                            homeStudio = state.homeStudioSettings,
-                                            onPullRefresh = {
-                                                homeViewModel.refreshHome { youtubeMusicViewModel.refreshHomeAndAwait(state.languageCode) }
-                                            },
-                                            onTrackActions = { track ->
-                                                queueRemovalTarget = null
-                                                trackActionTarget = track
-                                            }
+                                        }
+                                    }
+                                    DerbisTab.Search -> {
+                                        val searchViewModel: SearchViewModel = composeViewModel(key = "derbis-search", factory = screenViewModelFactory)
+                                        val screenState by searchViewModel.state.collectAsStateWithLifecycle()
+                                        SearchScreen(searchViewModel, screenState) { track -> trackActionTarget = track }
+                                    }
+                                    DerbisTab.Explore -> {
+                                        val exploreViewModel: ExploreViewModel = composeViewModel(key = "derbis-explore", factory = screenViewModelFactory)
+                                        val screenState by exploreViewModel.state.collectAsStateWithLifecycle()
+                                        ExploreScreen(
+                                            viewModel = exploreViewModel,
+                                            state = screenState,
+                                            liveRadioOpen = liveRadioOpen,
+                                            backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Explore,
+                                            onLiveRadioOpenChange = { liveRadioOpen = it },
+                                            onOpenJam = viewModel::openJam
                                         )
                                     }
+                                    DerbisTab.Library -> {
+                                        val libraryViewModel: LibraryViewModel = composeViewModel(key = "derbis-library", factory = screenViewModelFactory)
+                                        val screenState by libraryViewModel.state.collectAsStateWithLifecycle()
+                                        DerbisLibraryScreen(
+                                            libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
+                                            youtubeMusicAccount = youtubeMusicState.active,
+                                            onOpenYoutubeMusic = { showYoutubeMusic = true }
+                                        )
+                                    }
+                                    DerbisTab.Player -> Unit
                                 }
                             }
                         }
-                        DerbisTab.Search -> {
-                            val searchViewModel: SearchViewModel = composeViewModel(key = "derbis-search", factory = screenViewModelFactory)
-                            val screenState by searchViewModel.state.collectAsStateWithLifecycle()
-                            SearchScreen(searchViewModel, screenState) { track -> trackActionTarget = track }
-                        }
-                        DerbisTab.Explore -> {
-                            val exploreViewModel: ExploreViewModel = composeViewModel(key = "derbis-explore", factory = screenViewModelFactory)
-                            val screenState by exploreViewModel.state.collectAsStateWithLifecycle()
-                            ExploreScreen(
-                                viewModel = exploreViewModel,
-                                state = screenState,
-                                liveRadioOpen = liveRadioOpen,
-                                backEnabled = !rootOverlayOpen && state.selectedTab == DerbisTab.Explore,
-                                onLiveRadioOpenChange = { liveRadioOpen = it },
-                                onOpenJam = viewModel::openJam
-                            )
-                        }
-                        DerbisTab.Library -> {
-                            val libraryViewModel: LibraryViewModel = composeViewModel(key = "derbis-library", factory = screenViewModelFactory)
-                            val screenState by libraryViewModel.state.collectAsStateWithLifecycle()
-                            DerbisLibraryScreen(
-                                libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
-                                youtubeMusicAccount = youtubeMusicState.active,
-                                onOpenYoutubeMusic = { showYoutubeMusic = true }
-                            )
-                        }
-                        DerbisTab.Player -> Unit
                     }
                 }
-            }
-            }
 
             if (chromeVisible) {
                 val miniMaxWidth = derbisMiniPlayerMaxWidthDp(rootLayoutMode)
@@ -2550,13 +2610,27 @@ fun DerbisApp(
                     val dockCompaction = dockState.animatedCompaction(state.animationsEnabled)
                     val compactionProvider: () -> Float = { dockCompaction.value }
                     val miniPlayerVisible = state.currentTrack != null
+                    // Resolved once and shared by the mini player, the dock and the fused layout;
+                    // the three used to call the skin mapping separately from inside their slots.
+                    val navStudioSettings = skinNavigationSettings(navigationStudio.settings)
+                    val miniStudioSettings = skinMiniSettings(miniPlayerStudio.settings)
+                    // The Liquid Glass skin fuses the bottom chrome into one glass group once the
+                    // adaptive dock has compacted: two orbs and a narrow pill, exactly as the
+                    // expanded dock shrinks away. Other skins keep today's stacked layout.
+                    val fusedGlassDockEnabled = DerbisIsLiquidGlass &&
+                        navStudioSettings.style == NavStyle.LiquidGlass &&
+                        miniStudioSettings.style == MiniPlayerStyle.LiquidGlass &&
+                        miniPlayerVisible &&
+                        !dockSideBySide
+                    val fusedOrbSize = miniStudioSettings.activeTuning().heightDp.dp.coerceIn(52.dp, 68.dp)
+                    val fusedTabEntry = rememberDerbisTabEntries().firstOrNull { it.tab == backgroundTab }
                     val dockLink = rememberConnectedDockLink(
                         navigation = navigationStudio.settings,
                         attached = miniPlayerVisible && !dockSideBySide && !state.showSettings,
                         compaction = dockCompaction,
                         animated = state.animationsEnabled
                     )
-                    val miniPlayerSlot: @Composable () -> Unit = {
+                    val miniPlayerSlot: @Composable (() -> Float) -> Unit = { miniCompaction ->
                         AnimatedVisibility(
                             visible = miniPlayerVisible,
                             enter = miniEnter,
@@ -2604,12 +2678,12 @@ fun DerbisApp(
                                         drag = onExpansionDrag,
                                         end = { velocity -> settleExpansion(velocity, false) }
                                     )
-                                    val miniStudio = skinMiniSettings(miniPlayerStudio.settings)
+                                    val miniStudio = miniStudioSettings
                                     if (miniStudio.style == MiniPlayerStyle.Original) {
                                         MiniPlayer(
                                             model = miniModel,
                                             morphAnchors = morphAnchors,
-                                            compaction = compactionProvider,
+                                            compaction = miniCompaction,
                                             artworkHidden = { artworkMorphActive },
                                             playbackActions = miniPlaybackActions,
                                             expansionActions = miniExpansionActions,
@@ -2621,11 +2695,10 @@ fun DerbisApp(
                                             tuning = miniStudio.activeTuning(),
                                             model = miniModel,
                                             morphAnchors = morphAnchors,
-                                            compaction = compactionProvider,
+                                            compaction = miniCompaction,
                                             artworkHidden = { artworkMorphActive },
                                             playbackActions = miniPlaybackActions,
                                             expansionActions = miniExpansionActions,
-                                            glass = dockGlass,
                                             link = dockLink.takeIf { miniStudio.style == MiniPlayerStyle.Connected && !state.showSettings }
                                         )
                                     }
@@ -2633,11 +2706,11 @@ fun DerbisApp(
                             }
                         }
                     }
+                    val selectDockTab: (DerbisTab) -> Unit = { tab ->
+                        if (state.showSettings) viewModel.closeSettings()
+                        viewModel.selectTab(tab)
+                    }
                     val bottomTabsSlot: @Composable () -> Unit = {
-                        val selectDockTab: (DerbisTab) -> Unit = { tab ->
-                            if (state.showSettings) viewModel.closeSettings()
-                            viewModel.selectTab(tab)
-                        }
                         Box(
                             modifier = if (miniMaxWidth.isFinite()) {
                                 Modifier.widthIn(max = miniMaxWidth.dp)
@@ -2645,7 +2718,7 @@ fun DerbisApp(
                                 Modifier
                             }
                         ) {
-                            val navStudio = skinNavigationSettings(navigationStudio.settings)
+                            val navStudio = navStudioSettings
                             if (navStudio.style == NavStyle.Original) {
                                 BottomTabs(
                                     selected = backgroundTab,
@@ -2659,19 +2732,15 @@ fun DerbisApp(
                                     selected = backgroundTab,
                                     compaction = compactionProvider,
                                     onSelect = selectDockTab,
-                                    glass = dockGlass,
                                     link = dockLink.takeIf { navStudio.style == NavStyle.ConnectedDock }
                                 )
                             }
                         }
                     }
                     if (state.showSettings) {
-                        miniPlayerSlot()
+                        miniPlayerSlot(compactionProvider)
                         Spacer(modifier = Modifier.navigationBarsPadding())
                     } else {
-                        if (!dockSideBySide) {
-                            miniPlayerSlot()
-                        }
                         val dockModifier = if (miniMaxWidth.isFinite()) {
                             Modifier.widthIn(max = miniMaxWidth.dp)
                         } else {
@@ -2683,22 +2752,53 @@ fun DerbisApp(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.Top
                                 ) {
-                                    Box(modifier = Modifier.weight(DerbisLandscapeDockMiniWeight)) { miniPlayerSlot() }
+                                    Box(modifier = Modifier.weight(DerbisLandscapeDockMiniWeight)) { miniPlayerSlot(compactionProvider) }
                                     Box(modifier = Modifier.weight(1f)) { bottomTabsSlot() }
                                 }
                             } else {
                                 bottomTabsSlot()
                             }
                         }
-                        if (skinNavigationSettings(navigationStudio.settings).style == NavStyle.Original) {
-                            DerbisAdaptiveDockSurface(glass = dockGlass, modifier = dockModifier, content = dockContent)
+                        if (dockSideBySide) {
+                            // Landscape keeps the side-by-side row inside one dock surface.
+                            if (navStudioSettings.style == NavStyle.Original) {
+                                DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
+                            } else {
+                                StyledDockSurface(
+                                    style = navStudioSettings.style,
+                                    tuning = navStudioSettings.activeTuning(),
+                                    modifier = dockModifier,
+                                    content = dockContent
+                                )
+                            }
                         } else {
-                            StyledDockSurface(
-                                style = skinNavigationSettings(navigationStudio.settings).style,
-                                tuning = skinNavigationSettings(navigationStudio.settings).activeTuning(),
-                                glass = dockGlass,
+                            // Portrait: one glass group. With the orbs at zero width this is the
+                            // plain full-width mini player the app has always shown.
+                            LiquidGlassBottomChrome(
+                                enabled = fusedGlassDockEnabled,
+                                compaction = compactionProvider,
+                                orbSize = fusedOrbSize,
+                                startIcon = fusedTabEntry?.selectedIcon ?: Icons.Rounded.Home,
+                                startLabel = fusedTabEntry?.label ?: currentStrings.home,
+                                onStart = { dockState.expand() },
+                                endIcon = Icons.Rounded.Search,
+                                endLabel = currentStrings.search,
+                                onEnd = { selectDockTab(DerbisTab.Search) },
+                                animated = state.animationsEnabled,
                                 modifier = dockModifier,
-                                content = dockContent
+                                mini = miniPlayerSlot,
+                                dock = {
+                                    if (navStudioSettings.style == NavStyle.Original) {
+                                        DerbisAdaptiveDockSurface(modifier = dockModifier, content = dockContent)
+                                    } else {
+                                        StyledDockSurface(
+                                            style = navStudioSettings.style,
+                                            tuning = navStudioSettings.activeTuning(),
+                                            modifier = dockModifier,
+                                            content = dockContent
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
@@ -2706,30 +2806,80 @@ fun DerbisApp(
                 }
             }
 
-            if (!playerVisible && state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled) {
-                DerbisMusicNotch(
-                    track = state.currentTrack,
-                    lyrics = state.lyrics,
-                    lyricsSynced = state.lyricsSynced,
-                    positionMs = state.positionMs,
-                    durationMs = state.durationMs,
-                    isPlaying = state.isPlaying,
-                    style = state.interfaceSettings.derbisNotchStyle,
-                    onStyleChange = { chosen ->
-                        viewModel.setInterfaceSettings(
-                            state.interfaceSettings.copy(derbisNotchStyle = chosen)
-                        )
-                    },
-                    onTogglePlay = viewModel::togglePlay,
-                    onPrevious = viewModel::previous,
-                    onNext = viewModel::next,
-                    onOpen = viewModel::openPlayerScreen,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding()
-                        .padding(top = 4.dp)
-                        .zIndex(42f)
+            // Music only: the island never appears over video, and it is off until the listener
+            // turns it on in Settings.
+            val notchSettings = state.interfaceSettings.derbisNotch
+            // Centre is the default and the only placement that needs no side inset; the side
+            // options exist for phones whose cutout is not in the middle.
+            val notchCorner = when (notchSettings.alignment) {
+                com.yasuda.derbis.domain.NotchAlignment.Start -> Alignment.TopStart
+                com.yasuda.derbis.domain.NotchAlignment.End -> Alignment.TopEnd
+                com.yasuda.derbis.domain.NotchAlignment.Center -> Alignment.TopCenter
+            }
+            // The island drops out of the cutout and back into it instead of blinking on when a
+            // track starts or the player closes. Origin is the top edge, so it grows downwards
+            // from where a real island would live.
+            val notchDropIn = tween<Float>(durationMillis = if (state.animationsEnabled) 220 else 0)
+            // slideInVertically animates an IntOffset, so it needs its own spec for the same timing.
+            val notchSlideIn = tween<androidx.compose.ui.unit.IntOffset>(
+                durationMillis = if (state.animationsEnabled) 220 else 0
+            )
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !playerVisible && !state.showSettings && !state.isVideoMode &&
+                    state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled,
+                modifier = Modifier
+                    .align(notchCorner)
+                    .statusBarsPadding()
+                    .padding(
+                        top = (NotchBaseTopDp + notchSettings.offsetYDp).dp,
+                        start = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.Start) {
+                            NotchSideInsetDp.dp
+                        } else {
+                            0.dp
+                        },
+                        end = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.End) {
+                            NotchSideInsetDp.dp
+                        } else {
+                            0.dp
+                        }
+                    )
+                    .zIndex(42f),
+                enter = androidx.compose.animation.fadeIn(animationSpec = notchDropIn) +
+                    androidx.compose.animation.scaleIn(
+                        initialScale = 0.88f,
+                        transformOrigin = TransformOrigin(0.5f, 0f),
+                        animationSpec = notchDropIn
+                    ) + androidx.compose.animation.slideInVertically(
+                        animationSpec = notchSlideIn,
+                        initialOffsetY = { height -> -height / 2 }
+                    ),
+                exit = androidx.compose.animation.fadeOut(
+                    animationSpec = tween(durationMillis = if (state.animationsEnabled) 140 else 0)
+                ) + androidx.compose.animation.scaleOut(
+                    targetScale = 0.88f,
+                    transformOrigin = TransformOrigin(0.5f, 0f),
+                    animationSpec = tween(durationMillis = if (state.animationsEnabled) 160 else 0)
                 )
+            ) {
+                state.currentTrack?.let { notchTrack ->
+                    DerbisMusicNotch(
+                        preview = NotchPreview(
+                            title = notchTrack.title,
+                            artist = notchTrack.artist,
+                            artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
+                            lyrics = state.lyrics,
+                            lyricsSynced = state.lyricsSynced,
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
+                            isPlaying = state.isPlaying
+                        ),
+                        settings = notchSettings,
+                        onTogglePlay = viewModel::togglePlay,
+                        onPrevious = viewModel::previous,
+                        onNext = viewModel::next,
+                        onOpen = viewModel::openPlayerScreen
+                    )
+                }
             }
 
             if (playerVisible) {
@@ -2745,7 +2895,10 @@ fun DerbisApp(
                         .fillMaxSize()
                         .graphicsLayer {
                             val expansion = expansionProvider()
-                            alpha = playerSurfaceAlpha(expansion)
+                            // The lyric page is its own opaque surface: while it is open the player
+                            // deck is taken out of the composite completely, so no transport row,
+                            // seek bar, quality badge or artwork can ghost through the lyrics.
+                            alpha = if (state.showLyrics) 0f else playerSurfaceAlpha(expansion)
                             val origin = morphAnchors.miniCardBounds
                             val container = playerContainerBounds(expansion, origin, size.width, size.height)
                             val scale = if (size.width > 0f) container.width / size.width else 1f
@@ -2918,6 +3071,8 @@ fun DerbisApp(
                     lastFmAuthorizationPending = state.lastFmAuthorizationPending,
                     listenBrainzConfigured = state.listenBrainzConfigured,
                     audDConfigured = state.audDConfigured,
+                    subsonicSummary = subsonicSummary,
+                    subsonicTest = subsonicTest,
                     networkSettings = state.networkSettings,
                     networkProxyPasswordSet = state.networkProxyPasswordSet,
                     networkTesting = state.networkTesting,
@@ -2950,6 +3105,21 @@ fun DerbisApp(
                     },
                     onOpenAudioSettings = viewModel::openAudioQualityPanel,
                     onInterfaceSettings = viewModel::setInterfaceSettings,
+                    // A fresh Spotify session invalidates whatever Canvas was refused before it.
+                    onRefreshMotionArtwork = viewModel::refreshCurrentMotionArtwork,
+                    // The customize sheet previews the real island, so it needs the real track.
+                    notchPreview = state.currentTrack?.let { notchTrack ->
+                        NotchPreview(
+                            title = notchTrack.title,
+                            artist = notchTrack.artist,
+                            artworkUrl = notchTrack.largeThumbnailUrl.ifBlank { notchTrack.thumbnailUrl },
+                            lyrics = state.lyrics,
+                            lyricsSynced = state.lyricsSynced,
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
+                            isPlaying = state.isPlaying
+                        )
+                    },
                     onAmbientSettings = viewModel::updateAmbientSettings,
                     onOpenAmbient = {
                         viewModel.closeSettings()
@@ -3039,6 +3209,10 @@ fun DerbisApp(
                     },
                     onRemoveProfilePhoto = viewModel::clearProfilePhoto,
                     onOpenYoutubeMusic = { viewModel.closeSettings(); showYoutubeMusic = true },
+                    onSaveSubsonic = viewModel::saveSubsonicServer,
+                    onTestSubsonic = viewModel::testSubsonicServer,
+                    onClearSubsonic = viewModel::clearSubsonicServer,
+                    onRefreshSubsonic = viewModel::refreshSubsonicSummary,
                     onClose = viewModel::closeSettings
                 )
             }
@@ -3099,7 +3273,12 @@ fun DerbisApp(
                 )
             }
 
-            AnimatedVisibility(visible = state.showLyrics, enter = panelEnter, exit = panelExit) {
+            AnimatedVisibility(
+                visible = state.showLyrics,
+                modifier = Modifier.zIndex(41f),
+                enter = panelEnter,
+                exit = panelExit
+            ) {
                 LyricsOverlay(
                     state = state,
                     onTranslation = viewModel::setLyricsTranslationEnabled,
@@ -3133,6 +3312,9 @@ fun DerbisApp(
                     onSelect = viewModel::setAudioQuality,
                     highQualityAudioMode = state.highQualityAudioMode,
                     onHighQualityAudioMode = viewModel::setHighQualityAudioMode,
+                    dolbyAtmosEnabled = state.audioSettings.dolbyAtmosEnabled,
+                    dolbyAtmosSupported = remember { DerbisDolbyAtmos.decoderAvailable },
+                    onDolbyAtmos = viewModel::setDolbyAtmosEnabled,
                     onEqualizerEnabled = viewModel::setEqualizerEnabled,
                     onPreset = viewModel::setEqualizerPreset,
                     onBandLevel = viewModel::setEqualizerBand,
@@ -3140,12 +3322,13 @@ fun DerbisApp(
                     onVirtualizer = viewModel::setVirtualizer,
                     onDerbis360Enabled = viewModel::setDerbis360Enabled,
                     onDerbis360Experience = viewModel::setDerbis360Experience,
+                    onKaraokeMode = viewModel::setKaraokeMode,
+                    onMonoEnabled = viewModel::setMonoEnabled,
                     onPreamp = viewModel::setPreampDb,
                     onLimiter = viewModel::setLimiterEnabled,
                     onEnhancedAudio = viewModel::setEnhancedAudioEnabled,
                     onCrossfade = viewModel::setCrossfadeSeconds,
                     onDjSoft = viewModel::setDjSoftMode,
-                    onBeatSync = viewModel::setBeatSyncEnabled,
                     onReplayGain = viewModel::setReplayGainEnabled,
                     onTempo = viewModel::setPlaybackSpeed,
                     onPitch = viewModel::setPitch,
@@ -3353,7 +3536,6 @@ fun DerbisApp(
                     DerbisMixStudioScreen(
                         session = session,
                         controller = viewModel.mixStudio,
-                        beatSyncAvailable = state.audioSettings.beatSyncEnabled,
                         onClose = viewModel::closeMixStudio
                     )
                 }
@@ -3453,26 +3635,7 @@ fun DerbisApp(
                     onSaveCustomTheme = viewModel::saveCustomTheme,
                     onDuplicateCustomTheme = viewModel::duplicateCustomTheme,
                     onDeleteCustomTheme = viewModel::deleteCustomTheme,
-                    onRestoreDefault = viewModel::restoreDefaultTheme,
-                    glassEnabled = state.interfaceSettings.liquidGlassEnabled,
-                    glassStyle = DerbisGlassStyle(
-                        blur = state.interfaceSettings.glassBlur,
-                        transparency = state.interfaceSettings.glassTransparency,
-                        tint = state.interfaceSettings.glassTint,
-                        refraction = state.interfaceSettings.glassRefraction,
-                        effects = state.interfaceSettings.glassEffects
-                    ),
-                    onGlassStyleChange = { glass ->
-                        viewModel.setInterfaceSettings(
-                            state.interfaceSettings.copy(
-                                glassBlur = glass.blur,
-                                glassTransparency = glass.transparency,
-                                glassTint = glass.tint,
-                                glassRefraction = glass.refraction,
-                                glassEffects = glass.effects
-                            )
-                        )
-                    }
+                    onRestoreDefault = viewModel::restoreDefaultTheme
                 )
             }
 
@@ -3930,13 +4093,15 @@ private fun downloadHudBottomPadding(state: DerbisUiState, dockSideBySide: Boole
 private fun tabBarBottomContentInset(miniPlayerVisible: Boolean, animationsEnabled: Boolean): Dp {
     val navigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val navigationHeight = when {
-        DerbisIsNocturne -> (LocalNocturneNavigationHeight.current?.value ?: 64.dp) + 1.dp
-        DerbisIsPrism -> LocalNocturneNavigationHeight.current?.value ?: 80.dp
+        DerbisIsPixel -> (LocalPixelNavigationHeight.current?.value ?: 64.dp) + 1.dp
+        DerbisIsPrism -> LocalPixelNavigationHeight.current?.value ?: 80.dp
         else -> DerbisTabBarCompactHeight
     }
     val collapsed = navigationHeight + navigationBarInset + DerbisBottomContentGap + LocalNavDockExtraClearance.current
     val miniPlayerExtra = if (DerbisIsPrism) {
         84.dp
+    } else if (DerbisIsPixel) {
+        98.dp
     } else if (derbisWindowIsCompactLandscape()) {
         (DerbisMiniPlayerHeight - DerbisTabBarHeight).coerceAtLeast(0.dp)
     } else {
@@ -4083,12 +4248,30 @@ private fun DownloadProgressHud(
     }
 }
 
+private val DerbisDialogContainerColor: Color
+    get() = when {
+        DerbisIsPixel -> PixelPalette.ink
+        DerbisIsLight -> DerbisPanel
+        else -> Color(0xFF11131C)
+    }
+
+private fun Modifier.derbisDialogChrome(): Modifier =
+    if (DerbisIsPixel) {
+        padding(end = PixelDesign.shadowOffset, bottom = PixelDesign.shadowOffset)
+            .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
+            .border(PixelDesign.border, PixelPalette.text, RectangleShape)
+    } else {
+        this
+    }
+
 @Composable
 private fun LanguageRestartDialog(onRestart: () -> Unit, onLater: () -> Unit) {
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onLater,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.restartRequiredTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = { Text(strings.restartRequiredBody, color = DerbisMuted, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp) },
         confirmButton = { TextButton(onClick = onRestart) { Text(strings.restartNow, color = DerbisCyan, fontWeight = FontWeight.Black) } },
@@ -4105,7 +4288,9 @@ private fun VaultRestorePreviewDialog(
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.restorePreviewTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4165,7 +4350,9 @@ private fun PreUpdateBackupFailedDialog(
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onContinue,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.preUpdateBackupFailedTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = { Text(strings.preUpdateBackupFailedBody, color = DerbisMuted, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp) },
         confirmButton = { TextButton(onClick = onRetry) { Text(strings.preUpdateBackupRetry, color = DerbisCyan, fontWeight = FontWeight.Black) } },
@@ -4224,7 +4411,9 @@ private fun SleepTimerDialog(
     }
     AlertDialog(
         onDismissRequest = onClose,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.sleepTimer, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(
@@ -4490,8 +4679,8 @@ private fun AlbumOverlay(
         fallback = fallbackPalette
     )
     val lightTheme = DerbisIsLight
-    val nocturne = DerbisIsNocturne
-    val stageTarget = remember(albumPalette, lightTheme, nocturne) {
+    val pixel = DerbisIsPixel
+    val stageTarget = remember(albumPalette, lightTheme, pixel) {
         albumStageColors(Color(albumPalette.start), Color(albumPalette.end), lightTheme)
     }
     val stage = animatedImmersiveMediaColors(
@@ -4499,7 +4688,7 @@ private fun AlbumOverlay(
         animated = state.animationsEnabled,
         labelPrefix = "album"
     )
-    val motionEnabled = state.animationsEnabled && state.motionArtworkEnabled
+    val motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && state.selectedTab != DerbisTab.Player
     var albumMenuExpanded by rememberSaveable(album?.browseId, album?.title) { mutableStateOf(false) }
     var albumDescriptionExpanded by rememberSaveable(album?.browseId, album?.title) { mutableStateOf(false) }
     var albumDescriptionOverflows by remember(description) { mutableStateOf(false) }
@@ -5349,9 +5538,9 @@ private fun ArtistOverlay(
         artworkUrl = heroArtwork,
         fallback = fallbackPalette
     )
-    val nocturne = DerbisIsNocturne
-    val atmosphereTargets = remember(artistPalette, nocturne) {
-        if (nocturne) Nocturne78Palette.black to Nocturne78Palette.cyan else {
+    val pixel = DerbisIsPixel
+    val atmosphereTargets = remember(artistPalette, pixel) {
+        if (pixel) PixelPalette.black to PixelPalette.cyan else {
         val pair = harmonizePlayerAccents(Color(artistPalette.start), Color(artistPalette.end))
         playerAmbienceOf(pair.primary, pair.secondary).tint to playerHighlightOf(pair.primary, pair.secondary)
         }
@@ -5458,7 +5647,7 @@ private fun ArtistOverlay(
                                 artworkUrl = fittedHeroArtwork,
                                 height = heroHeight,
                                 motionArtwork = heroMotion,
-                                motionEnabled = state.animationsEnabled && state.motionArtworkEnabled,
+                                motionEnabled = state.animationsEnabled && state.motionArtworkEnabled && state.selectedTab != DerbisTab.Player,
                                 animated = animated,
                                 entrance = { heroEntrance.value },
                                 canvasQuality = state.interfaceSettings.canvasQuality,
@@ -7992,7 +8181,7 @@ private fun LyricsOverlay(
     val lyricsClock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = syncedLyrics && lyricsAnimationsEnabled
     )
@@ -8237,7 +8426,36 @@ private fun LyricsOverlay(
         }
     }
 
-    if (isSpicyLyrics && !landscapeLayout) {
+    if (DerbisIsPixel) {
+        PixelFullscreenLyrics(
+            state = state,
+            fullscreen = lyricsFullscreen,
+            onClose = onClose,
+            onSeekToMs = onSeekToMs,
+            onPrevious = onPrevious,
+            onTogglePlay = onTogglePlay,
+            onNext = onNext,
+            onToggleFavorite = onToggleFavorite,
+            onShareLyrics = { selectedLines ->
+                shareSnapshot = lyricsShareSnapshot(track, selectedLines)
+            },
+            onOpenQueue = onOpenQueue,
+            onOpenOptions = { showLyricsOptions = true },
+            lyricsOffsetMs = lyricsOffsetMs,
+            showTranslation = showTranslation,
+            showRomanization = showRomanization,
+            calibrateMode = calibrateMode,
+            onCalibrateLine = { lineStartMs ->
+                track?.id?.let { trackId ->
+                    onSetTrackOffset(
+                        trackId,
+                        calibratedLyricsTrackOffset(state.positionMs, lineStartMs, latencyOffsetMs)
+                    )
+                }
+                calibrateMode = false
+            }
+        )
+    } else if (isSpicyLyrics && !landscapeLayout) {
         SpicyFullscreenLyrics(
             state = state,
             accentStart = accentStart,
@@ -8548,7 +8766,7 @@ private fun AppleMusic13FullscreenLyrics(
     val clock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = state.lyricsSynced && state.animationsEnabled
     )
@@ -8751,6 +8969,18 @@ private fun AppleMusic13FullscreenLyrics(
                         interactionTick++
                     }
             ) {
+                // The idle strip parks its Timer button 56 dp into the viewport and the full
+                // cluster stacks three floating buttons in the bottom corner, so the last verses
+                // need real clearance instead of sliding underneath them. Animated so the list
+                // does not jump when the cluster auto-hides after eight idle seconds.
+                val lyricClearance by animateDpAsState(
+                    targetValue = when {
+                        imageShareSelectionMode -> 104.dp
+                        showCluster -> 140.dp
+                        else -> 96.dp
+                    },
+                    label = "lyrics-bottom-clearance"
+                )
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -8758,7 +8988,7 @@ private fun AppleMusic13FullscreenLyrics(
                         start = 24.dp,
                         end = 24.dp,
                         top = if (imageShareSelectionMode) 22.dp else 38.dp,
-                        bottom = if (imageShareSelectionMode) 104.dp else 34.dp
+                        bottom = lyricClearance
                     ),
                     verticalArrangement = Arrangement.spacedBy(if (imageShareSelectionMode) 16.dp else 26.dp)
                 ) {
@@ -9179,7 +9409,9 @@ private fun AppleMusic13LyricsArtworkBackdrop(
     val fallbackTop = remember(accentStart) { lerp(accentStart, Color.Black, 0.62f) }
     val fallbackBottom = remember(accentEnd) { lerp(accentEnd, Color.Black, 0.88f) }
 
-    Box(Modifier.fillMaxSize().background(fallbackBottom)) {
+    // Black first, then the blurred wash: the page has to be self-contained even if a caller
+    // ever hands in a low-alpha accent, so nothing from the screen underneath can bleed in.
+    Box(Modifier.fillMaxSize().background(Color.Black).background(fallbackBottom)) {
         // The image is deliberately dimmed as one uniform static layer. This preserves legibility
         // for white active lyrics on very bright album covers without restoring the old dark
         // gradient bands or introducing a moving/palette-based overlay.
@@ -9301,12 +9533,35 @@ private fun LyricsVersionDialog(
     onSelect: (com.yasuda.derbis.data.LyricsRepository.LyricsVersion) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
+    val titleColor = if (light) DerbisText else Color.White
+    val mutedColor = if (light) DerbisMuted else Color.White.copy(alpha = 0.58f)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            color = Color(0xFF11131C),
-            shape = RoundedCornerShape(30.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.82f)
+            color = when {
+                pixel -> PixelPalette.black
+                light -> DerbisInk
+                else -> Color(0xFF11131C)
+            },
+            shape = if (pixel) RectangleShape else RoundedCornerShape(30.dp),
+            border = if (pixel) {
+                BorderStroke(PixelDesign.border, PixelPalette.text)
+            } else {
+                BorderStroke(1.dp, if (light) DerbisAdaptiveHairline else Color.White.copy(alpha = 0.10f))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.82f)
+                .then(
+                    if (pixel) {
+                        Modifier
+                            .padding(end = PixelDesign.shadowOffset, bottom = PixelDesign.shadowOffset)
+                            .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -9314,21 +9569,24 @@ private fun LyricsVersionDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(strings.lyricsVersions, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Black)
-                        Text(strings.changeLyrics, color = Color.White.copy(alpha = 0.58f), fontSize = 12.sp)
+                        Text(strings.lyricsVersions, color = titleColor, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                        Text(strings.changeLyrics, color = mutedColor, fontSize = 12.sp)
                     }
                     CircleIconButton(
                         icon = Icons.Rounded.Close,
-                        tint = Color.White,
-                        background = Color.White.copy(alpha = 0.10f),
+                        tint = titleColor,
+                        background = if (pixel) PixelPalette.panel else if (light) DerbisPanel else Color.White.copy(alpha = 0.10f),
                         onClick = onDismiss,
                         contentDescription = strings.close
                     )
                 }
                 Surface(
-                    color = DerbisCyan.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, DerbisCyan.copy(alpha = 0.28f)),
+                    color = if (pixel) PixelPalette.panel else DerbisCyan.copy(alpha = 0.14f),
+                    shape = if (pixel) RectangleShape else RoundedCornerShape(18.dp),
+                    border = BorderStroke(
+                        if (pixel) PixelDesign.border else 1.dp,
+                        if (pixel) PixelPalette.outline else DerbisCyan.copy(alpha = 0.28f)
+                    ),
                     modifier = Modifier.fillMaxWidth().pressable(onClick = onAutomatic)
                 ) {
                     Row(
@@ -9337,7 +9595,7 @@ private fun LyricsVersionDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(Icons.Rounded.Refresh, null, tint = DerbisCyan)
-                        Text(strings.automaticLyrics, color = Color.White, fontWeight = FontWeight.Black)
+                        Text(strings.automaticLyrics, color = titleColor, fontWeight = FontWeight.Black)
                     }
                 }
                 when {
@@ -9345,7 +9603,7 @@ private fun LyricsVersionDialog(
                         CircularProgressIndicator(color = DerbisCyan)
                     }
                     versions.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(strings.lyricsUnavailable, color = Color.White.copy(alpha = 0.64f))
+                        Text(strings.lyricsUnavailable, color = mutedColor)
                     }
                     else -> LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -9358,11 +9616,23 @@ private fun LyricsVersionDialog(
                                 .take(2)
                                 .joinToString(" · ") { it.text }
                             Surface(
-                                color = if (version.selected) DerbisViolet.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(20.dp),
+                                color = when {
+                                    pixel && version.selected -> PixelPalette.panel
+                                    pixel -> PixelPalette.ink
+                                    version.selected -> DerbisViolet.copy(alpha = 0.18f)
+                                    light -> DerbisPanel
+                                    else -> Color.White.copy(alpha = 0.05f)
+                                },
+                                shape = if (pixel) RectangleShape else RoundedCornerShape(20.dp),
                                 border = BorderStroke(
-                                    1.dp,
-                                    if (version.selected) DerbisViolet.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.07f)
+                                    if (pixel && version.selected) PixelDesign.border else 1.dp,
+                                    when {
+                                        pixel && version.selected -> PixelPalette.cyan
+                                        pixel -> PixelPalette.outline
+                                        version.selected -> DerbisViolet.copy(alpha = 0.40f)
+                                        light -> DerbisAdaptiveHairline
+                                        else -> Color.White.copy(alpha = 0.07f)
+                                    }
                                 ),
                                 modifier = Modifier.fillMaxWidth().pressable { onSelect(version) }
                             ) {
@@ -9373,7 +9643,7 @@ private fun LyricsVersionDialog(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             version.result.provider,
-                                            color = if (version.selected) DerbisViolet else Color.White,
+                                            color = if (version.selected) DerbisViolet else titleColor,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Black,
                                             modifier = Modifier.weight(1f)
@@ -9383,14 +9653,14 @@ private fun LyricsVersionDialog(
                                                 append(if (version.result.synced) strings.synced else strings.lyrics)
                                                 append(" · ").append(version.result.confidence).append('%')
                                             },
-                                            color = Color.White.copy(alpha = 0.56f),
+                                            color = mutedColor,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                     Text(
                                         "${version.title} — ${version.artist}",
-                                        color = Color.White.copy(alpha = 0.76f),
+                                        color = if (light) DerbisText else Color.White.copy(alpha = 0.76f),
                                         fontSize = 12.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -9398,7 +9668,7 @@ private fun LyricsVersionDialog(
                                     if (preview.isNotBlank()) {
                                         Text(
                                             preview,
-                                            color = Color.White.copy(alpha = 0.48f),
+                                            color = mutedColor,
                                             fontSize = 11.sp,
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis
@@ -9531,8 +9801,11 @@ internal fun KaraokeWordTimedText(
     shadow: Shadow? = null
 ) {
     val timedText = remember(lineText, words) { buildTimedLyricText(lineText, words) }
-    // Inactive rows do not observe the clock and keep their normal inactive color.
-    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    // Inactive rows do not observe the clock and keep their normal inactive color. An active row
+    // reads a little ahead: the word colour takes 115 ms to finish its tween, so a highlight
+    // sampled exactly on the timestamp *completes* after the syllable has been sung. The lead
+    // puts the middle of that fade on the word.
+    val playbackPosition = if (isActive) positionProvider() + KARAOKE_VISUAL_LEAD_MS else Long.MIN_VALUE
     val wordTransition = tween<Color>(
         durationMillis = 115,
         easing = CubicBezierEasing(0.16f, 0f, 0.10f, 1f)
@@ -9634,7 +9907,9 @@ private fun LyricsIntelligenceDialog(
     val repeatedPhrase = summary.repeatedPhrases.firstOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         icon = {
             Icon(
                 imageVector = Icons.Rounded.Insights,
@@ -9784,7 +10059,7 @@ private fun LyricsSyncStatus(synced: Boolean, syncedLabel: String, unsyncedLabel
 
 @Composable
 private fun DerbisBackground() {
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Box(Modifier.fillMaxSize().background(DerbisBlack))
         return
     }
@@ -11144,7 +11419,7 @@ private class StudioHomeLook(
 @Composable
 private fun rememberStudioHomeLook(homeStudio: DerbisHomeStudioSettings, state: DerbisUiState): StudioHomeLook {
     val homeStyle = when {
-        DerbisIsNocturne -> HomeStyle.Minimal
+        DerbisIsPixel -> HomeStyle.Minimal
         DerbisIsPrism -> HomeStyle.Minimal
         else -> homeStudio.style
     }
@@ -11153,9 +11428,9 @@ private fun rememberStudioHomeLook(homeStudio: DerbisHomeStudioSettings, state: 
         homeStudio.activeLayout().let { if (prismHome) it.copy(density = HomeDensity.Balanced, dynamicPalette = false) else it }
     }
     val homeRenderOrder = remember(studioLayout) { studioLayout.renderOrder() }
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val spotifyHome = DerbisIsSpotify
-    val styleSpec = remember(homeStyle, studioLayout.density, nocturne, spotifyHome) { homeStyleSpec(homeStyle, studioLayout.density, nocturne, spotifyHome) }
+    val styleSpec = remember(homeStyle, studioLayout.density, pixel, spotifyHome) { homeStyleSpec(homeStyle, studioLayout.density, pixel, spotifyHome) }
     val homeAnimationsEnabled = state.animationsEnabled && studioLayout.motion != HomeMotion.Reduced
     val studioPlacementSpec = remember(studioLayout.motion) {
         if (studioLayout.motion == HomeMotion.Expressive) {
@@ -14366,20 +14641,20 @@ private data class ResonanceAppearance(val shape: Shape, val quoteShape: Shape, 
 
 @Composable
 private fun rememberResonanceAppearance(toneIndex: Int): ResonanceAppearance {
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val colors = MaterialTheme.colorScheme
     val tone = ResonanceBubbleTones[toneIndex.coerceAtLeast(0) % ResonanceBubbleTones.size]
-    return remember(nocturne, colors, tone) {
-        if (nocturne) {
-            val shape = RoundedCornerShape(Nocturne78Design.cardCorner)
-            ResonanceAppearance(shape, RoundedCornerShape(Nocturne78Design.artworkCorner), colors.surfaceContainer, Modifier.border(1.dp, colors.outline, shape))
+    return remember(pixel, colors, tone) {
+        if (pixel) {
+            val shape = RoundedCornerShape(PixelDesign.cardCorner)
+            ResonanceAppearance(shape, RoundedCornerShape(PixelDesign.artworkCorner), colors.surfaceContainer, Modifier.border(1.dp, colors.outline, shape))
         } else ResonanceAppearance(ResonanceCardShape, ResonanceBubbleShape, lerp(colors.surfaceContainerHighest, tone, 0.30f), Modifier)
     }
 }
 
 @Composable
 private fun resonancePlayShape(playing: Boolean): Shape =
-    if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner)
+    if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner)
     else rememberDerbisPlayMorphShape(playing = playing, animated = LocalAnimationsEnabled.current)
 
 @Composable
@@ -14450,15 +14725,15 @@ private fun ResonanceQuoteHeader(
 
 @Composable
 private fun ResonanceQuoteText(text: String, muted: Boolean) {
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val size = if (muted) 13.sp else 16.sp
     Text(
         text = text,
         color = if (muted) DerbisMuted else DerbisText,
         fontSize = size,
         lineHeight = DerbisTypeRhythm.lineHeight(size),
-        fontFamily = if (nocturne && !muted) FontFamily.Serif else null,
-        fontWeight = if (nocturne || muted) FontWeight.Medium else FontWeight.SemiBold,
+        fontFamily = if (pixel) PixelifyFont else null,
+        fontWeight = if (pixel) FontWeight.Bold else if (muted) FontWeight.Medium else FontWeight.SemiBold,
         maxLines = 3,
         overflow = TextOverflow.Ellipsis
     )
@@ -18876,7 +19151,9 @@ private fun PlaylistCreateDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DerbisPanel,
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
         title = { Text(LocalDerbisStrings.current.newPlaylist, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             OutlinedTextField(
@@ -18924,7 +19201,9 @@ private fun AddToPlaylistDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DerbisPanel,
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
         title = { Text(LocalDerbisStrings.current.addToPlaylist, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -19528,7 +19807,18 @@ private fun PlayerQuickActionsBar(
                     onDismissRequest = { optionsExpanded = false },
                     modifier = Modifier
                         .width(if (compact) 276.dp else 296.dp)
-                        .background(Color(0xFF15161A), DerbisPlayerDesign.ShapeMd)
+                        .background(
+                            when {
+                                DerbisIsPixel -> PixelPalette.ink
+                                DerbisIsLight -> DerbisPanel
+                                else -> Color(0xFF15161A)
+                            },
+                            if (DerbisIsPixel) RectangleShape else DerbisPlayerDesign.ShapeMd
+                        )
+                        .then(
+                            if (DerbisIsPixel) Modifier.border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+                            else Modifier
+                        )
                 ) {
                     Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
                         PlayerOptionsRow(
@@ -20793,6 +21083,8 @@ private fun SettingsOverlay(
     lastFmAuthorizationPending: Boolean,
     listenBrainzConfigured: Boolean,
     audDConfigured: Boolean,
+    subsonicSummary: SubsonicServerSummary,
+    subsonicTest: SubsonicTestState,
     networkSettings: DerbisNetworkSettings,
     networkProxyPasswordSet: Boolean,
     networkTesting: Boolean,
@@ -20813,6 +21105,8 @@ private fun SettingsOverlay(
     onOpenNavigationStudio: () -> Unit = {},
     onOpenAudioSettings: () -> Unit,
     onInterfaceSettings: (DerbisInterfaceSettings) -> Unit,
+    onRefreshMotionArtwork: () -> Unit,
+    notchPreview: NotchPreview?,
     onAmbientSettings: (DerbisAmbientSettings) -> Unit,
     onOpenAmbient: () -> Unit,
     onIncludeArtist: (ExcludedArtist) -> Unit,
@@ -20858,6 +21152,10 @@ private fun SettingsOverlay(
     onPickProfilePhoto: () -> Unit,
     onRemoveProfilePhoto: () -> Unit,
     onOpenYoutubeMusic: () -> Unit,
+    onSaveSubsonic: (String, String, String) -> Unit,
+    onTestSubsonic: (String, String, String) -> Unit,
+    onClearSubsonic: () -> Unit,
+    onRefreshSubsonic: () -> Unit,
     onClose: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
@@ -20872,6 +21170,7 @@ private fun SettingsOverlay(
         batteryContext.getSystemService(PowerManager::class.java)
         ?.isIgnoringBatteryOptimizations(batteryContext.packageName) == true
     }
+    var showNotchCustomize by rememberSaveable { mutableStateOf(false) }
     var selectedDownloadFolderName by remember(downloadSettings.destinationTreeUri) { mutableStateOf<String?>(null) }
     LaunchedEffect(downloadSettings.destinationTreeUri, batteryCheckToken) {
         selectedDownloadFolderName = if (downloadSettings.destinationTreeUri.isBlank()) {
@@ -20894,7 +21193,7 @@ private fun SettingsOverlay(
     fun categoryTitle(value: String): String = settingsCategoryTitle(value, categoryLocale)
     val categories = remember(strings.code, DerbisActivePalette) {
         listOf(
-            SettingsCategoryMeta("skins", com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).title, "Derbis Default · Nocturne 78 · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, DerbisViolet, SettingsHubGroup.Appearance),
+            SettingsCategoryMeta("skins", com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).title, "Derbis Default · Pixel · Liquid Glass · Torque · Ivory · Spotify Style · Apple Music Style · TIDAL Style · YouTube Music Style", Icons.Rounded.Style, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("design", categoryTitle(strings.design), "${strings.theme} · ${strings.animations} · ${strings.dynamicColor}", Icons.Rounded.Palette, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("home", categoryTitle(strings.homeInterfaceSection), "${strings.compactHome} · ${strings.newReleases} · ${strings.top50Charts}", Icons.Rounded.Home, DerbisViolet, SettingsHubGroup.Appearance),
             SettingsCategoryMeta("player", categoryTitle(strings.player), "${strings.playerGestureHorizontalSwipe} · ${strings.sponsorBlock} · ${strings.skipSilence}", Icons.Rounded.PlayArrow, DerbisPink, SettingsHubGroup.Listening),
@@ -21128,6 +21427,16 @@ private fun SettingsOverlay(
                         "integrations" -> {
                             item { DeviceIntegrationSettingsPanel() }
                             item {
+                                SubsonicServerTile(
+                                    summary = subsonicSummary,
+                                    test = subsonicTest,
+                                    onSave = onSaveSubsonic,
+                                    onTest = onTestSubsonic,
+                                    onClear = onClearSubsonic,
+                                    onRefresh = onRefreshSubsonic
+                                )
+                            }
+                            item {
                                 IntegrationSettingsPanel(
                                     lastFmConfigured,
                                     lastFmAuthorizationPending,
@@ -21140,10 +21449,10 @@ private fun SettingsOverlay(
                                     onClearListenBrainz,
                                     onSaveAudD,
                                     onClearAudD,
-                                    motionArtworkEnabled = interfaceSettings.motionArtworkEnabled,
-                                    onToggleMotionArtwork = {
-                                        onInterfaceSettings(interfaceSettings.copy(motionArtworkEnabled = it))
-                                    }
+                                    // The panel reads the live state flag, which the Interface
+                                    // toggle keeps in step with the interface snapshot.
+                                    motionArtworkEnabled = motionArtworkEnabled,
+                                    onRefreshMotionArtwork = onRefreshMotionArtwork
                                 )
                             }
                         }
@@ -21183,9 +21492,12 @@ private fun SettingsOverlay(
                                     icon = Icons.Rounded.SmartDisplay,
                                     title = strings.miniPlayerStudioCopy[MiniStudioText.Title],
                                     subtitle = miniPlayerStyleName(miniPlayerStyle) + " · " + strings.miniPlayerStudioCopy[MiniStudioText.Subtitle],
-                                    enabled = interfaceSettings.skin == DerbisSkin.Default,
+                                    enabled = interfaceSettings.skin == DerbisSkin.Default || interfaceSettings.skin == DerbisSkin.Pixel,
                                     onClick = onOpenMiniPlayerStudio
                                 )
+                            }
+                            item {
+                                SettingsAppIconSection()
                             }
                             item {
                                 SettingsButton(
@@ -21252,6 +21564,26 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsChoiceRow(
+                                    icon = Icons.Rounded.Explicit,
+                                    title = strings.explicitFilterTitle,
+                                    subtitle = strings.explicitFilterSubtitle,
+                                    options = DerbisExplicitFilter.entries.map { option ->
+                                        option.storageValue to explicitFilterLabel(option, strings)
+                                    },
+                                    selected = interfaceSettings.explicitFilter.storageValue,
+                                    onSelect = { value ->
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(
+                                                explicitFilter = DerbisExplicitFilter.entries
+                                                    .firstOrNull { it.storageValue == value }
+                                                    ?: DerbisExplicitFilter.Default
+                                            )
+                                        )
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsChoiceRow(
                                     icon = Icons.Rounded.Speed,
                                     title = strings.visualPerformance,
                                     subtitle = visualPerformanceSubtitle(interfaceSettings.visualPerformance, strings),
@@ -21262,6 +21594,22 @@ private fun SettingsOverlay(
                                     onSelect = { value ->
                                         onInterfaceSettings(
                                             interfaceSettings.copy(visualPerformance = DerbisVisualPerformance.from(value))
+                                        )
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsChoiceRow(
+                                    icon = Icons.Rounded.Image,
+                                    title = strings.artworkQualityTitle,
+                                    subtitle = artworkQualitySubtitle(interfaceSettings.artworkQuality, strings),
+                                    options = DerbisArtworkQuality.entries.map { band ->
+                                        band.name to artworkQualityLabel(band, strings)
+                                    },
+                                    selected = interfaceSettings.artworkQuality.name,
+                                    onSelect = { value ->
+                                        onInterfaceSettings(
+                                            interfaceSettings.copy(artworkQuality = DerbisArtworkQuality.from(value))
                                         )
                                     }
                                 )
@@ -21418,12 +21766,12 @@ private fun SettingsOverlay(
                                     subtitle = strings.playerVisualModeSubtitle,
                                     options = listOf(
                                         PlayerVisualMode.CanvasCard.name to strings.playerVisualModeCanvasCard,
-                                        PlayerVisualMode.CanvasImmersive.name to strings.playerVisualModeCanvasImmersive,
                                         PlayerVisualMode.AppleMusic13.name to strings.playerDeckAppleMusic13,
                                         PlayerVisualMode.Pulse.name to strings.playerDeckPulse,
-                                        PlayerVisualMode.Halo.name to strings.playerDeckHalo,
-                                        PlayerVisualMode.Folio.name to strings.playerDeckFolio,
-                                        PlayerVisualMode.Flow.name to strings.playerDeckFlow
+                                        PlayerVisualMode.Flow.name to strings.playerDeckFlow,
+                                        PlayerVisualMode.Frost.name to strings.playerDeckFrost,
+                                        PlayerVisualMode.DerbisOne.name to strings.playerDeckDerbisOne,
+                                        PlayerVisualMode.Vinyl.name to strings.playerDeckVinyl
                                     ),
                                     selected = interfaceSettings.playerVisualMode.name,
                                     onSelect = { value ->
@@ -21440,59 +21788,18 @@ private fun SettingsOverlay(
                                 )
                             }
                             item {
-                                SettingsChoiceRow(
-                                    icon = Icons.Rounded.Palette,
-                                    title = strings.playerBackground,
-                                    subtitle = strings.playerBackgroundSubtitle,
-                                    options = listOf(
-                                        PlayerBackgroundMode.Dynamic.name to strings.playerBackgroundDynamic,
-                                        PlayerBackgroundMode.LiquidFerrofluid.name to strings.playerBackgroundLiquidFerrofluid,
-                                        PlayerBackgroundMode.ReactiveAura.name to strings.playerBackgroundReactiveAura,
-                                        PlayerBackgroundMode.Blur.name to strings.playerBackgroundBlur,
-                                        PlayerBackgroundMode.Dark.name to strings.playerBackgroundDark,
-                                        PlayerBackgroundMode.PureBlack.name to strings.playerBackgroundPureBlack,
-                                        PlayerBackgroundMode.Aurora.name to strings.playerBackgroundAurora,
-                                        PlayerBackgroundMode.Gradient.name to strings.playerBackgroundGradient
-                                    ),
-                                    selected = interfaceSettings.playerBackground.name,
-                                    onSelect = { value ->
-                                        onInterfaceSettings(
-                                            interfaceSettings.copy(playerBackground = PlayerBackgroundMode.from(value))
-                                        )
-                                    }
-                                )
-                            }
-                            if (interfaceSettings.playerBackground == PlayerBackgroundMode.ReactiveAura) {
-                                item {
-                                    SettingsChoiceRow(
-                                        icon = Icons.Rounded.AutoAwesome,
-                                        title = strings.playerBackgroundReactiveAura,
-                                        subtitle = "${reactiveAuraPresetLabel(ReactiveAuraPreset.Recommended, strings)} · ${strings.reactiveAuraRecommended}",
-                                        options = ReactiveAuraPreset.entries.map { preset ->
-                                            preset.name to reactiveAuraPresetLabel(preset, strings)
-                                        },
-                                        selected = interfaceSettings.reactiveAuraPreset.name,
-                                        onSelect = { value ->
-                                            onInterfaceSettings(
-                                                interfaceSettings.copy(reactiveAuraPreset = ReactiveAuraPreset.from(value))
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                            item {
                                 PlayerColorModeSetting(
                                     settings = interfaceSettings,
                                     onSettings = onInterfaceSettings
                                 )
                             }
-                            }, nocturne = {
+                            }, pixel = {
                                 item {
                                     SettingsTile {
                                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                             Text(strings.playerVisualMode, color = DerbisMuted, style = MaterialTheme.typography.labelLarge)
                                             Text(DerbisSkinLabel, color = DerbisText, style = MaterialTheme.typography.titleMedium)
-                                            Text(if (DerbisIsPrism) com.yasuda.derbis.ui.i18n.DerbisSkinStrings.managedForCode(strings.code, DerbisSkinLabel) else com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).nocturneBody, color = DerbisMuted)
+                                            Text(if (DerbisIsPrism) com.yasuda.derbis.ui.i18n.DerbisSkinStrings.managedForCode(strings.code, DerbisSkinLabel) else com.yasuda.derbis.ui.i18n.DerbisSkinStrings.forCode(strings.code).pixelBody, color = DerbisMuted)
                                         }
                                     }
                                 }
@@ -21508,8 +21815,20 @@ private fun SettingsOverlay(
                             }
                             item {
                                 SettingsToggle(
+                                    icon = Icons.Rounded.Swipe,
+                                    title = strings.playerGestureHorizontalSwipe,
+                                    subtitle = strings.playerGestureHorizontalSwipeSubtitle,
+                                    checked = interfaceSettings.swipeTrackChangeEnabled,
+                                    onCheckedChange = {
+                                        onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
+                                    }
+                                )
+                            }
+                            standaloneItem { SettingsSectionLabel(strings.derbisNotch) }
+                            item {
+                                SettingsToggle(
                                     icon = Icons.Rounded.PictureInPictureAlt,
-                                    title = strings.derbisNotch,
+                                    title = strings.derbisNotchEnable,
                                     subtitle = strings.derbisNotchHint,
                                     checked = interfaceSettings.derbisNotchEnabled,
                                     onCheckedChange = {
@@ -21519,16 +21838,17 @@ private fun SettingsOverlay(
                                     }
                                 )
                             }
-                            item {
-                                SettingsToggle(
-                                    icon = Icons.Rounded.Swipe,
-                                    title = strings.playerGestureHorizontalSwipe,
-                                    subtitle = strings.playerGestureHorizontalSwipeSubtitle,
-                                    checked = interfaceSettings.swipeTrackChangeEnabled,
-                                    onCheckedChange = {
-                                        onInterfaceSettings(interfaceSettings.copy(swipeTrackChangeEnabled = it))
-                                    }
-                                )
+                            if (interfaceSettings.derbisNotchEnabled) {
+                                item {
+                                    SettingsButton(
+                                        icon = Icons.Rounded.Tune,
+                                        title = strings.derbisNotchCustomize,
+                                        // One line, live, so the row says what the island will do
+                                        // without opening the sheet.
+                                        subtitle = notchSummary(interfaceSettings.derbisNotch, strings),
+                                        onClick = { showNotchCustomize = true }
+                                    )
+                                }
                             }
                             standaloneItem { SettingsSectionLabel(strings.ambientSettingsTitle) }
                             item {
@@ -21968,6 +22288,17 @@ private fun SettingsOverlay(
                                 )
                             }
                             item {
+                                SettingsToggle(
+                                    icon = Icons.Rounded.Subtitles,
+                                    title = strings.statusBarLyricsTitle,
+                                    subtitle = strings.statusBarLyricsSubtitle,
+                                    checked = interfaceSettings.statusBarLyrics,
+                                    onCheckedChange = { enabled ->
+                                        onInterfaceSettings(interfaceSettings.copy(statusBarLyrics = enabled))
+                                    }
+                                )
+                            }
+                            item {
                                 SettingsInfoCard(
                                     icon = Icons.Rounded.Insights,
                                     title = strings.lyricsAnalysisCompact,
@@ -22218,6 +22549,18 @@ private fun SettingsOverlay(
                     } }
                 }
             }
+            // Outside the list on purpose: a dialog hosted by a lazy item would close itself the
+            // moment that row scrolled away.
+            if (showNotchCustomize) {
+                NotchCustomizeSheet(
+                    settings = interfaceSettings.derbisNotch,
+                    onSettings = { updated ->
+                        onInterfaceSettings(interfaceSettings.copy(derbisNotch = updated))
+                    },
+                    preview = notchPreview,
+                    onDismiss = { showNotchCustomize = false }
+                )
+            }
             }
         }
     }
@@ -22249,6 +22592,54 @@ private fun SettingsSearchResultRow(title: String, description: String, category
     }
 }
 
+/**
+ * Opens the Discord authorization page in the Discord app, so the user approves Derbis where
+ * they are already signed in. Falls back to a browser when Discord is missing or refuses it.
+ *
+ * The app is asked in three ways, cheapest first: Discord's own `discord://` router (the page the
+ * app shows internally), then the https page addressed at the Discord packages, then any browser.
+ * Sending only the https URL to `com.discord` is what used to bounce people into a browser,
+ * because the app does not claim every discord.com path as an App Link.
+ */
+private fun openDiscordAuthorization(context: Context, uri: Uri) {
+    // Launch, do not ask permission first. Since Android 11 a package that is not named in the
+    // manifest's <queries> block is invisible to resolveActivity(), so the old
+    // "if (candidate.resolveActivity(manager) == null) continue" skipped every Discord candidate on
+    // a modern phone and quietly fell through to a browser tab. startActivity() itself is not
+    // restricted by package visibility - it either opens Discord or throws.
+    val discord = com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+    val flag = Intent.FLAG_ACTIVITY_NEW_TASK
+    val packages = listOf("com.discord", "com.discord.beta", "com.discord.preview")
+    val deepLink = discord.authorizationDeepLink(uri)
+
+    // Discord's own app first: the consent screen then opens inside an account that is already
+    // signed in, and the redirect comes straight back to this app.
+    val candidates = buildList {
+        deepLink?.let { link ->
+            // Named Discord builds first, then whoever else answers discord:// on a phone whose
+            // Discord is packaged under a name this list does not know.
+            packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, link).setPackage(pkg).addFlags(flag)) }
+            add(Intent(Intent.ACTION_VIEW, link).addFlags(flag))
+        }
+        // Then the https page, which Discord's app also claims on Android when App Links verify.
+        packages.forEach { pkg -> add(Intent(Intent.ACTION_VIEW, uri).setPackage(pkg).addFlags(flag)) }
+        // Last, the page in whatever browser is installed. Always works, never hands back a code.
+        add(Intent(Intent.ACTION_VIEW, uri).addFlags(flag))
+    }
+
+    for (candidate in candidates) {
+        val launched = runCatching { context.startActivity(candidate) }
+        if (launched.isSuccess) return
+    }
+    // Nothing could take it: say so instead of leaving the panel stuck on "Connecting".
+    discord.cancelAuthorization(context)
+    android.widget.Toast.makeText(
+        context,
+        "Could not open Discord sign-in. Install Discord or a browser and try again.",
+        android.widget.Toast.LENGTH_LONG
+    ).show()
+}
+
 @Composable
 private fun DiscordRichPresenceSettingsPanel() {
     val context = LocalContext.current
@@ -22260,7 +22651,6 @@ private fun DiscordRichPresenceSettingsPanel() {
     var lyricsInPresence by remember(context) {
         mutableStateOf(discord.isLyricsEnabled(context))
     }
-    var showLoginSheet by remember { mutableStateOf(false) }
     var isTestingConnection by remember { mutableStateOf(false) }
     var testDiagnosticMessage by remember { mutableStateOf("") }
 
@@ -22271,17 +22661,49 @@ private fun DiscordRichPresenceSettingsPanel() {
         presenceEnabled = connection.isConnected && discord.isEnabled(context)
         lyricsInPresence = discord.isLyricsEnabled(context)
     }
+    val authorizeDiscord: () -> Unit = {
+        discord.beginAuthorization(context)?.let { uri -> openDiscordAuthorization(context, uri) }
+    }
+    // A sign-in nobody finished must not hold the panel hostage: while the panel waits, it checks
+    // the engine's deadline and goes back to "not signed in" when it passes, instead of sitting
+    // on a card with every control greyed out.
+    LaunchedEffect(connection.status) {
+        if (connection.status == com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn) {
+            while (true) {
+                delay(15_000)
+                if (discord.hasStaleSignIn()) {
+                    discord.cancelAuthorization(context)
+                    break
+                }
+            }
+        }
+    }
 
     Text("Discord", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
+    val discordInstalled = remember(context) { discord.isDiscordAppAvailable(context) }
+    if (!discordInstalled) {
+        Text(
+            text = "The Discord app is not installed on this phone. Sign-in opens in your browser " +
+                "and still comes back to Derbis.",
+            color = DerbisMuted,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+        )
+    }
 
     when (connection.status) {
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Unavailable,
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Disconnected -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Connect Discord",
-                subtitle = "Sign in via Normal Web Login or User Token for Rich Presence",
-                onClick = { showLoginSheet = true }
+                subtitle = connection.detail.ifBlank {
+                    if (discordInstalled) "Sign in with your Discord account inside the Discord app"
+                    else "Sign in with your Discord account in the browser"
+                },
+                brandTint = DiscordBrandColor,
+                onClick = authorizeDiscord
             )
             SettingsButton(
                 icon = Icons.Rounded.Refresh,
@@ -22296,22 +22718,57 @@ private fun DiscordRichPresenceSettingsPanel() {
                 }
             )
         }
-        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn,
+        com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.SigningIn -> {
+            // Still waiting on Discord. Tapping opens it again - the deep link can land on the
+            // home screen if the app was backgrounded - and both ways out are here, because a
+            // card that only says "Connecting" can otherwise never be left.
+            SettingsButton(
+                icon = DiscordBrandVector,
+                title = "Connecting Discord",
+                subtitle = connection.detail.ifBlank {
+                    if (discordInstalled) "Approve Derbis in Discord to finish signing in."
+                    else "Approve Derbis in the browser to finish signing in."
+                },
+                brandTint = DiscordBrandColor,
+                onClick = authorizeDiscord
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 2.dp, bottom = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = authorizeDiscord) {
+                    Text(
+                        text = if (discordInstalled) "Open Discord again" else "Open sign-in again",
+                        color = DerbisPink,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                TextButton(onClick = { discord.cancelAuthorization(context) }) {
+                    Text("Cancel", color = DerbisMuted, fontSize = 13.sp)
+                }
+            }
+        }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connecting -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Connecting Discord",
                 subtitle = connection.detail.ifBlank { "Verifying session with Discord..." },
                 enabled = false,
+                brandTint = DiscordBrandColor,
                 onClick = {}
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Error -> {
             SettingsButton(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Reconnect Discord",
                 subtitle = connection.detail.ifBlank { "Discord connection failed. Tap to reconnect." },
-                onClick = { showLoginSheet = true }
+                brandTint = DiscordBrandColor,
+                onClick = authorizeDiscord
             )
             SettingsButton(
                 icon = Icons.Rounded.Refresh,
@@ -22327,14 +22784,26 @@ private fun DiscordRichPresenceSettingsPanel() {
             )
         }
         com.yasuda.derbis.feature.discord.DerbisDiscordConnectionStatus.Connected -> {
+            val pixel = DerbisIsPixel
+            val cardShape = if (pixel) RectangleShape else RoundedCornerShape(16.dp)
+            val cardFill = if (pixel) PixelPalette.ink else Color(0xFF16181F)
+            val cardBorder = if (pixel) PixelPalette.outline else Color(0xFF262835)
+            val avatarShape = if (pixel) RectangleShape else CircleShape
+            val avatarWell = if (pixel) PixelPalette.panelSoft else Color(0xFF2C2E38)
+            val nameColor = if (pixel) PixelPalette.text else Color.White
+            val subColor = if (pixel) PixelPalette.muted else Color.LightGray
+            val pillShape = if (pixel) RectangleShape else RoundedCornerShape(8.dp)
+            val pillFill = if (pixel) PixelPalette.panel else Color(0xFF1B3D2F)
+            val pillText = if (pixel) PixelPalette.cyan else Color(0xFF4CAF50)
+
             // User profile card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF16181F))
-                    .border(1.dp, Color(0xFF262835), RoundedCornerShape(16.dp))
+                    .clip(cardShape)
+                    .background(cardFill)
+                    .border(1.dp, cardBorder, cardShape)
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -22343,18 +22812,23 @@ private fun DiscordRichPresenceSettingsPanel() {
                         model = connection.avatarUrl,
                         contentDescription = "Discord Avatar",
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
+                            .size(if (pixel) 40.dp else 44.dp)
+                            .clip(avatarShape)
                     )
                 } else {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2C2E38)),
+                            .size(if (pixel) 40.dp else 44.dp)
+                            .clip(avatarShape)
+                            .background(avatarWell),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Rounded.AccountCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                        Icon(
+                            imageVector = DiscordBrandVector,
+                            contentDescription = null,
+                            tint = DiscordBrandColor,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
 
@@ -22364,25 +22838,25 @@ private fun DiscordRichPresenceSettingsPanel() {
                     Text(
                         text = connection.globalName.ifBlank { connection.username.ifBlank { "Discord User" } },
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = nameColor,
                         fontSize = 15.sp
                     )
                     Text(
                         text = if (connection.username.isNotBlank()) "@${connection.username}" else "Connected",
-                        color = Color.LightGray,
+                        color = subColor,
                         fontSize = 12.sp
                     )
                 }
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF1B3D2F))
+                        .clip(pillShape)
+                        .background(pillFill)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (connection.latencyMs > 0L) "${connection.latencyMs} ms" else "Active",
-                        color = Color(0xFF4CAF50),
+                        color = pillText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -22390,10 +22864,11 @@ private fun DiscordRichPresenceSettingsPanel() {
             }
 
             SettingsToggle(
-                icon = Icons.Rounded.AccountCircle,
+                icon = DiscordBrandVector,
                 title = "Discord Rich Presence",
-                subtitle = "Show current track, cover art, artist icon, progress bar, and clickable links",
+                subtitle = "Show Listening in Derbis on your profile: track, cover art, artist icon, progress bar and links",
                 checked = presenceEnabled,
+                brandTint = DiscordBrandColor,
                 onCheckedChange = { value ->
                     presenceEnabled = value
                     discord.setEnabled(context, value)
@@ -22435,27 +22910,24 @@ private fun DiscordRichPresenceSettingsPanel() {
         }
     }
 
-    if (showLoginSheet) {
-        com.yasuda.derbis.feature.discord.DiscordLoginSheet(
-            onDismiss = { showLoginSheet = false },
-            onSuccess = {
-                showLoginSheet = false
-                presenceEnabled = true
-            }
-        )
-    }
 }
 
 @Composable
 private fun SpotifyConnectionSettingsPanel(
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit
+    onRefreshMotionArtwork: () -> Unit
 ) {
     val context = LocalContext.current
     val strings = LocalDerbisStrings.current
     val spotifyState by com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.state.collectAsStateWithLifecycle()
+    val spotifySession by DerbisSpotifySession.state.collectAsStateWithLifecycle()
+    var showSpotifyCanvasSheet by remember { mutableStateOf(false) }
+    // Connect goes straight into the sign-in browser; the Developer chip opens the same sheet on
+    // its status card instead.
+    var spotifyCanvasInBrowser by remember { mutableStateOf(false) }
     LaunchedEffect(context) {
-        com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.initialize(context)
+        DerbisSpotifyConnection.initialize(context)
+        DerbisSpotifySession.initialize(context)
     }
     val subtitle = when (spotifyState.status) {
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connected ->
@@ -22467,57 +22939,141 @@ private fun SpotifyConnectionSettingsPanel(
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Unavailable ->
             spotifyState.detail
         com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Disconnected ->
-            "Connect your account with Spotify’s official sign-in"
+            "Sign in to Spotify in the in-app browser"
     }
-    Text("Spotify", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
-    SettingsButton(
-        icon = Icons.Rounded.AccountCircle,
-        title = if (spotifyState.isConnected) "Disconnect Spotify" else "Connect Spotify",
-        subtitle = subtitle,
-        enabled = spotifyState.status != com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connecting
+    // The developer door sits in the upper right of the section, where a session is advertised
+    // without giving it a whole row of its own.
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (spotifyState.isConnected) {
-            com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
-        } else {
-            val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-            if (authorizationUri != null) {
-                runCatching {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
-                }.onFailure {
-                    com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
+        Text(
+            text = "Spotify",
+            color = DerbisText,
+            fontWeight = FontWeight.Black,
+            fontSize = 17.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(99.dp))
+                .clickable {
+                    spotifyCanvasInBrowser = false
+                    showSpotifyCanvasSheet = true
                 }
-            }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Code,
+                contentDescription = strings.spotifyCanvasDeveloper,
+                tint = if (spotifySession.hasCookie) Color(0xFF1ED760) else DerbisMuted,
+                modifier = Modifier.size(15.dp)
+            )
+            Text(
+                text = if (spotifySession.hasCookie) {
+                    SpotifyCookie.masked(DerbisSpotifySession.cookie())
+                } else {
+                    strings.spotifyCanvasDeveloper
+                },
+                color = if (spotifySession.hasCookie) Color(0xFF1ED760) else DerbisMuted,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
         }
     }
-
-    val isConnected = spotifyState.isConnected
-    val motionSubtitle = when {
-        !isConnected -> strings.motionArtworkSpotifyRequired
+    // One Spotify card, not two. The account row and the Canvas row were answering the same
+    // question - is there a Spotify session? - in two different places, so a connected account
+    // showed "Connected" with an "UNLOCKED" card under it, and a disconnected one showed a
+    // sign-in row with a "Canvas locked" card under it. They are one surface now: what the
+    // session is on top, what it unlocks underneath, and the one action that changes it on the
+    // right.
+    //
+    // Canvas needs a Spotify session, and there are two ways to have one: the official OAuth
+    // connection (when the build carries a client id) or the web session held by the sheet.
+    val canvasUnlocked = spotifyState.isConnected || spotifySession.hasCookie
+    val connecting = spotifyState.status ==
+        com.yasuda.derbis.data.spotify.SpotifyConnectionStatus.Connecting
+    val unlockedLine = when {
         motionArtworkEnabled -> strings.motionArtworkUnlocked
-        else -> "Disabled · Static album covers only"
+        else -> "Session ready · turn on Animated Artwork in Settings → Interface"
     }
+    val cardSubtitle = when {
+        spotifyState.isConnected ->
+            spotifyState.displayName.ifBlank { "Connected" } + " · " + unlockedLine
+        spotifySession.hasCookie -> "Web session · " + unlockedLine
+        connecting -> subtitle
+        else -> strings.motionArtworkSpotifyRequired
+    }
+    // Connect signs in inside Derbis. A browser Derbis does not own cannot hand back the sp_dc
+    // cookie, and that cookie is the only way to the Canvas, so the sign-in opens here: full
+    // screen browser on Spotify's login page, cookie read from its own jar on the way out.
+    val disconnectAction: () -> Unit = {
+        if (spotifyState.isConnected) {
+            DerbisSpotifyConnection.disconnect(context)
+        }
+        if (spotifySession.hasCookie) {
+            DerbisSpotifySession.clear(context)
+            clearSpotifyWebCookies()
+            SpotifyOfficialCanvas.invalidate()
+            SpotifyTokenProvider.invalidate()
+            com.yasuda.derbis.feature.motion.MotionArtworkRuntime.bumpSessionGeneration()
+        }
+    }
+    val cardTapAction: () -> Unit = {
+        spotifyCanvasInBrowser = !canvasUnlocked
+        showSpotifyCanvasSheet = true
+    }
+
+    val pixel = DerbisIsPixel
+    val spotifySkin = DerbisIsSpotify
+    val cardShape = if (pixel) RectangleShape else RoundedCornerShape(18.dp)
+    val cardBg = when {
+        pixel -> PixelPalette.ink
+        spotifySkin -> SpotifyBrandBlack
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.08f)
+        else -> Color.White.copy(alpha = 0.04f)
+    }
+    val cardBorder = when {
+        pixel -> PixelPalette.outline
+        spotifySkin -> Color(0xFF2A2A2A)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.32f)
+        else -> Color.White.copy(alpha = 0.10f)
+    }
+    val plateShape = if (pixel) RectangleShape else CircleShape
+    val plateBg = when {
+        // Spotify green on the blush band measures 1.8:1; on Spotify's own black it is 7.2:1.
+        pixel -> SpotifyBrandBlack
+        spotifySkin -> SpotifyBrandColor.copy(alpha = 0.20f)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.20f)
+        else -> Color.White.copy(alpha = 0.08f)
+    }
+    val chipShape = if (pixel) RectangleShape else RoundedCornerShape(99.dp)
+    val chipBg = when {
+        pixel && canvasUnlocked -> PixelPalette.panel
+        pixel -> PixelPalette.cyan.copy(alpha = 0.14f)
+        spotifySkin -> SpotifyBrandColor.copy(alpha = 0.20f)
+        canvasUnlocked -> SpotifyBrandColor.copy(alpha = 0.20f)
+        else -> Color(0xFFFF5E3A).copy(alpha = 0.15f)
+    }
+    val chipText = when {
+        pixel -> PixelPalette.cyan
+        spotifySkin -> SpotifyBrandColor
+        canvasUnlocked -> SpotifyBrandColor
+        else -> Color(0xFFFF5E3A)
+    }
+    val connectText = if (pixel) PixelPalette.cyan else SpotifyBrandColor
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.08f) else Color.White.copy(alpha = 0.04f)
-            )
-            .border(
-                1.dp,
-                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(18.dp)
-            )
-            .clickable(enabled = !isConnected) {
-                val authorizationUri = com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.begin(context)
-                if (authorizationUri != null) {
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, authorizationUri))
-                    }
-                }
-            }
-            .padding(16.dp)
+            .clip(cardShape)
+            .background(cardBg)
+            .border(1.dp, cardBorder, cardShape)
+            .clickable(enabled = !connecting, onClick = cardTapAction)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -22527,71 +23083,84 @@ private fun SpotifyConnectionSettingsPanel(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isConnected) Color(0xFF1ED760).copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f)
-                    ),
+                    .clip(plateShape)
+                    .background(plateBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isConnected) Icons.Rounded.AutoAwesome else Icons.Rounded.Lock,
+                    imageVector = SpotifyBrandVector,
                     contentDescription = null,
-                    tint = if (isConnected) Color(0xFF1ED760) else DerbisMuted,
+                    tint = SpotifyBrandColor,
                     modifier = Modifier.size(22.dp)
                 )
             }
 
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Text(
+                    text = strings.motionArtworkEnabled,
+                    color = DerbisText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = cardSubtitle,
+                    color = DerbisMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Box(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .clip(chipShape)
+                        .background(chipBg)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = strings.motionArtworkEnabled,
-                        color = if (isConnected) DerbisText else DerbisMuted,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        text = when {
+                            connecting -> "CONNECTING"
+                            canvasUnlocked -> "UNLOCKED"
+                            else -> "LOGIN REQUIRED"
+                        },
+                        color = chipText,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(99.dp))
-                            .background(
-                                if (isConnected) Color(0xFF1ED760).copy(alpha = 0.20f)
-                                else Color(0xFFFF5E3A).copy(alpha = 0.15f)
-                            )
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (isConnected) "UNLOCKED" else "LOGIN REQUIRED",
-                            color = if (isConnected) Color(0xFF1ED760) else Color(0xFFFF5E3A),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
                 }
-
-                Text(
-                    text = motionSubtitle,
-                    color = if (isConnected) DerbisMuted else Color.White.copy(alpha = 0.45f),
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
             }
 
-            Switch(
-                checked = isConnected && motionArtworkEnabled,
-                onCheckedChange = { onToggleMotionArtwork(it) },
-                enabled = isConnected,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = DerbisInk,
-                    checkedTrackColor = Color(0xFF1ED760),
-                    disabledCheckedTrackColor = Color.White.copy(alpha = 0.12f),
-                    disabledUncheckedTrackColor = Color.White.copy(alpha = 0.06f),
-                    disabledUncheckedThumbColor = DerbisMuted.copy(alpha = 0.4f)
-                )
+            // Tapping Disconnect clears whichever Spotify session unlocked Canvas; when locked,
+            // tapping Connect opens the sign-in browser directly.
+            Text(
+                text = if (canvasUnlocked) "Disconnect" else "Connect",
+                color = if (canvasUnlocked) DerbisMuted else connectText,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier
+                    .clip(chipShape)
+                    .clickable(
+                        enabled = !connecting,
+                        onClick = if (canvasUnlocked) disconnectAction else cardTapAction
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }
+    }
+
+    if (showSpotifyCanvasSheet) {
+        SpotifyCanvasSheet(
+            onDismiss = { showSpotifyCanvasSheet = false },
+            onSessionSaved = onRefreshMotionArtwork,
+            startInBrowser = spotifyCanvasInBrowser
+        )
     }
 }
 
@@ -22603,7 +23172,7 @@ private fun IntegrationSettingsPanel(
     onSaveListenBrainz: (String) -> Unit, onClearListenBrainz: () -> Unit,
     onSaveAudD: (String) -> Unit, onClearAudD: () -> Unit,
     motionArtworkEnabled: Boolean,
-    onToggleMotionArtwork: (Boolean) -> Unit
+    onRefreshMotionArtwork: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
     var lastFmKey by remember { mutableStateOf("") }
@@ -22614,7 +23183,7 @@ private fun IntegrationSettingsPanel(
         DiscordRichPresenceSettingsPanel()
         SpotifyConnectionSettingsPanel(
             motionArtworkEnabled = motionArtworkEnabled,
-            onToggleMotionArtwork = onToggleMotionArtwork
+            onRefreshMotionArtwork = onRefreshMotionArtwork
         )
         Text("Last.fm", color = DerbisText, fontWeight = FontWeight.Black, fontSize = 17.sp)
         OutlinedTextField(
@@ -22711,6 +23280,8 @@ private fun IntegrationSettingsPanel(
 private fun SettingsHubFooter(onExitApplication: () -> Unit) {
     val strings = LocalDerbisStrings.current
     val context = LocalContext.current
+    LaunchedEffect(context) { DerbisAppIconManager.initialize(context) }
+    val activeIcon by DerbisAppIconManager.selected.collectAsStateWithLifecycle()
     val footerVersion = BuildConfig.VERSION_NAME.removeSuffix("-pr-diagnostics")
     Column(
         modifier = Modifier
@@ -22728,6 +23299,23 @@ private fun SettingsHubFooter(onExitApplication: () -> Unit) {
                 .background(DerbisAdaptiveHairline)
         )
         Spacer(modifier = Modifier.height(18.dp))
+        if (activeIcon != DerbisAppIcon.Original) {
+            Box(
+                modifier = Modifier
+                    .border(
+                        width = if (DerbisIsPixel) PixelDesign.border else 1.dp,
+                        color = if (DerbisIsPixel) PixelPalette.outline else DerbisAdaptiveHairline,
+                        shape = if (DerbisIsPixel) RectangleShape else RoundedCornerShape(12.dp)
+                    )
+                    .clip(if (DerbisIsPixel) RectangleShape else RoundedCornerShape(12.dp))
+            ) {
+                PixelAppIconTilePreview(icon = activeIcon, size = 56.dp)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+        } else if (DerbisIsPixel) {
+            PixelDerbisLogoMark(size = 36.dp, contentDescription = null)
+            Spacer(modifier = Modifier.height(10.dp))
+        }
         Text(
             "DERBIS $footerVersion",
             color = DerbisMuted.copy(alpha = 0.86f),
@@ -22987,7 +23575,12 @@ private fun SettingsTile(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SettingsTileIcon(icon: ImageVector, accent: Color, shape: Shape = MaterialShapes.Cookie4Sided.toShape()) {
+private fun SettingsTileIcon(
+    icon: ImageVector,
+    accent: Color,
+    shape: Shape = MaterialShapes.Cookie4Sided.toShape(),
+    brandTint: Color? = null
+) {
     Box(
         modifier = Modifier
             .size(if (DerbisIsAppleMusic) 30.dp else 44.dp)
@@ -22995,7 +23588,12 @@ private fun SettingsTileIcon(icon: ImageVector, accent: Color, shape: Shape = Ma
             .background(if (SkinChrome.active) SkinChrome.iconBackground else accent.copy(alpha = 0.18f)),
         contentAlignment = Alignment.Center
     ) {
-        Icon(icon, null, tint = if (SkinChrome.active) SkinChrome.iconTint else accent, modifier = Modifier.size(if (DerbisIsAppleMusic) 19.dp else 22.dp))
+        Icon(
+            icon,
+            null,
+            tint = brandTint ?: if (SkinChrome.active) SkinChrome.iconTint else accent,
+            modifier = Modifier.size(if (DerbisIsAppleMusic) 19.dp else 22.dp)
+        )
     }
 }
 
@@ -23152,6 +23750,28 @@ private fun visualPerformanceLabel(mode: DerbisVisualPerformance, strings: Derbi
     DerbisVisualPerformance.Full -> strings.visualPerformanceFull
     DerbisVisualPerformance.Auto -> strings.visualPerformanceAuto
     DerbisVisualPerformance.Smooth -> strings.visualPerformanceSmooth
+}
+
+private fun artworkQualityLabel(band: DerbisArtworkQuality, strings: DerbisStrings): String = when (band) {
+    DerbisArtworkQuality.Low -> strings.artworkQualityLow
+    DerbisArtworkQuality.Medium -> strings.artworkQualityMedium
+    DerbisArtworkQuality.High -> strings.artworkQualityHigh
+}
+
+/**
+ * States the trade-off instead of implying it: the number is the ceiling the CDN is actually
+ * asked for, and the sentence says what lives at that size.
+ */
+private fun artworkQualitySubtitle(band: DerbisArtworkQuality, strings: DerbisStrings): String = when (band) {
+    DerbisArtworkQuality.Low -> strings.artworkQualityLowSubtitle
+    DerbisArtworkQuality.Medium -> strings.artworkQualityMediumSubtitle
+    DerbisArtworkQuality.High -> strings.artworkQualityHighSubtitle
+}
+
+private fun explicitFilterLabel(filter: DerbisExplicitFilter, strings: DerbisStrings): String = when (filter) {
+    DerbisExplicitFilter.Off -> strings.explicitFilterShowAll
+    DerbisExplicitFilter.HideExplicit -> strings.explicitFilterHide
+    DerbisExplicitFilter.OnlyExplicit -> strings.explicitFilterOnly
 }
 
 private fun visualPerformanceSubtitle(mode: DerbisVisualPerformance, strings: DerbisStrings): String = when (mode) {
@@ -23402,6 +24022,171 @@ private fun String.smartOfflineEntries(): Set<String> = split(',')
     .map(String::trim)
     .filter(String::isNotBlank)
     .toSet()
+
+/**
+ * The home-server row: three fields and a Test button.
+ *
+ * Test exists because the only other way to discover a wrong password is to save it and wait for
+ * a search to quietly come back without the server's results, which looks exactly like having no
+ * server at all.
+ *
+ * The password field is write-only: the stored secret is never read back into it. Once saved, the
+ * row says what it knows (host, user, state) and leaves the field empty for the next edit.
+ */
+@Composable
+private fun SubsonicServerTile(
+    summary: SubsonicServerSummary,
+    test: SubsonicTestState,
+    onSave: (String, String, String) -> Unit,
+    onTest: (String, String, String) -> Unit,
+    onClear: () -> Unit,
+    onRefresh: () -> Unit
+) {
+    val strings = LocalDerbisStrings.current
+    var open by remember { mutableStateOf(false) }
+    // The saved summary is read when the row appears, so it is current even if the server was
+    // configured on another screen or restored from a backup since this composable was composed.
+    LaunchedEffect(Unit) { onRefresh() }
+    SettingsTile(onClick = { open = true }) {
+        Row(
+            modifier = Modifier.padding(start = 14.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            SettingsTileIcon(icon = Icons.Rounded.Storage, accent = LocalSettingsAccent.current ?: DerbisCyan)
+            SettingsTileText(
+                title = strings.subsonicHomeServer,
+                subtitle = when {
+                    summary.isConfigured && summary.enabled -> summary.displayHost
+                    summary.isConfigured -> strings.subsonicTileOff + " · " + summary.displayHost
+                    else -> strings.subsonicTileSubtitle
+                },
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                null,
+                tint = DerbisMuted.copy(alpha = 0.7f),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+
+    if (!open) return
+    // Keyed on the saved values: the summary is read off the main thread when the row appears, so
+    // without the keys the fields could be seeded with the empty summary and stay empty.
+    var serverUrl by remember(summary.serverUrl) { mutableStateOf(summary.serverUrl) }
+    var username by remember(summary.username) { mutableStateOf(summary.username) }
+    var password by remember { mutableStateOf("") }
+    val testing = test is SubsonicTestState.Testing
+    val canSubmit = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = { open = false },
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
+        title = { Text(strings.subsonicHomeServer, color = DerbisText, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    strings.subsonicPanelBody,
+                    color = DerbisMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                OutlinedTextField(
+                    serverUrl,
+                    { serverUrl = it },
+                    label = { Text(strings.subsonicServerAddress) },
+                    placeholder = { Text(strings.subsonicAddressHint) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    username,
+                    { username = it },
+                    label = { Text(strings.subsonicUsername) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    password,
+                    { password = it },
+                    label = { Text(if (summary.hasPassword) strings.subsonicPasswordSaved else strings.subsonicPassword) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = DerbisText,
+                        unfocusedTextColor = DerbisText,
+                        focusedBorderColor = DerbisCyan,
+                        unfocusedBorderColor = DerbisMuted.copy(alpha = 0.4f),
+                        cursorColor = DerbisCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                val status = when (val state = test) {
+                    SubsonicTestState.Idle -> ""
+                    SubsonicTestState.Testing -> strings.subsonicContacting
+                    is SubsonicTestState.Ok -> strings.subsonicConnected + " · " + state.label
+                    is SubsonicTestState.Failed -> state.serverMessage.ifBlank {
+                        when (state.reason) {
+                            SubsonicFailure.IncompleteForm -> strings.subsonicFillAll
+                            SubsonicFailure.Rejected -> strings.subsonicRejected
+                            SubsonicFailure.Unreachable -> strings.subsonicUnreachable
+                        }
+                    }
+                }
+                if (status.isNotBlank()) {
+                    Text(
+                        status,
+                        color = if (test is SubsonicTestState.Ok) DerbisCyan else DerbisText,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = { onTest(serverUrl, username, password) },
+                        enabled = canSubmit && !testing
+                    ) {
+                        Text(if (testing) strings.subsonicTesting else strings.subsonicTest, fontWeight = FontWeight.Bold)
+                    }
+                    if (summary.isConfigured) {
+                        TextButton(onClick = { onClear(); open = false }) {
+                            Text(strings.subsonicRemove, color = DerbisPink, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(serverUrl, username, password); open = false },
+                enabled = canSubmit
+            ) {
+                Text(strings.subsonicSave, color = DerbisCyan, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { open = false }) { Text(strings.subsonicCancel, color = DerbisMuted) }
+        }
+    )
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -23672,16 +24457,23 @@ private fun SettingsSectionLabel(text: String) {
 }
 
 @Composable
-private fun SettingsToggle(icon: ImageVector, title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SettingsToggle(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    brandTint: Color? = null,
+    onCheckedChange: (Boolean) -> Unit
+) {
     SettingsTile(checked = checked, onCheckedChange = onCheckedChange) {
         Row(
             modifier = Modifier.padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisCyan)
+            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisCyan, brandTint = brandTint)
             SettingsTileText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
-            if (DerbisIsNocturne || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) SkinSwitch(checked) else Switch(
+            if (DerbisIsPixel || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) SkinSwitch(checked) else Switch(
                 checked = checked,
                 onCheckedChange = null,
                 thumbContent = if (checked) {
@@ -23703,7 +24495,14 @@ private fun SettingsToggle(icon: ImageVector, title: String, subtitle: String, c
 }
 
 @Composable
-private fun SettingsButton(icon: ImageVector, title: String, subtitle: String, enabled: Boolean = true, onClick: () -> Unit) {
+private fun SettingsButton(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    enabled: Boolean = true,
+    brandTint: Color? = null,
+    onClick: () -> Unit
+) {
     SettingsTile(onClick = onClick, enabled = enabled) {
         Row(
             modifier = Modifier
@@ -23712,7 +24511,7 @@ private fun SettingsButton(icon: ImageVector, title: String, subtitle: String, e
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisPink)
+            SettingsTileIcon(icon = icon, accent = LocalSettingsAccent.current ?: DerbisPink, brandTint = brandTint)
             SettingsTileText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
@@ -23874,10 +24673,22 @@ internal fun DerbisLogoMark(
     size: Dp = 58.dp,
     contentDescription: String? = "Derbis"
 ) {
-    com.yasuda.derbis.ui.components.DerbisVectorLogo(
-        size = size,
-        tint = Color.White
-    )
+    if (DerbisIsPixel) {
+        PixelDerbisLogoMark(size = size, contentDescription = contentDescription)
+        return
+    }
+    Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
+        com.yasuda.derbis.ui.components.DerbisVectorLogo(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = 1.45f
+                    scaleY = 1.45f
+                },
+            size = size,
+            tint = Color.White
+        )
+    }
 }
 
 @Composable
@@ -23897,10 +24708,17 @@ internal fun HomeLogoBadge() {
         modifier = Modifier.size(DerbisHomeDesign.SettingsControlHeight),
         contentAlignment = Alignment.Center
     ) {
-        com.yasuda.derbis.ui.components.DerbisVectorLogo(
-            size = DerbisHomeDesign.SettingsControlHeight * 0.72f,
-            tint = Color.White
-        )
+        if (DerbisIsPixel) {
+            PixelDerbisLogoMark(
+                size = DerbisHomeDesign.SettingsControlHeight * 0.68f,
+                contentDescription = null
+            )
+        } else {
+            com.yasuda.derbis.ui.components.DerbisVectorLogo(
+                size = DerbisHomeDesign.SettingsControlHeight * 0.72f,
+                tint = Color.White
+            )
+        }
     }
 }
 
@@ -26249,9 +27067,9 @@ private fun SearchSectionHeader(title: String, showAll: Boolean, onShowAll: () -
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = if (DerbisIsTorque || DerbisIsNocturne) title.uppercase() else title,
+            text = if (DerbisIsTorque || DerbisIsPixel) title.uppercase() else title,
             color = DerbisText,
-            fontSize = if (DerbisIsTorque || DerbisIsNocturne) 18.sp else 24.sp,
+            fontSize = if (DerbisIsTorque || DerbisIsPixel) 18.sp else 24.sp,
             lineHeight = 28.sp,
             fontWeight = searchSectionTitleWeight(),
             letterSpacing = searchSectionTitleSpacing(),
@@ -27463,7 +28281,7 @@ private fun ExploreMoodRailRow(
                             title = zone.label,
                             identity = zone.id,
                             artworkUrl = artworkUrl,
-                            accentColors = if (DerbisIsNocturne) DerbisPanel to DerbisPanelSoft else Color(zone.accentStart) to Color(zone.accentEnd),
+                            accentColors = if (DerbisIsPixel) DerbisPanel to DerbisPanelSoft else Color(zone.accentStart) to Color(zone.accentEnd),
                             modifier = Modifier
                                 .weight(1f)
                                 .height(100.dp),
@@ -27847,7 +28665,7 @@ private fun DerbisExploreShortcutTile(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "explore-shortcut-rotation"
     )
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     val skinned = DerbisSkinManagesLayout
     val iconShape = if (skinned) SkinChrome.iconShape else entry.polygon.toShape()
     val tileShape = exploreShortcutShape()
@@ -27899,7 +28717,7 @@ private fun DerbisExploreShortcutTile(
         BasicText(
             text = entry.label,
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (skinned) FontWeight.Medium else FontWeight.Bold, color = colors.onSurface),
-            maxLines = if (nocturne) 2 else 1,
+            maxLines = if (pixel) 2 else 1,
             overflow = TextOverflow.Ellipsis,
             autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = 14.sp),
             modifier = Modifier.weight(1f)
@@ -28478,16 +29296,18 @@ private fun formatDuration(ms: Long): String {
 private fun LazyListScope.skinSettingsItems(
     skin: DerbisSkin,
     defaults: LazyListScope.() -> Unit,
-    nocturne: LazyListScope.() -> Unit = {}
+    pixel: LazyListScope.() -> Unit = {}
 ) {
-    if (skin == DerbisSkin.Default) defaults() else nocturne()
+    if (skin == DerbisSkin.Default) defaults() else pixel()
 }
 
 private fun skinHomeStyleLabel(style: HomeStyle): String =
     if (DerbisSkinManagesLayout) DerbisSkinLabel else homeStyleName(style)
 
-private fun skinManagesStudio(id: String): Boolean =
-    DerbisSkinManagesLayout && id in setOf("theme", "mini_player", "navigation")
+private fun skinManagesStudio(id: String): Boolean {
+    if (DerbisIsPixel && id == "mini_player") return false
+    return DerbisSkinManagesLayout && id in setOf("theme", "mini_player", "navigation")
+}
 
 private fun searchFieldContainer(focused: Boolean, scheme: androidx.compose.material3.ColorScheme): Color = when {
     DerbisIsTorque -> Color(0xFFF1F1F1)
@@ -28510,7 +29330,7 @@ private fun searchFieldIconTint(active: Boolean, scheme: androidx.compose.materi
 }
 
 private fun searchFieldCorner(fallback: Dp): Dp = when {
-    DerbisIsNocturne -> Nocturne78Design.cardCorner
+    DerbisIsPixel -> PixelDesign.cardCorner
     DerbisIsSpotify -> SpotifyDesign.corner
     DerbisIsYouTubeMusic -> 20.dp
     DerbisIsAppleMusic -> AppleMusicDesign.cornerL
@@ -28573,6 +29393,106 @@ private fun SettingsSkinSelection(interfaceSettings: DerbisInterfaceSettings, on
     if (interfaceSettings.skin == DerbisSkin.Ivory) {
         IvorySettingsPanel(interfaceSettings.ivory) { onInterfaceSettings(interfaceSettings.copy(ivory = it)) }
     }
+    if (interfaceSettings.skin == DerbisSkin.Pixel) {
+        Spacer(modifier = Modifier.height(14.dp))
+        SettingsAppIconSection()
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SettingsAppIconSection() {
+    val context = LocalContext.current
+    LaunchedEffect(context) { DerbisAppIconManager.initialize(context) }
+    val selected by DerbisAppIconManager.selected.collectAsStateWithLifecycle()
+    val pixel = DerbisIsPixel
+    val cardShape = if (pixel) RectangleShape else RoundedCornerShape(if (SkinChrome.active) SkinChrome.outerCorner else 22.dp)
+    val cardFill = if (pixel) PixelPalette.ink else DerbisAdaptiveCard
+    val cardBorder = if (pixel) PixelPalette.outline else DerbisAdaptiveHairline
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .background(cardFill)
+            .border(if (pixel) PixelDesign.border else 1.dp, cardBorder, cardShape)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = "App icon",
+                color = DerbisText,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Choose which icon the launcher draws: the shipped mark, the pixel mark, or one of the eight Derbis pixel mascots.",
+                color = DerbisMuted,
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            DerbisAppIcon.entries.forEach { entry ->
+                val isSelected = entry == selected
+                val tileShape = if (pixel) RectangleShape else RoundedCornerShape(14.dp)
+                val borderWidth = if (isSelected) 2.dp else 1.dp
+                val borderColor = when {
+                    isSelected && pixel -> PixelPalette.cyan
+                    isSelected -> DerbisCyan
+                    pixel -> PixelPalette.outline
+                    else -> DerbisAdaptiveHairline
+                }
+                Column(
+                    modifier = Modifier
+                        .width(84.dp)
+                        .clickable(role = Role.RadioButton) {
+                            DerbisAppIconManager.select(context, entry)
+                        }
+                        .semantics {
+                            contentDescription = entry.label
+                            this.selected = isSelected
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .clip(tileShape)
+                            .background(Color(0xFFFFEDF1))
+                            .border(borderWidth, borderColor, tileShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PixelAppIconTilePreview(
+                            icon = entry,
+                            size = if (entry == DerbisAppIcon.Original) 84.dp else 72.dp
+                        )
+                    }
+                    Text(
+                        text = entry.label.uppercase(),
+                        color = if (isSelected) (if (pixel) PixelPalette.cyan else DerbisCyan) else DerbisMuted,
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        letterSpacing = 0.8.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+        Text(
+            text = "Switching an alias asks your home launcher to redraw the shortcut; some launchers refresh after returning to the home screen.",
+            color = DerbisMuted.copy(alpha = 0.82f),
+            fontSize = 11.sp,
+            lineHeight = 15.sp
+        )
+    }
 }
 
 @Composable
@@ -28599,15 +29519,15 @@ private fun settingsChoiceContent(active: Boolean): Color =
 
 private fun exploreShortcutShape(): Shape = when {
     DerbisIsPrism -> PrismDesign.cut(PrismDesign.surfaceCorner)
-    DerbisIsNocturne -> RoundedCornerShape(Nocturne78Design.cardCorner)
+    DerbisIsPixel -> RoundedCornerShape(PixelDesign.cardCorner)
     else -> RoundedCornerShape(22.dp)
 }
 
 private fun artistPlayBackground(playContainer: Color, playShape: Shape): Modifier =
     when {
         DerbisIsPrism -> Modifier.clip(CircleShape).background(PrismAccent.gradient())
-        DerbisIsNocturne -> Modifier.clip(RoundedCornerShape(Nocturne78Design.controlCorner)).background(DerbisPanelSoft)
-            .border(1.dp, DerbisCyan, RoundedCornerShape(Nocturne78Design.controlCorner))
+        DerbisIsPixel -> Modifier.clip(RoundedCornerShape(PixelDesign.controlCorner)).background(DerbisPanelSoft)
+            .border(1.dp, DerbisCyan, RoundedCornerShape(PixelDesign.controlCorner))
         else -> Modifier.background(playContainer, playShape)
     }
 
@@ -28661,7 +29581,7 @@ private fun searchSectionTitleWeight(): FontWeight = when {
 }
 
 private fun searchSectionTitleSpacing(): TextUnit = when {
-    DerbisIsTorque || DerbisIsNocturne -> 1.8.sp
+    DerbisIsTorque || DerbisIsPixel -> 1.8.sp
     DerbisIsIvory -> 0.2.sp
     DerbisIsSpotify -> (-0.4).sp
     else -> (-0.3).sp
@@ -28670,7 +29590,7 @@ private fun searchSectionTitleSpacing(): TextUnit = when {
 private fun artistPlayContent(fallback: Color): Color = when {
     DerbisIsSpotify || DerbisIsYouTubeMusic -> Color.Black
     DerbisIsPrism -> Color.White
-    DerbisIsNocturne -> DerbisCyan
+    DerbisIsPixel -> DerbisCyan
     else -> fallback
 }
 

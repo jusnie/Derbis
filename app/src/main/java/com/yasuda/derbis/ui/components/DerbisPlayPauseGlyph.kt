@@ -3,6 +3,7 @@ package com.yasuda.derbis.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -15,7 +16,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.yasuda.derbis.ui.LocalAnimationsEnabled
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMotion
+import com.yasuda.derbis.ui.theme.PixelIcons
 
 private const val GlyphRounding = 0.07f
 
@@ -36,6 +39,15 @@ fun DerbisPlayPauseGlyph(
     contentDescription: String? = null,
     animateMorph: Boolean = true
 ) {
+    if (DerbisIsPixel) {
+        Icon(
+            imageVector = if (playing) PixelIcons.Pause else PixelIcons.Play,
+            contentDescription = contentDescription,
+            tint = color,
+            modifier = modifier
+        )
+        return
+    }
     val animated = LocalAnimationsEnabled.current
     val target = if (playing) 1f else 0f
     val animatedMorph = animateFloatAsState(

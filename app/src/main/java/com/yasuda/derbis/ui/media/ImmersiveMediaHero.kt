@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui.media
 
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.ui.theme.DerbisIsTorque
 import com.yasuda.derbis.ui.theme.DerbisIsIvory
@@ -35,9 +35,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Download
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Shuffle
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -107,11 +107,11 @@ internal data class ImmersiveMediaPrimaryAction(
     val onClick: () -> Unit
 )
 
-internal fun immersiveMediaColors(primary: Color, secondary: Color, lightTheme: Boolean, nocturne: Boolean = false): ImmersiveMediaColors {
+internal fun immersiveMediaColors(primary: Color, secondary: Color, lightTheme: Boolean, pixel: Boolean = false): ImmersiveMediaColors {
     skinMediaColors(primary)?.let { return it }
-    if (nocturne) {
-        val p = Nocturne78Palette
-        return ImmersiveMediaColors(p.black, p.black, p.ink, p.text, p.muted, p.cyan, p.panelSoft, p.panelSoft, p.cyan, p.panel, p.outline)
+    if (pixel) {
+        val p = PixelPalette
+        return ImmersiveMediaColors(p.black, p.black, p.ink, p.text, p.muted, p.cyan, p.cyan, p.cyan, p.ink, p.ink, p.outline)
     }
     val accents = harmonizePlayerAccents(primary, secondary)
     val action = playerContrastGradient(accents.primary, accents.secondary, PlayerMinimumContrast)
@@ -710,7 +710,7 @@ private fun SkinMediaHero(
         DerbisIsSpotify -> SpotifyMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         DerbisIsIvory -> IvoryMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         DerbisIsPrism -> PrismMediaHero(title, overline, subtitle, metadata, colors, viewportWidth, topBarHeight, onSubtitleClick, actions, artwork, modifier)
-        DerbisIsNocturne -> NocturneMediaHero(title, overline, subtitle, metadata, colors, topBarHeight, onSubtitleClick, actions, artwork, modifier)
+        DerbisIsPixel -> PixelMediaHero(title, overline, subtitle, metadata, colors, topBarHeight, onSubtitleClick, actions, artwork, modifier)
         else -> return false
     }
     return true

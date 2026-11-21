@@ -24,6 +24,17 @@ internal const val DEFAULT_OFFLINE_PROVIDER_TIMEOUT_MS = 62_000L
 interface DerbisCatalogProvider {
     val id: String
     val priority: Int
+
+    /**
+     * Whether this provider's results are added to the primary provider's instead of replacing
+     * them.
+     *
+     * False by default, because the ordinary case is two sources answering the same question and
+     * the listener wanting one answer. A home server is the exception: a record someone owns
+     * should appear beside the streamed copy of it, not instead of it, and a listener who owns
+     * nothing must notice no difference at all.
+     */
+    val mergesIntoPrimary: Boolean get() = false
     suspend fun searchEverything(query: String, languageCode: String): SearchResults
     suspend fun albumDetail(album: AlbumHit, languageCode: String): AlbumDetail?
     suspend fun playlist(playlistId: String, languageCode: String, limit: Int): YoutubeMusicPlaylistDetail?
@@ -37,6 +48,13 @@ interface DerbisPlaybackProvider {
 }
 
 internal class DerbisProviderMissException(message: String) : IOException(message)
+
+/**
+ * The provider was reachable in principle but could not answer: wrong password, server down, a
+ * timeout. Distinct from a miss, which means the provider answered and had nothing — the first is
+ * worth telling the listener about, the second is not.
+ */
+internal class DerbisProviderDeclinedException(message: String) : Exception(message)
 
 data class DerbisProviderHealth(
     val providerId: String,
@@ -286,13 +304,24 @@ class DerbisProviderRouter(
 
     private suspend fun executeCatalog(operation: String, block: suspend (DerbisCatalogProvider) -> SearchResults): SearchResults {
         var lastError: Throwable? = null
+        val ordered = orderedCatalogProviders()
+
+        // Two phases, so provider order cannot decide whether a merging provider runs. Phase one
+        // asks the ordinary providers and stops at the first real answer. Phase two asks every
+        // merging provider, and their results are added to whatever phase one produced — or stand
+        // on their own if phase one had nothing, which is the case where a listener's own library
+        // is the only place the song exists.
+        var primary: SearchResults? = null
         var emptyResult: SearchResults? = null
-        for (provider in orderedCatalogProviders()) {
+        for (provider in ordered.filterNot { it.mergesIntoPrimary }) {
             val startedAt = System.nanoTime()
             try {
                 val result = withTimeout(catalogTimeoutMs) { block(provider) }
                 healthTracker.recordSuccess(provider.id, elapsedMs(startedAt))
-                if (!result.isEmpty) return result
+                if (!result.isEmpty) {
+                    primary = result
+                    break
+                }
                 if (emptyResult == null) emptyResult = result
             } catch (error: Throwable) {
                 if (error is CancellationException && error !is TimeoutCancellationException) throw error
@@ -300,9 +329,43 @@ class DerbisProviderRouter(
                 healthTracker.recordFailure(provider.id)
             }
         }
+
+        var merged: SearchResults? = null
+        for (provider in ordered.filter { it.mergesIntoPrimary }) {
+            val startedAt = System.nanoTime()
+            try {
+                val result = withTimeout(catalogTimeoutMs) { block(provider) }
+                healthTracker.recordSuccess(provider.id, elapsedMs(startedAt))
+                if (!result.isEmpty) merged = merged?.plus(result) ?: result
+            } catch (error: Throwable) {
+                if (error is CancellationException && error !is TimeoutCancellationException) throw error
+                lastError = error
+                healthTracker.recordFailure(provider.id)
+            }
+        }
+
+        val primaryResult = primary
+        val mergedResult = merged
+        if (primaryResult != null) {
+            return mergedResult?.let { primaryResult.plus(it) } ?: primaryResult
+        }
+        if (mergedResult != null) return mergedResult
         emptyResult?.let { return it }
         throw IOException("Nessun provider disponibile per $operation", lastError)
     }
+
+    /** Adds one provider's answer to another's, never dropping either side. */
+    private fun SearchResults.plus(other: SearchResults): SearchResults = SearchResults(
+        topTrack = topTrack ?: other.topTrack,
+        songs = songs + other.songs,
+        artists = artists + other.artists,
+        albums = albums + other.albums,
+        playlists = playlists + other.playlists,
+        videos = videos + other.videos,
+        lyricsMatches = lyricsMatches + other.lyricsMatches,
+        failedSections = failedSections + other.failedSections,
+        discography = discography ?: other.discography
+    )
 
     private suspend fun executePlayback(
         operation: String,

@@ -53,6 +53,7 @@ internal data class PlaybackStrategyStats(
 
 private const val SCORE_GAP_THRESHOLD = 25.0
 private const val HARD_FAILURE_STREAK_THRESHOLD = 3
+private const val SUSTAINED_FAILURE_STREAK_THRESHOLD = 6
 private const val BASE_QUARANTINE_MS = 5L * 60L * 1_000L
 private const val MAX_QUARANTINE_MS = 30L * 60L * 1_000L
 
@@ -62,6 +63,14 @@ private val hardPlaybackFailureKinds = setOf(
     PlaybackFailureKind.RateLimited,
     PlaybackFailureKind.LoginRequired,
     PlaybackFailureKind.Signature
+)
+
+private val transientPlaybackFailureKinds = setOf(
+    PlaybackFailureKind.Network,
+    PlaybackFailureKind.Timeout,
+    PlaybackFailureKind.ServerError,
+    PlaybackFailureKind.Truncated,
+    PlaybackFailureKind.ContentRestricted
 )
 
 private data class RankedPlaybackStrategy<T>(
@@ -129,12 +138,14 @@ internal fun playbackStrategyStatsAfterFailure(
     } else {
         base.averageLatencyMs
     }
-    val quarantineUntilMs = if (
-        consecutiveFailures >= HARD_FAILURE_STREAK_THRESHOLD && kind in hardPlaybackFailureKinds
-    ) {
-        nowMs + playbackQuarantineCooldownMs(consecutiveFailures)
-    } else {
-        base.quarantineUntilMs
+    val quarantineUntilMs = when {
+        consecutiveFailures >= HARD_FAILURE_STREAK_THRESHOLD && kind in hardPlaybackFailureKinds ->
+            nowMs + playbackQuarantineCooldownMs(consecutiveFailures)
+        consecutiveFailures >= SUSTAINED_FAILURE_STREAK_THRESHOLD && kind !in transientPlaybackFailureKinds ->
+            nowMs + playbackQuarantineCooldownMs(
+                consecutiveFailures - SUSTAINED_FAILURE_STREAK_THRESHOLD + HARD_FAILURE_STREAK_THRESHOLD
+            )
+        else -> base.quarantineUntilMs
     }
     return base.copy(
         failures = base.failures + 1,

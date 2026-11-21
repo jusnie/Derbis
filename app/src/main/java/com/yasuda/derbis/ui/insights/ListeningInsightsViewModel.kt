@@ -39,7 +39,9 @@ data class ListeningWrappedState(
     val year: Int = 0,
     val snapshot: ListeningInsightsSnapshot? = null,
     val loading: Boolean = false,
-    val failed: Boolean = false
+    val failed: Boolean = false,
+    /** Years the story can be opened for, newest first. Empty until the picker has loaded. */
+    val years: List<Int> = emptyList()
 )
 
 class ListeningInsightsViewModel(application: Application) : AndroidViewModel(application) {
@@ -57,9 +59,18 @@ class ListeningInsightsViewModel(application: Application) : AndroidViewModel(ap
         val current = _state.value.wrapped
         if (current.year == year && (current.loading || current.snapshot != null)) return
         wrappedJob?.cancel()
-        _state.update { it.copy(wrapped = ListeningWrappedState(year = year, loading = true)) }
+        // The picker survives a year change: only the story it points at is cleared, so the chips
+        // do not blink out of existence every time one of them is tapped.
+        _state.update { latest ->
+            latest.copy(
+                wrapped = latest.wrapped.copy(year = year, snapshot = null, loading = true, failed = false)
+            )
+        }
         wrappedJob = viewModelScope.launch {
             try {
+                // The picker is loaded with the story, not before it: a story must never wait on
+                // a list of years it does not need yet.
+                val years = runCatching { repository.wrappedYears() }.getOrDefault(listOf(year))
                 val snapshot = repository.yearSnapshot(year)
                 val artists = if (snapshot.topArtists.any { it.artworkUrl.isBlank() }) {
                     runCatchingPortraits(snapshot.topArtists)
@@ -68,7 +79,14 @@ class ListeningInsightsViewModel(application: Application) : AndroidViewModel(ap
                 }
                 _state.update { latest ->
                     if (latest.wrapped.year == year) {
-                        latest.copy(wrapped = ListeningWrappedState(year, snapshot.copy(topArtists = artists), loading = false))
+                        latest.copy(
+                            wrapped = ListeningWrappedState(
+                                year = year,
+                                snapshot = snapshot.copy(topArtists = artists),
+                                loading = false,
+                                years = years
+                            )
+                        )
                     } else {
                         latest
                     }
@@ -79,7 +97,9 @@ class ListeningInsightsViewModel(application: Application) : AndroidViewModel(ap
                 Timber.w(error, "Listening wrapped load failed")
                 _state.update { latest ->
                     if (latest.wrapped.year == year) {
-                        latest.copy(wrapped = ListeningWrappedState(year, loading = false, failed = true))
+                        latest.copy(
+                            wrapped = latest.wrapped.copy(loading = false, failed = true)
+                        )
                     } else {
                         latest
                     }

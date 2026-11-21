@@ -29,7 +29,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import com.yasuda.derbis.ui.icons.Person
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -219,7 +219,7 @@ private fun SearchArtistRow(
 
 private fun searchArtistAvatarShape(default: androidx.compose.ui.graphics.Shape): androidx.compose.ui.graphics.Shape = when {
     DerbisIsTorque -> RoundedCornerShape(2.dp)
-    DerbisIsNocturne -> RoundedCornerShape(Nocturne78Design.artworkCorner)
+    DerbisIsPixel -> RoundedCornerShape(PixelDesign.artworkCorner)
     else -> default
 }
 

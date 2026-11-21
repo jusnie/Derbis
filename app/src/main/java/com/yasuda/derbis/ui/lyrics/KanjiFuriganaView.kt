@@ -119,7 +119,9 @@ fun KaraokeFuriganaWordTimedText(
     modifier: Modifier = Modifier
 ) {
     val segments = remember(lineText) { KanjiFurigana.parse(lineText) }
-    val playbackPosition = if (isActive) positionProvider() else Long.MIN_VALUE
+    // Same lead as the plain word renderer: read just ahead so the colour tween lands on the
+    // syllable instead of finishing after it.
+    val playbackPosition = if (isActive) positionProvider() + KARAOKE_VISUAL_LEAD_MS else Long.MIN_VALUE
 
     val wordTransition = tween<Color>(
         durationMillis = 115,

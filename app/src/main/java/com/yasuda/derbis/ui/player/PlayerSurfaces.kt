@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui.player
 
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -25,7 +25,8 @@ internal data class PlayerSurfaceTokens(
     val content: Color,
     val contentMuted: Color,
     val contentFaint: Color,
-    val glow: Color
+    val glow: Color,
+    val framed: Boolean = amoled
 )
 
 private const val HeroLift = 0.80f
@@ -39,14 +40,15 @@ private const val TonalLift = 0.30f
 private const val TonalAlpha = 0.24f
 private const val AmoledTonalDepth = 0.74f
 
-internal fun playerSurfaceTokens(primary: Color, amoled: Boolean, nocturne: Boolean = false): PlayerSurfaceTokens {
-    if (nocturne) {
-        val p = Nocturne78Palette
+internal fun playerSurfaceTokens(primary: Color, amoled: Boolean, pixel: Boolean = false): PlayerSurfaceTokens {
+    if (pixel) {
+        val p = PixelPalette
         return PlayerSurfaceTokens(
-            amoled = true, control = p.panelSoft, controlQuiet = p.panel, outline = p.outline,
-            active = p.panelSoft, activeContent = p.cyan, tonal = p.panel,
-            hero = p.panelSoft, heroContent = p.cyan, content = p.text,
-            contentMuted = p.muted, contentFaint = p.muted, glow = Color.Transparent
+            amoled = false, control = p.ink, controlQuiet = p.ink, outline = p.outline,
+            active = p.panelSoft, activeContent = p.cyan, tonal = p.ink,
+            hero = p.cyan, heroContent = p.ink, content = p.text,
+            contentMuted = p.muted, contentFaint = p.muted, glow = Color.Transparent,
+            framed = true
         )
     }
     val accent = primary.copy(alpha = 1f)
@@ -99,7 +101,7 @@ internal fun playerSurfaceTokens(primary: Color, amoled: Boolean, nocturne: Bool
 }
 
 internal val PlayerSurfaceTokens.segmentOutline: Color
-    get() = if (amoled) outline else Color.Transparent
+    get() = if (framed) outline else Color.Transparent
 
 internal fun PlayerSurfaceTokens.fillFor(active: Boolean): Color =
     if (active) this.active else controlQuiet

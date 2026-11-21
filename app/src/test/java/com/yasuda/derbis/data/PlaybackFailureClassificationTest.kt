@@ -210,4 +210,18 @@ class PlaybackFailureClassificationTest {
         assertFalse(malformed.refreshSecurity)
         assertEquals(0L, malformed.quarantineMs)
     }
+
+    @Test
+    fun playbackStallWatchdogAndReelProbeHttpStatusesAreClassifiedAccurately() {
+        assertEquals(
+            PlaybackFailureKind.Timeout,
+            classifyPlaybackFailureReason("Audio stream stalled without advancing playback")
+        )
+        assertEquals(
+            PlaybackFailureKind.Forbidden,
+            classifyPlaybackFailureReason(
+                "Android Reel audio: Android Reel non ha restituito uno stream solo audio riproducibile (HTTP 403)"
+            )
+        )
+    }
 }

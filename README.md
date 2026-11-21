@@ -51,7 +51,8 @@
 
 Every release has a version-specific **What's Fixed**, **What's New**, and **Changed** record. Browse the full [GitHub Releases history](https://github.com/jusnie/Derbis/releases) or read the concise [CHANGELOG](CHANGELOG.md).
 
-- **Android (APK):** [Derbis v1.1.0](https://github.com/jusnie/Derbis/releases/tag/v1.1.0)
+- **Download Website:** [derbis-web.vercel.app](https://derbis-web.vercel.app)
+- **Android (APK):** [Derbis v1.8.0](https://github.com/jusnie/Derbis/releases/tag/v1.8.0)
 
 See the [release process](docs/RELEASE_PROCESS.md) for package naming, test-release, and publication rules.
 The Windows desktop client is no longer built from this repository.

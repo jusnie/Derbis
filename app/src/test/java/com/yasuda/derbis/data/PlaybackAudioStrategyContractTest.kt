@@ -27,6 +27,24 @@ class PlaybackAudioStrategyContractTest {
         assertTrue(reelAudioCandidates.contains("mime.startsWith(\"audio/\", true)"))
         assertFalse(reelAudioCandidates.contains("mime.startsWith(\"video/\", true)"))
         assertTrue(reelAudio.contains("stream solo audio riproducibile"))
+        assertTrue(reelAudio.contains("rejectedHttpStatusCode"))
+        assertTrue(policyDispatch.contains("strategy == PlaybackAudioStrategy.PERSISTED && failureReason == null"))
+    }
+
+    @Test
+    fun `reel muxed reuses fresh reel watch response and skips failed audio reprobe`() {
+        val resolver = readResolverSource()
+        val reelAudio = resolver
+            .substringAfter("private suspend fun resolveAudioWithAndroidReel")
+            .substringBefore("private suspend fun resolveVideoWithAndroidReel")
+        val reelVideo = resolver
+            .substringAfter("private suspend fun resolveVideoWithAndroidReel")
+            .substringBefore("private suspend fun fetchOrReuseAndroidReelWatch")
+
+        assertTrue(reelAudio.contains("fetchOrReuseAndroidReelWatch("))
+        assertTrue(reelAudio.contains("markAndroidReelAudioUnavailable("))
+        assertTrue(reelVideo.contains("fetchOrReuseAndroidReelWatch("))
+        assertTrue(reelVideo.contains("if (reelWatch.verifiedNoPlayableAudio)"))
     }
 
     @Test

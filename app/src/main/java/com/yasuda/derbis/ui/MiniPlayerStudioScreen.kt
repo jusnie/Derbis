@@ -8,6 +8,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -37,9 +38,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Lock
-import com.yasuda.derbis.ui.icons.RestartAlt
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -66,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -91,6 +93,8 @@ import com.yasuda.derbis.domain.MiniPlayerTuning
 import com.yasuda.derbis.domain.MiniProgressStyle
 import com.yasuda.derbis.domain.MiniTuningOption
 import com.yasuda.derbis.domain.MiniTypography
+import com.yasuda.derbis.domain.PixelCharmChoice
+import com.yasuda.derbis.domain.PixelMascotHead
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import com.yasuda.derbis.ui.components.derbisPressable
@@ -101,9 +105,16 @@ import com.yasuda.derbis.ui.i18n.homeStudioCopy
 import com.yasuda.derbis.ui.i18n.miniPlayerStudioCopy
 import com.yasuda.derbis.ui.theme.DerbisHapticAction
 import com.yasuda.derbis.ui.theme.DerbisInk
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisText
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelMascotKind
+import com.yasuda.derbis.ui.theme.PixelMascotSheetPreview
+import com.yasuda.derbis.ui.theme.PixelMascotSprite
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.pixelMiniSettings
 import kotlin.math.roundToInt
 
 private val StudioCardShape = RoundedCornerShape(24.dp)
@@ -165,8 +176,10 @@ internal fun MiniPlayerStudioOverlay(
     val latestSettings by rememberUpdatedState(settings)
     var draft by remember { mutableStateOf<MiniPlayerTuning?>(null) }
     var confirmRestore by remember { mutableStateOf(false) }
-    val style = settings.style
-    val tuning = draft ?: settings.activeTuning()
+    val pixel = DerbisIsPixel
+    val effectiveSettings = if (pixel) pixelMiniSettings(settings) else settings
+    val style = effectiveSettings.style
+    val tuning = draft ?: effectiveSettings.activeTuning()
     val previewTrack = track ?: rememberMiniDemoTrack(copy)
     val previewModel = MiniPlayerModel(
         track = previewTrack,
@@ -187,11 +200,12 @@ internal fun MiniPlayerStudioOverlay(
     val cancelPreview: () -> Unit = { draft = null }
     val commitTuning: (MiniPlayerTuning) -> Unit = { next ->
         val current = latestSettings
-        onUpdate(current.updateTuning(current.style) { next })
+        val base = if (pixel) current.withStyle(MiniPlayerStyle.Floating) else current
+        onUpdate(base.updateTuning(base.style) { next })
         draft = null
     }
     val selectStyle: (MiniPlayerStyle) -> Unit = { target ->
-        if (target != latestSettings.style) {
+        if (!pixel && target != latestSettings.style) {
             draft = null
             onUpdate(latestSettings.withStyle(target))
             haptics.perform(DerbisHapticAction.Confirm)
@@ -208,9 +222,10 @@ internal fun MiniPlayerStudioOverlay(
             val twoPane = maxWidth.value >= StudioTwoPaneMinWidthDp
             val controls: LazyListScope.() -> Unit = {
                 miniStudioItems(
-                    settings = settings,
+                    settings = effectiveSettings,
                     tuning = tuning,
                     copy = copy,
+                    pixel = pixel,
                     thumbnailModel = thumbnailModel,
                     onSelectStyle = selectStyle,
                     onPreview = previewTuning,
@@ -218,7 +233,7 @@ internal fun MiniPlayerStudioOverlay(
                     onCommit = commitTuning,
                     onResetStyle = {
                         draft = null
-                        onUpdate(latestSettings.resetStyle(latestSettings.style))
+                        onUpdate(latestSettings.resetStyle(style))
                     }
                 )
             }
@@ -407,7 +422,6 @@ private fun MiniStudioStage(
                     style = shownStyle,
                     tuning = if (shownStyle == style) tuning else DerbisMiniPlayerStudioSettings.spec(shownStyle).defaults,
                     model = model,
-                    glass = null,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -472,6 +486,7 @@ private fun LazyListScope.miniStudioItems(
     settings: DerbisMiniPlayerStudioSettings,
     tuning: MiniPlayerTuning,
     copy: MiniPlayerStudioCopy,
+    pixel: Boolean,
     thumbnailModel: MiniPlayerModel,
     onSelectStyle: (MiniPlayerStyle) -> Unit,
     onPreview: (MiniPlayerTuning) -> Unit,
@@ -480,31 +495,52 @@ private fun LazyListScope.miniStudioItems(
     onResetStyle: () -> Unit
 ) {
     val style = settings.style
-    val spec = DerbisMiniPlayerStudioSettings.spec(style)
-    val options = spec.options
-    item(key = "mini-style-label", contentType = "label") {
-        MiniStudioLabel(copy[MiniStudioText.StyleSection])
+    val baseSpec = DerbisMiniPlayerStudioSettings.spec(style)
+    val spec = if (pixel) {
+        baseSpec.copy(
+            options = setOf(
+                MiniTuningOption.Controls,
+                MiniTuningOption.ShowClose,
+                MiniTuningOption.Background,
+                MiniTuningOption.Opacity
+            ),
+            opacity = 10..100,
+            backgrounds = listOf(
+                MiniBackground.Gradient,
+                MiniBackground.Solid,
+                MiniBackground.Artwork,
+                MiniBackground.Mascots
+            )
+        )
+    } else {
+        baseSpec
     }
-    item(key = "mini-styles", contentType = "styles") {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(MiniPlayerStyle.entries, key = { it.storageId }) { option ->
-                MiniStyleCard(
-                    style = option,
-                    selected = option == style,
-                    copy = copy,
-                    model = thumbnailModel,
-                    tuning = settings.tuningFor(option),
-                    onClick = { onSelectStyle(option) }
-                )
+    val options = spec.options
+    if (!pixel) {
+        item(key = "mini-style-label", contentType = "label") {
+            MiniStudioLabel(copy[MiniStudioText.StyleSection])
+        }
+        item(key = "mini-styles", contentType = "styles") {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(MiniPlayerStyle.entries, key = { it.storageId }) { option ->
+                    MiniStyleCard(
+                        style = option,
+                        selected = option == style,
+                        copy = copy,
+                        model = thumbnailModel,
+                        tuning = settings.tuningFor(option),
+                        onClick = { onSelectStyle(option) }
+                    )
+                }
             }
         }
-    }
-    item(key = "mini-style-description", contentType = "text") {
-        Text(
-            text = "${miniPlayerStyleName(style)} · ${miniPlayerStyleDescription(style, copy)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = DerbisMuted
-        )
+        item(key = "mini-style-description", contentType = "text") {
+            Text(
+                text = "${miniPlayerStyleName(style)} · ${miniPlayerStyleDescription(style, copy)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = DerbisMuted
+            )
+        }
     }
     if (options.isEmpty()) {
         item(key = "mini-original-locked", contentType = "info") {
@@ -531,7 +567,7 @@ private fun LazyListScope.miniStudioItems(
     miniStudioDepthItems(spec, tuning, copy, onPreview, onCommit)
     miniStudioProgressItems(spec, tuning, copy, onPreview, onCommit)
     miniStudioControlsItems(spec, tuning, copy, onPreview, onCommit)
-    miniStudioAppearanceItems(spec, tuning, copy, onPreview, onCancelPreview, onCommit)
+    miniStudioAppearanceItems(spec, tuning, copy, pixel, onPreview, onCancelPreview, onCommit)
     item(key = "mini-reset-style", contentType = "actions") {
         OutlinedButton(
             onClick = onResetStyle,
@@ -748,6 +784,7 @@ private fun LazyListScope.miniStudioAppearanceItems(
     spec: MiniPlayerSpec,
     tuning: MiniPlayerTuning,
     copy: MiniPlayerStudioCopy,
+    pixel: Boolean,
     onPreview: (MiniPlayerTuning) -> Unit,
     onCancelPreview: () -> Unit,
     onCommit: (MiniPlayerTuning) -> Unit
@@ -759,7 +796,7 @@ private fun LazyListScope.miniStudioAppearanceItems(
         MiniTuningOption.Motion,
         MiniTuningOption.Background
     )
-    if (appearanceOptions.any { it in options }) {
+    if (appearanceOptions.any { it in options } || pixel) {
         item(key = "mini-appearance", contentType = "group") {
             MiniStudioGroup(copy[MiniStudioText.Appearance]) {
                 if (MiniTuningOption.Color in options) {
@@ -804,6 +841,78 @@ private fun LazyListScope.miniStudioAppearanceItems(
                         onSelect = { onCommit(tuning.copy(background = it)) }
                     )
                 }
+                if (pixel && tuning.background == MiniBackground.Mascots) {
+                    MiniStudioCaption("HEAD — one, or all eight")
+                    PixelMascotHeadPicker(
+                        selected = tuning.mascotHead,
+                        onSelect = { onCommit(tuning.copy(mascotHead = it)) }
+                    )
+                }
+                if (pixel) {
+                    MiniStudioCaption("Charm ribbon")
+                    MiniStudioChoice(
+                        options = PixelCharmChoice.entries,
+                        selected = tuning.pixelCharm,
+                        label = { it.label },
+                        onSelect = { onCommit(tuning.copy(pixelCharm = it)) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PixelMascotHeadPicker(
+    selected: PixelMascotHead,
+    onSelect: (PixelMascotHead) -> Unit
+) {
+    val p = PixelPalette
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        PixelMascotHead.entries.forEach { head ->
+            val isSelected = head == selected
+            val bg = if (isSelected) p.panel else p.black
+            val borderWidth = if (isSelected) PixelDesign.border else 1.dp
+            val borderColor = if (isSelected) p.cyan else p.outline
+            if (head == PixelMascotHead.All) {
+                Box(
+                    modifier = Modifier
+                        .height(62.dp)
+                        .background(bg, RectangleShape)
+                        .border(borderWidth, borderColor, RectangleShape)
+                        .clickable(role = Role.RadioButton) { onSelect(head) }
+                        .semantics {
+                            contentDescription = head.label
+                            this.selected = isSelected
+                        }
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PixelMascotSheetPreview(height = 46.dp)
+                }
+            } else {
+                val mascotKind = PixelMascotKind.fromId(head.storageId)
+                if (mascotKind != null) {
+                    Box(
+                        modifier = Modifier
+                            .size(62.dp)
+                            .background(bg, RectangleShape)
+                            .border(borderWidth, borderColor, RectangleShape)
+                            .clickable(role = Role.RadioButton) { onSelect(head) }
+                            .semantics {
+                                contentDescription = head.label
+                                this.selected = isSelected
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        PixelMascotSprite(mascot = mascotKind, size = 46.dp)
+                    }
+                }
             }
         }
     }
@@ -846,6 +955,7 @@ private fun miniBackgroundLabel(background: MiniBackground, copy: MiniPlayerStud
     MiniBackground.Gradient -> copy[MiniStudioText.BgGradient]
     MiniBackground.Solid -> copy[MiniStudioText.BgSolid]
     MiniBackground.Artwork -> copy[MiniStudioText.BgArtwork]
+    MiniBackground.Mascots -> "Mascots"
 }
 
 private fun miniShapeLabel(shape: MiniArtworkShape, copy: MiniPlayerStudioCopy): String = when (shape) {
@@ -945,7 +1055,6 @@ private fun MiniStyleCard(
                 style = style,
                 tuning = tuning,
                 model = model,
-                glass = null,
                 modifier = Modifier
                     .requiredWidth(320.dp)
                     .graphicsLayer {

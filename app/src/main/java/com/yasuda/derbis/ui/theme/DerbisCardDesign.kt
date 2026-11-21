@@ -7,10 +7,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object DerbisCardDesign {
-    val ThumbCorner: Dp get() = if (DerbisIsSpotify) 4.dp else if (DerbisIsNocturne) 6.dp else 10.dp
-    val ArtworkCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 4.dp else if (DerbisIsPrism) 16.dp else if (DerbisIsNocturne) 6.dp else 12.dp
-    val EditorialCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsNocturne) 10.dp else 20.dp
-    val SurfaceCorner: Dp get() = if (DerbisIsSpotify) 8.dp else if (DerbisIsNocturne) 14.dp else 24.dp
+    val ThumbCorner: Dp get() = if (DerbisIsSpotify) 4.dp else if (DerbisIsPixel) 0.dp else 10.dp
+    val ArtworkCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 4.dp else if (DerbisIsPrism) 16.dp else if (DerbisIsPixel) 0.dp else 12.dp
+    val EditorialCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 20.dp
+    val SurfaceCorner: Dp get() = if (DerbisIsSpotify) 8.dp else if (DerbisIsPixel) 0.dp else 24.dp
 
     val ThumbShape: Shape get() = RoundedCornerShape(ThumbCorner)
     val ArtworkShape: Shape get() = RoundedCornerShape(ArtworkCorner)

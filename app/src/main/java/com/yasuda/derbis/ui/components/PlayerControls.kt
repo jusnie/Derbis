@@ -15,16 +15,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.yasuda.derbis.ui.LocalGlassBackdrop
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelIcons
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 data class PlayerControlLabels(
     val shuffle: String,
@@ -69,8 +71,8 @@ internal fun PlayerIcon(
     tint: Color,
     modifier: Modifier = Modifier
 ) {
-    val nocturne = DerbisIsNocturne
-    val resolved = remember(icon, nocturne) { if (nocturne) Nocturne78Icons.resolve(icon) else ioniconForPlayer(icon) ?: icon }
+    val pixel = DerbisIsPixel
+    val resolved = remember(icon, pixel) { if (pixel) PixelIcons.resolve(icon) else ioniconForPlayer(icon) ?: icon }
     Icon(
         imageVector = resolved,
         contentDescription = null,
@@ -87,6 +89,11 @@ fun Modifier.playerGlass(
     gradientBorder: Boolean = false
 ): Modifier = composed {
     val fallbackBorder = borderTop.playerMix(borderBottom, 0.5f)
+    if (DerbisIsPixel) {
+        return@composed this
+            .background(fill, RectangleShape)
+            .border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+    }
     if (!LocalDerbisLiquidGlassEnabled.current) {
         return@composed this
             .background(fill, shape)
@@ -106,7 +113,6 @@ fun Modifier.playerGlass(
     }
 
     this.resolvedDerbisGlass(
-        backdrop = LocalGlassBackdrop.current,
         shape = shape,
         baseTint = fill.copy(alpha = 1f),
         fallbackColor = fill,
@@ -134,6 +140,10 @@ fun PlayerGlassIconButton(
     shape: Shape = CircleShape,
     enabled: Boolean = true
 ) {
+    val pixel = DerbisIsPixel
+    val resolvedShape = if (pixel) RectangleShape else shape
+    val resolvedFill = if (pixel && fill == DerbisPlayerDesign.GlassFill) PixelPalette.ink else fill
+    val resolvedTint = if (pixel && tint == DerbisPlayerDesign.TextPrimary) PixelPalette.text else tint
     SpringIconButton(
         onClick = onClick,
         modifier = modifier.sizeIn(
@@ -150,8 +160,8 @@ fun PlayerGlassIconButton(
             modifier = Modifier
                 .size(size)
                 .playerGlass(
-                    shape = shape,
-                    fill = fill,
+                    shape = resolvedShape,
+                    fill = resolvedFill,
                     borderTop = borderTop,
                     borderBottom = borderBottom,
                     gradientBorder = gradientBorder
@@ -160,7 +170,7 @@ fun PlayerGlassIconButton(
         ) {
             PlayerIcon(
                 icon = icon,
-                tint = tint,
+                tint = resolvedTint,
                 modifier = Modifier.size(iconSize)
             )
         }

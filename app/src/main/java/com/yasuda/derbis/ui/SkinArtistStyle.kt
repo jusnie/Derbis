@@ -26,7 +26,7 @@ internal fun artistHeroNameWeight(): FontWeight? = when {
     DerbisIsSpotify -> FontWeight.Black
     DerbisIsIvory -> FontWeight.Light
     DerbisIsPrism -> FontWeight.Normal
-    DerbisIsNocturne -> FontWeight.Medium
+    DerbisIsPixel -> FontWeight.Medium
     else -> DerbisType.heroTitle.fontWeight
 }
 
@@ -40,8 +40,8 @@ internal fun artistHeroOverlineColor(): Color = when {
 @Composable
 internal fun artistPortraitFrame(): Modifier {
     if (DerbisIsTorque || DerbisIsSpotify || DerbisIsYouTubeMusic || DerbisIsAppleMusic || !DerbisSkinManagesLayout) return Modifier
-    if (DerbisIsNocturne) {
-        val shape = RoundedCornerShape(Nocturne78Design.artworkCorner)
+    if (DerbisIsPixel) {
+        val shape = RoundedCornerShape(PixelDesign.artworkCorner)
         return Modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 144.dp)
             .border(1.dp, DerbisActivePalette.outline, shape).padding(8.dp).clip(shape)
     }

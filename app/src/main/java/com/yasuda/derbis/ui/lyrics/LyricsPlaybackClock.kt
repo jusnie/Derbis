@@ -5,44 +5,83 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.abs
 
-const val LYRICS_CLOCK_RESYNC_THRESHOLD_MS = 320L
+const val LYRICS_CLOCK_RESYNC_THRESHOLD_MS = 200L
 const val LYRICS_CLOCK_MAX_CONVERGENCE_MS = 48L
+/** The share of a standing lag the clock removes each time the player reports a position. */
+const val LYRICS_CLOCK_CATCHUP_FRACTION = 0.5f
+const val LYRICS_CLOCK_MAX_CATCHUP_MS = 180L
 const val LYRICS_CLOCK_MIN_SPEED = 0.25f
 const val LYRICS_CLOCK_MAX_SPEED = 4f
+/**
+ * Maximum wall-clock window the display clock may extrapolate beyond the last confirmed player
+ * position update (the UI polls at 50 ms on the lyrics screen and 500 ms on Now Playing).
+ * Capping unconfirmed forward projection prevents lyrics from marching through a song when
+ * audio output is stalled at 0:00 or mid-track.
+ */
+const val LYRICS_CLOCK_MAX_UNCONFIRMED_ELAPSED_MS = 1_250L
+const val LYRICS_CLOCK_STALL_RESET_MS = 1_250L
 
 fun projectedLyricsPositionMs(
     anchorPositionMs: Long,
     anchorRealtimeMs: Long,
     nowRealtimeMs: Long,
     playing: Boolean,
-    speed: Float
+    speed: Float,
+    maxExtrapolationElapsedMs: Long = LYRICS_CLOCK_MAX_UNCONFIRMED_ELAPSED_MS
 ): Long {
     if (!playing) return anchorPositionMs.coerceAtLeast(0L)
-    val elapsed = (nowRealtimeMs - anchorRealtimeMs).coerceAtLeast(0L)
+    val elapsed = (nowRealtimeMs - anchorRealtimeMs)
+        .coerceAtLeast(0L)
+        .coerceAtMost(maxExtrapolationElapsedMs.coerceAtLeast(0L))
     val scaled = elapsed * speed.coerceIn(LYRICS_CLOCK_MIN_SPEED, LYRICS_CLOCK_MAX_SPEED)
     return (anchorPositionMs + scaled.toLong()).coerceAtLeast(0L)
 }
 
+fun isLyricsClockStalled(
+    playing: Boolean,
+    lastReportAdvanceRealtimeMs: Long,
+    nowRealtimeMs: Long
+): Boolean = playing && nowRealtimeMs - lastReportAdvanceRealtimeMs >= LYRICS_CLOCK_STALL_RESET_MS
+
 fun shouldSnapLyricsClock(renderedMs: Long, reportedMs: Long): Boolean =
     abs(reportedMs - renderedMs) > LYRICS_CLOCK_RESYNC_THRESHOLD_MS
 
+/**
+ * Pulls the rendered position toward the reported one.
+ *
+ * It used to move at most [LYRICS_CLOCK_MAX_CONVERGENCE_MS] per report, which meant a lag of
+ * half a second - the usual size after a seek, a buffer, or a route change - took a dozen
+ * player updates to clear and, with the updates arriving twice a second, was still there
+ * several seconds later. Karaoke cannot survive a standing offset: the word being sung and the
+ * word being lit are then permanently out of step. The correction is now proportional to the
+ * error, so a lag is gone in two or three reports, while [LYRICS_CLOCK_RESYNC_THRESHOLD_MS]
+ * still snaps a real jump instead of easing through it.
+ */
 fun convergedLyricsAnchorMs(renderedMs: Long, reportedMs: Long): Long {
     if (shouldSnapLyricsClock(renderedMs, reportedMs)) return reportedMs.coerceAtLeast(0L)
-    val correction = (reportedMs - renderedMs)
-        .coerceIn(-LYRICS_CLOCK_MAX_CONVERGENCE_MS, LYRICS_CLOCK_MAX_CONVERGENCE_MS)
-    return (renderedMs + correction).coerceAtLeast(0L)
+    val error = reportedMs - renderedMs
+    val step = (error.toFloat() * LYRICS_CLOCK_CATCHUP_FRACTION).toLong()
+        .coerceIn(LYRICS_CLOCK_MAX_CONVERGENCE_MS, LYRICS_CLOCK_MAX_CATCHUP_MS)
+    return (renderedMs + error.coerceIn(-step, step)).coerceAtLeast(0L)
 }
 
 @Stable
-class LyricsPlaybackClock internal constructor(initialPositionMs: Long) {
+class LyricsPlaybackClock internal constructor(
+    initialPositionMs: Long,
+    initialRealtimeMs: Long = SystemClock.elapsedRealtime()
+) {
     private val renderedMs = mutableLongStateOf(initialPositionMs.coerceAtLeast(0L))
     private var anchorPositionMs = initialPositionMs.coerceAtLeast(0L)
-    private var anchorRealtimeMs = SystemClock.elapsedRealtime()
+    private var anchorRealtimeMs = initialRealtimeMs
+    private var lastReportedPositionMs = initialPositionMs.coerceAtLeast(0L)
+    private var lastReportAdvanceRealtimeMs = initialRealtimeMs
     private var playing = false
     private var speed = 1f
 
@@ -51,20 +90,33 @@ class LyricsPlaybackClock internal constructor(initialPositionMs: Long) {
 
     internal fun sync(reportedMs: Long, playing: Boolean, speed: Float, nowRealtimeMs: Long) {
         val safeReported = reportedMs.coerceAtLeast(0L)
+        val startedPlaying = playing && !this.playing
+        val reportChanged = safeReported != lastReportedPositionMs
+        if (reportChanged || startedPlaying || !playing) {
+            lastReportedPositionMs = safeReported
+            lastReportAdvanceRealtimeMs = nowRealtimeMs
+        }
+        val stalledWhilePlaying = !reportChanged &&
+            isLyricsClockStalled(playing, lastReportAdvanceRealtimeMs, nowRealtimeMs)
         this.playing = playing
         this.speed = speed
         anchorRealtimeMs = nowRealtimeMs
-        anchorPositionMs = if (playing) {
-            convergedLyricsAnchorMs(renderedMs.longValue, safeReported)
-        } else {
+        anchorPositionMs = if (!playing || stalledWhilePlaying) {
             safeReported
+        } else {
+            convergedLyricsAnchorMs(renderedMs.longValue, safeReported)
         }
-        if (!playing || shouldSnapLyricsClock(renderedMs.longValue, safeReported)) {
+        if (!playing || stalledWhilePlaying || shouldSnapLyricsClock(renderedMs.longValue, safeReported)) {
             renderedMs.longValue = anchorPositionMs
         }
     }
 
     internal fun advance(nowRealtimeMs: Long) {
+        if (isLyricsClockStalled(playing, lastReportAdvanceRealtimeMs, nowRealtimeMs)) {
+            anchorPositionMs = lastReportedPositionMs
+            renderedMs.longValue = lastReportedPositionMs
+            return
+        }
         renderedMs.longValue = projectedLyricsPositionMs(
             anchorPositionMs = anchorPositionMs,
             anchorRealtimeMs = anchorRealtimeMs,
@@ -84,6 +136,8 @@ fun rememberLyricsPlaybackClock(
     smoothingEnabled: Boolean
 ): LyricsPlaybackClock {
     val clock = remember(trackKey) { LyricsPlaybackClock(reportedPositionMs) }
+    val latestReportedPositionMs by rememberUpdatedState(reportedPositionMs)
+    val latestSpeed by rememberUpdatedState(speed)
 
     LaunchedEffect(clock, reportedPositionMs, isPlaying, speed, smoothingEnabled) {
         if (smoothingEnabled) {
@@ -94,7 +148,15 @@ fun rememberLyricsPlaybackClock(
     }
 
     LaunchedEffect(clock, isPlaying, smoothingEnabled) {
-        if (!smoothingEnabled || !isPlaying) return@LaunchedEffect
+        if (!smoothingEnabled || !isPlaying) {
+            clock.sync(
+                reportedMs = latestReportedPositionMs,
+                playing = false,
+                speed = latestSpeed,
+                nowRealtimeMs = SystemClock.elapsedRealtime()
+            )
+            return@LaunchedEffect
+        }
         while (true) {
             withFrameNanos { }
             clock.advance(SystemClock.elapsedRealtime())
