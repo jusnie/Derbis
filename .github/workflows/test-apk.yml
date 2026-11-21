@@ -22,6 +22,7 @@ on:
       - arena/b05b2e2f-derbis
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
 
@@ -229,3 +230,96 @@ jobs:
             exit 1
           fi
           echo "Published ${tag}"
+
+  direct-link:
+    # Publishes an already-built derbis-apk workflow artifact under an `apk-<sha>` pre-release tag.
+    # Neither Stable (`^v\d+...` & prerelease=false) nor Test (`prebuild-*` or `^v\d+...`) matches
+    # `apk-<sha>` in `updateTrackOf()`, so NO installed Derbis app ever detects it as an update,
+    # while GitHub serves a direct `.apk` download URL without login or a `.zip` wrapper.
+    if: ${{ startsWith(github.event.head_commit.message, '[direct]') }}
+    name: Publish unlisted direct APK link
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve latest built APK run
+        id: source_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/jusnie/Derbis"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          runs_json="$(curl -fsSL "${auth[@]}" "${api}/actions/runs?branch=arena/b05b2e2f-derbis&status=success&per_page=20")"
+          run_id=""
+          run_sha=""
+          while IFS=$'\t' read -r candidate_id candidate_sha; do
+            [[ -n "${candidate_id}" ]] || continue
+            art_count="$(curl -fsSL "${auth[@]}" "${api}/actions/runs/${candidate_id}/artifacts" | jq '[.artifacts[] | select(.name == "derbis-apk" and .expired == false)] | length')"
+            if [[ "${art_count}" -gt 0 ]]; then
+              run_id="${candidate_id}"
+              run_sha="${candidate_sha}"
+              break
+            fi
+          done < <(jq -r '.workflow_runs[] | "\(.id)\t\(.head_sha)"' <<< "${runs_json}")
+          [[ -n "${run_id}" ]] || { echo "::error::No successful derbis-apk artifact run found on branch."; exit 1; }
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          echo "short_sha=${run_sha::7}" >> "${GITHUB_OUTPUT}"
+          echo "full_sha=${run_sha}" >> "${GITHUB_OUTPUT}"
+          echo "Resolved artifact from run ${run_id} (${run_sha::7})"
+
+      - name: Download derbis-apk artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: derbis-apk
+          run-id: ${{ steps.source_run.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: build_output
+
+      - name: Upload direct APK asset under non-update tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHORT_SHA: ${{ steps.source_run.outputs.short_sha }}
+          FULL_SHA: ${{ steps.source_run.outputs.full_sha }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          tag="apk-${SHORT_SHA}"
+          api="https://api.github.com/repos/jusnie/Derbis"
+          auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
+          body="Unofficial direct APK download built from \`${SHORT_SHA}\` on \`arena/b05b2e2f-derbis\`.
+
+          - Tag \`${tag}\` is intentionally outside both \`v*\` (Stable) and \`prebuild-*\` (Test) update tracks so existing Derbis installs will never detect or prompt for it.
+          - Package: \`com.derbis.app\` (${DERBIS_VERSION_NAME}, code ${DERBIS_VERSION_CODE})."
+          log=direct_publish.log
+          : > "${log}"
+
+          id=$(curl -sS "${auth[@]}" "${api}/releases/tags/${tag}" 2>>"${log}" | jq -r '.id // empty' 2>>"${log}" || true)
+          if [[ -z "${id}" ]]; then
+            payload=$(jq -n --arg tag "${tag}" --arg target "${FULL_SHA}" \
+              --arg name "Derbis APK (${SHORT_SHA}, unlisted)" --arg body "${body}" \
+              '{tag_name:$tag, target_commitish:$target, name:$name, body:$body, prerelease:true, draft:false}')
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: application/json" -X POST -d "${payload}" \
+                -w '\n%{http_code}' "${api}/releases" 2>>"${log}" || true)
+              json=$(printf '%s' "${resp}" | sed '$d')
+              id=$(printf '%s' "${json}" | jq -r '.id // empty' 2>>"${log}" || true)
+              [[ -n "${id}" ]] && break
+              sleep 5
+            done
+          fi
+          [[ -n "${id}" ]] || { cat "${log}"; echo "::error::Could not create tag ${tag}"; exit 1; }
+
+          for item in "derbis.apk:application/vnd.android.package-archive" "derbis.apk.sha256:text/plain"; do
+            name="${item%%:*}"
+            ctype="${item#*:}"
+            for attempt in 1 2 3; do
+              resp=$(curl -sS "${auth[@]}" -H "Content-Type: ${ctype}" -X POST \
+                --data-binary "@build_output/${name}" -w '\n%{http_code}' \
+                "https://uploads.github.com/repos/jusnie/Derbis/releases/${id}/assets?name=${name}" \
+                2>>"${log}" || true)
+              state=$(printf '%s' "${resp}" | sed '$d' | jq -r '.state // .message // "unknown"' 2>>"${log}" || true)
+              [[ "${state}" == "uploaded" ]] && break
+              sleep 10
+            done
+          done
+          echo "Direct URL: https://github.com/jusnie/Derbis/releases/download/${tag}/derbis.apk"
