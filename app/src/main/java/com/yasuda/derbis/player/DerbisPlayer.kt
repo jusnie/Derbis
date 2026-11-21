@@ -67,9 +67,12 @@ internal fun evaluatePlaybackStall(
 ): PlaybackStallAction {
     if (!playWhenReady || suppressed) return PlaybackStallAction.NONE
     return when (playbackState) {
-        Player.STATE_BUFFERING ->
-            if (stalledElapsedMs >= STREAM_BUFFERING_STALL_TIMEOUT_MS) PlaybackStallAction.RECOVER_STREAM
-            else PlaybackStallAction.NONE
+        Player.STATE_BUFFERING -> when {
+            stalledElapsedMs >= STREAM_BUFFERING_STALL_TIMEOUT_MS -> PlaybackStallAction.RECOVER_STREAM
+            !outputNudged && bufferedAheadMs >= 2_000L && stalledElapsedMs >= STREAM_READY_OUTPUT_NUDGE_MS ->
+                PlaybackStallAction.NUDGE_OUTPUT_PATH
+            else -> PlaybackStallAction.NONE
+        }
         Player.STATE_READY -> when {
             stalledElapsedMs >= STREAM_READY_STALL_TIMEOUT_MS -> PlaybackStallAction.RECOVER_STREAM
             !outputNudged && bufferedAheadMs >= 500L && stalledElapsedMs >= STREAM_READY_OUTPUT_NUDGE_MS ->

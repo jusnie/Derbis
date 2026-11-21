@@ -21,5 +21,9 @@ object NativeAudioIntegration {
 
     fun redirectFailedBackgroundDecoder(error: PlaybackException): String? = null
 
+    fun redirectStalledPlatformDecoder(mimeType: String?): Boolean = false
+
+    fun rememberRecoveredControllerError(error: PlaybackException) = Unit
+
     fun consumeRecoveredControllerError(error: PlaybackException): Boolean = false
 }

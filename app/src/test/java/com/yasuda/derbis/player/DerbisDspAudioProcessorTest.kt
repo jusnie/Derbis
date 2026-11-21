@@ -181,6 +181,31 @@ class DerbisDspAudioProcessorTest {
     }
 
     @Test
+    fun disabledSilenceSkippingStillRequiresPcm16StageAfterEqualizerPromotion() {
+        val pcm16Input = AudioFormat(44_100, 2, C.ENCODING_PCM_16BIT)
+        val derbisProcessors = listOf(
+            NormalizationAudioProcessor(),
+            DerbisEqualizerAudioProcessor(),
+            ParametricEqualizerAudioProcessor(),
+            StereoSpatialAudioProcessor(),
+            EightDAudioProcessor(),
+            VocalCancelAudioProcessor(),
+            MonoAudioProcessor(),
+            TruePeakLimiterAudioProcessor(),
+            VisualizerAudioProcessor(),
+            Pcm16OutputAudioProcessor()
+        )
+
+        val outputFormat = derbisProcessors.fold(pcm16Input) { format, processor ->
+            processor.configure(format)
+        }
+
+        val silenceSkipping = SilenceSkippingAudioProcessor().apply { setEnabled(false) }
+        assertEquals(C.ENCODING_PCM_16BIT, outputFormat.encoding)
+        silenceSkipping.configure(outputFormat)
+    }
+
+    @Test
     fun pcm16OutputProcessorConvertsAndClampsFloatSamples() {
         val processor = Pcm16OutputAudioProcessor()
         processor.configure(AudioFormat(48_000, 2, C.ENCODING_PCM_FLOAT))

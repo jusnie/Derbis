@@ -130,8 +130,6 @@ import com.yasuda.derbis.player.sabr.SabrStreamSpec
 import com.yasuda.derbis.runtime.RuntimeHooks
 import com.yasuda.derbis.runtime.RuntimeSignal
 import com.yasuda.derbis.player.enhanced.EnhancedAudioMetrics
-import com.yasuda.derbis.player.audio.DerbisAudioOutputPolicy
-import com.yasuda.derbis.player.audio.DerbisLosslessOutput
 import com.yasuda.derbis.player.enhanced.EnhancedAudioProcessor
 import com.yasuda.derbis.player.enhanced.EnhancedAudioSourceFormatListener
 import com.yasuda.derbis.widget.DerbisWidgetBridge
@@ -205,6 +203,7 @@ class PlaybackService : MediaLibraryService() {
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
     private var transitionKaraokeProcessor: VocalCancelAudioProcessor? = null
     private var transitionMonoProcessor: MonoAudioProcessor? = null
+    private var transitionAudioSink: AudioSink? = null
     private var currentAudioSettings = DerbisAudioSettings()
 
     /** Skip-silence forces PCM16 downstream, so it also decides whether float output is safe. */
@@ -233,6 +232,7 @@ class PlaybackService : MediaLibraryService() {
     private val audioOffloadController = AudioOffloadController()
     @Volatile
     private var audioOffloadRuntimeBlocked = false
+    private var recoveredAudioSinkMediaId: String? = null
     private lateinit var playbackWakeLock: PowerManager.WakeLock
     private lateinit var playbackStateStore: SharedPreferences
     private lateinit var audioManager: AudioManager
@@ -682,8 +682,9 @@ class PlaybackService : MediaLibraryService() {
         )
     }
 
-    private fun disableStalledHardwareOutputPath(): Boolean {
+    private fun disableStalledHardwareOutputPath(forceSinkReset: Boolean = false): Boolean {
         var changed = false
+        var redirectedDecoder = false
         if (!audioOffloadRuntimeBlocked) {
             val offloadState = audioOffloadController.state
             if (offloadState.decision?.allowed == true || offloadState.output == AudioOffloadOutput.OFFLOADED) {
@@ -694,13 +695,50 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         if (aaudioOutputRequested && NativeAudioIntegration.isAaudioOutputSupported()) {
-            updateAaudioOutputRequest(false)
+            aaudioOutputRequested = false
             refreshAudioOffloadPolicy()
             changed = true
             Timber.w("Disabled AAudio output after stalled playhead")
         }
-        return changed
+        val player = activePlayer
+        if (!changed && !forceSinkReset && player != null) {
+            val mimeType = activeAudioSampleMimeType(player)
+            if (NativeAudioIntegration.redirectStalledPlatformDecoder(mimeType)) {
+                redirectedDecoder = true
+                changed = true
+                Timber.w("Platform audio decoder stalled on %s; redirecting to FFmpeg", mimeType)
+            }
+        }
+        if ((changed || forceSinkReset) && player != null) {
+            val sink = primaryAudioSink
+            if (sink != null) {
+                val provider = NativeAudioIntegration.audioOutputProvider(this) { aaudioOutputRequested }
+                player.createMessage { _, _ ->
+                    sink.reset()
+                    if (provider != null) sink.setAudioOutputProvider(provider)
+                }.send()
+            }
+            if (redirectedDecoder) {
+                val resumePositionMs = player.currentPosition.coerceAtLeast(0L)
+                val shouldPlay = player.playWhenReady && !playbackPausedByUser
+                runCatching {
+                    player.stop()
+                    if (resumePositionMs > 0L) player.seekTo(resumePositionMs)
+                    player.prepare()
+                    if (shouldPlay) player.play()
+                }.onFailure { Timber.w(it, "FFmpeg stalled-decoder fallback prepare failed") }
+            }
+        }
+        return changed || forceSinkReset
     }
+
+    private fun activeAudioSampleMimeType(player: ExoPlayer): String? =
+        player.currentTracks.groups.firstNotNullOfOrNull { group ->
+            if (group.type != C.TRACK_TYPE_AUDIO || !group.isSelected) return@firstNotNullOfOrNull null
+            (0 until group.length)
+                .firstOrNull { index -> group.isTrackSelected(index) }
+                ?.let { index -> group.getTrackFormat(index).sampleMimeType }
+        }
 
     private fun configureNormalizationProcessor(
         processor: NormalizationAudioProcessor,
@@ -803,7 +841,10 @@ class PlaybackService : MediaLibraryService() {
         val player = activePlayer ?: return
         val sink = primaryAudioSink ?: return
         val provider = NativeAudioIntegration.audioOutputProvider(this) { aaudioOutputRequested } ?: return
-        player.createMessage { _, _ -> sink.setAudioOutputProvider(provider) }.send()
+        player.createMessage { _, _ ->
+            sink.reset()
+            sink.setAudioOutputProvider(provider)
+        }.send()
     }
 
     private fun activateServiceAndApplyPendingAudioSettings() {
@@ -1040,32 +1081,31 @@ class PlaybackService : MediaLibraryService() {
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
-                // 24-bit float only on a route that can actually take it; the PCM16 stage
-                // would otherwise truncate a lossless source before the DAC sees it.
-                val losslessOutput = DerbisAudioOutputPolicy.plan(
-                    state = DerbisLosslessOutput.state(context),
-                    skipSilenceEnabled = currentSkipSilence
-                )
+                // DefaultAudioSink.Builder.setAudioProcessors wraps this list in Media3's
+                // DefaultAudioProcessorChain, whose SilenceSkippingAudioProcessor and
+                // SonicAudioProcessor both reject ENCODING_PCM_FLOAT inside configure() even when
+                // disabled. Always terminate Derbis's float DSP chain with Pcm16OutputAudioProcessor
+                // so AudioSink initialization can never fail with UnhandledAudioFormatException.
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(losslessOutput.floatOutput)
+                    .setEnableFloatOutput(false)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
-                        buildList<AudioProcessor> {
-                            add(enhancedAudioProcessor)
-                            add(normalizationProcessor)
-                            add(equalizerProcessor)
-                            add(parametricEqualizerProcessor)
-                            add(spatialAudioProcessor)
-                            add(eightDAudioProcessor)
+                        arrayOf<AudioProcessor>(
+                            enhancedAudioProcessor,
+                            normalizationProcessor,
+                            equalizerProcessor,
+                            parametricEqualizerProcessor,
+                            spatialAudioProcessor,
+                            eightDAudioProcessor,
                             // Before the limiter and the analysers, so the meters, the beat grid
                             // and the visualiser all show the mix the listener actually hears.
-                            add(karaokeProcessor)
-                            add(monoProcessor)
-                            add(limiterProcessor)
-                            add(visualizerProcessor)
-                            add(beatGridProcessor)
-                            if (!losslessOutput.bypassPcm16Stage) add(pcm16OutputProcessor)
-                        }.toTypedArray()
+                            karaokeProcessor,
+                            monoProcessor,
+                            limiterProcessor,
+                            visualizerProcessor,
+                            beatGridProcessor,
+                            pcm16OutputProcessor
+                        )
                     )
                     .withDerbisAudioOutput(context)
                     .build()
@@ -1142,6 +1182,7 @@ class PlaybackService : MediaLibraryService() {
                     ?.let { trackId -> beatGridProcessor.beginTrack(trackId, player.currentPosition) }
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
+                    recoveredAudioSinkMediaId = null
                     VideoDecoderFallback.Shared.reset()
                     _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
                     liveRadioPausedAtMs = C.TIME_UNSET
@@ -1240,6 +1281,16 @@ class PlaybackService : MediaLibraryService() {
                 NativeAudioIntegration.redirectFailedPlatformDecoder(error)?.let { mimeType ->
                     Timber.w("Platform audio decoder failed for %s; retrying with FFmpeg", mimeType)
                     player.prepare()
+                    return
+                }
+                val currentMediaId = player.currentMediaItem?.mediaId.orEmpty()
+                if (error.errorCode in 5001..5004 && currentMediaId.isNotEmpty() && recoveredAudioSinkMediaId != currentMediaId) {
+                    recoveredAudioSinkMediaId = currentMediaId
+                    disableStalledHardwareOutputPath(forceSinkReset = true)
+                    NativeAudioIntegration.rememberRecoveredControllerError(error)
+                    Timber.w(error, "Audio output sink failed (code=%d); resetting to safe PCM AudioTrack", error.errorCode)
+                    player.prepare()
+                    if (player.playWhenReady && !playbackPausedByUser) player.play()
                     return
                 }
                 updatePlaybackProtection(player)
@@ -2556,6 +2607,8 @@ class PlaybackService : MediaLibraryService() {
         transitionEightDAudioProcessor = null
         transitionKaraokeProcessor = null
         transitionMonoProcessor = null
+        transitionAudioSink?.let { primaryAudioSink = it }
+        transitionAudioSink = null
         activePlayer = incoming
         incoming.volume = 1f
         updatePlayerWakeMode(incoming, incoming.currentMediaItem)
@@ -2585,6 +2638,7 @@ class PlaybackService : MediaLibraryService() {
                 if (activePlayer !== player) return
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
+                    recoveredAudioSinkMediaId = null
                     VideoDecoderFallback.Shared.reset()
                     _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
                     liveRadioPausedAtMs = C.TIME_UNSET
@@ -2622,6 +2676,26 @@ class PlaybackService : MediaLibraryService() {
 
             override fun onPlayerError(error: PlaybackException) {
                 if (activePlayer !== player) return
+                if (VideoDecoderFallback.Shared.redirect(error)) {
+                    Timber.w("Video decoder failed on promoted deck; retrying with the next available decoder")
+                    player.prepare()
+                    return
+                }
+                NativeAudioIntegration.redirectFailedPlatformDecoder(error)?.let { mimeType ->
+                    Timber.w("Platform audio decoder failed on promoted deck for %s; retrying with FFmpeg", mimeType)
+                    player.prepare()
+                    return
+                }
+                val currentMediaId = player.currentMediaItem?.mediaId.orEmpty()
+                if (error.errorCode in 5001..5004 && currentMediaId.isNotEmpty() && recoveredAudioSinkMediaId != currentMediaId) {
+                    recoveredAudioSinkMediaId = currentMediaId
+                    disableStalledHardwareOutputPath(forceSinkReset = true)
+                    NativeAudioIntegration.rememberRecoveredControllerError(error)
+                    Timber.w(error, "Promoted deck audio output sink failed (code=%d); resetting to safe PCM AudioTrack", error.errorCode)
+                    player.prepare()
+                    if (player.playWhenReady && !playbackPausedByUser) player.play()
+                    return
+                }
                 updatePlaybackProtection(player)
                 discardIncompatiblePlaybackCache(error)
                 val failureKind = classifyPlaybackFailureReason(playbackFailureReasonOf(error))
@@ -2912,29 +2986,26 @@ class PlaybackService : MediaLibraryService() {
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
-                val losslessOutput = DerbisAudioOutputPolicy.plan(
-                    state = DerbisLosslessOutput.state(context),
-                    skipSilenceEnabled = currentSkipSilence
-                )
                 return DefaultAudioSink.Builder(context)
-                    .setEnableFloatOutput(losslessOutput.floatOutput)
+                    .setEnableFloatOutput(false)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
-                        buildList<AudioProcessor> {
-                            add(enhancedAudio)
-                            add(normalization)
-                            add(equalizer)
-                            add(parametricEqualizer)
-                            add(spatial)
-                            add(eightD)
-                            add(karaoke)
-                            add(mono)
-                            add(limiter)
-                            if (!losslessOutput.bypassPcm16Stage) add(Pcm16OutputAudioProcessor())
-                        }.toTypedArray()
+                        arrayOf<AudioProcessor>(
+                            enhancedAudio,
+                            normalization,
+                            equalizer,
+                            parametricEqualizer,
+                            spatial,
+                            eightD,
+                            karaoke,
+                            mono,
+                            limiter,
+                            Pcm16OutputAudioProcessor()
+                        )
                     )
                     .withDerbisAudioOutput(context)
                     .build()
+                    .also { transitionAudioSink = it }
             }
         }.apply {
             setEnableDecoderFallback(true)
@@ -3280,6 +3351,7 @@ class PlaybackService : MediaLibraryService() {
         transitionEightDAudioProcessor = null
         transitionKaraokeProcessor = null
         transitionMonoProcessor = null
+        transitionAudioSink = null
         runCatching { player.pause() }
             .onFailure { Timber.w(it, "Queue crossfade secondary pause failed") }
         runCatching { player.clearMediaItems() }

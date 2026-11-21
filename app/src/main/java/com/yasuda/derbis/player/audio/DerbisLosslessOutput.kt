@@ -14,9 +14,11 @@
 package com.yasuda.derbis.player.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
+import android.os.Build
 import java.util.Locale
 
 object DerbisLosslessOutput {
@@ -35,14 +37,53 @@ object DerbisLosslessOutput {
         val advertisesPcmFloat: Boolean = false
     )
 
-    /** Reads the currently connected outputs. Safe to call off the main thread. */
+    private val mediaAudioAttributes by lazy {
+        AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+    }
+
+    /** Reads the currently active media output route. Safe to call off the main thread. */
+    @Suppress("DEPRECATION")
     fun state(context: Context): State {
         val manager = context.applicationContext.getSystemService(AudioManager::class.java)
             ?: return State()
-        val outputs = runCatching { manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS) }
-            .getOrNull()
-            .orEmpty()
-            .filter { it.isSink }
+        val routedOutputs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            runCatching { manager.getAudioDevicesForAttributes(mediaAudioAttributes) }
+                .getOrNull()
+                .orEmpty()
+                .filter { it.isSink }
+        } else {
+            emptyList()
+        }
+        val outputs = if (routedOutputs.isNotEmpty()) {
+            // If Android routes media to the built-in speaker/earpiece, ignore static HAL line-out
+            // sinks that OEM BSPs enumerate in GET_DEVICES_OUTPUTS when nothing is plugged in.
+            if (routedOutputs.all { it.type in BUILTIN_OUTPUTS }) return State()
+            routedOutputs
+        } else {
+            val allOutputs = runCatching { manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS) }
+                .getOrNull()
+                .orEmpty()
+                .filter { it.isSink }
+            val hasExplicitHeadset = manager.isWiredHeadsetOn ||
+                allOutputs.any {
+                    it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                        it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                        it.type in USB ||
+                        it.type in HDMI
+                }
+            if (hasExplicitHeadset) {
+                allOutputs
+            } else {
+                allOutputs.filterNot {
+                    it.type == AudioDeviceInfo.TYPE_LINE_ANALOG ||
+                        it.type == AudioDeviceInfo.TYPE_LINE_DIGITAL ||
+                        it.type == AudioDeviceInfo.TYPE_AUX_LINE
+                }
+            }
+        }
         val types = outputs.map { it.type }.toSet()
         val decision = decide(types)
         val via = decision.via
@@ -136,5 +177,11 @@ object DerbisLosslessOutput {
     private val DOCK = setOf(
         AudioDeviceInfo.TYPE_DOCK,
         31 // AudioDeviceInfo.TYPE_DOCK_ANALOG, API 34
+    )
+    private val BUILTIN_OUTPUTS = setOf(
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE,
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE,
+        AudioDeviceInfo.TYPE_TELEPHONY
     )
 }

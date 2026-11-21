@@ -277,6 +277,17 @@ class DerbisPlayerTest {
     @Test
     fun playbackStallEvaluatorRecoversLongBufferingStallsExceptWhenPausedOrSuppressed() {
         assertEquals(
+            PlaybackStallAction.NUDGE_OUTPUT_PATH,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_BUFFERING,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_READY_OUTPUT_NUDGE_MS,
+                bufferedAheadMs = 10_000L,
+                outputNudged = false
+            )
+        )
+        assertEquals(
             PlaybackStallAction.RECOVER_STREAM,
             evaluatePlaybackStall(
                 playbackState = Player.STATE_BUFFERING,
