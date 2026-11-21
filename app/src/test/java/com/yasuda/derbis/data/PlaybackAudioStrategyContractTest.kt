@@ -32,6 +32,22 @@ class PlaybackAudioStrategyContractTest {
     }
 
     @Test
+    fun `reel muxed reuses fresh reel watch response and skips failed audio reprobe`() {
+        val resolver = readResolverSource()
+        val reelAudio = resolver
+            .substringAfter("private suspend fun resolveAudioWithAndroidReel")
+            .substringBefore("private suspend fun resolveVideoWithAndroidReel")
+        val reelVideo = resolver
+            .substringAfter("private suspend fun resolveVideoWithAndroidReel")
+            .substringBefore("private suspend fun fetchOrReuseAndroidReelWatch")
+
+        assertTrue(reelAudio.contains("fetchOrReuseAndroidReelWatch("))
+        assertTrue(reelAudio.contains("markAndroidReelAudioUnavailable("))
+        assertTrue(reelVideo.contains("fetchOrReuseAndroidReelWatch("))
+        assertTrue(reelVideo.contains("if (reelWatch.verifiedNoPlayableAudio)"))
+    }
+
+    @Test
     fun `malformed persisted stream entries are removed during restore`() {
         val restore = readResolverSource()
             .substringAfter("private fun restoreCache()")

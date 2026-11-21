@@ -339,6 +339,7 @@ import com.yasuda.derbis.player.PlaybackService
 import com.yasuda.derbis.player.incomingPlaybackFor
 import com.yasuda.derbis.player.PlaybackSleepTimerState
 import com.yasuda.derbis.player.PlaybackWarmup
+import com.yasuda.derbis.player.STREAM_BUFFERING_STALL_MESSAGE
 import com.yasuda.derbis.player.SponsorBlockSkipOnceTracker
 import com.yasuda.derbis.player.queuePrefetchPrimeBytes
 import com.yasuda.derbis.player.queue.AutoQueueTombstones
@@ -4422,6 +4423,11 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             player.clearRecoveryState()
             return
         }
+        if (errorMessage == STREAM_BUFFERING_STALL_MESSAGE && player.isRendering && _state.value.currentTrack?.id == failedTrack.id) {
+            player.clearRecoveryState()
+            player.markRecoverySucceeded()
+            return
+        }
         // Always report and quarantine the failing stream URL (including an alternative HQ stream
         // such as JioSaavn) before checking the pause fence, so the next Play falls back to a
         // working source instead of replaying the dead URL.
@@ -4462,6 +4468,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 if (!isActive || transitionId != streamTransitionId) return@launch
                 if (PlaybackService.isExplicitPauseActive) {
                     _state.update { it.copy(isResolving = false, isPlaying = false) }
+                    return@launch
+                }
+                if (errorMessage == STREAM_BUFFERING_STALL_MESSAGE && player.isRendering && _state.value.currentTrack?.id == failedTrack.id) {
+                    player.clearRecoveryState()
+                    player.markRecoverySucceeded()
+                    _state.update { it.copy(isResolving = false, isPlaying = true, playerError = null) }
                     return@launch
                 }
                 val shouldResume = playWhenReady && !PlaybackService.isExplicitPauseActive
@@ -4505,9 +4517,18 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 if (error is CancellationException) throw error
                 if (transitionId != streamTransitionId) return@launch
                 if (playWhenReady && !PlaybackService.isExplicitPauseActive && isTransientNetworkFailure(error)) {
-                    player.deferRecoveryToService()
-                    _state.update { it.copy(isResolving = false, isPlaying = player.isPlaying, isAudioRendering = false, playerError = null) }
-                    return@launch
+                    if (PlaybackService.requestBackgroundStreamRecovery(positionMs)) {
+                        player.deferRecoveryToService()
+                        _state.update {
+                            it.copy(
+                                isResolving = false,
+                                isPlaying = true,
+                                isAudioRendering = false,
+                                playerError = null
+                            )
+                        }
+                        return@launch
+                    }
                 }
                 val message = cleanPlaybackError(error)
                 player.failRecovery(message)

@@ -321,4 +321,32 @@ class DerbisPlayerTest {
             )
         )
     }
+
+    @Test
+    fun playbackStallEvaluatorKeepsActivelyAdvancingCellularBufferAlive() {
+        assertEquals(
+            PlaybackStallAction.NONE,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_BUFFERING,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_BUFFERING_STALL_TIMEOUT_MS + 4_000L,
+                bufferedAheadMs = 2_400L,
+                outputNudged = false,
+                bufferAdvancing = true
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.RECOVER_STREAM,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_BUFFERING,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_BUFFERING_STALL_TIMEOUT_MS,
+                bufferedAheadMs = STREAM_BUFFERING_SATISFIED_AHEAD_MS + 1_000L,
+                outputNudged = true,
+                bufferAdvancing = true
+            )
+        )
+    }
 }

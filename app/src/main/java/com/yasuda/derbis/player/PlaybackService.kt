@@ -466,6 +466,14 @@ class PlaybackService : MediaLibraryService() {
         internal fun onOutputStallDetected(): Boolean =
             activeService?.disableStalledHardwareOutputPath() == true
 
+        /**
+         * Ensures the background service recovery loop actively retries stream resolution when
+         * UI-side recovery encounters a transient network failure, even if the underlying player
+         * had not yet emitted its own PlaybackException or was left in STATE_IDLE.
+         */
+        internal fun requestBackgroundStreamRecovery(positionMs: Long): Boolean =
+            activeService?.scheduleDeferredUiRecovery(positionMs) == true
+
         suspend fun stopForAppExit() {
             val service = activeService ?: return
             service.appExitRequested = true
@@ -1609,6 +1617,13 @@ class PlaybackService : MediaLibraryService() {
                 controller: MediaSession.ControllerInfo,
                 mediaItems: List<MediaItem>
             ): ListenableFuture<List<MediaItem>> {
+                if (
+                    mediaItems.isNotEmpty() &&
+                    mediaItems.none { it.mediaId.startsWith(AndroidAutoLibrary.ID_TRACK_PREFIX) } &&
+                    mediaItems.all { it.localConfiguration?.uri != null }
+                ) {
+                    return Futures.immediateFuture(mediaItems)
+                }
                 return mediaItemsFuture { autoLibrary.playableItems(mediaItems) }
             }
 
@@ -1685,6 +1700,9 @@ class PlaybackService : MediaLibraryService() {
         // external media controllers) reaches this session player, so it is the single
         // place that authorizes a new audible playback start after an explicit pause.
         playbackPausedByUser = false
+        if (delegate.playbackState == Player.STATE_IDLE && delegate.mediaItemCount > 0) {
+            super.prepare()
+        }
         super.play()
     }
 
@@ -3876,6 +3894,46 @@ class PlaybackService : MediaLibraryService() {
         serviceRecoveryJob = serviceScope.launch {
             runServiceRecovery(error, plan)
         }
+    }
+
+    private fun scheduleDeferredUiRecovery(positionMs: Long): Boolean {
+        if (playbackPausedByUser) return false
+        val sessionPlayer = mediaSession?.player ?: return false
+        markPlaybackExpected(true, force = true)
+        if (!sessionPlayer.playWhenReady) {
+            sessionPlayer.playWhenReady = true
+        }
+        if (serviceRecoveryJob?.isActive == true) return true
+        serviceRecoveryAttempts = 0
+        serviceRecoveryExhausted = false
+        val localPlayback = isCurrentPlaybackLocal()
+        val plan = ServiceRecoveryPlan(
+            localPlayback = localPlayback,
+            delaysMs = if (localPlayback) LOCAL_RECOVERY_DELAYS_MS else ONLINE_RECOVERY_DELAYS_MS,
+            positionMs = positionMs.coerceAtLeast(0L)
+        )
+        val syntheticError = PlaybackException(
+            "Deferred transient stream recovery",
+            null,
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+        )
+        RuntimeHooks.player(RuntimeSignal.PLAYER_RECOVERY)
+        serviceRecoveryJob = serviceScope.launch {
+            runDeferredServiceRecovery(syntheticError, plan)
+        }
+        return true
+    }
+
+    private suspend fun runDeferredServiceRecovery(error: PlaybackException, plan: ServiceRecoveryPlan) {
+        while (isPlaybackRecoveryExpected()) {
+            if (finishHealthyServiceRecovery()) return
+            if (awaitRecoveryConnectivity(plan.localPlayback)) {
+                continue
+            }
+            if (finishExhaustedServiceRecovery(error, plan.delaysMs)) return
+            if (attemptServiceRecovery(error, plan)) return
+        }
+        releasePlaybackWakeLock()
     }
 
     private fun serviceRecoveryPlan(): ServiceRecoveryPlan? {

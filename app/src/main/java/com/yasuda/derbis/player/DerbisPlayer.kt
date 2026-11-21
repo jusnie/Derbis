@@ -44,11 +44,13 @@ private const val MODE_HANDOFF_BACKWARD_SEEK_TOLERANCE_MS = 1_500L
 private const val VIDEO_FIRST_FRAME_TIMEOUT_MS = 5_500L
 internal const val LIVE_RADIO_STALL_TIMEOUT_MS = 20_000L
 private const val LIVE_RADIO_STALL_MESSAGE = "Live radio stream stalled while buffering"
-internal const val STREAM_BUFFERING_STALL_TIMEOUT_MS = 8_500L
+internal const val STREAM_BUFFERING_STALL_TIMEOUT_MS = 18_000L
+internal const val STREAM_BUFFERING_SATISFIED_AHEAD_MS = 6_000L
 internal const val STREAM_READY_OUTPUT_NUDGE_MS = 2_500L
 internal const val STREAM_READY_STALL_TIMEOUT_MS = 5_500L
 internal const val STREAM_STALL_POLL_INTERVAL_MS = 1_000L
 internal const val STREAM_STALL_PROGRESS_EPSILON_MS = 80L
+internal const val STREAM_BUFFERING_STALL_MESSAGE = "Audio stream stalled while buffering"
 private const val STREAM_STALL_MESSAGE = "Audio stream stalled without advancing playback"
 
 internal enum class PlaybackStallAction {
@@ -63,11 +65,14 @@ internal fun evaluatePlaybackStall(
     suppressed: Boolean,
     stalledElapsedMs: Long,
     bufferedAheadMs: Long,
-    outputNudged: Boolean
+    outputNudged: Boolean,
+    bufferAdvancing: Boolean = false
 ): PlaybackStallAction {
     if (!playWhenReady || suppressed) return PlaybackStallAction.NONE
     return when (playbackState) {
         Player.STATE_BUFFERING -> when {
+            bufferAdvancing && bufferedAheadMs < STREAM_BUFFERING_SATISFIED_AHEAD_MS ->
+                PlaybackStallAction.NONE
             stalledElapsedMs >= STREAM_BUFFERING_STALL_TIMEOUT_MS -> PlaybackStallAction.RECOVER_STREAM
             !outputNudged && bufferedAheadMs >= 2_000L && stalledElapsedMs >= STREAM_READY_OUTPUT_NUDGE_MS ->
                 PlaybackStallAction.NUDGE_OUTPUT_PATH
@@ -449,6 +454,7 @@ class DerbisPlayer(context: Context) {
         val identity = loadedStreamIdentity
         playbackStallJob = scope.launch {
             var lastPositionMs = active.currentPosition.coerceAtLeast(0L)
+            var lastBufferedPositionMs = active.bufferedPosition.coerceAtLeast(0L)
             var lastState = active.playbackState
             var lastAdvanceAtMs = SystemClock.elapsedRealtime()
             var outputNudged = false
@@ -468,6 +474,7 @@ class DerbisPlayer(context: Context) {
                 }
                 val now = SystemClock.elapsedRealtime()
                 val position = current.currentPosition.coerceAtLeast(0L)
+                val bufferedPosition = current.bufferedPosition.coerceAtLeast(0L)
                 val suppressed = current.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE
                 if (
                     suppressed ||
@@ -478,11 +485,22 @@ class DerbisPlayer(context: Context) {
                         outputNudged = false
                     }
                     lastPositionMs = position
+                    lastBufferedPositionMs = bufferedPosition
                     lastState = current.playbackState
                     lastAdvanceAtMs = now
                     continue
                 }
-                val bufferedAheadMs = (current.bufferedPosition.coerceAtLeast(0L) - position).coerceAtLeast(0L)
+                val bufferedAheadMs = (bufferedPosition - position).coerceAtLeast(0L)
+                val bufferAdvancing = bufferedPosition > lastBufferedPositionMs + STREAM_STALL_PROGRESS_EPSILON_MS
+                if (bufferAdvancing) {
+                    lastBufferedPositionMs = bufferedPosition
+                    if (current.playbackState == Player.STATE_BUFFERING && bufferedAheadMs < STREAM_BUFFERING_SATISFIED_AHEAD_MS) {
+                        lastAdvanceAtMs = now
+                        continue
+                    }
+                } else if (bufferedPosition < lastBufferedPositionMs) {
+                    lastBufferedPositionMs = bufferedPosition
+                }
                 when (
                     evaluatePlaybackStall(
                         playbackState = current.playbackState,
@@ -490,7 +508,8 @@ class DerbisPlayer(context: Context) {
                         suppressed = false,
                         stalledElapsedMs = now - lastAdvanceAtMs,
                         bufferedAheadMs = bufferedAheadMs,
-                        outputNudged = outputNudged
+                        outputNudged = outputNudged,
+                        bufferAdvancing = bufferAdvancing
                     )
                 ) {
                     PlaybackStallAction.NONE -> Unit
@@ -517,15 +536,20 @@ class DerbisPlayer(context: Context) {
                             continue
                         }
                         playbackStallJob = null
+                        val stallMessage = if (current.playbackState == Player.STATE_BUFFERING) {
+                            STREAM_BUFFERING_STALL_MESSAGE
+                        } else {
+                            STREAM_STALL_MESSAGE
+                        }
                         Timber.w(
-                            "stream playback stalled in state=%d at %d ms for %d ms; starting stream recovery",
+                            "stream playback stalled in state=%d at %d ms (bufferedAhead=%d ms) for %d ms; starting stream recovery",
                             current.playbackState,
                             position,
+                            bufferedAheadMs,
                             now - lastAdvanceAtMs
                         )
-                        current.stop()
-                        if (!startStreamRecovery(current, currentTrack, STREAM_STALL_MESSAGE)) {
-                            failLoadedStream(current, STREAM_STALL_MESSAGE)
+                        if (!startStreamRecovery(current, currentTrack, stallMessage)) {
+                            failLoadedStream(current, stallMessage)
                         }
                         return@launch
                     }
