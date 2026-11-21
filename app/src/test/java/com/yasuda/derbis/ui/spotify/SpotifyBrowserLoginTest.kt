@@ -81,4 +81,43 @@ class SpotifyBrowserLoginTest {
         assertEquals(sampleSpDc, SpotifyCookie.parse(header))
         assertNull(SpotifyCookie.parse("sp_t=99f001; sp_landing=1"))
     }
+
+    @Test
+    fun spotifyLoginUserAgentMatchesAndroidChromiumMajorWithoutWebViewOrDesktopSpoofing() {
+        val stockAndroidWebViewUa =
+            "Mozilla/5.0 (Linux; Android 14; 2312DRA50G Build/UKQ1.231003.002; wv) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/134.0.6998.135 Mobile Safari/537.36"
+        val loginUa = buildSpotifyLoginUserAgent(stockAndroidWebViewUa)
+
+        assertEquals(
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36",
+            loginUa
+        )
+        assertFalse(loginUa.contains("; wv"))
+        assertFalse(loginUa.contains("Version/"))
+        assertFalse(loginUa.contains("Windows NT"))
+    }
+
+    @Test
+    fun spotifyLoginUserAgentPreservesTabletFormFactorAndHandlesFallback() {
+        val tabletWebViewUa =
+            "Mozilla/5.0 (Linux; Android 14; Pixel Tablet Build/UQ1A.240205.002; wv) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/132.0.6834.90 Safari/537.36"
+        assertEquals(
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+            buildSpotifyLoginUserAgent(tabletWebViewUa)
+        )
+        assertEquals(
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+            buildSpotifyLoginUserAgent(null)
+        )
+    }
+
+    @Test
+    fun spotifyLoginUrlUsesCanonicalWebPlayerContinueTarget() {
+        assertEquals(
+            "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F",
+            SPOTIFY_LOGIN_URL
+        )
+    }
 }

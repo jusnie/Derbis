@@ -92,24 +92,44 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 private const val SPOTIFY_ORIGIN = "https://open.spotify.com"
+private const val SPOTIFY_WWW_ORIGIN = "https://www.spotify.com"
 private const val SPOTIFY_ACCOUNTS_ORIGIN = "https://accounts.spotify.com"
 private const val SPOTIFY_STATUS_URL = "https://accounts.spotify.com/en/status"
 
 /**
- * Sign-in stays on `accounts.spotify.com` with an explicit first-party `continue` target on the
- * lightweight `/en/status` account page. Avoiding `continue=open.spotify.com` keeps the WebView out
- * of the DRM web player (which paints a blank shell), while providing `continue` ensures Spotify
- * performs a top-level post-login redirect that flushes `sp_dc` cleanly into [CookieManager].
+ * Canonical first-party Spotify web login endpoint (`continue=https://open.spotify.com/`).
+ * Using `open.spotify.com` as the registered `continue` target satisfies Spotify's server-side
+ * login redirect validation, while [createSpotifyWebView] intercepts the post-login handoff before
+ * the DRM web player loads and redirects to [SPOTIFY_STATUS_URL] if `sp_dc` is still flushing.
  */
-private const val SPOTIFY_LOGIN_URL =
-    "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Faccounts.spotify.com%2Fen%2Fstatus"
+internal const val SPOTIFY_LOGIN_URL =
+    "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
+
+private const val DEFAULT_CHROMIUM_MAJOR = "131"
+private val CHROMIUM_MAJOR_PATTERN = Regex("""Chrome/(\d{2,3})\.""")
 
 /**
- * Standard desktop Chrome identity matching [SpotifyTokenProvider.BROWSER_UA]. Mobile WebView and
- * Mobile Safari UAs cause `accounts.spotify.com` to emit `intent://` / `spotify://` native-app
- * handoffs instead of completing web sign-in inside the sheet.
+ * Builds a genuine Chrome-on-Android Reduced User-Agent matching the device WebView's real
+ * Chromium major version and form factor while stripping `; wv`, `Version/4.0`, and `Build/...`.
+ *
+ * Spoofing a desktop Windows UA inside an Android WebView causes Google reCAPTCHA Enterprise on
+ * `accounts.spotify.com` to reject email sign-in ("Oops! Something went wrong") because the HTTP
+ * `Sec-CH-UA*` client hints (`Android`, `mobile=?1`) and `navigator.platform` (`Linux aarch64`)
+ * contradict a Windows desktop `User-Agent`.
  */
-private const val SPOTIFY_BROWSER_UA = SpotifyTokenProvider.BROWSER_UA
+internal fun buildSpotifyLoginUserAgent(rawWebViewUserAgent: String?): String {
+    val raw = rawWebViewUserAgent?.trim().orEmpty()
+    val major = CHROMIUM_MAJOR_PATTERN.find(raw)
+        ?.groupValues
+        ?.getOrNull(1)
+        ?.takeIf { version -> version.toIntOrNull()?.let { it in 90..999 } == true }
+        ?: DEFAULT_CHROMIUM_MAJOR
+    val isAndroidTablet = raw.contains("Android", ignoreCase = true) &&
+        !raw.contains("Mobile", ignoreCase = true)
+    val mobileToken = if (isAndroidTablet) "" else "Mobile "
+    return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) " +
+        "Chrome/$major.0.0.0 ${mobileToken}Safari/537.36"
+}
 
 /** True for the web player, the one Spotify surface a plain WebView cannot draw. */
 internal fun isSpotifyWebPlayerHost(host: String?): Boolean =
@@ -149,23 +169,67 @@ internal fun shouldTreatWebViewErrorAsFatal(
 }
 
 /**
+ * Clears transient third-party OAuth / CSRF flow cookies left behind if a user tapped
+ * "Continue with Google" before switching to email sign-in, while preserving `sp_t` and
+ * `__Host-device_id` device trust cookies.
+ */
+private fun clearSpotifyLoginFlowCookies() {
+    runCatching {
+        val manager = CookieManager.getInstance()
+        val transientCookies = listOf(
+            "__Secure-TPASESSION",
+            "sp_sso_csrf_token",
+            "sp_tr",
+            "__Host-sp_csrf_sid"
+        )
+        val origins = listOf(
+            SPOTIFY_ACCOUNTS_ORIGIN,
+            SPOTIFY_ORIGIN,
+            "https://spotify.com"
+        )
+        for (origin in origins) {
+            for (name in transientCookies) {
+                manager.setCookie(origin, "$name=; Path=/; Max-Age=0; Secure")
+                if (!name.startsWith("__Host-")) {
+                    manager.setCookie(origin, "$name=; Domain=.spotify.com; Path=/; Max-Age=0; Secure")
+                    manager.setCookie(origin, "$name=; Domain=accounts.spotify.com; Path=/; Max-Age=0; Secure")
+                }
+            }
+        }
+    }
+}
+
+/**
  * Expires Spotify session cookies in the shared WebView jar without touching other services (such
  * as YouTube Music) that share Android's [CookieManager].
  */
 internal fun clearSpotifyWebCookies() {
     runCatching {
         val manager = CookieManager.getInstance()
-        val expiredCookies = listOf("sp_dc", "sp_key", "sp_t", "sp_landing")
+        val expiredCookies = listOf(
+            "sp_dc",
+            "sp_key",
+            "sp_t",
+            "sp_landing",
+            "sp_tr",
+            "sp_m",
+            "__Secure-TPASESSION",
+            "sp_sso_csrf_token",
+            "__Host-sp_csrf_sid"
+        )
         val origins = listOf(
-            "https://open.spotify.com",
-            "https://accounts.spotify.com",
+            SPOTIFY_ORIGIN,
+            SPOTIFY_WWW_ORIGIN,
+            SPOTIFY_ACCOUNTS_ORIGIN,
             "https://spotify.com"
         )
         for (origin in origins) {
             for (name in expiredCookies) {
                 manager.setCookie(origin, "$name=; Path=/; Max-Age=0; Secure")
-                manager.setCookie(origin, "$name=; Domain=.spotify.com; Path=/; Max-Age=0; Secure")
-                manager.setCookie(origin, "$name=; Domain=accounts.spotify.com; Path=/; Max-Age=0; Secure")
+                if (!name.startsWith("__Host-")) {
+                    manager.setCookie(origin, "$name=; Domain=.spotify.com; Path=/; Max-Age=0; Secure")
+                    manager.setCookie(origin, "$name=; Domain=accounts.spotify.com; Path=/; Max-Age=0; Secure")
+                }
             }
         }
         manager.flush()
@@ -414,6 +478,7 @@ private fun applySession(
 ): Pair<Boolean, String> {
     val saved = DerbisSpotifySession.save(context, raw)
     if (!saved.hasCookie) return false to saved.lastError
+    runCatching { CookieManager.getInstance().flush() }
     SpotifyTokenProvider.invalidate()
     SpotifyOfficialCanvas.invalidate()
     // Whatever was playing a second ago was resolved without this session; let it try again.
@@ -696,7 +761,7 @@ private fun SpotifyBrowserPane(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Google blocks embedded browser sign-in. Tap back and enter your Google email on Spotify to sign in with a 6-digit email code.",
+                    text = "Google blocks embedded browser sign-in. Enter your Google email in Spotify's Email field below to sign in with a 6-digit email code.",
                     color = DerbisText,
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
@@ -706,10 +771,14 @@ private fun SpotifyBrowserPane(
                     onClick = {
                         onGoogleAuth = false
                         failed = false
-                        webView?.loadUrl(SPOTIFY_LOGIN_URL)
+                        val view = webView
+                        if (view != null && view.url?.startsWith(SPOTIFY_ACCOUNTS_ORIGIN, ignoreCase = true) != true) {
+                            clearSpotifyLoginFlowCookies()
+                            view.loadUrl(SPOTIFY_LOGIN_URL)
+                        }
                     }
                 ) {
-                    Text("Use email", color = SpotifyGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Got it", color = SpotifyGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -732,10 +801,8 @@ private fun SpotifyBrowserPane(
                     onClick = {
                         failed = false
                         loading = true
-                        val view = webView
-                        if (view != null) {
-                            if (view.url.isNullOrBlank()) view.loadUrl(SPOTIFY_LOGIN_URL) else view.reload()
-                        }
+                        clearSpotifyLoginFlowCookies()
+                        webView?.loadUrl(SPOTIFY_LOGIN_URL)
                     }
                 ) {
                     Icon(Icons.Rounded.Refresh, contentDescription = null, tint = SpotifyGreen, modifier = Modifier.size(15.dp))
@@ -749,6 +816,9 @@ private fun SpotifyBrowserPane(
                 .fillMaxWidth()
                 .weight(1f),
             factory = { context ->
+                if (!currentHasStoredSession) {
+                    clearSpotifyLoginFlowCookies()
+                }
                 createSpotifyWebView(
                     context = context,
                     onLoading = { isLoad ->
@@ -756,7 +826,7 @@ private fun SpotifyBrowserPane(
                         if (isLoad) failed = false
                     },
                     onClearError = { failed = false },
-                    onGoogleAuth = { onGoogleAuth = it },
+                    onGoogleAuthBlocked = { onGoogleAuth = true },
                     onPostLoginReached = { postLoginReached = true },
                     onError = {
                         loading = false
@@ -841,7 +911,7 @@ private fun createSpotifyWebView(
     context: Context,
     onLoading: (Boolean) -> Unit,
     onClearError: () -> Unit,
-    onGoogleAuth: (Boolean) -> Unit,
+    onGoogleAuthBlocked: () -> Unit,
     onPostLoginReached: () -> Unit,
     onError: () -> Unit,
     onDetected: (String) -> Unit
@@ -858,14 +928,17 @@ private fun createSpotifyWebView(
         }
         false
     }
+    val defaultUa = runCatching { WebSettings.getDefaultUserAgent(context) }.getOrNull()
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
     settings.databaseEnabled = true
-    settings.javaScriptCanOpenWindowsAutomatically = true
+    settings.javaScriptCanOpenWindowsAutomatically = false
+    settings.setSupportMultipleWindows(false)
+    settings.mediaPlaybackRequiresUserGesture = false
     settings.allowFileAccess = false
     settings.allowContentAccess = false
     settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-    settings.userAgentString = SPOTIFY_BROWSER_UA
+    settings.userAgentString = buildSpotifyLoginUserAgent(defaultUa)
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
     webChromeClient = WebChromeClient()
@@ -884,6 +957,19 @@ private fun createSpotifyWebView(
         }
     }
 
+    fun handleWebPlayerHandoff(view: WebView) {
+        onClearError()
+        onLoading(false)
+        onPostLoginReached()
+        val immediate = captureSession()
+        if (immediate != null) {
+            onDetected(immediate)
+        } else {
+            view.post { view.loadUrl(SPOTIFY_STATUS_URL) }
+            pollCookieWithRetries(view)
+        }
+    }
+
     webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
             val scheme = request.url.scheme?.lowercase().orEmpty()
@@ -895,17 +981,21 @@ private fun createSpotifyWebView(
                 pollCookieWithRetries(view)
                 return true
             }
-            if (request.isForMainFrame) {
-                onGoogleAuth(isGoogleAuthHost(request.url.host))
+            if (request.isForMainFrame && isGoogleAuthHost(request.url.host)) {
+                // Block navigation to accounts.google.com before Google's embedded-WebView check
+                // strands the user or leaves half-baked OAuth flow cookies on accounts.spotify.com.
+                suppressNextAbortError = true
+                clearSpotifyLoginFlowCookies()
+                onGoogleAuthBlocked()
+                view.post { view.loadUrl(SPOTIFY_LOGIN_URL) }
+                return true
             }
             // The session is already on the device once the accounts page hands off to the web
-            // player, and the player itself is a DRM shell. Stay on the accounts page and read
-            // sp_dc with retries so Chromium's async CookieManager flush has time to land.
+            // player, and the player itself is a DRM shell. Stay out of open.spotify.com and read
+            // sp_dc (or bounce to /en/status so Chromium flushes the cookie jar).
             if (request.isForMainFrame && isSpotifyWebPlayer(request.url)) {
-                onClearError()
-                onLoading(false)
-                onPostLoginReached()
-                pollCookieWithRetries(view)
+                suppressNextAbortError = true
+                handleWebPlayerHandoff(view)
                 return true
             }
             return false
@@ -913,7 +1003,14 @@ private fun createSpotifyWebView(
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
             val target = url?.let(Uri::parse)
-            onGoogleAuth(isGoogleAuthHost(target?.host))
+            if (target != null && isGoogleAuthHost(target.host)) {
+                suppressNextAbortError = true
+                view.stopLoading()
+                clearSpotifyLoginFlowCookies()
+                onGoogleAuthBlocked()
+                view.post { view.loadUrl(SPOTIFY_LOGIN_URL) }
+                return
+            }
             if (isSpotifyPostLoginStatusUrl(url)) {
                 onPostLoginReached()
                 pollCookieWithRetries(view)
@@ -921,10 +1018,7 @@ private fun createSpotifyWebView(
             if (target != null && isSpotifyWebPlayer(target)) {
                 suppressNextAbortError = true
                 view.stopLoading()
-                onClearError()
-                onLoading(false)
-                onPostLoginReached()
-                pollCookieWithRetries(view)
+                handleWebPlayerHandoff(view)
                 return
             }
             onLoading(true)
@@ -934,8 +1028,10 @@ private fun createSpotifyWebView(
             super.doUpdateVisitedHistory(view, url, isReload)
             if (isSpotifyPostLoginStatusUrl(url)) {
                 onPostLoginReached()
+                pollCookieWithRetries(view)
+            } else {
+                captureSession()?.let(onDetected)
             }
-            pollCookieWithRetries(view)
         }
 
         override fun onPageCommitVisible(view: WebView, url: String?) {
@@ -989,9 +1085,8 @@ private fun createSpotifyWebView(
  */
 private fun captureSession(): String? {
     val manager = runCatching { CookieManager.getInstance() }.getOrNull() ?: return null
-    runCatching { manager.flush() }
     // `sp_dc` is written on `.spotify.com`, so any Spotify origin jar can hold it.
-    for (origin in listOf(SPOTIFY_ORIGIN, SPOTIFY_ACCOUNTS_ORIGIN, SPOTIFY_STATUS_URL)) {
+    for (origin in listOf(SPOTIFY_ORIGIN, SPOTIFY_ACCOUNTS_ORIGIN, SPOTIFY_WWW_ORIGIN, SPOTIFY_STATUS_URL)) {
         val header = runCatching { manager.getCookie(origin) }.getOrNull().orEmpty()
         if (header.isBlank()) continue
         SpotifyCookie.parse(header)?.let { return it }
