@@ -136,10 +136,14 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private const val WRAPPED_PAGE_MS = 6_500
-private val WrappedInk = Color.White
-private val WrappedMuted = Color.White.copy(alpha = 0.72f)
-private val WrappedBackground = Color(0xFF040508)
-private val WrappedOnAccent = Color(0xFF07080C)
+private val WrappedInk: Color
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) com.yasuda.derbis.ui.theme.PixelPalette.text else Color.White
+private val WrappedMuted: Color
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) com.yasuda.derbis.ui.theme.PixelPalette.muted else Color.White.copy(alpha = 0.72f)
+private val WrappedBackground: Color
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) com.yasuda.derbis.ui.theme.PixelPalette.black else Color(0xFF040508)
+private val WrappedOnAccent: Color
+    get() = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else Color(0xFF07080C)
 
 /**
  * Hero type in this story is sized for a tall phone. On a short viewport (landscape, split
@@ -216,15 +220,36 @@ private fun WrappedYearPicker(
     ) {
         years.forEach { year ->
             val active = year == selected
+            val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+            val chipShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
             Text(
                 text = year.toString(),
-                color = if (active) WrappedInk else WrappedMuted,
+                color = if (pixel && active) com.yasuda.derbis.ui.theme.PixelPalette.ink else if (active) WrappedInk else WrappedMuted,
                 fontSize = 12.sp,
                 fontWeight = if (active) FontWeight.Black else FontWeight.SemiBold,
                 letterSpacing = 0.6.sp,
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (active) accent.copy(alpha = 0.34f) else Color.White.copy(alpha = 0.08f))
+                    .clip(chipShape)
+                    .background(
+                        if (pixel) {
+                            if (active) com.yasuda.derbis.ui.theme.PixelPalette.cyan else com.yasuda.derbis.ui.theme.PixelPalette.ink
+                        } else if (active) {
+                            accent.copy(alpha = 0.34f)
+                        } else {
+                            Color.White.copy(alpha = 0.08f)
+                        }
+                    )
+                    .then(
+                        if (pixel) {
+                            Modifier.border(
+                                com.yasuda.derbis.ui.theme.PixelDesign.border,
+                                if (active) com.yasuda.derbis.ui.theme.PixelPalette.text else com.yasuda.derbis.ui.theme.PixelPalette.outline,
+                                chipShape
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
                     .clickable(enabled = !active) { onSelect(year) }
                     .padding(horizontal = 12.dp, vertical = 5.dp)
             )
@@ -237,11 +262,17 @@ private fun wrappedReplayLabel(year: Int, runningYear: Boolean): String =
 
 @Composable
 private fun WrappedTagContent(text: String, icon: @Composable () -> Unit) {
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val tagShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
     Row(
         modifier = Modifier
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.12f))
-            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
+            .clip(tagShape)
+            .background(if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else Color.White.copy(alpha = 0.12f))
+            .border(
+                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else Color.White.copy(alpha = 0.18f),
+                tagShape
+            )
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -572,10 +603,12 @@ private fun WrappedCircleButton(
     enabled: Boolean = true,
     content: @Composable () -> Unit
 ) {
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val buttonShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
     Box(
         modifier = Modifier
             .size(48.dp)
-            .clip(CircleShape)
+            .clip(buttonShape)
             .clickable(
                 enabled = enabled,
                 onClickLabel = label,
@@ -589,9 +622,16 @@ private fun WrappedCircleButton(
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = if (enabled) 0.12f else 0.06f))
-                .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape),
+                .clip(buttonShape)
+                .background(
+                    if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink
+                    else Color.White.copy(alpha = if (enabled) 0.12f else 0.06f)
+                )
+                .border(
+                    if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                    if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else Color.White.copy(alpha = 0.18f),
+                    buttonShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             content()

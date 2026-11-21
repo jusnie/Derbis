@@ -8389,7 +8389,36 @@ private fun LyricsOverlay(
         }
     }
 
-    if (isSpicyLyrics && !landscapeLayout) {
+    if (DerbisIsPixel) {
+        PixelFullscreenLyrics(
+            state = state,
+            fullscreen = lyricsFullscreen,
+            onClose = onClose,
+            onSeekToMs = onSeekToMs,
+            onPrevious = onPrevious,
+            onTogglePlay = onTogglePlay,
+            onNext = onNext,
+            onToggleFavorite = onToggleFavorite,
+            onShareLyrics = { selectedLines ->
+                shareSnapshot = lyricsShareSnapshot(track, selectedLines)
+            },
+            onOpenQueue = onOpenQueue,
+            onOpenOptions = { showLyricsOptions = true },
+            lyricsOffsetMs = lyricsOffsetMs,
+            showTranslation = showTranslation,
+            showRomanization = showRomanization,
+            calibrateMode = calibrateMode,
+            onCalibrateLine = { lineStartMs ->
+                track?.id?.let { trackId ->
+                    onSetTrackOffset(
+                        trackId,
+                        calibratedLyricsTrackOffset(state.positionMs, lineStartMs, latencyOffsetMs)
+                    )
+                }
+                calibrateMode = false
+            }
+        )
+    } else if (isSpicyLyrics && !landscapeLayout) {
         SpicyFullscreenLyrics(
             state = state,
             accentStart = accentStart,
@@ -14626,8 +14655,8 @@ private fun ResonanceQuoteText(text: String, muted: Boolean) {
         color = if (muted) DerbisMuted else DerbisText,
         fontSize = size,
         lineHeight = DerbisTypeRhythm.lineHeight(size),
-        fontFamily = if (pixel && !muted) FontFamily.Serif else null,
-        fontWeight = if (pixel || muted) FontWeight.Medium else FontWeight.SemiBold,
+        fontFamily = if (pixel) PixelifyFont else null,
+        fontWeight = if (pixel) FontWeight.Bold else if (muted) FontWeight.Medium else FontWeight.SemiBold,
         maxLines = 3,
         overflow = TextOverflow.Ellipsis
     )

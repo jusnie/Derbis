@@ -613,8 +613,8 @@ internal fun SkinNameGreeting(greeting: String, dayPart: String, name: String, m
             )
         }
         else -> Column(modifier.then(accessible), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(dayPart.uppercase(), color = DerbisCyan, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp, letterSpacing = 2.4.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(name, color = DerbisText, fontFamily = androidx.compose.ui.text.font.FontFamily.Serif, fontSize = 34.sp, lineHeight = 40.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(dayPart.uppercase(), color = DerbisCyan, style = MaterialTheme.typography.labelMedium, letterSpacing = 1.8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(name, color = DerbisText, style = MaterialTheme.typography.headlineLarge, fontSize = 32.sp, lineHeight = 38.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

@@ -1,9 +1,12 @@
 package com.yasuda.derbis.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.domain.DerbisSkin
+import com.yasuda.derbis.ui.player.playerSurfaceTokens
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -65,12 +68,64 @@ class PixelSkinTest {
         assertTrue(contrastRatio(scheme.onSurface, scheme.surface) >= 4.5f)
     }
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Test
     fun thePixelSkinHasNoCorners() {
         assertEquals(0.dp, PixelDesign.artworkCorner)
         assertEquals(0.dp, PixelDesign.cardCorner)
         assertEquals(0.dp, PixelDesign.panelCorner)
         assertEquals(0.dp, PixelDesign.controlCorner)
+        val zero = RoundedCornerShape(0.dp)
+        listOf(
+            PixelShapes.extraSmall,
+            PixelShapes.small,
+            PixelShapes.medium,
+            PixelShapes.large,
+            PixelShapes.extraLarge,
+            PixelShapes.largeIncreased,
+            PixelShapes.extraLargeIncreased,
+            PixelShapes.extraExtraLarge
+        ).forEach { shape ->
+            assertEquals(zero, shape)
+        }
+    }
+
+    @Test
+    fun pixelTypographyAppliesPixelifySansAcrossAllFifteenRoles() {
+        val roles = listOf(
+            PixelTypography.displayLarge,
+            PixelTypography.displayMedium,
+            PixelTypography.displaySmall,
+            PixelTypography.headlineLarge,
+            PixelTypography.headlineMedium,
+            PixelTypography.headlineSmall,
+            PixelTypography.titleLarge,
+            PixelTypography.titleMedium,
+            PixelTypography.titleSmall,
+            PixelTypography.bodyLarge,
+            PixelTypography.bodyMedium,
+            PixelTypography.bodySmall,
+            PixelTypography.labelLarge,
+            PixelTypography.labelMedium,
+            PixelTypography.labelSmall
+        )
+        assertEquals(15, roles.size)
+        roles.forEach { style ->
+            assertEquals(PixelifyFont, style.fontFamily)
+        }
+    }
+
+    @Test
+    fun pixelPlayerSurfacesKeepLightPaperAndContrastWithoutAmoledBlack() {
+        val tokens = playerSurfaceTokens(primary = Color(0xFF38BDF8), amoled = true, pixel = true)
+        assertFalse(tokens.amoled)
+        assertTrue(tokens.framed)
+        assertEquals(PixelPalette.ink, tokens.control)
+        assertEquals(PixelPalette.cyan, tokens.hero)
+        assertEquals(PixelPalette.ink, tokens.heroContent)
+        assertTrue(contrastRatio(tokens.content, tokens.control) >= 4.5f)
+        assertTrue(contrastRatio(tokens.heroContent, tokens.hero) >= 4.5f)
+        assertTrue(contrastRatio(tokens.activeContent, tokens.active) >= 4.5f)
     }
 
     @Test

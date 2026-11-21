@@ -4,9 +4,11 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Shapes
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
@@ -607,10 +609,10 @@ val DerbisGlassBorder: Color
     }
 
 val DerbisOnAccent: Color
-    get() = if (activePaletteState.value.isLight) {
-        Color(0xFFF8F7FF)
-    } else {
-        activePaletteState.value.black
+    get() = when {
+        DerbisIsPixel -> PixelPalette.ink
+        activePaletteState.value.isLight -> Color(0xFFF8F7FF)
+        else -> activePaletteState.value.black
     }
 
 private val DerbisExpressiveShapes = Shapes(
@@ -679,6 +681,15 @@ fun DerbisTheme(
         motionScheme = motionScheme,
         shapes = shapes,
         typography = if (pixel) PixelTypography else if (DerbisIsSpotify) SpotifyTypography else if (DerbisIsAppleMusic) AppleMusicTypography else if (DerbisIsYouTubeMusic) YouTubeMusicTypography else if (ivory) IvoryTypography else if (prism) PrismTypography else derbisTypographyFor(fontPreset ?: activeFontPresetState.value),
-        content = content
+        content = {
+            if (pixel) {
+                CompositionLocalProvider(
+                    LocalTextStyle provides LocalTextStyle.current.copy(fontFamily = PixelifyFont),
+                    content = content
+                )
+            } else {
+                content()
+            }
+        }
     )
 }

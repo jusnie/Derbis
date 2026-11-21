@@ -111,7 +111,7 @@ internal fun immersiveMediaColors(primary: Color, secondary: Color, lightTheme: 
     skinMediaColors(primary)?.let { return it }
     if (pixel) {
         val p = PixelPalette
-        return ImmersiveMediaColors(p.black, p.black, p.ink, p.text, p.muted, p.cyan, p.panelSoft, p.panelSoft, p.cyan, p.panel, p.outline)
+        return ImmersiveMediaColors(p.black, p.black, p.ink, p.text, p.muted, p.cyan, p.cyan, p.cyan, p.ink, p.ink, p.outline)
     }
     val accents = harmonizePlayerAccents(primary, secondary)
     val action = playerContrastGradient(accents.primary, accents.secondary, PlayerMinimumContrast)

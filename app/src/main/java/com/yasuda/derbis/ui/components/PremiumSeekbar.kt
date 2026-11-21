@@ -37,7 +37,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -60,6 +62,8 @@ import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
@@ -267,21 +271,25 @@ fun PremiumSeekbar(
         if (isDragging && widthPx > 0f) {
             val tooltipWidthPx = with(density) { 74.dp.toPx() }
             val offsetX = seekbarTooltipOffsetX(effectiveProgress, widthPx, tooltipWidthPx)
+            val tooltipShape = if (pixel) RectangleShape else DerbisPlayerDesign.ShapeXs
+            val tooltipFill = if (pixel) PixelPalette.ink else Color(0xFF101014).copy(alpha = 0.94f)
+            val tooltipBorder = if (pixel) PixelPalette.text else activeColor.copy(alpha = 0.55f)
+            val tooltipBorderWidth = if (pixel) PixelDesign.border else DerbisPlayerDesign.Hairline
             Box(
                 modifier = Modifier
                     .offset { IntOffset(offsetX.roundToInt(), with(density) { -34.dp.roundToPx() }) }
-                    .background(Color(0xFF101014).copy(alpha = 0.94f), DerbisPlayerDesign.ShapeXs)
+                    .background(tooltipFill, tooltipShape)
                     .border(
-                        width = DerbisPlayerDesign.Hairline,
-                        color = activeColor.copy(alpha = 0.55f),
-                        shape = DerbisPlayerDesign.ShapeXs
+                        width = tooltipBorderWidth,
+                        color = tooltipBorder,
+                        shape = tooltipShape
                     )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = formatSeekbarMillis(scrubMillis),
-                    color = Color.White,
+                    color = if (pixel) PixelPalette.text else Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -355,6 +363,58 @@ fun PremiumSeekbar(
             val renderedProgress = if (isDragging) dragProgressFraction else animatedProgress.value
             val centerY = size.height / 2f
             val scrub = scrubAmount.value
+
+            if (pixel) {
+                val p = PixelPalette
+                val railHeight = 7.dp.toPx()
+                val railTop = centerY - railHeight / 2f
+                val borderPx = 1.5.dp.toPx()
+                val thumbW = 9.dp.toPx()
+                val thumbH = 16.dp.toPx()
+                val trackStart = thumbW / 2f
+                val trackEnd = (totalWidth - thumbW / 2f).coerceAtLeast(trackStart)
+                val trackSpan = trackEnd - trackStart
+                val handleX = trackStart + renderedProgress.coerceIn(0f, 1f) * trackSpan
+
+                drawRect(
+                    color = p.panel,
+                    topLeft = Offset(trackStart, railTop),
+                    size = Size(trackSpan, railHeight)
+                )
+                val bufferedSpan = (bufferedProgress.coerceIn(0f, 1f) * trackSpan).coerceAtLeast(0f)
+                if (bufferedSpan > 0f) {
+                    drawRect(
+                        color = p.panelSoft,
+                        topLeft = Offset(trackStart, railTop),
+                        size = Size(bufferedSpan, railHeight)
+                    )
+                }
+                if (handleX > trackStart) {
+                    drawRect(
+                        color = p.cyan,
+                        topLeft = Offset(trackStart, railTop),
+                        size = Size(handleX - trackStart, railHeight)
+                    )
+                }
+                drawRect(
+                    color = p.outline,
+                    topLeft = Offset(trackStart, railTop),
+                    size = Size(trackSpan, railHeight),
+                    style = Stroke(width = borderPx)
+                )
+                drawRect(
+                    color = p.cyan,
+                    topLeft = Offset(handleX - thumbW / 2f, centerY - thumbH / 2f),
+                    size = Size(thumbW, thumbH)
+                )
+                drawRect(
+                    color = p.text,
+                    topLeft = Offset(handleX - thumbW / 2f, centerY - thumbH / 2f),
+                    size = Size(thumbW, thumbH),
+                    style = Stroke(width = borderPx)
+                )
+                return@Canvas
+            }
 
             val trackHeight = DerbisPlayerDesign.TrackHeight.toPx() +
                 (DerbisPlayerDesign.TrackHeightActive - DerbisPlayerDesign.TrackHeight).toPx() * scrub

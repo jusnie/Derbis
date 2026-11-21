@@ -54,7 +54,7 @@ internal fun SkinMixPanel(
                 )
                 SkinMixReadout(familiarity, accent)
             }
-            val playShape = if (DerbisIsPixel) RoundedCornerShape(8.dp) else PrismDesign.cut(24.dp)
+            val playShape = if (DerbisIsPixel) RoundedCornerShape(0.dp) else PrismDesign.cut(24.dp)
             Box(
                 Modifier.size(64.dp).clip(playShape).background(accent)
                     .derbisPressable(onClick = { onStartMix(DerbisMixKind.Personalized) }, enabled = !loading,

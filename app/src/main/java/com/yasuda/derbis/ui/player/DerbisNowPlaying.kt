@@ -263,7 +263,8 @@ private fun DerbisNowPlayingContent(
     val artworkUrl = track?.let(::preferredPlayerArtworkUrl).orEmpty()
     val pixel = DerbisIsPixel
     // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
-    val selectedVisualMode = if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
+    // Pixel locks its Now Playing stage to the Flow deck with 0dp pixel geometry.
+    val selectedVisualMode = if (pixel) PlayerVisualMode.Flow else if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
     val appleMusicDeck = !DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
     val appleMusicPlayer = DerbisIsAppleMusic || appleMusicDeck
@@ -455,7 +456,7 @@ private fun DerbisNowPlayingContent(
             !liveRadio &&
             !state.isVideoMode &&
             playerPane != DerbisPlayerPane.SideBySide
-        val deckLayout = if (DerbisSkinManagesLayout) PlayerDeckLayout.Derbis else resolvePlayerDeckLayout(
+        val deckLayout = if (DerbisSkinManagesLayout && !pixel) PlayerDeckLayout.Derbis else resolvePlayerDeckLayout(
             mode = visualMode,
             isVideoMode = state.isVideoMode,
             isLiveRadio = liveRadio,
@@ -479,7 +480,7 @@ private fun DerbisNowPlayingContent(
         SideEffect {
             morphAnchors.updateLanding(
                 when (deckLayout) {
-                    PlayerDeckLayout.Flow -> if (state.isPlaying) PlayerMorphLanding.FlowPlaying else PlayerMorphLanding.FlowPaused
+                    PlayerDeckLayout.Flow -> if (pixel) PlayerMorphLanding.Rounded else if (state.isPlaying) PlayerMorphLanding.FlowPlaying else PlayerMorphLanding.FlowPaused
                     else -> PlayerMorphLanding.Rounded
                 }
             )
@@ -566,7 +567,7 @@ private fun DerbisNowPlayingContent(
         )
 
         val headerButtonFill = surfaces.controlQuiet
-        val headerButtonBorder = if (surfaces.amoled) surfaces.outline else Color.Transparent
+        val headerButtonBorder = surfaces.segmentOutline
         val headerButtonSize = if (compactPlayer) DerbisPlayerDesign.HeaderButtonCompact else DerbisPlayerDesign.HeaderButton
         val headerSlotWidth = maxOf(headerButtonSize, HeaderButtonMinimumWidth)
         val headerPolicy = playerHeaderPolicy(
@@ -2014,7 +2015,7 @@ private fun PlayerLiveRadioTransport(
             innerCorner = DerbisPlayerDesign.TransportInnerCorner,
             contentDescription = strings.close,
             animated = animated,
-            outline = if (surfaces.amoled) surfaces.outline else Color.Transparent,
+            outline = surfaces.segmentOutline,
             onClick = onStop
         ) {
             PlayerIcon(Icons.Rounded.Stop, surfaces.content, Modifier.size(DerbisPlayerDesign.TransportGlyph))

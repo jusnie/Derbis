@@ -345,7 +345,7 @@ private fun DefaultPlayerFavoriteButton(
         fill = fill,
         borderTop = outline,
         borderBottom = outline,
-        shape = if (PlayerPrismStyle) androidx.compose.foundation.shape.CircleShape else rememberDerbisFavoriteMorphShape(favorite = isFavorite, animated = animated),
+        shape = if (com.yasuda.derbis.ui.theme.DerbisIsPixel) androidx.compose.ui.graphics.RectangleShape else if (PlayerPrismStyle) androidx.compose.foundation.shape.CircleShape else rememberDerbisFavoriteMorphShape(favorite = isFavorite, animated = animated),
         modifier = Modifier
             .size(DerbisPlayerDesign.MinimumTouchTarget)
             .graphicsLayer {

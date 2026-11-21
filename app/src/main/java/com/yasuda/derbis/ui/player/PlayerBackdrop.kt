@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import com.yasuda.derbis.ui.pixelPaperGrid
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -86,7 +87,12 @@ internal fun PlayerBackdrop(
         return
     }
     if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
-        Box(modifier.background(Color.Black))
+        val p = com.yasuda.derbis.ui.theme.PixelPalette
+        Box(
+            modifier
+                .background(p.black)
+                .pixelPaperGrid()
+        )
         return
     }
     val colorSpec = DerbisPlayerDesign.motion(

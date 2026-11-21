@@ -117,7 +117,7 @@ internal fun PlayerDeckSheet(
                 ) {
                     Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(DerbisSkinLabel)
+                    Text(if (com.yasuda.derbis.ui.theme.DerbisIsPixel) "$DerbisSkinLabel · Flow" else DerbisSkinLabel)
                 }
                 Text(DerbisSkinStrings.managedForCode(strings.code, DerbisSkinLabel), color = surfaces.contentMuted, fontSize = 14.sp)
             }

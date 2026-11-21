@@ -294,6 +294,26 @@ internal object ListeningReceiptCard {
     )
 
     private fun theme(style: ListeningReceiptStyle, palette: ListeningReceiptPalette): Theme {
+        if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
+            return Theme(
+                top = 0xFFFFF8F6.toInt(),
+                bottom = 0xFFFFEDF1.toInt(),
+                accent = 0xFF9E1B44.toInt(),
+                accentAlt = 0xFFC2245E.toInt(),
+                ink = 0xFF5B2338.toInt(),
+                muted = 0xFF7E3B57.toInt(),
+                faint = Color.argb(80, 168, 71, 101),
+                onAccent = 0xFFFFF8F6.toInt(),
+                panel = 0xFFFFD9E2.toInt(),
+                tile = 0xFFFFC9D6.toInt(),
+                notch = 0xFFFFEDF1.toInt(),
+                shadowAlpha = 0,
+                blobAlpha = 0,
+                outline = 0xFFA84765.toInt(),
+                glow = false,
+                gradientNumber = false
+            )
+        }
         val accent = vivid(palette.start)
         val accentAlt = vivid(palette.end)
         return when (style) {

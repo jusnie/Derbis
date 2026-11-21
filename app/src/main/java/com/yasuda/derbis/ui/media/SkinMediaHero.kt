@@ -222,25 +222,33 @@ internal fun PixelMediaHero(
     topBarHeight: Dp, onSubtitleClick: (() -> Unit)?, actions: @Composable () -> Unit,
     artwork: @Composable BoxScope.() -> Unit, modifier: Modifier
 ) {
-    val amber = colors.accent
-    val frame = RoundedCornerShape(PixelDesign.artworkCorner + 4.dp)
-    val readout = RoundedCornerShape(PixelDesign.controlCorner)
-    Column(modifier.fillMaxWidth().padding(top = topBarHeight, start = 20.dp, end = 20.dp, bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val p = PixelPalette
+    val frame = RoundedCornerShape(PixelDesign.artworkCorner)
+    Column(
+        modifier.fillMaxWidth().padding(top = topBarHeight, start = 20.dp, end = 20.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         Box(
-            Modifier.fillMaxWidth().aspectRatio(1f).border(1.dp, amber.copy(alpha = 0.45f), frame)
-                .padding(10.dp).clip(RoundedCornerShape(PixelDesign.artworkCorner))
+            Modifier.fillMaxWidth().aspectRatio(1f)
+                .background(p.ink, frame)
+                .border(PixelDesign.border, p.outline, frame)
+                .padding(8.dp)
+                .border(1.dp, p.text, frame)
+                .clip(frame)
         ) { artwork() }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (overline.isNotBlank()) Text(overline.uppercase(), color = amber, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.4.sp, maxLines = 1)
-            Text(title, color = colors.content, fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Medium, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
-            MediaSubtitle(subtitle, colors.contentMuted, onSubtitleClick, uppercase = true)
+            if (overline.isNotBlank()) Text(overline.uppercase(), color = colors.accent, style = MaterialTheme.typography.labelMedium, letterSpacing = 1.6.sp, maxLines = 1)
+            Text(title, color = colors.content, style = MaterialTheme.typography.headlineMedium, fontSize = 26.sp, lineHeight = 31.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
+            MediaSubtitle(subtitle, colors.contentMuted, onSubtitleClick, uppercase = false)
         }
         if (metadata.isNotBlank()) {
             Box(
-                Modifier.fillMaxWidth().clip(readout).background(Brush.verticalGradient(listOf(DerbisPanelSoft, DerbisPanel)))
-                    .border(1.dp, colors.hairline, readout).padding(horizontal = 14.dp, vertical = 10.dp)
+                Modifier.fillMaxWidth()
+                    .background(p.ink, frame)
+                    .border(PixelDesign.border, p.outline, frame)
+                    .padding(horizontal = 12.dp, vertical = 9.dp)
             ) {
-                Text(metadata.uppercase(), color = amber, fontFamily = FontFamily.Monospace, fontSize = 12.sp, letterSpacing = 1.2.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(metadata.uppercase(), color = colors.accent, style = MaterialTheme.typography.labelMedium, letterSpacing = 1.0.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         actions()

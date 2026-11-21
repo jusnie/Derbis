@@ -181,7 +181,7 @@ private fun PlayerTimeLabel(text: String, color: Color, compact: Boolean) {
         fontSize = if (compact) 11.sp else 12.sp,
         fontWeight = FontWeight.Medium,
         letterSpacing = 0.2.sp,
-        style = TabularTimeStyle
+        style = androidx.compose.material3.LocalTextStyle.current.merge(TabularTimeStyle)
     )
 }
 

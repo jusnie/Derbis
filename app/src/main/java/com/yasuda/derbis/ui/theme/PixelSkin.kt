@@ -1,12 +1,15 @@
 package com.yasuda.derbis.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yasuda.derbis.R
 import com.yasuda.derbis.domain.DerbisFontPreset
 import com.yasuda.derbis.domain.*
 
@@ -63,34 +66,44 @@ val DerbisIsPixel: Boolean get() = DerbisActivePalette.id == PixelPalette.id
  * A pixel skin has no corners. Every shape role is the same hard rectangle, so a card, a sheet,
  * a button and a dialog all share one edge.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 internal val PixelShapes = Shapes(
     extraSmall = RoundedCornerShape(0.dp),
     small = RoundedCornerShape(0.dp),
     medium = RoundedCornerShape(0.dp),
     large = RoundedCornerShape(0.dp),
-    extraLarge = RoundedCornerShape(0.dp)
+    extraLarge = RoundedCornerShape(0.dp),
+    largeIncreased = RoundedCornerShape(0.dp),
+    extraLargeIncreased = RoundedCornerShape(0.dp),
+    extraExtraLarge = RoundedCornerShape(0.dp)
+)
+
+internal val PixelifyFont: FontFamily = FontFamily(
+    Font(resId = R.font.pixelify_sans_regular, weight = FontWeight.Normal),
+    Font(resId = R.font.pixelify_sans_regular, weight = FontWeight.Medium),
+    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.SemiBold),
+    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.Bold),
+    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.ExtraBold),
+    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.Black)
 )
 
 internal val PixelTypography = derbisTypographyFor(DerbisFontPreset.System).let { base ->
     base.copy(
-        // Monospace is the pixel face that ships with Android. No font is bundled, so the APK
-        // does not grow and no licence is added; the fixed advance is what makes a heading read
-        // as a pixel grid rather than as set type.
-        headlineMedium = base.headlineMedium.copy(
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 0.6.sp
-        ),
-        titleLarge = base.titleLarge.copy(
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.4.sp
-        ),
-        labelSmall = base.labelSmall.copy(
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.4.sp
-        )
+        displayLarge = base.displayLarge.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
+        displayMedium = base.displayMedium.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp),
+        displaySmall = base.displaySmall.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = (-0.2).sp),
+        headlineLarge = base.headlineLarge.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+        headlineMedium = base.headlineMedium.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+        headlineSmall = base.headlineSmall.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+        titleLarge = base.titleLarge.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.sp),
+        titleMedium = base.titleMedium.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.1.sp),
+        titleSmall = base.titleSmall.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.1.sp),
+        bodyLarge = base.bodyLarge.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Normal, letterSpacing = 0.1.sp),
+        bodyMedium = base.bodyMedium.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Normal, letterSpacing = 0.1.sp),
+        bodySmall = base.bodySmall.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Normal, letterSpacing = 0.2.sp),
+        labelLarge = base.labelLarge.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+        labelMedium = base.labelMedium.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp),
+        labelSmall = base.labelSmall.copy(fontFamily = PixelifyFont, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
     )
 }
 

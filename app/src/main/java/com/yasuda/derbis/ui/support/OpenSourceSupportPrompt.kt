@@ -429,7 +429,8 @@ private fun GitHubStarSupportDialog(
     onLater: () -> Unit,
     onPassiveDismiss: () -> Unit
 ) {
-    val shape = RoundedCornerShape(26.dp)
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val shape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(26.dp)
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val colors = MaterialTheme.colorScheme
     val heroScale = remember(announcement.id) { Animatable(0.94f) }
@@ -461,8 +462,11 @@ private fun GitHubStarSupportDialog(
                 .widthIn(max = 420.dp)
                 .heightIn(max = screenHeight * 0.88f),
             shape = shape,
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.outline.copy(alpha = 0.18f))
+            color = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else colors.surface,
+            border = BorderStroke(
+                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else colors.outline.copy(alpha = 0.18f)
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -470,6 +474,7 @@ private fun GitHubStarSupportDialog(
                     .padding(horizontal = 24.dp, vertical = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val heroShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
                 // One hairline ring and one flat glyph: no sticker, no gradient, no drop shadow.
                 Box(
                     modifier = Modifier
@@ -484,17 +489,24 @@ private fun GitHubStarSupportDialog(
                     Box(
                         modifier = Modifier
                             .size(104.dp)
-                            .border(1.dp, colors.onSurface.copy(alpha = 0.14f), CircleShape)
+                            .border(
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else colors.onSurface.copy(alpha = 0.14f),
+                                heroShape
+                            )
                     )
                     Box(
                         modifier = Modifier
                             .size(78.dp)
-                            .background(colors.onSurface.copy(alpha = 0.05f), CircleShape)
+                            .background(
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.panelSoft else colors.onSurface.copy(alpha = 0.05f),
+                                heroShape
+                            )
                     )
                     Icon(
                         imageVector = Icons.Rounded.Star,
                         contentDescription = null,
-                        tint = colors.onSurface,
+                        tint = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.cyan else colors.onSurface,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -532,23 +544,40 @@ private fun GitHubStarSupportDialog(
 
                 if (announcement.actionUrl != null && announcement.copy.starAction.isNotBlank()) {
                     Spacer(Modifier.height(26.dp))
+                    val actionLabel = if (pixel) {
+                        announcement.copy.starAction
+                            .replace("\u2B50", "")
+                            .replace("\uFE0F", "")
+                            .trim()
+                    } else {
+                        announcement.copy.starAction
+                    }
 
                     Button(
                         onClick = onAction,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 54.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(14.dp),
+                        border = if (pixel) BorderStroke(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.text) else null,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.onSurface,
-                            contentColor = colors.surface
+                            containerColor = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.cyan else colors.onSurface,
+                            contentColor = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else colors.surface
                         ),
                         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
                     ) {
+                        if (pixel) {
+                            Icon(
+                                imageVector = Icons.Rounded.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
                         Text(
-                            text = announcement.copy.starAction,
+                            text = actionLabel,
                             modifier = Modifier.weight(1f),
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = if (pixel) FontWeight.Bold else FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                             maxLines = 3
                         )

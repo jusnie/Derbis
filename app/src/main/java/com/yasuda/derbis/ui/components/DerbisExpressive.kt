@@ -136,7 +136,7 @@ internal fun DerbisWavyProgress(
 }
 
 internal val DerbisGroupedOuterCorner: Dp get() = if (DerbisIsPrism) PrismDesign.surfaceCorner else if (DerbisIsPixel) PixelDesign.panelCorner else 24.dp
-internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsPixel) 2.dp else 6.dp
+internal val DerbisGroupedInnerCorner: Dp get() = if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else if (DerbisIsPixel) 0.dp else 6.dp
 
 internal fun derbisGroupedListShape(index: Int, count: Int): Shape {
     val first = index == 0

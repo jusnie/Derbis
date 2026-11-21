@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -23,7 +24,9 @@ import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.playerMix
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PixelIcons
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 data class PlayerControlLabels(
     val shuffle: String,
@@ -86,6 +89,11 @@ fun Modifier.playerGlass(
     gradientBorder: Boolean = false
 ): Modifier = composed {
     val fallbackBorder = borderTop.playerMix(borderBottom, 0.5f)
+    if (DerbisIsPixel) {
+        return@composed this
+            .background(fill, RectangleShape)
+            .border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+    }
     if (!LocalDerbisLiquidGlassEnabled.current) {
         return@composed this
             .background(fill, shape)
@@ -132,6 +140,10 @@ fun PlayerGlassIconButton(
     shape: Shape = CircleShape,
     enabled: Boolean = true
 ) {
+    val pixel = DerbisIsPixel
+    val resolvedShape = if (pixel) RectangleShape else shape
+    val resolvedFill = if (pixel && fill == DerbisPlayerDesign.GlassFill) PixelPalette.ink else fill
+    val resolvedTint = if (pixel && tint == DerbisPlayerDesign.TextPrimary) PixelPalette.text else tint
     SpringIconButton(
         onClick = onClick,
         modifier = modifier.sizeIn(
@@ -148,8 +160,8 @@ fun PlayerGlassIconButton(
             modifier = Modifier
                 .size(size)
                 .playerGlass(
-                    shape = shape,
-                    fill = fill,
+                    shape = resolvedShape,
+                    fill = resolvedFill,
                     borderTop = borderTop,
                     borderBottom = borderBottom,
                     gradientBorder = gradientBorder
@@ -158,7 +170,7 @@ fun PlayerGlassIconButton(
         ) {
             PlayerIcon(
                 icon = icon,
-                tint = tint,
+                tint = resolvedTint,
                 modifier = Modifier.size(iconSize)
             )
         }

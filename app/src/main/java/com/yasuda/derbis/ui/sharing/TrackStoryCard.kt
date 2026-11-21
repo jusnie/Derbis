@@ -21,12 +21,14 @@ import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.TextUtils
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.size.Size
 import coil3.toBitmap
+import com.yasuda.derbis.R
 import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.Track
@@ -68,6 +70,17 @@ internal object TrackStoryCard {
     private const val FALLBACK_DOMINANT = 0xFF183B56.toInt()
     private const val FALLBACK_ACCENT = 0xFF26B2D6.toInt()
 
+    @Volatile
+    private var pixelBoldTypeface: Typeface? = null
+
+    private fun warmPixelTypeface(context: Context) {
+        if (pixelBoldTypeface == null) {
+            pixelBoldTypeface = runCatching {
+                ResourcesCompat.getFont(context, R.font.pixelify_sans_bold)
+            }.getOrNull()
+        }
+    }
+
     fun heightFor(widthPx: Int, format: TrackStoryFormat): Int =
         (widthPx * format.heightPx / format.widthPx)
 
@@ -75,6 +88,7 @@ internal object TrackStoryCard {
      * Resolves the highest quality cover artwork for the track.
      */
     suspend fun loadArtwork(context: Context, track: Track): Bitmap? = withContext(Dispatchers.IO) {
+        warmPixelTypeface(context)
         ensureActive()
         // 1. Try local cached high-res / regular file first
         val localFile = DerbisArtworkCache.localFile(context, track, highRes = true)
@@ -296,6 +310,12 @@ internal object TrackStoryCard {
             val scale = widthPx.toFloat() / designWidth
             canvas.scale(scale, scale)
 
+            if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
+                drawPixelStory(canvas, designWidth, designHeight, format, snapshot, artwork)
+                completed = true
+                return bitmap
+            }
+
             // 1. Draw theme-specific living backdrop
             drawBackdrop(canvas, designWidth, designHeight, theme, palette, artwork)
 
@@ -330,6 +350,126 @@ internal object TrackStoryCard {
             return bitmap
         } finally {
             if (!completed) bitmap.recycle()
+        }
+    }
+
+    private fun drawPixelStory(
+        canvas: Canvas,
+        width: Float,
+        height: Float,
+        format: TrackStoryFormat,
+        snapshot: TrackStorySnapshot,
+        artwork: Bitmap?
+    ) {
+        val paper = 0xFFFFEDF1.toInt()
+        val card = 0xFFFFF8F6.toInt()
+        val band = 0xFFFFD9E2.toInt()
+        val plum = 0xFF5B2338.toInt()
+        val muted = 0xFF7E3B57.toInt()
+        val rose = 0xFF9E1B44.toInt()
+        val pink = 0xFFFF5C8A.toInt()
+        val outline = 0xFFA84765.toInt()
+        val face = pixelBoldTypeface ?: Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+
+        canvas.drawColor(paper)
+        val gridPaint = Paint().apply {
+            color = Color.argb(18, 168, 71, 101)
+            strokeWidth = 2f
+        }
+        var gx = 0f
+        while (gx < width) {
+            canvas.drawLine(gx, 0f, gx, height, gridPaint)
+            gx += 24f
+        }
+        var gy = 0f
+        while (gy < height) {
+            canvas.drawLine(0f, gy, width, gy, gridPaint)
+            gy += 24f
+        }
+
+        val margin = if (format == TrackStoryFormat.STORY_9_16) MARGIN_STORY_X else MARGIN_CARD_X
+        val topY = if (format == TrackStoryFormat.STORY_9_16) 110f else 72f
+
+        // Header: rotated pink diamond + DERBIS · NOW PLAYING
+        val markCx = margin + 16f
+        val markCy = topY
+        canvas.save()
+        canvas.rotate(45f, markCx, markCy)
+        val markRect = RectF(markCx - 13f, markCy - 13f, markCx + 13f, markCy + 13f)
+        canvas.drawRect(markRect, Paint().apply { color = pink })
+        canvas.drawRect(markRect, Paint().apply { style = Paint.Style.STROKE; strokeWidth = 4f; color = plum })
+        canvas.restore()
+        val eyebrowPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            textSize = 28f
+            letterSpacing = 0.14f
+            typeface = face
+        }
+        canvas.drawText("DERBIS · NOW PLAYING", margin + 48f, topY + 10f, eyebrowPaint)
+
+        // Square framed cover with 8px hard offset shadow
+        val coverSize = when (format) {
+            TrackStoryFormat.STORY_9_16 -> width - margin * 2f
+            TrackStoryFormat.CARD_4_5 -> (width - margin * 2f) * 0.78f
+            TrackStoryFormat.SQUARE_1_1 -> (width - margin * 2f) * 0.62f
+        }
+        val coverLeft = (width - coverSize) / 2f
+        val coverTop = topY + if (format == TrackStoryFormat.STORY_9_16) 76f else 48f
+        val coverRect = RectF(coverLeft, coverTop, coverLeft + coverSize, coverTop + coverSize)
+        canvas.drawRect(coverRect.left + 8f, coverRect.top + 8f, coverRect.right + 8f, coverRect.bottom + 8f, Paint().apply { color = outline })
+        canvas.drawRect(coverRect, Paint().apply { color = card })
+        if (artwork != null) {
+            canvas.drawBitmap(artwork, null, coverRect, Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+        canvas.drawRect(coverRect, Paint().apply { style = Paint.Style.STROKE; strokeWidth = 5f; color = plum })
+
+        // Metadata
+        val textTop = coverRect.bottom + if (format == TrackStoryFormat.STORY_9_16) 64f else 40f
+        val maxTextW = width - margin * 2f
+        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = plum
+            textSize = if (format == TrackStoryFormat.SQUARE_1_1) 44f else 56f
+            typeface = face
+        }
+        val titleText = TextUtils.ellipsize(snapshot.track.title, titlePaint, maxTextW, TextUtils.TruncateAt.END).toString()
+        canvas.drawText(titleText, margin, textTop + titlePaint.textSize, titlePaint)
+
+        val artistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            textSize = if (format == TrackStoryFormat.SQUARE_1_1) 30f else 36f
+            typeface = face
+        }
+        if (snapshot.track.artist.isNotBlank()) {
+            val artistText = TextUtils.ellipsize(snapshot.track.artist, artistPaint, maxTextW, TextUtils.TruncateAt.END).toString()
+            canvas.drawText(artistText, margin, textTop + titlePaint.textSize + artistPaint.textSize + 16f, artistPaint)
+        }
+
+        // Stepped pixel waveform bars
+        val waveBottom = height - if (format == TrackStoryFormat.STORY_9_16) 136f else 92f
+        val waveHeight = if (format == TrackStoryFormat.SQUARE_1_1) 54f else 78f
+        val bars = 28
+        val gap = 8f
+        val barW = ((maxTextW - gap * (bars - 1)) / bars).coerceAtLeast(6f)
+        val progress = snapshot.progressFraction.coerceIn(0f, 1f)
+        val filledBars = (bars * progress).toInt().coerceIn(1, bars)
+        for (i in 0 until bars) {
+            val step = ((i * 7 + 3) % 5 + 2) / 6f
+            val bh = waveHeight * step
+            val bx = margin + i * (barW + gap)
+            canvas.drawRect(
+                bx,
+                waveBottom - bh,
+                bx + barW,
+                waveBottom,
+                Paint().apply { color = if (i < filledBars) rose else band }
+            )
+            canvas.drawRect(
+                bx,
+                waveBottom - bh,
+                bx + barW,
+                waveBottom,
+                Paint().apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = outline }
+            )
         }
     }
 
