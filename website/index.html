@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Derbis — Android music player for YouTube Music and Subsonic</title>
-<meta name="description" content="Derbis is an open-source Android music player that streams YouTube Music and personal Subsonic or Navidrome libraries in one queue, with seven player decks, offline downloads, and Discord Rich Presence.">
+<meta name="description" content="Derbis is an open-source Android music player that streams YouTube Music and personal Subsonic or Navidrome libraries in one queue, with Apple Music 13 and Pixel UI, offline downloads, and Discord Rich Presence.">
 <meta name="theme-color" content="#141415">
 <meta name="color-scheme" content="dark">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Derbis — Android music player for YouTube Music and Subsonic">
-<meta property="og:description" content="Seven player decks, personal Navidrome and Subsonic libraries, offline downloads, and Discord presence. Free under GPL-3.0.">
+<meta property="og:description" content="Apple Music 13 deck, Pixel UI skin, personal Navidrome and Subsonic libraries, offline downloads, and Discord presence. Free under GPL-3.0.">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Derbis — Android music player for YouTube Music and Subsonic">
-<meta name="twitter:description" content="Seven player decks, personal Navidrome and Subsonic libraries, offline downloads, and Discord presence. Free under GPL-3.0.">
+<meta name="twitter:description" content="Apple Music 13 deck, Pixel UI skin, personal Navidrome and Subsonic libraries, offline downloads, and Discord presence. Free under GPL-3.0.">
 <link rel="icon" type="image/png" href="/assets/derbis-logo.png">
 <meta property="og:url" content="https://derbis-web.vercel.app">
 <link rel="stylesheet" href="fonts/pixelify.css">
@@ -32,10 +32,7 @@
     --ink-3: #85858b;
 
     --rose: #ff5c8a;
-    --rose-ink: #19070d;
     --pos: #4cc38a;
-    --discord: #5865f2;
-    --lastfm: #e31b23;
 
     --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --pixel: "Pixelify", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -70,12 +67,12 @@
 
   .wrap {
     width: 100%;
-    max-width: 1120px;
+    max-width: 1160px;
     margin-inline: auto;
     padding-inline: 24px;
   }
   @media (max-width: 560px) {
-  .wrap { padding-inline: 16px; }
+    .wrap { padding-inline: 16px; }
   }
 
   .skip {
@@ -98,7 +95,7 @@
     border-radius: var(--r-xs);
   }
 
-    header.nav {
+  header.nav {
     position: sticky;
     top: 0;
     z-index: 40;
@@ -219,13 +216,13 @@
   }
 
   @media (max-width: 820px) {
-  .nav-links { display: none; }
-  .nav-actions { margin-left: auto; }
-  .mobile-nav { display: block; }
-  .nav-inner { height: 56px; gap: 12px; }
+    .nav-links { display: none; }
+    .nav-actions { margin-left: auto; }
+    .mobile-nav { display: block; }
+    .nav-inner { height: 56px; gap: 12px; }
   }
   @media (max-width: 380px) {
-  .star-link .star-word { display: none; }
+    .star-link .star-word { display: none; }
   }
 
   .cta-row {
@@ -266,14 +263,14 @@
   .btn-secondary:hover { border-color: var(--hairline-strong); }
 
   @media (max-width: 520px) {
-  .cta-row .btn {
+    .cta-row .btn {
       flex: 1 1 100%;
       width: 100%;
     }
   }
 
   .hero {
-    padding: 80px 0 64px;
+    padding: 72px 0 64px;
     animation: hero-enter 360ms var(--ease) both;
   }
   @keyframes hero-enter {
@@ -282,8 +279,8 @@
   }
   .hero-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-    gap: 48px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 40px;
     align-items: center;
   }
   .hero-copy, .hero-visual { min-width: 0; }
@@ -291,7 +288,7 @@
   h1 {
     font-family: var(--pixel);
     font-weight: 400;
-    font-size: clamp(36px, 4.8vw, 56px);
+    font-size: clamp(36px, 4.4vw, 52px);
     line-height: 1.06;
     letter-spacing: -0.02em;
     margin: 0 0 20px;
@@ -306,42 +303,43 @@
     line-height: 28px;
     font-weight: 400;
     color: var(--ink-2);
-    max-width: 36rem;
+    max-width: 34rem;
     margin: 0 0 32px;
   }
   @media (max-width: 640px) {
-  .lede { font-size: 16px; line-height: 24px; margin-bottom: 24px; }
+    .lede { font-size: 16px; line-height: 24px; margin-bottom: 24px; }
   }
 
-  @media (max-width: 980px) {
-  .hero { padding: 48px 0; }
-  .hero-grid {
+  @media (max-width: 1080px) {
+    .hero { padding: 48px 0; }
+    .hero-grid {
       grid-template-columns: 1fr;
       gap: 40px;
     }
   }
 
-  .deck-shell {
+  .preview-stage {
     width: 100%;
-    max-width: 400px;
+    max-width: 640px;
     margin-inline: auto;
   }
-  .deck-toolbar {
+  .stage-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
     margin-bottom: 12px;
   }
-  .skin-switch {
-    display: inline-flex;
+  .mobile-skin-tabs {
+    display: none;
     padding: 4px;
     gap: 4px;
     background-color: var(--bg-deep);
     border: 1px solid var(--hairline);
     border-radius: var(--r-sm);
   }
-  .skin-btn {
+  .skin-tab {
     height: 28px;
     padding: 0 12px;
     border: 0;
@@ -356,252 +354,428 @@
     gap: 6px;
     transition: background-color 150ms var(--ease), color 150ms var(--ease);
   }
-  .skin-btn[aria-pressed="true"] {
+  .skin-tab[aria-pressed="true"] {
     background-color: var(--raised);
     color: var(--ink);
   }
-  .skin-btn .px-dot {
+  .skin-tab .px-sq {
     width: 6px;
     height: 6px;
     background-color: var(--rose);
   }
-  .deck-counter {
+
+  .stage-label {
     font-family: var(--mono);
     font-size: 12px;
     color: var(--ink-3);
-    font-variant-numeric: tabular-nums;
   }
-
-  .player-frame {
-    background-color: var(--bg-deep);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r-lg);
-    padding: 8px;
-    transition: border-radius 160ms var(--ease), background-color 160ms var(--ease), border-color 160ms var(--ease);
-  }
-  .player-screen {
-    background-color: var(--card);
-    border: 1px solid var(--hairline);
-    border-radius: var(--r-sm);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    transition: background-color 160ms var(--ease), color 160ms var(--ease), border-radius 160ms var(--ease), border-color 160ms var(--ease);
-  }
-
-  .player-frame[data-skin="pixel"] {
-    border-radius: 0;
-    background-color: #2b131d;
-    border-color: #a84765;
-  }
-  .player-frame[data-skin="pixel"] .player-screen {
-    border-radius: 0;
-    background-color: #fff8f6;
-    border-color: #e4b6c5;
-    color: #5b2338;
-  }
-
-  .player-top {
-    display: flex;
+  .stage-controls {
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
-    font-size: 12px;
-    color: var(--ink-3);
+    margin-left: auto;
   }
-  .player-frame[data-skin="pixel"] .player-top {
-    color: #7e3b57;
-    font-family: var(--pixel);
-  }
-  .codec-tag {
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: var(--r-xs);
-    background-color: var(--bg-deep);
-    border: 1px solid var(--hairline);
-    color: var(--ink-2);
-    font-variant-numeric: tabular-nums;
-  }
-  .player-frame[data-skin="pixel"] .codec-tag {
-    border-radius: 0;
-    background-color: #ffedf1;
-    border-color: #d99bb0;
-    color: #5b2338;
-  }
-
-  .sleeve-box {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: var(--r-sm);
-    overflow: hidden;
-    background-color: #111318;
-    border: 1px solid var(--hairline);
-  }
-  .player-frame[data-skin="pixel"] .sleeve-box {
-    border-radius: 0;
-    background-color: #ffedf1;
-    border: 2px solid #a84765;
-  }
-  .sleeve-svg {
-    width: 100%;
-    height: 100%;
-  }
-  .sleeve-pixel { display: none; }
-  .player-frame[data-skin="pixel"] .sleeve-cosmic { display: none; }
-  .player-frame[data-skin="pixel"] .sleeve-pixel { display: block; }
-
-  .track-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .track-meta { min-width: 0; }
-  .track-title {
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 24px;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .player-frame[data-skin="pixel"] .track-title {
-    font-family: var(--pixel);
-    color: #5b2338;
-  }
-  .track-artist {
-    font-size: 13px;
-    line-height: 20px;
-    color: var(--ink-2);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .player-frame[data-skin="pixel"] .track-artist { color: #7e3b57; }
-  .track-source {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--ink-3);
-    padding-top: 4px;
-    white-space: nowrap;
-  }
-  .player-frame[data-skin="pixel"] .track-source { color: #8f4764; }
-
-  .lyric-box {
-    padding: 8px 12px;
-    border-radius: var(--r-xs);
-    background-color: var(--bg-deep);
-    border-left: 2px solid var(--rose);
-    font-size: 13px;
-    line-height: 20px;
-    color: var(--ink);
-    min-height: 36px;
-    display: flex;
-    align-items: center;
-  }
-  .player-frame[data-skin="pixel"] .lyric-box {
-    border-radius: 0;
-    background-color: #ffedf1;
-    border-left-color: #9e1b44;
-    color: #5b2338;
-  }
-
-  .scrubber-wrap { display: grid; gap: 8px; }
-  .scrubber-track {
-    height: 4px;
-    border-radius: 2px;
-    background-color: var(--raised);
-    overflow: hidden;
-  }
-  .scrubber-fill {
-    height: 100%;
-    width: 100%;
-    background-color: var(--ink);
-    transform-origin: left center;
-    transform: scaleX(0.38);
-    transition: transform 180ms var(--ease);
-  }
-  .player-frame[data-skin="pixel"] .scrubber-track {
-    border-radius: 0;
-    background-color: #ffc9d6;
-  }
-  .player-frame[data-skin="pixel"] .scrubber-fill {
-    background-color: #9e1b44;
-  }
-  .scrubber-times {
-    display: flex;
-    justify-content: space-between;
+  .stage-track-idx {
     font-family: var(--mono);
     font-size: 12px;
     color: var(--ink-3);
     font-variant-numeric: tabular-nums;
+    margin-right: 4px;
   }
-  .player-frame[data-skin="pixel"] .scrubber-times { color: #7e3b57; }
-
-  .transport-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-  }
-  .t-btn {
-    width: 36px;
-    height: 36px;
+  .ctrl-mini {
+    width: 32px;
+    height: 32px;
     border-radius: var(--r-sm);
     border: 1px solid var(--hairline);
-    background-color: var(--raised);
+    background-color: var(--card);
     color: var(--ink);
     display: grid;
     place-items: center;
     cursor: pointer;
     transition: background-color 150ms var(--ease), border-color 150ms var(--ease), transform 150ms var(--ease);
   }
-  .t-btn:hover { border-color: var(--hairline-strong); }
-  .t-btn:active { transform: scale(0.97); }
-  .t-btn.play-main {
-    width: 44px;
-    height: 44px;
+  .ctrl-mini:hover { border-color: var(--hairline-strong); background-color: var(--raised); }
+  .ctrl-mini:active { transform: scale(0.96); }
+  .ctrl-mini.primary {
     background-color: var(--ink);
     color: var(--bg-deep);
     border-color: transparent;
   }
-  .player-frame[data-skin="pixel"] .t-btn {
-    border-radius: 0;
-    background-color: #ffedf1;
-    border-color: #d99bb0;
-    color: #5b2338;
+
+  .preview-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
   }
-  .player-frame[data-skin="pixel"] .t-btn.play-main {
-    background-color: #9e1b44;
-    border-color: #9e1b44;
-    color: #fff8f6;
+  @media (max-width: 680px) {
+    .preview-stage { max-width: 360px; }
+    .stage-label { display: none; }
+    .mobile-skin-tabs { display: inline-flex; }
+    .preview-pair { grid-template-columns: 1fr; }
+    .preview-pair[data-active="pixel"] .am-shell { display: none; }
+    .preview-pair[data-active="am13"] .px-shell { display: none; }
   }
 
-  .presence-strip {
+    .px-shell {
+    background-color: #ffedf1;
+    border: 2px solid #a84765;
+    box-shadow: 4px 4px 0 #2a121b;
+    color: #5b2338;
+    font-family: var(--pixel);
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--hairline);
-    font-size: 12px;
-    color: var(--ink-2);
+    flex-direction: column;
     min-width: 0;
   }
-  .player-frame[data-skin="pixel"] .presence-strip {
-    border-top-color: #e4b6c5;
+  .px-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: #ffd9e2;
+    border-bottom: 1px solid #d99bb0;
+    font-size: 12px;
     color: #7e3b57;
+    font-variant-numeric: tabular-nums;
   }
-  .presence-text {
+  .px-status-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #5b2338;
+  }
+  .px-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .px-art {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background-color: #ffd9e2;
+    border: 2px solid #a84765;
+    overflow: hidden;
+  }
+  .px-art svg {
+    width: 100%;
+    height: 100%;
+  }
+  .px-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .px-meta-text { min-width: 0; }
+  .px-title {
+    font-size: 16px;
+    line-height: 20px;
+    color: #5b2338;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .px-artist {
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 16px;
+    color: #7e3b57;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .px-chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 16px;
+    padding: 2px 6px;
+    background-color: #fff8f6;
+    border: 1px solid #a84765;
+    color: #9e1b44;
+    white-space: nowrap;
+  }
+  .px-lyric {
+    padding: 8px;
+    background-color: #fff8f6;
+    border: 1px solid #d99bb0;
+    border-left: 3px solid #9e1b44;
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 16px;
+    color: #5b2338;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  .px-seek {
+    display: grid;
+    gap: 4px;
+    margin-top: auto;
+  }
+  .px-bar {
+    height: 6px;
+    background-color: #ffc9d6;
+    border: 1px solid #a84765;
+    overflow: hidden;
+  }
+  .px-bar-fill {
+    height: 100%;
+    width: 100%;
+    background-color: #9e1b44;
+    transform-origin: left center;
+    transform: scaleX(0.28);
+    transition: transform 180ms var(--ease);
+  }
+  .px-times {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #7e3b57;
+    font-variant-numeric: tabular-nums;
+  }
+  .px-keys {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .px-key {
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    background-color: #fff8f6;
+    border: 1px solid #a84765;
+    color: #5b2338;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .px-key.main {
+    width: 40px;
+    background-color: #9e1b44;
+    border-color: #9e1b44;
+    color: #fff8f6;
+  }
+  .px-dock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    background-color: #ffd9e2;
+    border-top: 1px solid #a84765;
+    font-size: 12px;
+    text-align: center;
+  }
+  .px-tab {
+    padding: 8px 4px;
+    color: #7e3b57;
+    border-right: 1px solid #e4b6c5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .px-tab:last-child { border-right: 0; }
+  .px-tab.on {
+    background-color: #fff8f6;
+    color: #9e1b44;
+    box-shadow: inset 0 2px 0 #9e1b44;
+  }
 
-  .metrics-band {
+    .am-shell {
+    background-color: #0f0f10;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r-lg);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .am-screen {
+    background-color: #16171d;
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-sm);
+    padding: 12px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+  .am-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+  .am-grabber {
+    width: 32px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(237, 237, 237, 0.24);
+  }
+  .am-art {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--r-md);
+    overflow: hidden;
+    background-color: #0f1117;
+    border: 1px solid var(--hairline);
+  }
+  .am-art svg {
+    width: 100%;
+    height: 100%;
+  }
+  .am-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .am-meta-text { min-width: 0; }
+  .am-title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .am-artist {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink-2);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .am-more {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--r-sm);
+    background-color: rgba(237, 237, 237, 0.08);
+    color: var(--ink-2);
+    display: grid;
+    place-items: center;
+  }
+
+    .am-lyric {
+    min-height: 40px;
+    max-height: 40px;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 20px;
+    color: rgba(237, 237, 237, 0.42);
+  }
+  .am-lyric .sung { color: var(--ink); }
+
+    .am-seek {
+    display: grid;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .am-bar {
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(237, 237, 237, 0.18);
+    overflow: hidden;
+  }
+  .am-bar-fill {
+    height: 100%;
+    width: 100%;
+    background-color: var(--ink);
+    transform-origin: left center;
+    transform: scaleX(0.28);
+    transition: transform 180ms var(--ease);
+  }
+  .am-seek-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .am-seek-row .rem { text-align: right; }
+  .am-tier-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .am-tier {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--r-xs);
+    background-color: rgba(237, 237, 237, 0.08);
+    font-size: 12px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+
+  .am-transport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    color: var(--ink);
+  }
+  .am-tbtn {
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    border-radius: var(--r-xs);
+  }
+  .am-vol {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+  }
+  .am-vol-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba(237, 237, 237, 0.16);
+    overflow: hidden;
+  }
+  .am-vol-bar i {
+    display: block;
+    width: 72%;
+    height: 100%;
+    background-color: var(--ink-2);
+  }
+
+    .am-dock {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding-top: 8px;
+    border-top: 1px solid var(--hairline);
+    color: var(--ink-2);
+  }
+  .am-dock-ico {
+    width: 32px;
+    height: 28px;
+    border-radius: var(--r-xs);
+    display: grid;
+    place-items: center;
+  }
+  .am-dock-ico.active {
+    background-color: rgba(237, 237, 237, 0.12);
+    color: var(--ink);
+  }
+
+    .metrics-band {
     border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);
     background-color: var(--bg-deep);
@@ -639,16 +813,16 @@
   }
 
   @media (max-width: 820px) {
-  .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .metric-cell { padding: 16px; border-bottom: 1px solid var(--hairline); }
-  .metric-cell:first-child { padding-left: 16px; }
-  .metric-cell:nth-child(2n) { border-right: 0; }
-  .metric-cell:nth-last-child(-n+2) { border-bottom: 0; }
+    .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric-cell { padding: 16px; border-bottom: 1px solid var(--hairline); }
+    .metric-cell:first-child { padding-left: 16px; }
+    .metric-cell:nth-child(2n) { border-right: 0; }
+    .metric-cell:nth-last-child(-n+2) { border-bottom: 0; }
   }
   @media (max-width: 420px) {
-  .metric-cell { padding: 16px 12px; }
-  .metric-cell:first-child { padding-left: 12px; }
-  .metric-val { font-size: 20px; line-height: 28px; }
+    .metric-cell { padding: 16px 12px; }
+    .metric-cell:first-child { padding-left: 12px; }
+    .metric-val { font-size: 20px; line-height: 28px; }
   }
 
   section {
@@ -657,14 +831,14 @@
     scroll-margin-top: 64px;
   }
   @media (max-width: 640px) {
-  section { padding: 56px 0; }
+    section { padding: 56px 0; }
   }
   .sec-head {
     max-width: 40rem;
     margin-bottom: 40px;
   }
   @media (max-width: 640px) {
-  .sec-head { margin-bottom: 28px; }
+    .sec-head { margin-bottom: 28px; }
   }
   .sec-label {
     font-family: var(--mono);
@@ -696,7 +870,7 @@
     margin-bottom: 16px;
   }
   @media (max-width: 820px) {
-  .cap-spotlight { grid-template-columns: 1fr; }
+    .cap-spotlight { grid-template-columns: 1fr; }
   }
   .cap-card {
     background-color: var(--card);
@@ -767,7 +941,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   @media (max-width: 760px) {
-  .spec-ledger { grid-template-columns: 1fr; }
+    .spec-ledger { grid-template-columns: 1fr; }
   }
   .spec-item {
     padding: 20px 24px;
@@ -781,8 +955,8 @@
   .spec-item:nth-child(2n) { border-right: 0; }
   .spec-item:nth-last-child(-n+2) { border-bottom: 0; }
   @media (max-width: 760px) {
-  .spec-item { border-right: 0; padding: 20px; }
-  .spec-item:nth-last-child(2) { border-bottom: 1px solid var(--hairline); }
+    .spec-item { border-right: 0; padding: 20px; }
+    .spec-item:nth-last-child(2) { border-bottom: 1px solid var(--hairline); }
   }
   .spec-ico {
     width: 20px;
@@ -813,7 +987,7 @@
     align-items: start;
   }
   @media (max-width: 860px) {
-  .dl-layout { grid-template-columns: 1fr; }
+    .dl-layout { grid-template-columns: 1fr; }
   }
   .dl-panel {
     background-color: var(--card);
@@ -826,7 +1000,7 @@
     min-width: 0;
   }
   @media (max-width: 520px) {
-  .dl-panel { padding: 20px; }
+    .dl-panel { padding: 20px; }
   }
   .dl-header {
     display: flex;
@@ -1018,7 +1192,7 @@
     font-variant-numeric: tabular-nums;
   }
   @media (max-width: 640px) {
-  .rel-counts {
+    .rel-counts {
       margin-left: 0;
       width: 100%;
     }
@@ -1109,13 +1283,6 @@
     transition: color 150ms var(--ease);
   }
   .rel-foot a:hover { color: var(--ink); }
-  .sec-note {
-    margin: 16px 0 0;
-    font-size: 13px;
-    line-height: 20px;
-    color: var(--ink-3);
-    max-width: 44rem;
-  }
 
   .source-grid {
     display: grid;
@@ -1124,7 +1291,7 @@
     align-items: start;
   }
   @media (max-width: 820px) {
-  .source-grid { grid-template-columns: 1fr; }
+    .source-grid { grid-template-columns: 1fr; }
   }
   .facts-list {
     background-color: var(--card);
@@ -1142,7 +1309,7 @@
   }
   .fact-row:last-child { border-bottom: 0; }
   @media (max-width: 520px) {
-  .fact-row {
+    .fact-row {
       grid-template-columns: 1fr;
       gap: 4px;
       padding: 16px 20px;
@@ -1282,14 +1449,14 @@
 
 <main id="main">
 
-    <div class="hero">
+  <div class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <h1>YouTube Music and your own library, in one Android player</h1>
         <p class="lede">
           Stream songs, connect Navidrome or Subsonic for your personal FLAC collection,
-          and save tracks for offline listening. Seven player decks, a blush-paper pixel skin,
-          and no account required.
+          and save tracks for offline listening. Switch between the Apple Music 13 deck,
+          a full Pixel UI skin, and five other player layouts with no account required.
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="https://github.com/jusnie/Derbis/releases/latest/download/Derbis.apk" data-download>
@@ -1304,102 +1471,208 @@
         </div>
       </div>
 
-            <div class="hero-visual">
-        <div class="deck-shell">
-          <div class="deck-toolbar">
-            <div class="skin-switch" role="group" aria-label="Preview player skin">
-              <button type="button" class="skin-btn" data-set-skin="cosmic" aria-pressed="true">Cosmic deck</button>
-              <button type="button" class="skin-btn" data-set-skin="pixel" aria-pressed="false">
-                <span class="px-dot" aria-hidden="true"></span>Pixel skin
+      <div class="hero-visual">
+        <div class="preview-stage">
+          <div class="stage-bar">
+            <span class="stage-label">Pixel UI &amp; Apple Music 13 preview</span>
+
+            <div class="mobile-skin-tabs" role="group" aria-label="Choose preview style">
+              <button type="button" class="skin-tab" data-view="pixel" aria-pressed="true">
+                <span class="px-sq" aria-hidden="true"></span>Pixel UI
+              </button>
+              <button type="button" class="skin-tab" data-view="am13" aria-pressed="false">
+                Apple Music 13
               </button>
             </div>
-            <span class="deck-counter" id="deck-counter">1 / 3</span>
+
+            <div class="stage-controls">
+              <span class="stage-track-idx" id="stage-idx">1 / 3</span>
+              <button type="button" class="ctrl-mini" id="btn-prev" aria-label="Previous English demo track">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3.5 3.5v9M12.5 3.5L6.5 8l6 4.5v-9z"/>
+                </svg>
+              </button>
+              <button type="button" class="ctrl-mini primary" id="btn-play" aria-label="Play or pause preview" aria-pressed="false">
+                <svg id="ico-play" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M5 3.2l8 4.8-8 4.8V3.2z"/>
+                </svg>
+                <svg id="ico-pause" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style="display:none" aria-hidden="true">
+                  <rect x="4" y="3" width="2.8" height="10" rx="0.8"/>
+                  <rect x="9.2" y="3" width="2.8" height="10" rx="0.8"/>
+                </svg>
+              </button>
+              <button type="button" class="ctrl-mini" id="btn-next" aria-label="Next English demo track">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12.5 3.5v9M3.5 3.5l6 4.5-6 4.5v-9z"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
-          <div class="player-frame" id="player-frame" data-skin="cosmic">
-            <div class="player-screen">
-              <div class="player-top">
-                <span id="deck-mode-label">Flow deck</span>
-                <span class="codec-tag" id="deck-codec">24-bit · 48 kHz FLAC</span>
+          <div class="preview-pair" id="preview-pair" data-active="pixel">
+            <div class="px-shell" aria-label="Pixel UI player preview">
+              <div class="px-status">
+                <span class="px-status-brand">
+                  <svg width="12" height="12" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+                    <rect width="16" height="16" fill="#ff5c8a"/>
+                    <rect x="3" y="3" width="4" height="4" fill="#fff8f6"/>
+                    <rect x="9" y="3" width="4" height="4" fill="#fff8f6"/>
+                    <rect x="3" y="9" width="10" height="4" fill="#fff8f6"/>
+                  </svg>
+                  Pixel UI
+                </span>
+                <span>9:41</span>
               </div>
 
-              <div class="sleeve-box">
-                                <svg class="sleeve-svg sleeve-cosmic" viewBox="0 0 320 200" fill="none" aria-hidden="true">
-                  <rect width="320" height="200" fill="#121318"/>
-                  <rect x="20" y="20" width="160" height="160" rx="8" fill="#1a1c24" stroke="#2c303d"/>
-                  <circle cx="196" cy="100" r="68" fill="#0b0c0f" stroke="#262934"/>
-                  <circle cx="196" cy="100" r="52" stroke="#1d2029" stroke-dasharray="3 4"/>
-                  <circle cx="196" cy="100" r="36" stroke="#1d2029"/>
-                  <circle cx="196" cy="100" r="20" id="vinyl-label" fill="#ff5c8a"/>
-                  <circle cx="196" cy="100" r="4" fill="#0b0c0f"/>
-                  <rect x="20" y="20" width="144" height="160" rx="6" fill="#171922" stroke="#2e3240"/>
-                  <path id="cosmic-motif" d="M40 148 L92 52 L144 148 Z" stroke="#ededed" stroke-opacity="0.7" stroke-width="1.5" fill="none"/>
-                  <line x1="40" y1="128" x2="144" y2="96" stroke="#ff5c8a" stroke-width="2"/>
-                </svg>
-
-                                <svg class="sleeve-svg sleeve-pixel" viewBox="0 0 320 200" shape-rendering="crispEdges" aria-hidden="true">
-                  <rect width="320" height="200" fill="#ffedf1"/>
-                  <rect x="16" y="16" width="288" height="168" fill="#ffd9e2"/>
-                  <rect x="32" y="32" width="112" height="136" fill="#fff8f6"/>
-                  <rect x="48" y="48" width="80" height="12" fill="#9e1b44"/>
-                  <rect x="48" y="68" width="56" height="8" fill="#ff5c8a"/>
-                  <rect x="48" y="84" width="68" height="8" fill="#d99bb0"/>
-                  <rect x="48" y="128" width="32" height="24" fill="#5b2338"/>
-                  <rect x="168" y="44" width="112" height="112" fill="#5b2338"/>
-                  <rect x="184" y="60" width="80" height="80" fill="#9e1b44"/>
-                  <rect x="212" y="88" width="24" height="24" fill="#fff8f6"/>
-                </svg>
-              </div>
-
-              <div class="track-row">
-                <div class="track-meta">
-                  <div class="track-title" id="deck-title">Notte</div>
-                  <div class="track-artist" id="deck-artist">Geolier</div>
+              <div class="px-body">
+                <div class="px-art">
+                  <svg viewBox="0 0 280 175" shape-rendering="crispEdges" aria-hidden="true">
+                    <rect width="280" height="175" fill="#ffd9e2"/>
+                    <rect x="16" y="16" width="120" height="143" fill="#fff8f6"/>
+                    <rect x="28" y="28" width="96" height="12" fill="#9e1b44"/>
+                    <rect x="28" y="48" width="68" height="8" fill="#ff5c8a"/>
+                    <rect x="28" y="64" width="80" height="8" fill="#d99bb0"/>
+                    <rect id="px-art-accent" x="28" y="116" width="40" height="28" fill="#5b2338"/>
+                    <rect x="152" y="28" width="112" height="119" fill="#5b2338"/>
+                    <rect x="168" y="44" width="80" height="87" fill="#9e1b44"/>
+                    <rect x="196" y="75" width="24" height="25" fill="#fff8f6"/>
+                  </svg>
                 </div>
-                <span class="track-source" id="deck-source">Navidrome</span>
-              </div>
 
-              <div class="lyric-box" id="deck-lyric">
-                Chiuso dentro una stanza fino all'alba
-              </div>
-
-              <div class="scrubber-wrap">
-                <div class="scrubber-track">
-                  <div class="scrubber-fill" id="deck-fill"></div>
+                <div class="px-meta">
+                  <div class="px-meta-text">
+                    <div class="px-title" data-track-title>Let It Happen</div>
+                    <div class="px-artist"><span data-track-artist>Tame Impala</span> · <span data-track-source>Navidrome</span></div>
+                  </div>
+                  <span class="px-chip" data-track-tier>Lossless</span>
                 </div>
-                <div class="scrubber-times">
-                  <span id="deck-elapsed">01:12</span>
-                  <span id="deck-total">03:10</span>
+
+                <div class="px-lyric" data-track-lyric-plain>
+                  All this running around, trying to cover my shadow
+                </div>
+
+                <div class="px-seek">
+                  <div class="px-bar">
+                    <div class="px-bar-fill" data-seek-fill></div>
+                  </div>
+                  <div class="px-times">
+                    <span data-time-elapsed>02:14</span>
+                    <span data-time-total>07:47</span>
+                  </div>
+                </div>
+
+                <div class="px-keys">
+                  <button type="button" class="px-key" data-prev aria-label="Previous track in Pixel UI">
+                    <svg width="12" height="12" viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="3" y="3" width="2" height="10"/><rect x="7" y="5" width="2" height="6"/><rect x="9" y="3" width="2" height="10"/></svg>
+                  </button>
+                  <button type="button" class="px-key main" data-toggle-play aria-label="Play or pause in Pixel UI">
+                    <svg data-ico-play width="12" height="12" viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="5" y="3" width="2" height="10"/><rect x="7" y="5" width="2" height="6"/><rect x="9" y="7" width="2" height="2"/></svg>
+                    <svg data-ico-pause width="12" height="12" viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" style="display:none" aria-hidden="true"><rect x="4" y="3" width="3" height="10"/><rect x="9" y="3" width="3" height="10"/></svg>
+                  </button>
+                  <button type="button" class="px-key" data-next aria-label="Next track in Pixel UI">
+                    <svg width="12" height="12" viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="5" y="3" width="2" height="10"/><rect x="7" y="5" width="2" height="6"/><rect x="11" y="3" width="2" height="10"/></svg>
+                  </button>
                 </div>
               </div>
 
-              <div class="transport-row">
-                <button type="button" class="t-btn" id="deck-prev" aria-label="Previous track">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M3.5 3.5v9M12.5 3.5L6.5 8l6 4.5v-9z"/>
-                  </svg>
-                </button>
-                <button type="button" class="t-btn play-main" id="deck-play" aria-label="Play or pause preview" aria-pressed="false">
-                  <svg id="icon-play" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M5 3.2l8 4.8-8 4.8V3.2z"/>
-                  </svg>
-                  <svg id="icon-pause" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="display:none" aria-hidden="true">
-                    <rect x="4" y="3" width="2.8" height="10" rx="0.8"/>
-                    <rect x="9.2" y="3" width="2.8" height="10" rx="0.8"/>
-                  </svg>
-                </button>
-                <button type="button" class="t-btn" id="deck-next" aria-label="Next track">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12.5 3.5v9M3.5 3.5l6 4.5-6 4.5v-9z"/>
-                  </svg>
-                </button>
+              <div class="px-dock" aria-hidden="true">
+                <span class="px-tab">Home</span>
+                <span class="px-tab">Search</span>
+                <span class="px-tab">Library</span>
+                <span class="px-tab on">Playing</span>
               </div>
+            </div>
 
-              <div class="presence-strip">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#5865F2" role="img" aria-label="Discord logo">
-                  <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
-                </svg>
-                <span class="presence-text" id="deck-presence">Discord Rich Presence · Notte — Geolier</span>
+            <div class="am-shell" aria-label="Apple Music 13 player preview">
+              <div class="am-screen">
+                <div class="am-top">
+                  <span>Apple Music 13</span>
+                  <span class="am-grabber" aria-hidden="true"></span>
+                  <span>9:41</span>
+                </div>
+
+                <div class="am-art">
+                  <svg viewBox="0 0 280 175" fill="none" aria-hidden="true">
+                    <rect width="280" height="175" fill="#101218"/>
+                    <circle cx="176" cy="88" r="58" fill="#090a0d" stroke="#252834"/>
+                    <circle cx="176" cy="88" r="42" stroke="#1c1f29" stroke-dasharray="3 4"/>
+                    <circle cx="176" cy="88" r="18" fill="#ff5c8a"/>
+                    <circle cx="176" cy="88" r="4" fill="#090a0d"/>
+                    <rect x="20" y="18" width="136" height="139" rx="8" fill="#181b24" stroke="#2d3140"/>
+                    <path id="am-art-motif" d="M40 132 L88 44 L136 132 Z" stroke="#ededed" stroke-opacity="0.78" stroke-width="1.5"/>
+                    <line x1="36" y1="114" x2="140" y2="82" stroke="#ff5c8a" stroke-width="2"/>
+                  </svg>
+                </div>
+
+                <div class="am-meta">
+                  <div class="am-meta-text">
+                    <div class="am-title" data-track-title>Let It Happen</div>
+                    <div class="am-artist" data-track-artist>Tame Impala</div>
+                  </div>
+                  <span class="am-more" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                      <circle cx="4" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12" cy="8" r="1.2"/>
+                    </svg>
+                  </span>
+                </div>
+
+                <div class="am-lyric" id="am-word-lyric">
+                  <span class="sung">All this running around, </span><span>trying to cover my shadow</span>
+                </div>
+
+                <div class="am-seek">
+                  <div class="am-bar">
+                    <div class="am-bar-fill" data-seek-fill></div>
+                  </div>
+                  <div class="am-seek-row">
+                    <span data-time-elapsed>02:14</span>
+                    <span class="am-tier-wrap">
+                      <span class="am-tier">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+                          <path d="M2.5 8c1.4-3 2.8 3 4.2 0s2.8-3 4.2 0 1.8 2 2.6 0"/>
+                        </svg>
+                        <span data-track-tier>Lossless</span>
+                      </span>
+                    </span>
+                    <span class="rem" data-time-rem>-05:33</span>
+                  </div>
+                </div>
+
+                <div class="am-transport">
+                  <button type="button" class="am-tbtn" data-prev aria-label="Previous track in Apple Music 13">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8.5 4L3 8l5.5 4V4zm5.5 0L8.5 8 14 12V4z"/></svg>
+                  </button>
+                  <button type="button" class="am-tbtn" data-toggle-play aria-label="Play or pause in Apple Music 13">
+                    <svg data-ico-play width="24" height="24" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 2.8l8.5 5.2-8.5 5.2V2.8z"/></svg>
+                    <svg data-ico-pause width="24" height="24" viewBox="0 0 16 16" fill="currentColor" style="display:none" aria-hidden="true"><rect x="4" y="3" width="2.8" height="10" rx="0.8"/><rect x="9.2" y="3" width="2.8" height="10" rx="0.8"/></svg>
+                  </button>
+                  <button type="button" class="am-tbtn" data-next aria-label="Next track in Apple Music 13">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M2 4l5.5 4L2 12V4zm5.5 0L13 8l-5.5 4V4z"/></svg>
+                  </button>
+                </div>
+
+                <div class="am-vol" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h2.5L9 3.5v9l-3.5-3H3v-3z"/></svg>
+                  <div class="am-vol-bar"><i></i></div>
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.5H5L8.5 3.5v9L5 9.5H2.5v-3zM11 5.5a3.5 3.5 0 010 5M12.8 3.8a6 6 0 010 8.4"/></svg>
+                </div>
+
+                <div class="am-dock" aria-hidden="true">
+                  <span class="am-dock-ico active" title="Word-timed lyrics">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5h10M3 8h7M3 11.5h8.5"/></svg>
+                  </span>
+                  <span class="am-dock-ico" title="Audio output">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5L8 8.5l3.5 4h-7z"/><path d="M4.2 9.8a5 5 0 117.6 0"/></svg>
+                  </span>
+                  <span class="am-dock-ico" title="Discord Rich Presence">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="#5865F2" role="img" aria-label="Discord logo">
+                      <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/>
+                    </svg>
+                  </span>
+                  <span class="am-dock-ico" title="Up next queue">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1408,7 +1681,7 @@
     </div>
   </div>
 
-    <div class="metrics-band" aria-label="Release metrics">
+  <div class="metrics-band" aria-label="Release metrics">
     <div class="wrap metrics-grid">
       <div class="metric-cell">
         <div class="metric-label">Latest release</div>
@@ -1433,7 +1706,7 @@
     </div>
   </div>
 
-    <section id="features">
+  <section id="features">
     <div class="wrap">
       <div class="sec-head">
         <div class="sec-label">Capabilities</div>
@@ -1443,20 +1716,21 @@
 
       <div class="cap-spotlight">
         <div class="cap-card">
-          <h3>Seven player decks, Spotify Canvas, and a full Pixel skin</h3>
+          <h3>Apple Music 13, Pixel UI, and five more player decks</h3>
           <p>
-            Choose how the Now Playing screen behaves: cover-led layouts, word-timed lyrics, a 3D Vinyl queue stage
-            where upcoming sleeves turn along a shared arc, smooth 90/120 Hz Spotify Canvas loops, or a blush-paper
-            pixel skin with square 0 dp chrome across every screen and exported receipt.
+            Choose how the Now Playing screen works: Apple Music 13 with word-timed inline lyrics and a locked audio
+            tier chip, the blush-paper Pixel UI skin with 0 dp square chrome across every screen and exported receipt,
+            or the 3D Vinyl queue stage with smooth 90/120 Hz Spotify Canvas loops.
           </p>
           <div class="deck-list" aria-label="Included player decks">
+            <span class="deck-tag accent">Pixel UI</span>
+            <span class="deck-tag accent">Apple Music 13</span>
             <span class="deck-tag">Flow</span>
             <span class="deck-tag">Sleeve</span>
-            <span class="deck-tag">Apple Music 13</span>
             <span class="deck-tag">Late Night</span>
             <span class="deck-tag">Frost</span>
             <span class="deck-tag">Derbis One</span>
-            <span class="deck-tag accent">Vinyl 3D stage</span>
+            <span class="deck-tag">Vinyl 3D stage</span>
           </div>
         </div>
 
@@ -1504,7 +1778,7 @@
           </span>
           <div>
             <h3>24-bit audio chain &amp; DSP</h3>
-            <p>Parametric EQ with AutoEQ import, ReplayGain, crossfade, vocal-cancelling karaoke, mono output, and a live signal sheet.</p>
+            <p>Parametric EQ with AutoEQ import, ReplayGain, crossfade, vocal-canceling karaoke, mono output, and a live signal sheet.</p>
           </div>
         </div>
 
@@ -1538,7 +1812,7 @@
     </div>
   </section>
 
-    <section id="download">
+  <section id="download">
     <div class="wrap">
       <div class="sec-head">
         <div class="sec-label">Download</div>
@@ -1628,7 +1902,7 @@
     </div>
   </section>
 
-    <section id="versions">
+  <section id="versions">
     <div class="wrap">
       <div class="sec-head">
         <div class="sec-label">Changelog</div>
@@ -1649,7 +1923,7 @@
             <div class="grp">
               <h4>Added <span>10 total</span></h4>
               <ul>
-                <li><strong>Pixel skin</strong> — blush paper ground, plum ink, 0 dp square chrome across surfaces and modals, and bundled Pixelify display type.</li>
+                <li><strong>Pixel UI skin</strong> — blush paper ground, plum ink, 0 dp square chrome across surfaces and modals, and bundled Pixelify display type.</li>
                 <li><strong>Vinyl queue stage</strong> — the live queue arranged as a 3D sleeve row turning on a single shared arc.</li>
                 <li><strong>Subsonic &amp; Navidrome</strong> — connect your personal server and search FLAC, ALAC, and MP3 files alongside streamed songs.</li>
                 <li><strong>Spotify Canvas multi-tier &amp; SimpleCache</strong> — Pathfinder and regional spclient resolution with disk pre-warming and 20s RAM retention.</li>
@@ -1686,7 +1960,7 @@
               <h4>Added <span>17 total</span></h4>
               <ul>
                 <li><strong>Derbis One</strong> and <strong>Frost</strong> — a paper deck and a glass deck, each drawing its own seek control.</li>
-                <li><strong>Karaoke</strong> — real-time vocal centre cancellation that preserves low-end kick and bass.</li>
+                <li><strong>Karaoke</strong> — real-time vocal center cancellation that preserves low-end kick and bass.</li>
                 <li><strong>The Derbis Notch</strong> — a capsule above the app that opens smoothly into the player.</li>
                 <li><strong>Lossless output</strong> — 24-bit float audio path on wired, USB, HDMI, and lossless Bluetooth codecs.</li>
                 <li>Wrapped receipts can be exported from any page as a 1080 px PNG.</li>
@@ -1730,7 +2004,7 @@
               <ul>
                 <li><strong>Apple Music 13</strong> deck with word-timed lyrics and the <strong>Tidal Music</strong> palette.</li>
                 <li><strong>Endless Listening</strong> for single-song sessions without altering album queues.</li>
-                <li>Opt-in Canvas artwork catalogue and provider-flagged AI content filtering.</li>
+                <li>Opt-in Canvas artwork catalog and provider-flagged AI content filtering.</li>
               </ul>
             </div>
             <div class="grp">
@@ -1846,7 +2120,7 @@
     </div>
   </section>
 
-    <section id="source">
+  <section id="source">
     <div class="wrap">
       <div class="sec-head">
         <div class="sec-label">Open source</div>
@@ -1915,7 +2189,7 @@
 </footer>
 
 <script>
-    (async function () {
+  (async function () {
     const REPO = 'jusnie/Derbis';
     const paint = (selector, value) => {
       document.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
@@ -1974,64 +2248,62 @@
     }
   })();
 
-    (function () {
+  (function () {
     const TRACKS = [
-      {
-        title: 'Notte',
-        artist: 'Geolier',
-        source: 'Navidrome',
-        codec: '24-bit · 48 kHz FLAC',
-        lyric: "Chiuso dentro una stanza fino all'alba",
-        elapsedSec: 72,
-        totalSec: 190,
-        motif: 'M40 148 L92 52 L144 148 Z'
-      },
       {
         title: 'Let It Happen',
         artist: 'Tame Impala',
-        source: 'YouTube Music',
-        codec: 'Opus · 160 kbps',
-        lyric: 'All this running around, trying to cover my shadow',
+        source: 'Navidrome',
+        tier: 'Lossless',
+        words: ['All', 'this', 'running', 'around,', 'trying', 'to', 'cover', 'my', 'shadow'],
+        sungCount: 4,
         elapsedSec: 134,
         totalSec: 467,
-        motif: 'M44 60 H140 V140 H44 Z'
+        motif: 'M40 132 L88 44 L136 132 Z',
+        pxColor: '#5b2338'
       },
       {
         title: 'Midnight City',
         artist: 'M83',
-        source: 'Offline FLAC',
-        codec: '16-bit · 44.1 kHz FLAC',
-        lyric: 'Waiting in a car, waiting for a ride in the dark',
+        source: 'YouTube Music',
+        tier: 'AAC · High',
+        words: ['Waiting', 'in', 'a', 'car,', 'waiting', 'for', 'a', 'ride', 'in', 'the', 'dark'],
+        sungCount: 5,
         elapsedSec: 98,
         totalSec: 243,
-        motif: 'M44 144 L76 64 L108 124 L140 56'
+        motif: 'M40 52 H136 V128 H40 Z',
+        pxColor: '#9e1b44'
+      },
+      {
+        title: 'Digital Love',
+        artist: 'Daft Punk',
+        source: 'Offline FLAC',
+        tier: 'Lossless',
+        words: ['Last', 'night', 'I', 'had', 'a', 'dream', 'about', 'you'],
+        sungCount: 4,
+        elapsedSec: 84,
+        totalSec: 301,
+        motif: 'M40 128 L68 56 L100 112 L136 48',
+        pxColor: '#7e3b57'
       }
     ];
 
-    const frame = document.getElementById('player-frame');
-    const skinBtns = document.querySelectorAll('[data-set-skin]');
-    const modeLabel = document.getElementById('deck-mode-label');
-    const counter = document.getElementById('deck-counter');
-    const codec = document.getElementById('deck-codec');
-    const title = document.getElementById('deck-title');
-    const artist = document.getElementById('deck-artist');
-    const source = document.getElementById('deck-source');
-    const lyric = document.getElementById('deck-lyric');
-    const fill = document.getElementById('deck-fill');
-    const elapsed = document.getElementById('deck-elapsed');
-    const total = document.getElementById('deck-total');
-    const presence = document.getElementById('deck-presence');
-    const motif = document.getElementById('cosmic-motif');
-    const prevBtn = document.getElementById('deck-prev');
-    const nextBtn = document.getElementById('deck-next');
-    const playBtn = document.getElementById('deck-play');
-    const iconPlay = document.getElementById('icon-play');
-    const iconPause = document.getElementById('icon-pause');
+    const pair = document.getElementById('preview-pair');
+    const viewBtns = document.querySelectorAll('[data-view]');
+    const idxNode = document.getElementById('stage-idx');
+    const amLyric = document.getElementById('am-word-lyric');
+    const amMotif = document.getElementById('am-art-motif');
+    const pxAccent = document.getElementById('px-art-accent');
+    const prevBtn = document.getElementById('btn-prev');
+    const nextBtn = document.getElementById('btn-next');
+    const playBtn = document.getElementById('btn-play');
+    const icoPlay = document.getElementById('ico-play');
+    const icoPause = document.getElementById('ico-pause');
 
     let index = 0;
-    let skin = 'cosmic';
     let playing = false;
     let currentSec = TRACKS[0].elapsedSec;
+    let wordStep = TRACKS[0].sungCount;
     let timer = null;
 
     const fmtTime = (sec) => {
@@ -2040,67 +2312,88 @@
       return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     };
 
-    const renderTrack = () => {
-      const t = TRACKS[index];
-      if (counter) counter.textContent = (index + 1) + ' / ' + TRACKS.length;
-      if (codec) codec.textContent = t.codec;
-      if (title) title.textContent = t.title;
-      if (artist) artist.textContent = t.artist;
-      if (source) source.textContent = t.source;
-      if (lyric) lyric.textContent = t.lyric;
-      if (total) total.textContent = fmtTime(t.totalSec);
-      if (elapsed) elapsed.textContent = fmtTime(currentSec);
-      if (presence) presence.textContent = 'Discord Rich Presence · ' + t.title + ' — ' + t.artist;
-      if (motif) motif.setAttribute('d', t.motif);
-      if (fill) {
-        const ratio = Math.min(1, Math.max(0.02, currentSec / t.totalSec));
-        fill.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
-      }
+    const setAll = (selector, text) => {
+      document.querySelectorAll(selector).forEach((el) => { el.textContent = text; });
     };
 
-    const renderSkin = () => {
-      if (frame) frame.setAttribute('data-skin', skin);
-      if (modeLabel) modeLabel.textContent = skin === 'pixel' ? 'Pixel skin' : 'Flow deck';
-      skinBtns.forEach((btn) => {
-        btn.setAttribute('aria-pressed', btn.getAttribute('data-set-skin') === skin ? 'true' : 'false');
+    const render = () => {
+      const t = TRACKS[index];
+      if (idxNode) idxNode.textContent = (index + 1) + ' / ' + TRACKS.length;
+      setAll('[data-track-title]', t.title);
+      setAll('[data-track-artist]', t.artist);
+      setAll('[data-track-source]', t.source);
+      setAll('[data-track-tier]', t.tier);
+      setAll('[data-track-lyric-plain]', t.words.join(' '));
+      setAll('[data-time-elapsed]', fmtTime(currentSec));
+      setAll('[data-time-total]', fmtTime(t.totalSec));
+      setAll('[data-time-rem]', '-' + fmtTime(Math.max(0, t.totalSec - currentSec)));
+
+      if (amLyric) {
+        amLyric.textContent = '';
+        const sungSpan = document.createElement('span');
+        sungSpan.className = 'sung';
+        const restSpan = document.createElement('span');
+        const cut = Math.min(t.words.length, Math.max(1, wordStep));
+        sungSpan.textContent = t.words.slice(0, cut).join(' ') + (cut < t.words.length ? ' ' : '');
+        restSpan.textContent = t.words.slice(cut).join(' ');
+        amLyric.appendChild(sungSpan);
+        amLyric.appendChild(restSpan);
+      }
+
+      if (amMotif) amMotif.setAttribute('d', t.motif);
+      if (pxAccent) pxAccent.setAttribute('fill', t.pxColor);
+
+      const ratio = Math.min(1, Math.max(0.03, currentSec / t.totalSec));
+      document.querySelectorAll('[data-seek-fill]').forEach((bar) => {
+        bar.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
       });
     };
 
-    skinBtns.forEach((btn) => {
+    viewBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        skin = btn.getAttribute('data-set-skin') || 'cosmic';
-        renderSkin();
+        const view = btn.getAttribute('data-view') || 'pixel';
+        if (pair) pair.setAttribute('data-active', view);
+        viewBtns.forEach((b) => {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
       });
     });
 
     const selectTrack = (nextIdx) => {
       index = (nextIdx + TRACKS.length) % TRACKS.length;
       currentSec = TRACKS[index].elapsedSec;
-      renderTrack();
+      wordStep = TRACKS[index].sungCount;
+      render();
+    };
+
+    const togglePlay = () => {
+      playing = !playing;
+      if (playBtn) playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+      if (icoPlay) icoPlay.style.display = playing ? 'none' : '';
+      if (icoPause) icoPause.style.display = playing ? '' : 'none';
+      document.querySelectorAll('[data-ico-play]').forEach((el) => { el.style.display = playing ? 'none' : ''; });
+      document.querySelectorAll('[data-ico-pause]').forEach((el) => { el.style.display = playing ? '' : 'none'; });
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (playing) {
+        timer = setInterval(() => {
+          const t = TRACKS[index];
+          currentSec = currentSec + 1 >= t.totalSec ? 0 : currentSec + 1;
+          wordStep = (wordStep % t.words.length) + 1;
+          render();
+        }, 1000);
+      }
     };
 
     if (prevBtn) prevBtn.addEventListener('click', () => selectTrack(index - 1));
     if (nextBtn) nextBtn.addEventListener('click', () => selectTrack(index + 1));
+    if (playBtn) playBtn.addEventListener('click', togglePlay);
+    document.querySelectorAll('[data-prev]').forEach((el) => el.addEventListener('click', () => selectTrack(index - 1)));
+    document.querySelectorAll('[data-next]').forEach((el) => el.addEventListener('click', () => selectTrack(index + 1)));
+    document.querySelectorAll('[data-toggle-play]').forEach((el) => el.addEventListener('click', togglePlay));
 
-    if (playBtn) {
-      playBtn.addEventListener('click', () => {
-        playing = !playing;
-        playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
-        if (iconPlay) iconPlay.style.display = playing ? 'none' : '';
-        if (iconPause) iconPause.style.display = playing ? '' : 'none';
-        if (timer) {
-          clearInterval(timer);
-          timer = null;
-        }
-        if (playing) {
-          timer = setInterval(() => {
-            const t = TRACKS[index];
-            currentSec = currentSec + 1 >= t.totalSec ? 0 : currentSec + 1;
-            renderTrack();
-          }, 1000);
-        }
-      });
-    }
     document.querySelectorAll('.mobile-menu-panel a').forEach((link) => {
       link.addEventListener('click', () => {
         const details = link.closest('details');
@@ -2108,8 +2401,7 @@
       });
     });
 
-    renderSkin();
-    renderTrack();
+    render();
   })();
 </script>
 </body>
