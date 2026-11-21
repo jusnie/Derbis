@@ -2017,7 +2017,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         return fetched
     }
 
-    private fun resolveAndroidReelVisitorData(
+    private suspend fun resolveAndroidReelVisitorData(
         hl: String,
         gl: String,
         userAgent: String,
