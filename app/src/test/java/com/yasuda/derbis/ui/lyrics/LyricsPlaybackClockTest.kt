@@ -1,5 +1,6 @@
 package com.yasuda.derbis.ui.lyrics
 
+import com.yasuda.derbis.viewmodel.DerbisUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -90,5 +91,28 @@ class LyricsPlaybackClockTest {
         assertEquals(9_910L, lyricsLineFocusPositionMs(10_000L, smoothingEnabled = true))
         assertEquals(10_000L, lyricsLineFocusPositionMs(10_000L, smoothingEnabled = false))
         assertEquals(0L, lyricsLineFocusPositionMs(40L, smoothingEnabled = true))
+    }
+
+    @Test
+    fun `unconfirmed extrapolation caps instead of marching through stalled playback`() {
+        val position = projectedLyricsPositionMs(
+            anchorPositionMs = 0L,
+            anchorRealtimeMs = 1_000L,
+            nowRealtimeMs = 15_000L,
+            playing = true,
+            speed = 1f
+        )
+        assertEquals(LYRICS_CLOCK_MAX_UNCONFIRMED_ELAPSED_MS, position)
+        assertTrue(isLyricsClockStalled(playing = true, lastReportAdvanceRealtimeMs = 1_000L, nowRealtimeMs = 2_250L))
+        assertFalse(isLyricsClockStalled(playing = true, lastReportAdvanceRealtimeMs = 1_000L, nowRealtimeMs = 1_500L))
+        assertFalse(isLyricsClockStalled(playing = false, lastReportAdvanceRealtimeMs = 1_000L, nowRealtimeMs = 15_000L))
+    }
+
+    @Test
+    fun `lyricsClockPlaying requires active audio rendering without resolving`() {
+        assertFalse(DerbisUiState(isPlaying = true, isAudioRendering = false).lyricsClockPlaying)
+        assertFalse(DerbisUiState(isPlaying = true, isResolving = true, isAudioRendering = true).lyricsClockPlaying)
+        assertFalse(DerbisUiState(isPlaying = false, isAudioRendering = true).lyricsClockPlaying)
+        assertTrue(DerbisUiState(isPlaying = true, isResolving = false, isAudioRendering = true).lyricsClockPlaying)
     }
 }

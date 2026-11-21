@@ -1,6 +1,7 @@
 package com.yasuda.derbis.player
 
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import com.yasuda.derbis.data.PlaybackSourceIdentity
 import com.yasuda.derbis.data.TrackJson
 import com.yasuda.derbis.domain.Track
@@ -223,5 +224,90 @@ class DerbisPlayerTest {
         processor.setYoutubeLoudness(-4.0f, null)
 
         assertEquals(1.0f, processor.metadataGain() ?: 0.0f, 0.0f)
+    }
+
+    @Test
+    fun playbackStallEvaluatorNudgesFrozenReadyOutputBeforeRecoveringStream() {
+        assertEquals(
+            PlaybackStallAction.NONE,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_READY,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = 1_500L,
+                bufferedAheadMs = 24_000L,
+                outputNudged = false
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.NUDGE_OUTPUT_PATH,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_READY,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_READY_OUTPUT_NUDGE_MS,
+                bufferedAheadMs = 24_000L,
+                outputNudged = false
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.NONE,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_READY,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_READY_OUTPUT_NUDGE_MS + 500L,
+                bufferedAheadMs = 24_000L,
+                outputNudged = true
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.RECOVER_STREAM,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_READY,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_READY_STALL_TIMEOUT_MS,
+                bufferedAheadMs = 24_000L,
+                outputNudged = true
+            )
+        )
+    }
+
+    @Test
+    fun playbackStallEvaluatorRecoversLongBufferingStallsExceptWhenPausedOrSuppressed() {
+        assertEquals(
+            PlaybackStallAction.RECOVER_STREAM,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_BUFFERING,
+                playWhenReady = true,
+                suppressed = false,
+                stalledElapsedMs = STREAM_BUFFERING_STALL_TIMEOUT_MS,
+                bufferedAheadMs = 0L,
+                outputNudged = false
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.NONE,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_BUFFERING,
+                playWhenReady = false,
+                suppressed = false,
+                stalledElapsedMs = STREAM_BUFFERING_STALL_TIMEOUT_MS + 5_000L,
+                bufferedAheadMs = 0L,
+                outputNudged = false
+            )
+        )
+        assertEquals(
+            PlaybackStallAction.NONE,
+            evaluatePlaybackStall(
+                playbackState = Player.STATE_READY,
+                playWhenReady = true,
+                suppressed = true,
+                stalledElapsedMs = STREAM_READY_STALL_TIMEOUT_MS + 5_000L,
+                bufferedAheadMs = 24_000L,
+                outputNudged = false
+            )
+        )
     }
 }

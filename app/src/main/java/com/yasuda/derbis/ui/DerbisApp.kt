@@ -8147,7 +8147,7 @@ private fun LyricsOverlay(
     val lyricsClock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = syncedLyrics && lyricsAnimationsEnabled
     )
@@ -8732,7 +8732,7 @@ private fun AppleMusic13FullscreenLyrics(
     val clock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = state.lyricsSynced && state.animationsEnabled
     )

@@ -278,7 +278,7 @@ private fun DerbisNowPlayingContent(
     val appleMusicLyricsClock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = lyricsOffsetPosition(state.positionMs, lyricsEffectiveOffsetMs),
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.playbackSpeed,
         smoothingEnabled = animated && appleMusicDeck && (state.activeLyric != null || state.lyricsSynced)
     )
@@ -807,7 +807,7 @@ private fun DerbisNowPlayingContent(
                             synced = state.lyricsSynced,
                             loading = state.lyricsLoading,
                             positionMs = state.positionMs,
-                            isPlaying = state.isPlaying,
+                            isPlaying = state.lyricsClockPlaying,
                             playbackSpeed = state.playbackSpeed,
                             latencyProfiles = state.lyricsLatencyProfiles,
                             interactive = lyricsFlip.lyricsSettled,

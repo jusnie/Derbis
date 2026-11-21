@@ -261,4 +261,26 @@ class AudioOffloadPolicyTest {
         assertEquals(AudioOffloadPreference.AUTOMATIC, AudioOffloadPreference.fromStorage(null))
         assertEquals(AudioOffloadPreference.AUTOMATIC, AudioOffloadPreference.fromStorage(""))
     }
+
+    @Test
+    fun runtimeStall_blocksOffloadAndForcesPcmMode() {
+        val blocked = AudioOffloadPolicy.decide(
+            AudioOffloadInputs.from(
+                settings = plainSettings,
+                enhancedAudioRequiresPcmProcessing = false,
+                audioNormalization = false,
+                speed = 1f,
+                pitch = 1f,
+                skipSilenceEnabled = false,
+                aaudioOutputSupported = true,
+                runtimeBlocked = true
+            )
+        )
+        assertFalse(blocked.allowed)
+        assertEquals(setOf(AudioOffloadBlocker.RUNTIME_STALL), blocked.blockers)
+        assertEquals(
+            AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED,
+            AudioOffloadPolicy.preferences(blocked, gaplessRequired = true).audioOffloadMode
+        )
+    }
 }

@@ -231,6 +231,8 @@ class PlaybackService : MediaLibraryService() {
     }
     private val pcm16OutputProcessor = Pcm16OutputAudioProcessor()
     private val audioOffloadController = AudioOffloadController()
+    @Volatile
+    private var audioOffloadRuntimeBlocked = false
     private lateinit var playbackWakeLock: PowerManager.WakeLock
     private lateinit var playbackStateStore: SharedPreferences
     private lateinit var audioManager: AudioManager
@@ -457,6 +459,13 @@ class PlaybackService : MediaLibraryService() {
             activeService?.playbackPausedByUser = false
         }
 
+        /**
+         * Disables hardware audio offload and AAudio direct output when a ready-state playhead
+         * freezes at 0:00 or mid-track, falling back to standard MediaCodec PCM output.
+         */
+        internal fun onOutputStallDetected(): Boolean =
+            activeService?.disableStalledHardwareOutputPath() == true
+
         suspend fun stopForAppExit() {
             val service = activeService ?: return
             service.appExitRequested = true
@@ -647,6 +656,9 @@ class PlaybackService : MediaLibraryService() {
                 )
             )
         }
+        if (normalized.audioOffloadPreference == com.yasuda.derbis.domain.AudioOffloadPreference.OFF) {
+            audioOffloadRuntimeBlocked = false
+        }
         updateAaudioOutputRequest(normalized.aaudioOutputEnabled)
         refreshAudioOffloadPolicy()
     }
@@ -664,9 +676,30 @@ class PlaybackService : MediaLibraryService() {
                 speed = parameters.speed,
                 pitch = parameters.pitch,
                 skipSilenceEnabled = player.skipSilenceEnabled,
-                aaudioOutputSupported = NativeAudioIntegration.isAaudioOutputSupported()
+                aaudioOutputSupported = NativeAudioIntegration.isAaudioOutputSupported(),
+                runtimeBlocked = audioOffloadRuntimeBlocked
             )
         )
+    }
+
+    private fun disableStalledHardwareOutputPath(): Boolean {
+        var changed = false
+        if (!audioOffloadRuntimeBlocked) {
+            val offloadState = audioOffloadController.state
+            if (offloadState.decision.allowed || offloadState.output == AudioOffloadOutput.OFFLOADED) {
+                audioOffloadRuntimeBlocked = true
+                refreshAudioOffloadPolicy()
+                changed = true
+                Timber.w("Disabled hardware audio offload after stalled playhead")
+            }
+        }
+        if (aaudioOutputRequested && NativeAudioIntegration.isAaudioOutputSupported()) {
+            updateAaudioOutputRequest(false)
+            refreshAudioOffloadPolicy()
+            changed = true
+            Timber.w("Disabled AAudio output after stalled playhead")
+        }
+        return changed
     }
 
     private fun configureNormalizationProcessor(
@@ -4006,11 +4039,29 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             isLocalMediaItem(currentItem) -> currentItem
-            preferFreshResolution && queueTrack != null && hasCompletePlaybackCache(queueTrack, videoMode) -> {
+            preferFreshResolution && queueTrack != null && hasCompletePlaybackCache(queueTrack, videoMode) && !activeRecovery -> {
                 Timber.d("Background recovery replayed a complete cache entry")
                 DerbisMediaItemFactory.build(queueTrack, videoMode)
             }
             preferFreshResolution && queueTrack != null && hasInternetCapableNetwork() -> {
+                if (activeRecovery) {
+                    val failedUrl = currentItem?.localConfiguration?.uri?.toString().orEmpty()
+                    val failedCandidate = if (failedUrl.isNotBlank() && queueTrack.streamUrl.isBlank()) {
+                        queueTrack.copy(streamUrl = failedUrl)
+                    } else {
+                        queueTrack
+                    }
+                    if (failedCandidate.streamUrl.isNotBlank() || failedCandidate.playbackManifest?.alternativeSource != null) {
+                        runCatching {
+                            resolver.reportPlaybackFailure(
+                                failedCandidate,
+                                videoMode,
+                                "Playback watchdog stalled",
+                                failedUrl = failedUrl.takeIf(String::isNotBlank)
+                            )
+                        }.onFailure { Timber.w(it, "Watchdog failure quarantine report failed") }
+                    }
+                }
                 val resolved = withContext(Dispatchers.IO) {
                     runCatching { resolveQueueTrack(queueTrack) }
                         .onFailure { Timber.w(it, "Fresh background stream resolution failed") }
@@ -4068,6 +4119,17 @@ class PlaybackService : MediaLibraryService() {
         if (resetWatchdogForInactivePlayer(player, now)) return
         val positionMs = player.currentPosition.coerceAtLeast(0L)
         if (recordWatchdogProgress(positionMs, now)) return
+        if (
+            player.playbackState == Player.STATE_READY &&
+            now - watchdogAdvancedAtMs >= WATCHDOG_INTERVAL_MS &&
+            disableStalledHardwareOutputPath()
+        ) {
+            runCatching {
+                player.seekTo(positionMs)
+                player.play()
+            }.onFailure { Timber.w(it, "Hardware output fallback nudge failed") }
+            return
+        }
         if (!isWatchdogStalled(now)) return
         scheduleWatchdogRecovery(positionMs)
         watchdogAdvancedAtMs = now

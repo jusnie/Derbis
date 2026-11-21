@@ -11,7 +11,8 @@ internal enum class AudioOffloadBlocker(val label: String) {
     DSP("dsp"),
     NORMALIZATION("normalization"),
     PLAYBACK_SPEED("playback_speed"),
-    SKIP_SILENCE("skip_silence")
+    SKIP_SILENCE("skip_silence"),
+    RUNTIME_STALL("runtime_stall")
 }
 
 internal data class AudioOffloadInputs(
@@ -23,7 +24,8 @@ internal data class AudioOffloadInputs(
     val speed: Float,
     val pitch: Float,
     val skipSilenceEnabled: Boolean,
-    val gaplessRequired: Boolean
+    val gaplessRequired: Boolean,
+    val runtimeBlocked: Boolean = false
 ) {
     companion object {
         fun from(
@@ -33,7 +35,8 @@ internal data class AudioOffloadInputs(
             speed: Float,
             pitch: Float,
             skipSilenceEnabled: Boolean,
-            aaudioOutputSupported: Boolean
+            aaudioOutputSupported: Boolean,
+            runtimeBlocked: Boolean = false
         ): AudioOffloadInputs {
             val normalized = settings.normalized()
             val parametricActive = normalized.parametricEqualizerEnabled && normalized.activeParametricProfile != null
@@ -48,7 +51,8 @@ internal data class AudioOffloadInputs(
                 speed = speed,
                 pitch = pitch,
                 skipSilenceEnabled = skipSilenceEnabled,
-                gaplessRequired = normalized.gaplessEnabled
+                gaplessRequired = normalized.gaplessEnabled,
+                runtimeBlocked = runtimeBlocked
             )
         }
     }
@@ -71,6 +75,7 @@ internal object AudioOffloadPolicy {
             if (inputs.normalizationActive) add(AudioOffloadBlocker.NORMALIZATION)
             if (inputs.speed != 1f || inputs.pitch != 1f) add(AudioOffloadBlocker.PLAYBACK_SPEED)
             if (inputs.skipSilenceEnabled) add(AudioOffloadBlocker.SKIP_SILENCE)
+            if (inputs.runtimeBlocked) add(AudioOffloadBlocker.RUNTIME_STALL)
         }
         return AudioOffloadDecision(blockers)
     }

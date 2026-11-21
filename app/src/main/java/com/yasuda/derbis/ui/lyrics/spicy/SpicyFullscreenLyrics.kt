@@ -287,7 +287,7 @@ fun SpicyFullscreenLyrics(
     val clock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = state.positionMs,
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.audioSettings.playbackSpeed,
         smoothingEnabled = state.lyricsSynced && state.animationsEnabled
     )

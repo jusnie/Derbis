@@ -4437,6 +4437,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 current.copy(
                     isResolving = false,
                     isPlaying = false,
+                    isAudioRendering = false,
                     currentTrack = current.currentTrack?.let { active ->
                         if (active.id == failedTrack.id) active.copy(streamUrl = "") else active
                     }
@@ -4447,7 +4448,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         val transitionId = ++streamTransitionId
         modeSwitchJob?.cancel()
         streamRecoveryJob?.cancel()
-        _state.update { it.copy(isResolving = true, isPlaying = playWhenReady, playerError = null) }
+        _state.update { it.copy(isResolving = true, isPlaying = playWhenReady, isAudioRendering = false, playerError = null) }
         streamRecoveryJob = viewModelScope.launch {
             try {
                 val selectedSource = if (videoMode) {
@@ -4481,6 +4482,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                         selectedVideoSubtitleId = null,
                         isResolving = false,
                         isPlaying = shouldResume,
+                        isAudioRendering = false,
                         positionMs = positionMs,
                         bufferedPositionMs = positionMs,
                         durationMs = resolved.durationMs.takeIf { duration -> duration > 0L } ?: it.durationMs,
@@ -4504,12 +4506,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 if (transitionId != streamTransitionId) return@launch
                 if (playWhenReady && !PlaybackService.isExplicitPauseActive && isTransientNetworkFailure(error)) {
                     player.deferRecoveryToService()
-                    _state.update { it.copy(isResolving = false, isPlaying = player.isPlaying, playerError = null) }
+                    _state.update { it.copy(isResolving = false, isPlaying = player.isPlaying, isAudioRendering = false, playerError = null) }
                     return@launch
                 }
                 val message = cleanPlaybackError(error)
                 player.failRecovery(message)
-                _state.update { it.copy(isResolving = false, isPlaying = false, playerError = message) }
+                _state.update { it.copy(isResolving = false, isPlaying = false, isAudioRendering = false, playerError = message) }
             }
         }
     }
@@ -10587,6 +10589,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 currentTrack = track.copy(streamUrl = ""),
                 youtubeEngagement = YoutubeEngagementState(videoId = engagementVideoId),
                 isPlaying = false,
+                isAudioRendering = false,
                 positionMs = 0L,
                 bufferedPositionMs = 0L,
                 durationMs = track.durationMs,
@@ -10707,6 +10710,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 isResolving = false,
                 isPlaying = false,
+                isAudioRendering = false,
                 positionMs = 0L,
                 bufferedPositionMs = 0L,
                 durationMs = track.durationMs,
@@ -11688,6 +11692,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 searchResults = mergeTracks(it.searchResults, listOf(resolved)),
                 activeLyric = lyricsEngine.currentLine(resumeMs, it.lyrics),
                 isPlaying = !startPaused,
+                isAudioRendering = false,
                 isResolving = false,
                 durationMs = effectiveDuration(resolved),
                 positionMs = resumeMs,
@@ -13557,6 +13562,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         _state.update {
             it.copy(
                 isPlaying = false,
+                isAudioRendering = false,
                 isResolving = false,
                 liveRadioReconnectAttempt = 0
             )
@@ -13661,6 +13667,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 sleepTimerTotalMs = 0L,
                 showSleepTimer = false,
                 isPlaying = false,
+                isAudioRendering = false,
                 pendingVideoMode = null,
                 isResolving = false,
                 positionMs = 0L,
@@ -13901,6 +13908,9 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             var lastBackgroundUiUpdateMs = 0L
             var lastQueueUpdateMs = 0L
             var lastPlaybackSaveMs = 0L
+            var lastProgressTrackId: String? = null
+            var lastProgressPositionMs = -1L
+            var lastProgressAdvanceElapsedMs = 0L
             while (isActive && !exitingApplication) {
                 val snapshot = _state.value
                 val current = snapshot.currentTrack
@@ -13936,10 +13946,20 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                 } else {
                     player.positionMs
                 }
+                val rawRendering = incomingCrossfadePlayback != null || player.isRendering
+                val trackId = current?.id
+                if (trackId != lastProgressTrackId || !rawRendering || position != lastProgressPositionMs) {
+                    lastProgressTrackId = trackId
+                    lastProgressPositionMs = position
+                    lastProgressAdvanceElapsedMs = nowElapsed
+                }
+                val audioRendering = rawRendering &&
+                    (current?.isLiveRadio() == true || nowElapsed - lastProgressAdvanceElapsedMs < 1_250L)
                 val buffered = incomingCrossfadePlayback?.bufferedPositionMs
                     ?: (player.bufferedPositionMs / 1_000L) * 1_000L
                 val active = lyricsEngine.currentLine(position, snapshot.lyrics)
-                val playbackStateChanged = snapshot.isPlaying != player.isPlaying
+                val playbackStateChanged = snapshot.isPlaying != player.isPlaying ||
+                    snapshot.isAudioRendering != audioRendering
                 val shouldPublishUi = snapshot.selectedTab == DerbisTab.Player ||
                     snapshot.showLyrics ||
                     nowElapsed - lastBackgroundUiUpdateMs >= 1_000L ||
@@ -13952,6 +13972,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                             bufferedPositionMs = buffered.coerceAtLeast(position),
                             durationMs = duration,
                             isPlaying = player.isPlaying,
+                            isAudioRendering = audioRendering,
                             activeLyric = active
                         )
                     }
