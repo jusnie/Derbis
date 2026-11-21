@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -61,10 +62,12 @@ import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.yasuda.derbis.domain.DerbisCanvasQuality
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
 import com.yasuda.derbis.ui.theme.nonNegativeCornerRadius
 import com.yasuda.derbis.ui.artwork.LivingArtworkColors
+import com.yasuda.derbis.feature.motion.CanvasMediaCache
 import com.yasuda.derbis.feature.motion.MotionArtwork
 import com.yasuda.derbis.feature.motion.MotionArtworkNetworkPolicy
 import com.yasuda.derbis.feature.motion.MotionCanvasConditions
@@ -73,10 +76,12 @@ import com.yasuda.derbis.feature.motion.MotionCanvasQualityPolicy
 import com.yasuda.derbis.feature.motion.MotionCanvasSurface
 import com.yasuda.derbis.runtime.RuntimeHooks
 import com.yasuda.derbis.runtime.RuntimeSignal
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 internal enum class MotionArtworkPresentation {
@@ -138,13 +143,13 @@ internal fun MotionArtworkLayer(
         )
     }
     val layerActive = isPlaying || pageMode
-    var videoUnavailable by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType, presentation, profile) {
+    var videoUnavailable by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType) {
         mutableStateOf(false)
     }
-    var videoReady by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType, presentation, profile) {
+    var videoReady by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType) {
         mutableStateOf(false)
     }
-    var videoRetryCount by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType, presentation, profile) {
+    var videoRetryCount by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType) {
         mutableStateOf(0)
     }
     val videoArtwork = artwork?.takeIf {
@@ -372,26 +377,40 @@ internal class MotionVideoFrameSource {
     var frameReady: Boolean = false
     var fitScaleX: Float = 1f
     var fitScaleY: Float = 1f
+    private var sampleScratchBitmap: Bitmap? = null
 
-    fun sampleBackdropPalette(identityKey: String): MotionBackdropPalette? {
+    suspend fun sampleBackdropPaletteAsync(identityKey: String): MotionBackdropPalette? {
         val view = textureView
         val surfaceReady = view != null && frameReady && view.isAvailable
         val surfaceSized = (view?.width ?: 0) > 1 && (view?.height ?: 0) > 1
-        if (!surfaceReady || !surfaceSized) return null
-        val bitmap = try {
-            view.getBitmap(DYNAMIC_BACKDROP_SAMPLE_SIZE, DYNAMIC_BACKDROP_SAMPLE_SIZE)
+        if (!surfaceReady || !surfaceSized || view == null) return null
+        val scratch = sampleScratchBitmap?.takeIf {
+            !it.isRecycled &&
+                it.width == DYNAMIC_BACKDROP_SAMPLE_SIZE &&
+                it.height == DYNAMIC_BACKDROP_SAMPLE_SIZE
+        } ?: Bitmap.createBitmap(
+            DYNAMIC_BACKDROP_SAMPLE_SIZE,
+            DYNAMIC_BACKDROP_SAMPLE_SIZE,
+            Bitmap.Config.ARGB_8888
+        ).also { sampleScratchBitmap = it }
+
+        val pixels = try {
+            val captured = view.getBitmap(scratch) ?: return null
+            IntArray(captured.width * captured.height).also { out ->
+                captured.getPixels(out, 0, captured.width, 0, 0, captured.width, captured.height)
+            }
         } catch (error: IllegalStateException) {
             Timber.d(error, "Canvas dynamic backdrop frame capture failed")
-            null
+            return null
         }
-        return bitmap?.let { frame ->
-            try {
-                val pixels = IntArray(frame.width * frame.height)
-                frame.getPixels(pixels, 0, frame.width, 0, 0, frame.width, frame.height)
-                motionBackdropPalette(identityKey, pixels, frame.width, frame.height)
-            } finally {
-                frame.recycle()
-            }
+
+        return withContext(Dispatchers.Default) {
+            motionBackdropPalette(
+                identityKey = identityKey,
+                pixels = pixels,
+                width = DYNAMIC_BACKDROP_SAMPLE_SIZE,
+                height = DYNAMIC_BACKDROP_SAMPLE_SIZE
+            )
         }
     }
 
@@ -513,12 +532,30 @@ private fun rememberMotionArtworkLifecycleActive(): Boolean {
 @Composable
 private fun rememberMotionArtworkEnvironment(observe: Boolean): MotionArtworkEnvironment {
     val context = LocalContext.current.applicationContext
-    var revision by remember { mutableIntStateOf(0) }
+    fun snapshot(): MotionArtworkEnvironment = if (!observe) {
+        MotionArtworkEnvironment(
+            remoteAllowed = false,
+            localAllowed = false,
+            conditions = MotionArtworkNetworkPolicy.conditions(context)
+        )
+    } else {
+        MotionArtworkEnvironment(
+            remoteAllowed = MotionArtworkNetworkPolicy.canUseMotionArtwork(context),
+            localAllowed = MotionArtworkNetworkPolicy.canAnimateLocally(context),
+            conditions = MotionArtworkNetworkPolicy.conditions(context)
+        )
+    }
+    var current by remember(context, observe) { mutableStateOf(snapshot()) }
     DisposableEffect(context, observe) {
         if (!observe) return@DisposableEffect onDispose { }
         val mainHandler = Handler(Looper.getMainLooper())
         val refresh: () -> Unit = {
-            mainHandler.post { revision++ }
+            mainHandler.post {
+                val next = snapshot()
+                if (next != current) {
+                    current = next
+                }
+            }
         }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -560,21 +597,7 @@ private fun rememberMotionArtworkEnvironment(observe: Boolean): MotionArtworkEnv
             mainHandler.removeCallbacksAndMessages(null)
         }
     }
-    return remember(context, observe, revision) {
-        if (!observe) {
-            MotionArtworkEnvironment(
-                remoteAllowed = false,
-                localAllowed = false,
-                conditions = MotionArtworkNetworkPolicy.conditions(context)
-            )
-        } else {
-            MotionArtworkEnvironment(
-                remoteAllowed = MotionArtworkNetworkPolicy.canUseMotionArtwork(context),
-                localAllowed = MotionArtworkNetworkPolicy.canAnimateLocally(context),
-                conditions = MotionArtworkNetworkPolicy.conditions(context)
-            )
-        }
-    }
+    return current
 }
 
 @Composable
@@ -669,13 +692,18 @@ private fun MotionArtworkStaticFallback(
         }
     }
 
+    val visibleAlpha = alpha()
+    if (!animated && visibleAlpha <= 0.001f) {
+        return
+    }
+
     Box(modifier = modifier.clip(shape)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged { artworkSize = it }
                 .graphicsLayer {
-                    this.alpha = alpha()
+                    this.alpha = visibleAlpha
                     val amount = motionAmount
                     val baseZoom = if (immersive) 0.064f else 0.042f
                     val pulseZoom = if (immersive) 0.030f else 0.022f
@@ -712,32 +740,47 @@ private fun MotionArtworkVideo(
     val currentOnFirstFrame by rememberUpdatedState(onFirstFrame)
     val currentOnUnavailable by rememberUpdatedState(onUnavailable)
     val currentOnDynamicBackdropPalette by rememberUpdatedState(onDynamicBackdropPalette)
-    var firstFrameRendered by remember(artwork.identityKey, artwork.url, artwork.mimeType, presentation, profile) {
+    var firstFrameRendered by remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
         mutableStateOf(false)
     }
-    var failed by remember(artwork.identityKey, artwork.url, artwork.mimeType, presentation, profile) {
+    var failed by remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
         mutableStateOf(false)
     }
-    var videoSize by remember(artwork.identityKey, artwork.url, artwork.mimeType, presentation, profile) {
+    var videoSize by remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
         mutableStateOf(VideoSize.UNKNOWN)
     }
-    var decoderRetries by remember(artwork.identityKey, artwork.url, artwork.mimeType, presentation, profile) {
+    var decoderRetries by remember(artwork.identityKey, artwork.url, artwork.mimeType) {
         mutableIntStateOf(0)
     }
     var surfaceSize by remember { mutableStateOf(IntSize.Zero) }
     val maxZoom = motionArtworkMaxZoom(presentation)
-    val player = remember(artwork.identityKey, artwork.url, artwork.mimeType, presentation, profile, decoderRetries) {
-        ExoPlayer.Builder(context, canvasRenderersFactory(context, artwork.url)).setLoadControl(canvasLoadControl()).build().apply {
-            repeatMode = Player.REPEAT_MODE_ONE
-            volume = 0f
-            trackSelectionParameters = trackSelectionParameters.buildUpon()
-                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-                .setViewportSize(profile.maxDimensionPx, profile.maxDimensionPx, false)
-                .setMaxVideoSize(profile.maxDimensionPx, profile.maxDimensionPx)
-                .setMaxVideoBitrate(profile.maxBitrateBps)
-                .setForceHighestSupportedBitrate(profile.forceHighestSupportedBitrate)
-                .build()
-        }
+    val isAdaptiveStream = remember(artwork.url, artwork.mimeType) {
+        artwork.mimeType.contains("mpegurl", ignoreCase = true) ||
+            artwork.url.contains(".m3u8", ignoreCase = true)
+    }
+    val player = remember(artwork.identityKey, artwork.url, artwork.mimeType, decoderRetries) {
+        val appContext = context.applicationContext
+        ExoPlayer.Builder(context, canvasRenderersFactory(context, artwork.url))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(CanvasMediaCache.dataSourceFactory(appContext)))
+            .setLoadControl(canvasLoadControl())
+            .setVideoChangeFrameRateStrategy(C.VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF)
+            .build()
+            .apply {
+                repeatMode = Player.REPEAT_MODE_ONE
+                volume = 0f
+                trackSelectionParameters = buildCanvasTrackParameters(
+                    base = trackSelectionParameters,
+                    profile = profile,
+                    adaptive = isAdaptiveStream
+                )
+            }
+    }
+    LaunchedEffect(player, profile, isAdaptiveStream) {
+        player.trackSelectionParameters = buildCanvasTrackParameters(
+            base = player.trackSelectionParameters,
+            profile = profile,
+            adaptive = isAdaptiveStream
+        )
     }
     val textureView = remember(player) { TextureView(context) }
     val videoAlpha by animateFloatAsState(
@@ -839,10 +882,12 @@ private fun MotionArtworkVideo(
         if (!dynamicBackdropEnabled || !isPlaying) return@LaunchedEffect
         if (!firstFrameRendered || failed) return@LaunchedEffect
         delay(DYNAMIC_BACKDROP_INITIAL_DELAY_MS)
-        while (isActive) {
-            frameSource.sampleBackdropPalette(artwork.identityKey)
+        frameSource.sampleBackdropPaletteAsync(artwork.identityKey)
+            ?.let(currentOnDynamicBackdropPalette)
+        delay(DYNAMIC_BACKDROP_SECOND_SAMPLE_MS)
+        if (isActive && !failed) {
+            frameSource.sampleBackdropPaletteAsync(artwork.identityKey)
                 ?.let(currentOnDynamicBackdropPalette)
-            delay(DYNAMIC_BACKDROP_SAMPLE_INTERVAL_MS)
         }
     }
 
@@ -915,9 +960,32 @@ internal object CanvasDecoderBlocklist {
     }
 }
 
+private fun buildCanvasTrackParameters(
+    base: androidx.media3.common.TrackSelectionParameters,
+    profile: MotionCanvasProfile,
+    adaptive: Boolean
+): androidx.media3.common.TrackSelectionParameters = base.buildUpon()
+    .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
+    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+    .apply {
+        if (adaptive) {
+            setViewportSize(profile.maxDimensionPx, profile.maxDimensionPx, false)
+            setMaxVideoSize(profile.maxDimensionPx, profile.maxDimensionPx)
+            setMaxVideoBitrate(profile.maxBitrateBps)
+            setForceHighestSupportedBitrate(profile.forceHighestSupportedBitrate)
+        } else {
+            setViewportSize(Int.MAX_VALUE, Int.MAX_VALUE, false)
+            setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
+            setMaxVideoBitrate(Int.MAX_VALUE)
+            setForceHighestSupportedBitrate(false)
+        }
+    }
+    .build()
+
 private fun canvasRenderersFactory(context: Context, artworkKey: String): DefaultRenderersFactory =
     DefaultRenderersFactory(context)
         .setEnableDecoderFallback(true)
+        .forceEnableMediaCodecAsynchronousQueueing()
         .setMediaCodecSelector(CanvasDecoderBlocklist.selectorFor(artworkKey))
 
 private fun canvasLoadControl(): DefaultLoadControl =
@@ -928,16 +996,18 @@ private fun canvasLoadControl(): DefaultLoadControl =
             CANVAS_BUFFER_FOR_PLAYBACK_MS,
             CANVAS_BUFFER_AFTER_REBUFFER_MS
         )
+        .setBackBuffer(CANVAS_BACK_BUFFER_MS, true)
         .setPrioritizeTimeOverSizeThresholds(true)
         .build()
 
-private const val CANVAS_MIN_BUFFER_MS = 2_000
-private const val CANVAS_MAX_BUFFER_MS = 8_000
-private const val CANVAS_BUFFER_FOR_PLAYBACK_MS = 250
-private const val CANVAS_BUFFER_AFTER_REBUFFER_MS = 750
+private const val CANVAS_MIN_BUFFER_MS = 12_000
+private const val CANVAS_MAX_BUFFER_MS = 24_000
+private const val CANVAS_BACK_BUFFER_MS = 20_000
+private const val CANVAS_BUFFER_FOR_PLAYBACK_MS = 100
+private const val CANVAS_BUFFER_AFTER_REBUFFER_MS = 300
 private const val MAX_CANVAS_DECODER_RETRIES = 2
-private const val DYNAMIC_BACKDROP_SAMPLE_SIZE = 24
-private const val DYNAMIC_BACKDROP_INITIAL_DELAY_MS = 240L
-private const val DYNAMIC_BACKDROP_SAMPLE_INTERVAL_MS = 6_000L
+private const val DYNAMIC_BACKDROP_SAMPLE_SIZE = 16
+private const val DYNAMIC_BACKDROP_INITIAL_DELAY_MS = 350L
+private const val DYNAMIC_BACKDROP_SECOND_SAMPLE_MS = 2_600L
 private const val DYNAMIC_BACKDROP_MIN_ALPHA = 128
 private const val DYNAMIC_BACKDROP_MIN_LUMINANCE = 0.035f

@@ -136,7 +136,10 @@ class MotionArtworkEngine(context: Context) {
         source: DerbisCanvasSource = DerbisCanvasSource.Auto
     ) {
         if (track == null || !networkPolicy.canPrefetchNext()) return
-        resolve(track, source)
+        val resolved = resolve(track, source) ?: return
+        if (networkPolicy.canPrefetchNext()) {
+            CanvasMediaCache.prefetch(appContext, resolved)
+        }
     }
 
     suspend fun invalidate(

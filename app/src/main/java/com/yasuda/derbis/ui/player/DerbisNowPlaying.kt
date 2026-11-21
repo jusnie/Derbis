@@ -797,9 +797,9 @@ private fun DerbisNowPlayingContent(
                                 depth = lyricsFlipDepth,
                                 rightToLeft = rightToLeft
                             ),
-                        // The Canvas palette feeds the wet wash behind the deck in every mode now,
-                        // so the hero only stops publishing it when Canvas itself is off.
-                        dynamicBackdropEnabled = motionBackdropVisible,
+                        // The Canvas palette feeds the wet wash behind the deck when dynamic
+                        // accents are active; skins with fixed palettes skip GPU frame readbacks.
+                        dynamicBackdropEnabled = motionBackdropVisible && fixedAccents == null,
                         onDynamicBackdropPalette = acceptDynamicBackdropPalette
                     )
                     if (lyricsFlipAvailable && lyricsFlip.lyricsComposed) {
