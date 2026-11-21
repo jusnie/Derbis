@@ -27,6 +27,8 @@ class PlaybackAudioStrategyContractTest {
         assertTrue(reelAudioCandidates.contains("mime.startsWith(\"audio/\", true)"))
         assertFalse(reelAudioCandidates.contains("mime.startsWith(\"video/\", true)"))
         assertTrue(reelAudio.contains("stream solo audio riproducibile"))
+        assertTrue(reelAudio.contains("rejectedHttpStatusCode"))
+        assertTrue(policyDispatch.contains("strategy == PlaybackAudioStrategy.PERSISTED && failureReason == null"))
     }
 
     @Test

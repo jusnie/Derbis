@@ -1458,6 +1458,9 @@ class PlaybackResolver private constructor(private val context: Context) {
             val failureReason = synchronized(errors) { errors.toList() }
         .drop(errorsBefore)
         .lastOrNull()
+            if (strategy == PlaybackAudioStrategy.PERSISTED && failureReason == null) {
+                continue
+            }
             val failureKind = failureReason?.let(::classifyPlaybackFailureReason) ?: PlaybackFailureKind.Unknown
             strategyHealth.recordFailure(
                 AUDIO_HEALTH_MODE,
@@ -1655,6 +1658,9 @@ class PlaybackResolver private constructor(private val context: Context) {
             val failureReason = synchronized(errors) { errors.toList() }
         .drop(errorsBefore)
         .lastOrNull()
+            if (strategy == PlaybackVideoStrategy.PERSISTED && failureReason == null) {
+                continue
+            }
             val failureKind = failureReason?.let(::classifyPlaybackFailureReason) ?: PlaybackFailureKind.Unknown
             strategyHealth.recordFailure(
                 VIDEO_HEALTH_MODE,
@@ -1795,7 +1801,7 @@ class PlaybackResolver private constructor(private val context: Context) {
         val streamingData = playerResponse.optJSONObject("streamingData")
             ?: throw YoutubePlayerRequestException(null, "Android Reel non ha restituito streamingData")
         val adaptiveFormats = streamingData.optJSONArray("adaptiveFormats") ?: JSONArray()
-        val selectedAudio = firstPlayableAndroidReelAudio(
+        val audioSelection = selectPlayableAndroidReelAudio(
             candidates = androidReelAudioCandidates(
                 adaptiveFormats = adaptiveFormats,
                 sourceVideoId = sourceVideoId,
@@ -1804,6 +1810,7 @@ class PlaybackResolver private constructor(private val context: Context) {
             ),
             identity = reelStreamIdentity
         )
+        val selectedAudio = audioSelection.candidate
         if (selectedAudio != null) {
             val (format, url, _) = selectedAudio
             val details = playerResponse.optJSONObject("videoDetails")
@@ -1842,7 +1849,12 @@ class PlaybackResolver private constructor(private val context: Context) {
             return track.withDirectStream(reelStream)
         }
 
-        throw YoutubePlayerRequestException(null, "Android Reel non ha restituito uno stream solo audio riproducibile")
+        val rejectedStatus = audioSelection.rejectedHttpStatusCode
+        val statusSuffix = if (rejectedStatus != null) " (HTTP $rejectedStatus)" else ""
+        throw YoutubePlayerRequestException(
+            rejectedStatus,
+            "Android Reel non ha restituito uno stream solo audio riproducibile$statusSuffix"
+        )
     }
 
     private suspend fun resolveVideoWithAndroidReel(track: Track): Track {
@@ -2042,11 +2054,29 @@ class PlaybackResolver private constructor(private val context: Context) {
     private suspend fun firstPlayableAndroidReelAudio(
         candidates: List<Triple<JSONObject, String, Int>>,
         identity: YoutubeStreamClientIdentity
-    ): Triple<JSONObject, String, Int>? {
+    ): Triple<JSONObject, String, Int>? = selectPlayableAndroidReelAudio(
+        candidates = candidates,
+        identity = identity
+    ).candidate
+
+    private suspend fun selectPlayableAndroidReelAudio(
+        candidates: List<Triple<JSONObject, String, Int>>,
+        identity: YoutubeStreamClientIdentity
+    ): AndroidReelAudioSelection {
+        var rejectedStatus: Int? = null
         for (candidate in candidates) {
-            if (verifyDirectAudioUrlFast(candidate.second, identity = identity, trustAttestedGoogleVideo = true)) return candidate
+            val probe = probeDirectAudioUrlFast(
+                url = candidate.second,
+                identity = identity,
+                trustAttestedGoogleVideo = true
+            )
+            if (probe.playable) return AndroidReelAudioSelection(candidate = candidate)
+            if (probe.httpStatusCode != null) {
+                rejectedStatus = probe.httpStatusCode
+                if (probe.httpStatusCode == 403 || probe.httpStatusCode == 429) break
+            }
         }
-        return null
+        return AndroidReelAudioSelection(candidate = null, rejectedHttpStatusCode = rejectedStatus)
     }
 
     private fun androidReelVideoCandidates(
@@ -3060,13 +3090,29 @@ class PlaybackResolver private constructor(private val context: Context) {
         url: String,
         identity: YoutubeStreamClientIdentity? = YoutubeStreamClientIdentityRegistry.find(url),
         trustAttestedGoogleVideo: Boolean = true
-    ): Boolean {
-        if (url.isBlank() || !streamStillFresh(url) || !isDirectAudioUrl(url)) return false
-        if (SabrStreamSpec.isSabrUri(url)) return SabrStreamSpec.parse(url) != null
+    ): Boolean = probeDirectAudioUrlFast(
+        url = url,
+        identity = identity,
+        trustAttestedGoogleVideo = trustAttestedGoogleVideo
+    ).playable
+
+    private suspend fun probeDirectAudioUrlFast(
+        url: String,
+        identity: YoutubeStreamClientIdentity? = YoutubeStreamClientIdentityRegistry.find(url),
+        trustAttestedGoogleVideo: Boolean = true
+    ): DirectAudioProbeOutcome {
+        if (url.isBlank() || !streamStillFresh(url) || !isDirectAudioUrl(url)) {
+            return DirectAudioProbeOutcome(playable = false)
+        }
+        if (SabrStreamSpec.isSabrUri(url)) {
+            return DirectAudioProbeOutcome(playable = SabrStreamSpec.parse(url) != null)
+        }
         if (
             trustAttestedGoogleVideo &&
             YoutubeStreamCapability.isTrustedGoogleVideoMedia(url)
-        ) return true
+        ) {
+            return DirectAudioProbeOutcome(playable = true)
+        }
         val requestBuilder = Request.Builder()
             .url(url)
             .get()
@@ -3082,19 +3128,25 @@ class PlaybackResolver private constructor(private val context: Context) {
         val request = requestBuilder.build()
         val result = runCatchingPreservingCancellation {
             currentStreamProbeClient().newCall(request).execute().use { response ->
-                if (response.code == 403 || response.code == 404 || response.code == 410 || response.code == 416 || response.code == 429) return@use false
-                if (response.code !in 200..299 && response.code != 206) return@use false
+                if (response.code == 403 || response.code == 404 || response.code == 410 || response.code == 416 || response.code == 429) {
+                    return@use DirectAudioProbeOutcome(playable = false, httpStatusCode = response.code)
+                }
+                if (response.code !in 200..299 && response.code != 206) {
+                    return@use DirectAudioProbeOutcome(playable = false, httpStatusCode = response.code)
+                }
                 val contentType = response.header("Content-Type").orEmpty().lowercase()
-                if (contentType.contains("text/html") || contentType.contains("application/json")) return@use false
+                if (contentType.contains("text/html") || contentType.contains("application/json")) {
+                    return@use DirectAudioProbeOutcome(playable = false)
+                }
                 val sample = response.peekBody(32L).bytes()
-                sample.isNotEmpty()
+                DirectAudioProbeOutcome(playable = sample.isNotEmpty())
             }
         }.getOrElse { probeError ->
             if (YoutubeStreamCapability.isTrustedGoogleVideoMedia(url) && streamStillFresh(url)) {
                 Timber.d(probeError, "Direct audio URL probe encountered transient network condition; accepting fresh Google Video URL")
-                true
+                DirectAudioProbeOutcome(playable = true)
             } else {
-                false
+                DirectAudioProbeOutcome(playable = false)
             }
         }
         currentCoroutineContext().ensureActive()
@@ -4701,4 +4753,14 @@ private data class CachedYoutubeEngagement(
     val likeCount: Long,
     val viewCount: Long,
     val expiresAtMs: Long
+)
+
+private data class DirectAudioProbeOutcome(
+    val playable: Boolean,
+    val httpStatusCode: Int? = null
+)
+
+private data class AndroidReelAudioSelection(
+    val candidate: Triple<JSONObject, String, Int>?,
+    val rejectedHttpStatusCode: Int? = null
 )

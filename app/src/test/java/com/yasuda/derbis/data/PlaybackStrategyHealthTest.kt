@@ -257,6 +257,40 @@ class PlaybackStrategyHealthTest {
         assertNull(restored["audio::Android"]!!.lastFailureKind)
     }
 
+    @Test
+    fun sustainedNonTransientFailuresEventuallyOpenCircuitWhileOfflineOutagesDoNot() {
+        val now = 25_000_000L
+        val fiveUnknown = statsAfterConsecutiveFailures(
+            count = 5,
+            kind = PlaybackFailureKind.Unknown,
+            startAtMs = now - 5_000L
+        )
+        assertEquals(PlaybackStrategyCircuit.CLOSED, fiveUnknown.circuitAt(now))
+
+        val sixUnknown = playbackStrategyStatsAfterFailure(
+            current = fiveUnknown,
+            nowMs = now,
+            latencyMs = 5_000L,
+            kind = PlaybackFailureKind.Unknown
+        )
+        assertEquals(PlaybackStrategyCircuit.OPEN, sixUnknown.circuitAt(now))
+        assertTrue(sixUnknown.quarantineUntilMs > now)
+
+        val tenNetworkFailures = statsAfterConsecutiveFailures(
+            count = 10,
+            kind = PlaybackFailureKind.Network,
+            startAtMs = now - 10_000L
+        )
+        assertEquals(PlaybackStrategyCircuit.CLOSED, tenNetworkFailures.circuitAt(now))
+
+        val tenTimeouts = statsAfterConsecutiveFailures(
+            count = 10,
+            kind = PlaybackFailureKind.Timeout,
+            startAtMs = now - 10_000L
+        )
+        assertEquals(PlaybackStrategyCircuit.CLOSED, tenTimeouts.circuitAt(now))
+    }
+
     private fun openStatsAt(nowMs: Long, kind: PlaybackFailureKind): PlaybackStrategyStats {
         return statsAfterConsecutiveFailures(count = 3, kind = kind, startAtMs = nowMs - 3_000L)
     }

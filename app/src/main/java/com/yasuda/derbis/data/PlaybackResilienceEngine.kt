@@ -108,7 +108,10 @@ internal fun classifyPlaybackFailureReason(raw: String): PlaybackFailureKind {
             value.contains("unexpected end of stream") ||
             value.contains("connection reset") ||
             value.contains("premature end") -> PlaybackFailureKind.Truncated
-        value.contains("timeout") || value.contains("timed out") || value.contains("lento") -> PlaybackFailureKind.Timeout
+        value.contains("timeout") ||
+            value.contains("timed out") ||
+            value.contains("stalled") ||
+            value.contains("lento") -> PlaybackFailureKind.Timeout
         value.contains("network") || value.contains("socket") || value.contains("dns") || value.contains("connection") || value.contains("host") -> PlaybackFailureKind.Network
         else -> PlaybackFailureKind.Unknown
     }
