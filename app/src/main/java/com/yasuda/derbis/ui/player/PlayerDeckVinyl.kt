@@ -1,9 +1,12 @@
 package com.yasuda.derbis.ui.player
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,9 +39,11 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +83,9 @@ import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMotion
 import com.yasuda.derbis.ui.theme.DerbisPlayerDesign
 import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.sin
 
 /*
  * Vinyl — the deck whose stage is the queue.
@@ -107,39 +115,46 @@ private const val VinylInkFaint = 0.44f
  * The arc.
  *
  * A card's distance `d` from the playhead sets its whole transform: it shifts sideways by
- * `d x 0.58` of a card, turns away by `d x 52°`, shrinks by `|d| x 0.12` and is dimmed by
- * `|d| x 0.26`. One rule for three cards, so they cannot disagree about where the arc is.
+ * `d x 0.56` of a card, turns away smoothly up to `48°`, shrinks by `|d| x 0.14` and is dimmed
+ * along a smooth curve. One rule for every visible cover so the row moves as a single wheel.
  */
-private const val VinylArcShift = 0.58f
-private const val VinylArcTurnDegrees = 52f
-private const val VinylArcScaleFalloff = 0.12f
-private const val VinylArcScrim = 0.26f
+private const val VinylArcShift = 0.56f
+private const val VinylArcTurnDegrees = 48f
+private const val VinylArcScaleFalloff = 0.14f
+private const val VinylArcScrim = 0.30f
 
-/** How long the row takes to turn one place. */
-private const val VinylTurnMs = 420
+/** Spring tuning for settling the cover wheel smoothly without harsh snap or bounce. */
+private const val VinylSpringDamping = 0.88f
+private const val VinylSpringStiffness = 230f
+private const val VinylBackdropColorMs = 560
+private const val VinylHeroSettleThreshold = 0.018f
 
 /**
  * Camera distance as a multiple of the card's own width.
  *
  * Compose measures this in pixels and defaults to 8, which is smaller than the card and so
- * distorts a 52° turn into a trapezoid; its own guidance is to use at least the size of the
- * view. Five card widths gives the shallow, even perspective the preview was drawn with, and it
- * holds at any card size instead of drifting with screen density.
+ * distorts a 48° turn into a trapezoid; its own guidance is to use at least the size of the
+ * view. 5.5 card widths gives a clean, balanced perspective at every screen density.
  */
-private const val VinylCameraFactor = 5f
+private const val VinylCameraFactor = 5.5f
 
 /**
  * Past this distance a card is off the stage, so it is not drawn at all.
  *
- * A turn only ever carries a card between one and two places out, so this is where a neighbour
- * fades in rather than appears: cutting it at a hard edge would drop a sliver of cover mid-turn.
+ * Keeping two neighbours on each side in the queue window (`farPrevious` / `farNext`) lets the
+ * outer card glide smoothly to `±1.85` and fade away instead of disappearing on the first frame.
  */
-private const val VinylNeighbourLimit = 1.8f
+private const val VinylNeighbourLimit = 1.85f
 
-/** Card side as a fraction of the stage width: narrow enough to leave the neighbours room. */
-private const val VinylCardWidthFactor = 0.66f
+/**
+ * Full-bleed stage card sizing: the carousel sits outside horizontal panel gutters so the hero
+ * sleeve has generous presence in the centre while angled neighbours still frame both edges.
+ */
+private const val VinylCardWidthFactor = 0.70f
+private const val VinylCardWidthFactorCompact = 0.66f
+private val VinylStageVerticalInset = 10.dp
 
-private val VinylSleeveCorner = 4.dp
+private val VinylSleeveCorner = 14.dp
 private val VinylPanelCorner = 24.dp
 private val VinylSeekHeight = 5.dp
 private val VinylSeekThumb = 11.dp
@@ -148,7 +163,29 @@ private val VinylPlaySizeCompact = 48.dp
 private val VinylControlSize = 46.dp
 private val VinylGlyphSize = 21.dp
 private val VinylModeGlyphSize = 18.dp
-private val VinylScrollStage = 240.dp
+private val VinylScrollStage = 300.dp
+
+@Immutable
+private data class VinylArcSlot(
+    val key: String,
+    val track: Track,
+    val slot: Int
+)
+
+internal fun vinylTrackStepDirection(
+    previousQueueIndex: Int,
+    currentQueueIndex: Int,
+    queueTotal: Int
+): Int {
+    if (previousQueueIndex < 0 || currentQueueIndex < 0 || previousQueueIndex == currentQueueIndex) {
+        return 0
+    }
+    if (queueTotal > 2) {
+        if (previousQueueIndex == queueTotal - 1 && currentQueueIndex == 0) return 1
+        if (previousQueueIndex == 0 && currentQueueIndex == queueTotal - 1) return -1
+    }
+    return (currentQueueIndex - previousQueueIndex).coerceIn(-1, 1)
+}
 
 @Composable
 internal fun PlayerVinylDeck(
@@ -173,56 +210,102 @@ internal fun PlayerVinylDeck(
     onNext: () -> Unit,
     onRepeat: () -> Unit,
     modifier: Modifier = Modifier,
-    headlineModifier: Modifier = Modifier
+    headlineModifier: Modifier = Modifier,
+    swipeOffsetPx: () -> Float = { 0f }
 ) {
     val glow = surfaces.glow
-    val accent = if (glow.alpha > 0f) glow.copy(alpha = 1f) else surfaces.hero
-    // The row's one degree of freedom. It rests at 0; a track change sets it to +1 or -1 (which
-    // way the queue moved) and it settles back, carrying all three cards with it.
+    val rawAccent = if (glow.alpha > 0f) glow.copy(alpha = 1f) else surfaces.hero
+    val accent by animateColorAsState(
+        targetValue = rawAccent,
+        animationSpec = if (animated) {
+            tween(durationMillis = VinylBackdropColorMs, easing = FastOutSlowInEasing)
+        } else {
+            snap()
+        },
+        label = "player-vinyl-accent"
+    )
     val turn = remember { Animatable(0f) }
-    val trackIdentity = track.playlistEntryId.ifBlank { track.id }
-    val currentQueueIndex = slots.queue?.index ?: -1
-    var settledIdentity by remember { mutableStateOf(trackIdentity) }
-    var settledQueueIndex by remember { mutableIntStateOf(currentQueueIndex) }
-    val pendingTurn = if (
-        settledIdentity != trackIdentity &&
-        animated &&
-        currentQueueIndex >= 0 &&
-        settledQueueIndex >= 0
-    ) {
-        (currentQueueIndex - settledQueueIndex).coerceIn(-1, 1).toFloat()
+    var stageDragSpanPx by remember { mutableFloatStateOf(1f) }
+    var lastCommittedSwipeTurn by remember { mutableFloatStateOf(0f) }
+    val liveSwipePx = swipeOffsetPx()
+    val liveSwipeTurn = if (stageDragSpanPx > 1f) {
+        val raw = liveSwipePx / stageDragSpanPx
+        val hasPrev = slots.queue?.previous != null
+        val hasNext = slots.queue?.next != null
+        val damped = when {
+            raw > 0f && !hasPrev -> raw * 0.22f
+            raw < 0f && !hasNext -> raw * 0.22f
+            else -> raw
+        }
+        damped.coerceIn(-1.15f, 1.15f)
     } else {
         0f
     }
+    val trackIdentity = track.playlistEntryId.ifBlank { track.id }
+    val currentQueueIndex = slots.queue?.index ?: -1
+    val queueTotal = slots.queue?.total ?: 0
+    var settledTrack by remember { mutableStateOf(track) }
+    var settledIdentity by remember { mutableStateOf(trackIdentity) }
+    var settledQueueIndex by remember { mutableIntStateOf(currentQueueIndex) }
+    var outgoingGhost by remember { mutableStateOf<VinylArcSlot?>(null) }
+
+    if (settledIdentity == trackIdentity && liveSwipeTurn != 0f) {
+        lastCommittedSwipeTurn = liveSwipeTurn
+    } else if (settledIdentity == trackIdentity && liveSwipePx == 0f) {
+        lastCommittedSwipeTurn = 0f
+    }
+
+    val stepDirection = if (settledIdentity != trackIdentity) {
+        vinylTrackStepDirection(settledQueueIndex, currentQueueIndex, queueTotal)
+            .let { if (it != 0) it else 1 }
+    } else {
+        0
+    }
+    val stageTurn = if (settledIdentity != trackIdentity) {
+        if (animated) {
+            (turn.value + lastCommittedSwipeTurn + stepDirection.toFloat()).coerceIn(-1.75f, 1.75f)
+        } else {
+            0f
+        }
+    } else {
+        turn.value + liveSwipeTurn
+    }
+
     LaunchedEffect(trackIdentity, currentQueueIndex) {
         if (settledIdentity == trackIdentity) {
             settledQueueIndex = currentQueueIndex
             return@LaunchedEffect
         }
-        val direction = if (currentQueueIndex >= 0 && settledQueueIndex >= 0) {
-            (currentQueueIndex - settledQueueIndex).coerceIn(-1, 1)
-        } else {
-            0
-        }
-        if (direction == 0) {
+        val direction = vinylTrackStepDirection(settledQueueIndex, currentQueueIndex, queueTotal)
+            .let { if (it != 0) it else 1 }
+        val startTurn = (turn.value + lastCommittedSwipeTurn + direction.toFloat()).coerceIn(-1.75f, 1.75f)
+        val outgoing = settledTrack
+        val outgoingKey = settledIdentity
+        lastCommittedSwipeTurn = 0f
+        settledTrack = track
+        settledIdentity = trackIdentity
+        settledQueueIndex = currentQueueIndex
+        if (!animated) {
+            outgoingGhost = null
             turn.snapTo(0f)
-            settledQueueIndex = currentQueueIndex
-            settledIdentity = trackIdentity
             return@LaunchedEffect
         }
-        turn.snapTo(direction.toFloat())
-        settledQueueIndex = currentQueueIndex
-        settledIdentity = trackIdentity
+        outgoingGhost = VinylArcSlot(
+            key = outgoingKey,
+            track = outgoing,
+            slot = -direction
+        )
+        turn.snapTo(startTurn)
         turn.animateTo(
             targetValue = 0f,
-            animationSpec = if (animated) {
-                tween(durationMillis = VinylTurnMs, easing = FastOutSlowInEasing)
-            } else {
-                snap()
-            }
+            animationSpec = spring(
+                dampingRatio = VinylSpringDamping,
+                stiffness = VinylSpringStiffness
+            )
         )
+        outgoingGhost = null
     }
-    val stageTurn = if (settledIdentity != trackIdentity) pendingTurn else turn.value
+
     Box(modifier = modifier.background(VinylGround)) {
         VinylBackdrop(accent = accent)
         Column(
@@ -232,13 +315,13 @@ internal fun PlayerVinylDeck(
                 .navigationBarsPadding()
                 .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                 .padding(
-                    start = gutter,
-                    end = gutter,
                     top = DerbisPlayerDesign.SpaceXs,
                     bottom = if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceXl
                 )
         ) {
-            slots.header()
+            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = gutter)) {
+                slots.header()
+            }
             Spacer(Modifier.height(DerbisPlayerDesign.SpaceSm))
             BoxWithConstraints(
                 modifier = Modifier
@@ -249,45 +332,59 @@ internal fun PlayerVinylDeck(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                // A card takes two thirds of the stage, so the neighbours have somewhere to
-                // turn into and the outermost one runs off the edge rather than being framed.
-                val side = minOf(maxWidth * VinylCardWidthFactor, maxHeight, artworkCap)
+                val widthFactor = if (compact) VinylCardWidthFactorCompact else VinylCardWidthFactor
+                val availableHeight = (maxHeight - VinylStageVerticalInset * 2).coerceAtLeast(0.dp)
+                val side = minOf(maxWidth * widthFactor, availableHeight, artworkCap)
                 if (side > 0.dp) {
+                    val density = LocalDensity.current
+                    val spanPx = with(density) { (side * 0.78f).toPx() }.coerceAtLeast(1f)
+                    if (stageDragSpanPx != spanPx) stageDragSpanPx = spanPx
                     VinylStage(
                         track = track,
                         slots = slots,
                         side = side,
-                        turn = stageTurn
+                        turn = stageTurn,
+                        outgoingGhost = outgoingGhost,
+                        animated = animated,
+                        onSelectNeighbour = { slot ->
+                            if (slot < 0) onPrevious() else if (slot > 0) onNext()
+                        }
                     )
                 }
             }
             Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
-            VinylPanel(
-                track = track,
-                playback = playback,
-                accent = accent,
-                isPlaying = isPlaying,
-                isResolving = isResolving,
-                shuffleOn = shuffleOn,
-                repeatMode = repeatMode,
-                labels = labels,
-                compact = compact,
-                animated = animated,
-                onArtistClick = onArtistClick,
-                onShuffle = onShuffle,
-                onPrevious = onPrevious,
-                onTogglePlay = onTogglePlay,
-                onNext = onNext,
-                onRepeat = onRepeat,
-                modifier = headlineModifier
-            )
-            slots.error()
-            Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
-            VinylLyricsStrip(
-                track = track,
-                playback = playback,
-                dockActions = slots.dockActions(track)
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = gutter)
+            ) {
+                VinylPanel(
+                    track = track,
+                    playback = playback,
+                    accent = accent,
+                    isPlaying = isPlaying,
+                    isResolving = isResolving,
+                    shuffleOn = shuffleOn,
+                    repeatMode = repeatMode,
+                    labels = labels,
+                    compact = compact,
+                    animated = animated,
+                    onArtistClick = onArtistClick,
+                    onShuffle = onShuffle,
+                    onPrevious = onPrevious,
+                    onTogglePlay = onTogglePlay,
+                    onNext = onNext,
+                    onRepeat = onRepeat,
+                    modifier = headlineModifier
+                )
+                slots.error()
+                Spacer(Modifier.height(if (compact) DerbisPlayerDesign.SpaceMd else DerbisPlayerDesign.SpaceLg))
+                VinylLyricsStrip(
+                    track = track,
+                    playback = playback,
+                    dockActions = slots.dockActions(track)
+                )
+            }
         }
     }
 }
@@ -324,14 +421,11 @@ private fun VinylBackdrop(accent: Color, modifier: Modifier = Modifier) {
 /**
  * The stage is the queue.
  *
- * The current cover sits forward and flat; the two beside it are turned away on the Y axis,
- * scaled down and dimmed. Pressing next or previous does not swap two pictures — the whole row
- * turns, and the card that lands in the centre straightens up.
- *
- * The turn is one float, not one animation per card. On a track change it starts at ±1 and
- * settles to 0 over [VinylTurnMs], and every card reads its position off that single value, so
- * the three of them cannot drift apart the way three independent tweens would. With animations
- * off it snaps in one frame, which is the same rule the rest of the player follows.
+ * Every visible sleeve (`farPrevious`, `previous`, `current`, `next`, `farNext`) lives in the same
+ * keyed composition loop so stepping forward or backward moves the existing card nodes continuously
+ * along the 3D arc — no bitmap reload, no cross-fade between two songs on the same card, and no
+ * z-order pop. Once the wheel settles in the centre, [PlayerDeckSlots.stage] fades in seamlessly at
+ * zero offset so Canvas motion artwork, Lyrics Flip and the mini-player morph anchor remain active.
  */
 @Composable
 private fun VinylStage(
@@ -339,98 +433,146 @@ private fun VinylStage(
     slots: PlayerDeckSlots,
     side: Dp,
     turn: Float,
+    outgoingGhost: VinylArcSlot?,
+    animated: Boolean,
+    onSelectNeighbour: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val sidePx = with(density) { side.toPx() }
-    // Measured against the card, not the screen: Compose takes this in pixels, and anything
-    // under the card's own width fans a turned cover into a trapezoid.
+    val sidePx = with(density) { side.toPx() }.coerceAtLeast(1f)
     val cameraDistance = sidePx * VinylCameraFactor
     val corner = if (DerbisIsPixel) 0.dp else VinylSleeveCorner
     val queue = slots.queue
+    val currentKey = track.playlistEntryId.ifBlank { track.id }
+    val cards = remember(queue, track.id, track.playlistEntryId, outgoingGhost) {
+        buildList {
+            val seen = HashSet<String>(6)
+            fun append(candidate: Track?, slot: Int) {
+                if (candidate == null) return
+                val candidateKey = candidate.playlistEntryId.ifBlank { candidate.id }
+                if (seen.add(candidateKey)) {
+                    add(VinylArcSlot(key = candidateKey, track = candidate, slot = slot))
+                }
+            }
+            append(queue?.farPrevious, -2)
+            append(queue?.previous, -1)
+            append(track, 0)
+            append(queue?.next, 1)
+            append(queue?.farNext, 2)
+            if (outgoingGhost != null && seen.add(outgoingGhost.key)) {
+                add(outgoingGhost)
+            }
+        }
+    }
 
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        // Drawn back to front: the neighbours first, then the card in the playhead, so the centre
-        // one is never cut by a neighbour that happens to be nearer during a turn.
-        queue?.previous?.let { previous ->
-            key(previous.playlistEntryId.ifBlank { previous.id }) {
-                VinylNeighbour(
-                    track = previous,
+    val settled = abs(turn) < VinylHeroSettleThreshold
+    val heroOverlayAlpha by animateFloatAsState(
+        targetValue = if (settled) 1f else 0f,
+        animationSpec = if (animated) {
+            tween(durationMillis = if (settled) 150 else 60, easing = FastOutSlowInEasing)
+        } else {
+            snap()
+        },
+        label = "vinyl-hero-overlay-alpha"
+    )
+
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        for (entry in cards) {
+            key(entry.key) {
+                val distance = entry.slot.toFloat() + turn
+                VinylArcCard(
+                    track = entry.track,
                     slots = slots,
                     side = side,
-                    distance = -1f + turn,
+                    sidePx = sidePx,
+                    distance = distance,
                     cameraDistance = cameraDistance,
-                    corner = corner
+                    corner = corner,
+                    isNeighbour = entry.key != currentKey && (entry.slot == -1 || entry.slot == 1),
+                    onTapNeighbour = { onSelectNeighbour(entry.slot) }
                 )
             }
         }
-        queue?.next?.let { next ->
-            key(next.playlistEntryId.ifBlank { next.id }) {
-                VinylNeighbour(
-                    track = next,
-                    slots = slots,
-                    side = side,
-                    distance = 1f + turn,
-                    cameraDistance = cameraDistance,
-                    corner = corner
-                )
-            }
-        }
+
+        // Settled centre stage: keeps Canvas motion, Lyrics Flip and mini-player morph anchor
+        // working at rest while staying invisible whenever the 3D cover wheel is turning.
         Box(
             modifier = Modifier
                 .size(side)
-                .zIndex(1f)
-                .graphicsLayer {
-                    translationX = turn * VinylArcShift * sidePx
-                    rotationY = -turn * VinylArcTurnDegrees
-                    scaleX = 1f - kotlin.math.abs(turn) * VinylArcScaleFalloff
-                    scaleY = scaleX
-                    this.cameraDistance = cameraDistance
-                }
+                .zIndex(3f)
         ) {
-            slots.stage(track, Modifier.size(side), corner)
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        alpha = heroOverlayAlpha
+                        this.cameraDistance = cameraDistance
+                    }
+            ) {
+                slots.stage(track, Modifier.size(side), corner)
+            }
             slots.gestures(track, Modifier.size(side))
         }
     }
 }
 
-/** One card beside the playhead: same artwork loader, transformed by its distance from centre. */
+/** One sleeve on the 3D Cover Flow arc, continuously positioned from [distance]. */
 @Composable
-private fun VinylNeighbour(
+private fun VinylArcCard(
     track: Track,
     slots: PlayerDeckSlots,
     side: Dp,
+    sidePx: Float,
     distance: Float,
     cameraDistance: Float,
-    corner: Dp
+    corner: Dp,
+    isNeighbour: Boolean,
+    onTapNeighbour: () -> Unit
 ) {
-    val away = kotlin.math.abs(distance)
-    // Given up on once it has travelled far enough out to be off the stage: drawing it there
-    // costs a cover decode for nothing.
+    val away = abs(distance)
     if (away > VinylNeighbourLimit) return
-    val density = LocalDensity.current
-    val sidePx = with(density) { side.toPx() }
-    val scrim = away * VinylArcScrim
-    // Full strength at rest, gone by the limit, and ramping in between so a card arriving from
-    // two places out does not appear as a hard edge on the way in.
+    // Smooth eased tilt near the playhead so landing in the centre settles softly to 0° instead
+    // of hinging abruptly across the origin.
+    val clampedUnit = distance.coerceIn(-1f, 1f)
+    val easedAngleFactor = 0.65f * sin(clampedUnit * (PI.toFloat() / 2f)) + 0.35f * distance.coerceIn(-1.6f, 1.6f)
+    val scrimProgress = away.coerceIn(0f, 1.4f)
+    val scrim = (scrimProgress * scrimProgress / (1.4f * 1.4f).coerceAtLeast(1f) * 0.45f + away * VinylArcScrim * 0.65f)
+        .coerceIn(0f, 0.72f)
     val presence = ((VinylNeighbourLimit - away) / (VinylNeighbourLimit - 1f)).coerceIn(0f, 1f)
+    val easedPresence = presence * presence * (3f - 2f * presence)
+    val cardScale = (1f - away * VinylArcScaleFalloff).coerceAtLeast(0.68f)
+
     Box(
         modifier = Modifier
             .size(side)
+            .zIndex(2f - away)
             .graphicsLayer {
                 translationX = distance * VinylArcShift * sidePx
-                rotationY = -distance * VinylArcTurnDegrees
-                scaleX = 1f - away * VinylArcScaleFalloff
-                scaleY = scaleX
-                alpha = presence
+                rotationY = -easedAngleFactor * VinylArcTurnDegrees
+                scaleX = cardScale
+                scaleY = cardScale
+                alpha = easedPresence
                 this.cameraDistance = cameraDistance
             }
+            .then(
+                if (isNeighbour) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures(onTap = { onTapNeighbour() })
+                    }
+                } else {
+                    Modifier
+                }
+            )
     ) {
         slots.cover(track, side, corner)
-        if (scrim > 0f) {
+        if (scrim > 0.004f) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
+                    .clip(RoundedCornerShape(corner))
                     .background(Color.Black.copy(alpha = scrim))
             )
         }

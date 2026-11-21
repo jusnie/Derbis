@@ -383,6 +383,23 @@ class PlayerDeckTest {
     }
 
     @Test
+    fun `vinyl deck queue exposes two-step neighbours and wrap-aware step direction`() {
+        val items = listOf(track("0"), track("1"), track("2"), track("3"), track("4"))
+        val mid = playerDeckQueue(items, trackId = "2")!!
+        assertEquals("0", mid.farPrevious?.id)
+        assertEquals("1", mid.previous?.id)
+        assertEquals("2", mid.current.id)
+        assertEquals("3", mid.next?.id)
+        assertEquals("4", mid.farNext?.id)
+
+        assertEquals(1, vinylTrackStepDirection(previousQueueIndex = 1, currentQueueIndex = 2, queueTotal = 5))
+        assertEquals(-1, vinylTrackStepDirection(previousQueueIndex = 2, currentQueueIndex = 1, queueTotal = 5))
+        assertEquals(1, vinylTrackStepDirection(previousQueueIndex = 4, currentQueueIndex = 0, queueTotal = 5))
+        assertEquals(-1, vinylTrackStepDirection(previousQueueIndex = 0, currentQueueIndex = 4, queueTotal = 5))
+        assertEquals(0, vinylTrackStepDirection(previousQueueIndex = 2, currentQueueIndex = 2, queueTotal = 5))
+    }
+
+    @Test
     fun `every language names and explains every deck style`() {
         DerbisStrings.all().forEach { strings ->
             PlayerDeckOrder.forEach { mode ->

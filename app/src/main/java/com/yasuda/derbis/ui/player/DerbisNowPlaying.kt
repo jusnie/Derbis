@@ -700,7 +700,9 @@ private fun DerbisNowPlayingContent(
                             next = viewModel::next,
                             previous = viewModel::previous,
                             swipeOffset = { offset -> swipe.follow(activeTrack.id, offset) },
-                            swipeSettled = { committed -> swipe.release(committed, carry = false) },
+                            swipeSettled = { committed ->
+                                swipe.release(committed, carry = deckLayout == PlayerDeckLayout.Vinyl)
+                            },
                             temporarySpeed = viewModel::setTemporaryPlaybackSpeed
                         ),
                         PlayerGestureUiActions(
@@ -784,7 +786,7 @@ private fun DerbisNowPlayingContent(
                         canvasQuality = state.interfaceSettings.canvasQuality,
                         morphAnchors = morphAnchors,
                         morphActive = morphActive,
-                        swipeOffset = swipeOffset,
+                        swipeOffset = if (deckLayout == PlayerDeckLayout.Vinyl) ({ 0f }) else swipeOffset,
                         artScale = artScale,
                         artOffset = artOffset,
                         modifier = Modifier
@@ -1441,6 +1443,7 @@ private fun DerbisNowPlayingContent(
                 scrollable = !fitsViewport,
                 gutter = gutter,
                 artworkCap = artworkCap,
+                swipeOffsetPx = swipeOffset,
                 onArtistClick = { artistIndex ->
                     playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
                         ?: viewModel.openArtist(track, artistIndex)

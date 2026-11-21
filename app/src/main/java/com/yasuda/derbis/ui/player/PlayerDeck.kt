@@ -127,7 +127,9 @@ internal data class PlayerDeckQueue(
     val current: Track,
     val next: Track?,
     val index: Int,
-    val total: Int
+    val total: Int,
+    val farPrevious: Track? = null,
+    val farNext: Track? = null
 ) {
     val hasNeighbours: Boolean get() = previous != null || next != null
 }
@@ -150,7 +152,9 @@ internal fun playerDeckQueue(
         current = queue[index],
         next = queue.getOrNull(index + 1),
         index = index,
-        total = queue.size
+        total = queue.size,
+        farPrevious = queue.getOrNull(index - 2),
+        farNext = queue.getOrNull(index + 2)
     )
 }
 
