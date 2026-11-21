@@ -903,6 +903,7 @@ class PlaybackService : MediaLibraryService() {
         autoLibrary = AndroidAutoLibrary(this)
         val prefs = DerbisPreferences(this)
         val snapshot = prefs.snapshot()
+        currentSkipSilence = snapshot.skipSilence
         val automaticBufferProfile = AdaptivePlaybackPolicy(this).serviceBuffers()
         val bufferProfile = playbackBufferProfile(automaticBufferProfile, snapshot.audioSettings.playbackBuffer)
         activeCustomBufferProfile = bufferProfile.takeIf {
@@ -1096,6 +1097,7 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) {
+                currentSkipSilence = skipSilenceEnabled
                 refreshAudioOffloadPolicy()
             }
 
@@ -1617,6 +1619,18 @@ class PlaybackService : MediaLibraryService() {
             // Player.pause(); it has exactly the same pause-all-audio contract.
             pauseAllAudiblePlayback(delegate, explicitUserRequest = true)
         }
+    }
+
+    override fun stop() {
+        // Programmatic unloads (such as stopping the outgoing song while a newly selected track
+        // resolves) must silence every deck without marking the session paused by the listener.
+        pauseAllAudiblePlayback(delegate, explicitUserRequest = false)
+        super.stop()
+    }
+
+    override fun clearMediaItems() {
+        pauseAllAudiblePlayback(delegate, explicitUserRequest = false)
+        super.clearMediaItems()
     }
 
     override fun addListener(listener: Player.Listener) {

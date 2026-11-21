@@ -4418,11 +4418,35 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         playWhenReady: Boolean,
         errorMessage: String
     ) {
-        if (isLocalPlaybackTrack(failedTrack) || PlaybackService.isExplicitPauseActive) return
+        if (isLocalPlaybackTrack(failedTrack)) {
+            player.clearRecoveryState()
+            return
+        }
+        // Always report and quarantine the failing stream URL (including an alternative HQ stream
+        // such as JioSaavn) before checking the pause fence, so the next Play falls back to a
+        // working source instead of replaying the dead URL.
+        resolver.reportPlaybackFailure(failedTrack, videoMode, errorMessage)
+        if (PlaybackService.isExplicitPauseActive) {
+            player.clearRecoveryState()
+            val currentIndex = queueEngine.state.value.currentIndex
+            val cleared = failedTrack.copy(streamUrl = "")
+            if (currentIndex >= 0 && queueEngine.state.value.currentTrack?.id == failedTrack.id) {
+                queueEngine.updateTrackAt(currentIndex, cleared)
+            }
+            _state.update { current ->
+                current.copy(
+                    isResolving = false,
+                    isPlaying = false,
+                    currentTrack = current.currentTrack?.let { active ->
+                        if (active.id == failedTrack.id) active.copy(streamUrl = "") else active
+                    }
+                )
+            }
+            return
+        }
         val transitionId = ++streamTransitionId
         modeSwitchJob?.cancel()
         streamRecoveryJob?.cancel()
-        resolver.reportPlaybackFailure(failedTrack, videoMode, errorMessage)
         _state.update { it.copy(isResolving = true, isPlaying = playWhenReady, playerError = null) }
         streamRecoveryJob = viewModelScope.launch {
             try {
@@ -13511,6 +13535,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             pendingSeekMs = queue.positionMs
             startResolve(current)
         } else {
+            PlaybackService.beginExplicitPlaybackRequest()
             player.play(current, _state.value.isVideoMode, startPositionMs = resumePositionFor(current))
             _state.update { it.copy(isPlaying = true) }
         }

@@ -408,6 +408,7 @@ class DerbisPlayer(context: Context) {
 
     fun play(track: Track, videoMode: Boolean = false, startPositionMs: Long = 0L) {
         require(track.streamUrl.isNotBlank()) { "Stream URL assente per ${track.title}" }
+        PlaybackService.beginExplicitPlaybackRequest()
         invalidateDelayedVideoRecovery()
         val safeStartPositionMs = startPositionMs.coerceAtLeast(0L)
         val identity = streamIdentity(track, videoMode)
@@ -421,7 +422,13 @@ class DerbisPlayer(context: Context) {
         recoveryAttempts = 0
         applyPlaybackParameters(active)
         val sameTrack = loadedTrack?.id == track.id
-        if (!sameTrack || loadedStreamIdentity != identity || loadedVideoMode != videoMode) {
+        if (
+            !sameTrack ||
+            loadedStreamIdentity != identity ||
+            loadedVideoMode != videoMode ||
+            active.playbackState == Player.STATE_IDLE ||
+            active.mediaItemCount == 0
+        ) {
             replaceSource(
                 track = track,
                 positionMs = playbackStartPositionRequest(
@@ -430,7 +437,8 @@ class DerbisPlayer(context: Context) {
                     activePositionMs = active.currentPosition
                 ),
                 videoMode = videoMode,
-                playWhenReady = true
+                playWhenReady = true,
+                explicitPlay = true
             )
             return
         }
@@ -468,7 +476,8 @@ class DerbisPlayer(context: Context) {
         track: Track,
         positionMs: Long,
         videoMode: Boolean,
-        playWhenReady: Boolean
+        playWhenReady: Boolean,
+        explicitPlay: Boolean = false
     ) {
         require(track.streamUrl.isNotBlank()) { "Stream URL assente per ${track.title}" }
         invalidateDelayedVideoRecovery()
@@ -506,8 +515,8 @@ class DerbisPlayer(context: Context) {
         }
         // A resolver/recovery coroutine can finish after a transport Pause. Never let that
         // stale completion turn the session back on; only a new Play command clears this fence.
-        val requestedPlayWhenReady = playWhenReady && !PlaybackService.isExplicitPauseActive
-        val effectivePlayWhenReady = if (sameTrack && !recoveryReplacement && active.mediaItemCount > 0) {
+        val requestedPlayWhenReady = playWhenReady && (explicitPlay || !PlaybackService.isExplicitPauseActive)
+        val effectivePlayWhenReady = if (!explicitPlay && sameTrack && !recoveryReplacement && active.mediaItemCount > 0) {
             active.playWhenReady
         } else {
             requestedPlayWhenReady
@@ -564,6 +573,10 @@ class DerbisPlayer(context: Context) {
         }
     }
 
+    fun clearRecoveryState() {
+        recoveryInFlight = false
+    }
+
     fun stop() {
         invalidateDelayedVideoRecovery()
         ignoreEndedFromManualStop = true
@@ -573,8 +586,11 @@ class DerbisPlayer(context: Context) {
         sponsorJob = null
         clearLoadedState()
         pendingPlayback = null
+        // Use stop() rather than pause() so programmatic unloads (such as clearing the previous
+        // item while a newly selected track resolves) do not trip PlaybackService's explicit
+        // user-pause fence.
         controller?.let {
-            it.pause()
+            it.stop()
             it.clearMediaItems()
         }
     }
