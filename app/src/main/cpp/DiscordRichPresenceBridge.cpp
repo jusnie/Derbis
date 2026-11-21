@@ -228,6 +228,60 @@ Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeBeginSign
 }
 
 extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeDefaultScopes(
+    JNIEnv* env, jobject
+) {
+    std::lock_guard<std::recursive_mutex> lock(g_mutex);
+    if (!g_client_initialized) return new_jstring(env, "");
+    Discord_String scopes{};
+    Discord_Client_GetDefaultPresenceScopes(&scopes);
+    return new_jstring(env, copy_string(scopes));
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeApplyToken(
+    JNIEnv* env,
+    jobject,
+    jstring access_token,
+    jstring refresh_token,
+    jint token_type
+) {
+    std::lock_guard<std::recursive_mutex> lock(g_mutex);
+    if (!g_client_initialized || g_application_id == 0 || access_token == nullptr) return JNI_FALSE;
+    const char* raw_access = env->GetStringUTFChars(access_token, nullptr);
+    std::string next_access = raw_access == nullptr ? "" : raw_access;
+    if (raw_access != nullptr) env->ReleaseStringUTFChars(access_token, raw_access);
+    if (next_access.empty()) return JNI_FALSE;
+
+    std::string next_refresh;
+    if (refresh_token != nullptr) {
+        const char* raw_refresh = env->GetStringUTFChars(refresh_token, nullptr);
+        next_refresh = raw_refresh == nullptr ? "" : raw_refresh;
+        if (raw_refresh != nullptr) env->ReleaseStringUTFChars(refresh_token, raw_refresh);
+    }
+
+    g_access_token = std::move(next_access);
+    if (!next_refresh.empty()) {
+        g_refresh_token = std::move(next_refresh);
+    }
+    g_token_type = token_type;
+    g_connection_state = kStateConnecting;
+    g_error.clear();
+    auto token = string_view(g_access_token);
+    Discord_Client_UpdateToken(
+        &g_client,
+        static_cast<Discord_AuthorizationTokenType>(token_type),
+        token,
+        on_token_updated,
+        nullptr,
+        nullptr
+    );
+    return JNI_TRUE;
+}
+
+extern "C"
 JNIEXPORT jboolean JNICALL
 Java_com_yasuda_derbis_feature_discord_DerbisDiscordRichPresence_nativeRestoreSession(
     JNIEnv* env,

@@ -182,6 +182,80 @@ private fun String.discordExternalArtworkUrl(): String {
     }.orEmpty()
 }
 
+/**
+ * Matches a candidate deep-link URI against the configured Discord mobile redirect URI across all
+ * custom-scheme forms Android browsers and the Discord app emit:
+ * - `discord-<id>:/authorize/callback?...` (documented single-slash hostless form)
+ * - `discord-<id>://authorize/callback?...` (authority + path normalization)
+ * - `discord-<id>:authorize/callback?...` (opaque scheme-specific part without leading slash)
+ */
+internal fun matchesDiscordRedirect(candidateUri: String?, configuredRedirectUri: String): Boolean {
+    val rawCandidate = candidateUri?.trim().orEmpty()
+    val rawExpected = configuredRedirectUri.trim()
+    if (rawCandidate.isBlank() || rawExpected.isBlank()) return false
+
+    fun splitSchemeAndPath(raw: String): Pair<String, String>? {
+        val colon = raw.indexOf(':')
+        if (colon <= 0) return null
+        val scheme = raw.substring(0, colon).lowercase()
+        val withoutQuery = raw.substring(colon + 1)
+            .substringBefore('#')
+            .substringBefore('?')
+        val normalizedPath = withoutQuery.trimStart('/').trimEnd('/').lowercase()
+        return scheme to normalizedPath
+    }
+
+    val (candidateScheme, candidatePath) = splitSchemeAndPath(rawCandidate) ?: return false
+    val (expectedScheme, expectedPath) = splitSchemeAndPath(rawExpected) ?: return false
+    if (candidateScheme != expectedScheme) return false
+    if (expectedPath.isBlank()) return true
+    return candidatePath == expectedPath
+}
+
+/**
+ * Extracts query and fragment parameters from a Discord OAuth redirect URI without relying on
+ * hierarchical `android.net.Uri.getQueryParameter` (which throws on opaque `scheme:path?query` URIs).
+ */
+internal fun parseDiscordCallbackParams(candidateUri: String?): Map<String, String> {
+    val raw = candidateUri?.trim().orEmpty()
+    if (raw.isBlank()) return emptyMap()
+    val result = LinkedHashMap<String, String>()
+
+    fun decodeComponent(value: String): String = runCatching {
+        java.net.URLDecoder.decode(value, Charsets.UTF_8.name())
+    }.getOrDefault(value)
+
+    fun parsePairList(encoded: String) {
+        if (encoded.isBlank()) return
+        for (entry in encoded.split('&')) {
+            if (entry.isBlank()) continue
+            val eq = entry.indexOf('=')
+            val key = if (eq >= 0) decodeComponent(entry.substring(0, eq)) else decodeComponent(entry)
+            val value = if (eq >= 0) decodeComponent(entry.substring(eq + 1)) else ""
+            if (key.isNotBlank() && !result.containsKey(key)) {
+                result[key] = value
+            }
+        }
+    }
+
+    val fragment = raw.substringAfter('#', "")
+    val withoutFragment = raw.substringBefore('#')
+    val query = withoutFragment.substringAfter('?', "")
+    // Prefer query parameters (`?code=...&state=...`), falling back to fragment (`#access_token=...`).
+    parsePairList(query)
+    parsePairList(fragment)
+    return result
+}
+
+internal fun mergeDiscordOAuthScopes(sdkDefaultScopes: String, includeSdkScopes: Boolean): String {
+    if (!includeSdkScopes || sdkDefaultScopes.isBlank()) return "identify"
+    return (sdkDefaultScopes.trim().split(Regex("\\s+")) + "identify")
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .distinct()
+        .joinToString(" ")
+}
+
 object DerbisDiscordRichPresence {
     private const val AUTHORIZE_ENDPOINT = "https://discord.com/oauth2/authorize"
     private const val PREFERENCES = "derbis_discord_presence"
@@ -189,6 +263,7 @@ object DerbisDiscordRichPresence {
     private const val LYRICS_KEY = "lyrics_in_presence"
     private const val PKCE_VERIFIER_KEY = "pkce_verifier"
     private const val OAUTH_STATE_KEY = "oauth_state"
+    private const val IDENTIFY_ONLY_SCOPE_KEY = "identify_only_scope"
 
     /**
      * How long a started sign-in is treated as still in flight. Nothing guarantees a callback -
@@ -220,6 +295,7 @@ object DerbisDiscordRichPresence {
     @Volatile private var loadAttempted = false
     @Volatile private var initialized = false
     @Volatile private var restoreAttempted = false
+    @Volatile private var lastHandledRedirectSignature = ""
     @Volatile private var lastPresence = DerbisDiscordPresenceSnapshot()
     @Volatile private var lastPublishedPresenceKey = ""
     @Volatile private var nativePresenceActive = false
@@ -248,38 +324,132 @@ object DerbisDiscordRichPresence {
         initialize(activity.applicationContext)
     }
 
+    private fun ensureNativeInitialized(): Boolean {
+        if (!BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE || applicationId <= 0L) return false
+        if (!loadBridge()) return false
+        if (!initialized) {
+            initialized = runCatching { nativeInitialize(applicationId) }.getOrDefault(false)
+        }
+        return initialized
+    }
+
+    private fun connectNativeSession(session: DerbisDiscordSession) {
+        if (!ensureNativeInitialized()) return
+        val bearer = session.accessToken
+        if (bearer.isNotBlank()) {
+            val tokenType = if (session.tokenType > 0) session.tokenType else 1
+            runCatching { nativeApplyToken(bearer, session.refreshToken, tokenType) }
+        } else if (session.refreshToken.isNotBlank()) {
+            runCatching { nativeRestoreSession(session.refreshToken) }
+        }
+        ensureStatePolling()
+    }
+
     fun initialize(context: Context) {
         applicationContext = context.applicationContext
         val savedSession = DerbisDiscordAccountStore.read(context)
         if (savedSession != null && savedSession.hasValidToken) {
+            val statusDetail = if (savedSession.username.isNotBlank()) {
+                "Connected as @${savedSession.username}"
+            } else {
+                "Connected"
+            }
             _connectionState.value = DerbisDiscordConnectionState(
                 status = DerbisDiscordConnectionStatus.Connected,
-                detail = "Connected",
+                detail = statusDetail,
                 username = savedSession.username,
                 globalName = savedSession.globalName,
                 avatarUrl = savedSession.avatarUrl
             )
-            // The gateway authenticates account tokens only; an OAuth access token is for REST.
+            // The gateway authenticates raw account tokens only; an OAuth access token is for REST/SDK.
             if (savedSession.userToken.isNotBlank()) {
                 DiscordRpcClient.connect(savedSession.userToken)
             }
+            if (!restoreAttempted) {
+                restoreAttempted = true
+                connectNativeSession(savedSession)
+                verifyOrRefreshStoredSession(context.applicationContext, savedSession)
+            }
         } else {
-            if (_connectionState.value.status != DerbisDiscordConnectionStatus.SigningIn) {
+            if (
+                _connectionState.value.status != DerbisDiscordConnectionStatus.SigningIn &&
+                _connectionState.value.status != DerbisDiscordConnectionStatus.Connecting
+            ) {
                 _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
             }
         }
+    }
 
-        // Only restore native bridge if the user specifically saved a native refresh token
-        if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE && applicationId > 0L && savedSession != null && savedSession.refreshToken.isNotBlank()) {
-            if (loadBridge()) {
-                if (!initialized) {
-                    initialized = runCatching { nativeInitialize(applicationId) }.getOrDefault(false)
+    private fun verifyOrRefreshStoredSession(context: Context, session: DerbisDiscordSession) {
+        bridgeScope.launch {
+            if (session.userToken.isNotBlank()) {
+                val res = DiscordRpcClient.testConnection(session.userToken, preferBearer = false)
+                if (res.success) {
+                    val updated = session.copy(
+                        username = res.username.ifBlank { session.username },
+                        globalName = res.globalName.ifBlank { session.globalName },
+                        avatarUrl = res.avatarUrl.ifBlank { session.avatarUrl }
+                    )
+                    DerbisDiscordAccountStore.save(context, updated)
+                    _connectionState.value = _connectionState.value.copy(
+                        status = DerbisDiscordConnectionStatus.Connected,
+                        username = updated.username,
+                        globalName = updated.globalName,
+                        avatarUrl = updated.avatarUrl,
+                        latencyMs = res.latencyMs
+                    )
                 }
-                if (initialized && !restoreAttempted) {
-                    restoreAttempted = true
-                    runCatching { nativeRestoreSession(savedSession.refreshToken) }
+                return@launch
+            }
+
+            if (session.accessToken.isBlank()) return@launch
+            var activeAccess = session.accessToken
+            var activeRefresh = session.refreshToken
+            var diagnostic = DiscordRpcClient.testConnection(activeAccess, preferBearer = true)
+            if (!diagnostic.success && diagnostic.httpCode == 401 && activeRefresh.isNotBlank() && isConfigured()) {
+                val refreshed = DiscordRpcClient.refreshAuthorizationToken(
+                    clientId = BuildConfig.DISCORD_APPLICATION_ID,
+                    refreshToken = activeRefresh
+                )
+                if (refreshed.success) {
+                    activeAccess = refreshed.accessToken
+                    activeRefresh = refreshed.refreshToken
+                    diagnostic = DiscordRpcClient.testConnection(activeAccess, preferBearer = true)
+                    if (diagnostic.success) {
+                        val updated = session.copy(
+                            accessToken = activeAccess,
+                            refreshToken = activeRefresh,
+                            tokenType = 1,
+                            username = diagnostic.username.ifBlank { session.username },
+                            globalName = diagnostic.globalName.ifBlank { session.globalName },
+                            avatarUrl = diagnostic.avatarUrl.ifBlank { session.avatarUrl }
+                        )
+                        DerbisDiscordAccountStore.save(context, updated)
+                        connectNativeSession(updated)
+                    }
                 }
-                ensureStatePolling()
+            }
+            if (diagnostic.success) {
+                val updated = session.copy(
+                    accessToken = activeAccess,
+                    refreshToken = activeRefresh,
+                    username = diagnostic.username.ifBlank { session.username },
+                    globalName = diagnostic.globalName.ifBlank { session.globalName },
+                    avatarUrl = diagnostic.avatarUrl.ifBlank { session.avatarUrl }
+                )
+                DerbisDiscordAccountStore.save(context, updated)
+                _connectionState.value = _connectionState.value.copy(
+                    status = DerbisDiscordConnectionStatus.Connected,
+                    detail = if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
+                        "Connected as @${updated.username}"
+                    } else {
+                        "Signed in as @${updated.username}. Rich Presence needs the Discord Social SDK, which this build does not carry."
+                    },
+                    username = updated.username,
+                    globalName = updated.globalName,
+                    avatarUrl = updated.avatarUrl,
+                    latencyMs = diagnostic.latencyMs
+                )
             }
         }
     }
@@ -306,18 +476,27 @@ object DerbisDiscordRichPresence {
             )
             return null
         }
+        lastHandledRedirectSignature = ""
+        val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
         val verifier = newCodeVerifier()
         // The redirect is a custom scheme, which any app on the device could claim, so the
         // callback carries a nonce this app generated and nobody else has seen. Persisted before
         // the hand-off, along with the PKCE verifier, so a process death during the Discord
         // round-trip does not strand the callback with nothing to check it against.
         val state = newCodeVerifier()
-        context.applicationContext
-            .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+        preferences
             .edit()
             .putString(PKCE_VERIFIER_KEY, verifier)
             .putString(OAUTH_STATE_KEY, state)
             .apply()
+        val includeSdkScopes = BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE &&
+            !preferences.getBoolean(IDENTIFY_ONLY_SCOPE_KEY, false)
+        val sdkScopes = if (includeSdkScopes && ensureNativeInitialized()) {
+            runCatching { nativeDefaultScopes() }.getOrDefault("")
+        } else {
+            ""
+        }
+        val scopeParam = mergeDiscordOAuthScopes(sdkScopes, includeSdkScopes)
         signInStartedAtMs = android.os.SystemClock.elapsedRealtime()
         _connectionState.value = DerbisDiscordConnectionState(
             DerbisDiscordConnectionStatus.SigningIn,
@@ -326,7 +505,7 @@ object DerbisDiscordRichPresence {
         return Uri.parse(AUTHORIZE_ENDPOINT).buildUpon()
             .appendQueryParameter("client_id", BuildConfig.DISCORD_APPLICATION_ID)
             .appendQueryParameter("response_type", "code")
-            .appendQueryParameter("scope", "identify")
+            .appendQueryParameter("scope", scopeParam)
             .appendQueryParameter("redirect_uri", BuildConfig.DISCORD_REDIRECT_URI)
             .appendQueryParameter("state", state)
             .appendQueryParameter("code_challenge", codeChallenge(verifier))
@@ -418,37 +597,24 @@ object DerbisDiscordRichPresence {
     }
 
     /** Whether a deep link is the redirect this app is waiting for. */
-    fun receives(uri: Uri?): Boolean {
-        if (uri == null) return false
-        val expected = Uri.parse(BuildConfig.DISCORD_REDIRECT_URI)
-        // Discord's mobile redirect is discord-<app id>:/authorize/callback: a bare scheme with a
-        // path and no authority at all. Comparing hosts would be comparing two nulls, so the
-        // scheme is what identifies this app, and the path is checked with it.
-        if (!uri.scheme.equals(expected.scheme, ignoreCase = true)) return false
-        val expectedPath = expected.path.orEmpty()
-        if (expectedPath.isBlank()) return true
-        return uri.path.orEmpty().trimEnd('/').equals(expectedPath.trimEnd('/'), ignoreCase = true)
-    }
+    fun receives(uri: Uri?): Boolean =
+        matchesDiscordRedirect(uri?.toString(), BuildConfig.DISCORD_REDIRECT_URI)
 
     /**
-     * Completes the authorization started by [beginAuthorization]. Discord returns the token in
-     * the redirect fragment, which Android hands back as `Uri.fragment`.
+     * Completes the authorization started by [beginAuthorization].
      */
     fun handleRedirect(context: Context, uri: Uri?) {
         if (!receives(uri) || uri == null) return
+        val rawUri = uri.toString()
+        if (rawUri.isNotBlank() && rawUri == lastHandledRedirectSignature) {
+            return
+        }
+        lastHandledRedirectSignature = rawUri
         signInStartedAtMs = 0L
         applicationContext = context.applicationContext
-        // The implicit grant returns the token in the fragment; browsers that rewrite the
-        // redirect may hand the same keys back as a query instead, so both are accepted.
-        val fragment = uri.fragment.orEmpty()
-        val params = if (fragment.isBlank()) {
-            uri
-        } else {
-            // Uri reads queries, not fragments, so re-home the fragment as the query.
-            Uri.parse("${BuildConfig.DISCORD_REDIRECT_URI}?$fragment")
-        }
-        fun read(key: String): String =
-            params.getQueryParameter(key) ?: uri.getQueryParameter(key).orEmpty()
+        val parsedParams = parseDiscordCallbackParams(rawUri)
+        fun read(key: String): String = parsedParams[key].orEmpty()
+
         // State check first: if this callback is not the one this app started, none of the rest
         // of it can be trusted, including its error field.
         val preferences = context.applicationContext
@@ -468,8 +634,16 @@ object DerbisDiscordRichPresence {
         }
         val error = read("error")
         if (error.isNotBlank()) {
+            if (error.equals("invalid_scope", ignoreCase = true)) {
+                preferences.edit().putBoolean(IDENTIFY_ONLY_SCOPE_KEY, true).apply()
+            }
             val description = read("error_description")
-            val message = description.ifBlank { "Discord sign-in was cancelled or denied ($error)." }
+            val message = when {
+                error.equals("invalid_scope", ignoreCase = true) ->
+                    "Discord rejected the requested Rich Presence scope. Tap Reconnect Discord to sign in with basic account access."
+                description.isNotBlank() -> description
+                else -> "Discord sign-in was cancelled or denied ($error)."
+            }
             _connectionState.value = DerbisDiscordConnectionState(
                 DerbisDiscordConnectionStatus.Error,
                 message
@@ -500,6 +674,12 @@ object DerbisDiscordRichPresence {
         val preferences = context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
         val verifier = preferences.getString(PKCE_VERIFIER_KEY, null).orEmpty()
         if (verifier.isBlank()) {
+            // If an earlier callback already saved a valid session, do not clobber Connected with Error.
+            val existing = DerbisDiscordAccountStore.read(context)
+            if (existing != null && existing.hasValidToken) {
+                initialize(context)
+                return
+            }
             _connectionState.value = DerbisDiscordConnectionState(
                 DerbisDiscordConnectionStatus.Error,
                 "The sign-in challenge expired. Start the Discord sign-in again."
@@ -537,7 +717,7 @@ object DerbisDiscordRichPresence {
             "Verifying your Discord account..."
         )
         bridgeScope.launch {
-            val diagnostic = DiscordRpcClient.testConnection("Bearer $accessToken")
+            val diagnostic = DiscordRpcClient.testConnection(accessToken, preferBearer = true)
             if (!diagnostic.success) {
                 _connectionState.value = DerbisDiscordConnectionState(
                     status = DerbisDiscordConnectionStatus.Error,
@@ -546,17 +726,16 @@ object DerbisDiscordRichPresence {
                 announce("Discord sign-in failed: ${diagnostic.message}")
                 return@launch
             }
-            DerbisDiscordAccountStore.save(
-                context,
-                DerbisDiscordSession(
-                    accessToken = accessToken,
-                    refreshToken = refreshToken,
-                    tokenType = 1,
-                    username = diagnostic.username,
-                    globalName = diagnostic.globalName,
-                    avatarUrl = diagnostic.avatarUrl
-                )
+            val saved = DerbisDiscordSession(
+                accessToken = accessToken,
+                refreshToken = refreshToken,
+                tokenType = 1,
+                username = diagnostic.username,
+                globalName = diagnostic.globalName,
+                avatarUrl = diagnostic.avatarUrl
             )
+            DerbisDiscordAccountStore.save(context, saved)
+            restoreAttempted = true
             _connectionState.value = DerbisDiscordConnectionState(
                 status = DerbisDiscordConnectionStatus.Connected,
                 detail = "Connected as @${diagnostic.username}",
@@ -565,10 +744,9 @@ object DerbisDiscordRichPresence {
                 avatarUrl = diagnostic.avatarUrl,
                 latencyMs = diagnostic.latencyMs
             )
-            // An OAuth access token authenticates the REST API, not the Discord gateway, so
-            // presence can only go out through the official Social SDK bridge. Say that out loud
-            // in the detail line instead of leaving a signed-in account that shows nothing.
+            // An OAuth access token authenticates the REST API and Social SDK, not the raw user gateway.
             if (BuildConfig.DISCORD_SOCIAL_SDK_AVAILABLE) {
+                connectNativeSession(saved)
                 setEnabled(context, true)
                 publishStored(context)
                 announce("Discord connected as @${diagnostic.username}.")
@@ -589,17 +767,46 @@ object DerbisDiscordRichPresence {
      * Connection tester: runs 4-phase diagnostics to troubleshoot any connection issues.
      */
     fun testConnection(context: Context, onResult: (DiscordDiagnosticResult) -> Unit) {
-        val session = DerbisDiscordAccountStore.read(context)
-        // OAuth sessions carry a bearer token; legacy user-token sessions send the account token raw.
-        val token = session?.let { session ->
-            session.userToken.ifBlank {
-                session.accessToken.takeIf(String::isNotBlank)?.let { "Bearer $it" }.orEmpty()
-            }
-        }.orEmpty()
+        val appContext = context.applicationContext
         bridgeScope.launch {
-            val diagnostic = DiscordRpcClient.testConnection(token)
+            val session = DerbisDiscordAccountStore.read(appContext)
+            if (session == null || !session.hasValidToken) {
+                onResult(
+                    DiscordDiagnosticResult(
+                        success = false,
+                        message = "No Discord account is signed in yet. Tap Connect Discord first."
+                    )
+                )
+                return@launch
+            }
+            val isUserToken = session.userToken.isNotBlank()
+            var activeToken = if (isUserToken) session.userToken else session.accessToken
+            var diagnostic = DiscordRpcClient.testConnection(activeToken, preferBearer = !isUserToken)
+            if (!diagnostic.success && !isUserToken && diagnostic.httpCode == 401 && session.refreshToken.isNotBlank() && isConfigured()) {
+                val refreshed = DiscordRpcClient.refreshAuthorizationToken(
+                    clientId = BuildConfig.DISCORD_APPLICATION_ID,
+                    refreshToken = session.refreshToken
+                )
+                if (refreshed.success) {
+                    activeToken = refreshed.accessToken
+                    diagnostic = DiscordRpcClient.testConnection(activeToken, preferBearer = true)
+                    if (diagnostic.success) {
+                        val updated = session.copy(
+                            accessToken = refreshed.accessToken,
+                            refreshToken = refreshed.refreshToken,
+                            tokenType = 1,
+                            username = diagnostic.username.ifBlank { session.username },
+                            globalName = diagnostic.globalName.ifBlank { session.globalName },
+                            avatarUrl = diagnostic.avatarUrl.ifBlank { session.avatarUrl }
+                        )
+                        DerbisDiscordAccountStore.save(appContext, updated)
+                        connectNativeSession(updated)
+                    }
+                }
+            }
             if (diagnostic.success) {
                 _connectionState.value = _connectionState.value.copy(
+                    status = DerbisDiscordConnectionStatus.Connected,
                     username = diagnostic.username,
                     globalName = diagnostic.globalName,
                     avatarUrl = diagnostic.avatarUrl,
@@ -829,29 +1036,65 @@ object DerbisDiscordRichPresence {
 
     private fun synchronizeNativeState(context: Context) {
         if (!initialized || !loadBridge()) return
-        val previous = _connectionState.value.status
+        val current = _connectionState.value
+        val previous = current.status
+        val storedSession = DerbisDiscordAccountStore.read(context)
+        val hasSavedAccount = storedSession != null && storedSession.hasValidToken
         val nativeStatus = runCatching { nativeConnectionState() }.getOrDefault(NATIVE_DISCONNECTED)
         when (nativeStatus) {
-            NATIVE_DISCONNECTED -> if (!DiscordRpcClient.isConnected) {
-                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
+            NATIVE_DISCONNECTED -> {
+                if (!DiscordRpcClient.isConnected && !hasSavedAccount &&
+                    previous != DerbisDiscordConnectionStatus.SigningIn &&
+                    previous != DerbisDiscordConnectionStatus.Connecting
+                ) {
+                    _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Disconnected)
+                }
             }
-            NATIVE_SIGNING_IN -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
-            NATIVE_CONNECTING -> _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting)
+            NATIVE_SIGNING_IN -> {
+                if (!hasSavedAccount) {
+                    _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.SigningIn)
+                }
+            }
+            NATIVE_CONNECTING -> {
+                if (!hasSavedAccount && previous != DerbisDiscordConnectionStatus.Connected) {
+                    _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connecting)
+                }
+            }
             NATIVE_CONNECTED -> {
                 val accessToken = runCatching { nativeTakeAccessToken() }.getOrDefault("")
                 val refreshToken = runCatching { nativeTakeRefreshToken() }.getOrDefault("")
-                val tokenType = runCatching { nativeTakeTokenType() }.getOrDefault(0)
-                if (accessToken.isNotBlank() && refreshToken.isNotBlank()) {
+                val tokenType = runCatching { nativeTakeTokenType() }.getOrDefault(1)
+                val preservedUsername = storedSession?.username?.ifBlank { current.username } ?: current.username
+                val preservedGlobal = storedSession?.globalName?.ifBlank { current.globalName } ?: current.globalName
+                val preservedAvatar = storedSession?.avatarUrl?.ifBlank { current.avatarUrl } ?: current.avatarUrl
+                if (accessToken.isNotBlank()) {
                     DerbisDiscordAccountStore.save(
                         context,
-                        DerbisDiscordSession(accessToken, refreshToken, tokenType)
+                        DerbisDiscordSession(
+                            accessToken = accessToken,
+                            refreshToken = refreshToken.ifBlank { storedSession?.refreshToken.orEmpty() },
+                            tokenType = tokenType,
+                            userToken = storedSession?.userToken.orEmpty(),
+                            username = preservedUsername,
+                            globalName = preservedGlobal,
+                            avatarUrl = preservedAvatar
+                        )
                     )
-                    DiscordRpcClient.connect(accessToken)
                 }
-                _connectionState.value = DerbisDiscordConnectionState(DerbisDiscordConnectionStatus.Connected, "Connected")
+                _connectionState.value = DerbisDiscordConnectionState(
+                    status = DerbisDiscordConnectionStatus.Connected,
+                    detail = if (preservedUsername.isNotBlank()) "Connected as @$preservedUsername" else "Connected",
+                    username = preservedUsername,
+                    globalName = preservedGlobal,
+                    avatarUrl = preservedAvatar,
+                    latencyMs = current.latencyMs
+                )
             }
             NATIVE_ERROR -> {
-                if (!DiscordRpcClient.isConnected) {
+                // Keep a verified signed-in Discord account in Connected state even if the optional
+                // Social SDK activity channel has not been granted presence scopes for this app id,
+                // so the Settings card never falls back to "Reconnect Discord" right after approval.
+                if (!DiscordRpcClient.isConnected && !hasSavedAccount) {
                     val err = runCatching { nativeConnectionError() }.getOrDefault("Discord connection failed")
                     _connectionState.value = DerbisDiscordConnectionState(
                         DerbisDiscordConnectionStatus.Error,
@@ -881,7 +1124,9 @@ object DerbisDiscordRichPresence {
     }
 
     private external fun nativeInitialize(applicationId: Long): Boolean
+    private external fun nativeDefaultScopes(): String
     private external fun nativeBeginSignIn(): Boolean
+    private external fun nativeApplyToken(accessToken: String, refreshToken: String, tokenType: Int): Boolean
     private external fun nativeRestoreSession(refreshToken: String): Boolean
     private external fun nativeDisconnect()
     private external fun nativeConnectionState(): Int

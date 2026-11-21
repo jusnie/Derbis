@@ -183,4 +183,75 @@ class DiscordRichPresenceTest {
         assertEquals("", snapshot.artworkUrl)
         assertFalse(snapshot.playing)
     }
+
+    @Test
+    fun testDiscordRedirectMatchingHandlesAllMobileUriForms() {
+        val configured = "discord-1563840846372012102:/authorize/callback"
+
+        // Documented single-slash hostless form
+        assertTrue(
+            matchesDiscordRedirect(
+                "discord-1563840846372012102:/authorize/callback?code=abc123&state=nonce1",
+                configured
+            )
+        )
+        // Double-slash authority + path form emitted by some browsers / intent routers
+        assertTrue(
+            matchesDiscordRedirect(
+                "discord-1563840846372012102://authorize/callback?code=abc123&state=nonce1",
+                configured
+            )
+        )
+        // Opaque form without leading slash
+        assertTrue(
+            matchesDiscordRedirect(
+                "discord-1563840846372012102:authorize/callback/?code=abc123&state=nonce1",
+                configured
+            )
+        )
+        // Wrong scheme or path must not match
+        assertFalse(
+            matchesDiscordRedirect(
+                "derbis-spotify://callback?code=abc123",
+                configured
+            )
+        )
+        assertFalse(
+            matchesDiscordRedirect(
+                "discord-1563840846372012102:/other/path?code=abc123",
+                configured
+            )
+        )
+    }
+
+    @Test
+    fun testParseDiscordCallbackParamsReadsQueryAndFragmentSafely() {
+        val codeParams = parseDiscordCallbackParams(
+            "discord-1563840846372012102:authorize/callback?code=Q29kZVZhbHVl&state=st_99"
+        )
+        assertEquals("Q29kZVZhbHVl", codeParams["code"])
+        assertEquals("st_99", codeParams["state"])
+
+        val fragmentParams = parseDiscordCallbackParams(
+            "discord-1563840846372012102:/authorize/callback#access_token=tok_xyz&state=st_77"
+        )
+        assertEquals("tok_xyz", fragmentParams["access_token"])
+        assertEquals("st_77", fragmentParams["state"])
+
+        val errorParams = parseDiscordCallbackParams(
+            "discord-1563840846372012102:/authorize/callback?error=invalid_scope&error_description=Unknown+scope+requested"
+        )
+        assertEquals("invalid_scope", errorParams["error"])
+        assertEquals("Unknown scope requested", errorParams["error_description"])
+    }
+
+    @Test
+    fun testMergeDiscordOAuthScopesPreservesIdentifyAndDeduplicates() {
+        assertEquals("identify", mergeDiscordOAuthScopes("", includeSdkScopes = true))
+        assertEquals("identify", mergeDiscordOAuthScopes("openid sdk.social_layer_presence", includeSdkScopes = false))
+        assertEquals(
+            "openid sdk.social_layer_presence identify",
+            mergeDiscordOAuthScopes("openid  sdk.social_layer_presence  identify", includeSdkScopes = true)
+        )
+    }
 }

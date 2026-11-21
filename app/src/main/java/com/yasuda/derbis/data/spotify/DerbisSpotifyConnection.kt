@@ -72,6 +72,9 @@ object DerbisSpotifyConnection {
     @Volatile
     private var initialized = false
 
+    @Volatile
+    private var lastHandledRedirectSignature = ""
+
     fun initialize(context: Context) {
         if (initialized) return
         synchronized(this) {
@@ -94,6 +97,7 @@ object DerbisSpotifyConnection {
     fun begin(context: Context): Uri? {
         initialize(context)
         if (!isConfigured()) return null
+        lastHandledRedirectSignature = ""
         val verifier = randomUrlSafeValue(64)
         val state = randomUrlSafeValue(32)
         SpotifySecureStore(context.applicationContext).savePending(PendingAuthorization(state, verifier))
@@ -117,6 +121,9 @@ object DerbisSpotifyConnection {
 
     fun handleRedirect(context: Context, uri: Uri?) {
         if (!receives(uri)) return
+        val rawUri = uri?.toString().orEmpty()
+        if (rawUri.isNotBlank() && rawUri == lastHandledRedirectSignature) return
+        lastHandledRedirectSignature = rawUri
         initialize(context)
         val appContext = context.applicationContext
         val store = SpotifySecureStore(appContext)
@@ -130,6 +137,7 @@ object DerbisSpotifyConnection {
         val returnedState = uri?.getQueryParameter("state")
         val pending = store.takePending()
         if (code.isNullOrBlank() || pending == null || returnedState != pending.state) {
+            if (store.loadToken() != null) return
             _state.value = SpotifyConnectionState(SpotifyConnectionStatus.Error, detail = "Spotify sign-in could not be verified. Please try again.")
             return
         }

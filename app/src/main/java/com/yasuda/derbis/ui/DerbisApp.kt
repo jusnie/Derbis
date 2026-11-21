@@ -127,6 +127,9 @@ import com.yasuda.derbis.ui.lyrics.lyricsShouldFollowActiveLine
 import com.yasuda.derbis.ui.lyrics.LyricsShareSheet
 import com.yasuda.derbis.ui.sharing.TrackStoryShareSheet
 import com.yasuda.derbis.ui.spotify.SpotifyCanvasSheet
+import com.yasuda.derbis.ui.spotify.clearSpotifyWebCookies
+import com.yasuda.derbis.feature.motion.SpotifyOfficialCanvas
+import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.ui.lyrics.LyricsShareSnapshot
 import com.yasuda.derbis.ui.lyrics.isLyricsShareSelectable
 import com.yasuda.derbis.ui.lyrics.lyricsShareSelectedLines
@@ -22893,13 +22896,20 @@ private fun SpotifyConnectionSettingsPanel(
     // Connect signs in inside Derbis. A browser Derbis does not own cannot hand back the sp_dc
     // cookie, and that cookie is the only way to the Canvas, so the sign-in opens here: full
     // screen browser on Spotify's login page, cookie read from its own jar on the way out.
-    val connectAction: () -> Unit = {
+    val disconnectAction: () -> Unit = {
         if (spotifyState.isConnected) {
-            com.yasuda.derbis.data.spotify.DerbisSpotifyConnection.disconnect(context)
-        } else {
-            spotifyCanvasInBrowser = true
-            showSpotifyCanvasSheet = true
+            DerbisSpotifyConnection.disconnect(context)
         }
+        if (spotifySession.hasCookie) {
+            DerbisSpotifySession.clear(context)
+            clearSpotifyWebCookies()
+            SpotifyOfficialCanvas.invalidate()
+            SpotifyTokenProvider.invalidate()
+        }
+    }
+    val cardTapAction: () -> Unit = {
+        spotifyCanvasInBrowser = !canvasUnlocked
+        showSpotifyCanvasSheet = true
     }
 
     Box(
@@ -22916,7 +22926,7 @@ private fun SpotifyConnectionSettingsPanel(
                 else Color.White.copy(alpha = 0.10f),
                 RoundedCornerShape(18.dp)
             )
-            .clickable(enabled = !connecting, onClick = connectAction)
+            .clickable(enabled = !connecting, onClick = cardTapAction)
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
@@ -22989,17 +22999,21 @@ private fun SpotifyConnectionSettingsPanel(
                 }
             }
 
-            // The one action. Tapping the card does the same thing, so neither is the only target.
+            // Tapping Disconnect clears whichever Spotify session unlocked Canvas; when locked,
+            // tapping Connect opens the sign-in browser directly.
             Text(
-                text = if (spotifyState.isConnected) "Disconnect" else "Connect",
-                color = if (spotifyState.isConnected) DerbisMuted else Color(0xFF1ED760),
+                text = if (canvasUnlocked) "Disconnect" else "Connect",
+                color = if (canvasUnlocked) DerbisMuted else Color(0xFF1ED760),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 softWrap = false,
                 modifier = Modifier
                     .clip(RoundedCornerShape(99.dp))
-                    .clickable(enabled = !connecting, onClick = connectAction)
+                    .clickable(
+                        enabled = !connecting,
+                        onClick = if (canvasUnlocked) disconnectAction else cardTapAction
+                    )
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }

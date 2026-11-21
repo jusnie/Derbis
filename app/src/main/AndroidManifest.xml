@@ -109,24 +109,20 @@
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
             android:value="8" />
-        <!-- Discord Social SDK's PKCE callback. It is disabled in source-only/F-Droid builds,
-             where the proprietary SDK is intentionally absent. -->
+        <!-- Discord Social SDK's internal PKCE activity. Disabled because MainActivity handles
+             the discord-<applicationId>:/authorize/callback redirect directly and hands the
+             verified OAuth session into the native bridge; leaving both activities enabled lets
+             Android route the callback to AuthenticationActivity when nativeBeginSignIn never ran. -->
         <activity
             android:name="com.discord.socialsdk.AuthenticationActivity"
-            android:enabled="${discordSocialSdkAvailable}"
+            android:enabled="false"
             android:exported="true"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="discord-${discordApplicationId}" />
-            </intent-filter>
-        </activity>
+            android:launchMode="singleTask" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"

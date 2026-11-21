@@ -163,7 +163,6 @@ class MainActivity : ComponentActivity() {
         }
         runCatching {
             DerbisSpotifyConnection.initialize(applicationContext)
-            DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
             // Canvas unlocks through the web session now, not only through OAuth; both the cookie
             // store and the token harvester need the application context before the first track.
             DerbisSpotifySession.initialize(applicationContext)
@@ -171,8 +170,8 @@ class MainActivity : ComponentActivity() {
         }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
         runCatching {
             DerbisDiscordRichPresence.attach(this)
-            DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
         }.onFailure { Timber.w(it, "Discord startup attachment failed") }
+        consumeOAuthRedirectIntent(intent)
         // PlaybackService owns ongoing presence publication. This Activity only supplies the
         // Discord SDK with the foreground engine Activity needed for account linking.
         DerbisLaunchActions.consumeFrom(intent)
@@ -374,10 +373,31 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
-        DerbisDiscordRichPresence.handleRedirect(applicationContext, intent.data)
+        consumeOAuthRedirectIntent(intent)
         DerbisLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
+    }
+
+    /**
+     * Dispatches OAuth redirect URIs once and strips the consumed callback URI from the Activity
+     * intent so a subsequent configuration change or Activity recreation cannot replay a one-time
+     * authorization code against an already-cleared PKCE verifier.
+     */
+    private fun consumeOAuthRedirectIntent(incoming: Intent?) {
+        val uri = incoming?.data ?: return
+        val handledSpotify = DerbisSpotifyConnection.receives(uri)
+        val handledDiscord = DerbisDiscordRichPresence.receives(uri)
+        if (!handledSpotify && !handledDiscord) return
+        if (handledSpotify) {
+            runCatching { DerbisSpotifyConnection.handleRedirect(applicationContext, uri) }
+                .onFailure { Timber.w(it, "Spotify redirect handling failed") }
+        }
+        if (handledDiscord) {
+            runCatching { DerbisDiscordRichPresence.handleRedirect(applicationContext, uri) }
+                .onFailure { Timber.w(it, "Discord redirect handling failed") }
+        }
+        incoming.data = null
+        setIntent(Intent(incoming).apply { data = null })
     }
 
     private fun handleRecognitionLaunchRequest() {

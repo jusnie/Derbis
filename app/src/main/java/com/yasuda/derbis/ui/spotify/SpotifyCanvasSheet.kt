@@ -4,13 +4,17 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.view.MotionEvent
+import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +43,7 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.OpenInBrowser
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,33 +87,90 @@ import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisInk
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisText
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 private const val SPOTIFY_ORIGIN = "https://open.spotify.com"
 private const val SPOTIFY_ACCOUNTS_ORIGIN = "https://accounts.spotify.com"
+private const val SPOTIFY_STATUS_URL = "https://accounts.spotify.com/en/status"
 
 /**
- * Sign-in stays on `accounts.spotify.com`. The old URL sent the browser through
- * `continue=open.spotify.com`, and that web player is a DRM app: in a plain WebView it paints its
- * dark shell and then nothing, which is the black page this sheet used to show. The `sp_dc` cookie
- * is written by the accounts page, so the player was only ever the blank doorstep after it.
+ * Sign-in stays on `accounts.spotify.com` with an explicit first-party `continue` target on the
+ * lightweight `/en/status` account page. Avoiding `continue=open.spotify.com` keeps the WebView out
+ * of the DRM web player (which paints a blank shell), while providing `continue` ensures Spotify
+ * performs a top-level post-login redirect that flushes `sp_dc` cleanly into [CookieManager].
  */
-private const val SPOTIFY_LOGIN_URL = "https://accounts.spotify.com/en/login"
+private const val SPOTIFY_LOGIN_URL =
+    "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Faccounts.spotify.com%2Fen%2Fstatus"
 
 /**
- * A real Chrome user agent. The stock WebView UA carries `; wv` and `Version/4.0`, which Spotify's
- * accounts page answers with a variant that renders no form at all - the other half of the blank
- * screen. [com.yasuda.derbis.feature.motion.SpotifyTokenProvider] sends the same identity when it
- * mints a token, so both halves of the feature look like the same browser.
+ * Standard desktop Chrome identity matching [SpotifyTokenProvider.BROWSER_UA]. Mobile WebView and
+ * Mobile Safari UAs cause `accounts.spotify.com` to emit `intent://` / `spotify://` native-app
+ * handoffs instead of completing web sign-in inside the sheet.
  */
-private const val SPOTIFY_BROWSER_UA =
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) " +
-        "Chrome/122.0.0.0 Mobile Safari/537.36"
+private const val SPOTIFY_BROWSER_UA = SpotifyTokenProvider.BROWSER_UA
 
 /** True for the web player, the one Spotify surface a plain WebView cannot draw. */
-private fun isSpotifyWebPlayer(url: Uri): Boolean =
-    url.host?.equals("open.spotify.com", ignoreCase = true) == true ||
-        url.host?.equals("play.spotify.com", ignoreCase = true) == true
+internal fun isSpotifyWebPlayerHost(host: String?): Boolean =
+    host?.equals("open.spotify.com", ignoreCase = true) == true ||
+        host?.equals("play.spotify.com", ignoreCase = true) == true
+
+private fun isSpotifyWebPlayer(url: Uri): Boolean = isSpotifyWebPlayerHost(url.host)
+
+internal fun isGoogleAuthHost(host: String?): Boolean {
+    val lowered = host?.lowercase().orEmpty()
+    return lowered == "accounts.google.com" || lowered.endsWith(".accounts.google.com")
+}
+
+internal fun isSpotifyPostLoginStatusUrl(url: String?): Boolean {
+    val raw = url?.trim().orEmpty()
+    if (raw.isBlank()) return false
+    val normalized = raw.lowercase()
+    return normalized.startsWith("https://accounts.spotify.com/") &&
+        (normalized.contains("/status") || normalized.contains("/account/overview"))
+}
+
+internal fun shouldTreatWebViewErrorAsFatal(
+    isForMainFrame: Boolean,
+    errorCode: Int,
+    description: String?,
+    suppressedAbort: Boolean
+): Boolean {
+    if (!isForMainFrame) return false
+    val desc = description?.lowercase().orEmpty()
+    if (suppressedAbort || desc.contains("err_aborted") || desc.contains("err_blocked_by_orb")) {
+        return false
+    }
+    // WebViewClient.ERROR_UNKNOWN (-1) is commonly emitted when stopLoading() or a custom-scheme
+    // handoff cancels an in-flight navigation after login has already succeeded.
+    if (errorCode == WebViewClient.ERROR_UNKNOWN && desc.isBlank()) return false
+    return true
+}
+
+/**
+ * Expires Spotify session cookies in the shared WebView jar without touching other services (such
+ * as YouTube Music) that share Android's [CookieManager].
+ */
+internal fun clearSpotifyWebCookies() {
+    runCatching {
+        val manager = CookieManager.getInstance()
+        val expiredCookies = listOf("sp_dc", "sp_key", "sp_t", "sp_landing")
+        val origins = listOf(
+            "https://open.spotify.com",
+            "https://accounts.spotify.com",
+            "https://spotify.com"
+        )
+        for (origin in origins) {
+            for (name in expiredCookies) {
+                manager.setCookie(origin, "$name=; Path=/; Max-Age=0; Secure")
+                manager.setCookie(origin, "$name=; Domain=.spotify.com; Path=/; Max-Age=0; Secure")
+                manager.setCookie(origin, "$name=; Domain=accounts.spotify.com; Path=/; Max-Age=0; Secure")
+            }
+        }
+        manager.flush()
+    }
+}
 
 /**
  * The sheet's session test uses a well-known track. It does not matter whether this one still has
@@ -201,6 +264,7 @@ internal fun SpotifyCanvasSheet(
                         // The developer dock replaces the browser's own bar while it is up:
                         // two rows of buttons under a keyboard is one row too many.
                         footer = !developerOpen,
+                        hasStoredSession = stored.isNotEmpty(),
                         onDetected = { detected = it },
                         onCancel = { browsing = false },
                         onCopy = { cookie ->
@@ -212,7 +276,12 @@ internal fun SpotifyCanvasSheet(
                             status = message
                             // Sign-in finished: hand the listener back to the settings card,
                             // which is where the unlocked state is shown.
-                            if (accepted) onDismiss()
+                            if (accepted) {
+                                runCatching {
+                                    Toast.makeText(context, strings.spotifyCanvasUnlocked, Toast.LENGTH_SHORT).show()
+                                }
+                                onDismiss()
+                            }
                         }
                     )
                 } else {
@@ -286,8 +355,10 @@ internal fun SpotifyCanvasSheet(
                         },
                         onRemove = {
                             DerbisSpotifySession.clear(context)
+                            clearSpotifyWebCookies()
                             SpotifyOfficialCanvas.invalidate()
                             SpotifyTokenProvider.invalidate()
+                            detected = null
                             draft = ""
                             status = strings.spotifyCanvasRemoved
                         },
@@ -561,16 +632,46 @@ private fun DeveloperDock(
 private fun SpotifyBrowserPane(
     modifier: Modifier = Modifier,
     footer: Boolean = true,
+    hasStoredSession: Boolean = false,
     onDetected: (String?) -> Unit,
     onCancel: () -> Unit,
     onCopy: (String) -> Unit,
     onUse: (String) -> Unit
 ) {
     val strings = LocalDerbisStrings.current
+    val currentHasStoredSession by rememberUpdatedState(hasStoredSession)
+    val currentOnDetected by rememberUpdatedState(onDetected)
+    val currentOnUse by rememberUpdatedState(onUse)
     var webView by remember { mutableStateOf<WebView?>(null) }
     var loading by remember { mutableStateOf(true) }
     var failed by remember { mutableStateOf(false) }
-    var detected by remember { mutableStateOf<String?>(null) }
+    var onGoogleAuth by remember { mutableStateOf(false) }
+    var postLoginReached by remember { mutableStateOf(false) }
+    var initialCookie by remember { mutableStateOf(captureSession()) }
+    var detected by remember { mutableStateOf(initialCookie) }
+    var autoApplied by remember { mutableStateOf(false) }
+
+    fun handleCookieFound(cookie: String) {
+        detected = cookie
+        currentOnDetected(cookie)
+        val isFreshSignIn = cookie != initialCookie
+        val shouldAutoComplete = !autoApplied && (isFreshSignIn || (!currentHasStoredSession && postLoginReached))
+        if (shouldAutoComplete) {
+            autoApplied = true
+            currentOnUse(cookie)
+        }
+    }
+
+    // Spotify's React login page submits credentials via fetch() and navigates with pushState,
+    // which does not always fire WebViewClient.onPageFinished; poll the jar while open so sp_dc
+    // is picked up immediately after email/password or 6-digit code sign-in.
+    LaunchedEffect(Unit) {
+        initialCookie?.let(onDetected)
+        while (isActive && !autoApplied) {
+            delay(600L)
+            captureSession()?.let(::handleCookieFound)
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -585,13 +686,63 @@ private fun SpotifyBrowserPane(
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (loading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = SpotifyGreen)
+        if (onGoogleAuth) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1F2430))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Google blocks embedded browser sign-in. Tap back and enter your Google email on Spotify to sign in with a 6-digit email code.",
+                    color = DerbisText,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = {
+                        onGoogleAuth = false
+                        failed = false
+                        webView?.loadUrl(SPOTIFY_LOGIN_URL)
+                    }
+                ) {
+                    Text("Use email", color = SpotifyGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
         if (failed) {
-            Text(
-                text = strings.spotifyCanvasWebError,
-                color = DerbisMuted,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = strings.spotifyCanvasWebError,
+                    color = DerbisMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = {
+                        failed = false
+                        loading = true
+                        val view = webView
+                        if (view != null) {
+                            if (view.url.isNullOrBlank()) view.loadUrl(SPOTIFY_LOGIN_URL) else view.reload()
+                        }
+                    }
+                ) {
+                    Icon(Icons.Rounded.Refresh, contentDescription = null, tint = SpotifyGreen, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.size(4.dp))
+                    Text("Reload", color = SpotifyGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
         }
         AndroidView(
             modifier = Modifier
@@ -600,12 +751,20 @@ private fun SpotifyBrowserPane(
             factory = { context ->
                 createSpotifyWebView(
                     context = context,
-                    onLoading = { loading = it },
-                    onError = { failed = true },
-                    onDetected = { cookie ->
-                        detected = cookie
-                        onDetected(cookie)
-                    }
+                    onLoading = { isLoad ->
+                        loading = isLoad
+                        if (isLoad) failed = false
+                    },
+                    onClearError = { failed = false },
+                    onGoogleAuth = { onGoogleAuth = it },
+                    onPostLoginReached = { postLoginReached = true },
+                    onError = {
+                        loading = false
+                        if (captureSession() == null) {
+                            failed = true
+                        }
+                    },
+                    onDetected = ::handleCookieFound
                 ).also { webView = it }
             }
         )
@@ -647,82 +806,178 @@ private fun SpotifyBrowserPane(
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onCancel) { Text(strings.cancel, color = DerbisMuted) }
+                if (detected != null) {
+                    TextButton(
+                        onClick = {
+                            clearSpotifyWebCookies()
+                            initialCookie = null
+                            detected = null
+                            postLoginReached = false
+                            autoApplied = false
+                            failed = false
+                            onDetected(null)
+                            webView?.loadUrl(SPOTIFY_LOGIN_URL)
+                        }
+                    ) {
+                        Text("Switch", color = DerbisMuted, fontSize = 12.sp)
+                    }
+                } else {
+                    TextButton(onClick = onCancel) { Text(strings.cancel, color = DerbisMuted) }
+                }
                 TextButton(onClick = { detected?.let(onUse) }, enabled = detected != null) {
-                    Text(strings.spotifyCanvasUseAccount, color = if (detected != null) SpotifyGreen else DerbisMuted)
+                    Text(
+                        strings.spotifyCanvasUseAccount,
+                        color = if (detected != null) SpotifyGreen else DerbisMuted,
+                        fontWeight = if (detected != null) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
             }
         }
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 private fun createSpotifyWebView(
     context: Context,
     onLoading: (Boolean) -> Unit,
+    onClearError: () -> Unit,
+    onGoogleAuth: (Boolean) -> Unit,
+    onPostLoginReached: () -> Unit,
     onError: () -> Unit,
-    onDetected: (String?) -> Unit
+    onDetected: (String) -> Unit
 ): WebView = WebView(context).apply {
+    layoutParams = ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT
+    )
+    isFocusable = true
+    isFocusableInTouchMode = true
+    setOnTouchListener { view, event ->
+        if ((event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_UP) && !view.hasFocus()) {
+            view.requestFocus()
+        }
+        false
+    }
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
+    settings.databaseEnabled = true
+    settings.javaScriptCanOpenWindowsAutomatically = true
     settings.allowFileAccess = false
     settings.allowContentAccess = false
     settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
     settings.userAgentString = SPOTIFY_BROWSER_UA
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+    webChromeClient = WebChromeClient()
+
+    var suppressNextAbortError = false
+
+    fun pollCookieWithRetries(view: WebView) {
+        captureSession()?.let {
+            onDetected(it)
+            return
+        }
+        for (delayMs in listOf(250L, 650L, 1_300L, 2_200L)) {
+            view.postDelayed({
+                captureSession()?.let(onDetected)
+            }, delayMs)
+        }
+    }
+
     webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            val secure = request.url.scheme.equals("https", ignoreCase = true)
-            if (request.isForMainFrame && !secure) {
-                onError()
+            val scheme = request.url.scheme?.lowercase().orEmpty()
+            if (request.isForMainFrame && scheme != "https" && scheme != "http") {
+                // Custom-scheme links (spotify://, intent://, market://) are native-app handoff
+                // probes emitted right after sign-in; stay in the sheet and harvest sp_dc instead
+                // of treating the handoff as a load failure.
+                onPostLoginReached()
+                pollCookieWithRetries(view)
                 return true
             }
+            if (request.isForMainFrame) {
+                onGoogleAuth(isGoogleAuthHost(request.url.host))
+            }
             // The session is already on the device once the accounts page hands off to the web
-            // player, and the player itself is a black rectangle here. Take the cookie and stay on
-            // the page that rendered instead of walking into the blank one.
+            // player, and the player itself is a DRM shell. Stay on the accounts page and read
+            // sp_dc with retries so Chromium's async CookieManager flush has time to land.
             if (request.isForMainFrame && isSpotifyWebPlayer(request.url)) {
-                val cookie = captureSession()
-                if (cookie != null) onDetected(cookie) else onError()
+                onClearError()
+                onLoading(false)
+                onPostLoginReached()
+                pollCookieWithRetries(view)
                 return true
             }
             return false
         }
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-            // A server-side redirect does not always pass through shouldOverrideUrlLoading, so the
-            // hand-off to the web player is caught again here and the load is stopped before the
-            // blank page can paint over the page that was working.
             val target = url?.let(Uri::parse)
+            onGoogleAuth(isGoogleAuthHost(target?.host))
+            if (isSpotifyPostLoginStatusUrl(url)) {
+                onPostLoginReached()
+                pollCookieWithRetries(view)
+            }
             if (target != null && isSpotifyWebPlayer(target)) {
+                suppressNextAbortError = true
                 view.stopLoading()
+                onClearError()
                 onLoading(false)
-                val cookie = captureSession()
-                if (cookie != null) onDetected(cookie) else onError()
+                onPostLoginReached()
+                pollCookieWithRetries(view)
                 return
             }
             onLoading(true)
         }
 
-        override fun onPageFinished(view: WebView, url: String?) {
-            onLoading(false)
-            // Only report a real cookie: the sign-in hop passes through several pages, and
-            // clearing the detection on each of them would disable "Use this account" at random.
+        override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+            super.doUpdateVisitedHistory(view, url, isReload)
+            if (isSpotifyPostLoginStatusUrl(url)) {
+                onPostLoginReached()
+            }
+            pollCookieWithRetries(view)
+        }
+
+        override fun onPageCommitVisible(view: WebView, url: String?) {
+            super.onPageCommitVisible(view, url)
             captureSession()?.let(onDetected)
         }
 
-        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
-            if (request.isForMainFrame) onError()
+        override fun onPageFinished(view: WebView, url: String?) {
+            onLoading(false)
+            if (isSpotifyPostLoginStatusUrl(url)) {
+                onPostLoginReached()
+            }
+            pollCookieWithRetries(view)
         }
 
-        // A refused page is not a network error: it used to arrive as a finished load with
-        // nothing on it, so the sheet sat on an empty screen with no message at all.
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+            val wasSuppressed = suppressNextAbortError
+            if (request.isForMainFrame) {
+                suppressNextAbortError = false
+            }
+            if (
+                shouldTreatWebViewErrorAsFatal(
+                    isForMainFrame = request.isForMainFrame,
+                    errorCode = error.errorCode,
+                    description = error.description?.toString(),
+                    suppressedAbort = wasSuppressed
+                )
+            ) {
+                onError()
+            }
+        }
+
         override fun onReceivedHttpError(
             view: WebView,
             request: WebResourceRequest,
             errorResponse: WebResourceResponse
         ) {
-            if (request.isForMainFrame) onError()
+            // 4xx responses on accounts.spotify.com carry interactive HTML (invalid credentials,
+            // verification prompts, CAPTCHA); only 5xx server outages break the sign-in page.
+            if (request.isForMainFrame && errorResponse.statusCode >= 500) {
+                onError()
+            }
         }
     }
     loadUrl(SPOTIFY_LOGIN_URL)
@@ -733,12 +988,11 @@ private fun createSpotifyWebView(
  * cannot see it — but the jar this app owns can, which is the whole point of signing in here.
  */
 private fun captureSession(): String? {
-    val manager = CookieManager.getInstance()
-    manager.flush()
-    // `sp_dc` is written on `.spotify.com`, so either jar has it; checking the accounts origin too
-    // means a sign-in is picked up even when the player page was never visited at all.
-    for (origin in listOf(SPOTIFY_ORIGIN, SPOTIFY_ACCOUNTS_ORIGIN)) {
-        val header = manager.getCookie(origin).orEmpty()
+    val manager = runCatching { CookieManager.getInstance() }.getOrNull() ?: return null
+    runCatching { manager.flush() }
+    // `sp_dc` is written on `.spotify.com`, so any Spotify origin jar can hold it.
+    for (origin in listOf(SPOTIFY_ORIGIN, SPOTIFY_ACCOUNTS_ORIGIN, SPOTIFY_STATUS_URL)) {
+        val header = runCatching { manager.getCookie(origin) }.getOrNull().orEmpty()
         if (header.isBlank()) continue
         SpotifyCookie.parse(header)?.let { return it }
     }
