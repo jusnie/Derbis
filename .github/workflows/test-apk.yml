@@ -236,7 +236,8 @@ jobs:
     # Neither Stable (`^v\d+...` & prerelease=false) nor Test (`prebuild-*` or `^v\d+...`) matches
     # `apk-<sha>` in `updateTrackOf()`, so NO installed Derbis app ever detects it as an update,
     # while GitHub serves a direct `.apk` download URL without login or a `.zip` wrapper.
-    if: ${{ startsWith(github.event.head_commit.message, '[direct]') }}
+    needs: prebuild-apk
+    if: ${{ always() && ((needs.prebuild-apk.result == 'success' && startsWith(github.event.head_commit.message, '[apk]')) || startsWith(github.event.head_commit.message, '[direct]')) }}
     name: Publish unlisted direct APK link
     runs-on: ubuntu-latest
     steps:
@@ -244,9 +245,17 @@ jobs:
         id: source_run
         env:
           GH_TOKEN: ${{ github.token }}
+          PREBUILD_RESULT: ${{ needs.prebuild-apk.result }}
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "${PREBUILD_RESULT}" == "success" ]]; then
+            echo "run_id=${GITHUB_RUN_ID}" >> "${GITHUB_OUTPUT}"
+            echo "short_sha=${GITHUB_SHA::7}" >> "${GITHUB_OUTPUT}"
+            echo "full_sha=${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+            echo "Using current workflow run ${GITHUB_RUN_ID} (${GITHUB_SHA::7})"
+            exit 0
+          fi
           api="https://api.github.com/repos/jusnie/Derbis"
           auth=(-H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json")
           runs_json="$(curl -fsSL "${auth[@]}" "${api}/actions/runs?branch=arena/b05b2e2f-derbis&status=success&per_page=20")"

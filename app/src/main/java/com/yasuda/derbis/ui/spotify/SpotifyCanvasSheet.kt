@@ -68,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -81,12 +82,18 @@ import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.data.spotify.SpotifyCookie
 import com.yasuda.derbis.feature.motion.SpotifyOfficialCanvas
 import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
+import com.yasuda.derbis.ui.DerbisIsLight
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.theme.DerbisCyan
+import com.yasuda.derbis.ui.theme.DerbisGlassBorder
 import com.yasuda.derbis.ui.theme.DerbisInk
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMuted
+import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisText
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -603,14 +610,26 @@ private fun DeveloperDock(
     onUseDetected: (() -> Unit)?
 ) {
     val strings = LocalDerbisStrings.current
+    val pixel = DerbisIsPixel
+    val drawerShape = if (pixel) RectangleShape else RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+    val drawerFill = when {
+        pixel -> PixelPalette.ink
+        DerbisIsLight -> DerbisPanel
+        else -> Color(0xFF141418)
+    }
+    val drawerBorder = when {
+        pixel -> PixelPalette.outline
+        DerbisIsLight -> DerbisGlassBorder
+        else -> Color.White.copy(alpha = 0.10f)
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF141418), RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+            .background(drawerFill, drawerShape)
             .border(
-                1.dp,
-                Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)
+                if (pixel) PixelDesign.border else 1.dp,
+                drawerBorder,
+                drawerShape
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -755,7 +774,13 @@ private fun SpotifyBrowserPane(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1F2430))
+                    .background(
+                        when {
+                            DerbisIsPixel -> PixelPalette.panel
+                            DerbisIsLight -> DerbisPanel
+                            else -> Color(0xFF1F2430)
+                        }
+                    )
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)

@@ -491,6 +491,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.SwipeToDismissBoxDefaults
@@ -4247,12 +4248,30 @@ private fun DownloadProgressHud(
     }
 }
 
+private val DerbisDialogContainerColor: Color
+    get() = when {
+        DerbisIsPixel -> PixelPalette.ink
+        DerbisIsLight -> DerbisPanel
+        else -> Color(0xFF11131C)
+    }
+
+private fun Modifier.derbisDialogChrome(): Modifier =
+    if (DerbisIsPixel) {
+        padding(end = PixelDesign.shadowOffset, bottom = PixelDesign.shadowOffset)
+            .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
+            .border(PixelDesign.border, PixelPalette.text, RectangleShape)
+    } else {
+        this
+    }
+
 @Composable
 private fun LanguageRestartDialog(onRestart: () -> Unit, onLater: () -> Unit) {
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onLater,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.restartRequiredTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = { Text(strings.restartRequiredBody, color = DerbisMuted, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp) },
         confirmButton = { TextButton(onClick = onRestart) { Text(strings.restartNow, color = DerbisCyan, fontWeight = FontWeight.Black) } },
@@ -4269,7 +4288,9 @@ private fun VaultRestorePreviewDialog(
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.restorePreviewTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4329,7 +4350,9 @@ private fun PreUpdateBackupFailedDialog(
     val strings = LocalDerbisStrings.current
     AlertDialog(
         onDismissRequest = onContinue,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.preUpdateBackupFailedTitle, color = DerbisText, fontWeight = FontWeight.Black) },
         text = { Text(strings.preUpdateBackupFailedBody, color = DerbisMuted, fontWeight = FontWeight.SemiBold, lineHeight = 20.sp) },
         confirmButton = { TextButton(onClick = onRetry) { Text(strings.preUpdateBackupRetry, color = DerbisCyan, fontWeight = FontWeight.Black) } },
@@ -4388,7 +4411,9 @@ private fun SleepTimerDialog(
     }
     AlertDialog(
         onDismissRequest = onClose,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         title = { Text(strings.sleepTimer, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(
@@ -9508,12 +9533,35 @@ private fun LyricsVersionDialog(
     onSelect: (com.yasuda.derbis.data.LyricsRepository.LyricsVersion) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
+    val titleColor = if (light) DerbisText else Color.White
+    val mutedColor = if (light) DerbisMuted else Color.White.copy(alpha = 0.58f)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            color = Color(0xFF11131C),
-            shape = RoundedCornerShape(30.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(0.82f)
+            color = when {
+                pixel -> PixelPalette.black
+                light -> DerbisInk
+                else -> Color(0xFF11131C)
+            },
+            shape = if (pixel) RectangleShape else RoundedCornerShape(30.dp),
+            border = if (pixel) {
+                BorderStroke(PixelDesign.border, PixelPalette.text)
+            } else {
+                BorderStroke(1.dp, if (light) DerbisAdaptiveHairline else Color.White.copy(alpha = 0.10f))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.82f)
+                .then(
+                    if (pixel) {
+                        Modifier
+                            .padding(end = PixelDesign.shadowOffset, bottom = PixelDesign.shadowOffset)
+                            .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             Column(
                 modifier = Modifier.padding(18.dp),
@@ -9521,21 +9569,24 @@ private fun LyricsVersionDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(strings.lyricsVersions, color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Black)
-                        Text(strings.changeLyrics, color = Color.White.copy(alpha = 0.58f), fontSize = 12.sp)
+                        Text(strings.lyricsVersions, color = titleColor, fontSize = 21.sp, fontWeight = FontWeight.Black)
+                        Text(strings.changeLyrics, color = mutedColor, fontSize = 12.sp)
                     }
                     CircleIconButton(
                         icon = Icons.Rounded.Close,
-                        tint = Color.White,
-                        background = Color.White.copy(alpha = 0.10f),
+                        tint = titleColor,
+                        background = if (pixel) PixelPalette.panel else if (light) DerbisPanel else Color.White.copy(alpha = 0.10f),
                         onClick = onDismiss,
                         contentDescription = strings.close
                     )
                 }
                 Surface(
-                    color = DerbisCyan.copy(alpha = 0.14f),
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, DerbisCyan.copy(alpha = 0.28f)),
+                    color = if (pixel) PixelPalette.panel else DerbisCyan.copy(alpha = 0.14f),
+                    shape = if (pixel) RectangleShape else RoundedCornerShape(18.dp),
+                    border = BorderStroke(
+                        if (pixel) PixelDesign.border else 1.dp,
+                        if (pixel) PixelPalette.outline else DerbisCyan.copy(alpha = 0.28f)
+                    ),
                     modifier = Modifier.fillMaxWidth().pressable(onClick = onAutomatic)
                 ) {
                     Row(
@@ -9544,7 +9595,7 @@ private fun LyricsVersionDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(Icons.Rounded.Refresh, null, tint = DerbisCyan)
-                        Text(strings.automaticLyrics, color = Color.White, fontWeight = FontWeight.Black)
+                        Text(strings.automaticLyrics, color = titleColor, fontWeight = FontWeight.Black)
                     }
                 }
                 when {
@@ -9552,7 +9603,7 @@ private fun LyricsVersionDialog(
                         CircularProgressIndicator(color = DerbisCyan)
                     }
                     versions.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(strings.lyricsUnavailable, color = Color.White.copy(alpha = 0.64f))
+                        Text(strings.lyricsUnavailable, color = mutedColor)
                     }
                     else -> LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -9565,11 +9616,23 @@ private fun LyricsVersionDialog(
                                 .take(2)
                                 .joinToString(" · ") { it.text }
                             Surface(
-                                color = if (version.selected) DerbisViolet.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(20.dp),
+                                color = when {
+                                    pixel && version.selected -> PixelPalette.panel
+                                    pixel -> PixelPalette.ink
+                                    version.selected -> DerbisViolet.copy(alpha = 0.18f)
+                                    light -> DerbisPanel
+                                    else -> Color.White.copy(alpha = 0.05f)
+                                },
+                                shape = if (pixel) RectangleShape else RoundedCornerShape(20.dp),
                                 border = BorderStroke(
-                                    1.dp,
-                                    if (version.selected) DerbisViolet.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.07f)
+                                    if (pixel && version.selected) PixelDesign.border else 1.dp,
+                                    when {
+                                        pixel && version.selected -> PixelPalette.cyan
+                                        pixel -> PixelPalette.outline
+                                        version.selected -> DerbisViolet.copy(alpha = 0.40f)
+                                        light -> DerbisAdaptiveHairline
+                                        else -> Color.White.copy(alpha = 0.07f)
+                                    }
                                 ),
                                 modifier = Modifier.fillMaxWidth().pressable { onSelect(version) }
                             ) {
@@ -9580,7 +9643,7 @@ private fun LyricsVersionDialog(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             version.result.provider,
-                                            color = if (version.selected) DerbisViolet else Color.White,
+                                            color = if (version.selected) DerbisViolet else titleColor,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Black,
                                             modifier = Modifier.weight(1f)
@@ -9590,14 +9653,14 @@ private fun LyricsVersionDialog(
                                                 append(if (version.result.synced) strings.synced else strings.lyrics)
                                                 append(" · ").append(version.result.confidence).append('%')
                                             },
-                                            color = Color.White.copy(alpha = 0.56f),
+                                            color = mutedColor,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                     Text(
                                         "${version.title} — ${version.artist}",
-                                        color = Color.White.copy(alpha = 0.76f),
+                                        color = if (light) DerbisText else Color.White.copy(alpha = 0.76f),
                                         fontSize = 12.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -9605,7 +9668,7 @@ private fun LyricsVersionDialog(
                                     if (preview.isNotBlank()) {
                                         Text(
                                             preview,
-                                            color = Color.White.copy(alpha = 0.48f),
+                                            color = mutedColor,
                                             fontSize = 11.sp,
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis
@@ -9844,7 +9907,9 @@ private fun LyricsIntelligenceDialog(
     val repeatedPhrase = summary.repeatedPhrases.firstOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF11131C),
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = DerbisDialogContainerColor,
         icon = {
             Icon(
                 imageVector = Icons.Rounded.Insights,
@@ -19086,7 +19151,9 @@ private fun PlaylistCreateDialog(onDismiss: () -> Unit, onConfirm: (String) -> U
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DerbisPanel,
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
         title = { Text(LocalDerbisStrings.current.newPlaylist, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             OutlinedTextField(
@@ -19134,7 +19201,9 @@ private fun AddToPlaylistDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DerbisPanel,
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
         title = { Text(LocalDerbisStrings.current.addToPlaylist, color = DerbisText, fontWeight = FontWeight.Black) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -19738,7 +19807,18 @@ private fun PlayerQuickActionsBar(
                     onDismissRequest = { optionsExpanded = false },
                     modifier = Modifier
                         .width(if (compact) 276.dp else 296.dp)
-                        .background(Color(0xFF15161A), DerbisPlayerDesign.ShapeMd)
+                        .background(
+                            when {
+                                DerbisIsPixel -> PixelPalette.ink
+                                DerbisIsLight -> DerbisPanel
+                                else -> Color(0xFF15161A)
+                            },
+                            if (DerbisIsPixel) RectangleShape else DerbisPlayerDesign.ShapeMd
+                        )
+                        .then(
+                            if (DerbisIsPixel) Modifier.border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+                            else Modifier
+                        )
                 ) {
                     Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
                         PlayerOptionsRow(
@@ -24002,6 +24082,9 @@ private fun SubsonicServerTile(
 
     AlertDialog(
         onDismissRequest = { open = false },
+        modifier = Modifier.derbisDialogChrome(),
+        shape = if (DerbisIsPixel) RectangleShape else AlertDialogDefaults.shape,
+        containerColor = if (DerbisIsPixel) PixelPalette.ink else DerbisPanel,
         title = { Text(strings.subsonicHomeServer, color = DerbisText, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

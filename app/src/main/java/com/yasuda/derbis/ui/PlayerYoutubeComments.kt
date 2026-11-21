@@ -67,6 +67,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -119,6 +120,12 @@ internal fun PlayerYoutubeCommentsSheet(
             }
     }
 
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
+    val textColor = if (light) DerbisText else Color.White
+    val mutedColor = if (light) DerbisMuted else Color.White.copy(alpha = 0.52f)
+    val accentTint = if (pixel) PixelPalette.cyan else if (light) DerbisCyan else primary.playerMix(Color.White, 0.55f)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -127,7 +134,13 @@ internal fun PlayerYoutubeCommentsSheet(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(Color.Black.copy(alpha = 0.62f))
+                .background(
+                    when {
+                        pixel -> PixelPalette.text.copy(alpha = 0.28f)
+                        light -> Color.Black.copy(alpha = 0.34f)
+                        else -> Color.Black.copy(alpha = 0.62f)
+                    }
+                )
                 .clickable(onClick = onDismiss)
         )
 
@@ -143,30 +156,36 @@ internal fun PlayerYoutubeCommentsSheet(
                     indication = null,
                     onClick = {}
                 ),
-            color = Color(0xFF101114),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+            color = when {
+                pixel -> PixelPalette.black
+                light -> DerbisInk
+                else -> Color(0xFF101114)
+            },
+            shape = if (pixel) RectangleShape else RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            border = if (pixel) BorderStroke(PixelDesign.border, PixelPalette.text) else null
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().then(if (pixel) Modifier.pixelPaperGrid() else Modifier)) {
                 Box(
                     modifier = Modifier
                         .padding(top = 10.dp)
                         .align(Alignment.CenterHorizontally)
                         .width(42.dp)
                         .height(4.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.24f))
+                        .clip(if (pixel) RectangleShape else CircleShape)
+                        .background(if (pixel) PixelPalette.outline else if (light) DerbisAdaptiveHairline else Color.White.copy(alpha = 0.24f))
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .then(if (pixel) Modifier.background(PixelPalette.panel) else Modifier)
                         .padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = strings.totalComments.uppercase(),
-                            color = primary.playerMix(Color.White, 0.55f),
+                            color = accentTint,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.4.sp
@@ -174,7 +193,7 @@ internal fun PlayerYoutubeCommentsSheet(
                         val commentCount = youtubeCommentCountBadge(comments.countText)
                         Text(
                             text = commentCount.ifBlank { "—" },
-                            color = Color.White,
+                            color = textColor,
                             fontSize = 30.sp,
                             lineHeight = 34.sp,
                             fontWeight = FontWeight.Black,
@@ -188,9 +207,9 @@ internal fun PlayerYoutubeCommentsSheet(
                         contentDescription = strings.close,
                         size = 38.dp,
                         iconSize = 20.dp,
-                        tint = Color.White.copy(alpha = 0.82f),
-                        background = Color.White.copy(alpha = 0.08f),
-                        borderColor = Color.Transparent,
+                        tint = if (light) DerbisText else Color.White.copy(alpha = 0.82f),
+                        background = if (pixel) PixelPalette.ink else if (light) DerbisPanel else Color.White.copy(alpha = 0.08f),
+                        borderColor = if (pixel) PixelPalette.outline else Color.Transparent,
                         onClick = onDismiss
                     )
                 }
@@ -198,16 +217,22 @@ internal fun PlayerYoutubeCommentsSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(1.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    primary.copy(alpha = 0.34f),
-                                    secondary.copy(alpha = 0.28f),
-                                    Color.Transparent
+                        .height(if (pixel) PixelDesign.border else 1.dp)
+                        .then(
+                            if (pixel) {
+                                Modifier.background(PixelPalette.outline)
+                            } else {
+                                Modifier.background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            Color.Transparent,
+                                            primary.copy(alpha = 0.34f),
+                                            secondary.copy(alpha = 0.28f),
+                                            Color.Transparent
+                                        )
+                                    )
                                 )
-                            )
+                            }
                         )
                 )
 
@@ -215,7 +240,7 @@ internal fun PlayerYoutubeCommentsSheet(
                     comments.loading && comments.items.isEmpty() -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(
-                                color = primary.playerMix(Color.White, 0.55f),
+                                color = accentTint,
                                 strokeWidth = 3.dp
                             )
                         }
@@ -236,14 +261,17 @@ internal fun PlayerYoutubeCommentsSheet(
                             Icon(
                                 imageVector = Icons.Rounded.ChatBubbleOutline,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.38f),
+                                tint = mutedColor,
                                 modifier = Modifier.size(38.dp)
                             )
                             Spacer(modifier = Modifier.height(14.dp))
                             Surface(
-                                color = primary.copy(alpha = 0.18f),
-                                border = BorderStroke(1.dp, primary.copy(alpha = 0.34f)),
-                                shape = CircleShape,
+                                color = if (pixel) PixelPalette.cyan else primary.copy(alpha = 0.18f),
+                                border = BorderStroke(
+                                    if (pixel) PixelDesign.border else 1.dp,
+                                    if (pixel) PixelPalette.text else primary.copy(alpha = 0.34f)
+                                ),
+                                shape = if (pixel) RectangleShape else CircleShape,
                                 modifier = Modifier.pressable(onClick = onRetry)
                             ) {
                                 Row(
@@ -251,15 +279,16 @@ internal fun PlayerYoutubeCommentsSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                                 ) {
+                                    val btnFg = if (pixel) PixelPalette.ink else textColor
                                     Icon(
                                         imageVector = Icons.Rounded.Refresh,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = btnFg,
                                         modifier = Modifier.size(17.dp)
                                     )
                                     Text(
                                         text = strings.check,
-                                        color = Color.White,
+                                        color = btnFg,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -288,7 +317,7 @@ internal fun PlayerYoutubeCommentsSheet(
                                 TextButton(onClick = onLoadMore) {
                                     Text(
                                         text = strings.more,
-                                        color = primary.playerMix(Color.White, 0.52f),
+                                        color = accentTint,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -300,7 +329,7 @@ internal fun PlayerYoutubeCommentsSheet(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 28.dp),
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                            verticalArrangement = Arrangement.spacedBy(if (pixel) 8.dp else 3.dp)
                         ) {
                             itemsIndexed(
                                 items = comments.items,
@@ -309,7 +338,7 @@ internal fun PlayerYoutubeCommentsSheet(
                             ) { index, comment ->
                                 YoutubeCommentCard(
                                     comment = comment,
-                                    shape = derbisGroupedListShape(index, comments.items.size),
+                                    shape = if (pixel) RectangleShape else derbisGroupedListShape(index, comments.items.size),
                                     primary = primary,
                                     secondary = secondary,
                                     moreLabel = strings.more,
@@ -328,7 +357,7 @@ internal fun PlayerYoutubeCommentsSheet(
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(24.dp),
                                             strokeWidth = 2.4.dp,
-                                            color = primary.playerMix(Color.White, 0.55f)
+                                            color = accentTint
                                         )
                                     }
                                 }
@@ -341,13 +370,13 @@ internal fun PlayerYoutubeCommentsSheet(
                                         Icon(
                                             imageVector = Icons.Rounded.Refresh,
                                             contentDescription = null,
-                                            tint = primary.playerMix(Color.White, 0.52f),
+                                            tint = accentTint,
                                             modifier = Modifier.size(17.dp)
                                         )
                                         Spacer(modifier = Modifier.width(7.dp))
                                         Text(
                                             text = strings.check,
-                                            color = primary.playerMix(Color.White, 0.52f),
+                                            color = accentTint,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -360,7 +389,7 @@ internal fun PlayerYoutubeCommentsSheet(
                                     ) {
                                         Text(
                                             text = strings.more,
-                                            color = primary.playerMix(Color.White, 0.52f),
+                                            color = accentTint,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
@@ -381,26 +410,29 @@ private fun YoutubeCommentsEmptyState(
     primary: Color,
     modifier: Modifier = Modifier
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Surface(
-            color = primary.copy(alpha = 0.10f),
-            shape = CircleShape
+            color = if (pixel) PixelPalette.panel else primary.copy(alpha = 0.10f),
+            shape = if (pixel) RectangleShape else CircleShape,
+            border = if (pixel) BorderStroke(1.dp, PixelPalette.outline) else null
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.44f),
+                tint = if (light) DerbisMuted else Color.White.copy(alpha = 0.44f),
                 modifier = Modifier.padding(16.dp).size(30.dp)
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.52f),
+            color = if (light) DerbisMuted else Color.White.copy(alpha = 0.52f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -417,9 +449,18 @@ private fun YoutubeCommentCard(
     onToggleReplies: () -> Unit,
     onLoadMoreReplies: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
     Surface(
-        color = if (comment.pinned) primary.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.06f),
-        shape = shape
+        color = when {
+            pixel && comment.pinned -> PixelPalette.panel
+            pixel -> PixelPalette.ink
+            comment.pinned -> primary.copy(alpha = 0.16f)
+            light -> DerbisPanel
+            else -> Color.White.copy(alpha = 0.06f)
+        },
+        shape = shape,
+        border = if (pixel) BorderStroke(1.dp, PixelPalette.outline) else null
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -429,7 +470,7 @@ private fun YoutubeCommentCard(
 
             Text(
                 text = comment.text,
-                color = Color.White.copy(alpha = 0.88f),
+                color = if (light) DerbisText else Color.White.copy(alpha = 0.88f),
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
                 fontWeight = FontWeight.Normal
@@ -444,6 +485,7 @@ private fun YoutubeCommentCard(
 
 @Composable
 private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
+    val light = DerbisIsLight
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -451,7 +493,7 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
         YoutubeCommentAvatar(
             url = comment.authorAvatarUrl,
             author = comment.author,
-            tint = primary,
+            tint = if (DerbisIsPixel) PixelPalette.cyan else primary,
             modifier = Modifier.size(38.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -461,7 +503,7 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
             ) {
                 Text(
                     text = comment.author,
-                    color = Color.White.copy(alpha = 0.94f),
+                    color = if (light) DerbisText else Color.White.copy(alpha = 0.94f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -472,7 +514,7 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
                     Icon(
                         imageVector = Icons.Rounded.Verified,
                         contentDescription = null,
-                        tint = primary.playerMix(Color.White, 0.44f),
+                        tint = if (light) DerbisCyan else primary.playerMix(Color.White, 0.44f),
                         modifier = Modifier.size(13.dp)
                     )
                 }
@@ -480,7 +522,7 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
                     Icon(
                         imageVector = Icons.Rounded.PushPin,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.46f),
+                        tint = if (light) DerbisMuted else Color.White.copy(alpha = 0.46f),
                         modifier = Modifier.size(12.dp)
                     )
                 }
@@ -488,7 +530,7 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
             if (comment.publishedText.isNotBlank()) {
                 Text(
                     text = comment.publishedText,
-                    color = Color.White.copy(alpha = 0.46f),
+                    color = if (light) DerbisMuted else Color.White.copy(alpha = 0.46f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -507,15 +549,19 @@ private fun YoutubeCommentHeader(comment: YoutubeComment, primary: Color) {
 
 @Composable
 private fun YoutubeCommentActions(comment: YoutubeComment, secondary: Color, onToggleReplies: () -> Unit) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         if (comment.likeCountText.isNotBlank()) {
+            val pillShape = if (pixel) RectangleShape else CircleShape
             Row(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.07f))
+                    .clip(pillShape)
+                    .background(if (pixel) PixelPalette.panel else if (light) DerbisInk else Color.White.copy(alpha = 0.07f))
+                    .then(if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape) else Modifier)
                     .padding(horizontal = 12.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -523,12 +569,12 @@ private fun YoutubeCommentActions(comment: YoutubeComment, secondary: Color, onT
                 Icon(
                     imageVector = Icons.Rounded.ThumbUp,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.62f),
+                    tint = if (light) DerbisMuted else Color.White.copy(alpha = 0.62f),
                     modifier = Modifier.size(14.dp)
                 )
                 Text(
                     text = comment.likeCountText,
-                    color = Color.White.copy(alpha = 0.72f),
+                    color = if (light) DerbisText else Color.White.copy(alpha = 0.72f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -543,10 +589,19 @@ private fun YoutubeCommentActions(comment: YoutubeComment, secondary: Color, onT
                 animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
                 label = "comment-reply-corner"
             )
+            val replyShape = if (pixel) RectangleShape else RoundedCornerShape(replyCorner)
+            val replyTint = if (pixel) PixelPalette.cyan else if (light) DerbisCyan else secondary.playerMix(Color.White, 0.66f)
             Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(replyCorner))
-                    .background(secondary.copy(alpha = if (comment.repliesExpanded) 0.34f else 0.20f))
+                    .clip(replyShape)
+                    .background(
+                        when {
+                            pixel && comment.repliesExpanded -> PixelPalette.panelSoft
+                            pixel -> PixelPalette.panel
+                            else -> secondary.copy(alpha = if (comment.repliesExpanded) 0.34f else 0.20f)
+                        }
+                    )
+                    .then(if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape) else Modifier)
                     .clickable(
                         interactionSource = replyPressSource,
                         indication = LocalIndication.current,
@@ -559,12 +614,12 @@ private fun YoutubeCommentActions(comment: YoutubeComment, secondary: Color, onT
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.Reply,
                     contentDescription = null,
-                    tint = secondary.playerMix(Color.White, 0.66f),
+                    tint = replyTint,
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
                     text = comment.replyCount.toString(),
-                    color = secondary.playerMix(Color.White, 0.66f),
+                    color = replyTint,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -581,17 +636,22 @@ private fun ColumnScope.YoutubeCommentReplies(
     onToggleReplies: () -> Unit,
     onLoadMoreReplies: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
+    val accentTint = if (pixel) PixelPalette.cyan else if (light) DerbisCyan else primary.playerMix(Color.White, 0.52f)
     AnimatedVisibility(
         visible = comment.repliesExpanded,
         enter = fadeIn(tween(160)) + slideInVertically(initialOffsetY = { -it / 5 }),
         exit = fadeOut(tween(120))
     ) {
+        val boxShape = if (pixel) RectangleShape else RoundedCornerShape(20.dp)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 24.dp, top = 2.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color.Black.copy(alpha = 0.22f))
+                .clip(boxShape)
+                .background(if (pixel) PixelPalette.black else if (light) DerbisInk else Color.Black.copy(alpha = 0.22f))
+                .then(if (pixel) Modifier.border(1.dp, PixelPalette.outline, RectangleShape) else Modifier)
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -603,7 +663,7 @@ private fun ColumnScope.YoutubeCommentReplies(
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp,
-                        color = primary.playerMix(Color.White, 0.52f)
+                        color = accentTint
                     )
                 }
             } else if (comment.repliesError != null && comment.replies.isEmpty()) {
@@ -611,7 +671,7 @@ private fun ColumnScope.YoutubeCommentReplies(
                     Icon(
                         imageVector = Icons.Rounded.Refresh,
                         contentDescription = null,
-                        tint = primary.playerMix(Color.White, 0.52f),
+                        tint = accentTint,
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -619,7 +679,7 @@ private fun ColumnScope.YoutubeCommentReplies(
                 TextButton(onClick = onLoadMoreReplies, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = moreLabel,
-                        color = primary.playerMix(Color.White, 0.52f),
+                        color = accentTint,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -634,6 +694,7 @@ private fun YoutubeCommentReply(
     reply: YoutubeComment,
     primary: Color
 ) {
+    val light = DerbisIsLight
     Row(
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -641,6 +702,7 @@ private fun YoutubeCommentReply(
         YoutubeCommentAvatar(
             url = reply.authorAvatarUrl,
             author = reply.author,
+            tint = if (DerbisIsPixel) PixelPalette.cyan else Color.White,
             modifier = Modifier.size(28.dp)
         )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -650,7 +712,7 @@ private fun YoutubeCommentReply(
             ) {
                 Text(
                     text = reply.author,
-                    color = Color.White.copy(alpha = 0.86f),
+                    color = if (light) DerbisText else Color.White.copy(alpha = 0.86f),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     maxLines = 1,
@@ -661,7 +723,7 @@ private fun YoutubeCommentReply(
                     Icon(
                         imageVector = Icons.Rounded.Verified,
                         contentDescription = null,
-                        tint = primary.playerMix(Color.White, 0.44f),
+                        tint = if (light) DerbisCyan else primary.playerMix(Color.White, 0.44f),
                         modifier = Modifier.size(11.dp)
                     )
                 }
@@ -676,7 +738,7 @@ private fun YoutubeCommentReply(
             }
             Text(
                 text = reply.text,
-                color = Color.White.copy(alpha = 0.75f),
+                color = if (light) DerbisText else Color.White.copy(alpha = 0.75f),
                 fontSize = 11.5.sp,
                 lineHeight = 16.sp
             )
@@ -684,14 +746,14 @@ private fun YoutubeCommentReply(
                 if (reply.publishedText.isNotBlank()) {
                     Text(
                         text = reply.publishedText,
-                        color = Color.White.copy(alpha = 0.36f),
+                        color = if (light) DerbisMuted else Color.White.copy(alpha = 0.36f),
                         fontSize = 9.5.sp
                     )
                 }
                 if (reply.likeCountText.isNotBlank()) {
                     Text(
                         text = "👍 ${reply.likeCountText}",
-                        color = Color.White.copy(alpha = 0.36f),
+                        color = if (light) DerbisMuted else Color.White.copy(alpha = 0.36f),
                         fontSize = 9.5.sp
                     )
                 }
@@ -707,10 +769,13 @@ private fun YoutubeCommentAvatar(
     modifier: Modifier = Modifier,
     tint: Color = Color.White
 ) {
+    val pixel = DerbisIsPixel
+    val light = DerbisIsLight
     Surface(
         modifier = modifier,
-        shape = CircleShape,
-        color = tint.copy(alpha = 0.24f)
+        shape = if (pixel) RectangleShape else CircleShape,
+        color = if (pixel) PixelPalette.panel else tint.copy(alpha = 0.24f),
+        border = if (pixel) BorderStroke(1.dp, PixelPalette.outline) else null
     ) {
         if (url.isNotBlank()) {
             AsyncImage(
@@ -723,7 +788,7 @@ private fun YoutubeCommentAvatar(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = author.trim().firstOrNull { it.isLetterOrDigit() }?.uppercaseChar()?.toString().orEmpty(),
-                    color = tint.playerMix(Color.White, 0.7f),
+                    color = if (light) DerbisText else tint.playerMix(Color.White, 0.7f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Black
                 )

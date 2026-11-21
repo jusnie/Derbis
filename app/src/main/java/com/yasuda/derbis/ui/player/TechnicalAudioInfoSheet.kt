@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,9 +52,12 @@ import com.yasuda.derbis.ui.i18n.systemPlayerCopy
 import com.yasuda.derbis.ui.i18n.technicalAudioInfoCopy
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisGlassBorder
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisMuted
 import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisText
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 import java.util.Locale
 
 private val TechnicalAudioCardShape = RoundedCornerShape(18.dp)
@@ -138,10 +142,12 @@ internal fun TechnicalAudioInfoSheet(
         )
     }
 
+    val pixel = DerbisIsPixel
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = DerbisPanel
+        shape = if (pixel) RectangleShape else androidx.compose.material3.BottomSheetDefaults.ExpandedShape,
+        containerColor = if (pixel) PixelPalette.black else DerbisPanel
     ) {
         Column(
             modifier = Modifier
@@ -185,13 +191,17 @@ internal fun TechnicalAudioInfoSheet(
 
 @Composable
 private fun TechnicalAudioHero(codec: String, quality: String, sampleRate: String) {
+    val pixel = DerbisIsPixel
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 18.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = DerbisCyan.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, DerbisCyan.copy(alpha = 0.22f))
+        shape = if (pixel) RectangleShape else RoundedCornerShape(22.dp),
+        color = if (pixel) PixelPalette.panel else DerbisCyan.copy(alpha = 0.08f),
+        border = BorderStroke(
+            if (pixel) PixelDesign.border else 1.dp,
+            if (pixel) PixelPalette.outline else DerbisCyan.copy(alpha = 0.22f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 15.dp),
@@ -220,6 +230,7 @@ private fun TechnicalHeroMetric(value: String, modifier: Modifier = Modifier) {
 @Composable
 private fun TechnicalAudioSection(title: String, rows: List<Pair<String, String>>) {
     if (rows.isEmpty()) return
+    val pixel = DerbisIsPixel
     Text(
         text = title,
         color = DerbisCyan,
@@ -232,16 +243,16 @@ private fun TechnicalAudioSection(title: String, rows: List<Pair<String, String>
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 18.dp),
-        shape = TechnicalAudioCardShape,
-        color = DerbisText.copy(alpha = 0.025f),
-        border = BorderStroke(1.dp, DerbisGlassBorder.copy(alpha = 0.7f))
+        shape = if (pixel) RectangleShape else TechnicalAudioCardShape,
+        color = if (pixel) PixelPalette.ink else DerbisText.copy(alpha = 0.025f),
+        border = BorderStroke(1.dp, if (pixel) PixelPalette.outline else DerbisGlassBorder.copy(alpha = 0.7f))
     ) {
         Column {
             rows.forEachIndexed { index, row ->
                 TechnicalAudioRow(row.first, row.second)
                 if (index != rows.lastIndex) {
                     HorizontalDivider(
-                        color = DerbisGlassBorder.copy(alpha = 0.55f),
+                        color = if (pixel) PixelPalette.panel else DerbisGlassBorder.copy(alpha = 0.55f),
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )
                 }

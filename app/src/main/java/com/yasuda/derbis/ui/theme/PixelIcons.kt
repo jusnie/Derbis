@@ -99,8 +99,13 @@ internal object PixelIcons {
         "MoreVert",
         "M10,4h4v4h-4V4z M10,10h4v4h-4v-4z M10,16h4v4h-4v-4z"
     )
+    val Back = pixelFill(
+        "Back",
+        "M11,5h2v2H9v2H7v2h13v2H7v2h2v2h4v2h-2v-2H7v-2H5v-2H3v-2h2V9h2V7h4V5z"
+    )
 
     fun resolve(icon: ImageVector): ImageVector = when (icon.name.substringAfterLast('.')) {
+        "ArrowBack" -> Back
         "PlayArrow" -> Play
         "Pause" -> Pause
         "SkipPrevious" -> Previous
