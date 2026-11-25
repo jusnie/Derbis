@@ -81,6 +81,8 @@ path = [
   "app/src/main/res/font/pixelify_sans_regular.ttf",
   "app/src/main/res/font/pixelify_sans_bold.ttf",
   "app/src/main/assets/licenses/pixelify-sans.txt",
+  "ios/Derbis/Resources/Fonts/pixelify_sans_regular.ttf",
+  "ios/Derbis/Resources/Fonts/pixelify_sans_bold.ttf",
   "website/fonts/pixelify-sans-latin-400-normal.woff2",
   "website/fonts/pixelify-sans-latin-700-normal.woff2",
   "website/fonts/OFL-pixelifysans.txt",
