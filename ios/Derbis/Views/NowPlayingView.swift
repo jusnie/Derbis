@@ -38,89 +38,124 @@ struct NowPlayingView: View {
     }
 
     var body: some View {
-        ZStack {
-            backdropLayer
+        GeometryReader { screenGeo in
+            let viewportWidth = max(300, screenGeo.size.width)
+            let viewportHeight = max(520, screenGeo.size.height)
+            let compactHeight = viewportHeight < 700
+            let stageMaxHeight = max(210, min(330, viewportHeight * (showingLyrics ? 0.44 : 0.37)))
 
-            if let track = player.currentTrack {
-                VStack(spacing: 0) {
-                    grabberAndTopBar(track: track)
-                        .padding(.top, 12)
-                        .padding(.horizontal, 24)
+            ZStack {
+                if let track = player.currentTrack {
+                    VStack(spacing: 0) {
+                        grabberAndTopBar(track: track)
+                            .padding(.top, compactHeight ? 8 : 12)
+                            .padding(.horizontal, 20)
 
-                    Spacer(minLength: 12)
+                        Spacer(minLength: compactHeight ? 8 : 12)
 
-                    if showingLyrics {
-                        syncedLyricsPanel(track: track)
+                        if showingLyrics {
+                            syncedLyricsPanel(track: track, maxHeight: stageMaxHeight)
+                                .transition(.opacity)
+                        } else {
+                            artworkStage(
+                                track: track,
+                                viewportWidth: viewportWidth,
+                                maxStageHeight: stageMaxHeight
+                            )
                             .transition(.opacity)
-                    } else {
-                        artworkStage(track: track)
-                            .transition(.opacity)
-                    }
-
-                    Spacer(minLength: 14)
-
-                    if !showingLyrics, let inlineLine = currentInlineLyricText {
-                        Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                showingLyrics = true
-                            }
-                        } label: {
-                            Text(inlineLine)
-                                .font(theme.font(size: 14, weight: .semibold))
-                                .foregroundColor(fgPrimary.opacity(0.92))
-                                .lineLimit(1)
-                                .padding(.horizontal, 28)
-                                .padding(.bottom, 10)
                         }
-                        .buttonStyle(.plain)
+
+                        Spacer(minLength: compactHeight ? 8 : 12)
+
+                        if !showingLyrics, let inlineLine = currentInlineLyricText {
+                            Button {
+                                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                    showingLyrics = true
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "quote.bubble.fill")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(theme.accent)
+                                    Text(inlineLine)
+                                        .font(theme.font(size: 13, weight: .semibold))
+                                        .foregroundColor(fgPrimary.opacity(0.94))
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(
+                                            (theme.isPixelSkin && !isImmersiveCanvas)
+                                                ? theme.elevatedSurface
+                                                : Color.white.opacity(0.11)
+                                        )
+                                )
+                                .padding(.horizontal, 24)
+                                .padding(.bottom, 8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        titleAndLikeRow(track: track)
+                            .padding(.horizontal, 24)
+
+                        scrubberSection
+                            .padding(.horizontal, 24)
+                            .padding(.top, compactHeight ? 10 : 14)
+
+                        transportControlsRow
+                            .padding(.horizontal, 24)
+                            .padding(.top, compactHeight ? 14 : 20)
+
+                        bottomUtilityDock(track: track)
+                            .padding(.horizontal, 20)
+                            .padding(.top, compactHeight ? 14 : 20)
+                            .padding(.bottom, compactHeight ? 12 : 18)
                     }
-
-                    titleAndLikeRow(track: track)
-                        .padding(.horizontal, 28)
-
-                    scrubberSection
-                        .padding(.horizontal, 28)
-                        .padding(.top, 14)
-
-                    transportControlsRow
-                        .padding(.horizontal, 28)
-                        .padding(.top, 22)
-
-                    bottomUtilityDock(track: track)
-                        .padding(.horizontal, 32)
-                        .padding(.top, 24)
-                        .padding(.bottom, 22)
+                    .frame(width: viewportWidth, height: viewportHeight)
+                    .sheet(isPresented: $showingQueue) {
+                        UpNextQueueSheet()
+                            .environmentObject(player)
+                            .environmentObject(theme)
+                    }
+                    .sheet(isPresented: $showingPlaylistSheet) {
+                        PlaylistPickerSheet(track: track)
+                            .environmentObject(library)
+                            .environmentObject(theme)
+                    }
+                    .sheet(isPresented: $showingSpotifyCanvasSheet) {
+                        SpotifyCanvasSheet()
+                            .environmentObject(player)
+                            .environmentObject(theme)
+                    }
+                    .onChange(of: theme.motionCanvasEnabled) { _ in
+                        player.refreshMotionCanvas()
+                    }
+                    .onChange(of: theme.motionCanvasStyle) { _ in
+                        player.refreshMotionCanvas()
+                    }
                 }
-                .sheet(isPresented: $showingQueue) {
-                    UpNextQueueSheet()
-                        .environmentObject(player)
-                        .environmentObject(theme)
-                }
-                .sheet(isPresented: $showingPlaylistSheet) {
-                    PlaylistPickerSheet(track: track)
-                        .environmentObject(library)
-                        .environmentObject(theme)
-                }
-                .sheet(isPresented: $showingSpotifyCanvasSheet) {
-                    SpotifyCanvasSheet()
-                        .environmentObject(player)
-                        .environmentObject(theme)
-                }
-                .onChange(of: theme.motionCanvasEnabled) { _ in
-                    player.refreshMotionCanvas()
-                }
-                .onChange(of: theme.motionCanvasStyle) { _ in
-                    player.refreshMotionCanvas()
-                }
+            }
+            .frame(width: viewportWidth, height: viewportHeight)
+            .background {
+                backdropLayer(width: viewportWidth, height: viewportHeight)
+                    .ignoresSafeArea()
             }
         }
     }
 
     @ViewBuilder
-    private var backdropLayer: some View {
+    private func backdropLayer(width: CGFloat, height: CGFloat) -> some View {
+        let bleedWidth = width + 40
+        let bleedHeight = height + 160
+
         ZStack {
             if theme.isPixelSkin && !isImmersiveCanvas {
                 PixelGraphPaperBackground()
+                    .frame(width: bleedWidth, height: bleedHeight)
+                    .clipped()
             } else if theme.skin == .lateNight && !isImmersiveCanvas {
                 LinearGradient(
                     colors: [
@@ -131,10 +166,11 @@ struct NowPlayingView: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .ignoresSafeArea()
+                .frame(width: bleedWidth, height: bleedHeight)
+                .clipped()
             } else {
                 ZStack {
-                    Color.black.ignoresSafeArea()
+                    Color.black
                     LinearGradient(
                         colors: [
                             player.ambientPrimary,
@@ -144,19 +180,21 @@ struct NowPlayingView: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    .ignoresSafeArea()
 
                     if let uiImage = player.currentArtworkImage {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
-                            .blur(radius: 68)
+                            .frame(width: bleedWidth, height: bleedHeight)
+                            .clipped()
+                            .blur(radius: 64)
                             .opacity(0.38)
-                            .ignoresSafeArea()
                     }
 
-                    Color.black.opacity(0.34).ignoresSafeArea()
+                    Color.black.opacity(0.34)
                 }
+                .frame(width: bleedWidth, height: bleedHeight)
+                .clipped()
             }
 
             if isImmersiveCanvas, let motion = activeMotionAsset {
@@ -165,8 +203,9 @@ struct NowPlayingView: View {
                     isPlaying: player.isPlaying
                 )
                 .id(motion.playbackURL.absoluteString)
+                .frame(width: width, height: bleedHeight)
+                .clipped()
                 .opacity(showingLyrics ? 0.34 : 1.0)
-                .ignoresSafeArea()
 
                 LinearGradient(
                     stops: [
@@ -179,14 +218,16 @@ struct NowPlayingView: View {
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .ignoresSafeArea()
+                .frame(width: bleedWidth, height: bleedHeight)
                 .allowsHitTesting(false)
             }
         }
+        .frame(width: width, height: height)
+        .clipped()
     }
 
     private func grabberAndTopBar(track: Track) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             Capsule()
                 .fill(fgSecondary.opacity(0.45))
                 .frame(width: 38, height: 5)
@@ -199,7 +240,7 @@ struct NowPlayingView: View {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(fgPrimary)
-                        .frame(width: 34, height: 34)
+                        .frame(width: 36, height: 36)
                 }
 
                 Spacer()
@@ -235,6 +276,17 @@ struct NowPlayingView: View {
                 Spacer()
 
                 Menu {
+                    Button {
+                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                            showingLyrics.toggle()
+                        }
+                        if showingLyrics && player.currentLyrics == nil && !player.isLoadingLyrics {
+                            player.loadLyrics(for: track)
+                        }
+                    } label: {
+                        Label(showingLyrics ? "Show artwork" : "Synced lyrics", systemImage: "quote.bubble")
+                    }
+
                     Button {
                         showingPlaylistSheet = true
                     } label: {
@@ -317,72 +369,67 @@ struct NowPlayingView: View {
                     Image(systemName: "ellipsis.circle.fill")
                         .font(.system(size: 22))
                         .foregroundColor(fgPrimary.opacity(0.85))
-                        .frame(width: 34, height: 34)
+                        .frame(width: 36, height: 36)
                 }
             }
         }
     }
 
-    private func artworkStage(track: Track) -> some View {
-        VStack(spacing: 14) {
-            if isImmersiveCanvas {
-                Spacer(minLength: 180)
-                    .frame(maxHeight: 330)
-            } else {
-                GeometryReader { geo in
-                    let side = min(geo.size.width - 56, geo.size.height)
-                    let frameSize = max(180, side)
-                    HStack {
-                        Spacer()
-                        ZStack {
-                            if theme.isPixelSkin {
-                                Rectangle()
-                                    .fill(Color(hex: 0x5B2338, opacity: 0.28))
-                                    .frame(width: side, height: side)
-                                    .offset(x: 5, y: 5)
-                            }
-                            ZStack {
-                                TrackArtworkView(
-                                    url: track.displayArtworkURL,
-                                    size: frameSize,
-                                    cornerRadius: theme.playerArtworkRadius
-                                )
+    private func artworkStage(track: Track, viewportWidth: CGFloat, maxStageHeight: CGFloat) -> some View {
+        let side = max(176, min(viewportWidth - 56, maxStageHeight - 8))
 
-                                if theme.motionCanvasStyle == .framed, let motion = activeMotionAsset {
-                                    LoopingMotionVideoView(
-                                        url: motion.playbackURL,
-                                        isPlaying: player.isPlaying
-                                    )
-                                    .id(motion.playbackURL.absoluteString)
-                                    .frame(width: frameSize, height: frameSize)
-                                    .clipShape(
-                                        RoundedRectangle(
-                                            cornerRadius: theme.playerArtworkRadius,
-                                            style: .continuous
-                                        )
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(
-                                            cornerRadius: theme.playerArtworkRadius,
-                                            style: .continuous
-                                        )
-                                        .stroke(theme.isPixelSkin ? theme.border : Color.white.opacity(0.08), lineWidth: theme.isPixelSkin ? 2 : 0.6)
-                                    )
-                                }
-                            }
-                            .shadow(
-                                color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
-                                radius: player.isPlaying ? 26 : 12,
-                                x: 0,
-                                y: player.isPlaying ? 16 : 8
-                            )
-                            .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.88))
-                            .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
-                        }
-                        Spacer()
+        return VStack(spacing: 12) {
+            if isImmersiveCanvas {
+                Spacer(minLength: 140)
+                    .frame(maxHeight: maxStageHeight)
+            } else {
+                ZStack {
+                    if theme.isPixelSkin {
+                        Rectangle()
+                            .fill(Color(hex: 0x5B2338, opacity: 0.28))
+                            .frame(width: side, height: side)
+                            .offset(x: 5, y: 5)
                     }
+
+                    ZStack {
+                        TrackArtworkView(
+                            url: track.displayArtworkURL,
+                            size: side,
+                            cornerRadius: theme.playerArtworkRadius
+                        )
+
+                        if theme.motionCanvasStyle == .framed, let motion = activeMotionAsset {
+                            LoopingMotionVideoView(
+                                url: motion.playbackURL,
+                                isPlaying: player.isPlaying
+                            )
+                            .id(motion.playbackURL.absoluteString)
+                            .frame(width: side, height: side)
+                            .clipShape(
+                                RoundedRectangle(
+                                    cornerRadius: theme.playerArtworkRadius,
+                                    style: .continuous
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(
+                                    cornerRadius: theme.playerArtworkRadius,
+                                    style: .continuous
+                                )
+                                .stroke(theme.isPixelSkin ? theme.border : Color.white.opacity(0.08), lineWidth: theme.isPixelSkin ? 2 : 0.6)
+                            )
+                        }
+                    }
+                    .shadow(
+                        color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
+                        radius: player.isPlaying ? 24 : 12,
+                        x: 0,
+                        y: player.isPlaying ? 14 : 7
+                    )
+                    .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.89))
+                    .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
                 }
-                .frame(maxHeight: 330)
+                .frame(width: viewportWidth, height: side)
             }
 
             if let error = player.errorBanner {
@@ -390,7 +437,7 @@ struct NowPlayingView: View {
                     .font(theme.font(size: 12, weight: .medium))
                     .foregroundColor(theme.accent)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 28)
+                    .padding(.horizontal, 24)
             } else if theme.skin == .lateNight,
                       player.currentIndex + 1 < player.queue.count {
                 let nextTrack = player.queue[player.currentIndex + 1]
@@ -406,12 +453,54 @@ struct NowPlayingView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Capsule().fill(Color.white.opacity(0.08)))
+                .padding(.horizontal, 24)
             }
         }
     }
 
-    private func syncedLyricsPanel(track: Track) -> some View {
+    private func syncedLyricsPanel(track: Track, maxHeight: CGFloat) -> some View {
         VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                TrackArtworkView(
+                    url: track.displayArtworkURL,
+                    size: 36,
+                    cornerRadius: theme.isPixelSkin ? 0 : 8
+                )
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Synced lyrics")
+                        .font(theme.font(size: 12, weight: .bold))
+                        .foregroundColor(fgPrimary)
+                    Text(player.currentLyrics?.synced == true ? "Tap any line to jump" : "Plain text")
+                        .font(theme.font(size: 11))
+                        .foregroundColor(fgSecondary)
+                }
+
+                Spacer()
+
+                Button {
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                        showingLyrics = false
+                    }
+                } label: {
+                    Text("Artwork")
+                        .font(theme.font(size: 11, weight: .bold))
+                        .foregroundColor(fgPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    (theme.isPixelSkin && !isImmersiveCanvas)
+                                        ? theme.elevatedSurface
+                                        : Color.white.opacity(0.14)
+                                )
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+
             if player.isLoadingLyrics {
                 Spacer()
                 ProgressView()
@@ -423,7 +512,7 @@ struct NowPlayingView: View {
             } else if let payload = player.currentLyrics, !payload.lines.isEmpty {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 16) {
                             ForEach(payload.lines) { line in
                                 let isActive = player.activeLyricIndex == line.id
                                 Button {
@@ -432,8 +521,8 @@ struct NowPlayingView: View {
                                     }
                                 } label: {
                                     Text(line.text)
-                                        .font(theme.font(size: isActive ? 24 : 19, weight: .bold))
-                                        .foregroundColor(isActive ? fgPrimary : fgSecondary.opacity(0.45))
+                                        .font(theme.font(size: isActive ? 22 : 18, weight: .bold))
+                                        .foregroundColor(isActive ? fgPrimary : fgSecondary.opacity(0.46))
                                         .multilineTextAlignment(.leading)
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                         .scaleEffect(isActive ? 1.0 : 0.97, anchor: .leading)
@@ -443,8 +532,13 @@ struct NowPlayingView: View {
                                 .id(line.id)
                             }
                         }
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 30)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 20)
+                    }
+                    .onAppear {
+                        if let activeId = player.activeLyricIndex {
+                            proxy.scrollTo(activeId, anchor: .center)
+                        }
                     }
                     .onChange(of: player.activeLyricIndex) { activeId in
                         guard let activeId = activeId else { return }
@@ -457,10 +551,10 @@ struct NowPlayingView: View {
                 Spacer()
                 VStack(spacing: 10) {
                     Image(systemName: "quote.bubble")
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(fgSecondary)
                     Text("No synced lyrics found")
-                        .font(theme.font(size: 16, weight: .bold))
+                        .font(theme.font(size: 15, weight: .bold))
                         .foregroundColor(fgPrimary)
                     Button("Retry lookup") {
                         player.loadLyrics(for: track)
@@ -471,24 +565,23 @@ struct NowPlayingView: View {
                 Spacer()
             }
         }
-        .frame(maxHeight: 350)
+        .frame(maxHeight: maxHeight)
     }
 
     private func titleAndLikeRow(track: Track) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.title)
-                    .font(theme.font(size: 21, weight: .bold))
+                    .font(theme.font(size: 20, weight: .bold))
                     .foregroundColor(fgPrimary)
                     .lineLimit(1)
 
                 Text(track.artist)
-                    .font(theme.font(size: 16, weight: .medium))
+                    .font(theme.font(size: 15, weight: .medium))
                     .foregroundColor(fgSecondary)
                     .lineLimit(1)
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 library.toggleLike(track)
@@ -591,9 +684,9 @@ struct NowPlayingView: View {
                 player.skipPrevious()
             } label: {
                 Image(systemName: "backward.fill")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 48, height: 48)
             }
 
             Spacer()
@@ -605,16 +698,16 @@ struct NowPlayingView: View {
                     if theme.isPixelSkin && !isImmersiveCanvas {
                         Rectangle()
                             .fill(theme.accent)
-                            .frame(width: 68, height: 68)
+                            .frame(width: 64, height: 64)
                             .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
                     } else {
                         Circle()
                             .fill(fgPrimary)
-                            .frame(width: 68, height: 68)
+                            .frame(width: 64, height: 64)
                     }
 
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundColor((theme.isPixelSkin && !isImmersiveCanvas) ? .white : .black)
                         .offset(x: player.isPlaying ? 0 : 2)
                 }
@@ -626,9 +719,9 @@ struct NowPlayingView: View {
                 player.skipNext()
             } label: {
                 Image(systemName: "forward.fill")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 48, height: 48)
             }
 
             Spacer()
@@ -645,53 +738,85 @@ struct NowPlayingView: View {
     }
 
     private func bottomUtilityDock(track: Track) -> some View {
-        HStack {
+        let airplayTint: UIColor = (theme.isPixelSkin && !isImmersiveCanvas)
+            ? UIColor(red: 0.36, green: 0.14, blue: 0.22, alpha: 1.0)
+            : UIColor.white
+
+        return HStack(spacing: 0) {
             Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                     showingLyrics.toggle()
                 }
                 if showingLyrics && player.currentLyrics == nil && !player.isLoadingLyrics {
                     player.loadLyrics(for: track)
                 }
             } label: {
-                Image(systemName: showingLyrics ? "quote.bubble.fill" : "quote.bubble")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundColor(showingLyrics ? theme.accent : fgSecondary)
-                    .frame(width: 44, height: 36)
+                VStack(spacing: 4) {
+                    Image(systemName: showingLyrics ? "quote.bubble.fill" : "quote.bubble")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text("Lyrics")
+                        .font(theme.font(size: 10, weight: .semibold))
+                }
+                .foregroundColor(showingLyrics ? theme.accent : fgSecondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
             }
+            .buttonStyle(.plain)
 
-            Spacer()
-
-            AirPlayRoutePicker(tintColor: theme.isPixelSkin ? UIColor(red: 0.36, green: 0.14, blue: 0.22, alpha: 1.0) : UIColor.white)
-                .frame(width: 44, height: 36)
-
-            Spacer()
+            VStack(spacing: 4) {
+                AirPlayRoutePicker(tintColor: airplayTint)
+                    .frame(width: 24, height: 20)
+                Text("AirPlay")
+                    .font(theme.font(size: 10, weight: .semibold))
+                    .foregroundColor(fgSecondary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 40)
 
             if track.source != .localFile {
+                let downloaded = library.isDownloaded(track)
+                let downloading = library.activeDownloads[track.id] != nil
                 Button {
-                    if !library.isDownloaded(track) {
+                    if !downloaded && !downloading {
                         Task {
                             await library.downloadTrackForOffline(track, preferHighQuality: theme.highQualityAudio)
                         }
                     }
                 } label: {
-                    Image(systemName: library.isDownloaded(track) ? "checkmark.circle.fill" : "arrow.down.circle")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundColor(library.isDownloaded(track) ? theme.accent : fgSecondary)
-                        .frame(width: 44, height: 36)
+                    VStack(spacing: 4) {
+                        if downloading {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .tint(theme.accent)
+                                .frame(height: 18)
+                        } else {
+                            Image(systemName: downloaded ? "checkmark.circle.fill" : "arrow.down.circle")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        Text(downloaded ? "Saved" : "Offline")
+                            .font(theme.font(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(downloaded ? theme.accent : fgSecondary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 40)
                 }
-
-                Spacer()
+                .buttonStyle(.plain)
             }
 
             Button {
                 showingQueue = true
             } label: {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundColor(fgSecondary)
-                    .frame(width: 44, height: 36)
+                VStack(spacing: 4) {
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 17, weight: .semibold))
+                    Text("Queue")
+                        .font(theme.font(size: 10, weight: .semibold))
+                }
+                .foregroundColor(fgSecondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
             }
+            .buttonStyle(.plain)
         }
     }
 

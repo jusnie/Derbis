@@ -7,8 +7,16 @@ struct TrackArtworkView: View {
     let size: CGFloat
     var cornerRadius: CGFloat? = nil
 
+    private var isYouTubeFourByThreeThumb: Bool {
+        guard let host = url?.host?.lowercased(), let path = url?.path.lowercased() else {
+            return false
+        }
+        return host.contains("ytimg.com") && (path.contains("hqdefault") || path.contains("sddefault"))
+    }
+
     var body: some View {
         let radius = theme.isPixelSkin ? 0 : (cornerRadius ?? theme.artworkRadius)
+        let zoom: CGFloat = isYouTubeFourByThreeThumb ? 1.35 : 1.0
         ZStack {
             theme.elevatedSurface
             if let url = url {
@@ -16,6 +24,9 @@ struct TrackArtworkView: View {
                     Image(uiImage: uiImg)
                         .resizable()
                         .scaledToFill()
+                        .scaleEffect(zoom)
+                        .frame(width: size, height: size)
+                        .clipped()
                 } else {
                     AsyncImage(url: url) { phase in
                         switch phase {
@@ -23,10 +34,15 @@ struct TrackArtworkView: View {
                             image
                                 .resizable()
                                 .scaledToFill()
+                                .scaleEffect(zoom)
+                                .frame(width: size, height: size)
+                                .clipped()
                         default:
                             placeholderIcon
                         }
                     }
+                    .frame(width: size, height: size)
+                    .clipped()
                 }
             } else {
                 placeholderIcon
