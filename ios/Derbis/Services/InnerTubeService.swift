@@ -4,29 +4,87 @@ actor InnerTubeService {
     static let shared = InnerTubeService()
 
     private let session: URLSession
-    private var cachedVisitorData: String = ""
-    private var cachedApiKey: String = ""
-    private var lastContextFetch: Date = .distantPast
+    private let probeSession: URLSession
 
-    private let webRemixVersion = "1.20260804.01.00"
+    private var cachedWebVisitorData: String = ""
+    private var cachedReelVisitorData: String = ""
+    private var cachedApiKey: String = ""
+    private var lastWebContextFetch: Date = .distantPast
+    private var lastReelVisitorFetch: Date = .distantPast
+
+    private var resolvedCache: [String: [ResolvedStream]] = [:]
+    private var quarantinedURLs: [String: Date] = [:]
+    private var quarantinedClients: [String: Date] = [:]
+    private var requestSequence: Int = 1
+
+    private let webRemixVersion = "1.20260804.16.00"
+    private let androidReelVersion = "21.03.36"
     private let webUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+    private let nonceAlphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
 
     init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 14
-        config.timeoutIntervalForResource = 30
+        config.timeoutIntervalForRequest = 12
+        config.timeoutIntervalForResource = 24
         self.session = URLSession(configuration: config)
+
+        let probeConfig = URLSessionConfiguration.ephemeral
+        probeConfig.timeoutIntervalForRequest = 4.5
+        probeConfig.timeoutIntervalForResource = 6.0
+        self.probeSession = URLSession(configuration: probeConfig)
+    }
+
+    private var effectiveCountryCode: String {
+        if let code = Locale.current.region?.identifier,
+           code.count == 2 {
+            return code.uppercased()
+        }
+        return "US"
+    }
+
+    private var effectiveLanguageCode: String {
+        if let code = Locale.current.language.languageCode?.identifier,
+           !code.isEmpty {
+            return code.lowercased()
+        }
+        return "en"
+    }
+
+    func quarantineStream(url: URL, videoId: String?, clientLabel: String?) {
+        let cleanKey = canonicalURLKey(url)
+        quarantinedURLs[cleanKey] = Date().addingTimeInterval(600)
+        if let vid = videoId {
+            for key in resolvedCache.keys where key.hasPrefix("\(vid)|") {
+                if let list = resolvedCache[key] {
+                    let remaining = list.filter { canonicalURLKey($0.url) != cleanKey }
+                    if remaining.isEmpty {
+                        resolvedCache.removeValue(forKey: key)
+                    } else {
+                        resolvedCache[key] = remaining
+                    }
+                }
+            }
+        }
+        if let client = clientLabel, !client.isEmpty, client != "Direct" {
+            quarantinedClients[client] = Date().addingTimeInterval(180)
+        }
+    }
+
+    func invalidateVideoCache(videoId: String) {
+        for key in resolvedCache.keys where key.hasPrefix("\(videoId)|") {
+            resolvedCache.removeValue(forKey: key)
+        }
     }
 
     func searchTracks(query: String) async throws -> [Track] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let songsTask = Task { try? await performWebRemixSearch(query: trimmed, params: "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D") }
-        let generalTask = Task { try? await performWebRemixSearch(query: trimmed, params: nil) }
+        async let songsFetch = performWebRemixSearch(query: trimmed, params: "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
+        async let generalFetch = performWebRemixSearch(query: trimmed, params: nil)
 
-        let songs = await songsTask.value ?? []
-        let general = await generalTask.value ?? []
+        let songs = (try? await songsFetch) ?? []
+        let general = (try? await generalFetch) ?? []
 
         var seen = Set<String>()
         var combined: [Track] = []
@@ -133,13 +191,15 @@ actor InnerTubeService {
             return []
         }
 
+        let hl = effectiveLanguageCode
+        let gl = effectiveCountryCode
         let body: [String: Any] = [
             "context": [
                 "client": [
                     "clientName": "WEB_REMIX",
                     "clientVersion": webRemixVersion,
-                    "hl": "en",
-                    "gl": "US"
+                    "hl": hl,
+                    "gl": gl
                 ]
             ],
             "videoId": seedVideoId,
@@ -171,28 +231,120 @@ actor InnerTubeService {
         }
     }
 
-    func resolvePlayableStream(videoId: String, preferHighQuality: Bool) async throws -> ResolvedStream {
-        await refreshWatchContextIfNeeded(videoId: videoId)
+    func resolvePlayableStream(
+        for track: Track,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool = false,
+        forceRefresh: Bool = false
+    ) async throws -> ResolvedStream {
+        let ladder = try await resolveStreamCandidates(
+            for: track,
+            preferHighQuality: preferHighQuality,
+            requireDirectFile: requireDirectFile,
+            forceRefresh: forceRefresh
+        )
+        guard let first = ladder.first else {
+            throw URLError(.cannotDecodeRawData)
+        }
+        return first
+    }
 
-        let strategies: [ClientProfile] = [
-            ClientProfile(
-                name: "IOS",
-                version: "20.10.4",
-                headerId: "5",
-                userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3 like Mac OS X)",
-                extraFields: [
-                    "deviceMake": "Apple",
-                    "deviceModel": "iPhone16,2",
-                    "osName": "iPhone",
-                    "osVersion": "18.3.0.22D63"
-                ],
-                endpoint: "player"
-            ),
+    func resolveStreamCandidates(
+        for track: Track,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool = false,
+        forceRefresh: Bool = false
+    ) async throws -> [ResolvedStream] {
+        pruneExpiredQuarantines()
+        guard let primaryVideoId = track.videoId, !primaryVideoId.isEmpty else {
+            throw URLError(.badURL)
+        }
+
+        let cacheKey = "\(primaryVideoId)|\(preferHighQuality ? "hq" : "std")|\(requireDirectFile ? "direct" : "any")"
+        if !forceRefresh, let cached = resolvedCache[cacheKey] {
+            let valid = cached.filter { $0.isFresh && !isURLQuarantined($0.url) }
+            if !valid.isEmpty {
+                resolvedCache[cacheKey] = valid
+                return valid
+            }
+            resolvedCache.removeValue(forKey: cacheKey)
+        }
+
+        let primaryCandidates = await resolveCandidatesForVideoId(
+            videoId: primaryVideoId,
+            preferHighQuality: preferHighQuality,
+            requireDirectFile: requireDirectFile
+        )
+        if !primaryCandidates.isEmpty {
+            resolvedCache[cacheKey] = primaryCandidates
+            return primaryCandidates
+        }
+
+        if let alternateTrack = await findAlternateAudioTrack(for: track, excludingVideoId: primaryVideoId),
+           let altVideoId = alternateTrack.videoId {
+            let altCandidates = await resolveCandidatesForVideoId(
+                videoId: altVideoId,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: requireDirectFile
+            )
+            if !altCandidates.isEmpty {
+                resolvedCache[cacheKey] = altCandidates
+                return altCandidates
+            }
+        }
+
+        throw URLError(.cannotDecodeRawData)
+    }
+
+    private struct ClientProfile {
+        let name: String
+        let label: String
+        let version: String
+        let headerId: String
+        let userAgent: String
+        let extraFields: [String: Any]
+        let preferHLSFirst: Bool
+    }
+
+    private func resolveCandidatesForVideoId(
+        videoId: String,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool
+    ) async -> [ResolvedStream] {
+        await refreshWatchContextIfNeeded(videoId: videoId)
+        let gl = effectiveCountryCode
+        let hl = effectiveLanguageCode
+
+        var verified: [ResolvedStream] = []
+        var seenURLs = Set<String>()
+
+        if !isClientQuarantined("ANDROID_REEL") {
+            if let reelStreams = try? await requestAndroidReelCandidates(
+                videoId: videoId,
+                hl: hl,
+                gl: gl,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: requireDirectFile
+            ) {
+                for candidate in reelStreams {
+                    let key = canonicalURLKey(candidate.url)
+                    guard !seenURLs.contains(key), !isURLQuarantined(candidate.url) else { continue }
+                    if let checked = await verifyAndAdaptStream(candidate) {
+                        seenURLs.insert(canonicalURLKey(checked.url))
+                        verified.append(checked)
+                        if verified.count >= 2 { break }
+                    }
+                }
+            }
+        }
+
+        let playerProfiles: [ClientProfile] = [
             ClientProfile(
                 name: "VISIONOS",
+                label: "VISIONOS",
                 version: "1.04",
                 headerId: "101",
-                userAgent: "com.google.visionos.youtube/1.04(RealityDevice17,1; U; CPU visionOS 26_6_0 like Mac OS X; US)",
+                userAgent: "com.google.visionos.youtube/1.04(RealityDevice17,1; U; CPU visionOS 26_6_0 like Mac OS X; \(gl))",
                 extraFields: [
                     "deviceMake": "Apple",
                     "deviceModel": "RealityDevice17,1",
@@ -201,62 +353,642 @@ actor InnerTubeService {
                     "platform": "MOBILE",
                     "clientScreen": "WATCH"
                 ],
-                endpoint: "player"
+                preferHLSFirst: false
             ),
             ClientProfile(
-                name: "ANDROID",
-                version: "21.03.36",
-                headerId: "3",
-                userAgent: "com.google.android.youtube/21.03.36 (Linux; U; Android 15) gzip",
+                name: "IOS",
+                label: "IOS",
+                version: "20.10.4",
+                headerId: "5",
+                userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3 like Mac OS X)",
                 extraFields: [
-                    "androidSdkVersion": 35,
-                    "osName": "Android",
-                    "osVersion": "15"
+                    "deviceMake": "Apple",
+                    "deviceModel": "iPhone16,2",
+                    "osName": "iPhone",
+                    "osVersion": "18.3",
+                    "platform": "MOBILE"
                 ],
-                endpoint: "reel"
+                preferHLSFirst: true
+            ),
+            ClientProfile(
+                name: "ANDROID_VR",
+                label: "ANDROID_VR",
+                version: "1.65.10",
+                headerId: "28",
+                userAgent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; Quest 3 Build/SQ3A.220605.009.A1) gzip",
+                extraFields: [
+                    "androidSdkVersion": 32,
+                    "osName": "Android",
+                    "osVersion": "12L",
+                    "platform": "MOBILE",
+                    "deviceMake": "Oculus",
+                    "deviceModel": "Quest 3"
+                ],
+                preferHLSFirst: false
             ),
             ClientProfile(
                 name: "ANDROID_MUSIC",
+                label: "ANDROID_MUSIC",
                 version: "8.10.52",
                 headerId: "21",
                 userAgent: "com.google.android.apps.youtube.music/8.10.52 (Linux; U; Android 15) gzip",
                 extraFields: [
-                    "androidSdkVersion": 34,
+                    "androidSdkVersion": 35,
                     "osName": "Android",
-                    "osVersion": "15"
+                    "osVersion": "15",
+                    "platform": "MOBILE"
                 ],
-                endpoint: "player"
+                preferHLSFirst: false
             )
         ]
 
-        for profile in strategies {
-            if let stream = try? await requestInnerTubeStream(
+        for profile in playerProfiles {
+            if verified.count >= 3 { break }
+            if isClientQuarantined(profile.label) { continue }
+
+            guard let rawCandidates = try? await requestPlayerCandidates(
                 videoId: videoId,
                 profile: profile,
-                preferHighQuality: preferHighQuality
-            ) {
-                return stream
+                hl: hl,
+                gl: gl,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: requireDirectFile
+            ) else {
+                continue
+            }
+
+            for candidate in rawCandidates {
+                let key = canonicalURLKey(candidate.url)
+                guard !seenURLs.contains(key), !isURLQuarantined(candidate.url) else { continue }
+                if let checked = await verifyAndAdaptStream(candidate) {
+                    seenURLs.insert(canonicalURLKey(checked.url))
+                    verified.append(checked)
+                    if verified.count >= 3 { break }
+                }
             }
         }
 
-        if let fallback = try? await resolveViaPipedFallback(videoId: videoId, preferHighQuality: preferHighQuality) {
-            return fallback
+        if verified.isEmpty {
+            if let piped = await resolveViaExternalMirrors(
+                videoId: videoId,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: requireDirectFile
+            ) {
+                for candidate in piped {
+                    if let checked = await verifyAndAdaptStream(candidate) {
+                        verified.append(checked)
+                        if verified.count >= 2 { break }
+                    }
+                }
+            }
         }
 
-        throw URLError(.cannotDecodeRawData)
+        return verified
     }
 
-    private struct ClientProfile {
-        let name: String
-        let version: String
-        let headerId: String
-        let userAgent: String
-        let extraFields: [String: Any]
-        let endpoint: String
+    private func buildAndroidReelContext(hl: String, gl: String, visitorData: String) -> [String: Any] {
+        var client: [String: Any] = [
+            "clientName": "ANDROID",
+            "clientVersion": androidReelVersion,
+            "clientScreen": "WATCH",
+            "platform": "MOBILE",
+            "osName": "Android",
+            "osVersion": "16",
+            "androidSdkVersion": 36,
+            "hl": hl,
+            "gl": gl,
+            "utcOffsetMinutes": 0
+        ]
+        if !visitorData.isEmpty {
+            client["visitorData"] = visitorData
+        }
+        return [
+            "client": client,
+            "request": [
+                "internalExperimentFlags": [Any](),
+                "useSsl": true
+            ],
+            "user": [
+                "lockedSafetyMode": false
+            ]
+        ]
+    }
+
+    private func resolveAndroidReelVisitorData(hl: String, gl: String, userAgent: String) async -> String {
+        if !cachedReelVisitorData.isEmpty && Date().timeIntervalSince(lastReelVisitorFetch) < 1800 {
+            return cachedReelVisitorData
+        }
+        guard let url = URL(string: "https://youtubei.googleapis.com/youtubei/v1/visitor_id?prettyPrint=false") else {
+            return cachedWebVisitorData
+        }
+        let payload: [String: Any] = [
+            "context": buildAndroidReelContext(hl: hl, gl: gl, visitorData: "")
+        ]
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("2", forHTTPHeaderField: "X-Goog-Api-Format-Version")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        if let (data, resp) = try? await session.data(for: request),
+           let http = resp as? HTTPURLResponse,
+           (200..<300).contains(http.statusCode),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let ctx = json["responseContext"] as? [String: Any],
+           let visitor = ctx["visitorData"] as? String,
+           !visitor.isEmpty {
+            cachedReelVisitorData = visitor
+            lastReelVisitorFetch = Date()
+            return visitor
+        }
+        return cachedWebVisitorData
+    }
+
+    private func requestAndroidReelCandidates(
+        videoId: String,
+        hl: String,
+        gl: String,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool
+    ) async throws -> [ResolvedStream] {
+        let userAgent = "com.google.android.youtube/\(androidReelVersion) (Linux; U; Android 15; \(gl)) gzip"
+        let visitorData = await resolveAndroidReelVisitorData(hl: hl, gl: gl, userAgent: userAgent)
+        let cpn = generateNonce(length: 16)
+        let tNonce = generateNonce(length: 12)
+
+        let endpointStr = "https://youtubei.googleapis.com/youtubei/v1/reel/reel_item_watch?prettyPrint=false&t=\(tNonce)&id=\(videoId)&$fields=playerResponse"
+        guard let url = URL(string: endpointStr) else { return [] }
+
+        let body: [String: Any] = [
+            "context": buildAndroidReelContext(hl: hl, gl: gl, visitorData: visitorData),
+            "playerRequest": [
+                "videoId": videoId,
+                "cpn": cpn,
+                "contentCheckOk": true,
+                "racyCheckOk": true
+            ],
+            "disablePlayerResponse": false
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("2", forHTTPHeaderField: "X-Goog-Api-Format-Version")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let playerResponse = root["playerResponse"] as? [String: Any] else {
+            return []
+        }
+
+        return extractCandidatesFromPlayerResponse(
+            playerResponse,
+            userAgent: userAgent,
+            clientLabel: "ANDROID_REEL",
+            preferHighQuality: preferHighQuality,
+            preferHLSFirst: false,
+            requireDirectFile: requireDirectFile
+        )
+    }
+
+    private func requestPlayerCandidates(
+        videoId: String,
+        profile: ClientProfile,
+        hl: String,
+        gl: String,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool
+    ) async throws -> [ResolvedStream] {
+        var clientDict: [String: Any] = [
+            "clientName": profile.name,
+            "clientVersion": profile.version,
+            "hl": hl,
+            "gl": gl,
+            "utcOffsetMinutes": 0,
+            "timeZone": "UTC"
+        ]
+        for (k, v) in profile.extraFields {
+            clientDict[k] = v
+        }
+        if !cachedWebVisitorData.isEmpty {
+            clientDict["visitorData"] = cachedWebVisitorData
+        }
+
+        let querySuffix = cachedApiKey.isEmpty ? "prettyPrint=false" : "key=\(cachedApiKey)&prettyPrint=false"
+        guard let url = URL(string: "https://youtubei.googleapis.com/youtubei/v1/player?\(querySuffix)") else {
+            return []
+        }
+
+        let body: [String: Any] = [
+            "context": ["client": clientDict],
+            "videoId": videoId,
+            "contentCheckOk": true,
+            "racyCheckOk": true,
+            "params": "CgIQBg",
+            "playbackContext": [
+                "contentPlaybackContext": [
+                    "html5Preference": "HTML5_PREF_WANTS"
+                ]
+            ],
+            "watchEndpointMusicSupportedConfigs": [
+                "watchEndpointMusicConfig": [
+                    "musicVideoType": "MUSIC_VIDEO_TYPE_ATV"
+                ]
+            ]
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(profile.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(profile.headerId, forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue(profile.version, forHTTPHeaderField: "X-YouTube-Client-Version")
+        if !cachedWebVisitorData.isEmpty {
+            request.setValue(cachedWebVisitorData, forHTTPHeaderField: "X-Goog-Visitor-Id")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let playerResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+
+        return extractCandidatesFromPlayerResponse(
+            playerResponse,
+            userAgent: profile.userAgent,
+            clientLabel: profile.label,
+            preferHighQuality: preferHighQuality,
+            preferHLSFirst: profile.preferHLSFirst,
+            requireDirectFile: requireDirectFile
+        )
+    }
+
+    private func extractCandidatesFromPlayerResponse(
+        _ playerRoot: [String: Any],
+        userAgent: String,
+        clientLabel: String,
+        preferHighQuality: Bool,
+        preferHLSFirst: Bool,
+        requireDirectFile: Bool
+    ) -> [ResolvedStream] {
+        if let status = (playerRoot["playabilityStatus"] as? [String: Any])?["status"] as? String,
+           status != "OK" {
+            return []
+        }
+        guard let streamingData = playerRoot["streamingData"] as? [String: Any] else {
+            return []
+        }
+
+        let mediaHeaders: [String: String] = [
+            "User-Agent": userAgent,
+            "Accept": "*/*",
+            "Accept-Encoding": "identity"
+        ]
+
+        let adaptive = (streamingData["adaptiveFormats"] as? [[String: Any]]) ?? []
+        let muxed = (streamingData["formats"] as? [[String: Any]]) ?? []
+
+        struct AudioCandidate {
+            let url: URL
+            let bitrateKbps: Int
+            let tier: Int
+            let badge: String
+        }
+
+        var adaptiveAudio: [AudioCandidate] = []
+        for format in adaptive {
+            guard let urlStr = format["url"] as? String,
+                  let rawURL = URL(string: urlStr),
+                  let mime = (format["mimeType"] as? String)?.lowercased() else {
+                continue
+            }
+            let isM4A = mime.contains("audio/mp4") || mime.contains("audio/m4a") || mime.contains("mp4a")
+            let isUnsupported = mime.contains("webm") || mime.contains("opus")
+            guard isM4A && !isUnsupported else { continue }
+
+            let trackTier = audioTrackTier(for: format)
+            guard trackTier > 0 else { continue }
+
+            let bps = (format["averageBitrate"] as? Int) ?? (format["bitrate"] as? Int) ?? 128_000
+            let kbps = max(64, bps / 1000)
+            let badge = kbps >= 192 ? "AAC \(kbps) kbps" : "AAC"
+            let numberedURL = appendRequestNumberIfNeeded(rawURL)
+            adaptiveAudio.append(AudioCandidate(url: numberedURL, bitrateKbps: kbps, tier: trackTier, badge: badge))
+        }
+
+        adaptiveAudio.sort { a, b in
+            if a.tier != b.tier { return a.tier > b.tier }
+            return preferHighQuality ? (a.bitrateKbps > b.bitrateKbps) : (a.bitrateKbps < b.bitrateKbps)
+        }
+
+        var muxedStreams: [ResolvedStream] = []
+        for format in muxed {
+            guard let urlStr = format["url"] as? String,
+                  let rawURL = URL(string: urlStr),
+                  let mime = (format["mimeType"] as? String)?.lowercased(),
+                  mime.contains("mp4"),
+                  !mime.contains("webm") else {
+                continue
+            }
+            let bps = (format["averageBitrate"] as? Int) ?? (format["bitrate"] as? Int) ?? 128_000
+            let kbps = max(96, bps / 1000)
+            let numberedURL = appendRequestNumberIfNeeded(rawURL)
+            muxedStreams.append(
+                ResolvedStream(
+                    url: numberedURL,
+                    headers: mediaHeaders,
+                    codecBadge: "MP4 AAC",
+                    bitrateKbps: kbps,
+                    isDirectFile: true,
+                    clientLabel: clientLabel,
+                    expiresAt: expirationDate(for: numberedURL)
+                )
+            )
+        }
+
+        var hlsCandidate: ResolvedStream?
+        if !requireDirectFile,
+           let hlsStr = streamingData["hlsManifestUrl"] as? String,
+           let hlsURL = URL(string: hlsStr) {
+            hlsCandidate = ResolvedStream(
+                url: hlsURL,
+                headers: ["User-Agent": userAgent],
+                codecBadge: "HLS AAC",
+                bitrateKbps: preferHighQuality ? 256 : 128,
+                isDirectFile: false,
+                clientLabel: "\(clientLabel)_HLS",
+                expiresAt: expirationDate(for: hlsURL)
+            )
+        }
+
+        let directAudioStreams: [ResolvedStream] = adaptiveAudio.map { item in
+            ResolvedStream(
+                url: item.url,
+                headers: mediaHeaders,
+                codecBadge: item.badge,
+                bitrateKbps: item.bitrateKbps,
+                isDirectFile: true,
+                clientLabel: clientLabel,
+                expiresAt: expirationDate(for: item.url)
+            )
+        }
+
+        var ordered: [ResolvedStream] = []
+        if preferHLSFirst {
+            if let hls = hlsCandidate { ordered.append(hls) }
+            ordered.append(contentsOf: directAudioStreams)
+            ordered.append(contentsOf: muxedStreams)
+        } else {
+            ordered.append(contentsOf: directAudioStreams)
+            if let hls = hlsCandidate { ordered.append(hls) }
+            ordered.append(contentsOf: muxedStreams)
+        }
+        return ordered
+    }
+
+    private func verifyAndAdaptStream(_ stream: ResolvedStream) async -> ResolvedStream? {
+        if !stream.isDirectFile {
+            let ok = await probeHLSManifest(url: stream.url, headers: stream.headers)
+            return ok ? stream : nil
+        }
+
+        let outcome = await probeDirectByteRange(url: stream.url, headers: stream.headers)
+        switch outcome {
+        case .playable:
+            return stream
+        case .endpointFailure:
+            let alternates = alternateGoogleVideoURLs(from: stream.url)
+            for altURL in alternates {
+                let retryOutcome = await probeDirectByteRange(url: altURL, headers: stream.headers)
+                if retryOutcome == .playable {
+                    return ResolvedStream(
+                        url: altURL,
+                        headers: stream.headers,
+                        codecBadge: stream.codecBadge,
+                        bitrateKbps: stream.bitrateKbps,
+                        isDirectFile: true,
+                        clientLabel: stream.clientLabel,
+                        expiresAt: stream.expiresAt
+                    )
+                }
+            }
+            return nil
+        case .rejected:
+            return nil
+        }
+    }
+
+    private enum ProbeResult: Equatable {
+        case playable
+        case endpointFailure
+        case rejected
+    }
+
+    private func probeDirectByteRange(url: URL, headers: [String: String]) async -> ProbeResult {
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        for (k, v) in headers {
+            req.setValue(v, forHTTPHeaderField: k)
+        }
+        req.setValue("bytes=0-4095", forHTTPHeaderField: "Range")
+        req.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+
+        do {
+            let (data, resp) = try await probeSession.data(for: req)
+            guard let http = resp as? HTTPURLResponse else {
+                return .endpointFailure
+            }
+            let code = http.statusCode
+            if code == 404 || code == 500 || code == 502 || code == 503 || code == 504 {
+                return .endpointFailure
+            }
+            if code == 401 || code == 403 || code == 410 || code == 416 || code == 429 {
+                return .rejected
+            }
+            guard (200...299).contains(code) else {
+                return .rejected
+            }
+            let ctype = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+            if ctype.contains("text/html") || ctype.contains("application/json") {
+                return .rejected
+            }
+            return data.isEmpty ? .rejected : .playable
+        } catch {
+            return .endpointFailure
+        }
+    }
+
+    private func probeHLSManifest(url: URL, headers: [String: String]) async -> Bool {
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        for (k, v) in headers {
+            req.setValue(v, forHTTPHeaderField: k)
+        }
+        do {
+            let (data, resp) = try await probeSession.data(for: req)
+            guard let http = resp as? HTTPURLResponse,
+                  (200...299).contains(http.statusCode),
+                  let text = String(data: data.prefix(256), encoding: .utf8) else {
+                return false
+            }
+            return text.contains("#EXTM3U")
+        } catch {
+            return false
+        }
+    }
+
+    private func alternateGoogleVideoURLs(from url: URL) -> [URL] {
+        guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let host = comps.host?.lowercased(),
+              host.hasSuffix(".googlevideo.com") else {
+            return []
+        }
+        let label = String(host.dropLast(".googlevideo.com".count))
+        guard let sepRange = label.range(of: "---") else { return [] }
+        let prefix = String(label[..<sepRange.lowerBound])
+        let currentMN = String(label[sepRange.upperBound...])
+        guard !prefix.isEmpty, !currentMN.isEmpty else { return [] }
+
+        guard let mnValue = comps.queryItems?.first(where: { $0.name == "mn" })?.value else {
+            return []
+        }
+        let networks = mnValue
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty && $0 != currentMN }
+
+        var out: [URL] = []
+        for net in networks.prefix(3) {
+            comps.host = "\(prefix)---\(net).googlevideo.com"
+            if let candidate = comps.url {
+                out.append(candidate)
+            }
+        }
+        return out
+    }
+
+    private func findAlternateAudioTrack(for track: Track, excludingVideoId: String) async -> Track? {
+        let cleanTitle = track.title
+            .replacingOccurrences(of: #"\((?i:official[^)]*|music\s*video[^)]*|mv[^)]*|hd|4k)\)"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanArtist = track.artist
+            .replacingOccurrences(of: " - Topic", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let searchQuery = "\(cleanTitle) \(cleanArtist) audio"
+        guard let candidates = try? await performWebRemixSearch(
+            query: searchQuery,
+            params: "EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D"
+        ), !candidates.isEmpty else {
+            return nil
+        }
+
+        let filtered = candidates.filter { item in
+            guard let vid = item.videoId else { return false }
+            return vid != excludingVideoId
+        }
+
+        if track.durationSec > 0 {
+            let sorted = filtered.sorted { a, b in
+                let diffA = a.durationSec > 0 ? abs(a.durationSec - track.durationSec) : 999
+                let diffB = b.durationSec > 0 ? abs(b.durationSec - track.durationSec) : 999
+                return diffA < diffB
+            }
+            return sorted.first
+        }
+        return filtered.first
+    }
+
+    private func resolveViaExternalMirrors(
+        videoId: String,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool
+    ) async -> [ResolvedStream]? {
+        let pipedBases = [
+            "https://pipedapi.kavin.rocks",
+            "https://pipedapi.adminforge.de",
+            "https://pipedapi.drgns.space",
+            "https://pipedapi.ducks.party"
+        ]
+        var collected: [ResolvedStream] = []
+
+        for base in pipedBases {
+            guard let url = URL(string: "\(base)/streams/\(videoId)") else { continue }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 5
+            req.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
+            guard let (data, resp) = try? await probeSession.data(for: req),
+                  let http = resp as? HTTPURLResponse,
+                  http.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                continue
+            }
+
+            if let audioStreams = json["audioStreams"] as? [[String: Any]] {
+                var m4aItems: [(URL, Int)] = []
+                for item in audioStreams {
+                    let mime = ((item["mimeType"] as? String) ?? "").lowercased()
+                    let format = ((item["format"] as? String) ?? "").lowercased()
+                    guard (mime.contains("mp4") || mime.contains("m4a") || format.contains("m4a")),
+                          !mime.contains("webm"),
+                          let uStr = item["url"] as? String,
+                          let u = URL(string: uStr) else {
+                        continue
+                    }
+                    let bps = (item["bitrate"] as? Int) ?? 128_000
+                    m4aItems.append((u, max(64, bps / 1000)))
+                }
+                m4aItems.sort { preferHighQuality ? ($0.1 > $1.1) : ($0.1 < $1.1) }
+                for pick in m4aItems.prefix(2) {
+                    collected.append(
+                        ResolvedStream(
+                            url: pick.0,
+                            headers: ["User-Agent": webUserAgent, "Accept": "*/*", "Accept-Encoding": "identity"],
+                            codecBadge: "AAC \(pick.1) kbps",
+                            bitrateKbps: pick.1,
+                            isDirectFile: true,
+                            clientLabel: "PIPED_MIRROR",
+                            expiresAt: expirationDate(for: pick.0)
+                        )
+                    )
+                }
+            }
+
+            if !requireDirectFile,
+               let hlsStr = json["hls"] as? String,
+               let hlsURL = URL(string: hlsStr) {
+                collected.append(
+                    ResolvedStream(
+                        url: hlsURL,
+                        headers: ["User-Agent": webUserAgent],
+                        codecBadge: "HLS AAC",
+                        bitrateKbps: 192,
+                        isDirectFile: false,
+                        clientLabel: "PIPED_HLS",
+                        expiresAt: expirationDate(for: hlsURL)
+                    )
+                )
+            }
+
+            if !collected.isEmpty {
+                return collected
+            }
+        }
+        return nil
     }
 
     private func refreshWatchContextIfNeeded(videoId: String) async {
-        if !cachedVisitorData.isEmpty && Date().timeIntervalSince(lastContextFetch) < 1800 {
+        if !cachedWebVisitorData.isEmpty && Date().timeIntervalSince(lastWebContextFetch) < 1800 {
             return
         }
         guard let url = URL(string: "https://www.youtube.com/watch?v=\(videoId)&bpctr=9999999999&has_verified=1") else {
@@ -272,209 +1004,12 @@ actor InnerTubeService {
         }
 
         if let visitor = firstRegexMatch(in: html, pattern: #""VISITOR_DATA"\s*:\s*"([^"]+)""#) {
-            cachedVisitorData = visitor
+            cachedWebVisitorData = visitor
         }
         if let key = firstRegexMatch(in: html, pattern: #""INNERTUBE_API_KEY"\s*:\s*"([^"]+)""#) {
             cachedApiKey = key
         }
-        lastContextFetch = Date()
-    }
-
-    private func requestInnerTubeStream(
-        videoId: String,
-        profile: ClientProfile,
-        preferHighQuality: Bool
-    ) async throws -> ResolvedStream? {
-        var clientDict: [String: Any] = [
-            "clientName": profile.name,
-            "clientVersion": profile.version,
-            "hl": "en",
-            "gl": "US",
-            "utcOffsetMinutes": 0
-        ]
-        for (k, v) in profile.extraFields {
-            clientDict[k] = v
-        }
-        if !cachedVisitorData.isEmpty {
-            clientDict["visitorData"] = cachedVisitorData
-        }
-
-        let endpointURLString: String
-        let body: [String: Any]
-
-        if profile.endpoint == "reel" {
-            let querySuffix = cachedApiKey.isEmpty ? "prettyPrint=false" : "key=\(cachedApiKey)&prettyPrint=false"
-            endpointURLString = "https://www.youtube.com/youtubei/v1/reel/reel_item_watch?\(querySuffix)"
-            body = [
-                "context": ["client": clientDict],
-                "playerRequest": [
-                    "videoId": videoId,
-                    "contentCheckOk": true,
-                    "racyCheckOk": true
-                ],
-                "disablePlayerResponse": false
-            ]
-        } else {
-            let querySuffix = cachedApiKey.isEmpty ? "prettyPrint=false" : "key=\(cachedApiKey)&prettyPrint=false"
-            endpointURLString = "https://www.youtube.com/youtubei/v1/player?\(querySuffix)"
-            body = [
-                "context": ["client": clientDict],
-                "videoId": videoId,
-                "contentCheckOk": true,
-                "racyCheckOk": true
-            ]
-        }
-
-        guard let url = URL(string: endpointURLString) else { return nil }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(profile.userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue(profile.headerId, forHTTPHeaderField: "X-YouTube-Client-Name")
-        request.setValue(profile.version, forHTTPHeaderField: "X-YouTube-Client-Version")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
-              let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-
-        let playerRoot = (root["playerResponse"] as? [String: Any]) ?? root
-        if let status = (playerRoot["playabilityStatus"] as? [String: Any])?["status"] as? String,
-           status != "OK" {
-            return nil
-        }
-
-        guard let streamingData = playerRoot["streamingData"] as? [String: Any] else {
-            return nil
-        }
-
-        let headers = ["User-Agent": profile.userAgent]
-
-        let adaptive = (streamingData["adaptiveFormats"] as? [[String: Any]]) ?? []
-        let muxed = (streamingData["formats"] as? [[String: Any]]) ?? []
-
-        var mp4AudioCandidates: [(url: URL, bitrate: Int, badge: String)] = []
-        for format in adaptive {
-            guard let urlStr = format["url"] as? String,
-                  let streamURL = URL(string: urlStr),
-                  let mime = (format["mimeType"] as? String)?.lowercased() else {
-                continue
-            }
-            if mime.contains("audio/mp4") || mime.contains("audio/m4a") || mime.contains("mp4a") {
-                if !mime.contains("webm") && !mime.contains("opus") {
-                    let bps = (format["averageBitrate"] as? Int) ?? (format["bitrate"] as? Int) ?? 128_000
-                    let kbps = max(64, bps / 1000)
-                    let badge = kbps >= 200 ? "AAC \(kbps) kbps" : "AAC"
-                    mp4AudioCandidates.append((streamURL, kbps, badge))
-                }
-            }
-        }
-
-        if !mp4AudioCandidates.isEmpty {
-            let sorted = mp4AudioCandidates.sorted {
-                preferHighQuality ? ($0.bitrate > $1.bitrate) : ($0.bitrate < $1.bitrate)
-            }
-            if let best = sorted.first {
-                return ResolvedStream(
-                    url: best.url,
-                    headers: headers,
-                    codecBadge: best.badge,
-                    bitrateKbps: best.bitrate,
-                    isDirectFile: true
-                )
-            }
-        }
-
-        if let hlsStr = streamingData["hlsManifestUrl"] as? String,
-           let hlsURL = URL(string: hlsStr) {
-            return ResolvedStream(
-                url: hlsURL,
-                headers: headers,
-                codecBadge: "HLS AAC",
-                bitrateKbps: preferHighQuality ? 256 : 128,
-                isDirectFile: false
-            )
-        }
-
-        for format in muxed {
-            guard let urlStr = format["url"] as? String,
-                  let streamURL = URL(string: urlStr),
-                  let mime = (format["mimeType"] as? String)?.lowercased(),
-                  mime.contains("mp4"),
-                  !mime.contains("webm") else {
-                continue
-            }
-            let bps = (format["averageBitrate"] as? Int) ?? (format["bitrate"] as? Int) ?? 128_000
-            let kbps = max(96, bps / 1000)
-            return ResolvedStream(
-                url: streamURL,
-                headers: headers,
-                codecBadge: "MP4 AAC",
-                bitrateKbps: kbps,
-                isDirectFile: true
-            )
-        }
-
-        return nil
-    }
-
-    private func resolveViaPipedFallback(videoId: String, preferHighQuality: Bool) async throws -> ResolvedStream? {
-        let instances = [
-            "https://pipedapi.kavin.rocks",
-            "https://pipedapi.tokhmi.xyz",
-            "https://pipedapi.moomoo.me"
-        ]
-        for base in instances {
-            guard let url = URL(string: "\(base)/streams/\(videoId)") else { continue }
-            var req = URLRequest(url: url)
-            req.timeoutInterval = 8
-            req.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
-            guard let (data, resp) = try? await session.data(for: req),
-                  let http = resp as? HTTPURLResponse,
-                  http.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                continue
-            }
-
-            if let audioStreams = json["audioStreams"] as? [[String: Any]] {
-                let m4aStreams = audioStreams.compactMap { item -> (URL, Int)? in
-                    let mime = ((item["mimeType"] as? String) ?? "").lowercased()
-                    let format = ((item["format"] as? String) ?? "").lowercased()
-                    guard (mime.contains("mp4") || mime.contains("m4a") || format.contains("m4a")),
-                          !mime.contains("webm"),
-                          let uStr = item["url"] as? String,
-                          let u = URL(string: uStr) else {
-                        return nil
-                    }
-                    let bps = (item["bitrate"] as? Int) ?? 128_000
-                    return (u, max(64, bps / 1000))
-                }
-                let sorted = m4aStreams.sorted { preferHighQuality ? ($0.1 > $1.1) : ($0.1 < $1.1) }
-                if let pick = sorted.first {
-                    return ResolvedStream(
-                        url: pick.0,
-                        headers: ["User-Agent": webUserAgent],
-                        codecBadge: "AAC \(pick.1) kbps",
-                        bitrateKbps: pick.1,
-                        isDirectFile: true
-                    )
-                }
-            }
-
-            if let hlsStr = json["hls"] as? String, let hlsURL = URL(string: hlsStr) {
-                return ResolvedStream(
-                    url: hlsURL,
-                    headers: ["User-Agent": webUserAgent],
-                    codecBadge: "HLS AAC",
-                    bitrateKbps: 192,
-                    isDirectFile: false
-                )
-            }
-        }
-        return nil
+        lastWebContextFetch = Date()
     }
 
     private func performWebRemixSearch(query: String, params: String?) async throws -> [Track] {
@@ -482,13 +1017,15 @@ actor InnerTubeService {
             return []
         }
 
+        let hl = effectiveLanguageCode
+        let gl = effectiveCountryCode
         var body: [String: Any] = [
             "context": [
                 "client": [
                     "clientName": "WEB_REMIX",
                     "clientVersion": webRemixVersion,
-                    "hl": "en",
-                    "gl": "US"
+                    "hl": hl,
+                    "gl": gl
                 ]
             ],
             "query": query
@@ -515,6 +1052,78 @@ actor InnerTubeService {
         var collected: [Track] = []
         collectTracksFromJSON(json, into: &collected)
         return collected
+    }
+
+    private func audioTrackTier(for format: [String: Any]) -> Int {
+        guard let audioTrack = format["audioTrack"] as? [String: Any] else {
+            return 2
+        }
+        if (audioTrack["isAutoDubbed"] as? Bool) == true {
+            return 0
+        }
+        if (audioTrack["audioIsDefault"] as? Bool) == true {
+            return 3
+        }
+        return 1
+    }
+
+    private func appendRequestNumberIfNeeded(_ url: URL) -> URL {
+        guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let host = comps.host?.lowercased(),
+              host.hasSuffix("googlevideo.com") else {
+            return url
+        }
+        var items = comps.queryItems ?? []
+        if items.contains(where: { $0.name == "rn" }) {
+            return url
+        }
+        let nextNum = requestSequence
+        requestSequence += 1
+        items.append(URLQueryItem(name: "rn", value: String(nextNum)))
+        comps.queryItems = items
+        return comps.url ?? url
+    }
+
+    private func expirationDate(for url: URL) -> Date {
+        if let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let expStr = comps.queryItems?.first(where: { $0.name == "expire" })?.value,
+           let expEpoch = TimeInterval(expStr) {
+            let safeDate = Date(timeIntervalSince1970: expEpoch - 240)
+            if safeDate > Date() {
+                return safeDate
+            }
+        }
+        return Date().addingTimeInterval(5400)
+    }
+
+    private func canonicalURLKey(_ url: URL) -> String {
+        guard var comps = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
+        }
+        if let items = comps.queryItems {
+            comps.queryItems = items.filter { $0.name != "rn" }
+        }
+        return comps.string ?? url.absoluteString
+    }
+
+    private func isURLQuarantined(_ url: URL) -> Bool {
+        guard let until = quarantinedURLs[canonicalURLKey(url)] else { return false }
+        return until > Date()
+    }
+
+    private func isClientQuarantined(_ label: String) -> Bool {
+        guard let until = quarantinedClients[label] else { return false }
+        return until > Date()
+    }
+
+    private func pruneExpiredQuarantines() {
+        let now = Date()
+        quarantinedURLs = quarantinedURLs.filter { $0.value > now }
+        quarantinedClients = quarantinedClients.filter { $0.value > now }
+    }
+
+    private func generateNonce(length: Int) -> String {
+        String((0..<length).compactMap { _ in nonceAlphabet.randomElement() })
     }
 
     private func collectTracksFromJSON(_ node: Any, into results: inout [Track]) {

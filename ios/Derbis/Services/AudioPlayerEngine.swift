@@ -35,11 +35,21 @@ final class AudioPlayerEngine: ObservableObject {
     private let player = AVPlayer()
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
+    private var playbackFailObserver: NSObjectProtocol?
+    private var stallObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loadTask: Task<Void, Never>?
+    private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
 
+    private var activeCandidates: [ResolvedStream] = []
+    private var candidateCursor: Int = 0
+    private var recoveryPass: Int = 0
+    private var isRecovering: Bool = false
+    private var pendingResumeSeconds: Double = 0
+
     init() {
+        player.automaticallyWaitsToMinimizeStalling = true
         configureAudioSession()
         configureRemoteCommands()
         installTimeObserver()
@@ -88,13 +98,21 @@ final class AudioPlayerEngine: ObservableObject {
     }
 
     func togglePlayPause() {
-        guard currentTrack != nil else { return }
+        guard let track = currentTrack else { return }
         if isPlaying {
             player.pause()
             isPlaying = false
+            stallWatchdogTask?.cancel()
         } else {
+            if player.currentItem == nil || player.currentItem?.status == .failed {
+                startCurrentItem(resumeFromSeconds: currentTime > 1.5 ? currentTime : 0, targetTrack: track)
+                return
+            }
             try? AVAudioSession.sharedInstance().setActive(true)
-            player.playImmediately(atRate: playbackRate)
+            player.play()
+            if abs(playbackRate - 1.0) > 0.01 {
+                player.rate = playbackRate
+            }
             isPlaying = true
         }
         updateNowPlayingMetadata()
@@ -105,7 +123,10 @@ final class AudioPlayerEngine: ObservableObject {
 
         if automatic && repeatMode == .one {
             seek(to: 0)
-            player.playImmediately(atRate: playbackRate)
+            player.play()
+            if abs(playbackRate - 1.0) > 0.01 {
+                player.rate = playbackRate
+            }
             isPlaying = true
             return
         }
@@ -191,20 +212,37 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
 
-    private func startCurrentItem() {
-        guard queue.indices.contains(currentIndex) else { return }
-        let track = queue[currentIndex]
+    private func startCurrentItem(resumeFromSeconds: Double = 0, targetTrack: Track? = nil) {
+        let track: Track
+        if let explicit = targetTrack {
+            track = explicit
+        } else {
+            guard queue.indices.contains(currentIndex) else { return }
+            track = queue[currentIndex]
+        }
+
+        let isSameTrackResume = (currentTrack?.id == track.id && resumeFromSeconds > 0)
         currentTrack = track
-        currentTime = 0
-        duration = Double(track.durationSec)
+        if !isSameTrackResume {
+            currentTime = 0
+            duration = Double(track.durationSec)
+            currentLyrics = nil
+            activeLyricIndex = nil
+            recoveryPass = 0
+        }
+
         isLoading = true
+        isRecovering = false
         errorBanner = nil
-        currentLyrics = nil
-        activeLyricIndex = nil
         activeCodecBadge = track.codecBadge
+        activeCandidates = []
+        candidateCursor = 0
 
         loadTask?.cancel()
+        stallWatchdogTask?.cancel()
+        statusObservation?.invalidate()
         player.pause()
+        player.replaceCurrentItem(with: nil)
 
         let preferHQ = UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil
             ? true
@@ -216,44 +254,32 @@ final class AudioPlayerEngine: ObservableObject {
             ? true
             : UserDefaults.standard.bool(forKey: "derbis.endlessRadio")
 
-        Task {
-            await loadArtworkAndPalette(for: track)
-        }
-
-        if autoLyrics {
-            loadLyrics(for: track)
+        if !isSameTrackResume {
+            Task {
+                await loadArtworkAndPalette(for: track)
+            }
+            if autoLyrics {
+                loadLyrics(for: track)
+            }
         }
 
         loadTask = Task { [weak self] in
             guard let self = self else { return }
             do {
-                let resolved = try await self.resolveStream(for: track, preferHighQuality: preferHQ)
-                guard !Task.isCancelled else { return }
+                let ladder = try await self.resolveCandidateLadder(
+                    for: track,
+                    preferHighQuality: preferHQ,
+                    forceRefresh: false
+                )
+                guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
 
-                self.activeCodecBadge = resolved.codecBadge
-                try? AVAudioSession.sharedInstance().setActive(true)
+                self.activeCandidates = ladder
+                self.candidateCursor = 0
+                self.mountCandidate(ladder[0], for: track, resumeSeconds: resumeFromSeconds)
 
-                let asset: AVURLAsset
-                if resolved.headers.isEmpty {
-                    asset = AVURLAsset(url: resolved.url)
-                } else {
-                    asset = AVURLAsset(
-                        url: resolved.url,
-                        options: ["AVURLAssetHTTPHeaderFieldsKey": resolved.headers]
-                    )
+                if !isSameTrackResume {
+                    LibraryStore.shared.recordPlayback(track: track, listenedSeconds: max(20, track.durationSec / 2))
                 }
-
-                let item = AVPlayerItem(asset: asset)
-                item.preferredForwardBufferDuration = 12
-
-                self.observeItemStatus(item, track: track)
-                self.player.replaceCurrentItem(with: item)
-                self.player.automaticallyWaitsToMinimizeStalling = true
-                self.player.playImmediately(atRate: self.playbackRate)
-                self.isPlaying = true
-                self.updateNowPlayingMetadata()
-
-                LibraryStore.shared.recordPlayback(track: track, listenedSeconds: max(20, track.durationSec / 2))
 
                 if autoRadio,
                    self.currentIndex >= self.queue.count - 2,
@@ -267,11 +293,91 @@ final class AudioPlayerEngine: ObservableObject {
                     }
                 }
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
                 self.isLoading = false
                 self.isPlaying = false
-                self.errorBanner = "Unable to stream this track right now. Tap next or try another version."
+                self.errorBanner = "Stream unavailable right now. Tap play to retry or skip to next."
             }
+        }
+    }
+
+    private func mountCandidate(_ candidate: ResolvedStream, for track: Track, resumeSeconds: Double) {
+        activeCodecBadge = candidate.codecBadge
+        errorBanner = nil
+        isLoading = true
+
+        try? AVAudioSession.sharedInstance().setActive(true)
+
+        let asset: AVURLAsset
+        if candidate.headers.isEmpty {
+            asset = AVURLAsset(url: candidate.url)
+        } else {
+            asset = AVURLAsset(
+                url: candidate.url,
+                options: ["AVURLAssetHTTPHeaderFieldsKey": candidate.headers]
+            )
+        }
+
+        let item = AVPlayerItem(asset: asset)
+        item.preferredForwardBufferDuration = 10
+
+        pendingResumeSeconds = resumeSeconds
+        observeItemStatus(item, track: track, candidate: candidate)
+        player.replaceCurrentItem(with: item)
+        player.automaticallyWaitsToMinimizeStalling = true
+        player.play()
+        isPlaying = true
+        updateNowPlayingMetadata()
+    }
+
+    private func recoverFromStreamFailure(for track: Track, failedCandidate: ResolvedStream) {
+        guard currentTrack?.id == track.id, !isRecovering else { return }
+        isRecovering = true
+        stallWatchdogTask?.cancel()
+
+        let resumeSeconds = currentTime > 1.5 ? currentTime : 0
+
+        Task { [weak self] in
+            await InnerTubeService.shared.quarantineStream(
+                url: failedCandidate.url,
+                videoId: track.videoId,
+                clientLabel: failedCandidate.clientLabel
+            )
+
+            guard let self = self, self.currentTrack?.id == track.id else { return }
+
+            if self.candidateCursor + 1 < self.activeCandidates.count {
+                self.candidateCursor += 1
+                let nextCandidate = self.activeCandidates[self.candidateCursor]
+                self.isRecovering = false
+                self.mountCandidate(nextCandidate, for: track, resumeSeconds: resumeSeconds)
+                return
+            }
+
+            if self.recoveryPass < 2 && track.source == .youtubeMusic {
+                self.recoveryPass += 1
+                let preferHQ = UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil
+                    ? true
+                    : UserDefaults.standard.bool(forKey: "derbis.highQualityAudio")
+
+                if let freshLadder = try? await self.resolveCandidateLadder(
+                    for: track,
+                    preferHighQuality: preferHQ,
+                    forceRefresh: true
+                ), let firstFresh = freshLadder.first {
+                    guard self.currentTrack?.id == track.id else { return }
+                    self.activeCandidates = freshLadder
+                    self.candidateCursor = 0
+                    self.isRecovering = false
+                    self.mountCandidate(firstFresh, for: track, resumeSeconds: resumeSeconds)
+                    return
+                }
+            }
+
+            self.isRecovering = false
+            self.isLoading = false
+            self.isPlaying = false
+            self.errorBanner = "Playback interrupted for \(track.title). Tap play to retry."
         }
     }
 
@@ -287,55 +393,72 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
 
-    private func resolveStream(for track: Track, preferHighQuality: Bool) async throws -> ResolvedStream {
+    private func resolveCandidateLadder(
+        for track: Track,
+        preferHighQuality: Bool,
+        forceRefresh: Bool
+    ) async throws -> [ResolvedStream] {
         if let localURL = LibraryStore.shared.localPlaybackURL(for: track) {
             let ext = localURL.pathExtension.uppercased()
-            return ResolvedStream(
+            let localStream = ResolvedStream(
                 url: localURL,
                 headers: [:],
                 codecBadge: track.source == .localFile ? track.codecBadge : "Offline \(ext.isEmpty ? "M4A" : ext)",
                 bitrateKbps: track.bitrateKbps,
-                isDirectFile: true
+                isDirectFile: true,
+                clientLabel: "LOCAL"
             )
+            return [localStream]
         }
 
         if track.source == .subsonic,
            let songId = track.subsonicSongId,
            let url = SubsonicService.shared.signedStreamURL(songId: songId) {
-            return ResolvedStream(
+            let serverStream = ResolvedStream(
                 url: url,
                 headers: [:],
                 codecBadge: track.codecBadge,
                 bitrateKbps: track.bitrateKbps,
-                isDirectFile: true
+                isDirectFile: true,
+                clientLabel: "SUBSONIC"
             )
+            return [serverStream]
         }
 
-        if let vid = track.videoId {
-            return try await InnerTubeService.shared.resolvePlayableStream(
-                videoId: vid,
-                preferHighQuality: preferHighQuality
+        if track.source == .youtubeMusic {
+            return try await InnerTubeService.shared.resolveStreamCandidates(
+                for: track,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: false,
+                forceRefresh: forceRefresh
             )
         }
 
         if let direct = track.directStreamURL, let url = URL(string: direct) {
-            return ResolvedStream(
+            let stream = ResolvedStream(
                 url: url,
                 headers: [:],
                 codecBadge: track.codecBadge,
                 bitrateKbps: track.bitrateKbps,
-                isDirectFile: true
+                isDirectFile: true,
+                clientLabel: "DIRECT"
             )
+            return [stream]
         }
 
         throw URLError(.badURL)
     }
 
-    private func observeItemStatus(_ item: AVPlayerItem, track: Track) {
+    private func observeItemStatus(
+        _ item: AVPlayerItem,
+        track: Track,
+        candidate: ResolvedStream
+    ) {
         statusObservation?.invalidate()
+
         statusObservation = item.observe(\.status, options: [.new, .initial]) { [weak self] observed, _ in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self = self, self.player.currentItem === observed else { return }
                 switch observed.status {
                 case .readyToPlay:
                     self.isLoading = false
@@ -343,11 +466,20 @@ final class AudioPlayerEngine: ObservableObject {
                     if assetSec.isFinite && assetSec > 0 {
                         self.duration = assetSec
                     }
+                    if self.pendingResumeSeconds > 1.5 {
+                        let target = self.pendingResumeSeconds
+                        self.pendingResumeSeconds = 0
+                        let cm = CMTime(seconds: target, preferredTimescale: 600)
+                        self.player.seek(to: cm, toleranceBefore: .zero, toleranceAfter: .zero)
+                    } else {
+                        self.pendingResumeSeconds = 0
+                    }
+                    if self.isPlaying && abs(self.playbackRate - 1.0) > 0.01 {
+                        self.player.rate = self.playbackRate
+                    }
                     self.updateNowPlayingMetadata()
                 case .failed:
-                    self.isLoading = false
-                    self.isPlaying = false
-                    self.errorBanner = "Playback stream interrupted for \(track.title)."
+                    self.recoverFromStreamFailure(for: track, failedCandidate: candidate)
                 case .unknown:
                     break
                 @unknown default:
@@ -411,7 +543,7 @@ final class AudioPlayerEngine: ObservableObject {
             try session.setCategory(.playback, mode: .default, options: [.allowAirPlay, .allowBluetoothA2DP])
             try session.setActive(true)
         } catch {
-            // Audio session activates on playback start if deferred at launch
+            // Deferred activation occurs when user initiates playback
         }
     }
 
@@ -444,8 +576,57 @@ final class AudioPlayerEngine: ObservableObject {
         ) { [weak self] note in
             guard let item = note.object as? AVPlayerItem else { return }
             Task { @MainActor [weak self] in
-                guard let self = self, item == self.player.currentItem else { return }
+                guard let self = self, item === self.player.currentItem else { return }
                 self.skipNext(automatic: true)
+            }
+        }
+
+        playbackFailObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let item = note.object as? AVPlayerItem else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self,
+                      item === self.player.currentItem,
+                      let track = self.currentTrack,
+                      self.activeCandidates.indices.contains(self.candidateCursor) else {
+                    return
+                }
+                let failed = self.activeCandidates[self.candidateCursor]
+                self.recoverFromStreamFailure(for: track, failedCandidate: failed)
+            }
+        }
+
+        stallObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemPlaybackStalled,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let item = note.object as? AVPlayerItem else { return }
+            Task { @MainActor [weak self] in
+                guard let self = self,
+                      item === self.player.currentItem,
+                      let track = self.currentTrack,
+                      self.isPlaying,
+                      self.activeCandidates.indices.contains(self.candidateCursor) else {
+                    return
+                }
+                let snapshotTime = self.currentTime
+                let candidate = self.activeCandidates[self.candidateCursor]
+                self.stallWatchdogTask?.cancel()
+                self.stallWatchdogTask = Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 7_500_000_000)
+                    guard !Task.isCancelled,
+                          let self = self,
+                          self.isPlaying,
+                          self.currentTrack?.id == track.id,
+                          abs(self.currentTime - snapshotTime) < 0.25 else {
+                        return
+                    }
+                    self.recoverFromStreamFailure(for: track, failedCandidate: candidate)
+                }
             }
         }
 
@@ -470,7 +651,10 @@ final class AudioPlayerEngine: ObservableObject {
                     if let optsVal = optsVal,
                        AVAudioSession.InterruptionOptions(rawValue: optsVal).contains(.shouldResume) {
                         try? AVAudioSession.sharedInstance().setActive(true)
-                        self.player.playImmediately(atRate: self.playbackRate)
+                        self.player.play()
+                        if abs(self.playbackRate - 1.0) > 0.01 {
+                            self.player.rate = self.playbackRate
+                        }
                         self.isPlaying = true
                         self.updateNowPlayingMetadata()
                     }

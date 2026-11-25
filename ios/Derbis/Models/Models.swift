@@ -1,13 +1,13 @@
 import Foundation
 import SwiftUI
 
-enum TrackSource: String, Codable, Hashable, CaseIterable {
+enum TrackSource: String, Codable, Hashable, CaseIterable, Sendable {
     case youtubeMusic = "YouTube Music"
     case subsonic = "Server"
     case localFile = "Local"
 }
 
-struct Track: Identifiable, Codable, Hashable {
+struct Track: Identifiable, Codable, Hashable, Sendable {
     let id: String
     var title: String
     var artist: String
@@ -67,14 +67,14 @@ struct Track: Identifiable, Codable, Hashable {
     }
 }
 
-struct HomeShelf: Identifiable, Codable, Hashable {
+struct HomeShelf: Identifiable, Codable, Hashable, Sendable {
     let id: String
     var title: String
     var subtitle: String
     var tracks: [Track]
 }
 
-struct UserPlaylist: Identifiable, Codable, Hashable {
+struct UserPlaylist: Identifiable, Codable, Hashable, Sendable {
     let id: String
     var name: String
     var createdAt: Date
@@ -88,13 +88,13 @@ struct UserPlaylist: Identifiable, Codable, Hashable {
     }
 }
 
-struct LyricLine: Identifiable, Codable, Hashable {
+struct LyricLine: Identifiable, Codable, Hashable, Sendable {
     let id: Int
     let startTimeSec: Double
     let text: String
 }
 
-struct LyricsPayload: Codable, Hashable {
+struct LyricsPayload: Codable, Hashable, Sendable {
     let trackId: String
     let synced: Bool
     let provider: String
@@ -219,12 +219,18 @@ struct DerbisBackupDocument: Codable {
     let history: [ListeningRecord]
 }
 
-struct ResolvedStream {
+struct ResolvedStream: Hashable, Sendable {
     let url: URL
     let headers: [String: String]
     let codecBadge: String
     let bitrateKbps: Int
     let isDirectFile: Bool
+    var clientLabel: String = "Direct"
+    var expiresAt: Date = Date().addingTimeInterval(5400)
+
+    var isFresh: Bool {
+        Date() < expiresAt
+    }
 }
 
 enum TimeFormatting {

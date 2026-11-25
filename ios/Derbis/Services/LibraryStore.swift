@@ -161,41 +161,74 @@ final class LibraryStore: ObservableObject {
         activeDownloads[track.id] = 0.08
 
         do {
-            let resolved: ResolvedStream
+            let candidates: [ResolvedStream]
             if track.source == .subsonic,
                let songId = track.subsonicSongId,
                let url = SubsonicService.shared.signedStreamURL(songId: songId) {
-                resolved = ResolvedStream(
-                    url: url,
-                    headers: [:],
-                    codecBadge: track.codecBadge,
-                    bitrateKbps: track.bitrateKbps,
-                    isDirectFile: true
-                )
-            } else if let vid = track.videoId {
-                resolved = try await InnerTubeService.shared.resolvePlayableStream(
-                    videoId: vid,
-                    preferHighQuality: preferHighQuality
+                candidates = [
+                    ResolvedStream(
+                        url: url,
+                        headers: [:],
+                        codecBadge: track.codecBadge,
+                        bitrateKbps: track.bitrateKbps,
+                        isDirectFile: true,
+                        clientLabel: "SUBSONIC"
+                    )
+                ]
+            } else if track.source == .youtubeMusic {
+                candidates = try await InnerTubeService.shared.resolveStreamCandidates(
+                    for: track,
+                    preferHighQuality: preferHighQuality,
+                    requireDirectFile: true
                 )
             } else {
                 activeDownloads.removeValue(forKey: track.id)
                 return
             }
 
-            guard resolved.isDirectFile else {
+            let directCandidates = candidates.filter(\.isDirectFile)
+            guard !directCandidates.isEmpty else {
                 activeDownloads.removeValue(forKey: track.id)
                 return
             }
 
             activeDownloads[track.id] = 0.35
 
-            var req = URLRequest(url: resolved.url)
-            for (k, v) in resolved.headers {
-                req.setValue(v, forHTTPHeaderField: k)
+            var verifiedDownload: (tempURL: URL, response: HTTPURLResponse, stream: ResolvedStream)?
+            for candidate in directCandidates {
+                var req = URLRequest(url: candidate.url)
+                for (k, v) in candidate.headers {
+                    req.setValue(v, forHTTPHeaderField: k)
+                }
+
+                guard let (tempURL, response) = try? await URLSession.shared.download(for: req),
+                      let http = response as? HTTPURLResponse,
+                      (200..<300).contains(http.statusCode) else {
+                    await InnerTubeService.shared.quarantineStream(
+                        url: candidate.url,
+                        videoId: track.videoId,
+                        clientLabel: candidate.clientLabel
+                    )
+                    continue
+                }
+
+                let ctype = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+                let downloadedSize = (try? tempURL.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+                if ctype.contains("text/html") || ctype.contains("application/json") || downloadedSize < 32_768 {
+                    try? FileManager.default.removeItem(at: tempURL)
+                    await InnerTubeService.shared.quarantineStream(
+                        url: candidate.url,
+                        videoId: track.videoId,
+                        clientLabel: candidate.clientLabel
+                    )
+                    continue
+                }
+
+                verifiedDownload = (tempURL, http, candidate)
+                break
             }
 
-            let (tempURL, response) = try await URLSession.shared.download(for: req)
-            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            guard let winner = verifiedDownload else {
                 activeDownloads.removeValue(forKey: track.id)
                 return
             }
@@ -203,7 +236,7 @@ final class LibraryStore: ObservableObject {
             activeDownloads[track.id] = 0.85
 
             let ext: String = {
-                let mime = (http.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+                let mime = (winner.response.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
                 if mime.contains("flac") { return "flac" }
                 if mime.contains("mpeg") || mime.contains("mp3") { return "mp3" }
                 if mime.contains("wav") { return "wav" }
@@ -214,12 +247,12 @@ final class LibraryStore: ObservableObject {
             let fileName = "\(safeId).\(ext)"
             let destination = downloadsDirectory().appendingPathComponent(fileName)
             try? FileManager.default.removeItem(at: destination)
-            try FileManager.default.moveItem(at: tempURL, to: destination)
+            try FileManager.default.moveItem(at: winner.tempURL, to: destination)
 
             var savedTrack = track
             savedTrack.localFileName = fileName
             savedTrack.codecBadge = "Offline \(ext.uppercased())"
-            savedTrack.bitrateKbps = resolved.bitrateKbps
+            savedTrack.bitrateKbps = winner.stream.bitrateKbps
 
             _ = await LyricsService.shared.fetchLyrics(for: track)
 
