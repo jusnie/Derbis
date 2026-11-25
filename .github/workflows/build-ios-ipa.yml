@@ -67,7 +67,7 @@ jobs:
       - name: Compile native arm64 iOS app bundle
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           xcodebuild clean build \
             -project ios/Derbis.xcodeproj \
             -scheme Derbis \
@@ -75,10 +75,23 @@ jobs:
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
             -derivedDataPath build_derived \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM=""
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM="" 2>&1 | tee xcodebuild.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+          if [[ "${BUILD_STATUS}" -ne 0 ]]; then
+            grep -E "error:|fatal error:|Multiple commands produce" xcodebuild.log | head -n 25 | while IFS= read -r err_line; do
+              echo "::error::${err_line}"
+            done
+            tail -n 15 xcodebuild.log | while IFS= read -r tail_line; do
+              echo "::warning::${tail_line}"
+            done
+            exit "${BUILD_STATUS}"
+          fi
 
       - name: Package KSign-compatible IPA
         shell: bash

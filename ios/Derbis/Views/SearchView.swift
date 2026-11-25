@@ -244,14 +244,10 @@ struct SearchView: View {
         suggestions = []
 
         searchTask = Task {
-            async let ytTask: [Track] = {
-                (try? await InnerTubeService.shared.searchTracks(query: trimmed)) ?? []
-            }()
-            async let subTask: [Track] = {
-                guard subsonic.isConnected else { return [] }
-                return await subsonic.search(query: trimmed)
-            }()
-            let (yt, sub) = await (ytTask, subTask)
+            let connected = subsonic.isConnected
+            async let ytFetch = InnerTubeService.shared.searchTracks(query: trimmed)
+            let sub = connected ? await subsonic.search(query: trimmed) : []
+            let yt = (try? await ytFetch) ?? []
             guard !Task.isCancelled else { return }
             results = yt
             serverResults = sub

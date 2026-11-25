@@ -12,9 +12,11 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_BITCODE: NO
+    CODE_SIGN_STYLE: Manual
     CODE_SIGNING_ALLOWED: NO
     CODE_SIGNING_REQUIRED: NO
     CODE_SIGN_IDENTITY: ""
+    PROVISIONING_PROFILE_SPECIFIER: ""
     DEVELOPMENT_TEAM: ""
 
 targets:
@@ -38,11 +40,3 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         SWIFT_OPTIMIZATION_LEVEL: "-O"
         DEAD_CODE_STRIPPING: YES
-    dependencies:
-      - sdk: AVFoundation.framework
-      - sdk: AVKit.framework
-      - sdk: MediaPlayer.framework
-      - sdk: CoreText.framework
-      - sdk: Security.framework
-      - sdk: UniformTypeIdentifiers.framework
-      - sdk: CryptoKit.framework

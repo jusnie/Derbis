@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 @main
 struct DerbisApp: App {
     @StateObject private var theme = ThemeManager()
