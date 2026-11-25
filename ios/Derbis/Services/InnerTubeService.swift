@@ -561,9 +561,14 @@ actor InnerTubeService {
             }
         }
 
-        let filtered = subtitleTokens
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && $0 != "•" && $0 != "·" && $0 != "&" && $0.lowercased() != "song" && $0.lowercased() != "video" }
+        let ignoredTokens: Set<String> = ["•", "·", "&", "song", "video"]
+        var filtered: [String] = []
+        for rawToken in subtitleTokens {
+            let trimmedToken = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedToken.isEmpty && !ignoredTokens.contains(trimmedToken.lowercased()) {
+                filtered.append(trimmedToken)
+            }
+        }
 
         var durationSec = 0
         var metaParts: [String] = []
