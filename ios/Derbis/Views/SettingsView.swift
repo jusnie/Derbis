@@ -3,8 +3,10 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var theme: ThemeManager
+    @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var subsonic: SubsonicService
+    @ObservedObject private var spotifySession = SpotifySessionStore.shared
 
     @State private var serverURLInput: String = ""
     @State private var usernameInput: String = ""
@@ -12,6 +14,7 @@ struct SettingsView: View {
     @State private var preferRawLossless: Bool = true
     @State private var isTestingServer: Bool = false
     @State private var showingBackupImporter: Bool = false
+    @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -40,6 +43,7 @@ struct SettingsView: View {
 
                         skinSection
                         typographySection
+                        motionCanvasSection
                         playbackSection
                         subsonicSection
                         storageAndBackupSection
@@ -66,6 +70,17 @@ struct SettingsView: View {
                     let ok = library.importBackup(from: first)
                     statusBanner = ok ? "Library backup restored" : "Invalid backup file"
                 }
+            }
+            .sheet(isPresented: $showingSpotifyCanvasSheet) {
+                SpotifyCanvasSheet()
+                    .environmentObject(player)
+                    .environmentObject(theme)
+            }
+            .onChange(of: theme.motionCanvasEnabled) { _ in
+                player.refreshMotionCanvas()
+            }
+            .onChange(of: theme.motionCanvasStyle) { _ in
+                player.refreshMotionCanvas()
             }
         }
     }
@@ -137,6 +152,84 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private var motionCanvasSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Motion Canvas & animated art")
+
+            VStack(spacing: 14) {
+                Toggle(isOn: $theme.motionCanvasEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Spotify Canvas & Apple Motion")
+                            .font(theme.font(size: 15, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Loops 9:16 Spotify Canvas MP4s and Apple Music animated covers in Now Playing")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                if theme.motionCanvasEnabled {
+                    Divider()
+
+                    HStack(spacing: 8) {
+                        ForEach(MotionCanvasStyle.allCases) { styleOption in
+                            let selected = theme.motionCanvasStyle == styleOption
+                            Button {
+                                theme.motionCanvasStyle = styleOption
+                            } label: {
+                                Text(styleOption.title)
+                                    .font(theme.font(size: 13, weight: .bold))
+                                    .foregroundColor(selected ? .white : theme.primaryText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 9)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                                            .fill(selected ? theme.accent : theme.elevatedSurface)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    Divider()
+
+                    Button {
+                        showingSpotifyCanvasSheet = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(spotifySession.hasSession ? Color(hex: 0x1ED760) : theme.secondaryText.opacity(0.45))
+                                .frame(width: 9, height: 9)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(spotifySession.hasSession ? "Spotify Canvas connected" : "Connect Spotify for full Canvas catalog")
+                                    .font(theme.font(size: 14, weight: .semibold))
+                                    .foregroundColor(theme.primaryText)
+                                Text(
+                                    spotifySession.hasSession
+                                        ? "Active session (\(spotifySession.maskedPreview)) · Tap to manage or test"
+                                        : "Optional — public Canvas & Apple Motion work automatically"
+                                )
+                                .font(theme.font(size: 12))
+                                .foregroundColor(theme.secondaryText)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(theme.secondaryText)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(14)
+            .derbisCard()
         }
     }
 

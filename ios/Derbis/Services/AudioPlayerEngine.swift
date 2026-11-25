@@ -26,6 +26,8 @@ final class AudioPlayerEngine: ObservableObject {
     @Published var activeLyricIndex: Int?
     @Published var isLoadingLyrics: Bool = false
 
+    @Published var currentMotionCanvas: MotionCanvasAsset?
+
     @Published var ambientPrimary: Color = Color(hex: 0x2A1A2E)
     @Published var ambientSecondary: Color = Color(hex: 0x0A0A10)
     @Published var currentArtworkImage: UIImage?
@@ -39,6 +41,7 @@ final class AudioPlayerEngine: ObservableObject {
     private var stallObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loadTask: Task<Void, Never>?
+    private var motionTask: Task<Void, Never>?
     private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
 
@@ -228,6 +231,7 @@ final class AudioPlayerEngine: ObservableObject {
             duration = Double(track.durationSec)
             currentLyrics = nil
             activeLyricIndex = nil
+            currentMotionCanvas = nil
             recoveryPass = 0
         }
 
@@ -261,6 +265,7 @@ final class AudioPlayerEngine: ObservableObject {
             if autoLyrics {
                 loadLyrics(for: track)
             }
+            loadMotionCanvas(for: track)
         }
 
         loadTask = Task { [weak self] in
@@ -389,6 +394,32 @@ final class AudioPlayerEngine: ObservableObject {
                 self.currentLyrics = result
                 self.updateActiveLyricIndex(at: self.currentTime)
                 self.isLoadingLyrics = false
+            }
+        }
+    }
+
+    func refreshMotionCanvas() {
+        guard let track = currentTrack else { return }
+        loadMotionCanvas(for: track)
+    }
+
+    func loadMotionCanvas(for track: Track) {
+        motionTask?.cancel()
+        let motionEnabled = UserDefaults.standard.object(forKey: "derbis.motionCanvasEnabled") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "derbis.motionCanvasEnabled")
+        guard motionEnabled else {
+            currentMotionCanvas = nil
+            return
+        }
+        let styleRaw = UserDefaults.standard.string(forKey: "derbis.motionCanvasStyle") ?? MotionCanvasStyle.immersive.rawValue
+        let preferTall = (styleRaw == MotionCanvasStyle.immersive.rawValue)
+
+        motionTask = Task { [weak self] in
+            let resolved = await MotionCanvasService.shared.resolveMotionCanvas(for: track, preferTall: preferTall)
+            guard !Task.isCancelled, let self = self, self.currentTrack?.id == track.id else { return }
+            withAnimation(.easeInOut(duration: 0.35)) {
+                self.currentMotionCanvas = resolved
             }
         }
     }

@@ -173,7 +173,7 @@ enum DerbisSkin: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable {
+enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
     case skinDefault = "skin"
     case sfPro = "sf_pro"
     case pixelify = "pixelify"
@@ -187,6 +187,34 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable {
         case .pixelify: return "Pixelify Sans"
         }
     }
+}
+
+enum MotionCanvasStyle: String, Codable, CaseIterable, Identifiable, Sendable {
+    case immersive = "immersive"
+    case framed = "framed"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .immersive: return "Full-bleed 9:16"
+        case .framed: return "Artwork frame"
+        }
+    }
+}
+
+enum MotionCanvasProviderKind: String, Codable, Hashable, Sendable {
+    case spotifyCanvas = "Spotify Canvas"
+    case appleMusicMotion = "Apple Motion"
+}
+
+struct MotionCanvasAsset: Hashable, Sendable {
+    let trackId: String
+    let remoteURL: URL
+    let playbackURL: URL
+    let provider: MotionCanvasProviderKind
+    let isHLS: Bool
+    let isTall: Bool
 }
 
 struct SubsonicConfig: Codable, Equatable {

@@ -10,15 +10,31 @@ struct NowPlayingView: View {
     @State private var showingLyrics: Bool = false
     @State private var showingQueue: Bool = false
     @State private var showingPlaylistSheet: Bool = false
+    @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: Double = 0
 
+    private var activeMotionAsset: MotionCanvasAsset? {
+        guard theme.motionCanvasEnabled,
+              let asset = player.currentMotionCanvas,
+              asset.trackId == player.currentTrack?.id else {
+            return nil
+        }
+        return asset
+    }
+
+    private var isImmersiveCanvas: Bool {
+        activeMotionAsset != nil && theme.motionCanvasStyle == .immersive
+    }
+
     private var fgPrimary: Color {
-        theme.isPixelSkin ? theme.primaryText : Color.white
+        if isImmersiveCanvas { return Color.white }
+        return theme.isPixelSkin ? theme.primaryText : Color.white
     }
 
     private var fgSecondary: Color {
-        theme.isPixelSkin ? theme.secondaryText : Color.white.opacity(0.65)
+        if isImmersiveCanvas { return Color.white.opacity(0.72) }
+        return theme.isPixelSkin ? theme.secondaryText : Color.white.opacity(0.65)
     }
 
     var body: some View {
@@ -85,49 +101,86 @@ struct NowPlayingView: View {
                         .environmentObject(library)
                         .environmentObject(theme)
                 }
+                .sheet(isPresented: $showingSpotifyCanvasSheet) {
+                    SpotifyCanvasSheet()
+                        .environmentObject(player)
+                        .environmentObject(theme)
+                }
+                .onChange(of: theme.motionCanvasEnabled) { _ in
+                    player.refreshMotionCanvas()
+                }
+                .onChange(of: theme.motionCanvasStyle) { _ in
+                    player.refreshMotionCanvas()
+                }
             }
         }
     }
 
     @ViewBuilder
     private var backdropLayer: some View {
-        if theme.isPixelSkin {
-            PixelGraphPaperBackground()
-        } else if theme.skin == .lateNight {
-            LinearGradient(
-                colors: [
-                    Color(hex: 0x16120B),
-                    Color.black,
-                    Color.black
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-        } else {
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            if theme.isPixelSkin && !isImmersiveCanvas {
+                PixelGraphPaperBackground()
+            } else if theme.skin == .lateNight && !isImmersiveCanvas {
                 LinearGradient(
                     colors: [
-                        player.ambientPrimary,
-                        player.ambientSecondary,
-                        Color(hex: 0x060609)
+                        Color(hex: 0x16120B),
+                        Color.black,
+                        Color.black
                     ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
                 .ignoresSafeArea()
+            } else {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    LinearGradient(
+                        colors: [
+                            player.ambientPrimary,
+                            player.ambientSecondary,
+                            Color(hex: 0x060609)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
 
-                if let uiImage = player.currentArtworkImage {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .blur(radius: 68)
-                        .opacity(0.38)
-                        .ignoresSafeArea()
+                    if let uiImage = player.currentArtworkImage {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 68)
+                            .opacity(0.38)
+                            .ignoresSafeArea()
+                    }
+
+                    Color.black.opacity(0.34).ignoresSafeArea()
                 }
+            }
 
-                Color.black.opacity(0.34).ignoresSafeArea()
+            if isImmersiveCanvas, let motion = activeMotionAsset {
+                LoopingMotionVideoView(
+                    url: motion.playbackURL,
+                    isPlaying: player.isPlaying
+                )
+                .id(motion.playbackURL.absoluteString)
+                .opacity(showingLyrics ? 0.34 : 1.0)
+                .ignoresSafeArea()
+
+                LinearGradient(
+                    stops: [
+                        .init(color: Color.black.opacity(0.46), location: 0.0),
+                        .init(color: Color.black.opacity(showingLyrics ? 0.62 : 0.06), location: 0.28),
+                        .init(color: Color.black.opacity(showingLyrics ? 0.72 : 0.16), location: 0.56),
+                        .init(color: Color.black.opacity(0.84), location: 0.78),
+                        .init(color: Color.black.opacity(0.94), location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
             }
         }
     }
@@ -151,12 +204,28 @@ struct NowPlayingView: View {
 
                 Spacer()
 
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text(track.source.rawValue.uppercased())
                         .font(theme.font(size: 10, weight: .bold))
                         .tracking(1.1)
                         .foregroundColor(fgSecondary)
-                    if let timer = player.sleepTimerRemainingSec {
+
+                    if let motion = activeMotionAsset {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                theme.motionCanvasStyle = (theme.motionCanvasStyle == .immersive) ? .framed : .immersive
+                            }
+                        } label: {
+                            Text(motion.provider.rawValue.uppercased())
+                                .font(theme.font(size: 9, weight: .bold))
+                                .tracking(0.8)
+                                .foregroundColor(.white.opacity(0.92))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Color.white.opacity(0.16)))
+                        }
+                        .buttonStyle(.plain)
+                    } else if let timer = player.sleepTimerRemainingSec {
                         Text("Sleep \(TimeFormatting.clockString(seconds: Double(timer)))")
                             .font(theme.font(size: 11, weight: .semibold))
                             .foregroundColor(theme.accent)
@@ -187,6 +256,36 @@ struct NowPlayingView: View {
                             } label: {
                                 Label("Download offline", systemImage: "arrow.down.circle")
                             }
+                        }
+                    }
+
+                    Menu("Motion Canvas") {
+                        Button {
+                            theme.motionCanvasEnabled.toggle()
+                        } label: {
+                            Label(
+                                theme.motionCanvasEnabled ? "Disable Motion Canvas" : "Enable Motion Canvas",
+                                systemImage: theme.motionCanvasEnabled ? "sparkles.rectangle.stack.fill" : "sparkles.rectangle.stack"
+                            )
+                        }
+
+                        ForEach(MotionCanvasStyle.allCases) { styleOption in
+                            Button {
+                                theme.motionCanvasStyle = styleOption
+                            } label: {
+                                HStack {
+                                    Text(styleOption.title)
+                                    if theme.motionCanvasStyle == styleOption {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+
+                        Button {
+                            showingSpotifyCanvasSheet = true
+                        } label: {
+                            Label("Spotify Canvas account…", systemImage: "person.badge.key")
                         }
                     }
 
@@ -226,35 +325,65 @@ struct NowPlayingView: View {
 
     private func artworkStage(track: Track) -> some View {
         VStack(spacing: 14) {
-            GeometryReader { geo in
-                let side = min(geo.size.width - 56, geo.size.height)
-                HStack {
-                    Spacer()
-                    ZStack {
-                        if theme.isPixelSkin {
-                            Rectangle()
-                                .fill(Color(hex: 0x5B2338, opacity: 0.28))
-                                .frame(width: side, height: side)
-                                .offset(x: 5, y: 5)
+            if isImmersiveCanvas {
+                Spacer(minLength: 180)
+                    .frame(maxHeight: 330)
+            } else {
+                GeometryReader { geo in
+                    let side = min(geo.size.width - 56, geo.size.height)
+                    let frameSize = max(180, side)
+                    HStack {
+                        Spacer()
+                        ZStack {
+                            if theme.isPixelSkin {
+                                Rectangle()
+                                    .fill(Color(hex: 0x5B2338, opacity: 0.28))
+                                    .frame(width: side, height: side)
+                                    .offset(x: 5, y: 5)
+                            }
+                            ZStack {
+                                TrackArtworkView(
+                                    url: track.displayArtworkURL,
+                                    size: frameSize,
+                                    cornerRadius: theme.playerArtworkRadius
+                                )
+
+                                if theme.motionCanvasStyle == .framed, let motion = activeMotionAsset {
+                                    LoopingMotionVideoView(
+                                        url: motion.playbackURL,
+                                        isPlaying: player.isPlaying
+                                    )
+                                    .id(motion.playbackURL.absoluteString)
+                                    .frame(width: frameSize, height: frameSize)
+                                    .clipShape(
+                                        RoundedRectangle(
+                                            cornerRadius: theme.playerArtworkRadius,
+                                            style: .continuous
+                                        )
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(
+                                            cornerRadius: theme.playerArtworkRadius,
+                                            style: .continuous
+                                        )
+                                        .stroke(theme.isPixelSkin ? theme.border : Color.white.opacity(0.08), lineWidth: theme.isPixelSkin ? 2 : 0.6)
+                                    )
+                                }
+                            }
+                            .shadow(
+                                color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
+                                radius: player.isPlaying ? 26 : 12,
+                                x: 0,
+                                y: player.isPlaying ? 16 : 8
+                            )
+                            .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.88))
+                            .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
                         }
-                        TrackArtworkView(
-                            url: track.displayArtworkURL,
-                            size: max(180, side),
-                            cornerRadius: theme.playerArtworkRadius
-                        )
-                        .shadow(
-                            color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
-                            radius: player.isPlaying ? 26 : 12,
-                            x: 0,
-                            y: player.isPlaying ? 16 : 8
-                        )
-                        .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.88))
-                        .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
+                        Spacer()
                     }
-                    Spacer()
                 }
+                .frame(maxHeight: 330)
             }
-            .frame(maxHeight: 330)
 
             if let error = player.errorBanner {
                 Text(error)
@@ -392,7 +521,7 @@ struct NowPlayingView: View {
                     }
                 }
             )
-            .tint(theme.isPixelSkin ? theme.accent : fgPrimary)
+            .tint((theme.isPixelSkin && !isImmersiveCanvas) ? theme.accent : fgPrimary)
 
             HStack {
                 Text(TimeFormatting.clockString(seconds: displayed))
@@ -433,7 +562,7 @@ struct NowPlayingView: View {
         .padding(.vertical, 3.5)
         .background(
             Group {
-                if theme.isPixelSkin {
+                if theme.isPixelSkin && !isImmersiveCanvas {
                     Rectangle()
                         .fill(theme.elevatedSurface)
                         .overlay(Rectangle().stroke(theme.border, lineWidth: 1.5))
@@ -473,7 +602,7 @@ struct NowPlayingView: View {
                 player.togglePlayPause()
             } label: {
                 ZStack {
-                    if theme.isPixelSkin {
+                    if theme.isPixelSkin && !isImmersiveCanvas {
                         Rectangle()
                             .fill(theme.accent)
                             .frame(width: 68, height: 68)
@@ -486,7 +615,7 @@ struct NowPlayingView: View {
 
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(theme.isPixelSkin ? .white : .black)
+                        .foregroundColor((theme.isPixelSkin && !isImmersiveCanvas) ? .white : .black)
                         .offset(x: player.isPlaying ? 0 : 2)
                 }
             }

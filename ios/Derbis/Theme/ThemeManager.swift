@@ -24,6 +24,14 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(autoLoadLyrics, forKey: "derbis.autoLoadLyrics") }
     }
 
+    @Published var motionCanvasEnabled: Bool {
+        didSet { UserDefaults.standard.set(motionCanvasEnabled, forKey: "derbis.motionCanvasEnabled") }
+    }
+
+    @Published var motionCanvasStyle: MotionCanvasStyle {
+        didSet { UserDefaults.standard.set(motionCanvasStyle.rawValue, forKey: "derbis.motionCanvasStyle") }
+    }
+
     init() {
         let savedSkin = UserDefaults.standard.string(forKey: "derbis.skin") ?? DerbisSkin.appleMusic13.rawValue
         self.skin = DerbisSkin(rawValue: savedSkin) ?? .appleMusic13
@@ -48,6 +56,15 @@ final class ThemeManager: ObservableObject {
         } else {
             self.autoLoadLyrics = UserDefaults.standard.bool(forKey: "derbis.autoLoadLyrics")
         }
+
+        if UserDefaults.standard.object(forKey: "derbis.motionCanvasEnabled") == nil {
+            self.motionCanvasEnabled = true
+        } else {
+            self.motionCanvasEnabled = UserDefaults.standard.bool(forKey: "derbis.motionCanvasEnabled")
+        }
+
+        let savedStyle = UserDefaults.standard.string(forKey: "derbis.motionCanvasStyle") ?? MotionCanvasStyle.immersive.rawValue
+        self.motionCanvasStyle = MotionCanvasStyle(rawValue: savedStyle) ?? .immersive
     }
 
     var usesPixelFont: Bool {
