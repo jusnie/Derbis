@@ -30,7 +30,7 @@ jobs:
   build-ios:
     name: Build Native iOS IPA (KSign Ready)
     if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[ios]') }}
-    runs-on: macos-14
+    runs-on: macos-latest
     timeout-minutes: 30
     steps:
       - name: Checkout repository
