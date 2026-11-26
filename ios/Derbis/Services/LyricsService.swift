@@ -457,6 +457,7 @@ actor LyricsService {
 
             var words: [LyricWord] = []
             var fullText = ""
+            var prevEndedWithSpace = false
             for tm in tokenRegex.matches(in: body, range: nsBody) {
                 guard let wStartR = Range(tm.range(at: 1), in: body),
                       let wDurR = Range(tm.range(at: 2), in: body),
@@ -465,17 +466,27 @@ actor LyricsService {
                 }
                 let wStart = (Double(body[wStartR]) ?? 0) / 1000.0
                 let wDur = max(0.06, (Double(body[wDurR]) ?? 180) / 1000.0)
-                let wText = String(body[wTextR])
-                guard !wText.isEmpty else { continue }
-                fullText += wText
-                words.append(
-                    LyricWord(
-                        id: words.count,
-                        text: wText,
-                        startTimeSec: wStart,
-                        endTimeSec: wStart + wDur
+                let rawToken = String(body[wTextR])
+                guard !rawToken.isEmpty else { continue }
+                fullText += rawToken
+                let startsWithSpace = rawToken.first?.isWhitespace == true
+                let endsWithSpace = rawToken.last?.isWhitespace == true
+                let cleanWord = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !cleanWord.isEmpty {
+                    let joined = !words.isEmpty && !prevEndedWithSpace && !startsWithSpace
+                    words.append(
+                        LyricWord(
+                            id: words.count,
+                            text: cleanWord,
+                            startTimeSec: wStart,
+                            endTimeSec: wStart + wDur,
+                            joinedToPrevious: joined
+                        )
                     )
-                )
+                    prevEndedWithSpace = endsWithSpace
+                } else {
+                    prevEndedWithSpace = true
+                }
             }
 
             let cleanFull = fullText.trimmingCharacters(in: .whitespacesAndNewlines)

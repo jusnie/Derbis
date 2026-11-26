@@ -369,6 +369,14 @@ enum LyricsSourceKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .lrclib: return "LRCLIB"
         }
     }
+
+    var subtitle: String {
+        switch self {
+        case .appleTTML: return "Syllable-accurate Apple Music TTML, bg vocals & duet alignment"
+        case .netEaseYRC: return "Word-synced YRC karaoke + official Romaji & translations"
+        case .lrclib: return "Community time-synced & plain lyrics fallback"
+        }
+    }
 }
 
 enum GeniusMeaningFilter: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -378,6 +386,7 @@ enum GeniusMeaningFilter: String, Codable, CaseIterable, Identifiable, Sendable 
     case everyone = "Everyone"
 
     var id: String { rawValue }
+    var title: String { rawValue }
 }
 
 enum LyricsTranslationLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -418,6 +427,7 @@ enum ReverbRoomPreset: String, Codable, CaseIterable, Identifiable, Sendable {
     case cathedral = "Cathedral"
 
     var id: String { rawValue }
+    var title: String { rawValue }
 
     var feedback: Float {
         switch self {
@@ -445,6 +455,7 @@ enum AutoMixStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     case crossfade = "Crossfade"
 
     var id: String { rawValue }
+    var title: String { rawValue }
 
     var subtitle: String {
         switch self {
