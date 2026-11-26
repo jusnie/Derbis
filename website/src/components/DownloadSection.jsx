@@ -15,11 +15,11 @@ import {
 } from "../data/siteData";
 import { useScrollReveal } from "../hooks/useScrollEffects";
 import {
+  AndroidIcon,
   AppleIcon,
   CheckIcon,
   CopyIcon,
   DesktopIcon,
-  DownloadIcon,
   ExternalIcon,
   LaptopIcon,
   StarIcon
@@ -92,6 +92,7 @@ export function DownloadSection({
               className={platform === "android" ? "platform-tab is-active" : "platform-tab"}
               onClick={() => handleSelect("android")}
             >
+              <AndroidIcon />
               <span>Android</span>
               <span className="platform-pill platform-pill-live">Official</span>
             </button>
@@ -151,7 +152,7 @@ export function DownloadSection({
 
               <div className="bench-actions">
                 <a className="btn btn-primary" href={apkUrl || APK_DOWNLOAD_URL}>
-                  <DownloadIcon />
+                  <AndroidIcon />
                   <span>Download Derbis.apk</span>
                 </a>
                 <a
@@ -222,7 +223,7 @@ export function DownloadSection({
 
               <div className="bench-actions">
                 <a className="btn btn-primary" href={ipaUrl || IOS_IPA_DOWNLOAD_URL} download="Derbis.ipa">
-                  <DownloadIcon />
+                  <AppleIcon />
                   <span>Download Derbis.ipa</span>
                 </a>
                 <a className="btn btn-secondary" href="#ksign">

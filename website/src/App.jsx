@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
 import {
+  AndroidIcon,
   AppleIcon,
   DesktopIcon,
-  DownloadIcon,
   LaptopIcon,
   PixelMark
 } from "./components/Icons";
@@ -205,7 +205,7 @@ export default function App() {
               </p>
               <div className="hero-ctas">
                 <a className="btn btn-primary" href={apkUrl}>
-                  <DownloadIcon />
+                  <AndroidIcon />
                   <span>Download Derbis.apk</span>
                 </a>
                 <a className="btn btn-secondary" href={ipaUrl} download="Derbis.ipa">
