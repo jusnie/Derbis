@@ -1,5 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
 import {
@@ -7,7 +14,6 @@ import {
   AppleIcon,
   ArrowRightIcon,
   ChevronToggleIcon,
-  CloseIcon,
   LaptopIcon,
   PixelMark,
   ShieldIcon,
@@ -49,6 +55,29 @@ const HeroVersionBar = memo(function HeroVersionBar({
   onSelectPlatform
 }) {
   const [open, setOpen] = useState(false);
+  const panelRef = useRef(null);
+  const innerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const inner = innerRef.current;
+    if (!panel || !inner) return undefined;
+
+    const syncHeight = () => {
+      panel.style.setProperty("--panel-h", `${inner.offsetHeight}px`);
+    };
+
+    syncHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", syncHeight, { passive: true });
+      return () => window.removeEventListener("resize", syncHeight);
+    }
+
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -65,129 +94,10 @@ const HeroVersionBar = memo(function HeroVersionBar({
     };
   }, [open]);
 
-  const modal =
-    typeof document !== "undefined"
-      ? createPortal(
-          <div
-            id="hero-other-versions"
-            className={
-              open ? "version-modal-backdrop is-open" : "version-modal-backdrop"
-            }
-            role="dialog"
-            aria-modal="true"
-            aria-hidden={!open}
-            aria-labelledby="version-modal-title"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setOpen(false);
-              }
-            }}
-          >
-            <div className="version-modal-card">
-              <header className="version-modal-head">
-                <span id="version-modal-title" className="version-modal-title">
-                  Derbis versions
-                </span>
-                <button
-                  type="button"
-                  className="version-modal-close"
-                  tabIndex={open ? 0 : -1}
-                  aria-label="Close versions menu"
-                  onClick={() => setOpen(false)}
-                >
-                  <CloseIcon />
-                </button>
-              </header>
-
-              <div className="version-group">
-                <div className="version-group-label">Mobile</div>
-                <div className="version-group-items">
-                  <a
-                    className="version-row"
-                    href={apkUrl}
-                    tabIndex={open ? 0 : -1}
-                    onClick={() => setOpen(false)}
-                  >
-                    <span className="version-row-lead">
-                      <AndroidIcon />
-                      <span>Derbis.apk</span>
-                    </span>
-                    <span className="platform-pill platform-pill-live">Official</span>
-                  </a>
-
-                  <a
-                    className="version-row"
-                    href={ipaUrl}
-                    download="Derbis.ipa"
-                    tabIndex={open ? 0 : -1}
-                    onClick={() => setOpen(false)}
-                  >
-                    <span className="version-row-lead">
-                      <AppleIcon />
-                      <span>Derbis.ipa</span>
-                    </span>
-                    <span className="platform-pill platform-pill-live">Beta</span>
-                  </a>
-                </div>
-              </div>
-
-              <div className="version-group">
-                <div className="version-group-label">Desktop</div>
-                <div className="version-group-items">
-                  <div className="version-row is-soon" aria-disabled="true">
-                    <span className="version-row-lead">
-                      <WindowsIcon />
-                      <span>Windows</span>
-                    </span>
-                    <span className="platform-pill platform-pill-soon">
-                      Coming soon
-                    </span>
-                  </div>
-
-                  <div className="version-row is-soon" aria-disabled="true">
-                    <span className="version-row-lead">
-                      <LaptopIcon />
-                      <span>macOS</span>
-                    </span>
-                    <span className="platform-pill platform-pill-soon">
-                      Coming soon
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="version-group">
-                <div className="version-group-label">iOS Guide</div>
-                <div className="version-group-items">
-                  <a
-                    className="version-row"
-                    href="#ksign"
-                    tabIndex={open ? 0 : -1}
-                    onClick={() => {
-                      onSelectPlatform("ios");
-                      setOpen(false);
-                    }}
-                  >
-                    <span className="version-row-lead">
-                      <ShieldIcon />
-                      <span>KSign Guide</span>
-                    </span>
-                    <span className="version-row-arrow" aria-hidden="true">
-                      <ArrowRightIcon />
-                    </span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )
-      : null;
-
   return (
-    <>
-      <div className={open ? "version-bar-shell is-open" : "version-bar-shell"}>
-        <div className="version-split-bar">
+    <div className="hero-cta-wrap">
+      <div className={open ? "version-bar is-open" : "version-bar"}>
+        <div className="version-bar-top">
           <a className="version-bar-main" href={apkUrl}>
             <AndroidIcon />
             <span>Download Derbis.apk</span>
@@ -200,18 +110,104 @@ const HeroVersionBar = memo(function HeroVersionBar({
             aria-controls="hero-other-versions"
             aria-label={
               open
-                ? "Close versions menu"
-                : "Show Mobile, Desktop, and KSign Guide options"
+                ? "Collapse versions menu"
+                : "Expand Mobile, Desktop, and KSign Guide options"
             }
-            title={open ? "Close versions" : "All versions"}
+            title={open ? "Collapse versions" : "All versions"}
             onClick={() => setOpen((prev) => !prev)}
           >
             <ChevronToggleIcon open={open} />
           </button>
         </div>
+
+        <div
+          id="hero-other-versions"
+          ref={panelRef}
+          className="version-bar-panel"
+          aria-hidden={!open}
+        >
+          <div ref={innerRef} className="version-bar-panel-inner">
+            <div className="version-group">
+              <div className="version-group-label">Mobile</div>
+              <div className="version-group-items">
+                <a
+                  className="version-row"
+                  href={apkUrl}
+                  tabIndex={open ? 0 : -1}
+                >
+                  <span className="version-row-lead">
+                    <AndroidIcon />
+                    <span>Derbis.apk</span>
+                  </span>
+                  <span className="platform-pill platform-pill-live">Official</span>
+                </a>
+
+                <a
+                  className="version-row"
+                  href={ipaUrl}
+                  download="Derbis.ipa"
+                  tabIndex={open ? 0 : -1}
+                >
+                  <span className="version-row-lead">
+                    <AppleIcon />
+                    <span>Derbis.ipa</span>
+                  </span>
+                  <span className="platform-pill platform-pill-live">Beta</span>
+                </a>
+              </div>
+            </div>
+
+            <div className="version-group">
+              <div className="version-group-label">Desktop</div>
+              <div className="version-group-items">
+                <div className="version-row is-soon" aria-disabled="true">
+                  <span className="version-row-lead">
+                    <WindowsIcon />
+                    <span>Windows</span>
+                  </span>
+                  <span className="platform-pill platform-pill-soon">
+                    Coming soon
+                  </span>
+                </div>
+
+                <div className="version-row is-soon" aria-disabled="true">
+                  <span className="version-row-lead">
+                    <LaptopIcon />
+                    <span>macOS</span>
+                  </span>
+                  <span className="platform-pill platform-pill-soon">
+                    Coming soon
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="version-group">
+              <div className="version-group-label">iOS Guide</div>
+              <div className="version-group-items">
+                <a
+                  className="version-row"
+                  href="#ksign"
+                  tabIndex={open ? 0 : -1}
+                  onClick={() => {
+                    onSelectPlatform("ios");
+                    setOpen(false);
+                  }}
+                >
+                  <span className="version-row-lead">
+                    <ShieldIcon />
+                    <span>KSign Guide</span>
+                  </span>
+                  <span className="version-row-arrow" aria-hidden="true">
+                    <ArrowRightIcon />
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      {modal}
-    </>
+    </div>
   );
 });
 
@@ -233,13 +229,11 @@ export default function App() {
   const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
   const [releaseTag, setReleaseTag] = useState(RELEASE_META.version);
   const [sizeLabel, setSizeLabel] = useState(RELEASE_META.sizeLabel);
-
   const [ipaUrl, setIpaUrl] = useState(IOS_IPA_DOWNLOAD_URL);
   const [iosVersion, setIosVersion] = useState(IOS_RELEASE_META.version);
   const [iosReleaseUrl, setIosReleaseUrl] = useState(IOS_RELEASE_URL);
   const [iosSizeLabel, setIosSizeLabel] = useState(IOS_RELEASE_META.sizeLabel);
   const [iosSha256, setIosSha256] = useState(IOS_RELEASE_META.sha256);
-
   const [totalDownloads, setTotalDownloads] = useState(null);
   const [releases, setReleases] = useState(INITIAL_RELEASES);
 
@@ -255,38 +249,53 @@ export default function App() {
   }, [fontMode]);
 
   useEffect(() => {
+    if (window.location.hash === "#ksign" || window.location.hash === "#ios") {
+      setPlatform("ios");
+    }
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadGitHubMetadata = async () => {
       try {
-        const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
-          headers: { Accept: "application/vnd.github+json" }
-        });
+        const [repoRes, releasesRes] = await Promise.all([
+          fetch(`https://api.github.com/repos/${GITHUB_REPO}`, {
+            headers: { Accept: "application/vnd.github+json" }
+          }),
+          fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=15`, {
+            headers: { Accept: "application/vnd.github+json" }
+          })
+        ]);
+
+        if (cancelled) return;
+
         if (repoRes.ok) {
           const repoJson = await repoRes.json();
-          if (!cancelled && typeof repoJson.stargazers_count === "number") {
+          if (typeof repoJson.stargazers_count === "number") {
             setStars(repoJson.stargazers_count);
           }
         }
-      } catch {}
 
-      try {
-        const relRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=30`,
-          { headers: { Accept: "application/vnd.github+json" } }
-        );
-        if (!relRes.ok) return;
-        const relList = await relRes.json();
-        if (cancelled || !Array.isArray(relList) || !relList.length) return;
+        if (!releasesRes.ok) return;
+        const relList = await releasesRes.json();
+        if (!Array.isArray(relList) || relList.length === 0) return;
 
         const byPublishedDesc = (a, b) =>
           (Date.parse(b.published_at || b.created_at || "") || 0) -
           (Date.parse(a.published_at || a.created_at || "") || 0);
 
-        const official = relList
-          .filter((r) => !r.draft && !r.prerelease)
+        const officialAndroid = relList
+          .filter(
+            (r) =>
+              !r.draft &&
+              !r.prerelease &&
+              (r.assets || []).some(
+                (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".apk")
+              )
+          )
           .sort(byPublishedDesc);
-        const primary = official[0];
+        const primary = officialAndroid[0];
         if (primary) {
           const apkAsset = (primary.assets || []).find(
             (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".apk")
@@ -441,35 +450,28 @@ export default function App() {
       <footer className="site-footer">
         <div className="wrap footer-inner">
           <div className="footer-brand">
-            <PixelMark size={16} />
-            <span>Derbis {releaseTag} · GPL-3.0-only</span>
+            <PixelMark size={20} />
+            <span>Derbis · 2026 Yasuda · GPL-3.0-only</span>
           </div>
 
           <div className="footer-links">
-            <a href={LATEST_RELEASE_URL} target="_blank" rel="noopener noreferrer">
-              Derbis.apk
-            </a>
-            <a href={ipaUrl} download="Derbis.ipa">
-              Derbis.ipa
-            </a>
-            <a href="#ksign">
-              KSign Guide
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+              GitHub
             </a>
             <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
               Releases
             </a>
-            <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-              GitHub
+            <a href={LATEST_RELEASE_URL} target="_blank" rel="noopener noreferrer">
+              {releaseTag}
             </a>
-            <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener noreferrer">
-              Issues
+            <a href="#ksign" onClick={() => handleSelectPlatform("ios")}>
+              KSign iOS Guide
+            </a>
+            <a href={apkUrl}>Derbis.apk</a>
+            <a href={ipaUrl} download="Derbis.ipa">
+              Derbis.ipa
             </a>
           </div>
-        </div>
-        <div className="wrap">
-          <p className="footer-note">
-            Derbis is an independent open-source project and is not affiliated with Google, YouTube, Apple, Spotify, Discord, Last.fm, or KSign
-          </p>
         </div>
       </footer>
     </div>
