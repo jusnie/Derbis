@@ -21,7 +21,7 @@ struct HomeView: View {
                 PixelGraphPaperBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 18) {
                         headerBar
                         moodFilterStrip
                         soundtrackHeroCard
@@ -35,7 +35,7 @@ struct HomeView: View {
                                 Spacer()
                                 ProgressView()
                                     .tint(theme.accent)
-                                    .padding(.vertical, 36)
+                                    .padding(.vertical, 28)
                                 Spacer()
                             }
                         } else if displayShelves.isEmpty {
@@ -47,14 +47,15 @@ struct HomeView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 120)
+                    .padding(.top, 6)
+                    .derbisBottomBarClearance()
                 }
                 .derbisAutoMinimizeTabBarOnScroll()
                 .refreshable {
                     await reloadFeed(force: true)
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingGoogleAccountSheet) {
                 GoogleAccountSheet()
@@ -140,42 +141,46 @@ struct HomeView: View {
     }
 
     private var headerBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             DerbisDiamondMark(color: theme.primaryText, size: 22)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text("Derbis")
-                    .font(theme.font(size: 24, weight: .bold))
+                    .font(theme.font(size: 22, weight: .bold))
                     .foregroundColor(theme.primaryText)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Text(
                     googleSync.activeAccount.map { "\($0.name) · \(theme.skin.title)" }
                         ?? theme.skin.title
                 )
-                .font(theme.font(size: 12, weight: .medium))
+                .font(theme.font(size: 11.5, weight: .medium))
                 .foregroundColor(theme.secondaryText)
                 .lineLimit(1)
             }
+            .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: 6)
 
             Button {
                 HapticsAndGesturesService.shared.playControlTap(style: .light)
                 showingJamSheet = true
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     if jam.isActive {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 6, height: 6)
                     }
                     Image(systemName: "person.2.wave.2.fill")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11.5, weight: .semibold))
                     Text(jam.isActive ? "\(max(1, jam.participantCount))" : "Jam")
-                        .font(theme.font(size: 13, weight: .semibold))
+                        .font(theme.font(size: 12.5, weight: .semibold))
+                        .lineLimit(1)
                 }
                 .foregroundColor(jam.isActive ? .white : theme.primaryText)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
                 .derbisGlassCapsule(prominent: jam.isActive)
             }
             .buttonStyle(.plain)
@@ -226,16 +231,11 @@ struct HomeView: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: theme.usesLiquidGlass ? "sparkles" : "paintbrush.pointed.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text("Skin")
-                        .font(theme.font(size: 13, weight: .semibold))
-                }
-                .foregroundColor(theme.primaryText)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .derbisCard(elevated: true)
+                Image(systemName: theme.usesLiquidGlass ? "sparkles" : "paintbrush.pointed.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(theme.primaryText)
+                    .derbisGlassCircle(size: 34)
+                    .accessibilityLabel("Skin and typography")
             }
 
             Button {
@@ -277,35 +277,48 @@ struct HomeView: View {
     private var soundtrackHeroCard: some View {
         let pool = soundtrackQueuePool()
         return Button {
+            HapticsAndGesturesService.shared.playControlTap(style: .medium)
             if let seed = pool.randomElement() {
                 var shuffled = pool.shuffled()
                 shuffled.removeAll { $0.id == seed.id }
                 shuffled.insert(seed, at: 0)
                 player.play(track: seed, in: shuffled)
+            } else {
+                Task {
+                    await reloadFeed(force: true)
+                    let refreshed = soundtrackQueuePool()
+                    if let seed = refreshed.randomElement() {
+                        var shuffled = refreshed.shuffled()
+                        shuffled.removeAll { $0.id == seed.id }
+                        shuffled.insert(seed, at: 0)
+                        player.play(track: seed, in: shuffled)
+                    }
+                }
             }
         } label: {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("PERSONAL RADIO")
-                        .font(theme.font(size: 11, weight: .bold))
+                        .font(theme.font(size: 10.5, weight: .bold))
                         .foregroundColor(theme.accent)
                         .tracking(1.0)
 
                     Text("My soundtrack")
-                        .font(theme.font(size: 22, weight: .bold))
+                        .font(theme.font(size: 20, weight: .bold))
                         .foregroundColor(theme.primaryText)
+                        .lineLimit(1)
 
                     Text("Continuous mix built from your rotation, liked cuts, and \(selectedMood.lowercased()) picks")
-                        .font(theme.font(size: 13))
+                        .font(theme.font(size: 12.5))
                         .foregroundColor(theme.secondaryText)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
 
                     HStack(spacing: 6) {
                         Image(systemName: "play.fill")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 11.5, weight: .bold))
                         Text("Start session")
-                            .font(theme.font(size: 13, weight: .bold))
+                            .font(theme.font(size: 12.5, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
@@ -322,13 +335,24 @@ struct HomeView: View {
                     .padding(.top, 4)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
 
                 if let coverTrack = pool.first {
-                    TrackArtworkView(url: coverTrack.displayArtworkURL, size: 88, cornerRadius: theme.isPixelSkin ? 0 : 14)
+                    TrackArtworkView(url: coverTrack.displayArtworkURL, size: 84, cornerRadius: theme.isPixelSkin ? 0 : 14)
+                } else {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 14, style: .continuous)
+                            .fill(theme.accent.opacity(0.14))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 14, style: .continuous)
+                                    .stroke(theme.accent.opacity(0.32), lineWidth: 1)
+                            )
+                        DerbisDiamondMark(color: theme.accent, size: 34)
+                    }
+                    .frame(width: 84, height: 84)
                 }
             }
-            .padding(16)
+            .padding(14)
             .derbisCard(elevated: true)
         }
         .buttonStyle(.plain)
@@ -337,15 +361,15 @@ struct HomeView: View {
     private var orbitGridSection: some View {
         let items = Array(library.orbitTracks.prefix(9))
         let columns = [
-            GridItem(.flexible(), spacing: 10),
-            GridItem(.flexible(), spacing: 10),
-            GridItem(.flexible(), spacing: 10)
+            GridItem(.flexible(), spacing: 10, alignment: .top),
+            GridItem(.flexible(), spacing: 10, alignment: .top),
+            GridItem(.flexible(), spacing: 10, alignment: .top)
         ]
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Your orbit")
-                    .font(theme.font(size: 19, weight: .bold))
+                    .font(theme.font(size: 18, weight: .bold))
                     .foregroundColor(theme.primaryText)
                 Spacer()
                 Text("\(items.count) picks")
@@ -353,20 +377,16 @@ struct HomeView: View {
                     .foregroundColor(theme.secondaryText)
             }
 
-            LazyVGrid(columns: columns, spacing: 12) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
                 ForEach(items) { track in
                     Button {
                         player.play(track: track, in: items)
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            GeometryReader { geo in
-                                TrackArtworkView(
-                                    url: track.displayArtworkURL,
-                                    size: geo.size.width,
-                                    cornerRadius: theme.isPixelSkin ? 0 : 10
-                                )
-                            }
-                            .aspectRatio(1, contentMode: .fit)
+                        VStack(alignment: .leading, spacing: 5) {
+                            TrackArtworkView(
+                                url: track.displayArtworkURL,
+                                cornerRadius: theme.isPixelSkin ? 0 : 10
+                            )
 
                             Text(track.title)
                                 .font(theme.font(size: 12, weight: .semibold))
@@ -378,6 +398,7 @@ struct HomeView: View {
                                 .foregroundColor(theme.secondaryText)
                                 .lineLimit(1)
                         }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
                     .buttonStyle(.plain)
                 }

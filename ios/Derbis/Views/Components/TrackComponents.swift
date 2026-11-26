@@ -166,7 +166,7 @@ final class ArtworkImageCache: @unchecked Sendable {
 struct TrackArtworkView: View {
     @EnvironmentObject private var theme: ThemeManager
     let url: URL?
-    let size: CGFloat
+    var size: CGFloat? = nil
     var cornerRadius: CGFloat? = nil
 
     @State private var loadedImage: UIImage?
@@ -176,30 +176,54 @@ struct TrackArtworkView: View {
         guard let host = url?.host?.lowercased(), let path = url?.path.lowercased() else {
             return false
         }
-        return host.contains("ytimg.com") && (path.contains("hqdefault") || path.contains("sddefault"))
+        return host.contains("ytimg.com") && (
+            path.contains("hqdefault") ||
+            path.contains("sddefault") ||
+            path.hasSuffix("/default.jpg") ||
+            path.hasSuffix("/0.jpg")
+        )
     }
 
     var body: some View {
         let radius = theme.isPixelSkin ? 0 : (cornerRadius ?? theme.artworkRadius)
         let zoom: CGFloat = isYouTubeFourByThreeThumb ? 1.35 : 1.0
-        let instantHit = url.flatMap { ArtworkImageCache.shared.cachedImage(for: $0, pointSize: size) }
+        let decodePointSize = max(64, size ?? 180)
+        let instantHit = url.flatMap { ArtworkImageCache.shared.cachedImage(for: $0, pointSize: decodePointSize) }
         let currentKey = url?.absoluteString ?? ""
         let resolvedImage = instantHit ?? (loadedKey == currentKey ? loadedImage : nil)
 
-        ZStack {
-            theme.elevatedSurface
-            if let uiImg = resolvedImage {
-                Image(uiImage: uiImg)
-                    .resizable()
-                    .scaledToFill()
-                    .scaleEffect(zoom)
-                    .frame(width: size, height: size)
-                    .clipped()
+        Group {
+            if let fixedSize = size {
+                ZStack {
+                    theme.elevatedSurface
+                    if let uiImg = resolvedImage {
+                        Image(uiImage: uiImg)
+                            .resizable()
+                            .scaledToFill()
+                            .scaleEffect(zoom)
+                            .frame(width: fixedSize, height: fixedSize)
+                            .clipped()
+                    } else {
+                        placeholderIcon(pointSize: fixedSize)
+                    }
+                }
+                .frame(width: fixedSize, height: fixedSize)
             } else {
-                placeholderIcon
+                Color.clear
+                    .aspectRatio(1, contentMode: .fit)
+                    .background(theme.elevatedSurface)
+                    .overlay {
+                        if let uiImg = resolvedImage {
+                            Image(uiImage: uiImg)
+                                .resizable()
+                                .scaledToFill()
+                                .scaleEffect(zoom)
+                        } else {
+                            placeholderIcon(pointSize: 140)
+                        }
+                    }
             }
         }
-        .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: radius, style: .continuous)
@@ -212,23 +236,23 @@ struct TrackArtworkView: View {
                 return
             }
             let key = targetURL.absoluteString
-            if let hit = ArtworkImageCache.shared.cachedImage(for: targetURL, pointSize: size) {
+            if let hit = ArtworkImageCache.shared.cachedImage(for: targetURL, pointSize: decodePointSize) {
                 if loadedKey != key || loadedImage !== hit {
                     loadedKey = key
                     loadedImage = hit
                 }
                 return
             }
-            let fetched = await ArtworkImageCache.shared.loadImage(for: targetURL, pointSize: size)
+            let fetched = await ArtworkImageCache.shared.loadImage(for: targetURL, pointSize: decodePointSize)
             guard !Task.isCancelled else { return }
             loadedKey = key
             loadedImage = fetched
         }
     }
 
-    private var placeholderIcon: some View {
+    private func placeholderIcon(pointSize: CGFloat) -> some View {
         Image(systemName: "music.note")
-            .font(.system(size: max(14, size * 0.34), weight: .semibold))
+            .font(.system(size: max(14, min(36, pointSize * 0.32)), weight: .semibold))
             .foregroundColor(theme.secondaryText)
     }
 }

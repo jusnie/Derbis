@@ -33,7 +33,7 @@ struct LibraryView: View {
                 PixelGraphPaperBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 16) {
                         headerRow
                         googleAccountCard
                         insightsStrip
@@ -55,11 +55,12 @@ struct LibraryView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 120)
+                    .padding(.top, 6)
+                    .derbisBottomBarClearance()
                 }
                 .derbisAutoMinimizeTabBarOnScroll()
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
                 isPresented: $showingAudioImporter,
@@ -769,7 +770,7 @@ struct PlaylistDetailView: View {
                             .padding(.horizontal, 12)
                         }
                     }
-                    .padding(.bottom, 120)
+                    .derbisBottomBarClearance()
                 }
                 .opacity(curtainRevealed ? 1.0 : 0.0)
                 .onAppear {

@@ -81,9 +81,80 @@ struct Track: Identifiable, Codable, Hashable, Sendable {
         TimeFormatting.clockString(seconds: Double(durationSec))
     }
 
+    var preferredArtworkString: String {
+        let candidates = [largeThumbnailURL, thumbnailURL]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if let squareCover = candidates.first(where: { !ArtworkURLResolver.isVideoFrameURL($0) }) {
+            return ArtworkURLResolver.resolve(squareCover, targetPixels: 1080)
+        }
+        if let first = candidates.first {
+            return ArtworkURLResolver.resolve(first, targetPixels: 1080)
+        }
+        return ""
+    }
+
     var displayArtworkURL: URL? {
-        let candidate = largeThumbnailURL.isEmpty ? thumbnailURL : largeThumbnailURL
-        return URL(string: candidate)
+        let resolved = preferredArtworkString
+        guard !resolved.isEmpty else { return nil }
+        return URL(string: resolved)
+    }
+}
+
+enum ArtworkURLResolver {
+    static func isVideoFrameURL(_ url: String) -> Bool {
+        let lower = url.lowercased()
+        return lower.contains("/vi/") ||
+            lower.contains("/vi_webp/") ||
+            lower.contains("ytimg.com/an_webp") ||
+            lower.contains("hqdefault") ||
+            lower.contains("mqdefault") ||
+            lower.contains("sddefault") ||
+            lower.contains("maxresdefault") ||
+            lower.contains("hq720") ||
+            lower.hasSuffix("default.jpg") ||
+            lower.hasSuffix("default.webp")
+    }
+
+    static func resolve(_ rawURL: String, targetPixels: Int = 1080) -> String {
+        let clean = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return clean }
+        let clamped = min(2048, max(128, targetPixels))
+        let lower = clean.lowercased()
+
+        if (lower.contains("googleusercontent.com") || lower.contains("ggpht.com")) && !clean.contains("?") {
+            if let range = clean.range(of: #"=w\d+-h\d+[^/]*$"#, options: .regularExpression) {
+                return clean.replacingCharacters(in: range, with: "=w\(clamped)-h\(clamped)-l90-rj")
+            }
+            if let range = clean.range(of: #"=s\d+[^/]*$"#, options: .regularExpression) {
+                return clean.replacingCharacters(in: range, with: "=s\(clamped)")
+            }
+            return clean
+        }
+
+        if lower.contains("mzstatic.com") {
+            let sizeStr = String(clamped)
+            let templated = clean
+                .replacingOccurrences(of: "{w}", with: sizeStr)
+                .replacingOccurrences(of: "{h}", with: sizeStr)
+            if templated != clean { return templated }
+            if let range = clean.range(of: #"/\d+x\d+bb(?=[.-])"#, options: .regularExpression) {
+                return clean.replacingCharacters(in: range, with: "/\(clamped)x\(clamped)bb")
+            }
+            return clean
+        }
+
+        if lower.contains("i.scdn.co") && lower.contains("/image/ab67616d00001e02") && clamped > 300 {
+            return clean.replacingOccurrences(of: "ab67616d00001e02", with: "ab67616d0000b273")
+        }
+
+        if lower.contains("dzcdn.net") && clamped > 300 {
+            return clean
+                .replacingOccurrences(of: "/cover_medium/", with: clamped >= 768 ? "/cover_xl/" : "/cover_big/")
+                .replacingOccurrences(of: "/cover_small/", with: "/cover_big/")
+        }
+
+        return clean
     }
 }
 

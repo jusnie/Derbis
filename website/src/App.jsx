@@ -392,12 +392,6 @@ export default function App() {
               <p className="hero-lede">
                 Stream songs with no account, connect Navidrome or Subsonic for your FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
               </p>
-
-              <HeroVersionBar
-                apkUrl={apkUrl}
-                ipaUrl={ipaUrl}
-                onSelectPlatform={handleSelectPlatform}
-              />
             </div>
 
             <dl className="hero-specs" aria-label="Platform release summary">
@@ -418,6 +412,12 @@ export default function App() {
                 <dd className="spec-soon">Coming soon</dd>
               </div>
             </dl>
+
+            <HeroVersionBar
+              apkUrl={apkUrl}
+              ipaUrl={ipaUrl}
+              onSelectPlatform={handleSelectPlatform}
+            />
           </div>
 
           <ScreenGallery />

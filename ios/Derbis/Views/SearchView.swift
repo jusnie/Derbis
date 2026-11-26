@@ -23,12 +23,12 @@ struct SearchView: View {
             ZStack {
                 PixelGraphPaperBackground()
 
-                VStack(spacing: 14) {
+                VStack(spacing: 10) {
                     searchHeader
                     searchInputBar
 
                     ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 16) {
                             if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 recentSearchesSection
                                 browseGlassCategoriesSection
@@ -126,12 +126,14 @@ struct SearchView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 120)
+                        .padding(.top, 2)
+                        .derbisBottomBarClearance()
                     }
                     .derbisAutoMinimizeTabBarOnScroll()
                 }
-                .padding(.top, 12)
+                .padding(.top, 6)
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
         }
     }
@@ -139,7 +141,7 @@ struct SearchView: View {
     private var searchHeader: some View {
         HStack {
             Text("Search")
-                .font(theme.font(size: 26, weight: .bold))
+                .font(theme.font(size: 24, weight: .bold))
                 .foregroundColor(theme.primaryText)
             Spacer()
         }

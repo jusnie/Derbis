@@ -452,7 +452,7 @@ struct TaurusLiquidGlassTabBar: View {
                 },
                 onLongPressFirstItem: onLongPressFirstItem
             )
-            .frame(height: 62)
+            .frame(height: 54)
             .transaction { $0.animation = nil }
         } else {
             TaurusFallbackLensTabBar(
@@ -460,7 +460,7 @@ struct TaurusLiquidGlassTabBar: View {
                 selectedId: $selectedId,
                 onLongPressFirstItem: onLongPressFirstItem
             )
-            .frame(height: 62)
+            .frame(height: 54)
         }
         #else
         TaurusFallbackLensTabBar(
@@ -468,7 +468,7 @@ struct TaurusLiquidGlassTabBar: View {
             selectedId: $selectedId,
             onLongPressFirstItem: onLongPressFirstItem
         )
-        .frame(height: 62)
+        .frame(height: 54)
         #endif
     }
 }
@@ -584,14 +584,14 @@ private final class TaurusTabBarHostView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         guard bounds.width > 0 else { return }
-        let platterHeight: CGFloat = 62
+        let platterHeight: CGFloat = max(49, bounds.height)
         let fitted = bar.sizeThatFits(CGSize(width: bounds.width, height: platterHeight))
-        let gutter = max(0, fitted.height - platterHeight)
+        let resolvedHeight = min(max(platterHeight, fitted.height), platterHeight + 4)
         let targetFrame = CGRect(
-            x: -gutter,
-            y: 0,
-            width: bounds.width + 2 * gutter,
-            height: fitted.height
+            x: 0,
+            y: (bounds.height - resolvedHeight) * 0.5,
+            width: bounds.width,
+            height: resolvedHeight
         )
         if bar.frame != targetFrame {
             bar.frame = targetFrame
@@ -599,7 +599,32 @@ private final class TaurusTabBarHostView: UIView {
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        bounds.insetBy(dx: 0, dy: -24).contains(point)
+        bounds.insetBy(dx: 0, dy: -12).contains(point)
+    }
+}
+
+private struct DerbisBottomOverlayInsetKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 76
+}
+
+extension EnvironmentValues {
+    var derbisBottomOverlayInset: CGFloat {
+        get { self[DerbisBottomOverlayInsetKey.self] }
+        set { self[DerbisBottomOverlayInsetKey.self] = newValue }
+    }
+}
+
+private struct DerbisBottomClearanceModifier: ViewModifier {
+    @Environment(\.derbisBottomOverlayInset) private var inset
+
+    func body(content: Content) -> some View {
+        content.padding(.bottom, inset)
+    }
+}
+
+extension View {
+    func derbisBottomBarClearance() -> some View {
+        modifier(DerbisBottomClearanceModifier())
     }
 }
 

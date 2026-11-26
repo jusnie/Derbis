@@ -1110,8 +1110,7 @@ final class GoogleAccountSyncService: ObservableObject {
         let rowThumb = extractBestThumbnail(renderer["thumbnail"])
         let baseThumb = rowThumb.isEmpty ? fallbackThumbnail : rowThumb
         let finalThumb = baseThumb.isEmpty ? "https://i.ytimg.com/vi/\(vid)/hqdefault.jpg" : baseThumb
-        let hiResThumb = finalThumb.replacingOccurrences(of: "w120-h120", with: "w544-h544")
-            .replacingOccurrences(of: "w60-h60", with: "w544-h544")
+        let hiResThumb = ArtworkURLResolver.resolve(finalThumb, targetPixels: 1080)
 
         return Track(
             id: "yt:\(vid)",

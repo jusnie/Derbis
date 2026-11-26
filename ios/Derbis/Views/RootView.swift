@@ -29,6 +29,26 @@ struct RootView: View {
     @State private var isTabBarMinimized: Bool = false
     @State private var miniDragOffset: CGFloat = 0
 
+    private var activeBottomOverlayInset: CGFloat {
+        if player.currentTrack != nil {
+            if theme.usesLiquidGlass && isTabBarMinimized && theme.tabBarMinimizesOnScroll {
+                return 74
+            }
+            return 136
+        }
+        return 72
+    }
+
+    private var bottomScrimHeight: CGFloat {
+        if player.currentTrack != nil {
+            if isTabBarMinimized && theme.tabBarMinimizesOnScroll {
+                return 78
+            }
+            return 142
+        }
+        return 82
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
@@ -44,18 +64,19 @@ struct RootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .environment(\.derbisBottomOverlayInset, activeBottomOverlayInset)
 
             if theme.usesLiquidGlass {
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0.0),
-                        .init(color: Color.black.opacity(0.62), location: 0.45),
-                        .init(color: Color.black.opacity(0.92), location: 1.0)
+                        .init(color: Color.black.opacity(0.58), location: 0.48),
+                        .init(color: Color.black.opacity(0.90), location: 1.0)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(height: player.currentTrack != nil ? 156 : 104)
+                .frame(height: bottomScrimHeight)
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
 
@@ -97,12 +118,11 @@ struct RootView: View {
                 isTabBarMinimized = target
             }
         }
-        .sheet(isPresented: $showingFullPlayer) {
+        .fullScreenCover(isPresented: $showingFullPlayer) {
             NowPlayingView()
                 .environmentObject(player)
                 .environmentObject(LibraryStore.shared)
                 .environmentObject(theme)
-                .presentationDragIndicator(.hidden)
         }
         .sheet(isPresented: $showingJamSheetFromRoot) {
             JamSheet()
@@ -154,16 +174,16 @@ struct RootView: View {
                 .padding(.bottom, 6)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     if let current = player.currentTrack {
                         liquidGlassMiniPlayer(track: current, compactDocked: false)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, 12)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
                     liquidGlassTabBar
-                        .padding(.horizontal, 14)
-                        .padding(.bottom, 4)
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 2)
                 }
             }
         }
@@ -308,7 +328,7 @@ struct RootView: View {
     }
 
     private var liquidGlassTabBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             TaurusLiquidGlassTabBar(
                 items: tabBarSpecs,
                 selectedId: selectedTabIndexBinding,
@@ -326,9 +346,9 @@ struct RootView: View {
                     }
                 } label: {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white.opacity(0.88))
-                        .derbisGlassCircle(size: 56, interactive: true)
+                        .derbisGlassCircle(size: 48, interactive: true)
                 }
                 .buttonStyle(.plain)
             }

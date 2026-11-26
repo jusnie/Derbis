@@ -256,7 +256,7 @@ struct TaurusSingLyricsFloatingBar: View {
                         step: 0.05
                     )
                     .tint(theme.accent)
-                    .frame(width: 112)
+                    .frame(minWidth: 68, maxWidth: 100)
 
                     Text("\(Int((fx.singVocalLevel * 100).rounded()))%")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))

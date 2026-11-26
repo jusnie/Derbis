@@ -30,6 +30,7 @@ struct NowPlayingView: View {
     @State private var gestureFeedbackBadge: (icon: String, label: String)?
     @State private var badgeClearTask: Task<Void, Never>?
     @State private var artworkDragOffset: CGFloat = 0
+    @State private var dismissDragOffset: CGFloat = 0
 
     private var activeMotionAsset: MotionCanvasAsset? {
         guard theme.motionCanvasEnabled,
@@ -60,110 +61,132 @@ struct NowPlayingView: View {
 
     var body: some View {
         GeometryReader { screenGeo in
-            let viewportWidth = max(300, screenGeo.size.width)
-            let viewportHeight = max(520, screenGeo.size.height)
-            let compactHeight = viewportHeight < 700
+            let viewportWidth = max(280, screenGeo.size.width)
+            let viewportHeight = max(320, screenGeo.size.height)
+            let isLandscapeSplit = viewportWidth > viewportHeight && viewportWidth >= 600
+            let ultraCompact = viewportHeight < 650
+            let compactHeight = viewportHeight < 760
             let expandedLyricsStage = showingLyrics && controlsCollapsedInLyrics
-            let stageMaxHeight: CGFloat = {
+            let inlineLyricVisible = !showingLyrics && !ultraCompact && currentInlineLyricText != nil
+
+            let reservedChrome: CGFloat = {
                 if expandedLyricsStage {
-                    return max(320, viewportHeight * 0.68)
+                    return ultraCompact ? 154 : 174
                 }
-                if showingLyrics {
-                    return max(230, min(360, viewportHeight * 0.46))
-                }
-                return max(205, min(330, viewportHeight * 0.37))
+                let topH: CGFloat = ultraCompact ? 50 : 56
+                let inlineH: CGFloat = inlineLyricVisible ? 36 : 0
+                let metaH: CGFloat = 46
+                let scrubH: CGFloat = ultraCompact ? 56 : (compactHeight ? 62 : 68)
+                let transportH: CGFloat = ultraCompact ? 62 : (compactHeight ? 70 : 78)
+                let dockH: CGFloat = ultraCompact ? 58 : (compactHeight ? 64 : 72)
+                return topH + inlineH + metaH + scrubH + transportH + dockH + 16
             }()
+            let stageMaxHeight = max(144, viewportHeight - reservedChrome)
 
             ZStack(alignment: .top) {
                 if let track = player.currentTrack {
-                    VStack(spacing: 0) {
-                        grabberAndTopBar(track: track)
-                            .padding(.top, compactHeight ? 8 : 12)
-                            .padding(.horizontal, 20)
-
-                        Spacer(minLength: compactHeight ? 6 : 10)
-
-                        if showingLyrics {
-                            syncedLyricsPanel(track: track, maxHeight: stageMaxHeight)
-                                .transition(.opacity)
-                        } else {
-                            artworkStage(
+                    Group {
+                        if isLandscapeSplit {
+                            landscapeSplitPlayerLayout(
                                 track: track,
                                 viewportWidth: viewportWidth,
-                                maxStageHeight: stageMaxHeight
+                                viewportHeight: viewportHeight
                             )
-                            .transition(.opacity)
-                        }
-
-                        Spacer(minLength: compactHeight ? 6 : 10)
-
-                        if !showingLyrics, let inlineLine = currentInlineLyricText {
-                            Button {
-                                haptics.playControlTap(style: .light)
-                                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                                    showingLyrics = true
-                                }
-                                scheduleLyricsControlsAutoHide()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "quote.bubble.fill")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(theme.accent)
-                                    Text(inlineLine)
-                                        .font(theme.font(size: 13, weight: .semibold))
-                                        .foregroundColor(fgPrimary.opacity(0.94))
-                                        .lineLimit(1)
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .derbisGlassCapsule(
-                                    forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
-                                )
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        titleAndLikeRow(track: track)
-                            .padding(.horizontal, 24)
-
-                        if !expandedLyricsStage {
-                            scrubberSection
-                                .padding(.horizontal, 24)
-                                .padding(.top, compactHeight ? 10 : 14)
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-
-                            transportControlsRow
-                                .padding(.horizontal, 24)
-                                .padding(.top, compactHeight ? 14 : 20)
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
                         } else {
-                            Button {
-                                haptics.playSelectionTick()
-                                revealLyricsControlsTemporarily()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                                        .font(.system(size: 12, weight: .bold))
-                                    Text("Show Controls")
-                                        .font(theme.font(size: 12, weight: .semibold))
-                                }
-                                .foregroundColor(fgPrimary.opacity(0.92))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .derbisGlassCapsule(forceGlassOverBackdrop: true)
-                                .padding(.top, 10)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                            VStack(spacing: 0) {
+                                grabberAndTopBar(track: track)
+                                    .padding(.top, ultraCompact ? 4 : (compactHeight ? 6 : 10))
+                                    .padding(.horizontal, 20)
+                                    .contentShape(Rectangle())
+                                    .gesture(verticalDismissDragGesture)
 
-                        bottomUtilityDock(track: track)
-                            .padding(.horizontal, 16)
-                            .padding(.top, compactHeight ? 12 : 18)
-                            .padding(.bottom, compactHeight ? 12 : 18)
+                                Spacer(minLength: ultraCompact ? 4 : 8)
+
+                                if showingLyrics {
+                                    syncedLyricsPanel(track: track, maxHeight: stageMaxHeight)
+                                        .transition(.opacity)
+                                } else {
+                                    artworkStage(
+                                        track: track,
+                                        viewportWidth: viewportWidth,
+                                        maxStageHeight: stageMaxHeight
+                                    )
+                                    .transition(.opacity)
+                                }
+
+                                Spacer(minLength: ultraCompact ? 4 : 8)
+
+                                if inlineLyricVisible, let inlineLine = currentInlineLyricText {
+                                    Button {
+                                        haptics.playControlTap(style: .light)
+                                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                                            showingLyrics = true
+                                        }
+                                        scheduleLyricsControlsAutoHide()
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "quote.bubble.fill")
+                                                .font(.system(size: 11, weight: .semibold))
+                                                .foregroundColor(theme.accent)
+                                            Text(inlineLine)
+                                                .font(theme.font(size: 12.5, weight: .semibold))
+                                                .foregroundColor(fgPrimary.opacity(0.94))
+                                                .lineLimit(1)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 5.5)
+                                        .derbisGlassCapsule(
+                                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                                        )
+                                        .padding(.horizontal, 22)
+                                        .padding(.bottom, 6)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                titleAndLikeRow(track: track, compact: ultraCompact)
+                                    .padding(.horizontal, 22)
+
+                                if !expandedLyricsStage {
+                                    scrubberSection
+                                        .padding(.horizontal, 22)
+                                        .padding(.top, ultraCompact ? 6 : (compactHeight ? 9 : 12))
+                                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                                    transportControlsRow(playSize: ultraCompact ? 54 : (compactHeight ? 58 : 64))
+                                        .padding(.horizontal, 22)
+                                        .padding(.top, ultraCompact ? 8 : (compactHeight ? 12 : 16))
+                                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                } else {
+                                    Button {
+                                        haptics.playSelectionTick()
+                                        revealLyricsControlsTemporarily()
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                                                .font(.system(size: 12, weight: .bold))
+                                            Text("Show Controls")
+                                                .font(theme.font(size: 12, weight: .semibold))
+                                        }
+                                        .foregroundColor(fgPrimary.opacity(0.92))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .derbisGlassCapsule(forceGlassOverBackdrop: true)
+                                        .padding(.top, 8)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                bottomUtilityDock(track: track)
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, ultraCompact ? 8 : (compactHeight ? 11 : 14))
+                                    .padding(.bottom, ultraCompact ? 6 : (compactHeight ? 8 : 12))
+                            }
+                        }
                     }
                     .frame(width: viewportWidth, height: viewportHeight)
+                    .offset(y: dismissDragOffset)
+                    .scaleEffect(1.0 - min(0.05, dismissDragOffset / 2400.0))
                     .sheet(isPresented: $showingQueue) {
                         UpNextQueueSheet()
                             .environmentObject(player)
@@ -229,11 +252,11 @@ struct NowPlayingView: View {
 
                 if let toast = haptics.lastGestureToast {
                     floatingStatusPill(icon: "airpodspro", text: toast)
-                        .padding(.top, 56)
+                        .padding(.top, 52)
                         .transition(.move(edge: .top).combined(with: .opacity))
                 } else if let feedback = gestureFeedbackBadge {
                     floatingStatusPill(icon: feedback.icon, text: feedback.label)
-                        .padding(.top, 56)
+                        .padding(.top, 52)
                         .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
             }
@@ -241,6 +264,86 @@ struct NowPlayingView: View {
             .background {
                 backdropLayer(width: viewportWidth, height: viewportHeight)
                     .ignoresSafeArea()
+            }
+        }
+    }
+
+    private var verticalDismissDragGesture: some Gesture {
+        DragGesture(minimumDistance: 16)
+            .onChanged { value in
+                guard !isScrubbing else { return }
+                let dy = value.translation.height
+                let dx = value.translation.width
+                guard dy > 0 && dy > abs(dx) * 1.15 else { return }
+                dismissDragOffset = dy * 0.72
+            }
+            .onEnded { value in
+                let dy = value.translation.height
+                let predicted = value.predictedEndTranslation.height
+                let dx = value.translation.width
+                if !isScrubbing && dy > abs(dx) && (dy > 105 || predicted > 195) {
+                    haptics.playControlTap(style: .light)
+                    dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                        dismissDragOffset = 0
+                    }
+                }
+            }
+    }
+
+    private func landscapeSplitPlayerLayout(
+        track: Track,
+        viewportWidth: CGFloat,
+        viewportHeight: CGFloat
+    ) -> some View {
+        let leftPaneWidth = viewportWidth * 0.44
+        let rightPaneWidth = viewportWidth - leftPaneWidth
+
+        return VStack(spacing: 0) {
+            grabberAndTopBar(track: track)
+                .padding(.top, 6)
+                .padding(.horizontal, 24)
+                .contentShape(Rectangle())
+                .gesture(verticalDismissDragGesture)
+
+            HStack(spacing: 0) {
+                VStack {
+                    Spacer(minLength: 8)
+                    artworkStage(
+                        track: track,
+                        viewportWidth: leftPaneWidth,
+                        maxStageHeight: max(160, viewportHeight - 84)
+                    )
+                    Spacer(minLength: 8)
+                }
+                .frame(width: leftPaneWidth)
+
+                VStack(spacing: 0) {
+                    if showingLyrics {
+                        syncedLyricsPanel(track: track, maxHeight: max(120, viewportHeight - 250))
+                            .padding(.top, 6)
+                    } else {
+                        Spacer(minLength: 8)
+                    }
+
+                    titleAndLikeRow(track: track, compact: true)
+                        .padding(.horizontal, 20)
+
+                    scrubberSection
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+
+                    transportControlsRow(playSize: 54)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+
+                    bottomUtilityDock(track: track)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+                }
+                .frame(width: rightPaneWidth)
             }
         }
     }
@@ -450,10 +553,10 @@ struct NowPlayingView: View {
     }
 
     private func grabberAndTopBar(track: Track) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 5) {
             Capsule()
                 .fill(fgSecondary.opacity(0.45))
-                .frame(width: 38, height: 5)
+                .frame(width: 36, height: 4)
                 .onTapGesture { dismiss() }
 
             HStack {
@@ -462,10 +565,10 @@ struct NowPlayingView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 14.5, weight: .bold))
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
-                            size: 38,
+                            size: 36,
                             forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
                         )
                 }
@@ -473,11 +576,12 @@ struct NowPlayingView: View {
 
                 Spacer()
 
-                VStack(spacing: 3) {
+                VStack(spacing: 2) {
                     Text(track.source.rawValue.uppercased())
                         .font(theme.font(size: 10, weight: .bold))
                         .tracking(1.1)
                         .foregroundColor(fgSecondary)
+                        .lineLimit(1)
 
                     if let motion = activeMotionAsset, theme.backdropStyle == .animated {
                         Button {
@@ -497,8 +601,9 @@ struct NowPlayingView: View {
                         .buttonStyle(.plain)
                     } else if let timer = player.sleepTimerRemainingSec {
                         Text("Sleep \(TimeFormatting.clockString(seconds: Double(timer)))")
-                            .font(theme.font(size: 11, weight: .semibold))
+                            .font(theme.font(size: 10.5, weight: .semibold))
                             .foregroundColor(theme.accent)
+                            .lineLimit(1)
                     } else if fx.hasAnyActiveModification {
                         Button {
                             showingAudioStudioSheet = true
@@ -522,10 +627,10 @@ struct NowPlayingView: View {
                     showingTaurusPlayerMenu = true
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 14.5, weight: .bold))
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
-                            size: 38,
+                            size: 36,
                             forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
                         )
                 }
@@ -535,13 +640,16 @@ struct NowPlayingView: View {
     }
 
     private func artworkStage(track: Track, viewportWidth: CGFloat, maxStageHeight: CGFloat) -> some View {
-        let side = max(176, min(viewportWidth - 56, maxStageHeight - 8))
+        let hasFooter = player.errorBanner != nil || (theme.skin == .lateNight && player.currentIndex + 1 < player.queue.count)
+        let footerReserve: CGFloat = hasFooter ? 36 : 0
+        let availableArtHeight = max(128, maxStageHeight - footerReserve - 4)
+        let side = max(128, min(viewportWidth - 48, availableArtHeight))
 
-        return VStack(spacing: 12) {
+        return VStack(spacing: 8) {
             ZStack {
                 if isImmersiveCanvas || isFillBackdrop {
                     Color.clear
-                        .frame(width: viewportWidth, height: maxStageHeight)
+                        .frame(width: viewportWidth, height: availableArtHeight)
                 } else {
                     ZStack {
                         if theme.isPixelSkin {
@@ -584,11 +692,11 @@ struct NowPlayingView: View {
                         }
                         .shadow(
                             color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
-                            radius: player.isPlaying ? 24 : 12,
+                            radius: player.isPlaying ? 22 : 11,
                             x: 0,
-                            y: player.isPlaying ? 14 : 7
+                            y: player.isPlaying ? 12 : 6
                         )
-                        .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.89))
+                        .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.90))
                         .offset(x: artworkDragOffset)
                         .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
                     }
@@ -625,19 +733,36 @@ struct NowPlayingView: View {
                                 triggerBadge(icon: "goforward.10", label: "+10s")
                             }
                     }
-                    .frame(width: viewportWidth, height: (isImmersiveCanvas || isFillBackdrop) ? maxStageHeight : side)
+                    .frame(width: viewportWidth, height: (isImmersiveCanvas || isFillBackdrop) ? availableArtHeight : side)
                     .simultaneousGesture(
-                        DragGesture(minimumDistance: 24)
+                        DragGesture(minimumDistance: 20)
                             .onChanged { value in
-                                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                                artworkDragOffset = value.translation.width * 0.32
+                                let dx = value.translation.width
+                                let dy = value.translation.height
+                                if abs(dx) > abs(dy) {
+                                    artworkDragOffset = dx * 0.32
+                                } else if dy > 0 && dy > abs(dx) * 1.2 {
+                                    dismissDragOffset = dy * 0.72
+                                }
                             }
                             .onEnded { value in
+                                let dx = value.translation.width
+                                let dy = value.translation.height
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     artworkDragOffset = 0
                                 }
-                                guard abs(value.translation.width) > abs(value.translation.height) else { return }
-                                if value.translation.width < -56 {
+                                if dy > abs(dx) && (dy > 110 || value.predictedEndTranslation.height > 205) {
+                                    haptics.playControlTap(style: .light)
+                                    dismiss()
+                                    return
+                                }
+                                if dismissDragOffset > 0 {
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                                        dismissDragOffset = 0
+                                    }
+                                }
+                                guard abs(dx) > abs(dy) else { return }
+                                if dx < -56 {
                                     haptics.playControlTap(style: .medium)
                                     player.skipNext()
                                 } else if value.translation.width > 56 {
@@ -939,30 +1064,58 @@ struct NowPlayingView: View {
         .animation(.easeOut(duration: 0.2), value: isActive)
     }
 
-    private func titleAndLikeRow(track: Track) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+    private func titleAndLikeRow(track: Track, compact: Bool = false) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(track.title)
-                    .font(theme.font(size: 20, weight: .bold))
+                    .font(theme.font(size: compact ? 18 : 20, weight: .bold))
                     .foregroundColor(fgPrimary)
                     .lineLimit(1)
 
                 Text(track.artist)
-                    .font(theme.font(size: 15, weight: .medium))
+                    .font(theme.font(size: compact ? 13.5 : 14.5, weight: .medium))
                     .foregroundColor(fgSecondary)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if track.source != .localFile {
+                let downloaded = library.isDownloaded(track)
+                let downloading = library.activeDownloads[track.id] != nil
+                Button {
+                    if !downloaded && !downloading {
+                        haptics.playControlTap(style: .light)
+                        Task {
+                            await library.downloadTrackForOffline(track, preferHighQuality: theme.highQualityAudio)
+                        }
+                    }
+                } label: {
+                    Group {
+                        if downloading {
+                            ProgressView()
+                                .scaleEffect(0.72)
+                                .tint(theme.accent)
+                        } else {
+                            Image(systemName: downloaded ? "arrow.down.circle.fill" : "arrow.down.circle")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(downloaded ? theme.accent : fgSecondary)
+                        }
+                    }
+                    .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.plain)
+            }
 
             Button {
                 haptics.playControlTap(style: .medium)
                 library.toggleLike(track)
             } label: {
                 Image(systemName: library.isLiked(track) ? "heart.fill" : "heart")
-                    .font(.system(size: 22, weight: .semibold))
+                    .font(.system(size: 21, weight: .semibold))
                     .foregroundColor(library.isLiked(track) ? theme.accent : fgSecondary)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -1004,7 +1157,7 @@ struct NowPlayingView: View {
             }
             .foregroundColor(fx.hasAnyActiveModification ? .white : fgPrimary.opacity(0.92))
             .padding(.horizontal, 10)
-            .padding(.vertical, 4)
+            .padding(.vertical, 3.5)
             .derbisGlassCapsule(
                 prominent: fx.hasAnyActiveModification,
                 forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
@@ -1013,14 +1166,14 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
     }
 
-    private var transportControlsRow: some View {
+    private func transportControlsRow(playSize: CGFloat = 62) -> some View {
         HStack {
             Button {
                 haptics.playSelectionTick()
                 player.isShuffleEnabled.toggle()
             } label: {
                 Image(systemName: "shuffle")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 17.5, weight: .semibold))
                     .foregroundColor(player.isShuffleEnabled ? theme.accent : fgSecondary)
                     .frame(width: 40, height: 40)
             }
@@ -1032,9 +1185,9 @@ struct NowPlayingView: View {
                 player.skipPrevious()
             } label: {
                 Image(systemName: "backward.fill")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 48, height: 48)
+                    .frame(width: 44, height: 44)
             }
 
             Spacer()
@@ -1047,16 +1200,16 @@ struct NowPlayingView: View {
                     if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
                         Rectangle()
                             .fill(theme.accent)
-                            .frame(width: 64, height: 64)
+                            .frame(width: playSize, height: playSize)
                             .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
                     } else {
                         Circle()
                             .fill(fgPrimary)
-                            .frame(width: 64, height: 64)
+                            .frame(width: playSize, height: playSize)
                     }
 
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: max(21, playSize * 0.41), weight: .bold))
                         .foregroundColor((theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop) ? .white : .black)
                         .offset(x: player.isPlaying ? 0 : 2)
                 }
@@ -1069,9 +1222,9 @@ struct NowPlayingView: View {
                 player.skipNext()
             } label: {
                 Image(systemName: "forward.fill")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 48, height: 48)
+                    .frame(width: 44, height: 44)
             }
 
             Spacer()
@@ -1081,7 +1234,7 @@ struct NowPlayingView: View {
                 player.repeatMode = player.repeatMode.next()
             } label: {
                 Image(systemName: player.repeatMode.systemImage)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 17.5, weight: .semibold))
                     .foregroundColor(player.repeatMode == .off ? fgSecondary : theme.accent)
                     .frame(width: 40, height: 40)
             }
@@ -1103,15 +1256,17 @@ struct NowPlayingView: View {
                     player.loadLyrics(for: track)
                 }
             } label: {
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Image(systemName: showingLyrics ? "quote.bubble.fill" : "quote.bubble")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 15.5, weight: .semibold))
                     Text("Lyrics")
                         .font(theme.font(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .foregroundColor(showingLyrics ? theme.accent : fgSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(height: 38)
             }
             .buttonStyle(.plain)
 
@@ -1119,73 +1274,47 @@ struct NowPlayingView: View {
                 haptics.playControlTap(style: .light)
                 showingAudioStudioSheet = true
             } label: {
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Image(systemName: "slider.vertical.3")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 15.5, weight: .semibold))
                     Text("Audio FX")
                         .font(theme.font(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .foregroundColor(fx.hasAnyActiveModification ? theme.accent : fgSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(height: 38)
             }
             .buttonStyle(.plain)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 AirPlayRoutePicker(tintColor: airplayTint)
-                    .frame(width: 24, height: 20)
+                    .frame(width: 24, height: 19)
                 Text("AirPlay")
                     .font(theme.font(size: 10, weight: .semibold))
                     .foregroundColor(fgSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 40)
-
-            if track.source != .localFile {
-                let downloaded = library.isDownloaded(track)
-                let downloading = library.activeDownloads[track.id] != nil
-                Button {
-                    if !downloaded && !downloading {
-                        haptics.playControlTap(style: .light)
-                        Task {
-                            await library.downloadTrackForOffline(track, preferHighQuality: theme.highQualityAudio)
-                        }
-                    }
-                } label: {
-                    VStack(spacing: 4) {
-                        if downloading {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .tint(theme.accent)
-                                .frame(height: 18)
-                        } else {
-                            Image(systemName: downloaded ? "checkmark.circle.fill" : "arrow.down.circle")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        Text(downloaded ? "Saved" : "Offline")
-                            .font(theme.font(size: 10, weight: .semibold))
-                    }
-                    .foregroundColor(downloaded ? theme.accent : fgSecondary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                }
-                .buttonStyle(.plain)
-            }
+            .frame(height: 38)
 
             Button {
                 haptics.playControlTap(style: .light)
                 showingJamSheet = true
             } label: {
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Image(systemName: "person.2.wave.2.fill")
-                        .font(.system(size: 15.5, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                     Text(jam.isActive ? "Jam · \(max(1, jam.participantCount))" : "Jam")
                         .font(theme.font(size: 10, weight: .semibold))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .foregroundColor(jam.isActive ? theme.accent : fgSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(height: 38)
             }
             .buttonStyle(.plain)
 
@@ -1193,15 +1322,17 @@ struct NowPlayingView: View {
                 haptics.playControlTap(style: .light)
                 showingQueue = true
             } label: {
-                VStack(spacing: 4) {
+                VStack(spacing: 3) {
                     Image(systemName: "list.bullet")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 15.5, weight: .semibold))
                     Text("Queue")
                         .font(theme.font(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .foregroundColor(fgSecondary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(height: 38)
             }
             .buttonStyle(.plain)
         }

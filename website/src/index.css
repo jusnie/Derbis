@@ -376,7 +376,7 @@ section[id] {
 }
 
 .hero-lede {
-  margin: 0 0 24px;
+  margin: 0;
   max-width: 60ch;
   font-size: 16px;
   line-height: 26px;
@@ -468,8 +468,17 @@ section[id] {
   }
   .hero-inner {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
     margin-bottom: 32px;
+  }
+  .hero-copy {
+    order: 1;
+  }
+  .hero-cta-wrap {
+    order: 2;
+  }
+  .hero-specs {
+    order: 3;
   }
 }
 
@@ -477,7 +486,7 @@ section[id] {
   .hero-lede {
     font-size: 15px;
     line-height: 24px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
   }
   .hero-ctas .btn {
     width: 100%;
@@ -1380,23 +1389,17 @@ section[id] {
 }
 
 .hero-cta-wrap {
+  grid-column: 1 / -1;
   display: flex;
-  justify-content: center;
   width: 100%;
-  max-width: 60ch;
-}
-
-@media (max-width: 920px) {
-  .hero-cta-wrap {
-    max-width: none;
-  }
+  max-width: none;
 }
 
 .version-bar {
-  width: min(100%, 348px);
+  width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 4px;
+  padding: 5px;
   background-color: var(--bg-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-md);
@@ -1415,8 +1418,8 @@ section[id] {
 
 .version-bar-main {
   flex: 1 1 auto;
-  height: 40px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 16px 0 60px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1431,18 +1434,24 @@ section[id] {
   transition: background-color 140ms var(--ease), transform 140ms var(--ease);
 }
 
+@media (max-width: 400px) {
+  .version-bar-main {
+    padding: 0 14px;
+  }
+}
+
 .version-bar-main:hover {
   background-color: #ffffff;
 }
 
 .version-bar-main:active {
-  transform: scale(0.985);
+  transform: scale(0.992);
 }
 
 .version-bar-toggle {
-  width: 40px;
-  height: 40px;
-  margin-left: 4px;
+  width: 44px;
+  height: 44px;
+  margin-left: 5px;
   padding: 0;
   display: inline-grid;
   place-items: center;
@@ -1563,14 +1572,25 @@ section[id] {
 }
 
 .version-group-items {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.version-group-items > :only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 680px) {
+  .version-group-items {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 .version-row {
-  height: 40px;
-  padding: 0 12px;
+  height: 42px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;

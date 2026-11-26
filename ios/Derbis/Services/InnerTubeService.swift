@@ -1566,13 +1566,11 @@ actor InnerTubeService {
     }
 
     private func upgradeArtworkURL(_ url: String, videoId: String) -> String {
-        if url.contains("googleusercontent.com") {
-            if let range = url.range(of: #"=w\d+-h\d+[^/]*$"#, options: .regularExpression) {
-                return url.replacingCharacters(in: range, with: "=w600-h600-l90-rj")
-            }
-            return url
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "https://i.ytimg.com/vi/\(videoId)/hqdefault.jpg"
         }
-        return "https://i.ytimg.com/vi/\(videoId)/hqdefault.jpg"
+        return ArtworkURLResolver.resolve(trimmed, targetPixels: 1080)
     }
 
     private func findFirstValue(forKey key: String, in node: Any) -> Any? {

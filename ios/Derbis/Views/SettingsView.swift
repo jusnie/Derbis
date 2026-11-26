@@ -37,9 +37,9 @@ struct SettingsView: View {
                 PixelGraphPaperBackground()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 18) {
                         Text("Settings")
-                            .font(theme.font(size: 26, weight: .bold))
+                            .font(theme.font(size: 24, weight: .bold))
                             .foregroundColor(theme.primaryText)
 
                         if let banner = statusBanner {
@@ -75,10 +75,12 @@ struct SettingsView: View {
                         aboutSection
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
-                    .padding(.bottom, 120)
+                    .padding(.top, 6)
+                    .derbisBottomBarClearance()
                 }
+                .derbisAutoMinimizeTabBarOnScroll()
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 serverURLInput = subsonic.config.serverURL
