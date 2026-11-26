@@ -123,3 +123,21 @@ export function LastFmLogo() {
     </svg>
   );
 }
+
+export function AppleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M11.18 8.48c-.01-1.56 1.27-2.31 1.33-2.35-.73-1.06-1.85-1.21-2.25-1.23-.96-.1-1.88.57-2.37.57-.49 0-1.24-.55-2.04-.54-1.05.02-2.02.61-2.56 1.55-1.09 1.89-.28 4.69.78 6.23.52.75 1.14 1.6 1.95 1.57.78-.03 1.08-.5 2.02-.5.94 0 1.21.5 2.04.48.84-.01 1.37-.76 1.89-1.51.6-.87.84-1.72.85-1.76-.02-.01-1.63-.63-1.64-2.51zM9.64 3.89c.43-.52.72-1.25.64-1.97-.62.03-1.37.41-1.81.93-.39.45-.74 1.19-.65 1.89.69.05 1.39-.34 1.82-.85z" />
+    </svg>
+  );
+}
+
+export function ShieldIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 1.75L3 3.75v4c0 3.1 2.13 5.54 5 6.5 2.87-.96 5-3.4 5-6.5v-4L8 1.75z" />
+      <path d="M5.75 8l1.5 1.5 3-3.25" />
+    </svg>
+  );
+}
+

@@ -3,72 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Install Derbis on iPhone — 1-Tap Wireless Installer</title>
-  <meta name="theme-color" content="#000000">
-  <link rel="icon" type="image/png" href="/assets/derbis-logo.png">
+  <title>Derbis for iOS — Native IPA &amp; KSign Sideload Installer</title>
+  <meta name="theme-color" content="#0f0f10">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23ff5c8a'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='9' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='3' y='9' width='10' height='4' fill='%23fff8f6'/%3E%3C/svg%3E">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #000000; color: #ffffff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; -webkit-font-smoothing: antialiased; }
-    .card { width: 100%; max-width: 440px; background: linear-gradient(180deg, #121218 0%, #0a0a0e 100%); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 28px; padding: 32px 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.8); text-align: center; }
-    .logo-badge { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 20px; background: #000; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-    .logo-badge img { width: 44px; height: 44px; object-fit: contain; }
-    h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; background: rgba(34, 211, 238, 0.15); border: 1px solid rgba(34, 211, 238, 0.3); color: #22d3ee; font-size: 11px; font-weight: 700; font-family: ui-monospace, monospace; margin-bottom: 12px; }
-    p.desc { font-size: 13px; color: rgba(255,255,255,0.65); line-height: 1.5; margin-bottom: 24px; }
-    .btn-main { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 18px; background: linear-gradient(135deg, #06b6d4, #2563eb); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; box-shadow: 0 10px 25px rgba(6, 182, 212, 0.35); transition: transform 0.15s ease, opacity 0.15s ease; margin-bottom: 16px; }
-    .btn-main:active { transform: scale(0.98); opacity: 0.9; }
-    .btn-secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    .btn-sub { display: flex; align-items: center; justify-content: center; padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 12px; font-weight: 600; text-decoration: none; transition: background 0.15s ease; }
-    .btn-sub:hover { background: rgba(255,255,255,0.12); }
-    .info-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 14px; text-align: left; margin-bottom: 20px; font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.45; }
-    .info-box strong { color: #fff; }
-    .repos-box { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; font-size: 11px; color: rgba(255,255,255,0.4); }
-    .repos-box a { color: #22d3ee; text-decoration: none; margin: 0 4px; font-weight: 500; }
-    .repos-box a:hover { text-decoration: underline; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
+    body { background-color: #0f0f10; color: #f2f0f4; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; -webkit-font-smoothing: antialiased; }
+    .card { width: 100%; max-width: 460px; background: #19191b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 28px 24px; text-align: center; }
+    .logo-badge { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 12px; background: #141415; border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
+    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(255, 92, 138, 0.14); border: 1px solid rgba(255, 92, 138, 0.36); color: #ff5c8a; font-size: 12px; font-weight: 600; font-family: ui-monospace, monospace; margin-bottom: 14px; }
+    p.desc { font-size: 14px; color: #bcb8c4; line-height: 1.55; margin-bottom: 20px; }
+    .btn-main { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px 16px; border-radius: 8px; background: #f2f0f4; color: #0f0f10; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 10px; }
+    .btn-guide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; border-radius: 8px; background: rgba(255, 92, 138, 0.14); border: 1px solid rgba(255, 92, 138, 0.36); color: #ff5c8a; font-size: 13px; font-weight: 600; text-decoration: none; margin-bottom: 16px; }
+    .btn-secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .btn-sub { display: flex; align-items: center; justify-content: center; padding: 10px 12px; border-radius: 8px; background: #141415; border: 1px solid rgba(255,255,255,0.08); color: #f2f0f4; font-size: 12px; font-weight: 500; text-decoration: none; }
+    .btn-sub:hover { border-color: rgba(255,255,255,0.18); background: #232325; }
+    .info-box { background: #141415; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; text-align: left; margin-bottom: 16px; font-size: 12px; color: #bcb8c4; line-height: 1.5; }
+    .info-box strong { color: #f2f0f4; }
+    .info-box a { color: #ff5c8a; text-decoration: none; }
+    .repos-box { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 12px; color: #918d9b; }
+    .repos-box a { color: #bcb8c4; text-decoration: none; margin: 0 6px; }
+    .repos-box a:hover { color: #f2f0f4; }
   </style>
 </head>
 <body>
-
   <div class="card">
     <div class="logo-badge">
-      <img src="/assets/derbis-logo.png" alt="Derbis">
+      <svg width="28" height="28" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <rect width="16" height="16" fill="#ff5c8a" />
+        <rect x="3" y="3" width="4" height="4" fill="#fff8f6" />
+        <rect x="9" y="3" width="4" height="4" fill="#fff8f6" />
+        <rect x="3" y="9" width="10" height="4" fill="#fff8f6" />
+      </svg>
     </div>
 
     <h1>Derbis for iOS</h1>
-    <div class="badge">v1.1.1 • iPhone 12 & Newer</div>
+    <div class="badge">ios-unofficial-6e9198e · 2.8 MB · iOS 16.0+</div>
     <p class="desc">
-      Continuous Radio, Apple Music 13 / Spicy Lyrics, Beat Sync wavy progress bar & J.A.R.V.I.S. 3D visualizers.
+      100% native arm64 SwiftUI &amp; AVPlayer build with 9 skins, Motion Canvas video, 5-band real-time EQ, karaoke word lyrics, Jam rooms, and local FLAC/ALAC playback.
     </p>
 
-    <!-- Main OTA Install Button (Apple itms-services protocol) -->
-    <a href="itms-services://?action=download-manifest&url=https%3A%2F%2Fraw.githubusercontent.com%2Fjusnie%2FDerbis%2Fmain%2Fwebsite%2Fpublic%2Fmanifest.plist" class="btn-main">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <span>Tap to Install on iPhone</span>
+    <a href="https://github.com/jusnie/Derbis/releases/download/ios-unofficial-6e9198e/Derbis-unofficial.ipa" class="btn-main">
+      <span>Download Derbis-unofficial.ipa</span>
     </a>
 
-    <!-- Sideloading App Protocols -->
+    <a href="/#ksign" class="btn-guide">
+      <span>Open Visual KSign Setup Guide (with Screenshots)</span>
+    </a>
+
     <div class="btn-secondary-grid">
-      <a href="sidestore://install?url=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1pbaCauRyCtm-fACHJD7QgLzXEzvVSvWH%26export%3Ddownload" class="btn-sub">SideStore 1-Click</a>
-      <a href="altstore://install?url=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1pbaCauRyCtm-fACHJD7QgLzXEzvVSvWH%26export%3Ddownload" class="btn-sub">AltStore 1-Click</a>
-      <a href="apple-magnifier://install?url=https%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1pbaCauRyCtm-fACHJD7QgLzXEzvVSvWH%26export%3Ddownload" class="btn-sub">TrollStore 1-Click</a>
-      <a href="https://drive.google.com/uc?id=1pbaCauRyCtm-fACHJD7QgLzXEzvVSvWH&export=download" class="btn-sub">Download Signed .IPA</a>
+      <a href="https://ksignios.app/downloads/ksign-dns.mobileconfig" target="_blank" rel="noopener noreferrer" class="btn-sub">1. KSign Anti-Revoke DNS</a>
+      <a href="https://ksignios.app/" target="_blank" rel="noopener noreferrer" class="btn-sub">2. KSign Direct Install</a>
+      <a href="https://ksignios.app/ksign-certificate/" target="_blank" rel="noopener noreferrer" class="btn-sub">3. KSign Certificates</a>
+      <a href="sidestore://install?url=https%3A%2F%2Fgithub.com%2Fjusnie%2FDerbis%2Freleases%2Fdownload%2Fios-unofficial-6e9198e%2FDerbis-unofficial.ipa" class="btn-sub">SideStore 1-Click</a>
+      <a href="altstore://install?url=https%3A%2F%2Fgithub.com%2Fjusnie%2FDerbis%2Freleases%2Fdownload%2Fios-unofficial-6e9198e%2FDerbis-unofficial.ipa" class="btn-sub">AltStore 1-Click</a>
+      <a href="apple-magnifier://install?url=https%3A%2F%2Fgithub.com%2Fjusnie%2FDerbis%2Freleases%2Fdownload%2Fios-unofficial-6e9198e%2FDerbis-unofficial.ipa" class="btn-sub">TrollStore 1-Click</a>
     </div>
 
-    <!-- Safari Web App Fallback -->
     <div class="info-box">
-      <strong>✨ Zero-Certificate Alternative (Safari Standalone):</strong><br>
-      Open <a href="/" style="color:#22d3ee; text-decoration:none;">derbis.vercel.app</a> in Safari, tap <strong>Share</strong>, then tap <strong>"Add to Home Screen"</strong> for a permanent native player with zero 7-day limits.
+      <strong>Quick KSign Summary:</strong><br>
+      1. Install the <a href="https://ksignios.app/downloads/ksign-dns.mobileconfig" target="_blank" rel="noopener noreferrer">Anti-Revoke DNS</a> profile, install KSign from <a href="https://ksignios.app/" target="_blank" rel="noopener noreferrer">ksignios.app</a>, and trust it in Settings.<br>
+      2. Extract a <code>.p12</code> + <code>.mobileprovision</code> pair from <a href="https://ksignios.app/ksign-certificate/" target="_blank" rel="noopener noreferrer">ksignios.app/ksign-certificate</a> into KSign Certificates.<br>
+      3. Import <code>Derbis-unofficial.ipa</code> into KSign Library and tap <strong>Sign &amp; Install</strong>.
     </div>
 
-    <!-- GitHub Repositories for Web Installer Tools -->
     <div class="repos-box">
-      <span>Open Source OTA Installers:</span><br>
-      <a href="https://github.com/Real3rr0r303YT/Websigner-iOS" target="_blank">WebSigner-iOS</a> •
-      <a href="https://github.com/mohith-labs/ipa-installer" target="_blank">ipa-installer</a> •
-      <a href="https://github.com/iineva/ipa-server" target="_blank">ipa-server</a> •
-      <a href="https://github.com/SideStore/SideStore" target="_blank">SideStore</a>
+      <a href="/">Back to Derbis Website</a> ·
+      <a href="https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e" target="_blank" rel="noopener noreferrer">Release Notes</a> ·
+      <a href="https://github.com/jusnie/Derbis" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </div>
-
 </body>
 </html>

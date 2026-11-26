@@ -18,7 +18,7 @@ export function SourceSection({ stars }) {
             Open source from audio core to UI skin
           </h2>
           <p className="section-sub">
-            Inspect every Kotlin screen, native C++ FFmpeg bridge, and build workflow in jusnie/Derbis
+            Inspect every Kotlin screen, native C++ FFmpeg bridge, SwiftUI iOS view, and build workflow in jusnie/Derbis
           </p>
         </div>
 

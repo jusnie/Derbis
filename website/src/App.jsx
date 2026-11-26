@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
-import { DownloadIcon, PixelMark } from "./components/Icons";
+import { AppleIcon, DownloadIcon, PixelMark } from "./components/Icons";
+import { KSignGuideSection } from "./components/KSignGuideSection";
 import { Navbar } from "./components/Navbar";
 import { ScreenGallery } from "./components/ScreenGallery";
 import { SourceSection } from "./components/SourceSection";
@@ -10,6 +11,9 @@ import {
   APK_DOWNLOAD_URL,
   GITHUB_REPO,
   INITIAL_RELEASES,
+  IOS_IPA_DOWNLOAD_URL,
+  IOS_RELEASE_META,
+  IOS_RELEASE_URL,
   LATEST_RELEASE_URL,
   NAV_ITEMS,
   RELEASE_META,
@@ -19,6 +23,14 @@ import {
 import { usePageScroll } from "./hooks/useScrollEffects";
 
 const FONT_STORAGE_KEY = "derbis-site-font";
+
+function detectDefaultPlatform() {
+  if (typeof navigator === "undefined") return "android";
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) return "ios";
+  return "android";
+}
 
 export default function App() {
   const sectionIds = useMemo(() => NAV_ITEMS.map((item) => item.id), []);
@@ -33,10 +45,18 @@ export default function App() {
     }
   });
 
+  const [platform, setPlatform] = useState(detectDefaultPlatform);
   const [stars, setStars] = useState(7);
   const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
   const [releaseTag, setReleaseTag] = useState(RELEASE_META.version);
   const [sizeLabel, setSizeLabel] = useState(RELEASE_META.sizeLabel);
+
+  const [ipaUrl, setIpaUrl] = useState(IOS_IPA_DOWNLOAD_URL);
+  const [iosReleaseTag, setIosReleaseTag] = useState(IOS_RELEASE_META.tag);
+  const [iosReleaseUrl, setIosReleaseUrl] = useState(IOS_RELEASE_URL);
+  const [iosSizeLabel, setIosSizeLabel] = useState(IOS_RELEASE_META.sizeLabel);
+  const [iosSha256, setIosSha256] = useState(IOS_RELEASE_META.sha256);
+
   const [totalDownloads, setTotalDownloads] = useState(null);
   const [releases, setReleases] = useState(INITIAL_RELEASES);
 
@@ -65,7 +85,7 @@ export default function App() {
 
       try {
         const relRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=10`,
+          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=15`,
           { headers: { Accept: "application/vnd.github+json" } }
         );
         if (!relRes.ok) return;
@@ -73,7 +93,7 @@ export default function App() {
         if (cancelled || !Array.isArray(relList) || !relList.length) return;
 
         const official = relList.filter((r) => !r.draft && !r.prerelease);
-        const primary = official[0] || relList[0];
+        const primary = official[0];
         if (primary) {
           const apkAsset = (primary.assets || []).find(
             (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".apk")
@@ -82,6 +102,32 @@ export default function App() {
           if (apkAsset?.browser_download_url) setApkUrl(apkAsset.browser_download_url);
           if (typeof apkAsset?.size === "number") {
             setSizeLabel(`${(apkAsset.size / (1024 * 1024)).toFixed(1)} MB`);
+          }
+        }
+
+        const iosRel = relList.find(
+          (r) =>
+            !r.draft &&
+            typeof r.tag_name === "string" &&
+            r.tag_name.startsWith("ios-") &&
+            (r.assets || []).some(
+              (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")
+            )
+        );
+        if (iosRel) {
+          const ipaAsset = (iosRel.assets || []).find(
+            (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")
+          );
+          if (iosRel.tag_name) {
+            setIosReleaseTag(iosRel.tag_name);
+            if (iosRel.tag_name !== IOS_RELEASE_META.tag) {
+              setIosSha256("");
+            }
+          }
+          if (iosRel.html_url) setIosReleaseUrl(iosRel.html_url);
+          if (ipaAsset?.browser_download_url) setIpaUrl(ipaAsset.browser_download_url);
+          if (typeof ipaAsset?.size === "number") {
+            setIosSizeLabel(`${(ipaAsset.size / (1024 * 1024)).toFixed(1)} MB`);
           }
         }
 
@@ -132,7 +178,7 @@ export default function App() {
           <div className="wrap hero-inner">
             <div className="hero-copy">
               <h1 id="hero-heading" className="hero-title">
-                YouTube Music and your own library, in one Android player
+                YouTube Music and your own library, on Android and iOS
               </h1>
               <p className="hero-lede">
                 Stream songs with no account, connect Navidrome or Subsonic for your FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
@@ -141,6 +187,14 @@ export default function App() {
                 <a className="btn btn-primary" href={apkUrl}>
                   <DownloadIcon />
                   <span>Download Derbis.apk</span>
+                </a>
+                <a
+                  className="btn btn-secondary"
+                  href="#ksign"
+                  onClick={() => setPlatform("ios")}
+                >
+                  <AppleIcon />
+                  <span>Derbis for iOS (KSign)</span>
                 </a>
                 <a
                   className="btn btn-secondary"
@@ -155,16 +209,16 @@ export default function App() {
 
             <dl className="hero-specs" aria-label="Current release summary">
               <div className="spec-cell">
-                <dt>Release</dt>
-                <dd>{releaseTag}</dd>
+                <dt>Android Official</dt>
+                <dd>{releaseTag} · {sizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>Package</dt>
-                <dd>{sizeLabel}</dd>
+                <dt>iOS Unofficial</dt>
+                <dd>{iosSizeLabel} · KSign IPA</dd>
               </div>
               <div className="spec-cell">
-                <dt>Target</dt>
-                <dd>{RELEASE_META.androidMin}</dd>
+                <dt>Targets</dt>
+                <dd>Android 8+ · iOS 16+</dd>
               </div>
               <div className="spec-cell">
                 <dt>License</dt>
@@ -182,6 +236,19 @@ export default function App() {
           releaseTag={releaseTag}
           sizeLabel={sizeLabel}
           totalDownloads={totalDownloads}
+          ipaUrl={ipaUrl}
+          iosReleaseTag={iosReleaseTag}
+          iosReleaseUrl={iosReleaseUrl}
+          iosSizeLabel={iosSizeLabel}
+          iosSha256={iosSha256}
+          platform={platform}
+          onPlatformChange={setPlatform}
+        />
+        <KSignGuideSection
+          ipaUrl={ipaUrl}
+          iosReleaseTag={iosReleaseTag}
+          iosReleaseUrl={iosReleaseUrl}
+          iosSizeLabel={iosSizeLabel}
         />
         <VersionsSection releases={releases} />
         <SourceSection stars={stars} />
@@ -198,6 +265,9 @@ export default function App() {
             <a href={LATEST_RELEASE_URL} target="_blank" rel="noopener noreferrer">
               Latest APK
             </a>
+            <a href="#ksign">
+              iOS &amp; KSign
+            </a>
             <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
               Releases
             </a>
@@ -211,7 +281,7 @@ export default function App() {
         </div>
         <div className="wrap">
           <p className="footer-note">
-            Derbis is an independent open-source project and is not affiliated with Google, YouTube, Apple, Spotify, Discord, or Last.fm
+            Derbis is an independent open-source project and is not affiliated with Google, YouTube, Apple, Spotify, Discord, Last.fm, or KSign
           </p>
         </div>
       </footer>

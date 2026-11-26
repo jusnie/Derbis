@@ -51,6 +51,11 @@ export function VersionsSection({ releases }) {
                     {rel.latest && <span className="latest-dot" aria-hidden="true" />}
                     <span>{rel.tag}</span>
                   </span>
+                  {rel.channel && (
+                    <span className={rel.prerelease ? "shot-tag shot-tag-accent" : "shot-tag"}>
+                      {rel.channel}
+                    </span>
+                  )}
                   <span className="release-date">{rel.date}</span>
                   {rel.sizeLabel && <span className="release-meta">{rel.sizeLabel}</span>}
                   {typeof rel.downloads === "number" && rel.downloads > 0 && (
@@ -81,6 +86,8 @@ export function VersionsSection({ releases }) {
                         View {rel.tag} on GitHub
                       </a>
                       {rel.apkUrl && <a href={rel.apkUrl}>Download {rel.tag} APK</a>}
+                      {rel.ipaUrl && <a href={rel.ipaUrl}>Download {rel.tag} IPA</a>}
+                      {rel.ipaUrl && <a href="#ksign">KSign iOS guide</a>}
                     </div>
                   </div>
                 )}
