@@ -145,6 +145,7 @@ struct TrackRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
                 player.play(track: track, in: contextQueue)
             } label: {
                 HStack(spacing: 12) {
@@ -239,6 +240,18 @@ struct TrackRowView: View {
                             }
                         }
                     }
+
+                    Divider()
+
+                    Button(role: library.isArtistBlocked(track.artist) ? .none : .destructive) {
+                        HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                        library.toggleBlockedArtist(track.artist)
+                    } label: {
+                        Label(
+                            library.isArtistBlocked(track.artist) ? "Unblock \(track.artist)" : "Don't play \(track.artist)",
+                            systemImage: library.isArtistBlocked(track.artist) ? "person.crop.circle.badge.checkmark" : "hand.raised.slash"
+                        )
+                    }
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 15, weight: .semibold))
@@ -265,6 +278,15 @@ struct TrackRowView: View {
                 showingPlaylistSheet = true
             } label: {
                 Label("Add to playlist", systemImage: "music.note.list")
+            }
+            Button(role: library.isArtistBlocked(track.artist) ? .none : .destructive) {
+                HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                library.toggleBlockedArtist(track.artist)
+            } label: {
+                Label(
+                    library.isArtistBlocked(track.artist) ? "Unblock \(track.artist)" : "Don't play \(track.artist)",
+                    systemImage: library.isArtistBlocked(track.artist) ? "person.crop.circle.badge.checkmark" : "hand.raised.slash"
+                )
             }
         }
         .sheet(isPresented: $showingPlaylistSheet) {

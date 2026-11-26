@@ -12,7 +12,12 @@ final class AudioPlayerEngine: ObservableObject {
     @Published var currentTrack: Track?
     @Published var queue: [Track] = []
     @Published var currentIndex: Int = 0
-    @Published var isPlaying: Bool = false
+    @Published var isPlaying: Bool = false {
+        didSet {
+            HapticsAndGesturesService.shared.setPlaybackActive(isPlaying)
+            refreshLockScreenLyricsTimerState()
+        }
+    }
     @Published var isLoading: Bool = false
     @Published var currentTime: Double = 0
     @Published var duration: Double = 0
@@ -22,7 +27,14 @@ final class AudioPlayerEngine: ObservableObject {
     @Published var activeCodecBadge: String = "AAC"
     @Published var errorBanner: String?
 
-    @Published var currentLyrics: LyricsPayload?
+    @Published var currentLyrics: LyricsPayload? {
+        didSet {
+            lastLockScreenSubtitle = nil
+            lastRenderedLyricCardLine = nil
+            refreshLockScreenLyricsTimerState()
+            updateNowPlayingMetadata()
+        }
+    }
     @Published var activeLyricIndex: Int?
     @Published var isLoadingLyrics: Bool = false
 
@@ -45,6 +57,11 @@ final class AudioPlayerEngine: ObservableObject {
     private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
 
+    private var lockScreenTimer: DispatchSourceTimer?
+    private var lastLockScreenSubtitle: String?
+    private var lastRenderedLyricCardLine: Int?
+    private var cachedLyricCardArtwork: MPMediaItemArtwork?
+
     private var activeCandidates: [ResolvedStream] = []
     private var candidateCursor: Int = 0
     private var recoveryPass: Int = 0
@@ -53,10 +70,61 @@ final class AudioPlayerEngine: ObservableObject {
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
+        playbackRate = Float(AudioEffectsEngine.shared.playbackSpeed)
         configureAudioSession()
         configureRemoteCommands()
         installTimeObserver()
         installNotifications()
+        wireAudioEffectsAndGestures()
+    }
+
+    private func wireAudioEffectsAndGestures() {
+        AudioEffectsEngine.shared.onPlaybackRateSettingsChanged = { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.applyAudioRateAndPitchSettings()
+            }
+        }
+
+        HapticsAndGesturesService.shared.onHeadGestureAction = { [weak self] action in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                switch action {
+                case .none:
+                    break
+                case .playPause:
+                    self.togglePlayPause()
+                case .nextTrack:
+                    self.skipNext()
+                case .previousTrack:
+                    self.skipPrevious()
+                case .toggleLike:
+                    if let track = self.currentTrack {
+                        LibraryStore.shared.toggleLike(track)
+                    }
+                }
+            }
+        }
+    }
+
+    func applyAudioRateAndPitchSettings() {
+        let fx = AudioEffectsEngine.shared
+        let nextRate = Float(fx.playbackSpeed)
+        playbackRate = nextRate
+
+        let currentIsHLS: Bool = {
+            guard activeCandidates.indices.contains(candidateCursor) else { return false }
+            return !activeCandidates[candidateCursor].isDirectFile
+        }()
+        if let item = player.currentItem {
+            let desiredAlgo = fx.preferredPitchAlgorithm(isHLS: currentIsHLS)
+            if item.audioTimePitchAlgorithm != desiredAlgo {
+                item.audioTimePitchAlgorithm = desiredAlgo
+            }
+        }
+        if isPlaying {
+            player.rate = nextRate
+        }
+        updateNowPlayingMetadata()
     }
 
     func play(track: Track, in contextQueue: [Track]? = nil) {
@@ -113,12 +181,15 @@ final class AudioPlayerEngine: ObservableObject {
             }
             try? AVAudioSession.sharedInstance().setActive(true)
             player.play()
-            if abs(playbackRate - 1.0) > 0.01 {
-                player.rate = playbackRate
-            }
+            player.rate = playbackRate
             isPlaying = true
         }
         updateNowPlayingMetadata()
+    }
+
+    func skipBy(seconds delta: Double) {
+        let target = max(0, min(currentTime + delta, max(duration, currentTime)))
+        seek(to: target)
     }
 
     func skipNext(automatic: Bool = false) {
@@ -127,27 +198,28 @@ final class AudioPlayerEngine: ObservableObject {
         if automatic && repeatMode == .one {
             seek(to: 0)
             player.play()
-            if abs(playbackRate - 1.0) > 0.01 {
-                player.rate = playbackRate
-            }
+            player.rate = playbackRate
             isPlaying = true
             return
         }
 
+        let unblockedIndices = queue.indices.filter { !LibraryStore.shared.isArtistBlocked(queue[$0].artist) }
+
         if isShuffleEnabled && queue.count > 1 {
-            let candidates = queue.indices.filter { $0 != currentIndex }
-            if let pick = candidates.randomElement() {
+            let pool = unblockedIndices.filter { $0 != currentIndex }
+            let fallbackPool = queue.indices.filter { $0 != currentIndex }
+            if let pick = (pool.isEmpty ? fallbackPool : pool).randomElement() {
                 currentIndex = pick
                 startCurrentItem()
                 return
             }
         }
 
-        if currentIndex + 1 < queue.count {
-            currentIndex += 1
+        if let nextUnblocked = findNextPlayableIndex(startingAfter: currentIndex, wrapAround: repeatMode == .all) {
+            currentIndex = nextUnblocked
             startCurrentItem()
-        } else if repeatMode == .all {
-            currentIndex = 0
+        } else if unblockedIndices.isEmpty && currentIndex + 1 < queue.count {
+            currentIndex += 1
             startCurrentItem()
         } else {
             isPlaying = false
@@ -164,7 +236,11 @@ final class AudioPlayerEngine: ObservableObject {
             return
         }
         if currentIndex > 0 {
-            currentIndex -= 1
+            var candidateIdx = currentIndex - 1
+            while candidateIdx > 0 && LibraryStore.shared.isArtistBlocked(queue[candidateIdx].artist) {
+                candidateIdx -= 1
+            }
+            currentIndex = candidateIdx
             startCurrentItem()
         } else if repeatMode == .all {
             currentIndex = max(0, queue.count - 1)
@@ -172,6 +248,25 @@ final class AudioPlayerEngine: ObservableObject {
         } else {
             seek(to: 0)
         }
+    }
+
+    private func findNextPlayableIndex(startingAfter index: Int, wrapAround: Bool) -> Int? {
+        guard !queue.isEmpty else { return nil }
+        if index + 1 < queue.count {
+            for idx in (index + 1)..<queue.count {
+                if !LibraryStore.shared.isArtistBlocked(queue[idx].artist) {
+                    return idx
+                }
+            }
+        }
+        if wrapAround {
+            for idx in 0...min(index, queue.count - 1) {
+                if !LibraryStore.shared.isArtistBlocked(queue[idx].artist) {
+                    return idx
+                }
+            }
+        }
+        return nil
     }
 
     func seek(to seconds: Double) {
@@ -184,9 +279,10 @@ final class AudioPlayerEngine: ObservableObject {
     }
 
     func setRate(_ rate: Float) {
-        playbackRate = rate
+        AudioEffectsEngine.shared.playbackSpeed = Double(rate)
+        playbackRate = Float(AudioEffectsEngine.shared.playbackSpeed)
         if isPlaying {
-            player.rate = rate
+            player.rate = playbackRate
         }
         updateNowPlayingMetadata()
     }
@@ -232,6 +328,9 @@ final class AudioPlayerEngine: ObservableObject {
             currentLyrics = nil
             activeLyricIndex = nil
             currentMotionCanvas = nil
+            lastLockScreenSubtitle = nil
+            lastRenderedLyricCardLine = nil
+            cachedLyricCardArtwork = nil
             recoveryPass = 0
         }
 
@@ -241,6 +340,7 @@ final class AudioPlayerEngine: ObservableObject {
         activeCodecBadge = track.codecBadge
         activeCandidates = []
         candidateCursor = 0
+        AudioEffectsEngine.shared.markCurrentStreamTapActive(false)
 
         loadTask?.cancel()
         stallWatchdogTask?.cancel()
@@ -292,7 +392,9 @@ final class AudioPlayerEngine: ObservableObject {
                     let radioTracks = await InnerTubeService.shared.fetchRadioQueue(seedVideoId: vid)
                     guard !Task.isCancelled else { return }
                     let existingIds = Set(self.queue.map(\.id))
-                    let fresh = radioTracks.filter { !existingIds.contains($0.id) }
+                    let fresh = radioTracks.filter {
+                        !existingIds.contains($0.id) && !LibraryStore.shared.isArtistBlocked($0.artist)
+                    }
                     if !fresh.isEmpty {
                         self.queue.append(contentsOf: fresh.prefix(15))
                     }
@@ -310,6 +412,7 @@ final class AudioPlayerEngine: ObservableObject {
         activeCodecBadge = candidate.codecBadge
         errorBanner = nil
         isLoading = true
+        AudioEffectsEngine.shared.markCurrentStreamTapActive(false)
 
         try? AVAudioSession.sharedInstance().setActive(true)
 
@@ -324,13 +427,18 @@ final class AudioPlayerEngine: ObservableObject {
         }
 
         let item = AVPlayerItem(asset: asset)
-        item.preferredForwardBufferDuration = 10
+        item.preferredForwardBufferDuration = candidate.isDirectFile ? 10 : 16
+        item.audioTimePitchAlgorithm = AudioEffectsEngine.shared.preferredPitchAlgorithm(isHLS: !candidate.isDirectFile)
 
         pendingResumeSeconds = resumeSeconds
         observeItemStatus(item, track: track, candidate: candidate)
         player.replaceCurrentItem(with: item)
         player.automaticallyWaitsToMinimizeStalling = true
+        playbackRate = Float(AudioEffectsEngine.shared.playbackSpeed)
         player.play()
+        if abs(playbackRate - 1.0) > 0.01 {
+            player.rate = playbackRate
+        }
         isPlaying = true
         updateNowPlayingMetadata()
     }
@@ -386,10 +494,10 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
 
-    func loadLyrics(for track: Track) {
+    func loadLyrics(for track: Track, forceRefresh: Bool = false) {
         isLoadingLyrics = true
         Task {
-            let result = await LyricsService.shared.fetchLyrics(for: track)
+            let result = await LyricsService.shared.fetchLyrics(for: track, forceRefresh: forceRefresh)
             if self.currentTrack?.id == track.id {
                 self.currentLyrics = result
                 self.updateActiveLyricIndex(at: self.currentTime)
@@ -508,6 +616,15 @@ final class AudioPlayerEngine: ObservableObject {
                     if self.isPlaying && abs(self.playbackRate - 1.0) > 0.01 {
                         self.player.rate = self.playbackRate
                     }
+                    if candidate.isDirectFile && observed.audioMix == nil {
+                        Task { @MainActor [weak self] in
+                            guard let self = self, self.player.currentItem === observed else { return }
+                            await AudioEffectsEngine.shared.attachAudioMixIfSupported(
+                                to: observed,
+                                isDirectFile: true
+                            )
+                        }
+                    }
                     self.updateNowPlayingMetadata()
                 case .failed:
                     self.recoverFromStreamFailure(for: track, failedCandidate: candidate)
@@ -525,6 +642,8 @@ final class AudioPlayerEngine: ObservableObject {
             currentArtworkImage = nil
             ambientPrimary = Color(hex: 0x2A1A2E)
             ambientSecondary = Color(hex: 0x0A0A10)
+            lastRenderedLyricCardLine = nil
+            cachedLyricCardArtwork = nil
             updateNowPlayingMetadata()
             return
         }
@@ -539,6 +658,8 @@ final class AudioPlayerEngine: ObservableObject {
         guard self.currentTrack?.id == track.id else { return }
         if let data = imageData, let uiImage = UIImage(data: data) {
             currentArtworkImage = uiImage
+            lastRenderedLyricCardLine = nil
+            cachedLyricCardArtwork = nil
             let colors = ArtworkPaletteExtractor.dominantColors(from: uiImage)
             withAnimation(.easeInOut(duration: 0.45)) {
                 ambientPrimary = colors.primary
@@ -557,7 +678,7 @@ final class AudioPlayerEngine: ObservableObject {
         }
         var active: Int?
         for (idx, line) in payload.lines.enumerated() {
-            if timeSec + 0.18 >= line.startTimeSec {
+            if timeSec + 0.16 >= line.startTimeSec {
                 active = idx
             } else {
                 break
@@ -579,7 +700,7 @@ final class AudioPlayerEngine: ObservableObject {
     }
 
     private func installTimeObserver() {
-        let interval = CMTime(seconds: 0.18, preferredTimescale: 600)
+        let interval = CMTime(seconds: 0.10, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] cmTime in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
@@ -597,6 +718,111 @@ final class AudioPlayerEngine: ObservableObject {
                 }
             }
         }
+    }
+
+    private func refreshLockScreenLyricsTimerState() {
+        let liveEnabled = UserDefaults.standard.object(forKey: "derbis.lockScreenLiveLyrics") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "derbis.lockScreenLiveLyrics")
+        let cardEnabled = UserDefaults.standard.bool(forKey: "derbis.lockScreenLyricArt")
+        let hasSynced = (currentLyrics?.synced == true) && !(currentLyrics?.lines.isEmpty ?? true)
+
+        if isPlaying && hasSynced && (liveEnabled || cardEnabled) {
+            guard lockScreenTimer == nil else { return }
+            let timer = DispatchSource.makeTimerSource(flags: .strict, queue: .main)
+            timer.schedule(deadline: .now() + 0.15, repeating: 0.30, leeway: .milliseconds(25))
+            timer.setEventHandler { [weak self] in
+                Task { @MainActor [weak self] in
+                    self?.tickLockScreenLyrics()
+                }
+            }
+            timer.resume()
+            lockScreenTimer = timer
+        } else {
+            lockScreenTimer?.cancel()
+            lockScreenTimer = nil
+        }
+    }
+
+    private func tickLockScreenLyrics() {
+        guard isPlaying, let track = currentTrack, let payload = currentLyrics, payload.synced else { return }
+        let rawNow = CMTimeGetSeconds(player.currentTime())
+        let playhead = (rawNow.isFinite && rawNow >= 0) ? rawNow : currentTime
+        let leadTime = playhead + 0.20
+
+        let liveEnabled = UserDefaults.standard.object(forKey: "derbis.lockScreenLiveLyrics") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "derbis.lockScreenLiveLyrics")
+        let cardEnabled = UserDefaults.standard.bool(forKey: "derbis.lockScreenLyricArt")
+
+        var lineIdx: Int?
+        for (idx, line) in payload.lines.enumerated() {
+            if leadTime >= line.startTimeSec {
+                lineIdx = idx
+            } else {
+                break
+            }
+        }
+
+        let computedSubtitle: String = {
+            guard liveEnabled, let idx = lineIdx else { return track.artist }
+            let line = payload.lines[idx]
+            if let endSec = line.endTimeSec, leadTime > endSec + 4.2 {
+                let nextStart = (idx + 1 < payload.lines.count) ? payload.lines[idx + 1].startTimeSec : (duration + 10)
+                if nextStart - endSec >= 4.2 {
+                    return track.artist
+                }
+            }
+            return Self.compactLockScreenSnippet(for: line, at: leadTime)
+        }()
+
+        let lineChanged = (lineIdx != lastRenderedLyricCardLine)
+        let subtitleChanged = (computedSubtitle != lastLockScreenSubtitle)
+        guard subtitleChanged || (cardEnabled && lineChanged) else { return }
+
+        lastLockScreenSubtitle = computedSubtitle
+        updateNowPlayingMetadata(overrideArtistSubtitle: computedSubtitle, activeLineForCard: cardEnabled ? lineIdx : nil)
+    }
+
+    private static func compactLockScreenSnippet(for line: LyricLine, at playheadSec: Double) -> String {
+        let full = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard full.count > 34, line.words.count >= 2 else {
+            return full.isEmpty ? "♪" : full
+        }
+
+        var chunks: [(start: Double, text: String)] = []
+        var bucket = ""
+        var bucketStart = line.words[0].startTimeSec
+
+        for word in line.words {
+            let separator = (bucket.isEmpty || word.joinedToPrevious) ? "" : " "
+            let candidate = bucket + separator + word.text
+            if candidate.count > 32 && !bucket.isEmpty {
+                chunks.append((bucketStart, bucket))
+                bucket = word.text
+                bucketStart = word.startTimeSec
+            } else {
+                if bucket.isEmpty { bucketStart = word.startTimeSec }
+                bucket = candidate
+            }
+        }
+        if !bucket.isEmpty {
+            chunks.append((bucketStart, bucket))
+        }
+
+        var chosen = chunks.first?.text ?? full
+        for chunk in chunks where playheadSec >= chunk.start {
+            chosen = chunk.text
+        }
+        return chosen
+    }
+
+    func refreshNowPlayingLockScreenPreferences() {
+        lastLockScreenSubtitle = nil
+        lastRenderedLyricCardLine = nil
+        cachedLyricCardArtwork = nil
+        refreshLockScreenLyricsTimerState()
+        updateNowPlayingMetadata()
     }
 
     private func installNotifications() {
@@ -773,24 +999,115 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
 
-    private func updateNowPlayingMetadata() {
+    private func updateNowPlayingMetadata(overrideArtistSubtitle: String? = nil, activeLineForCard: Int? = nil) {
         guard let track = currentTrack else {
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
             return
         }
+
+        let rawNow = CMTimeGetSeconds(player.currentTime())
+        let accurateElapsed = (rawNow.isFinite && rawNow >= 0) ? rawNow : currentTime
+        let subtitle = overrideArtistSubtitle ?? lastLockScreenSubtitle ?? track.artist
+
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: track.title,
-            MPMediaItemPropertyArtist: track.artist,
+            MPMediaItemPropertyArtist: subtitle,
             MPMediaItemPropertyAlbumTitle: track.album,
             MPMediaItemPropertyPlaybackDuration: max(1.0, duration),
-            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: accurateElapsed,
             MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? playbackRate : 0.0
         ]
-        if let image = currentArtworkImage {
+
+        let cardEnabled = UserDefaults.standard.bool(forKey: "derbis.lockScreenLyricArt")
+        let chosenLineIdx = activeLineForCard ?? activeLyricIndex
+        if cardEnabled,
+           let payload = currentLyrics,
+           payload.synced,
+           let idx = chosenLineIdx,
+           payload.lines.indices.contains(idx) {
+            if lastRenderedLyricCardLine != idx || cachedLyricCardArtwork == nil {
+                let cardImage = renderLockScreenLyricArtwork(track: track, lines: payload.lines, activeIndex: idx)
+                cachedLyricCardArtwork = MPMediaItemArtwork(boundsSize: cardImage.size) { _ in cardImage }
+                lastRenderedLyricCardLine = idx
+            }
+            if let art = cachedLyricCardArtwork {
+                info[MPMediaItemPropertyArtwork] = art
+            }
+        } else if let image = currentArtworkImage {
             let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
             info[MPMediaItemPropertyArtwork] = artwork
         }
+
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private func renderLockScreenLyricArtwork(track: Track, lines: [LyricLine], activeIndex: Int) -> UIImage {
+        let side: CGFloat = 540
+        let size = CGSize(width: side, height: side)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2.0
+        format.opaque = true
+
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { ctx in
+            let rect = CGRect(origin: .zero, size: size)
+            UIColor(red: 0.06, green: 0.06, blue: 0.09, alpha: 1.0).setFill()
+            ctx.fill(rect)
+
+            if let cover = currentArtworkImage {
+                let aspect = max(side / max(1, cover.size.width), side / max(1, cover.size.height))
+                let drawW = cover.size.width * aspect
+                let drawH = cover.size.height * aspect
+                let drawRect = CGRect(x: (side - drawW) * 0.5, y: (side - drawH) * 0.5, width: drawW, height: drawH)
+                cover.draw(in: drawRect)
+            }
+
+            UIColor(white: 0.0, alpha: 0.74).setFill()
+            ctx.fill(rect)
+
+            let headerPara = NSMutableParagraphStyle()
+            headerPara.lineBreakMode = .byTruncatingTail
+            let headerAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 18, weight: .semibold),
+                .foregroundColor: UIColor(white: 1.0, alpha: 0.55),
+                .paragraphStyle: headerPara
+            ]
+            let headerStr = "\(track.artist)  •  DERBIS"
+            headerStr.draw(in: CGRect(x: 36, y: 34, width: side - 72, height: 26), withAttributes: headerAttrs)
+
+            let prevText = (activeIndex > 0) ? lines[activeIndex - 1].text : ""
+            let currText = lines[activeIndex].text
+            let nextText = (activeIndex + 1 < lines.count) ? lines[activeIndex + 1].text : ""
+
+            let bodyPara = NSMutableParagraphStyle()
+            bodyPara.lineSpacing = 4
+
+            if !prevText.isEmpty {
+                let prevAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 22, weight: .semibold),
+                    .foregroundColor: UIColor(white: 1.0, alpha: 0.30),
+                    .paragraphStyle: bodyPara
+                ]
+                prevText.draw(in: CGRect(x: 36, y: 102, width: side - 72, height: 64), withAttributes: prevAttrs)
+            }
+
+            let currFontSize: CGFloat = currText.count > 65 ? 28 : (currText.count > 38 ? 33 : 38)
+            let currAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: currFontSize, weight: .bold),
+                .foregroundColor: UIColor.white,
+                .paragraphStyle: bodyPara
+            ]
+            currText.draw(in: CGRect(x: 36, y: 184, width: side - 72, height: 215), withAttributes: currAttrs)
+
+            if !nextText.isEmpty {
+                let nextAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 22, weight: .semibold),
+                    .foregroundColor: UIColor(white: 1.0, alpha: 0.36),
+                    .paragraphStyle: bodyPara
+                ]
+                nextText.draw(in: CGRect(x: 36, y: 420, width: side - 72, height: 78), withAttributes: nextAttrs)
+            }
+        }
     }
 }
 

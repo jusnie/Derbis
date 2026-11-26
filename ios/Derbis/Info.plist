@@ -46,6 +46,8 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSMotionUsageDescription</key>
+	<string>Derbis uses headphone motion sensors when AirPods head gestures are enabled to play, pause, or skip tracks with a nod or head shake.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>pixelify_sans_regular.ttf</string>

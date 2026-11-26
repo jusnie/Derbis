@@ -32,6 +32,34 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(motionCanvasStyle.rawValue, forKey: "derbis.motionCanvasStyle") }
     }
 
+    @Published var backdropStyle: PlayerBackdropStyle {
+        didSet { UserDefaults.standard.set(backdropStyle.rawValue, forKey: "derbis.backdropStyle") }
+    }
+
+    @Published var showLyricsRomanization: Bool {
+        didSet { UserDefaults.standard.set(showLyricsRomanization, forKey: "derbis.showLyricsRomanization") }
+    }
+
+    @Published var showLyricsTranslation: Bool {
+        didSet { UserDefaults.standard.set(showLyricsTranslation, forKey: "derbis.showLyricsTranslation") }
+    }
+
+    @Published var autoHideLyricsControls: Bool {
+        didSet { UserDefaults.standard.set(autoHideLyricsControls, forKey: "derbis.autoHideLyricsControls") }
+    }
+
+    @Published var lockScreenLiveLyrics: Bool {
+        didSet { UserDefaults.standard.set(lockScreenLiveLyrics, forKey: "derbis.lockScreenLiveLyrics") }
+    }
+
+    @Published var lockScreenLyricArt: Bool {
+        didSet { UserDefaults.standard.set(lockScreenLyricArt, forKey: "derbis.lockScreenLyricArt") }
+    }
+
+    @Published var playerGesturesEnabled: Bool {
+        didSet { UserDefaults.standard.set(playerGesturesEnabled, forKey: "derbis.playerGesturesEnabled") }
+    }
+
     init() {
         let savedSkin = UserDefaults.standard.string(forKey: "derbis.skin") ?? DerbisSkin.appleMusic13.rawValue
         self.skin = DerbisSkin(rawValue: savedSkin) ?? .appleMusic13
@@ -65,6 +93,45 @@ final class ThemeManager: ObservableObject {
 
         let savedStyle = UserDefaults.standard.string(forKey: "derbis.motionCanvasStyle") ?? MotionCanvasStyle.immersive.rawValue
         self.motionCanvasStyle = MotionCanvasStyle(rawValue: savedStyle) ?? .immersive
+
+        let savedBackdrop = UserDefaults.standard.string(forKey: "derbis.backdropStyle") ?? PlayerBackdropStyle.animated.rawValue
+        self.backdropStyle = PlayerBackdropStyle(rawValue: savedBackdrop) ?? .animated
+
+        if UserDefaults.standard.object(forKey: "derbis.showLyricsRomanization") == nil {
+            self.showLyricsRomanization = true
+        } else {
+            self.showLyricsRomanization = UserDefaults.standard.bool(forKey: "derbis.showLyricsRomanization")
+        }
+
+        if UserDefaults.standard.object(forKey: "derbis.showLyricsTranslation") == nil {
+            self.showLyricsTranslation = false
+        } else {
+            self.showLyricsTranslation = UserDefaults.standard.bool(forKey: "derbis.showLyricsTranslation")
+        }
+
+        if UserDefaults.standard.object(forKey: "derbis.autoHideLyricsControls") == nil {
+            self.autoHideLyricsControls = false
+        } else {
+            self.autoHideLyricsControls = UserDefaults.standard.bool(forKey: "derbis.autoHideLyricsControls")
+        }
+
+        if UserDefaults.standard.object(forKey: "derbis.lockScreenLiveLyrics") == nil {
+            self.lockScreenLiveLyrics = true
+        } else {
+            self.lockScreenLiveLyrics = UserDefaults.standard.bool(forKey: "derbis.lockScreenLiveLyrics")
+        }
+
+        if UserDefaults.standard.object(forKey: "derbis.lockScreenLyricArt") == nil {
+            self.lockScreenLyricArt = false
+        } else {
+            self.lockScreenLyricArt = UserDefaults.standard.bool(forKey: "derbis.lockScreenLyricArt")
+        }
+
+        if UserDefaults.standard.object(forKey: "derbis.playerGesturesEnabled") == nil {
+            self.playerGesturesEnabled = true
+        } else {
+            self.playerGesturesEnabled = UserDefaults.standard.bool(forKey: "derbis.playerGesturesEnabled")
+        }
     }
 
     var usesPixelFont: Bool {

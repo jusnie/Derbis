@@ -11,6 +11,7 @@ final class LibraryStore: ObservableObject {
     @Published var offlineTracks: [Track] = []
     @Published var localTracks: [Track] = []
     @Published var history: [ListeningRecord] = []
+    @Published var blockedArtists: [String] = []
     @Published var activeDownloads: [String: Double] = [:]
     @Published var cachedHomeShelves: [HomeShelf] = []
 
@@ -20,6 +21,7 @@ final class LibraryStore: ObservableObject {
         var offlineTracks: [Track]
         var localTracks: [Track]
         var history: [ListeningRecord]
+        var blockedArtists: [String]?
     }
 
     init() {
@@ -39,6 +41,80 @@ final class LibraryStore: ObservableObject {
             likedTracks.insert(track, at: 0)
         }
         saveState()
+    }
+
+    func normalizedArtistTokens(from rawArtist: String) -> [String] {
+        let cleaned = rawArtist
+            .replacingOccurrences(of: " feat. ", with: ",", options: .caseInsensitive)
+            .replacingOccurrences(of: " ft. ", with: ",", options: .caseInsensitive)
+            .replacingOccurrences(of: " & ", with: ",")
+        let parts = cleaned
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        return parts.isEmpty ? [rawArtist.trimmingCharacters(in: .whitespacesAndNewlines)] : parts
+    }
+
+    func isArtistBlocked(_ artistName: String) -> Bool {
+        guard !blockedArtists.isEmpty else { return false }
+        let blockedLower = Set(blockedArtists.map { $0.lowercased() })
+        let fullLower = artistName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if blockedLower.contains(fullLower) { return true }
+        for token in normalizedArtistTokens(from: artistName) {
+            if blockedLower.contains(token.lowercased()) {
+                return true
+            }
+        }
+        return false
+    }
+
+    func toggleBlockedArtist(_ artistName: String) {
+        let primary = normalizedArtistTokens(from: artistName).first ?? artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !primary.isEmpty else { return }
+        if let idx = blockedArtists.firstIndex(where: { $0.caseInsensitiveCompare(primary) == .orderedSame }) {
+            blockedArtists.remove(at: idx)
+        } else {
+            blockedArtists.insert(primary, at: 0)
+        }
+        saveState()
+    }
+
+    func unblockArtist(_ artistName: String) {
+        blockedArtists.removeAll { $0.caseInsensitiveCompare(artistName) == .orderedSame }
+        saveState()
+    }
+
+    var topArtistsStats: [(artist: String, plays: Int, minutes: Int)] {
+        var bucket: [String: (display: String, plays: Int, seconds: Int)] = [:]
+        for record in history {
+            let name = normalizedArtistTokens(from: record.track.artist).first ?? record.track.artist
+            let key = name.lowercased()
+            guard !key.isEmpty else { continue }
+            var current = bucket[key] ?? (display: name, plays: 0, seconds: 0)
+            current.plays += 1
+            current.seconds += record.listenedSeconds
+            bucket[key] = current
+        }
+        return bucket.values
+            .sorted { a, b in
+                if a.plays != b.plays { return a.plays > b.plays }
+                return a.seconds > b.seconds
+            }
+            .prefix(8)
+            .map { (artist: $0.display, plays: $0.plays, minutes: max(1, $0.seconds / 60)) }
+    }
+
+    var topTracksStats: [(track: Track, plays: Int)] {
+        var counts: [String: (track: Track, plays: Int)] = [:]
+        for record in history {
+            var current = counts[record.track.id] ?? (track: record.track, plays: 0)
+            current.plays += 1
+            counts[record.track.id] = current
+        }
+        return counts.values
+            .sorted { $0.plays > $1.plays }
+            .prefix(8)
+            .map { ($0.track, $0.plays) }
     }
 
     func isDownloaded(_ track: Track) -> Bool {
@@ -437,7 +513,8 @@ final class LibraryStore: ObservableObject {
             playlists: playlists,
             offlineTracks: offlineTracks,
             localTracks: localTracks,
-            history: history
+            history: history,
+            blockedArtists: blockedArtists
         )
         let url = appSupportDirectory().appendingPathComponent("library.json")
         if let data = try? JSONEncoder().encode(state) {
@@ -456,6 +533,7 @@ final class LibraryStore: ObservableObject {
         offlineTracks = state.offlineTracks
         localTracks = state.localTracks
         history = state.history
+        blockedArtists = state.blockedArtists ?? []
     }
 
     private func createDirectoriesIfNeeded() {

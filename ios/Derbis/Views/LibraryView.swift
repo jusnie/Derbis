@@ -6,6 +6,7 @@ enum LibrarySectionTab: String, CaseIterable, Identifiable {
     case offline = "Offline"
     case local = "Local Files"
     case playlists = "Playlists"
+    case stats = "Stats"
     case server = "Server"
 
     var id: String { rawValue }
@@ -42,6 +43,8 @@ struct LibraryView: View {
                             localFilesSection
                         case .playlists:
                             playlistsSection
+                        case .stats:
+                            listeningStatsSection
                         case .server:
                             serverSection
                         }
@@ -100,12 +103,20 @@ struct LibraryView: View {
     }
 
     private var insightsStrip: some View {
-        HStack(spacing: 10) {
-            statTile(value: "\(library.totalPlaysCount)", label: "Plays")
-            statTile(value: "\(library.totalMinutesListened)m", label: "Listened")
-            statTile(value: "\(library.likedTracks.count)", label: "Liked")
-            statTile(value: "\(library.offlineTracks.count + library.localTracks.count)", label: "On device")
+        Button {
+            HapticsAndGesturesService.shared.playSelectionTick()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedTab = .stats
+            }
+        } label: {
+            HStack(spacing: 10) {
+                statTile(value: "\(library.totalPlaysCount)", label: "Plays")
+                statTile(value: "\(library.totalMinutesListened)m", label: "Listened")
+                statTile(value: "\(library.likedTracks.count)", label: "Liked")
+                statTile(value: "\(library.offlineTracks.count + library.localTracks.count)", label: "On device")
+            }
         }
+        .buttonStyle(.plain)
     }
 
     private func statTile(value: String, label: String) -> some View {
@@ -131,6 +142,7 @@ struct LibraryView: View {
                     if tab != .server || subsonic.isConnected {
                         let active = selectedTab == tab
                         Button {
+                            HapticsAndGesturesService.shared.playSelectionTick()
                             selectedTab = tab
                         } label: {
                             Text(tab.rawValue)
@@ -165,7 +177,7 @@ struct LibraryView: View {
                 emptyStateCard(
                     icon: "heart",
                     title: "No liked tracks yet",
-                    subtitle: "Tap the heart in Now Playing or on any song menu to build your collection"
+                    subtitle: "Tap the heart in Now Playing or double-tap the center of album art to build your collection"
                 )
             } else {
                 VStack(alignment: .leading, spacing: 10) {
@@ -258,7 +270,7 @@ struct LibraryView: View {
                 emptyStateCard(
                     icon: "music.note.list",
                     title: "Create your first playlist",
-                    subtitle: "Organize tracks from streaming, local files, and your server in one place"
+                    subtitle: "Organize tracks from Derbis streaming, local files, and your server in one place"
                 )
             } else {
                 ForEach(library.playlists) { playlist in
@@ -284,6 +296,75 @@ struct LibraryView: View {
                         .derbisCard()
                     }
                     .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var listeningStatsSection: some View {
+        let topArtists = library.topArtistsStats
+        let topTracks = library.topTracksStats
+
+        return Group {
+            if library.history.isEmpty {
+                emptyStateCard(
+                    icon: "chart.bar.xaxis",
+                    title: "No listening stats yet",
+                    subtitle: "Start playing songs on Derbis to build your on-device top artists and track insights"
+                )
+            } else {
+                VStack(alignment: .leading, spacing: 18) {
+                    if !topArtists.isEmpty {
+                        Text("Top artists")
+                            .font(theme.font(size: 18, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+
+                        VStack(spacing: 10) {
+                            ForEach(Array(topArtists.enumerated()), id: \.offset) { idx, entry in
+                                HStack(spacing: 12) {
+                                    Text("#\(idx + 1)")
+                                        .font(theme.font(size: 14, weight: .bold))
+                                        .foregroundColor(idx == 0 ? theme.accent : theme.secondaryText)
+                                        .frame(width: 28, alignment: .leading)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(entry.artist)
+                                            .font(theme.font(size: 15, weight: .semibold))
+                                            .foregroundColor(theme.primaryText)
+                                            .lineLimit(1)
+                                        Text("\(entry.plays) plays · ~\(entry.minutes) min")
+                                            .font(theme.font(size: 12))
+                                            .foregroundColor(theme.secondaryText)
+                                    }
+
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .derbisCard()
+                    }
+
+                    if !topTracks.isEmpty {
+                        Text("Most played tracks")
+                            .font(theme.font(size: 18, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+
+                        let queueTracks = topTracks.map(\.track)
+                        VStack(spacing: 2) {
+                            ForEach(Array(topTracks.enumerated()), id: \.element.track.id) { idx, item in
+                                HStack(spacing: 0) {
+                                    TrackRowView(track: item.track, contextQueue: queueTracks)
+                                    Text("\(item.plays)×")
+                                        .font(theme.font(size: 12, weight: .bold))
+                                        .foregroundColor(idx == 0 ? theme.accent : theme.secondaryText)
+                                        .padding(.trailing, 14)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        .derbisCard()
+                    }
                 }
             }
         }

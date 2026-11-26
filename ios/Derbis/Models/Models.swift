@@ -2,9 +2,29 @@ import Foundation
 import SwiftUI
 
 enum TrackSource: String, Codable, Hashable, CaseIterable, Sendable {
-    case youtubeMusic = "YouTube Music"
+    case youtubeMusic = "DERBIS"
     case subsonic = "Server"
     case localFile = "Local"
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = (try? container.decode(String.self)) ?? "DERBIS"
+        switch raw.lowercased() {
+        case "derbis", "youtube music", "youtube":
+            self = .youtubeMusic
+        case "server", "subsonic":
+            self = .subsonic
+        case "local", "localfile":
+            self = .localFile
+        default:
+            self = .youtubeMusic
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct Track: Identifiable, Codable, Hashable, Sendable {
@@ -88,20 +108,115 @@ struct UserPlaylist: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+struct LyricWord: Identifiable, Codable, Hashable, Sendable {
+    let id: Int
+    let text: String
+    let startTimeSec: Double
+    let endTimeSec: Double
+    let joinedToPrevious: Bool
+}
+
 struct LyricLine: Identifiable, Codable, Hashable, Sendable {
     let id: Int
     let startTimeSec: Double
+    var endTimeSec: Double
     let text: String
+    var words: [LyricWord]
+    var backingText: String?
+    var pronunciation: String?
+    var translation: String?
+    var isSecondaryVoice: Bool
+
+    init(
+        id: Int,
+        startTimeSec: Double,
+        endTimeSec: Double? = nil,
+        text: String,
+        words: [LyricWord] = [],
+        backingText: String? = nil,
+        pronunciation: String? = nil,
+        translation: String? = nil,
+        isSecondaryVoice: Bool = false
+    ) {
+        self.id = id
+        self.startTimeSec = startTimeSec
+        self.endTimeSec = endTimeSec ?? (startTimeSec + 4.0)
+        self.text = text
+        self.words = words
+        self.backingText = backingText
+        self.pronunciation = pronunciation
+        self.translation = translation
+        self.isSecondaryVoice = isSecondaryVoice
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, startTimeSec, endTimeSec, text, words, backingText, pronunciation, translation, isSecondaryVoice
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let idVal = try c.decode(Int.self, forKey: .id)
+        let startVal = try c.decode(Double.self, forKey: .startTimeSec)
+        let textVal = try c.decode(String.self, forKey: .text)
+        self.id = idVal
+        self.startTimeSec = startVal
+        self.endTimeSec = (try? c.decodeIfPresent(Double.self, forKey: .endTimeSec)) ?? (startVal + 4.0)
+        self.text = textVal
+        self.words = (try? c.decodeIfPresent([LyricWord].self, forKey: .words)) ?? []
+        self.backingText = try? c.decodeIfPresent(String.self, forKey: .backingText)
+        self.pronunciation = try? c.decodeIfPresent(String.self, forKey: .pronunciation)
+        self.translation = try? c.decodeIfPresent(String.self, forKey: .translation)
+        self.isSecondaryVoice = (try? c.decodeIfPresent(Bool.self, forKey: .isSecondaryVoice)) ?? false
+    }
 }
 
 struct LyricsPayload: Codable, Hashable, Sendable {
     let trackId: String
     let synced: Bool
+    var wordSynced: Bool
     let provider: String
     let lines: [LyricLine]
+    var hasRomanization: Bool
+    var hasTranslation: Bool
+
+    init(
+        trackId: String,
+        synced: Bool,
+        wordSynced: Bool = false,
+        provider: String,
+        lines: [LyricLine],
+        hasRomanization: Bool = false,
+        hasTranslation: Bool = false
+    ) {
+        self.trackId = trackId
+        self.synced = synced
+        self.wordSynced = wordSynced
+        self.provider = provider
+        self.lines = lines
+        self.hasRomanization = hasRomanization
+        self.hasTranslation = hasTranslation
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case trackId, synced, wordSynced, provider, lines, hasRomanization, hasTranslation
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.trackId = try c.decode(String.self, forKey: .trackId)
+        self.synced = try c.decode(Bool.self, forKey: .synced)
+        self.wordSynced = (try? c.decodeIfPresent(Bool.self, forKey: .wordSynced)) ?? false
+        self.provider = try c.decode(String.self, forKey: .provider)
+        let decodedLines = try c.decode([LyricLine].self, forKey: .lines)
+        self.lines = decodedLines
+        self.hasRomanization = (try? c.decodeIfPresent(Bool.self, forKey: .hasRomanization))
+            ?? decodedLines.contains(where: { ($0.pronunciation ?? "").isEmpty == false })
+        self.hasTranslation = (try? c.decodeIfPresent(Bool.self, forKey: .hasTranslation))
+            ?? decodedLines.contains(where: { ($0.translation ?? "").isEmpty == false })
+    }
 }
 
-enum RepeatMode: String, Codable, CaseIterable {
+enum RepeatMode: String, Codable, CaseIterable, Sendable {
     case off = "Off"
     case all = "All"
     case one = "One"
@@ -122,7 +237,7 @@ enum RepeatMode: String, Codable, CaseIterable {
     }
 }
 
-enum SleepTimerOption: Int, CaseIterable, Identifiable {
+enum SleepTimerOption: Int, CaseIterable, Identifiable, Sendable {
     case off = 0
     case fifteen = 15
     case thirty = 30
@@ -142,7 +257,7 @@ enum SleepTimerOption: Int, CaseIterable, Identifiable {
     }
 }
 
-enum DerbisSkin: String, Codable, CaseIterable, Identifiable {
+enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
     case appleMusic13 = "apple_music_13"
     case pixelUI = "pixel_ui"
     case derbisDefault = "derbis_default"
@@ -203,6 +318,118 @@ enum MotionCanvasStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum PlayerBackdropStyle: String, Codable, CaseIterable, Identifiable, Sendable {
+    case animated = "animated"
+    case fill = "fill"
+    case fluid = "fluid"
+    case ambient = "ambient"
+    case still = "still"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .animated: return "Canvas"
+        case .fill: return "Fill"
+        case .fluid: return "Fluid"
+        case .ambient: return "Ambient"
+        case .still: return "Still"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .animated: return "Motion Canvas with progressive Fill fallback"
+        case .fill: return "Full-bleed cover dissolving through layered blur"
+        case .fluid: return "Drifting multi-color mesh sampled from cover art"
+        case .ambient: return "Soft blurred cover wash over dark glass"
+        case .still: return "Clean minimal surface with zero backdrop motion"
+        }
+    }
+}
+
+enum MusicHapticsMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case everything = "everything"
+    case beat = "beat"
+    case bass = "bass"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .everything: return "Everything"
+        case .beat: return "Beat"
+        case .bass: return "Bass"
+        }
+    }
+}
+
+enum HeadNodAction: String, Codable, CaseIterable, Identifiable, Sendable {
+    case playPause = "play_pause"
+    case likeTrack = "like_track"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .playPause: return "Play / Pause"
+        case .likeTrack: return "Like track"
+        }
+    }
+}
+
+enum EqualizerPreset: String, Codable, CaseIterable, Identifiable, Sendable {
+    case flat = "flat"
+    case harman = "harman"
+    case bassBoost = "bass_boost"
+    case vocalClarity = "vocal"
+    case lateNightWarm = "late_night"
+    case vShape = "v_shape"
+    case acoustic = "acoustic"
+    case electronic = "electronic"
+    case custom = "custom"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .flat: return "Flat"
+        case .harman: return "Harman"
+        case .bassBoost: return "Bass"
+        case .vocalClarity: return "Vocal"
+        case .lateNightWarm: return "Warm"
+        case .vShape: return "V-Shape"
+        case .acoustic: return "Acoustic"
+        case .electronic: return "Electronic"
+        case .custom: return "Custom"
+        }
+    }
+
+    static let frequencies: [Double] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    static let shortLabels: [String] = ["32", "64", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"]
+
+    var defaultGains: [Double] {
+        switch self {
+        case .flat, .custom:
+            return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        case .harman:
+            return [4.2, 3.6, 1.4, -0.6, -0.4, 0.8, 2.4, 3.0, 1.8, 0.8]
+        case .bassBoost:
+            return [6.5, 5.5, 3.4, 1.2, 0.0, 0.0, 0.5, 1.0, 1.2, 0.8]
+        case .vocalClarity:
+            return [-1.5, -1.0, -0.5, 1.2, 2.8, 3.8, 3.2, 1.8, 0.6, 0.0]
+        case .lateNightWarm:
+            return [3.2, 2.8, 1.8, 0.8, 0.0, -0.8, -1.6, -2.2, -2.6, -3.0]
+        case .vShape:
+            return [4.8, 3.8, 1.5, -1.2, -2.0, -1.0, 1.4, 3.2, 4.2, 3.8]
+        case .acoustic:
+            return [2.2, 2.0, 1.0, 0.4, 1.2, 1.8, 2.6, 2.4, 2.0, 1.4]
+        case .electronic:
+            return [5.2, 4.4, 1.6, -0.8, -1.2, 0.4, 2.0, 3.4, 3.8, 3.2]
+        }
+    }
+}
+
 enum MotionCanvasProviderKind: String, Codable, Hashable, Sendable {
     case spotifyCanvas = "Spotify Canvas"
     case appleMusicMotion = "Apple Motion"
@@ -217,7 +444,7 @@ struct MotionCanvasAsset: Hashable, Sendable {
     let isTall: Bool
 }
 
-struct SubsonicConfig: Codable, Equatable {
+struct SubsonicConfig: Codable, Equatable, Sendable {
     var serverURL: String
     var username: String
     var preferRawLossless: Bool
@@ -225,21 +452,21 @@ struct SubsonicConfig: Codable, Equatable {
     static let empty = SubsonicConfig(serverURL: "", username: "", preferRawLossless: true)
 }
 
-struct SubsonicPlaylistSummary: Identifiable, Hashable {
+struct SubsonicPlaylistSummary: Identifiable, Hashable, Sendable {
     let id: String
     let name: String
     let songCount: Int
     let durationSec: Int
 }
 
-struct ListeningRecord: Codable, Hashable {
+struct ListeningRecord: Codable, Hashable, Sendable {
     var track: Track
     var playCount: Int
     var listenedSeconds: Int
     var lastPlayedAt: Date
 }
 
-struct DerbisBackupDocument: Codable {
+struct DerbisBackupDocument: Codable, Sendable {
     let schemaVersion: Int
     let exportedAt: Date
     let likedTracks: [Track]

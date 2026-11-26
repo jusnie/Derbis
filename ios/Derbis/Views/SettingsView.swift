@@ -7,6 +7,8 @@ struct SettingsView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var subsonic: SubsonicService
     @ObservedObject private var spotifySession = SpotifySessionStore.shared
+    @ObservedObject private var fx = AudioEffectsEngine.shared
+    @ObservedObject private var haptics = HapticsAndGesturesService.shared
 
     @State private var serverURLInput: String = ""
     @State private var usernameInput: String = ""
@@ -15,6 +17,7 @@ struct SettingsView: View {
     @State private var isTestingServer: Bool = false
     @State private var showingBackupImporter: Bool = false
     @State private var showingSpotifyCanvasSheet: Bool = false
+    @State private var showingAudioStudioSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -41,10 +44,15 @@ struct SettingsView: View {
                                 )
                         }
 
+                        audioStudioAndHapticsSection
                         skinSection
+                        playerBackdropAndGesturesSection
                         typographySection
                         motionCanvasSection
                         playbackSection
+                        if !library.blockedArtists.isEmpty {
+                            blockedArtistsSection
+                        }
                         subsonicSection
                         storageAndBackupSection
                         aboutSection
@@ -76,12 +84,154 @@ struct SettingsView: View {
                     .environmentObject(player)
                     .environmentObject(theme)
             }
+            .sheet(isPresented: $showingAudioStudioSheet) {
+                AudioEffectsSheet()
+                    .environmentObject(theme)
+            }
             .onChange(of: theme.motionCanvasEnabled) { _ in
                 player.refreshMotionCanvas()
             }
             .onChange(of: theme.motionCanvasStyle) { _ in
                 player.refreshMotionCanvas()
             }
+        }
+    }
+
+    private var audioStudioAndHapticsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Audio Studio & Haptics")
+
+            VStack(spacing: 14) {
+                Button {
+                    haptics.playControlTap(style: .light)
+                    showingAudioStudioSheet = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "slider.vertical.3")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 38, height: 38)
+                            .background(
+                                RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 10, style: .continuous)
+                                    .fill(theme.accent)
+                            )
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Open Audio Studio")
+                                .font(theme.font(size: 15, weight: .bold))
+                                .foregroundColor(theme.primaryText)
+                            Text(
+                                fx.hasAnyActiveModification
+                                    ? "Active: \(fx.selectedPreset.rawValue) · \(String(format: "%.2gx", fx.playbackSpeed))"
+                                    : "10-Band EQ, Adaptive Bass, Vinyl Pitch & Spatial FX"
+                            )
+                            .font(theme.font(size: 12))
+                            .foregroundColor(fx.hasAnyActiveModification ? theme.accent : theme.secondaryText)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Beat-Synced Music Haptics")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Taptic Engine kick & snare pulses while listening")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    Spacer()
+                    Picker("Music Haptics", selection: $haptics.musicHapticsMode) {
+                        ForEach(MusicHapticsMode.allCases) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .tint(theme.accent)
+                }
+
+                Divider()
+
+                Toggle(isOn: $haptics.headGesturesEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AirPods Head Gestures")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Double-nod to play/pause, shake head to skip tracks")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+                .disabled(!haptics.headTrackingSupported)
+            }
+            .padding(14)
+            .derbisCard()
+        }
+    }
+
+    private var playerBackdropAndGesturesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Now Playing backdrop & gestures")
+
+            VStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Backdrop Style")
+                        .font(theme.font(size: 14, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(PlayerBackdropStyle.allCases) { style in
+                                let active = theme.backdropStyle == style
+                                Button {
+                                    haptics.playSelectionTick()
+                                    theme.backdropStyle = style
+                                } label: {
+                                    Text(style.rawValue)
+                                        .font(theme.font(size: 13, weight: .bold))
+                                        .foregroundColor(active ? .white : theme.primaryText)
+                                        .padding(.horizontal, 13)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                                                .fill(active ? theme.accent : theme.elevatedSurface)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    Text(theme.backdropStyle.subtitle)
+                        .font(theme.font(size: 12))
+                        .foregroundColor(theme.secondaryText)
+                }
+
+                Divider()
+
+                Toggle(isOn: $theme.playerGesturesEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Artwork Swipe & Double-Tap Zones")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Swipe cover to skip; double-tap left (-10s), center (Like), right (+10s)")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+            }
+            .padding(14)
+            .derbisCard()
         }
     }
 
@@ -93,6 +243,7 @@ struct SettingsView: View {
                 ForEach(DerbisSkin.allCases) { option in
                     let selected = theme.skin == option
                     Button {
+                        haptics.playSelectionTick()
                         withAnimation(.easeInOut(duration: 0.2)) {
                             theme.skin = option
                         }
@@ -133,6 +284,7 @@ struct SettingsView: View {
                 ForEach(DerbisFontChoice.allCases) { choice in
                     let active = theme.fontChoice == choice
                     Button {
+                        haptics.playSelectionTick()
                         theme.fontChoice = choice
                     } label: {
                         Text(choice.title)
@@ -235,7 +387,7 @@ struct SettingsView: View {
 
     private var playbackSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Playback & lyrics")
+            sectionTitle("Playback, Karaoke & Lock Screen")
 
             VStack(spacing: 14) {
                 Toggle(isOn: $theme.highQualityAudio) {
@@ -268,15 +420,92 @@ struct SettingsView: View {
 
                 Toggle(isOn: $theme.autoLoadLyrics) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Auto-load synced lyrics")
+                        Text("Auto-load word-synced TTML & LRC lyrics")
                             .font(theme.font(size: 15, weight: .semibold))
                             .foregroundColor(theme.primaryText)
-                        Text("Fetches time-synced LRCLIB lines on every track change")
+                        Text("Fetches syllable-synced TTML duets, backing vocals & LRCLIB")
                             .font(theme.font(size: 12))
                             .foregroundColor(theme.secondaryText)
                     }
                 }
                 .tint(theme.accent)
+
+                Divider()
+
+                Toggle("Show Romanized Pronunciation", isOn: $theme.showLyricsRomanization)
+                    .font(theme.font(size: 14, weight: .medium))
+                    .foregroundColor(theme.primaryText)
+                    .tint(theme.accent)
+
+                Toggle("Show Translated Lyrics", isOn: $theme.showLyricsTranslation)
+                    .font(theme.font(size: 14, weight: .medium))
+                    .foregroundColor(theme.primaryText)
+                    .tint(theme.accent)
+
+                Toggle("Auto-Hide Transport Controls in Lyrics", isOn: $theme.autoHideLyricsControls)
+                    .font(theme.font(size: 14, weight: .medium))
+                    .foregroundColor(theme.primaryText)
+                    .tint(theme.accent)
+
+                Divider()
+
+                Toggle(isOn: $theme.lockScreenLiveLyrics) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Lock Screen Live Subtitle Lyrics")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Streams real-time synced lyric phrases to the iOS Lock Screen & Dynamic Island")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+                .onChange(of: theme.lockScreenLiveLyrics) { _ in
+                    player.refreshNowPlayingLockScreenPreferences()
+                }
+
+                Toggle(isOn: $theme.lockScreenLyricArt) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Lock Screen Lyric Artwork Card")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Renders active & upcoming lyrics onto Lock Screen album art")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+                .onChange(of: theme.lockScreenLyricArt) { _ in
+                    player.refreshNowPlayingLockScreenPreferences()
+                }
+            }
+            .padding(14)
+            .derbisCard()
+        }
+    }
+
+    private var blockedArtistsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Blocked artists (\(library.blockedArtists.count))")
+
+            VStack(spacing: 10) {
+                ForEach(library.blockedArtists, id: \.self) { artist in
+                    HStack {
+                        Image(systemName: "hand.raised.slash.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(theme.accent)
+                        Text(artist)
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Button("Unblock") {
+                            haptics.playControlTap(style: .light)
+                            library.unblockArtist(artist)
+                        }
+                        .font(theme.font(size: 12, weight: .bold))
+                        .foregroundColor(theme.accent)
+                    }
+                }
             }
             .padding(14)
             .derbisCard()
@@ -438,7 +667,7 @@ struct SettingsView: View {
                 Text("Version 1.8.0 (Unofficial native iOS build · KSign ready)")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
-                Text("Native SwiftUI & AVPlayer · Background Audio · AirPlay · LRCLIB · Subsonic · GPL-3.0")
+                Text("Word-Synced TTML · 10-Band 32-Bit DSP · Vinyl Varispeed · Music Haptics · AirPods Gestures · GPL-3.0")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
             }
