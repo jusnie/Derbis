@@ -49,6 +49,7 @@ struct SettingsView: View {
                         googleAccountSection
                         audioStudioAndHapticsSection
                         skinSection
+                        liquidGlassSection
                         playerBackdropAndGesturesSection
                         typographySection
                         motionCanvasSection
@@ -359,6 +360,87 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                 }
             }
+        }
+    }
+
+    private var liquidGlassSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Taurus Liquid Glass")
+
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: $theme.liquidGlassEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Liquid Glass Navigation & Controls")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Floating optical glass tab bar, mini-player, search capsule & player pills")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+                .disabled(theme.skin == .liquidGlass || theme.isPixelSkin)
+
+                Divider()
+
+                Toggle(isOn: $theme.ambientGlassBackdropEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ambient Cover Aura Behind Pages")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Subtle album-art glow across Home, Search & Library for glass refraction")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                Divider()
+
+                Toggle(isOn: $theme.coverFollowsAccent) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Follow Album Cover Accent")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Adapts active highlights and glass tints to the playing song's cover")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                Divider()
+
+                Toggle(isOn: $theme.tabBarMinimizesOnScroll) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Dockable Compact Glass Tab Bar")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Swipe down or tap the corner icon on the tab bar to dock with the mini-player")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Mini-Player Progress Thickness")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Text(theme.miniPlayerProgressThickness <= 0.1 ? "Hidden" : String(format: "%.1f pt", theme.miniPlayerProgressThickness))
+                            .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                            .foregroundColor(theme.accent)
+                    }
+                    Slider(value: $theme.miniPlayerProgressThickness, in: 0.0...5.0, step: 0.5)
+                        .tint(theme.accent)
+                }
+            }
+            .padding(14)
+            .derbisCard()
         }
     }
 
@@ -771,6 +853,7 @@ struct SettingsView: View {
 
     private func swatchColor(for skin: DerbisSkin) -> Color {
         switch skin {
+        case .liquidGlass: return Color.white.opacity(0.85)
         case .appleMusic13: return Color(hex: 0xFC3C44)
         case .pixelUI: return Color(hex: 0xFF85A2)
         case .derbisDefault: return Color(hex: 0x121218)

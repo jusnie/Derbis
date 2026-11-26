@@ -111,13 +111,8 @@ struct NowPlayingView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(
-                                            (theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop)
-                                                ? theme.elevatedSurface
-                                                : Color.white.opacity(0.12)
-                                        )
+                                .derbisGlassCapsule(
+                                    forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
                                 )
                                 .padding(.horizontal, 24)
                                 .padding(.bottom, 8)
@@ -149,10 +144,10 @@ struct NowPlayingView: View {
                                     Text("Show Controls")
                                         .font(theme.font(size: 12, weight: .semibold))
                                 }
-                                .foregroundColor(fgPrimary.opacity(0.9))
+                                .foregroundColor(fgPrimary.opacity(0.92))
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(Capsule().fill(Color.white.opacity(0.14)))
+                                .derbisGlassCapsule(forceGlassOverBackdrop: true)
                                 .padding(.top, 10)
                             }
                             .buttonStyle(.plain)
@@ -231,11 +226,7 @@ struct NowPlayingView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
-        .background(
-            Capsule()
-                .fill(Color.black.opacity(0.76))
-                .overlay(Capsule().stroke(Color.white.opacity(0.14), lineWidth: 0.7))
-        )
+        .derbisGlassCapsule(interactive: false, forceGlassOverBackdrop: true)
         .allowsHitTesting(false)
     }
 
@@ -431,10 +422,14 @@ struct NowPlayingView: View {
                     dismiss()
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(fgPrimary)
-                        .frame(width: 36, height: 36)
+                        .derbisGlassCircle(
+                            size: 38,
+                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                        )
                 }
+                .buttonStyle(.plain)
 
                 Spacer()
 
@@ -646,10 +641,21 @@ struct NowPlayingView: View {
                         )
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(fgPrimary.opacity(0.85))
-                        .frame(width: 36, height: 36)
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(fgPrimary)
+                        .frame(width: 38, height: 38)
+                        .background {
+                            if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
+                                Rectangle()
+                                    .fill(theme.elevatedSurface)
+                                    .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                            } else {
+                                Circle()
+                                    .fill(Color.white.opacity(0.14))
+                                    .overlay(Circle().stroke(Color.white.opacity(0.24), lineWidth: 0.7))
+                            }
+                        }
                 }
             }
         }
@@ -857,15 +863,10 @@ struct NowPlayingView: View {
                     Text("Artwork")
                         .font(theme.font(size: 11, weight: .bold))
                         .foregroundColor(fgPrimary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    (theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop)
-                                        ? theme.elevatedSurface
-                                        : Color.white.opacity(0.14)
-                                )
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 5.5)
+                        .derbisGlassCapsule(
+                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
                         )
                 }
                 .buttonStyle(.plain)
@@ -1147,20 +1148,12 @@ struct NowPlayingView: View {
                     .font(theme.font(size: 10, weight: .bold))
                     .lineLimit(1)
             }
-            .foregroundColor(fx.hasAnyActiveModification ? theme.accent : fgPrimary.opacity(0.9))
-            .padding(.horizontal, 9)
-            .padding(.vertical, 3.5)
-            .background(
-                Group {
-                    if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
-                        Rectangle()
-                            .fill(theme.elevatedSurface)
-                            .overlay(Rectangle().stroke(theme.border, lineWidth: 1.5))
-                    } else {
-                        Capsule()
-                            .fill(Color.white.opacity(0.14))
-                    }
-                }
+            .foregroundColor(fx.hasAnyActiveModification ? .white : fgPrimary.opacity(0.92))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .derbisGlassCapsule(
+                prominent: fx.hasAnyActiveModification,
+                forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
             )
         }
         .buttonStyle(.plain)
@@ -1341,6 +1334,12 @@ struct NowPlayingView: View {
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .derbisGlassCapsule(
+            interactive: false,
+            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+        )
     }
 
     private var currentInlineLyricText: String? {

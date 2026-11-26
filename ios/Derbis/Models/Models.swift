@@ -258,6 +258,7 @@ enum SleepTimerOption: Int, CaseIterable, Identifiable, Sendable {
 }
 
 enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
+    case liquidGlass = "liquid_glass"
     case appleMusic13 = "apple_music_13"
     case pixelUI = "pixel_ui"
     case derbisDefault = "derbis_default"
@@ -267,6 +268,7 @@ enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
+        case .liquidGlass: return "Liquid Glass"
         case .appleMusic13: return "Apple Music 13"
         case .pixelUI: return "Pixel UI"
         case .derbisDefault: return "Derbis Default"
@@ -276,6 +278,7 @@ enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var caption: String {
         switch self {
+        case .liquidGlass: return "Taurus optical glass bars, AMOLED field, ambient aura"
         case .appleMusic13: return "Ambient cover glow, inline lyrics, SF Pro"
         case .pixelUI: return "Blush graph paper, hard shadows, Pixelify"
         case .derbisDefault: return "AMOLED dark surface with crimson accents"

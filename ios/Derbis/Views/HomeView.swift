@@ -125,9 +125,23 @@ struct HomeView: View {
                         }
                     }
                 }
+                Section("Liquid Glass") {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            theme.liquidGlassEnabled.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Text("Taurus Liquid Glass Chrome")
+                            if theme.liquidGlassEnabled {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "paintbrush.pointed.fill")
+                    Image(systemName: theme.usesLiquidGlass ? "sparkles" : "paintbrush.pointed.fill")
                         .font(.system(size: 12, weight: .semibold))
                     Text("Skin")
                         .font(theme.font(size: 13, weight: .semibold))
@@ -150,34 +164,25 @@ struct HomeView: View {
 
     private var moodFilterStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(moods, id: \.self) { mood in
-                    let active = selectedMood == mood
-                    Button {
-                        guard selectedMood != mood else { return }
-                        selectedMood = mood
-                        Task { await reloadFeed(force: true) }
-                    } label: {
-                        Text(mood)
-                            .font(theme.font(size: 13, weight: active ? .bold : .medium))
-                            .foregroundColor(active ? .white : theme.primaryText)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                Group {
-                                    if theme.isPixelSkin {
-                                        Rectangle()
-                                            .fill(active ? theme.accent : theme.surface)
-                                            .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
-                                    } else {
-                                        Capsule()
-                                            .fill(active ? theme.accent : theme.surface)
-                                            .overlay(Capsule().stroke(theme.border, lineWidth: 1))
-                                    }
-                                }
-                            )
+            DerbisGlassContainer(spacing: 10) {
+                HStack(spacing: 8) {
+                    ForEach(moods, id: \.self) { mood in
+                        let active = selectedMood == mood
+                        Button {
+                            guard selectedMood != mood else { return }
+                            HapticsAndGesturesService.shared.playSelectionTick()
+                            selectedMood = mood
+                            Task { await reloadFeed(force: true) }
+                        } label: {
+                            Text(mood)
+                                .font(theme.font(size: 13, weight: active ? .bold : .medium))
+                                .foregroundColor(active ? .white : theme.primaryText)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .derbisGlassCapsule(prominent: active)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

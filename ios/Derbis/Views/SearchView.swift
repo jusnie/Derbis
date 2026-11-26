@@ -28,6 +28,7 @@ struct SearchView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 recentSearchesSection
+                                browseGlassCategoriesSection
                             } else {
                                 if !suggestions.isEmpty && results.isEmpty && !isSearching {
                                     suggestionsSection
@@ -130,10 +131,65 @@ struct SearchView: View {
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .derbisCard(elevated: true)
         .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .derbisGlassCapsule(interactive: false)
+        .padding(.horizontal, 16)
+    }
+
+    private var browseCategories: [(title: String, query: String, icon: String, tint: Color)] {
+        [
+            ("OPM Hits", "OPM top hits", "sparkles", Color(hex: 0xE11D48)),
+            ("Late Night R&B", "late night r&b soul", "moon.stars.fill", Color(hex: 0x7C3AED)),
+            ("Chill Lo-Fi", "chill lofi beats", "headphones", Color(hex: 0x0EA5E9)),
+            ("Hip-Hop", "hip hop rap essentials", "waveform.path.ecg", Color(hex: 0xF97316)),
+            ("Indie Pop", "indie pop bedroom pop", "guitars.fill", Color(hex: 0x10B981)),
+            ("Anime & J-Pop", "jpop anime hits", "bolt.heart.fill", Color(hex: 0xEC4899)),
+            ("Acoustic", "acoustic unplugged", "music.mic", Color(hex: 0xEAB308)),
+            ("Electronic", "electronic house synthwave", "dial.high.fill", Color(hex: 0x06B6D4))
+        ]
+    }
+
+    private var browseGlassCategoriesSection: some View {
+        let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("Browse moods")
+                .font(theme.font(size: 17, weight: .bold))
+                .foregroundColor(theme.primaryText)
+
+            DerbisGlassContainer(spacing: 12) {
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(browseCategories, id: \.title) { cat in
+                        Button {
+                            HapticsAndGesturesService.shared.playControlTap(style: .light)
+                            query = cat.query
+                            executeSearch(for: cat.query)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Image(systemName: cat.icon)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(theme.isPixelSkin ? theme.accent : .white)
+                                    Text(cat.title)
+                                        .font(theme.font(size: 14.5, weight: .bold))
+                                        .foregroundColor(theme.isPixelSkin ? theme.primaryText : .white)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(14)
+                            .frame(maxWidth: .infinity, minHeight: 74, alignment: .bottomLeading)
+                            .derbisGlassPanel(
+                                cornerRadius: 18,
+                                tint: cat.tint,
+                                interactive: true
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 
     private var recentSearchesSection: some View {

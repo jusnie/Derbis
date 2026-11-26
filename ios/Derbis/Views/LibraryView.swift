@@ -146,8 +146,9 @@ struct LibraryView: View {
                 .foregroundColor(theme.primaryText)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .derbisCard(elevated: true)
+                .derbisGlassCapsule()
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -186,34 +187,24 @@ struct LibraryView: View {
 
     private var sectionTabs: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(LibrarySectionTab.allCases) { tab in
-                    if tab != .server || subsonic.isConnected {
-                        let active = selectedTab == tab
-                        Button {
-                            HapticsAndGesturesService.shared.playSelectionTick()
-                            selectedTab = tab
-                        } label: {
-                            Text(tab.rawValue)
-                                .font(theme.font(size: 13, weight: active ? .bold : .medium))
-                                .foregroundColor(active ? .white : theme.primaryText)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(
-                                    Group {
-                                        if theme.isPixelSkin {
-                                            Rectangle()
-                                                .fill(active ? theme.accent : theme.surface)
-                                                .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
-                                        } else {
-                                            Capsule()
-                                                .fill(active ? theme.accent : theme.surface)
-                                                .overlay(Capsule().stroke(theme.border, lineWidth: 1))
-                                        }
-                                    }
-                                )
+            DerbisGlassContainer(spacing: 10) {
+                HStack(spacing: 8) {
+                    ForEach(LibrarySectionTab.allCases) { tab in
+                        if tab != .server || subsonic.isConnected {
+                            let active = selectedTab == tab
+                            Button {
+                                HapticsAndGesturesService.shared.playSelectionTick()
+                                selectedTab = tab
+                            } label: {
+                                Text(tab.rawValue)
+                                    .font(theme.font(size: 13, weight: active ? .bold : .medium))
+                                    .foregroundColor(active ? .white : theme.primaryText)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .derbisGlassCapsule(prominent: active)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

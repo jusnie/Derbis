@@ -42,6 +42,7 @@ final class AudioPlayerEngine: ObservableObject {
 
     @Published var ambientPrimary: Color = Color(hex: 0x2A1A2E)
     @Published var ambientSecondary: Color = Color(hex: 0x0A0A10)
+    @Published var coverVibrantAccent: Color = Color(hex: 0xFC3C44)
     @Published var currentArtworkImage: UIImage?
 
     @Published var sleepTimerRemainingSec: Int?
@@ -662,9 +663,11 @@ final class AudioPlayerEngine: ObservableObject {
             lastRenderedLyricCardLine = nil
             cachedLyricCardArtwork = nil
             let colors = ArtworkPaletteExtractor.dominantColors(from: uiImage)
+            let vibrant = ArtworkPaletteExtractor.vibrantAccent(from: uiImage)
             withAnimation(.easeInOut(duration: 0.45)) {
                 ambientPrimary = colors.primary
                 ambientSecondary = colors.secondary
+                coverVibrantAccent = vibrant
             }
         } else {
             currentArtworkImage = nil
