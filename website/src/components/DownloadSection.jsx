@@ -104,7 +104,7 @@ export function DownloadSection({
             >
               <AppleIcon />
               <span>iOS</span>
-              <span className="platform-pill platform-pill-live">Official</span>
+              <span className="platform-pill platform-pill-live">Beta</span>
             </button>
             <button
               type="button"
@@ -212,7 +212,7 @@ export function DownloadSection({
                 <span className="meta-item">{iosSizeLabel || IOS_RELEASE_META.sizeLabel}</span>
                 <span className="meta-item">{IOS_RELEASE_META.iosMin}</span>
                 <span className="meta-item">{IOS_RELEASE_META.archLabel}</span>
-                <span className="meta-item">Official · KSign ready</span>
+                <span className="meta-item">Beta · KSign ready</span>
               </div>
 
               <h3 className="bench-title">Derbis.ipa ({IOS_RELEASE_META.bundleId})</h3>
@@ -368,7 +368,7 @@ export function DownloadSection({
           >
             <div className="matrix-top">
               <span className="matrix-name">iOS &amp; iPadOS</span>
-              <span className="platform-pill platform-pill-live">Official</span>
+              <span className="platform-pill platform-pill-live">Beta</span>
             </div>
             <span className="matrix-meta">Derbis.ipa · {iosVersion || IOS_RELEASE_META.version} · {iosSizeLabel || IOS_RELEASE_META.sizeLabel}</span>
           </button>

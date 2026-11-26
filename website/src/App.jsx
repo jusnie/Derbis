@@ -249,7 +249,7 @@ export default function App() {
                 <dd>{releaseTag} · {sizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>iOS · Official</dt>
+                <dt>iOS · Beta</dt>
                 <dd>Derbis.ipa · {iosSizeLabel}</dd>
               </div>
               <div className="spec-cell">

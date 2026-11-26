@@ -134,7 +134,7 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
             <div className="eyebrow-row">
               <span className="eyebrow-badge">
                 <AppleIcon />
-                <span>Derbis for iOS · Official</span>
+                <span>Derbis for iOS · Beta</span>
               </span>
               <span className="eyebrow-meta">Derbis.ipa · {resolvedVersion} · {resolvedSize} · iOS / iPadOS 16.0+</span>
             </div>

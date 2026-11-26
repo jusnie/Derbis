@@ -449,12 +449,12 @@ export const INITIAL_RELEASES = [
   },
   {
     tag: "ios-unofficial-6e9198e",
-    displayTag: "v1.8.0 · iOS",
-    name: "Derbis v1.8.0 for iOS",
-    channel: "Official iOS",
+    displayTag: "v1.8.0-beta · iOS",
+    name: "Derbis v1.8.0 Beta for iOS",
+    channel: "iOS Beta",
     date: "Oct 30, 2026",
-    latest: true,
-    prerelease: false,
+    latest: false,
+    prerelease: true,
     downloads: null,
     sizeLabel: "2.8 MB",
     url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e",
@@ -526,7 +526,7 @@ export const INITIAL_RELEASES = [
 
 export const SOURCE_FACTS = [
   { label: "License", value: "GPL-3.0-only with REUSE-compliant SPDX headers" },
-  { label: "Mobile", value: "Android 8.0+ (Derbis.apk) · iOS / iPadOS 16.0+ (Derbis.ipa)" },
+  { label: "Mobile", value: "Android 8.0+ (Derbis.apk · Official) · iOS / iPadOS 16.0+ (Derbis.ipa · Beta)" },
   { label: "Desktop", value: "macOS (Apple Silicon & Intel) · Windows & Linux — Coming soon" },
   { label: "Android stack", value: "Kotlin, Jetpack Compose, Material 3, Media3 ExoPlayer + C++ FFmpeg" },
   { label: "iOS stack", value: "Swift 5, SwiftUI, AVPlayer, lock-free MTAudioProcessingTap DSP" },
