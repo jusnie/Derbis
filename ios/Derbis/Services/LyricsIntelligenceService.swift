@@ -209,6 +209,9 @@ actor LyricsIntelligenceService {
             if referents.count < 50 { break }
         }
 
+        if geniusSongCache.count >= 60, let firstKey = geniusSongCache.keys.first {
+            geniusSongCache.removeValue(forKey: firstKey)
+        }
         geniusSongCache[cacheKey] = collected
         return collected
     }
@@ -314,6 +317,9 @@ actor LyricsIntelligenceService {
         }
 
         if !map.isEmpty {
+            if translationCache.count >= 60, let firstKey = translationCache.keys.first {
+                translationCache.removeValue(forKey: firstKey)
+            }
             translationCache[key] = map
         }
         return Self.applyTranslationMap(map, to: payload)
@@ -321,8 +327,22 @@ actor LyricsIntelligenceService {
 
     private func translateBatch(lines: [String], target: String) async -> [String] {
         let joined = lines.joined(separator: "\n")
+
+        if let primary = await queryGoogleTranslateSingle(joined: joined, target: target), !primary.isEmpty {
+            return primary
+        }
+        if let secondary = await queryGoogleClients5Fallback(joined: joined, target: target), !secondary.isEmpty {
+            return secondary
+        }
+        if let lingva = await queryLingvaFallback(joined: joined, target: target), !lingva.isEmpty {
+            return lingva
+        }
+        return []
+    }
+
+    private func queryGoogleTranslateSingle(joined: String, target: String) async -> [String]? {
         guard var comps = URLComponents(string: "https://translate.googleapis.com/translate_a/single") else {
-            return []
+            return nil
         }
         comps.queryItems = [
             URLQueryItem(name: "client", value: "gtx"),
@@ -331,10 +351,10 @@ actor LyricsIntelligenceService {
             URLQueryItem(name: "dt", value: "t"),
             URLQueryItem(name: "q", value: joined)
         ]
-        guard let url = comps.url else { return [] }
+        guard let url = comps.url else { return nil }
 
         var req = URLRequest(url: url)
-        req.timeoutInterval = 7.5
+        req.timeoutInterval = 7.0
         req.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
 
         guard let (data, resp) = try? await session.data(for: req),
@@ -342,7 +362,7 @@ actor LyricsIntelligenceService {
               http.statusCode == 200,
               let root = try? JSONSerialization.jsonObject(with: data) as? [Any],
               let sentences = root.first as? [Any] else {
-            return []
+            return nil
         }
 
         var fullTranslated = ""
@@ -351,7 +371,62 @@ actor LyricsIntelligenceService {
                 fullTranslated += chunk
             }
         }
-        return fullTranslated.components(separatedBy: "\n")
+        let split = fullTranslated.components(separatedBy: "\n")
+        return split.isEmpty ? nil : split
+    }
+
+    private func queryGoogleClients5Fallback(joined: String, target: String) async -> [String]? {
+        guard var comps = URLComponents(string: "https://clients5.google.com/translate_a/t") else {
+            return nil
+        }
+        comps.queryItems = [
+            URLQueryItem(name: "client", value: "dict-chrome-ex"),
+            URLQueryItem(name: "sl", value: "auto"),
+            URLQueryItem(name: "tl", value: target),
+            URLQueryItem(name: "q", value: joined)
+        ]
+        guard let url = comps.url else { return nil }
+
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 7.0
+        req.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse,
+              http.statusCode == 200,
+              let root = try? JSONSerialization.jsonObject(with: data) as? [Any] else {
+            return nil
+        }
+
+        if let firstArr = root.first as? [Any], let text = firstArr.first as? String {
+            return text.components(separatedBy: "\n")
+        }
+        if let firstStr = root.first as? String {
+            return firstStr.components(separatedBy: "\n")
+        }
+        return nil
+    }
+
+    private func queryLingvaFallback(joined: String, target: String) async -> [String]? {
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/?#")
+        guard let encoded = joined.addingPercentEncoding(withAllowedCharacters: allowed),
+              let url = URL(string: "https://lingva.ml/api/v1/auto/\(target)/\(encoded)") else {
+            return nil
+        }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 7.0
+        req.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (data, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse,
+              http.statusCode == 200,
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let translation = root["translation"] as? String,
+              !translation.isEmpty else {
+            return nil
+        }
+        return translation.components(separatedBy: "\n")
     }
 
     private static func applyTranslationMap(_ map: [Int: String], to payload: LyricsPayload) -> LyricsPayload {

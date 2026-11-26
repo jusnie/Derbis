@@ -151,7 +151,7 @@ struct SpotifyCanvasSheet: View {
             .navigationTitle("Spotify Canvas")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .foregroundColor(theme.accent)
                 }
@@ -392,7 +392,7 @@ private struct SpotifyLoginWebSheet: View {
             .navigationTitle("Sign in to Spotify")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(theme.accent)
                 }

@@ -8,6 +8,7 @@ final class ArtworkImageCache: @unchecked Sendable {
     private let session: URLSession
     private let lock = NSLock()
     private var inFlightTasks: [String: Task<UIImage?, Never>] = [:]
+    private var failedDeadlines: [String: Date] = [:]
 
     private init() {
         cache.countLimit = 280
@@ -21,6 +22,21 @@ final class ArtworkImageCache: @unchecked Sendable {
             diskCapacity: 120 * 1024 * 1024
         )
         self.session = URLSession(configuration: config)
+
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleMemoryWarning()
+        }
+    }
+
+    private func handleMemoryWarning() {
+        cache.removeAllObjects()
+        lock.withLock {
+            failedDeadlines.removeAll()
+        }
     }
 
     private func cacheKey(url: URL, bucketPx: Int) -> String {
@@ -46,6 +62,45 @@ final class ArtworkImageCache: @unchecked Sendable {
         }
     }
 
+    private enum InFlightLookup {
+        case recentlyFailed
+        case task(Task<UIImage?, Never>)
+    }
+
+    private func lookupOrCreateInFlightTask(
+        key: String,
+        urlString: String,
+        builder: () -> Task<UIImage?, Never>
+    ) -> InFlightLookup {
+        lock.withLock {
+            if let deadline = failedDeadlines[urlString] {
+                if deadline > Date() {
+                    return .recentlyFailed
+                }
+                failedDeadlines.removeValue(forKey: urlString)
+            }
+            if let existing = inFlightTasks[key] {
+                return .task(existing)
+            }
+            let created = builder()
+            inFlightTasks[key] = created
+            return .task(created)
+        }
+    }
+
+    private func finishInFlightTask(key: String, urlString: String, succeeded: Bool) {
+        lock.withLock {
+            inFlightTasks.removeValue(forKey: key)
+            if !succeeded {
+                if failedDeadlines.count > 250 {
+                    let now = Date()
+                    failedDeadlines = failedDeadlines.filter { $0.value > now }
+                }
+                failedDeadlines[urlString] = Date().addingTimeInterval(120)
+            }
+        }
+    }
+
     func loadImage(for url: URL, pointSize: CGFloat) async -> UIImage? {
         let bucket = pixelBucket(for: pointSize)
         let key = cacheKey(url: url, bucketPx: bucket)
@@ -53,59 +108,57 @@ final class ArtworkImageCache: @unchecked Sendable {
             return hit
         }
 
-        lock.lock()
-        if let existing = inFlightTasks[key] {
-            lock.unlock()
-            return await existing.value
-        }
-
-        let task = Task.detached(priority: .userInitiated) { [weak self] () -> UIImage? in
-            guard let self = self else { return nil }
-            let rawData: Data?
-            if url.isFileURL {
-                rawData = try? Data(contentsOf: url, options: [.mappedIfSafe])
-            } else {
-                var req = URLRequest(url: url)
-                req.cachePolicy = .returnCacheDataElseLoad
-                if let (data, resp) = try? await self.session.data(for: req),
-                   let http = resp as? HTTPURLResponse,
-                   (200..<300).contains(http.statusCode) {
-                    rawData = data
+        let urlStr = url.absoluteString
+        let lookup = lookupOrCreateInFlightTask(key: key, urlString: urlStr) {
+            Task.detached(priority: .userInitiated) { [weak self] () -> UIImage? in
+                guard let self = self else { return nil }
+                let rawData: Data?
+                if url.isFileURL {
+                    rawData = try? Data(contentsOf: url, options: [.mappedIfSafe])
                 } else {
-                    rawData = nil
+                    var req = URLRequest(url: url)
+                    req.cachePolicy = .returnCacheDataElseLoad
+                    if let (data, resp) = try? await self.session.data(for: req),
+                       let http = resp as? HTTPURLResponse,
+                       (200..<300).contains(http.statusCode) {
+                        rawData = data
+                    } else {
+                        rawData = nil
+                    }
                 }
-            }
 
-            guard let data = rawData, !data.isEmpty, let decoded = UIImage(data: data) else {
-                return nil
-            }
+                guard let data = rawData, !data.isEmpty, let decoded = UIImage(data: data) else {
+                    return nil
+                }
 
-            let maxDim = CGFloat(bucket)
-            let origW = decoded.size.width * decoded.scale
-            let origH = decoded.size.height * decoded.scale
-            let prepared: UIImage
-            if max(origW, origH) > maxDim * 1.25 {
-                let ratio = min(maxDim / max(1, origW), maxDim / max(1, origH))
-                let targetSize = CGSize(width: max(1, floor(origW * ratio)), height: max(1, floor(origH * ratio)))
-                prepared = await decoded.byPreparingThumbnail(ofSize: targetSize) ?? decoded
-            } else {
-                prepared = await decoded.byPreparingForDisplay() ?? decoded
-            }
+                let maxDim = CGFloat(bucket)
+                let origW = decoded.size.width * decoded.scale
+                let origH = decoded.size.height * decoded.scale
+                let prepared: UIImage
+                if max(origW, origH) > maxDim * 1.25 {
+                    let ratio = min(maxDim / max(1, origW), maxDim / max(1, origH))
+                    let targetSize = CGSize(width: max(1, floor(origW * ratio)), height: max(1, floor(origH * ratio)))
+                    prepared = await decoded.byPreparingThumbnail(ofSize: targetSize) ?? decoded
+                } else {
+                    prepared = await decoded.byPreparingForDisplay() ?? decoded
+                }
 
-            let cost = Int(prepared.size.width * prepared.size.height * prepared.scale * prepared.scale * 4)
-            self.cache.setObject(prepared, forKey: key as NSString, cost: max(1024, cost))
-            return prepared
+                let cost = Int(prepared.size.width * prepared.size.height * prepared.scale * prepared.scale * 4)
+                self.cache.setObject(prepared, forKey: key as NSString, cost: max(1024, cost))
+                return prepared
+            }
         }
 
-        inFlightTasks[key] = task
-        lock.unlock()
+        let task: Task<UIImage?, Never>
+        switch lookup {
+        case .recentlyFailed:
+            return nil
+        case .task(let active):
+            task = active
+        }
 
         let result = await task.value
-
-        lock.lock()
-        inFlightTasks.removeValue(forKey: key)
-        lock.unlock()
-
+        finishInFlightTask(key: key, urlString: urlStr, succeeded: result != nil)
         return result
     }
 }

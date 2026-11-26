@@ -57,13 +57,60 @@ actor LyricsService {
                 durationSec: track.durationSec
             ) {
                 let enriched = LyricsIntelligenceService.enrichWithOnDeviceRomanization(found)
-                memoryCache[track.id] = enriched
-                saveToDisk(enriched)
+                cachePayload(enriched, trackId: track.id, allowDiskOverwrite: preferredSource == nil)
+                return enriched
+            }
+        }
+
+        if preferredSource == nil {
+            let leadArtist = cleanArtist
+                .replacingOccurrences(of: " feat. ", with: ",", options: .caseInsensitive)
+                .replacingOccurrences(of: " ft. ", with: ",", options: .caseInsensitive)
+                .replacingOccurrences(of: " & ", with: ",")
+                .replacingOccurrences(of: " x ", with: ",", options: .caseInsensitive)
+                .components(separatedBy: ",")
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? cleanArtist
+            let bareTitle = cleanTitle
+                .components(separatedBy: " - ")
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? cleanTitle
+
+            if (leadArtist != cleanArtist || bareTitle != cleanTitle),
+               !bareTitle.isEmpty,
+               let fallbackFound = await queryLRCLibSearch(
+                   trackId: track.id,
+                   title: bareTitle,
+                   artist: leadArtist,
+                   durationSec: track.durationSec
+               ) {
+                let enriched = LyricsIntelligenceService.enrichWithOnDeviceRomanization(fallbackFound)
+                cachePayload(enriched, trackId: track.id, allowDiskOverwrite: true)
                 return enriched
             }
         }
 
         return nil
+    }
+
+    private func cachePayload(_ payload: LyricsPayload, trackId: String, allowDiskOverwrite: Bool) {
+        if memoryCache.count >= 80, let firstKey = memoryCache.keys.first {
+            memoryCache.removeValue(forKey: firstKey)
+        }
+        if allowDiskOverwrite {
+            memoryCache[trackId] = payload
+            saveToDisk(payload)
+        } else if let existing = loadFromDisk(trackId: trackId) {
+            let newRank = payload.wordSynced ? 3 : (payload.synced ? 2 : 1)
+            let oldRank = existing.wordSynced ? 3 : (existing.synced ? 2 : 1)
+            if newRank >= oldRank {
+                memoryCache[trackId] = payload
+                saveToDisk(payload)
+            }
+        } else {
+            memoryCache[trackId] = payload
+            saveToDisk(payload)
+        }
     }
 
     private func querySource(

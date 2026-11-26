@@ -81,11 +81,18 @@ final class AudioPlayerEngine: ObservableObject {
     private var stallObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loadTask: Task<Void, Never>?
+    private var lyricsTask: Task<Void, Never>?
+    private var artworkTask: Task<Void, Never>?
     private var motionTask: Task<Void, Never>?
     private var prewarmTask: Task<Void, Never>?
     private var autoSkipTask: Task<Void, Never>?
     private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
+    private var transitionBgTask: UIBackgroundTaskIdentifier = .invalid
+
+    private var cachedAutoMixEnabled: Bool = false
+    private var cachedAutoMixSeconds: Double = 6.0
+    private var cachedAutoMixStyle: AutoMixStyle = .smartBlend
 
     private var lockScreenTimer: DispatchSourceTimer?
     private var lastLockScreenSubtitle: String?
@@ -117,11 +124,40 @@ final class AudioPlayerEngine: ObservableObject {
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
         playbackRate = Float(AudioEffectsEngine.shared.playbackSpeed)
+        syncCachedAutoMixPreferences()
         configureAudioSession()
         configureRemoteCommands()
         installTimeObserver()
         installNotifications()
         wireAudioEffectsAndGestures()
+    }
+
+    private func syncCachedAutoMixPreferences() {
+        let wasEnabled = cachedAutoMixEnabled
+        cachedAutoMixEnabled = UserDefaults.standard.bool(forKey: "derbis.autoMixEnabled")
+        let rawSec = UserDefaults.standard.double(forKey: "derbis.autoMixSeconds")
+        cachedAutoMixSeconds = min(12.0, max(1.0, rawSec > 0 ? rawSec : 6.0))
+        let rawStyle = UserDefaults.standard.string(forKey: "derbis.autoMixStyle") ?? AutoMixStyle.smartBlend.rawValue
+        cachedAutoMixStyle = AutoMixStyle(rawValue: rawStyle) ?? .smartBlend
+        if wasEnabled && !cachedAutoMixEnabled && fadeInRampTask == nil && player.volume < 0.99 {
+            player.volume = 1.0
+        }
+    }
+
+    private func beginTransitionBackgroundGuard() {
+        endTransitionBackgroundGuard()
+        transitionBgTask = UIApplication.shared.beginBackgroundTask(withName: "DerbisTrackTransition") { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.endTransitionBackgroundGuard()
+            }
+        }
+    }
+
+    private func endTransitionBackgroundGuard() {
+        guard transitionBgTask != .invalid else { return }
+        let token = transitionBgTask
+        transitionBgTask = .invalid
+        UIApplication.shared.endBackgroundTask(token)
     }
 
     private func wireAudioEffectsAndGestures() {
@@ -415,6 +451,12 @@ final class AudioPlayerEngine: ObservableObject {
             return
         }
         let cm = CMTime(seconds: clamped, preferredTimescale: 600)
+        fadeInRampTask?.cancel()
+        fadeInRampTask = nil
+        if player.volume < 0.99 {
+            player.volume = 1.0
+        }
+        autoMixTriggeredForCurrentItem = false
         player.currentItem?.cancelPendingSeeks()
         player.seek(to: cm, toleranceBefore: .zero, toleranceAfter: .zero)
         PlaybackClock.shared.currentTime = clamped
@@ -496,12 +538,15 @@ final class AudioPlayerEngine: ObservableObject {
         AudioEffectsEngine.shared.markCurrentStreamTapActive(false)
 
         loadTask?.cancel()
+        lyricsTask?.cancel()
+        artworkTask?.cancel()
         prewarmTask?.cancel()
         autoSkipTask?.cancel()
         stallWatchdogTask?.cancel()
         statusObservation?.invalidate()
         player.pause()
         player.replaceCurrentItem(with: nil)
+        beginTransitionBackgroundGuard()
 
         let preferHQ = UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil
             ? true
@@ -514,8 +559,8 @@ final class AudioPlayerEngine: ObservableObject {
             : UserDefaults.standard.bool(forKey: "derbis.endlessRadio")
 
         if !isSameTrackResume {
-            Task {
-                await loadArtworkAndPalette(for: track)
+            artworkTask = Task { [weak self] in
+                await self?.loadArtworkAndPalette(for: track)
             }
             if autoLyrics {
                 loadLyrics(for: track)
@@ -563,6 +608,7 @@ final class AudioPlayerEngine: ObservableObject {
     }
 
     private func handleTerminalPlaybackFailure(for track: Track) {
+        endTransitionBackgroundGuard()
         isRecovering = false
         isLoading = false
         isPlaying = false
@@ -673,22 +719,43 @@ final class AudioPlayerEngine: ObservableObject {
                 return
             }
 
-            if self.recoveryPass < 2 && track.source == .youtubeMusic {
+            if self.recoveryPass < 2 {
                 self.recoveryPass += 1
                 let preferHQ = UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil
                     ? true
                     : UserDefaults.standard.bool(forKey: "derbis.highQualityAudio")
 
-                if let freshLadder = try? await self.resolveCandidateLadder(
-                    for: track,
-                    preferHighQuality: preferHQ,
-                    forceRefresh: true
-                ), let firstFresh = freshLadder.first {
+                if track.source == .youtubeMusic,
+                   let freshLadder = try? await self.resolveCandidateLadder(
+                       for: track,
+                       preferHighQuality: preferHQ,
+                       forceRefresh: true
+                   ), let firstFresh = freshLadder.first {
                     guard self.currentTrack?.id == track.id else { return }
                     self.activeCandidates = freshLadder
                     self.candidateCursor = 0
                     self.isRecovering = false
                     self.mountCandidate(firstFresh, for: track, resumeSeconds: resumeSeconds)
+                    return
+                }
+
+                if track.source != .youtubeMusic,
+                   let fallbackMatches = try? await InnerTubeService.shared.searchTracks(
+                       query: "\(track.title) \(track.artist)"
+                   ),
+                   let bestMatch = fallbackMatches.first,
+                   let fallbackLadder = try? await InnerTubeService.shared.resolveStreamCandidates(
+                       for: bestMatch,
+                       preferHighQuality: preferHQ,
+                       forceRefresh: false
+                   ),
+                   let firstFallback = fallbackLadder.first {
+                    guard self.currentTrack?.id == track.id else { return }
+                    self.activeCandidates = fallbackLadder
+                    self.candidateCursor = 0
+                    self.isRecovering = false
+                    self.showTransientBanner("Server unreachable — playing cloud fallback")
+                    self.mountCandidate(firstFallback, for: track, resumeSeconds: resumeSeconds)
                     return
                 }
             }
@@ -702,13 +769,15 @@ final class AudioPlayerEngine: ObservableObject {
         forceRefresh: Bool = false,
         preferredSource: LyricsSourceKind? = nil
     ) {
+        lyricsTask?.cancel()
         isLoadingLyrics = true
-        Task {
+        lyricsTask = Task { [weak self] in
             var result = await LyricsService.shared.fetchLyrics(
                 for: track,
                 forceRefresh: forceRefresh,
                 preferredSource: preferredSource
             )
+            guard !Task.isCancelled else { return }
             let wantTrans = UserDefaults.standard.bool(forKey: "derbis.showLyricsTranslation")
             if wantTrans, let existing = result, !existing.hasTranslation {
                 let rawLang = UserDefaults.standard.string(forKey: "derbis.lyricsTranslationLanguage") ?? "en"
@@ -718,7 +787,7 @@ final class AudioPlayerEngine: ObservableObject {
                     targetLanguage: lang
                 )
             }
-            guard self.currentTrack?.id == track.id else { return }
+            guard !Task.isCancelled, let self = self, self.currentTrack?.id == track.id else { return }
             self.currentLyrics = result
             self.updateActiveLyricIndex(at: self.currentTime)
             self.isLoadingLyrics = false
@@ -733,7 +802,7 @@ final class AudioPlayerEngine: ObservableObject {
                         lines: payload.lines,
                         filter: filter
                     )
-                    if self.currentTrack?.id == track.id {
+                    if !Task.isCancelled && self.currentTrack?.id == track.id {
                         self.currentGeniusMeanings = meanings
                     }
                 }
@@ -882,6 +951,7 @@ final class AudioPlayerEngine: ObservableObject {
                 guard let self = self, self.player.currentItem === observed else { return }
                 switch observed.status {
                 case .readyToPlay:
+                    self.endTransitionBackgroundGuard()
                     self.isLoading = false
                     self.consecutiveUnrecoverableFailures = 0
                     let assetSec = CMTimeGetSeconds(observed.duration)
@@ -954,15 +1024,34 @@ final class AudioPlayerEngine: ObservableObject {
 
     private func updateActiveLyricIndex(at timeSec: Double) {
         guard let payload = currentLyrics, payload.synced, !payload.lines.isEmpty else {
-            activeLyricIndex = nil
+            if activeLyricIndex != nil { activeLyricIndex = nil }
             return
         }
+        let lines = payload.lines
+        let target = timeSec + 0.16
+
+        if let cur = activeLyricIndex, lines.indices.contains(cur), target >= lines[cur].startTimeSec {
+            let nextIdx = cur + 1
+            if nextIdx >= lines.count || target < lines[nextIdx].startTimeSec {
+                return
+            }
+            let afterNext = nextIdx + 1
+            if afterNext >= lines.count || target < lines[afterNext].startTimeSec {
+                activeLyricIndex = nextIdx
+                return
+            }
+        }
+
+        var lo = 0
+        var hi = lines.count - 1
         var active: Int?
-        for (idx, line) in payload.lines.enumerated() {
-            if timeSec + 0.16 >= line.startTimeSec {
-                active = idx
+        while lo <= hi {
+            let mid = (lo + hi) >> 1
+            if target >= lines[mid].startTimeSec {
+                active = mid
+                lo = mid + 1
             } else {
-                break
+                hi = mid - 1
             }
         }
         if activeLyricIndex != active {
@@ -1011,9 +1100,14 @@ final class AudioPlayerEngine: ObservableObject {
                        self.repeatMode != .one,
                        !JamService.shared.isGuest,
                        self.queue.count > 1,
-                       UserDefaults.standard.bool(forKey: "derbis.autoMixEnabled") {
-                        let rawMixSec = UserDefaults.standard.double(forKey: "derbis.autoMixSeconds")
-                        let mixWindow = min(12.0, max(1.0, rawMixSec > 0 ? rawMixSec : 6.0))
+                       self.cachedAutoMixEnabled {
+                        let baseMix = self.cachedAutoMixSeconds
+                        let mixWindow: Double = {
+                            if self.cachedAutoMixStyle == .smartBlend && self.duration < 160.0 {
+                                return min(baseMix, max(2.5, baseMix * 0.68))
+                            }
+                            return baseMix
+                        }()
                         let remaining = self.duration - sec
                         if remaining > 0.35 && remaining <= mixWindow {
                             let progress = 1.0 - (remaining / mixWindow)
@@ -1026,6 +1120,8 @@ final class AudioPlayerEngine: ObservableObject {
                         } else if remaining > mixWindow && self.player.volume < 0.99 && self.fadeInRampTask == nil {
                             self.player.volume = 1.0
                         }
+                    } else if self.player.volume < 0.99 && self.fadeInRampTask == nil {
+                        self.player.volume = 1.0
                     }
                 }
                 if let item = self.player.currentItem {
@@ -1273,6 +1369,16 @@ final class AudioPlayerEngine: ObservableObject {
                 self.player.pause()
                 self.isPlaying = false
                 self.updateNowPlayingMetadata()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.syncCachedAutoMixPreferences()
             }
         }
 

@@ -93,7 +93,48 @@ actor InnerTubeService {
                 combined.append(track)
             }
         }
+        if combined.isEmpty,
+           let androidFallback = try? await performAndroidMusicSearchFallback(query: trimmed) {
+            for track in androidFallback where seen.insert(track.id).inserted {
+                combined.append(track)
+            }
+        }
         return Array(combined.prefix(40))
+    }
+
+    private func performAndroidMusicSearchFallback(query: String) async throws -> [Track] {
+        guard let url = URL(string: "https://music.youtube.com/youtubei/v1/search?prettyPrint=false") else {
+            return []
+        }
+        let body: [String: Any] = [
+            "context": [
+                "client": [
+                    "clientName": "ANDROID_MUSIC",
+                    "clientVersion": "8.10.52",
+                    "androidSdkVersion": 35,
+                    "osName": "Android",
+                    "osVersion": "15",
+                    "hl": effectiveLanguageCode,
+                    "gl": effectiveCountryCode
+                ]
+            ],
+            "query": query
+        ]
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("com.google.android.apps.youtube.music/8.10.52 (Linux; U; Android 15) gzip", forHTTPHeaderField: "User-Agent")
+        request.setValue("21", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue("8.10.52", forHTTPHeaderField: "X-YouTube-Client-Version")
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, _) = try await session.data(for: request)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+        var collected: [Track] = []
+        collectTracksFromJSON(json, into: &collected)
+        return collected
     }
 
     func searchSuggestions(query: String) async -> [String] {
@@ -1166,6 +1207,55 @@ actor InnerTubeService {
                 return collected
             }
         }
+
+        let invidiousBases = [
+            "https://inv.nadeko.net",
+            "https://invidious.nerdvpn.de",
+            "https://yewtu.be"
+        ]
+        for base in invidiousBases {
+            guard let url = URL(string: "\(base)/api/v1/videos/\(videoId)?fields=adaptiveFormats") else { continue }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 5
+            req.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
+            guard let (data, resp) = try? await probeSession.data(for: req),
+                  let http = resp as? HTTPURLResponse,
+                  http.statusCode == 200,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let formats = json["adaptiveFormats"] as? [[String: Any]] else {
+                continue
+            }
+
+            var m4aItems: [(URL, Int)] = []
+            for item in formats {
+                let typeStr = ((item["type"] as? String) ?? "").lowercased()
+                guard typeStr.contains("audio/mp4"),
+                      let uStr = item["url"] as? String,
+                      let u = URL(string: uStr) else {
+                    continue
+                }
+                let bpsRaw = (item["bitrate"] as? String).flatMap(Int.init) ?? (item["bitrate"] as? Int) ?? 128_000
+                m4aItems.append((u, max(64, bpsRaw / 1000)))
+            }
+            m4aItems.sort { preferHighQuality ? ($0.1 > $1.1) : ($0.1 < $1.1) }
+            for pick in m4aItems.prefix(2) {
+                collected.append(
+                    ResolvedStream(
+                        url: pick.0,
+                        headers: ["User-Agent": webUserAgent, "Accept": "*/*", "Accept-Encoding": "identity"],
+                        codecBadge: "AAC \(pick.1) kbps",
+                        bitrateKbps: pick.1,
+                        isDirectFile: true,
+                        clientLabel: "INVIDIOUS_MIRROR",
+                        expiresAt: expirationDate(for: pick.0)
+                    )
+                )
+            }
+            if !collected.isEmpty {
+                return collected
+            }
+        }
+
         return nil
     }
 
@@ -1302,6 +1392,20 @@ actor InnerTubeService {
         let now = Date()
         quarantinedURLs = quarantinedURLs.filter { $0.value > now }
         quarantinedClients = quarantinedClients.filter { $0.value > now }
+
+        if resolvedCache.count > 60 {
+            for (k, list) in resolvedCache {
+                let valid = list.filter { $0.isFresh && !isURLQuarantined($0.url) }
+                if valid.isEmpty {
+                    resolvedCache.removeValue(forKey: k)
+                } else {
+                    resolvedCache[k] = valid
+                }
+            }
+            while resolvedCache.count > 120, let firstKey = resolvedCache.keys.first {
+                resolvedCache.removeValue(forKey: firstKey)
+            }
+        }
     }
 
     private func generateNonce(length: Int) -> String {

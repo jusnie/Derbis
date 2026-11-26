@@ -38,6 +38,8 @@ struct HomeView: View {
                                     .padding(.vertical, 36)
                                 Spacer()
                             }
+                        } else if displayShelves.isEmpty {
+                            offlineFallbackCard
                         } else {
                             ForEach(displayShelves) { shelf in
                                 shelfSection(shelf)
@@ -81,6 +83,60 @@ struct HomeView: View {
 
     private var displayShelves: [HomeShelf] {
         shelves.isEmpty ? library.cachedHomeShelves : shelves
+    }
+
+    private var offlineFallbackCard: some View {
+        let onDeviceTracks = library.offlineTracks + library.localTracks
+        return VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundColor(theme.accent)
+
+            Text("Couldn't reach discovery feed")
+                .font(theme.font(size: 16, weight: .bold))
+                .foregroundColor(theme.primaryText)
+
+            Text("Check your connection to load fresh shelves, or play your saved offline tracks immediately.")
+                .font(theme.font(size: 13))
+                .foregroundColor(theme.secondaryText)
+                .multilineTextAlignment(.center)
+
+            HStack(spacing: 10) {
+                Button {
+                    HapticsAndGesturesService.shared.playControlTap(style: .light)
+                    Task { await reloadFeed(force: true) }
+                } label: {
+                    Label("Retry Feed", systemImage: "arrow.clockwise")
+                        .font(theme.font(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 9)
+                        .derbisGlassCapsule(prominent: true)
+                }
+                .buttonStyle(.plain)
+
+                if !onDeviceTracks.isEmpty {
+                    Button {
+                        HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                        if let first = onDeviceTracks.first {
+                            player.play(track: first, in: onDeviceTracks)
+                        }
+                    } label: {
+                        Label("Play Offline (\(onDeviceTracks.count))", systemImage: "play.fill")
+                            .font(theme.font(size: 13, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 9)
+                            .derbisGlassCapsule()
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(24)
+        .derbisCard()
     }
 
     private var headerBar: some View {

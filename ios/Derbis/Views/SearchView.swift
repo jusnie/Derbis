@@ -2,14 +2,17 @@ import SwiftUI
 
 struct SearchView: View {
     @EnvironmentObject private var player: AudioPlayerEngine
+    @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var theme: ThemeManager
     @EnvironmentObject private var subsonic: SubsonicService
 
     @State private var query: String = ""
     @State private var results: [Track] = []
     @State private var serverResults: [Track] = []
+    @State private var localResults: [Track] = []
     @State private var suggestions: [String] = []
     @State private var isSearching: Bool = false
+    @State private var hasSearchedCurrentQuery: Bool = false
     @State private var recentQueries: [String] = UserDefaults.standard.stringArray(forKey: "derbis.recentQueries") ?? [
         "Cup of Joe", "Frank Ocean", "NIKI", "Daft Punk", "Bini", "The Weeknd"
     ]
@@ -41,6 +44,21 @@ struct SearchView: View {
                                             .tint(theme.accent)
                                             .padding(.vertical, 32)
                                         Spacer()
+                                    }
+                                }
+
+                                if !localResults.isEmpty {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        Text("In your library & offline")
+                                            .font(theme.font(size: 17, weight: .bold))
+                                            .foregroundColor(theme.primaryText)
+                                        LazyVStack(spacing: 2) {
+                                            ForEach(localResults) { track in
+                                                TrackRowView(track: track, contextQueue: localResults)
+                                            }
+                                        }
+                                        .padding(.vertical, 6)
+                                        .derbisCard()
                                     }
                                 }
 
@@ -78,6 +96,32 @@ struct SearchView: View {
                                         .padding(.vertical, 6)
                                         .derbisCard()
                                     }
+                                } else if hasSearchedCurrentQuery && !isSearching && serverResults.isEmpty && localResults.isEmpty {
+                                    VStack(spacing: 10) {
+                                        Image(systemName: "magnifyingglass")
+                                            .font(.system(size: 26, weight: .semibold))
+                                            .foregroundColor(theme.accent)
+                                        Text("No matches found")
+                                            .font(theme.font(size: 16, weight: .bold))
+                                            .foregroundColor(theme.primaryText)
+                                        Text("Check spelling or connection and try again.")
+                                            .font(theme.font(size: 13))
+                                            .foregroundColor(theme.secondaryText)
+                                        Button {
+                                            executeSearch(for: query, saveRecent: false)
+                                        } label: {
+                                            Label("Retry Search", systemImage: "arrow.clockwise")
+                                                .font(theme.font(size: 13, weight: .bold))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 8)
+                                                .derbisGlassCapsule(prominent: true)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(24)
+                                    .derbisCard()
                                 }
                             }
                         }
@@ -122,10 +166,14 @@ struct SearchView: View {
 
             if !query.isEmpty {
                 Button {
+                    searchTask?.cancel()
                     query = ""
                     results = []
                     serverResults = []
+                    localResults = []
                     suggestions = []
+                    isSearching = false
+                    hasSearchedCurrentQuery = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(theme.secondaryText)
@@ -271,32 +319,67 @@ struct SearchView: View {
         }
     }
 
+    private func filterLocalLibrary(matching trimmed: String) -> [Track] {
+        var seen = Set<String>()
+        var matches: [Track] = []
+        let pool = library.offlineTracks + library.localTracks + library.likedTracks
+        for track in pool {
+            guard seen.insert(track.id).inserted else { continue }
+            if track.title.localizedCaseInsensitiveContains(trimmed)
+                || track.artist.localizedCaseInsensitiveContains(trimmed)
+                || track.album.localizedCaseInsensitiveContains(trimmed) {
+                matches.append(track)
+            }
+            if matches.count >= 8 { break }
+        }
+        return matches
+    }
+
     private func scheduleSuggestions(for input: String) {
         searchTask?.cancel()
+        hasSearchedCurrentQuery = false
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 2 else {
             suggestions = []
+            localResults = []
             return
         }
+        localResults = filterLocalLibrary(matching: trimmed)
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 260_000_000)
+            try? await Task.sleep(nanoseconds: 240_000_000)
             guard !Task.isCancelled else { return }
             let fetched = await InnerTubeService.shared.searchSuggestions(query: trimmed)
             guard !Task.isCancelled else { return }
             suggestions = fetched
+
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            guard !Task.isCancelled else { return }
+            isSearching = true
+            let connected = subsonic.isConnected
+            async let ytFetch = InnerTubeService.shared.searchTracks(query: trimmed)
+            let sub = connected ? await subsonic.search(query: trimmed) : []
+            let yt = (try? await ytFetch) ?? []
+            guard !Task.isCancelled else { return }
+            results = yt
+            serverResults = sub
+            hasSearchedCurrentQuery = true
+            isSearching = false
         }
     }
 
-    private func executeSearch(for raw: String) {
+    private func executeSearch(for raw: String, saveRecent: Bool = true) {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        var updatedRecent = recentQueries.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }
-        updatedRecent.insert(trimmed, at: 0)
-        recentQueries = Array(updatedRecent.prefix(10))
-        UserDefaults.standard.set(recentQueries, forKey: "derbis.recentQueries")
+        if saveRecent {
+            var updatedRecent = recentQueries.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }
+            updatedRecent.insert(trimmed, at: 0)
+            recentQueries = Array(updatedRecent.prefix(10))
+            UserDefaults.standard.set(recentQueries, forKey: "derbis.recentQueries")
+        }
 
         searchTask?.cancel()
+        localResults = filterLocalLibrary(matching: trimmed)
         isSearching = true
         suggestions = []
 
@@ -308,6 +391,7 @@ struct SearchView: View {
             guard !Task.isCancelled else { return }
             results = yt
             serverResults = sub
+            hasSearchedCurrentQuery = true
             isSearching = false
         }
     }

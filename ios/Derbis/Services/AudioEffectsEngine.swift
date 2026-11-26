@@ -692,6 +692,13 @@ final class AudioEffectsEngine: ObservableObject {
 
     func markCurrentStreamTapActive(_ active: Bool) {
         dspTapActiveOnCurrentStream = active
+        if !active {
+            os_unfair_lock_lock(Self.beatLock)
+            Self.beatMailboxPtr.pointee.visLow = 0
+            Self.beatMailboxPtr.pointee.visMid = 0
+            Self.beatMailboxPtr.pointee.visHigh = 0
+            os_unfair_lock_unlock(Self.beatLock)
+        }
     }
 
     func preferredPitchAlgorithm(isHLS: Bool) -> AVAudioTimePitchAlgorithm {
@@ -810,11 +817,22 @@ final class AudioEffectsEngine: ObservableObject {
         sharedParamsPtr.pointee.visualizerEnabled = active
         sharedParamsPtr.pointee.generation &+= 1
         os_unfair_lock_unlock(paramLock)
+
+        if !active {
+            os_unfair_lock_lock(beatLock)
+            beatMailboxPtr.pointee.visLow = 0
+            beatMailboxPtr.pointee.visMid = 0
+            beatMailboxPtr.pointee.visHigh = 0
+            os_unfair_lock_unlock(beatLock)
+        }
     }
 
     nonisolated static func readVisualizerLevels() -> (low: Float, mid: Float, high: Float) {
         guard os_unfair_lock_trylock(beatLock) else { return (0, 0, 0) }
         let box = beatMailboxPtr.pointee
+        beatMailboxPtr.pointee.visLow *= 0.94
+        beatMailboxPtr.pointee.visMid *= 0.94
+        beatMailboxPtr.pointee.visHigh *= 0.94
         os_unfair_lock_unlock(beatLock)
         return (box.visLow, box.visMid, box.visHigh)
     }
@@ -827,7 +845,8 @@ final class AudioEffectsEngine: ObservableObject {
 
         if !active {
             os_unfair_lock_lock(beatLock)
-            beatMailboxPtr.pointee = SharedBeatMailbox()
+            beatMailboxPtr.pointee.kickPeak = 0
+            beatMailboxPtr.pointee.snapPeak = 0
             os_unfair_lock_unlock(beatLock)
         }
     }
@@ -835,7 +854,8 @@ final class AudioEffectsEngine: ObservableObject {
     nonisolated static func consumeDetectedBeatHits() -> DetectedBeatHits {
         guard os_unfair_lock_trylock(beatLock) else { return DetectedBeatHits() }
         let box = beatMailboxPtr.pointee
-        beatMailboxPtr.pointee = SharedBeatMailbox()
+        beatMailboxPtr.pointee.kickPeak = 0
+        beatMailboxPtr.pointee.snapPeak = 0
         os_unfair_lock_unlock(beatLock)
         return DetectedBeatHits(kick: box.kickPeak, snap: box.snapPeak)
     }
@@ -1193,8 +1213,12 @@ final class AudioEffectsEngine: ObservableObject {
 
             let wet = params.reverbWet
             let dry = 1.0 - wet * 0.35
-            l = l * dry + wetL * wet
-            r = r * dry + wetR * wet
+            if wetL.isFinite && wetR.isFinite {
+                l = l * dry + wetL * wet
+                r = r * dry + wetR * wet
+            } else {
+                storage.resetStates()
+            }
         }
 
         l = RealtimeTapStorage.softSaturate(l, warm: params.warmTubeEnabled)

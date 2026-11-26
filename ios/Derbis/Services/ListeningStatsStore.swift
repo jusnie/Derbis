@@ -64,10 +64,17 @@ final class ListeningStatsStore: ObservableObject {
         didSet { UserDefaults.standard.set(recordPlaysEnabled, forKey: "derbis.stats.recordPlays") }
     }
 
-    @Published private(set) var events: [PlayLogEvent] = []
+    @Published private(set) var events: [PlayLogEvent] = [] {
+        didSet {
+            summaryCache.removeAll()
+        }
+    }
     @Published private(set) var isImporting: Bool = false
 
     private static let maxStoredEvents = 50_000
+    private var summaryCache: [String: (timestamp: Date, summary: PeriodStatsSummary)] = [:]
+    private var saveWorkTask: Task<Void, Never>?
+    private let persistenceQueue = DispatchQueue(label: "com.derbis.stats.persistence", qos: .utility)
 
     private init() {
         if UserDefaults.standard.object(forKey: "derbis.stats.recordPlays") == nil {
@@ -119,6 +126,11 @@ final class ListeningStatsStore: ObservableObject {
     }
 
     func summary(for period: StatsPeriod, limit: Int = 25) -> PeriodStatsSummary {
+        let cacheKey = "\(period.rawValue)|\(limit)"
+        if let cached = summaryCache[cacheKey], Date().timeIntervalSince(cached.timestamp) < 60 {
+            return cached.summary
+        }
+
         let cutoff = cutoffEpoch(for: period)
         let filtered = events.filter { $0.endedAtEpochSec >= cutoff }
 
@@ -189,7 +201,7 @@ final class ListeningStatsStore: ObservableObject {
             }
         }
 
-        return PeriodStatsSummary(
+        let computed = PeriodStatsSummary(
             period: period,
             totalPlayedMs: totalMs,
             totalPlays: filtered.count,
@@ -197,6 +209,8 @@ final class ListeningStatsStore: ObservableObject {
             topArtists: rank(artistMap),
             topAlbums: rank(albumMap)
         )
+        summaryCache[cacheKey] = (Date(), computed)
+        return computed
     }
 
     func importSpotifyExportFiles(urls: [URL]) async -> (added: Int, skipped: Int) {
@@ -343,8 +357,18 @@ final class ListeningStatsStore: ObservableObject {
     }
 
     private func saveToDisk() {
-        guard let url = storageURL(),
-              let data = try? JSONEncoder().encode(events) else { return }
-        try? data.write(to: url, options: .atomic)
+        saveWorkTask?.cancel()
+        let snapshot = events
+        guard let url = storageURL() else { return }
+        let queue = persistenceQueue
+        saveWorkTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            queue.async {
+                if let data = try? JSONEncoder().encode(snapshot) {
+                    try? data.write(to: url, options: .atomic)
+                }
+            }
+        }
     }
 }
