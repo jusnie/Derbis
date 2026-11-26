@@ -26,7 +26,6 @@ struct RootView: View {
     @State private var showingFullPlayer: Bool = false
     @State private var isTabBarMinimized: Bool = false
     @State private var miniDragOffset: CGFloat = 0
-    @Namespace private var glassDockNamespace
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -258,41 +257,33 @@ struct RootView: View {
         )
     }
 
-    private var liquidGlassTabBar: some View {
-        HStack(spacing: 4) {
-            ForEach(MainTab.allCases) { tab in
-                let selected = activeTab == tab
-                Button {
-                    guard activeTab != tab else { return }
-                    HapticsAndGesturesService.shared.playSelectionTick()
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                        activeTab = tab
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 17, weight: selected ? .bold : .medium))
-                        Text(tab.rawValue)
-                            .font(theme.font(size: 10.5, weight: selected ? .bold : .medium))
-                    }
-                    .foregroundColor(selected ? .white : Color.white.opacity(0.62))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background {
-                        if selected {
-                            Capsule()
-                                .fill(theme.accent.opacity(0.82))
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(Color.white.opacity(0.32), lineWidth: 0.7)
-                                )
-                                .matchedGeometryEffect(id: "tabSelectionPill", in: glassDockNamespace)
-                        }
-                    }
-                    .contentShape(Rectangle())
+    private var tabBarSpecs: [TaurusTabBarItemSpec] {
+        MainTab.allCases.enumerated().map { idx, tab in
+            TaurusTabBarItemSpec(id: idx, title: tab.rawValue, symbol: tab.icon)
+        }
+    }
+
+    private var selectedTabIndexBinding: Binding<Int> {
+        Binding<Int>(
+            get: {
+                MainTab.allCases.firstIndex(of: activeTab) ?? 0
+            },
+            set: { newIdx in
+                guard MainTab.allCases.indices.contains(newIdx) else { return }
+                let chosen = MainTab.allCases[newIdx]
+                if activeTab != chosen {
+                    activeTab = chosen
                 }
-                .buttonStyle(.plain)
             }
+        )
+    }
+
+    private var liquidGlassTabBar: some View {
+        HStack(spacing: 10) {
+            TaurusLiquidGlassTabBar(
+                items: tabBarSpecs,
+                selectedId: selectedTabIndexBinding
+            )
 
             if theme.tabBarMinimizesOnScroll, player.currentTrack != nil {
                 Button {
@@ -302,31 +293,13 @@ struct RootView: View {
                     }
                 } label: {
                     Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(Color.white.opacity(0.75))
-                        .frame(width: 34, height: 38)
-                        .contentShape(Rectangle())
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white.opacity(0.88))
+                        .derbisGlassCircle(size: 56, interactive: true)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 5)
-        .derbisGlassCapsule(interactive: false)
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 20)
-                .onEnded { value in
-                    if theme.tabBarMinimizesOnScroll,
-                       player.currentTrack != nil,
-                       value.translation.height > 24,
-                       abs(value.translation.height) > abs(value.translation.width) {
-                        HapticsAndGesturesService.shared.playSelectionTick()
-                        withAnimation(.spring(response: 0.36, dampingFraction: 0.82)) {
-                            isTabBarMinimized = true
-                        }
-                    }
-                }
-        )
     }
 
     private var classicBottomChrome: some View {
