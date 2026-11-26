@@ -87,9 +87,9 @@ final class ArtworkImageCache: @unchecked Sendable {
             if max(origW, origH) > maxDim * 1.25 {
                 let ratio = min(maxDim / max(1, origW), maxDim / max(1, origH))
                 let targetSize = CGSize(width: max(1, floor(origW * ratio)), height: max(1, floor(origH * ratio)))
-                prepared = decoded.preparingThumbnail(of: targetSize) ?? decoded
+                prepared = await decoded.byPreparingThumbnail(of: targetSize) ?? decoded
             } else {
-                prepared = decoded.byPreparingForDisplay() ?? decoded
+                prepared = await decoded.byPreparingForDisplay() ?? decoded
             }
 
             let cost = Int(prepared.size.width * prepared.size.height * prepared.scale * prepared.scale * 4)
