@@ -319,29 +319,19 @@ enum MotionCanvasStyle: String, Codable, CaseIterable, Identifiable, Sendable {
 }
 
 enum PlayerBackdropStyle: String, Codable, CaseIterable, Identifiable, Sendable {
-    case animated = "animated"
-    case fill = "fill"
-    case fluid = "fluid"
-    case ambient = "ambient"
-    case still = "still"
+    case animated = "Motion"
+    case fill = "Fill"
+    case fluid = "Fluid"
+    case ambient = "Ambient"
+    case still = "Minimal"
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .animated: return "Canvas"
-        case .fill: return "Fill"
-        case .fluid: return "Fluid"
-        case .ambient: return "Ambient"
-        case .still: return "Still"
-        }
-    }
-
     var subtitle: String {
         switch self {
-        case .animated: return "Motion Canvas with progressive Fill fallback"
-        case .fill: return "Full-bleed cover dissolving through layered blur"
-        case .fluid: return "Drifting multi-color mesh sampled from cover art"
+        case .animated: return "Motion Canvas with progressive ambient fallback"
+        case .fill: return "Full-bleed cover dissolving through progressive dark fade"
+        case .fluid: return "Drifting multi-color aura sampled from cover art"
         case .ambient: return "Soft blurred cover wash over dark glass"
         case .still: return "Clean minimal surface with zero backdrop motion"
         }
@@ -349,66 +339,42 @@ enum PlayerBackdropStyle: String, Codable, CaseIterable, Identifiable, Sendable 
 }
 
 enum MusicHapticsMode: String, Codable, CaseIterable, Identifiable, Sendable {
-    case everything = "everything"
-    case beat = "beat"
-    case bass = "bass"
+    case off = "Off"
+    case subtle = "Subtle"
+    case balanced = "Balanced"
+    case dynamic = "Dynamic"
+    case bassOnly = "Bass"
 
     var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .everything: return "Everything"
-        case .beat: return "Beat"
-        case .bass: return "Bass"
-        }
-    }
 }
 
 enum HeadNodAction: String, Codable, CaseIterable, Identifiable, Sendable {
-    case playPause = "play_pause"
-    case likeTrack = "like_track"
+    case none = "Disabled"
+    case playPause = "Play / Pause"
+    case nextTrack = "Next Track"
+    case previousTrack = "Previous Track"
+    case toggleLike = "Like / Unlike"
 
     var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .playPause: return "Play / Pause"
-        case .likeTrack: return "Like track"
-        }
-    }
 }
 
 enum EqualizerPreset: String, Codable, CaseIterable, Identifiable, Sendable {
-    case flat = "flat"
-    case harman = "harman"
-    case bassBoost = "bass_boost"
-    case vocalClarity = "vocal"
-    case lateNightWarm = "late_night"
-    case vShape = "v_shape"
-    case acoustic = "acoustic"
-    case electronic = "electronic"
-    case custom = "custom"
+    case flat = "Flat"
+    case harman = "Harman"
+    case bassBoost = "Bass Boost"
+    case vocalClarity = "Vocal"
+    case lateNightWarm = "Late Night"
+    case vShape = "V-Shape"
+    case acoustic = "Acoustic"
+    case electronic = "Electronic"
+    case custom = "Custom"
 
     var id: String { rawValue }
 
-    var title: String {
-        switch self {
-        case .flat: return "Flat"
-        case .harman: return "Harman"
-        case .bassBoost: return "Bass"
-        case .vocalClarity: return "Vocal"
-        case .lateNightWarm: return "Warm"
-        case .vShape: return "V-Shape"
-        case .acoustic: return "Acoustic"
-        case .electronic: return "Electronic"
-        case .custom: return "Custom"
-        }
-    }
+    static let bandFrequencies: [Double] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+    static let bandLabels: [String] = ["32", "64", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"]
 
-    static let frequencies: [Double] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-    static let shortLabels: [String] = ["32", "64", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"]
-
-    var defaultGains: [Double] {
+    var gains: [Double] {
         switch self {
         case .flat, .custom:
             return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -50,10 +50,12 @@ final class HapticsAndGesturesService: ObservableObject {
     }
 
     @Published private(set) var headphonesConnected: Bool = false
-    @Published private(set) var headTrackingSupported: Bool = CMHeadphoneMotionManager.isDeviceMotionAvailable
+    @Published private(set) var headTrackingSupported: Bool = false
     @Published private(set) var lastGestureToast: String?
 
     var onHeadGestureAction: ((HeadNodAction) -> Void)?
+
+    private let capabilityProbe = CMHeadphoneMotionManager()
 
     private var hapticEngine: CHHapticEngine?
     private var hapticEngineRunning: Bool = false
@@ -92,6 +94,7 @@ final class HapticsAndGesturesService: ObservableObject {
 
         let savedSens = UserDefaults.standard.object(forKey: "derbis.headSensitivity") as? Double ?? 1.0
         self.headSensitivity = min(1.5, max(0.6, savedSens))
+        self.headTrackingSupported = capabilityProbe.isDeviceMotionAvailable
 
         setupLifecycleObservers()
         reconfigureMusicHapticsState()
@@ -284,7 +287,7 @@ final class HapticsAndGesturesService: ObservableObject {
     }
 
     private func reconfigureHeadTracking() {
-        headTrackingSupported = CMHeadphoneMotionManager.isDeviceMotionAvailable
+        headTrackingSupported = capabilityProbe.isDeviceMotionAvailable
         guard headGesturesEnabled && headTrackingSupported else {
             headBridge?.stop()
             headBridge = nil
@@ -382,7 +385,7 @@ private final class HeadphoneMotionBridge: NSObject, CMHeadphoneMotionManagerDel
     }
 
     func start() {
-        guard CMHeadphoneMotionManager.isDeviceMotionAvailable else { return }
+        guard manager.isDeviceMotionAvailable else { return }
         guard !manager.isDeviceMotionActive else { return }
         onConnectionChanged(manager.isConnectionStatusActive)
         manager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, _ in

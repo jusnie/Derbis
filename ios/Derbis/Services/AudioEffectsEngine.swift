@@ -131,11 +131,39 @@ private struct BiquadChannelState {
     }
 }
 
+private struct TenBandGains {
+    var b0: Float = 0
+    var b1: Float = 0
+    var b2: Float = 0
+    var b3: Float = 0
+    var b4: Float = 0
+    var b5: Float = 0
+    var b6: Float = 0
+    var b7: Float = 0
+    var b8: Float = 0
+    var b9: Float = 0
+
+    func value(at index: Int) -> Float {
+        switch index {
+        case 0: return b0
+        case 1: return b1
+        case 2: return b2
+        case 3: return b3
+        case 4: return b4
+        case 5: return b5
+        case 6: return b6
+        case 7: return b7
+        case 8: return b8
+        default: return b9
+        }
+    }
+}
+
 private struct SharedDSPParameters {
     var generation: UInt32 = 1
     var eqEnabled: Bool = false
     var preampLinear: Float = 1.0
-    var bandGainsDB: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    var bandGains = TenBandGains()
     var adaptiveBassAmount: Float = 0
     var stereoWidthAmount: Float = 0
     var crossfeedAmount: Float = 0
@@ -233,10 +261,6 @@ private final class RealtimeTapStorage {
         appliedGeneration = params.generation
 
         let freqs: [Double] = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
-        let gains: [Float] = [
-            params.bandGainsDB.0, params.bandGainsDB.1, params.bandGainsDB.2, params.bandGainsDB.3, params.bandGainsDB.4,
-            params.bandGainsDB.5, params.bandGainsDB.6, params.bandGainsDB.7, params.bandGainsDB.8, params.bandGainsDB.9
-        ]
 
         for idx in 0..<10 {
             if params.eqEnabled {
@@ -244,7 +268,7 @@ private final class RealtimeTapStorage {
                     sampleRate: validSR,
                     freq: freqs[idx],
                     q: 1.41,
-                    gainDB: Double(gains[idx])
+                    gainDB: Double(params.bandGains.value(at: idx))
                 )
             } else {
                 eqCoeffs[idx] = .identity
@@ -529,10 +553,20 @@ final class AudioEffectsEngine: ObservableObject {
     }
 
     private static func biquadMagnitudeSquared(_ c: BiquadCoeffs, cosW: Double, cos2W: Double) -> Double {
-        let b0 = Double(c.b0), b1 = Double(c.b1), b2 = Double(c.b2)
-        let a1 = Double(c.a1), a2 = Double(c.a2)
-        let num = b0 * b0 + b1 * b1 + b2 * b2 + 2.0 * (b0 * b1 + b1 * b2) * cosW + 2.0 * b0 * b2 * cos2W
-        let den = 1.0 + a1 * a1 + a2 * a2 + 2.0 * (a1 + a1 * a2) * cosW + 2.0 * a2 * cos2W
+        let b0 = Double(c.b0)
+        let b1 = Double(c.b1)
+        let b2 = Double(c.b2)
+        let a1 = Double(c.a1)
+        let a2 = Double(c.a2)
+
+        let numSq = b0 * b0 + b1 * b1 + b2 * b2
+        let numCross = 2.0 * (b0 * b1 + b1 * b2) * cosW + 2.0 * b0 * b2 * cos2W
+        let num = numSq + numCross
+
+        let denSq = 1.0 + a1 * a1 + a2 * a2
+        let denCross = 2.0 * (a1 + a1 * a2) * cosW + 2.0 * a2 * cos2W
+        let den = denSq + denCross
+
         return max(1e-6, num / max(1e-6, den))
     }
 
@@ -540,16 +574,24 @@ final class AudioEffectsEngine: ObservableObject {
         generationCounter &+= 1
         let g = bandGainsDB.count == 10 ? bandGainsDB : EqualizerPreset.flat.gains
         let preampLin = Float(pow(10.0, preampDB / 20.0))
+        var ten = TenBandGains()
+        ten.b0 = Float(g[0])
+        ten.b1 = Float(g[1])
+        ten.b2 = Float(g[2])
+        ten.b3 = Float(g[3])
+        ten.b4 = Float(g[4])
+        ten.b5 = Float(g[5])
+        ten.b6 = Float(g[6])
+        ten.b7 = Float(g[7])
+        ten.b8 = Float(g[8])
+        ten.b9 = Float(g[9])
 
         os_unfair_lock_lock(Self.paramLock)
         var next = Self.sharedParamsPtr.pointee
         next.generation = generationCounter
         next.eqEnabled = eqEnabled
         next.preampLinear = preampLin
-        next.bandGainsDB = (
-            Float(g[0]), Float(g[1]), Float(g[2]), Float(g[3]), Float(g[4]),
-            Float(g[5]), Float(g[6]), Float(g[7]), Float(g[8]), Float(g[9])
-        )
+        next.bandGains = ten
         next.adaptiveBassAmount = Float(adaptiveBassBoost)
         next.stereoWidthAmount = Float(stereoWidener)
         next.crossfeedAmount = Float(crossfeedAmount)

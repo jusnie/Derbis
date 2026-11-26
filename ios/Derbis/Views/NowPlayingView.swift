@@ -887,7 +887,7 @@ struct NowPlayingView: View {
                             ForEach(Array(payload.lines.enumerated()), id: \.element.id) { idx, line in
                                 let isActive = player.activeLyricIndex == line.id
                                 let prevEnd = idx > 0
-                                    ? (payload.lines[idx - 1].endTimeSec ?? (payload.lines[idx - 1].startTimeSec + 3.0))
+                                    ? payload.lines[idx - 1].endTimeSec
                                     : 0.0
                                 let gapDuration = line.startTimeSec - prevEnd
                                 let inInstrumentalGap = payload.synced

@@ -767,7 +767,8 @@ final class AudioPlayerEngine: ObservableObject {
         let computedSubtitle: String = {
             guard liveEnabled, let idx = lineIdx else { return track.artist }
             let line = payload.lines[idx]
-            if let endSec = line.endTimeSec, leadTime > endSec + 4.2 {
+            let endSec = line.endTimeSec
+            if leadTime > endSec + 4.2 {
                 let nextStart = (idx + 1 < payload.lines.count) ? payload.lines[idx + 1].startTimeSec : (duration + 10)
                 if nextStart - endSec >= 4.2 {
                     return track.artist
