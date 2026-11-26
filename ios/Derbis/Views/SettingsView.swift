@@ -7,6 +7,7 @@ struct SettingsView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var subsonic: SubsonicService
     @ObservedObject private var spotifySession = SpotifySessionStore.shared
+    @ObservedObject private var googleSync = GoogleAccountSyncService.shared
     @ObservedObject private var fx = AudioEffectsEngine.shared
     @ObservedObject private var haptics = HapticsAndGesturesService.shared
 
@@ -18,6 +19,7 @@ struct SettingsView: View {
     @State private var showingBackupImporter: Bool = false
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
+    @State private var showingGoogleAccountSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -44,6 +46,7 @@ struct SettingsView: View {
                                 )
                         }
 
+                        googleAccountSection
                         audioStudioAndHapticsSection
                         skinSection
                         playerBackdropAndGesturesSection
@@ -88,12 +91,95 @@ struct SettingsView: View {
                 AudioEffectsSheet()
                     .environmentObject(theme)
             }
+            .sheet(isPresented: $showingGoogleAccountSheet) {
+                GoogleAccountSheet()
+                    .environmentObject(player)
+                    .environmentObject(library)
+                    .environmentObject(theme)
+            }
             .onChange(of: theme.motionCanvasEnabled) { _ in
                 player.refreshMotionCanvas()
             }
             .onChange(of: theme.motionCanvasStyle) { _ in
                 player.refreshMotionCanvas()
             }
+        }
+    }
+
+    private var googleAccountSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Account & Cloud Sync")
+
+            VStack(spacing: 12) {
+                Button {
+                    haptics.playControlTap(style: .light)
+                    showingGoogleAccountSheet = true
+                } label: {
+                    HStack(spacing: 12) {
+                        GoogleAccountAvatarBadge(size: 44)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(googleSync.activeAccount?.name ?? "Sign in with Google")
+                                .font(theme.font(size: 15, weight: .bold))
+                                .foregroundColor(theme.primaryText)
+                                .lineLimit(1)
+                            Text(
+                                googleSync.isSignedIn
+                                    ? (googleSync.statusMessage ?? "Connected · Liked songs, playlists & history sync active")
+                                    : "Connect your Google account to sync Liked Songs, Playlists & History"
+                            )
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                            .lineLimit(2)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                if googleSync.isSignedIn {
+                    Divider()
+
+                    HStack(spacing: 10) {
+                        Button {
+                            haptics.playControlTap(style: .medium)
+                            Task {
+                                await googleSync.syncAccountDataToLibrary(silent: false)
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                if googleSync.isSyncing {
+                                    ProgressView().scaleEffect(0.75).tint(theme.accent)
+                                } else {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                        .font(.system(size: 12, weight: .bold))
+                                }
+                                Text(googleSync.isSyncing ? "Syncing…" : "Sync Now")
+                                    .font(theme.font(size: 12.5, weight: .bold))
+                            }
+                            .foregroundColor(theme.accent)
+                        }
+                        .disabled(googleSync.isSyncing)
+
+                        Spacer()
+
+                        Button {
+                            showingGoogleAccountSheet = true
+                        } label: {
+                            Text("Manage Cloud Library")
+                                .font(theme.font(size: 12.5, weight: .semibold))
+                                .foregroundColor(theme.primaryText)
+                        }
+                    }
+                }
+            }
+            .padding(14)
+            .derbisCard(elevated: true)
         }
     }
 

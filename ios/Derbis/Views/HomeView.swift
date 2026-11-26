@@ -4,10 +4,12 @@ struct HomeView: View {
     @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var theme: ThemeManager
+    @ObservedObject private var googleSync = GoogleAccountSyncService.shared
 
     @State private var selectedMood: String = "All"
     @State private var shelves: [HomeShelf] = []
     @State private var isLoading: Bool = false
+    @State private var showingGoogleAccountSheet: Bool = false
 
     private let moods = ["All", "Chill", "Late Night", "Focus", "Energy", "OPM"]
 
@@ -49,6 +51,17 @@ struct HomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showingGoogleAccountSheet) {
+                GoogleAccountSheet()
+                    .environmentObject(player)
+                    .environmentObject(library)
+                    .environmentObject(theme)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .derbisGoogleAccountDidChange)) { _ in
+                Task {
+                    await reloadFeed(force: true)
+                }
+            }
             .task {
                 if shelves.isEmpty {
                     shelves = library.cachedHomeShelves
@@ -70,9 +83,13 @@ struct HomeView: View {
                 Text("Derbis")
                     .font(theme.font(size: 24, weight: .bold))
                     .foregroundColor(theme.primaryText)
-                Text(theme.skin.title)
-                    .font(theme.font(size: 12, weight: .medium))
-                    .foregroundColor(theme.secondaryText)
+                Text(
+                    googleSync.activeAccount.map { "\($0.name) · \(theme.skin.title)" }
+                        ?? theme.skin.title
+                )
+                .font(theme.font(size: 12, weight: .medium))
+                .foregroundColor(theme.secondaryText)
+                .lineLimit(1)
             }
 
             Spacer()
@@ -120,6 +137,14 @@ struct HomeView: View {
                 .padding(.vertical, 8)
                 .derbisCard(elevated: true)
             }
+
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                showingGoogleAccountSheet = true
+            } label: {
+                GoogleAccountAvatarBadge(size: 34)
+            }
+            .buttonStyle(.plain)
         }
     }
 

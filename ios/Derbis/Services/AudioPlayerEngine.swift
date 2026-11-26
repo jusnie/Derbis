@@ -384,6 +384,7 @@ final class AudioPlayerEngine: ObservableObject {
 
                 if !isSameTrackResume {
                     LibraryStore.shared.recordPlayback(track: track, listenedSeconds: max(20, track.durationSec / 2))
+                    GoogleAccountSyncService.shared.reportPlaybackIfEnabled(track: track)
                 }
 
                 if autoRadio,

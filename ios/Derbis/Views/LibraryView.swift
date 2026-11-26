@@ -17,10 +17,12 @@ struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var theme: ThemeManager
     @EnvironmentObject private var subsonic: SubsonicService
+    @ObservedObject private var googleSync = GoogleAccountSyncService.shared
 
     @State private var selectedTab: LibrarySectionTab = .liked
     @State private var showingAudioImporter = false
     @State private var showingNewPlaylistAlert = false
+    @State private var showingGoogleAccountSheet = false
     @State private var newPlaylistTitle = ""
 
     var body: some View {
@@ -31,6 +33,7 @@ struct LibraryView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
                         headerRow
+                        googleAccountCard
                         insightsStrip
                         sectionTabs
 
@@ -76,7 +79,53 @@ struct LibraryView: View {
                     newPlaylistTitle = ""
                 }
             }
+            .sheet(isPresented: $showingGoogleAccountSheet) {
+                GoogleAccountSheet()
+                    .environmentObject(player)
+                    .environmentObject(library)
+                    .environmentObject(theme)
+            }
         }
+    }
+
+    private var googleAccountCard: some View {
+        Button {
+            HapticsAndGesturesService.shared.playControlTap(style: .light)
+            showingGoogleAccountSheet = true
+        } label: {
+            HStack(spacing: 12) {
+                GoogleAccountAvatarBadge(size: 44)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(googleSync.activeAccount?.name ?? "Sign in with Google")
+                        .font(theme.font(size: 15, weight: .bold))
+                        .foregroundColor(theme.primaryText)
+                        .lineLimit(1)
+
+                    Text(
+                        googleSync.isSignedIn
+                            ? (googleSync.statusMessage ?? "Liked songs, playlists & history synced · Tap to browse cloud")
+                            : "Sync your Liked Songs, Playlists & History just like on Android"
+                    )
+                    .font(theme.font(size: 12))
+                    .foregroundColor(theme.secondaryText)
+                    .lineLimit(2)
+                }
+
+                Spacer(minLength: 4)
+
+                if googleSync.isSyncing {
+                    ProgressView().tint(theme.accent)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.secondaryText)
+                }
+            }
+            .padding(14)
+            .derbisCard(elevated: true)
+        }
+        .buttonStyle(.plain)
     }
 
     private var headerRow: some View {

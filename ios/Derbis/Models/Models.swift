@@ -454,6 +454,69 @@ struct ResolvedStream: Hashable, Sendable {
     }
 }
 
+enum GoogleCloudCollectionKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case likes = "Liked Songs"
+    case playlists = "Playlists"
+    case albums = "Albums"
+    case artists = "Artists"
+    case history = "History"
+
+    var id: String { rawValue }
+
+    var browseId: String {
+        switch self {
+        case .likes: return "VLLM"
+        case .playlists: return "FEmusic_liked_playlists"
+        case .albums: return "FEmusic_liked_albums"
+        case .artists: return "FEmusic_library_corpus_artists"
+        case .history: return "FEmusic_history"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .likes: return "heart.fill"
+        case .playlists: return "music.note.list"
+        case .albums: return "square.stack.fill"
+        case .artists: return "person.2.fill"
+        case .history: return "clock.arrow.circlepath"
+        }
+    }
+}
+
+struct GoogleMusicAccount: Identifiable, Codable, Hashable, Sendable {
+    let id: String
+    var name: String
+    var handle: String
+    var avatarURL: String
+    var pageId: String?
+    var authUser: Int
+    var isSelected: Bool
+
+    var initials: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = trimmed.first else { return "G" }
+        return String(first).uppercased()
+    }
+}
+
+struct GoogleMusicSession: Identifiable, Codable, Hashable, Sendable {
+    var id: String { account.id }
+    var account: GoogleMusicAccount
+    var cookie: String
+    var updatedAt: Date
+}
+
+struct GoogleCloudLibraryEntry: Identifiable, Hashable, Sendable {
+    var id: String { browseId }
+    let browseId: String
+    let title: String
+    let subtitle: String
+    let thumbnailURL: String
+    let collection: GoogleCloudCollectionKind
+    let isOwned: Bool
+}
+
 enum TimeFormatting {
     static func clockString(seconds: Double) -> String {
         guard seconds.isFinite && seconds > 0 else { return "0:00" }

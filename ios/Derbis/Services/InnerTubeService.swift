@@ -117,6 +117,12 @@ actor InnerTubeService {
     }
 
     func fetchHomeShelves(mood: String = "All") async -> [HomeShelf] {
+        var personalShelves: [HomeShelf] = []
+        if mood == "All",
+           let authHeaders = GoogleAccountSyncService.currentAuthenticatedHeaders(requirePersonalizedHomeToggle: true) {
+            personalShelves = await fetchPersonalizedBrowseHomeShelves(authHeaders: authHeaders)
+        }
+
         let queries: [(id: String, title: String, subtitle: String, search: String)] = {
             switch mood {
             case "Chill":
@@ -181,7 +187,92 @@ actor InnerTubeService {
                     indexed.append((idx, shelf))
                 }
             }
-            return indexed.sorted(by: { $0.0 < $1.0 }).map(\.1)
+            let discovery = indexed.sorted(by: { $0.0 < $1.0 }).map(\.1)
+            if !personalShelves.isEmpty {
+                return personalShelves + discovery
+            }
+            return discovery
+        }
+    }
+
+    private func fetchPersonalizedBrowseHomeShelves(authHeaders: [String: String]) async -> [HomeShelf] {
+        guard let url = URL(string: "https://music.youtube.com/youtubei/v1/browse?prettyPrint=false") else {
+            return []
+        }
+        let body: [String: Any] = [
+            "context": [
+                "client": [
+                    "clientName": "WEB_REMIX",
+                    "clientVersion": webRemixVersion,
+                    "hl": effectiveLanguageCode,
+                    "gl": effectiveCountryCode
+                ],
+                "user": ["lockedSafetyMode": false]
+            ],
+            "browseId": "FEmusic_home"
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("67", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue(webRemixVersion, forHTTPHeaderField: "X-YouTube-Client-Version")
+        for (k, v) in authHeaders {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        guard let (data, resp) = try? await session.data(for: request),
+              let http = resp as? HTTPURLResponse,
+              (200...299).contains(http.statusCode),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+
+        var rawShelves: [[String: Any]] = []
+        collectNamedDicts("musicCarouselShelfRenderer", in: json, into: &rawShelves)
+        collectNamedDicts("musicShelfRenderer", in: json, into: &rawShelves)
+
+        var built: [HomeShelf] = []
+        for (idx, shelfDict) in rawShelves.enumerated() {
+            var tracks: [Track] = []
+            collectTracksFromJSON(shelfDict["contents"] ?? [:], into: &tracks)
+            var seen = Set<String>()
+            let unique = tracks.filter { seen.insert($0.id).inserted }
+            guard unique.count >= 3 else { continue }
+
+            let headerNode = shelfDict["header"] ?? shelfDict["title"]
+            let runs = extractRuns(from: headerNode ?? [:])
+            let shelfTitle = runs.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "For You"
+            let shelfSub = runs.count > 1 ? runs[1].trimmingCharacters(in: .whitespacesAndNewlines) : "Personalized from your Google account"
+
+            built.append(
+                HomeShelf(
+                    id: "personal-\(idx)-\(shelfTitle.lowercased().replacingOccurrences(of: " ", with: "-"))",
+                    title: shelfTitle,
+                    subtitle: shelfSub,
+                    tracks: Array(unique.prefix(14))
+                )
+            )
+            if built.count >= 4 { break }
+        }
+        return built
+    }
+
+    private func collectNamedDicts(_ key: String, in node: Any, depth: Int = 0, into out: inout [[String: Any]]) {
+        guard depth <= 40 else { return }
+        if let dict = node as? [String: Any] {
+            for (k, v) in dict {
+                if k == key, let matched = v as? [String: Any] {
+                    out.append(matched)
+                }
+                collectNamedDicts(key, in: v, depth: depth + 1, into: &out)
+            }
+        } else if let arr = node as? [Any] {
+            for el in arr {
+                collectNamedDicts(key, in: el, depth: depth + 1, into: &out)
+            }
         }
     }
 
@@ -216,6 +307,11 @@ actor InnerTubeService {
             request.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
             request.setValue("67", forHTTPHeaderField: "X-YouTube-Client-Name")
             request.setValue(webRemixVersion, forHTTPHeaderField: "X-YouTube-Client-Version")
+            if let authHeaders = GoogleAccountSyncService.currentAuthenticatedHeaders() {
+                for (k, v) in authHeaders {
+                    request.setValue(v, forHTTPHeaderField: k)
+                }
+            }
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
             let (data, _) = try await session.data(for: request)

@@ -35,12 +35,86 @@ final class LibraryStore: ObservableObject {
     }
 
     func toggleLike(_ track: Track) {
+        let nowLiked: Bool
         if let idx = likedTracks.firstIndex(where: { $0.id == track.id }) {
             likedTracks.remove(at: idx)
+            nowLiked = false
         } else {
             likedTracks.insert(track, at: 0)
+            nowLiked = true
         }
         saveState()
+        GoogleAccountSyncService.shared.pushLikeStateIfEnabled(track: track, isLiked: nowLiked)
+    }
+
+    func mergeCloudLikedTracks(_ cloudTracks: [Track]) -> Int {
+        guard !cloudTracks.isEmpty else { return 0 }
+        var existingIds = Set(likedTracks.map(\.id))
+        var added = 0
+        for track in cloudTracks where existingIds.insert(track.id).inserted {
+            likedTracks.append(track)
+            added += 1
+        }
+        if added > 0 {
+            saveState()
+        }
+        return added
+    }
+
+    func upsertCloudPlaylist(cloudId: String, title: String, tracks: [Track]) -> Int {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty, !tracks.isEmpty else { return 0 }
+
+        var seen = Set<String>()
+        let uniqueTracks = tracks.filter { seen.insert($0.id).inserted }
+        guard !uniqueTracks.isEmpty else { return 0 }
+
+        let safeKey = cloudId.replacingOccurrences(of: "[^A-Za-z0-9_-]", with: "_", options: .regularExpression)
+        let deterministicId = "ytm-\(safeKey)"
+
+        if let idx = playlists.firstIndex(where: { $0.id == deterministicId }) {
+            let known = Set(playlists[idx].tracks.map(\.id))
+            var added = 0
+            for t in uniqueTracks where !known.contains(t.id) {
+                playlists[idx].tracks.append(t)
+                added += 1
+            }
+            playlists[idx].name = trimmedTitle
+            saveState()
+            return added
+        } else {
+            let created = UserPlaylist(id: deterministicId, name: trimmedTitle, tracks: uniqueTracks)
+            playlists.insert(created, at: 0)
+            saveState()
+            return uniqueTracks.count
+        }
+    }
+
+    func mergeCloudHistoryTracks(_ cloudTracks: [Track]) -> Int {
+        guard !cloudTracks.isEmpty else { return 0 }
+        var existingIds = Set(history.map { $0.track.id })
+        var added = 0
+        let now = Date()
+        for (idx, track) in cloudTracks.prefix(60).enumerated() {
+            guard existingIds.insert(track.id).inserted else { continue }
+            let stamped = now.addingTimeInterval(-Double(idx * 180))
+            history.append(
+                ListeningRecord(
+                    track: track,
+                    playCount: 1,
+                    listenedSeconds: max(60, track.durationSec > 0 ? track.durationSec : 180),
+                    lastPlayedAt: stamped
+                )
+            )
+            added += 1
+        }
+        if history.count > 250 {
+            history = Array(history.prefix(250))
+        }
+        if added > 0 {
+            saveState()
+        }
+        return added
     }
 
     func normalizedArtistTokens(from rawArtist: String) -> [String] {
@@ -91,7 +165,7 @@ final class LibraryStore: ObservableObject {
             let key = name.lowercased()
             guard !key.isEmpty else { continue }
             var current = bucket[key] ?? (display: name, plays: 0, seconds: 0)
-            current.plays += 1
+            current.plays += max(1, record.playCount)
             current.seconds += record.listenedSeconds
             bucket[key] = current
         }
@@ -108,7 +182,7 @@ final class LibraryStore: ObservableObject {
         var counts: [String: (track: Track, plays: Int)] = [:]
         for record in history {
             var current = counts[record.track.id] ?? (track: record.track, plays: 0)
-            current.plays += 1
+            current.plays += max(1, record.playCount)
             counts[record.track.id] = current
         }
         return counts.values
