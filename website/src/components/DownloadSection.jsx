@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useState } from "react";
 import {
   APK_DOWNLOAD_URL,
   INSTALL_STEPS,
@@ -9,138 +9,18 @@ import {
   IOS_SHA256_DOWNLOAD_URL,
   LATEST_RELEASE_URL,
   RELEASE_META,
-  REPO_URL,
-  SHA256_DOWNLOAD_URL,
-  UPCOMING_PLATFORMS
+  SHA256_DOWNLOAD_URL
 } from "../data/siteData";
 import { useScrollReveal } from "../hooks/useScrollEffects";
 import {
   AndroidIcon,
   AppleIcon,
   CheckIcon,
-  ChevronToggleIcon,
   CopyIcon,
   ExternalIcon,
   LaptopIcon,
-  StarIcon
+  WindowsIcon
 } from "./Icons";
-
-const PlatformSwitchBar = memo(function PlatformSwitchBar({ platform, onSelect }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onPointerDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown, { passive: true });
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const activeIsDesktop = platform === "desktop" || platform === "macos";
-
-  return (
-    <div
-      ref={wrapRef}
-      className={open ? "dl-switch-shell is-open" : "dl-switch-shell"}
-    >
-      <div className="dl-switch-bar" role="tablist" aria-label="Choose download platform">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={platform === "android"}
-          className={
-            platform === "android"
-              ? "platform-tab is-active"
-              : "platform-tab"
-          }
-          onClick={() => onSelect("android")}
-        >
-          <AndroidIcon />
-          <span>Android</span>
-          <span className="platform-pill platform-pill-live">Official</span>
-        </button>
-
-        {platform === "ios" && (
-          <span className="dl-active-tag">
-            <AppleIcon />
-            <span>iOS · Beta</span>
-          </span>
-        )}
-        {activeIsDesktop && (
-          <span className="dl-active-tag">
-            <LaptopIcon />
-            <span>macOS &amp; Desktop</span>
-          </span>
-        )}
-
-        <button
-          type="button"
-          className="platform-switch-toggle"
-          aria-expanded={open}
-          aria-controls="download-other-platforms"
-          aria-label={open ? "Hide other platforms" : "Show iOS, macOS, and Desktop"}
-          title={open ? "Hide other versions" : "Other versions"}
-          onClick={() => setOpen((prev) => !prev)}
-        >
-          <ChevronToggleIcon open={open} />
-        </button>
-      </div>
-
-      <div
-        id="download-other-platforms"
-        className="dl-switch-flyout"
-        aria-hidden={!open}
-      >
-        <button
-          type="button"
-          tabIndex={open ? 0 : -1}
-          className={platform === "ios" ? "version-chip is-selected" : "version-chip"}
-          onClick={() => {
-            onSelect("ios");
-            setOpen(false);
-          }}
-        >
-          <span className="version-chip-lead">
-            <AppleIcon />
-            <span>iOS &amp; iPadOS</span>
-          </span>
-          <span className="platform-pill platform-pill-live">Beta</span>
-        </button>
-
-        <button
-          type="button"
-          tabIndex={open ? 0 : -1}
-          className={
-            activeIsDesktop
-              ? "version-chip version-chip-soon is-selected"
-              : "version-chip version-chip-soon"
-          }
-          onClick={() => {
-            onSelect("desktop");
-            setOpen(false);
-          }}
-        >
-          <span className="version-chip-lead">
-            <LaptopIcon />
-            <span>macOS &amp; Desktop</span>
-          </span>
-          <span className="platform-pill platform-pill-soon">Coming soon</span>
-        </button>
-      </div>
-    </div>
-  );
-});
 
 export const DownloadSection = memo(function DownloadSection({
   apkUrl,
@@ -158,8 +38,11 @@ export const DownloadSection = memo(function DownloadSection({
   const { ref, visible } = useScrollReveal();
   const [copied, setCopied] = useState(false);
 
+  const activeMobilePlatform = platform === "ios" ? "ios" : "android";
   const activeSha =
-    platform === "ios" ? iosSha256 || IOS_RELEASE_META.sha256 : RELEASE_META.sha256;
+    activeMobilePlatform === "ios"
+      ? iosSha256 || IOS_RELEASE_META.sha256
+      : RELEASE_META.sha256;
 
   const handleCopySha = async () => {
     try {
@@ -176,11 +59,6 @@ export const DownloadSection = memo(function DownloadSection({
     onPlatformChange(next);
   };
 
-  const upcomingSpec =
-    platform === "desktop" || platform === "macos"
-      ? UPCOMING_PLATFORMS.desktop
-      : null;
-
   return (
     <section
       id="download"
@@ -195,14 +73,45 @@ export const DownloadSection = memo(function DownloadSection({
               Official app packages
             </h2>
             <p className="section-sub">
-              Direct Android APK and native iOS IPA available now, with macOS and Desktop builds coming soon
+              Direct Android APK and native iOS IPA available now, with Windows and macOS builds coming soon
             </p>
           </div>
 
-          <PlatformSwitchBar platform={platform} onSelect={handleSelect} />
+          <div className="platform-switch" role="tablist" aria-label="Choose mobile download platform">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobilePlatform === "android"}
+              className={
+                activeMobilePlatform === "android"
+                  ? "platform-tab is-active"
+                  : "platform-tab"
+              }
+              onClick={() => handleSelect("android")}
+            >
+              <AndroidIcon />
+              <span>Derbis.apk</span>
+              <span className="platform-pill platform-pill-live">Official</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobilePlatform === "ios"}
+              className={
+                activeMobilePlatform === "ios"
+                  ? "platform-tab is-active"
+                  : "platform-tab"
+              }
+              onClick={() => handleSelect("ios")}
+            >
+              <AppleIcon />
+              <span>Derbis.ipa</span>
+              <span className="platform-pill platform-pill-live">Beta</span>
+            </button>
+          </div>
         </div>
 
-        {platform === "android" && (
+        {activeMobilePlatform === "android" && (
           <div className="download-bench">
             <div className="bench-main">
               <div className="bench-meta-row">
@@ -273,7 +182,7 @@ export const DownloadSection = memo(function DownloadSection({
           </div>
         )}
 
-        {platform === "ios" && (
+        {activeMobilePlatform === "ios" && (
           <div className="download-bench">
             <div className="bench-main">
               <div className="bench-meta-row">
@@ -297,7 +206,7 @@ export const DownloadSection = memo(function DownloadSection({
                   <span>Download Derbis.ipa</span>
                 </a>
                 <a className="btn btn-secondary" href="#ksign">
-                  <span>Visual KSign guide</span>
+                  <span>KSign Guide</span>
                 </a>
                 <a
                   className="btn btn-secondary"
@@ -357,64 +266,8 @@ export const DownloadSection = memo(function DownloadSection({
                 </ol>
               </div>
               <a className="btn btn-secondary steps-jump-btn" href="#ksign">
-                <span>Open step-by-step KSign guide with screenshots</span>
+                <span>Open KSign Guide</span>
               </a>
-            </div>
-          </div>
-        )}
-
-        {upcomingSpec && (
-          <div className="download-bench">
-            <div className="bench-main">
-              <div className="bench-meta-row">
-                <span className="version-badge version-badge-soon">{upcomingSpec.status}</span>
-                <span className="meta-item">{upcomingSpec.target}</span>
-                <span className="meta-item">{upcomingSpec.arch}</span>
-              </div>
-
-              <h3 className="bench-title">
-                {upcomingSpec.name} ({upcomingSpec.packageLabel})
-              </h3>
-              <p className="bench-desc">{upcomingSpec.summary}</p>
-
-              <div className="bench-actions">
-                <span className="btn btn-disabled" aria-disabled="true">
-                  <span>{upcomingSpec.name} — Coming soon</span>
-                </span>
-                <a
-                  className="btn btn-secondary"
-                  href={REPO_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <StarIcon />
-                  <span>Watch releases on GitHub</span>
-                </a>
-              </div>
-
-              <div className="sha-box">
-                <div className="sha-head">
-                  <span className="sha-label">Release status</span>
-                </div>
-                <code className="sha-value">
-                  In active development — Android (Derbis.apk) and iOS (Derbis.ipa) are available today
-                </code>
-              </div>
-            </div>
-
-            <div className="steps-card">
-              <h3 className="steps-heading">Planned for {upcomingSpec.name}</h3>
-              <ol className="steps-list">
-                {upcomingSpec.highlights.map((h) => (
-                  <li key={h.step} className="step-item">
-                    <span className="step-num">{h.step}</span>
-                    <div>
-                      <div className="step-title">{h.title}</div>
-                      <p className="step-detail">{h.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
             </div>
           </div>
         )}
@@ -422,43 +275,63 @@ export const DownloadSection = memo(function DownloadSection({
         <div className="platform-matrix" aria-label="Platform availability">
           <button
             type="button"
-            className={platform === "android" ? "matrix-card is-active" : "matrix-card"}
+            className={
+              activeMobilePlatform === "android"
+                ? "matrix-card is-active"
+                : "matrix-card"
+            }
             onClick={() => handleSelect("android")}
           >
             <div className="matrix-top">
-              <span className="matrix-name">Android</span>
+              <span className="matrix-name">
+                <AndroidIcon />
+                <span>Derbis.apk</span>
+              </span>
               <span className="platform-pill platform-pill-live">Official</span>
             </div>
-            <span className="matrix-meta">Derbis.apk · {releaseTag || RELEASE_META.version} · {sizeLabel || RELEASE_META.sizeLabel}</span>
-          </button>
-
-          <button
-            type="button"
-            className={platform === "ios" ? "matrix-card is-active" : "matrix-card"}
-            onClick={() => handleSelect("ios")}
-          >
-            <div className="matrix-top">
-              <span className="matrix-name">iOS &amp; iPadOS</span>
-              <span className="platform-pill platform-pill-live">Beta</span>
-            </div>
-            <span className="matrix-meta">Derbis.ipa · {iosVersion || IOS_RELEASE_META.version} · {iosSizeLabel || IOS_RELEASE_META.sizeLabel}</span>
+            <span className="matrix-meta">Android · {releaseTag || RELEASE_META.version} · {sizeLabel || RELEASE_META.sizeLabel}</span>
           </button>
 
           <button
             type="button"
             className={
-              platform === "desktop" || platform === "macos"
+              activeMobilePlatform === "ios"
                 ? "matrix-card is-active"
                 : "matrix-card"
             }
-            onClick={() => handleSelect("desktop")}
+            onClick={() => handleSelect("ios")}
           >
             <div className="matrix-top">
-              <span className="matrix-name">macOS &amp; Desktop</span>
+              <span className="matrix-name">
+                <AppleIcon />
+                <span>Derbis.ipa</span>
+              </span>
+              <span className="platform-pill platform-pill-live">Beta</span>
+            </div>
+            <span className="matrix-meta">iOS &amp; iPadOS · {iosVersion || IOS_RELEASE_META.version} · {iosSizeLabel || IOS_RELEASE_META.sizeLabel}</span>
+          </button>
+
+          <div className="matrix-card matrix-card-static" aria-disabled="true">
+            <div className="matrix-top">
+              <span className="matrix-name">
+                <WindowsIcon />
+                <span>Windows</span>
+              </span>
               <span className="platform-pill platform-pill-soon">Coming soon</span>
             </div>
-            <span className="matrix-meta">macOS, Windows 10/11 &amp; Linux · Native builds</span>
-          </button>
+            <span className="matrix-meta">Desktop · Windows 10/11 (x64 &amp; ARM64)</span>
+          </div>
+
+          <div className="matrix-card matrix-card-static" aria-disabled="true">
+            <div className="matrix-top">
+              <span className="matrix-name">
+                <LaptopIcon />
+                <span>macOS</span>
+              </span>
+              <span className="platform-pill platform-pill-soon">Coming soon</span>
+            </div>
+            <span className="matrix-meta">Desktop · Apple Silicon &amp; Intel</span>
+          </div>
         </div>
       </div>
     </section>

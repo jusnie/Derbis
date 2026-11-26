@@ -1,12 +1,17 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
 import {
   AndroidIcon,
   AppleIcon,
+  ArrowRightIcon,
   ChevronToggleIcon,
+  CloseIcon,
   LaptopIcon,
-  PixelMark
+  PixelMark,
+  ShieldIcon,
+  WindowsIcon
 } from "./components/Icons";
 import { KSignGuideSection } from "./components/KSignGuideSection";
 import { Navbar } from "./components/Navbar";
@@ -44,108 +49,169 @@ const HeroVersionBar = memo(function HeroVersionBar({
   onSelectPlatform
 }) {
   const [open, setOpen] = useState(false);
-  const shellRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
 
-    const onPointerDown = (e) => {
-      if (shellRef.current && !shellRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
     const onKeyDown = (e) => {
       if (e.key === "Escape") {
         setOpen(false);
       }
     };
 
-    document.addEventListener("pointerdown", onPointerDown, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
 
+  const modal =
+    typeof document !== "undefined"
+      ? createPortal(
+          <div
+            id="hero-other-versions"
+            className={
+              open ? "version-modal-backdrop is-open" : "version-modal-backdrop"
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-hidden={!open}
+            aria-labelledby="version-modal-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setOpen(false);
+              }
+            }}
+          >
+            <div className="version-modal-card">
+              <header className="version-modal-head">
+                <span id="version-modal-title" className="version-modal-title">
+                  Derbis versions
+                </span>
+                <button
+                  type="button"
+                  className="version-modal-close"
+                  tabIndex={open ? 0 : -1}
+                  aria-label="Close versions menu"
+                  onClick={() => setOpen(false)}
+                >
+                  <CloseIcon />
+                </button>
+              </header>
+
+              <div className="version-group">
+                <div className="version-group-label">Mobile</div>
+                <div className="version-group-items">
+                  <a
+                    className="version-row"
+                    href={apkUrl}
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="version-row-lead">
+                      <AndroidIcon />
+                      <span>Derbis.apk</span>
+                    </span>
+                    <span className="platform-pill platform-pill-live">Official</span>
+                  </a>
+
+                  <a
+                    className="version-row"
+                    href={ipaUrl}
+                    download="Derbis.ipa"
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="version-row-lead">
+                      <AppleIcon />
+                      <span>Derbis.ipa</span>
+                    </span>
+                    <span className="platform-pill platform-pill-live">Beta</span>
+                  </a>
+                </div>
+              </div>
+
+              <div className="version-group">
+                <div className="version-group-label">Desktop</div>
+                <div className="version-group-items">
+                  <div className="version-row is-soon" aria-disabled="true">
+                    <span className="version-row-lead">
+                      <WindowsIcon />
+                      <span>Windows</span>
+                    </span>
+                    <span className="platform-pill platform-pill-soon">
+                      Coming soon
+                    </span>
+                  </div>
+
+                  <div className="version-row is-soon" aria-disabled="true">
+                    <span className="version-row-lead">
+                      <LaptopIcon />
+                      <span>macOS</span>
+                    </span>
+                    <span className="platform-pill platform-pill-soon">
+                      Coming soon
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="version-group">
+                <div className="version-group-label">iOS Guide</div>
+                <div className="version-group-items">
+                  <a
+                    className="version-row"
+                    href="#ksign"
+                    tabIndex={open ? 0 : -1}
+                    onClick={() => {
+                      onSelectPlatform("ios");
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="version-row-lead">
+                      <ShieldIcon />
+                      <span>KSign Guide</span>
+                    </span>
+                    <span className="version-row-arrow" aria-hidden="true">
+                      <ArrowRightIcon />
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
-    <div
-      ref={shellRef}
-      className={open ? "version-bar-shell is-open" : "version-bar-shell"}
-    >
-      <div className="version-split-bar">
-        <a className="version-bar-main" href={apkUrl}>
-          <AndroidIcon />
-          <span>Download Derbis.apk</span>
-        </a>
+    <>
+      <div className={open ? "version-bar-shell is-open" : "version-bar-shell"}>
+        <div className="version-split-bar">
+          <a className="version-bar-main" href={apkUrl}>
+            <AndroidIcon />
+            <span>Download Derbis.apk</span>
+          </a>
 
-        <button
-          type="button"
-          className="version-bar-toggle"
-          aria-expanded={open}
-          aria-controls="hero-other-versions"
-          aria-label={
-            open
-              ? "Hide other versions"
-              : "Show iOS, macOS, and Desktop versions"
-          }
-          title={open ? "Hide other versions" : "Other versions"}
-          onClick={() => setOpen((prev) => !prev)}
-        >
-          <ChevronToggleIcon open={open} />
-        </button>
+          <button
+            type="button"
+            className="version-bar-toggle"
+            aria-expanded={open}
+            aria-controls="hero-other-versions"
+            aria-label={
+              open
+                ? "Close versions menu"
+                : "Show Mobile, Desktop, and KSign Guide options"
+            }
+            title={open ? "Close versions" : "All versions"}
+            onClick={() => setOpen((prev) => !prev)}
+          >
+            <ChevronToggleIcon open={open} />
+          </button>
+        </div>
       </div>
-
-      <div
-        id="hero-other-versions"
-        className="version-flyout"
-        aria-hidden={!open}
-      >
-        <a
-          className="version-chip"
-          href={ipaUrl}
-          download="Derbis.ipa"
-          tabIndex={open ? 0 : -1}
-          onClick={() => setOpen(false)}
-        >
-          <span className="version-chip-lead">
-            <AppleIcon />
-            <span>Derbis.ipa</span>
-          </span>
-          <span className="platform-pill platform-pill-live">Beta</span>
-        </a>
-
-        <a
-          className="version-chip"
-          href="#ksign"
-          tabIndex={open ? 0 : -1}
-          onClick={() => {
-            onSelectPlatform("ios");
-            setOpen(false);
-          }}
-        >
-          <span className="version-chip-lead">
-            <span>KSign Guide</span>
-          </span>
-        </a>
-
-        <a
-          className="version-chip version-chip-soon"
-          href="#download"
-          tabIndex={open ? 0 : -1}
-          onClick={() => {
-            onSelectPlatform("desktop");
-            setOpen(false);
-          }}
-        >
-          <span className="version-chip-lead">
-            <LaptopIcon />
-            <span>macOS &amp; Desktop</span>
-          </span>
-          <span className="platform-pill platform-pill-soon">Soon</span>
-        </a>
-      </div>
-    </div>
+      {modal}
+    </>
   );
 });
 
@@ -335,12 +401,12 @@ export default function App() {
                 <dd>Derbis.ipa · {iosSizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>macOS &amp; Desktop</dt>
+                <dt>Windows</dt>
                 <dd className="spec-soon">Coming soon</dd>
               </div>
               <div className="spec-cell">
-                <dt>License</dt>
-                <dd>GPL-3.0-only</dd>
+                <dt>macOS</dt>
+                <dd className="spec-soon">Coming soon</dd>
               </div>
             </dl>
           </div>

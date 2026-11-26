@@ -172,6 +172,17 @@ export function ShieldIcon() {
   );
 }
 
+export function WindowsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <rect x="2" y="2" width="5.4" height="5.4" rx="0.6" />
+      <rect x="8.6" y="2" width="5.4" height="5.4" rx="0.6" />
+      <rect x="2" y="8.6" width="5.4" height="5.4" rx="0.6" />
+      <rect x="8.6" y="8.6" width="5.4" height="5.4" rx="0.6" />
+    </svg>
+  );
+}
+
 export function LaptopIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
