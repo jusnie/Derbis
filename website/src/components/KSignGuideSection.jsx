@@ -19,37 +19,52 @@ import {
   ShieldIcon
 } from "./Icons";
 
-function GuideStepImage({ src, alt, stepLabel, pathHint, onInspect }) {
-  const [failed, setFailed] = useState(false);
+function resolveGuideImgPrimary(key) {
+  return `/api/ksign-img?key=${encodeURIComponent(key)}`;
+}
 
-  if (failed) {
-    return (
-      <div className="ksign-fallback-frame" role="img" aria-label={alt}>
-        <span className="ksign-fallback-step">Step {stepLabel}</span>
-        <span className="ksign-fallback-path">{pathHint}</span>
-      </div>
-    );
+function GuideStepImage({ imgKey, fallbackSrc, alt, stepLabel, onInspect, onUnavailable }) {
+  const [stage, setStage] = useState("proxy");
+  const [loaded, setLoaded] = useState(false);
+
+  if (stage === "failed") {
+    return null;
   }
+
+  const activeSrc = stage === "proxy" ? resolveGuideImgPrimary(imgKey) : fallbackSrc;
 
   return (
     <button
       type="button"
-      className="ksign-img-btn"
+      className={loaded ? "ksign-img-btn is-loaded" : "ksign-img-btn"}
       onClick={onInspect}
       aria-label={`Zoom screenshot for step ${stepLabel}`}
     >
       <img
-        src={src}
+        src={activeSrc}
         alt={alt}
-        loading="lazy"
+        loading="eager"
         decoding="async"
-        referrerPolicy="no-referrer"
         className="ksign-step-img"
-        onError={() => setFailed(true)}
+        onLoad={(e) => {
+          if (e.currentTarget.naturalWidth > 0) {
+            setLoaded(true);
+          }
+        }}
+        onError={() => {
+          if (stage === "proxy" && fallbackSrc) {
+            setStage("direct");
+          } else {
+            setStage("failed");
+            if (onUnavailable) onUnavailable(imgKey);
+          }
+        }}
       />
-      <span className="ksign-zoom-pill" aria-hidden="true">
-        <ExpandIcon />
-      </span>
+      {loaded && (
+        <span className="ksign-zoom-pill" aria-hidden="true">
+          <ExpandIcon />
+        </span>
+      )}
     </button>
   );
 }
@@ -57,7 +72,9 @@ function GuideStepImage({ src, alt, stepLabel, pathHint, onInspect }) {
 export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLabel }) {
   const { ref, visible } = useScrollReveal();
   const [activePhase, setActivePhase] = useState("all");
-  const [heroFailed, setHeroFailed] = useState(false);
+  const [heroStage, setHeroStage] = useState("proxy");
+  const [heroLoaded, setHeroLoaded] = useState(false);
+  const [unavailableKeys, setUnavailableKeys] = useState(() => new Set());
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
   const resolvedIpaUrl = ipaUrl || IOS_IPA_DOWNLOAD_URL;
@@ -68,31 +85,45 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
   const resolvedSize = iosSizeLabel || IOS_RELEASE_META.sizeLabel;
   const encodedIpaUrl = encodeURIComponent(resolvedPublicIpaUrl);
 
+  const markUnavailable = (key) => {
+    setUnavailableKeys((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+  };
+
   const allLightboxItems = useMemo(() => {
-    const items = [
-      {
+    const items = [];
+    if (heroStage !== "failed" && !unavailableKeys.has("hero")) {
+      items.push({
         id: "hero",
         step: "KSign",
         title: "KSign iOS on-device IPA signer",
         detail: "Sign and install Derbis.ipa directly on iPhone or iPad with no computer or jailbreak required.",
-        img: KSIGN_LINKS.heroImage,
+        primaryImg: resolveGuideImgPrimary("hero"),
+        fallbackImg: KSIGN_LINKS.heroImage,
         alt: "KSign iOS app preview showing on-device IPA signing interface"
-      }
-    ];
+      });
+    }
     KSIGN_GUIDE_PHASES.forEach((phase) => {
       phase.steps.forEach((s) => {
-        items.push({
-          id: s.id,
-          step: `Step ${s.step}`,
-          title: s.title,
-          detail: s.detail,
-          img: s.img,
-          alt: s.alt
-        });
+        if (!unavailableKeys.has(s.id)) {
+          items.push({
+            id: s.id,
+            step: `Step ${s.step}`,
+            title: s.title,
+            detail: s.detail,
+            primaryImg: resolveGuideImgPrimary(s.id),
+            fallbackImg: s.img,
+            alt: s.alt
+          });
+        }
       });
     });
     return items;
-  }, []);
+  }, [heroStage, unavailableKeys]);
 
   const visiblePhases = useMemo(() => {
     if (activePhase === "all") return KSIGN_GUIDE_PHASES;
@@ -171,7 +202,13 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
           </div>
         </div>
 
-        <div className="ksign-overview-card">
+        <div
+          className={
+            heroStage === "failed"
+              ? "ksign-overview-card ksign-overview-card-single"
+              : "ksign-overview-card"
+          }
+        >
           <div className="ksign-overview-copy">
             <div className="bench-meta-row">
               <span className="version-badge version-badge-accent">Derbis.ipa · {resolvedVersion}</span>
@@ -230,33 +267,47 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
             </div>
           </div>
 
-          <div className="ksign-overview-media">
-            {!heroFailed ? (
+          {heroStage !== "failed" && (
+            <div className="ksign-overview-media">
               <button
                 type="button"
-                className="ksign-hero-preview"
+                className={
+                  heroLoaded ? "ksign-hero-preview is-loaded" : "ksign-hero-preview"
+                }
                 onClick={() => openStepLightbox("hero")}
                 aria-label="Inspect KSign iOS preview image"
               >
                 <img
-                  src={KSIGN_LINKS.heroImage}
+                  src={
+                    heroStage === "proxy"
+                      ? resolveGuideImgPrimary("hero")
+                      : KSIGN_LINKS.heroImage
+                  }
                   alt="KSign iOS app preview showing on-device IPA signing workflow"
-                  loading="lazy"
+                  loading="eager"
                   decoding="async"
-                  referrerPolicy="no-referrer"
-                  onError={() => setHeroFailed(true)}
+                  onLoad={(e) => {
+                    if (e.currentTarget.naturalWidth > 0) {
+                      setHeroLoaded(true);
+                    }
+                  }}
+                  onError={() => {
+                    if (heroStage === "proxy") {
+                      setHeroStage("direct");
+                    } else {
+                      setHeroStage("failed");
+                      markUnavailable("hero");
+                    }
+                  }}
                 />
-                <span className="ksign-zoom-pill" aria-hidden="true">
-                  <ExpandIcon />
-                </span>
+                {heroLoaded && (
+                  <span className="ksign-zoom-pill" aria-hidden="true">
+                    <ExpandIcon />
+                  </span>
+                )}
               </button>
-            ) : (
-              <div className="ksign-fallback-frame">
-                <span className="ksign-fallback-step">KSign v1.6 · iOS 16.0+</span>
-                <span className="ksign-fallback-path">On-device .p12 + .mobileprovision IPA signer</span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="ksign-phases-stack">
@@ -307,11 +358,12 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
                     </div>
 
                     <GuideStepImage
-                      src={step.img}
+                      imgKey={step.id}
+                      fallbackSrc={step.img}
                       alt={step.alt}
                       stepLabel={step.step}
-                      pathHint={step.pathHint}
                       onInspect={() => openStepLightbox(step.id)}
+                      onUnavailable={markUnavailable}
                     />
 
                     <div className="ksign-step-body">
@@ -408,12 +460,20 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
               </div>
             </div>
 
-            <div className="lightbox-stage ksign-lightbox-stage">
+            <div className="lightbox-stage">
               <img
-                src={inspectedItem.img}
+                key={inspectedItem.id}
+                src={inspectedItem.primaryImg}
                 alt={inspectedItem.alt}
-                referrerPolicy="no-referrer"
                 className="lightbox-img"
+                onError={(e) => {
+                  if (
+                    inspectedItem.fallbackImg &&
+                    e.currentTarget.src !== inspectedItem.fallbackImg
+                  ) {
+                    e.currentTarget.src = inspectedItem.fallbackImg;
+                  }
+                }}
               />
             </div>
 

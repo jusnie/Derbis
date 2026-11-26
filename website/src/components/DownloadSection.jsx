@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   APK_DOWNLOAD_URL,
   INSTALL_STEPS,
@@ -18,8 +18,8 @@ import {
   AndroidIcon,
   AppleIcon,
   CheckIcon,
+  ChevronToggleIcon,
   CopyIcon,
-  DesktopIcon,
   ExternalIcon,
   LaptopIcon,
   StarIcon
@@ -40,6 +40,13 @@ export function DownloadSection({
 }) {
   const { ref, visible } = useScrollReveal();
   const [copied, setCopied] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(() => platform !== "android");
+
+  useEffect(() => {
+    if (platform !== "android") {
+      setSwitcherOpen(true);
+    }
+  }, [platform]);
 
   const activeSha =
     platform === "ios" ? iosSha256 || IOS_RELEASE_META.sha256 : RELEASE_META.sha256;
@@ -60,9 +67,7 @@ export function DownloadSection({
   };
 
   const upcomingSpec =
-    platform === "macos"
-      ? UPCOMING_PLATFORMS.macos
-      : platform === "desktop"
+    platform === "desktop" || platform === "macos"
       ? UPCOMING_PLATFORMS.desktop
       : null;
 
@@ -84,50 +89,80 @@ export function DownloadSection({
             </p>
           </div>
 
-          <div className="platform-switch" role="tablist" aria-label="Choose download platform">
+          <div
+            className={
+              switcherOpen
+                ? "platform-switch platform-switch-collapsible is-open"
+                : "platform-switch platform-switch-collapsible"
+            }
+            role="tablist"
+            aria-label="Choose download platform"
+          >
             <button
               type="button"
               role="tab"
               aria-selected={platform === "android"}
-              className={platform === "android" ? "platform-tab is-active" : "platform-tab"}
+              className={
+                platform === "android"
+                  ? "platform-tab platform-tab-main is-active"
+                  : "platform-tab platform-tab-main"
+              }
               onClick={() => handleSelect("android")}
             >
               <AndroidIcon />
               <span>Android</span>
               <span className="platform-pill platform-pill-live">Official</span>
             </button>
+
+            <div
+              id="download-other-platforms"
+              className="platform-switch-drawer"
+              aria-hidden={!switcherOpen}
+            >
+              <div className="platform-switch-drawer-inner">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={platform === "ios"}
+                  tabIndex={switcherOpen ? 0 : -1}
+                  className={platform === "ios" ? "platform-tab is-active" : "platform-tab"}
+                  onClick={() => handleSelect("ios")}
+                >
+                  <AppleIcon />
+                  <span>iOS</span>
+                  <span className="platform-pill platform-pill-live">Beta</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={platform === "desktop" || platform === "macos"}
+                  tabIndex={switcherOpen ? 0 : -1}
+                  className={
+                    platform === "desktop" || platform === "macos"
+                      ? "platform-tab is-active"
+                      : "platform-tab"
+                  }
+                  onClick={() => handleSelect("desktop")}
+                >
+                  <LaptopIcon />
+                  <span>macOS &amp; Desktop</span>
+                  <span className="platform-pill platform-pill-soon">Coming soon</span>
+                </button>
+              </div>
+            </div>
+
             <button
               type="button"
-              role="tab"
-              aria-selected={platform === "ios"}
-              className={platform === "ios" ? "platform-tab is-active" : "platform-tab"}
-              onClick={() => handleSelect("ios")}
+              className="platform-switch-toggle"
+              aria-expanded={switcherOpen}
+              aria-controls="download-other-platforms"
+              aria-label={
+                switcherOpen ? "Collapse other platforms" : "Show iOS, macOS, and Desktop"
+              }
+              title={switcherOpen ? "Hide other versions" : "Show other versions"}
+              onClick={() => setSwitcherOpen((prev) => !prev)}
             >
-              <AppleIcon />
-              <span>iOS</span>
-              <span className="platform-pill platform-pill-live">Beta</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={platform === "macos"}
-              className={platform === "macos" ? "platform-tab is-active" : "platform-tab"}
-              onClick={() => handleSelect("macos")}
-            >
-              <LaptopIcon />
-              <span>macOS</span>
-              <span className="platform-pill platform-pill-soon">Coming soon</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={platform === "desktop"}
-              className={platform === "desktop" ? "platform-tab is-active" : "platform-tab"}
-              onClick={() => handleSelect("desktop")}
-            >
-              <DesktopIcon />
-              <span>Desktop</span>
-              <span className="platform-pill platform-pill-soon">Coming soon</span>
+              <ChevronToggleIcon open={switcherOpen} />
             </button>
           </div>
         </div>
@@ -376,26 +411,18 @@ export function DownloadSection({
 
           <button
             type="button"
-            className={platform === "macos" ? "matrix-card is-active" : "matrix-card"}
-            onClick={() => handleSelect("macos")}
-          >
-            <div className="matrix-top">
-              <span className="matrix-name">macOS</span>
-              <span className="platform-pill platform-pill-soon">Coming soon</span>
-            </div>
-            <span className="matrix-meta">Apple Silicon &amp; Intel · Universal .dmg</span>
-          </button>
-
-          <button
-            type="button"
-            className={platform === "desktop" ? "matrix-card is-active" : "matrix-card"}
+            className={
+              platform === "desktop" || platform === "macos"
+                ? "matrix-card is-active"
+                : "matrix-card"
+            }
             onClick={() => handleSelect("desktop")}
           >
             <div className="matrix-top">
-              <span className="matrix-name">Desktop</span>
+              <span className="matrix-name">macOS &amp; Desktop</span>
               <span className="platform-pill platform-pill-soon">Coming soon</span>
             </div>
-            <span className="matrix-meta">Windows 10/11 &amp; Linux · Native builds</span>
+            <span className="matrix-meta">macOS, Windows 10/11 &amp; Linux · Native builds</span>
           </button>
         </div>
       </div>

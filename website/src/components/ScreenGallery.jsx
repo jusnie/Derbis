@@ -252,7 +252,6 @@ export function ScreenGallery() {
 
                 <div
                   className="shot-frame"
-                  style={{ backgroundColor: screen.stageBg }}
                   onClick={() => {
                     if (!dragRef.current.moved) {
                       setInspectedIndex(realIdx);
@@ -264,7 +263,7 @@ export function ScreenGallery() {
                     alt={screen.alt}
                     width={screen.width}
                     height={screen.height}
-                    loading={idx >= SCREEN_COUNT && idx < SCREEN_COUNT * 2 ? "eager" : "lazy"}
+                    loading="eager"
                     decoding="async"
                     draggable={false}
                     className="shot-img"
@@ -332,7 +331,7 @@ export function ScreenGallery() {
               </div>
             </div>
 
-            <div className="lightbox-stage" style={{ backgroundColor: inspected.stageBg }}>
+            <div className="lightbox-stage">
               <img
                 src={inspected.src}
                 alt={inspected.alt}

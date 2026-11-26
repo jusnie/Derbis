@@ -33,57 +33,30 @@ export const IOS_RELEASE_META = {
 };
 
 export const UPCOMING_PLATFORMS = {
-  macos: {
-    id: "macos",
-    name: "Derbis for macOS",
-    packageLabel: "Derbis.dmg",
-    status: "Coming soon",
-    target: "macOS 14.0+ · Apple Silicon & Intel",
-    arch: "Universal2 Native App",
-    summary:
-      "Native macOS build designed for Apple Silicon and Intel Macs with system media keys, AirPlay 2 output, CoreAudio hog/exclusive mode, menu bar mini-player, and full skin parity.",
-    highlights: [
-      {
-        step: "01",
-        title: "Native Apple Silicon & CoreAudio output",
-        detail: "Low-overhead native playback for FLAC, ALAC, and YouTube Music streams with bit-accurate sample-rate switching"
-      },
-      {
-        step: "02",
-        title: "Menu bar mini-player & synced lyrics",
-        detail: "Quick transport dock in the macOS menu bar plus full-window karaoke lyrics and Motion Canvas backdrops"
-      },
-      {
-        step: "03",
-        title: "Navidrome, Subsonic & live Jam sync",
-        detail: "Share the same self-hosted library, Last.fm scrobbling, Discord Rich Presence, and Jam rooms with Android and iOS"
-      }
-    ]
-  },
   desktop: {
     id: "desktop",
-    name: "Derbis Desktop",
-    packageLabel: "Windows & Linux",
+    name: "Derbis for macOS & Desktop",
+    packageLabel: "macOS, Windows & Linux",
     status: "Coming soon",
-    target: "Windows 10/11 & Linux (x64 / ARM64)",
-    arch: "Installer · Portable · AppImage / Flatpak",
+    target: "macOS 14+ (Apple Silicon & Intel) · Windows 10/11 · Linux",
+    arch: "Universal .dmg · Installer · AppImage / Flatpak",
     summary:
-      "Cross-platform desktop player for Windows and Linux featuring bundled FFmpeg lossless decoding, native Discord Rich Presence, WASAPI / PipeWire audio routing, and keyboard-first search.",
+      "Unified native desktop experience for macOS, Windows, and Linux featuring bit-accurate CoreAudio, WASAPI, and PipeWire output, bundled lossless FFmpeg decoding, menu bar & tray mini-players, Discord Rich Presence, and live Jam sync.",
     highlights: [
       {
         step: "01",
-        title: "Bundled FFmpeg lossless audio engine",
-        detail: "Plays local FLAC, ALAC, Opus, Vorbis, and WAV libraries alongside YouTube Music and Subsonic servers"
+        title: "Native macOS, Windows & Linux audio output",
+        detail: "Low-overhead CoreAudio on Apple Silicon/Intel plus WASAPI and PipeWire routing with bundled FFmpeg FLAC, ALAC, and Opus decoding"
       },
       {
         step: "02",
-        title: "All Derbis skins adapted for widescreen",
-        detail: "Switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night in a responsive desktop shell"
+        title: "Menu bar & system tray mini-player",
+        detail: "Global media keys, compact menu bar/tray transport controls, full-window karaoke lyrics, and all nine Derbis skins adapted for widescreen"
       },
       {
         step: "03",
-        title: "System tray controls & Discord Presence",
-        detail: "Global media hotkeys, background tray playback, Last.fm scrobbling, and real-time Jam room synchronization"
+        title: "Navidrome, Discord Presence & live Jam sync",
+        detail: "Share the same self-hosted library, Last.fm scrobbling, Discord Rich Presence, and real-time Jam rooms with Android and iOS"
       }
     ]
   }

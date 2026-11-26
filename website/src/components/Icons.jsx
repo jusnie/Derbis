@@ -100,6 +100,25 @@ export function ChevronDownIcon({ rotated = false }) {
   );
 }
 
+export function ChevronToggleIcon({ open = false }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={open ? "toggle-chevron is-open" : "toggle-chevron"}
+    >
+      <path d="M10 4L6 8l4 4" />
+    </svg>
+  );
+}
+
 export function ExternalIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

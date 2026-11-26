@@ -4,7 +4,7 @@ import { FeaturesSection } from "./components/FeaturesSection";
 import {
   AndroidIcon,
   AppleIcon,
-  DesktopIcon,
+  ChevronToggleIcon,
   LaptopIcon,
   PixelMark
 } from "./components/Icons";
@@ -52,6 +52,7 @@ export default function App() {
   });
 
   const [platform, setPlatform] = useState(detectDefaultPlatform);
+  const [heroVersionsOpen, setHeroVersionsOpen] = useState(false);
   const [stars, setStars] = useState(7);
   const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
   const [releaseTag, setReleaseTag] = useState(RELEASE_META.version);
@@ -203,43 +204,87 @@ export default function App() {
               <p className="hero-lede">
                 Stream songs with no account, connect Navidrome or Subsonic for your FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
               </p>
-              <div className="hero-ctas">
-                <a className="btn btn-primary" href={apkUrl}>
-                  <AndroidIcon />
-                  <span>Download Derbis.apk</span>
-                </a>
-                <a className="btn btn-secondary" href={ipaUrl} download="Derbis.ipa">
-                  <AppleIcon />
-                  <span>Download Derbis.ipa</span>
-                </a>
-                <a
-                  className="btn btn-secondary"
-                  href="#ksign"
-                  onClick={() => setPlatform("ios")}
+              <div className="hero-cta-wrap">
+                <div
+                  className={
+                    heroVersionsOpen ? "version-bar is-open" : "version-bar"
+                  }
                 >
-                  <span>KSign iOS Guide</span>
-                </a>
-              </div>
+                  <a className="version-bar-main" href={apkUrl}>
+                    <AndroidIcon />
+                    <span>Download Derbis.apk</span>
+                  </a>
 
-              <div className="hero-platforms-note" aria-label="Upcoming desktop platforms">
-                <a
-                  href="#download"
-                  className="hero-soon-chip"
-                  onClick={() => setPlatform("macos")}
+                  <div
+                    id="hero-other-versions"
+                    className="version-bar-drawer"
+                    aria-hidden={!heroVersionsOpen}
+                  >
+                    <div className="version-bar-drawer-inner">
+                      <a
+                        className="version-chip"
+                        href={ipaUrl}
+                        download="Derbis.ipa"
+                        tabIndex={heroVersionsOpen ? 0 : -1}
+                      >
+                        <AppleIcon />
+                        <span>Derbis.ipa</span>
+                        <span className="platform-pill platform-pill-live">Beta</span>
+                      </a>
+
+                      <a
+                        className="version-chip version-chip-soon"
+                        href="#download"
+                        tabIndex={heroVersionsOpen ? 0 : -1}
+                        onClick={() => setPlatform("desktop")}
+                      >
+                        <LaptopIcon />
+                        <span>macOS &amp; Desktop</span>
+                        <span className="platform-pill platform-pill-soon">
+                          Coming soon
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="version-bar-toggle"
+                    aria-expanded={heroVersionsOpen}
+                    aria-controls="hero-other-versions"
+                    aria-label={
+                      heroVersionsOpen
+                        ? "Hide other versions"
+                        : "Show iOS, macOS, and Desktop versions"
+                    }
+                    title={
+                      heroVersionsOpen
+                        ? "Hide other versions"
+                        : "Show other versions"
+                    }
+                    onClick={() => setHeroVersionsOpen((prev) => !prev)}
+                  >
+                    <ChevronToggleIcon open={heroVersionsOpen} />
+                  </button>
+                </div>
+
+                <div
+                  className={
+                    heroVersionsOpen
+                      ? "hero-sub-hint is-open"
+                      : "hero-sub-hint"
+                  }
                 >
-                  <LaptopIcon />
-                  <span>macOS</span>
-                  <span className="soon-tag">Coming soon</span>
-                </a>
-                <a
-                  href="#download"
-                  className="hero-soon-chip"
-                  onClick={() => setPlatform("desktop")}
-                >
-                  <DesktopIcon />
-                  <span>Desktop (Windows &amp; Linux)</span>
-                  <span className="soon-tag">Coming soon</span>
-                </a>
+                  <div className="hero-sub-hint-inner">
+                    <a
+                      href="#ksign"
+                      tabIndex={heroVersionsOpen ? 0 : -1}
+                      onClick={() => setPlatform("ios")}
+                    >
+                      Installing Derbis.ipa on iPhone or iPad? Open the KSign visual guide &rarr;
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -253,12 +298,12 @@ export default function App() {
                 <dd>Derbis.ipa · {iosSizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>macOS</dt>
+                <dt>macOS &amp; Desktop</dt>
                 <dd className="spec-soon">Coming soon</dd>
               </div>
               <div className="spec-cell">
-                <dt>Desktop</dt>
-                <dd className="spec-soon">Coming soon</dd>
+                <dt>License</dt>
+                <dd>GPL-3.0-only</dd>
               </div>
             </dl>
           </div>
