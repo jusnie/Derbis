@@ -58,11 +58,15 @@ jobs:
         env:
           IOS_VERSION: ${{ inputs.release_version || '1.8.0' }}
           IOS_BUILD: ${{ inputs.release_build_number || '1' }}
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
         shell: bash
         run: |
           set -euo pipefail
           plutil -replace CFBundleShortVersionString -string "${IOS_VERSION}" Info.plist
           plutil -replace CFBundleVersion -string "${IOS_BUILD}" Info.plist
+          if [[ -n "${DERBIS_JAM_RELAY_URL:-}" ]]; then
+            plutil -replace DerbisJamRelayURL -string "${DERBIS_JAM_RELAY_URL}" Info.plist
+          fi
 
       - name: Compile native arm64 iOS app bundle
         shell: bash

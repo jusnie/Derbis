@@ -5,11 +5,13 @@ struct HomeView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var theme: ThemeManager
     @ObservedObject private var googleSync = GoogleAccountSyncService.shared
+    @ObservedObject private var jam = JamService.shared
 
     @State private var selectedMood: String = "All"
     @State private var shelves: [HomeShelf] = []
     @State private var isLoading: Bool = false
     @State private var showingGoogleAccountSheet: Bool = false
+    @State private var showingJamSheet: Bool = false
 
     private let moods = ["All", "Chill", "Late Night", "Focus", "Energy", "OPM"]
 
@@ -63,6 +65,11 @@ struct HomeView: View {
                     await reloadFeed(force: true)
                 }
             }
+            .sheet(isPresented: $showingJamSheet) {
+                JamSheet()
+                    .environmentObject(player)
+                    .environmentObject(theme)
+            }
             .task {
                 if shelves.isEmpty {
                     shelves = library.cachedHomeShelves
@@ -94,6 +101,28 @@ struct HomeView: View {
             }
 
             Spacer()
+
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                showingJamSheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    if jam.isActive {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                    }
+                    Image(systemName: "person.2.wave.2.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(jam.isActive ? "\(max(1, jam.participantCount))" : "Jam")
+                        .font(theme.font(size: 13, weight: .semibold))
+                }
+                .foregroundColor(jam.isActive ? .white : theme.primaryText)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 8)
+                .derbisGlassCapsule(prominent: jam.isActive)
+            }
+            .buttonStyle(.plain)
 
             Menu {
                 Section("Skin") {

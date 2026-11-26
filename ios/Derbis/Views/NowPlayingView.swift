@@ -7,6 +7,7 @@ struct NowPlayingView: View {
     @EnvironmentObject private var theme: ThemeManager
     @ObservedObject private var fx = AudioEffectsEngine.shared
     @ObservedObject private var haptics = HapticsAndGesturesService.shared
+    @ObservedObject private var jam = JamService.shared
     @Environment(\.dismiss) private var dismiss
 
     @State private var showingLyrics: Bool = false
@@ -14,6 +15,7 @@ struct NowPlayingView: View {
     @State private var showingPlaylistSheet: Bool = false
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
+    @State private var showingJamSheet: Bool = false
 
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: Double = 0
@@ -176,6 +178,11 @@ struct NowPlayingView: View {
                     }
                     .sheet(isPresented: $showingAudioStudioSheet) {
                         AudioEffectsSheet()
+                            .environmentObject(theme)
+                    }
+                    .sheet(isPresented: $showingJamSheet) {
+                        JamSheet()
+                            .environmentObject(player)
                             .environmentObject(theme)
                     }
                     .onChange(of: theme.motionCanvasEnabled) { _ in
@@ -1258,6 +1265,23 @@ struct NowPlayingView: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            Button {
+                haptics.playControlTap(style: .light)
+                showingJamSheet = true
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "person.2.wave.2.fill")
+                        .font(.system(size: 15.5, weight: .semibold))
+                    Text(jam.isActive ? "Jam · \(max(1, jam.participantCount))" : "Jam")
+                        .font(theme.font(size: 10, weight: .semibold))
+                        .lineLimit(1)
+                }
+                .foregroundColor(jam.isActive ? theme.accent : fgSecondary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 40)
+            }
+            .buttonStyle(.plain)
 
             Button {
                 haptics.playControlTap(style: .light)

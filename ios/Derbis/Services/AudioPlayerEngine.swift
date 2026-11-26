@@ -96,6 +96,18 @@ final class AudioPlayerEngine: ObservableObject {
     private var isRecovering: Bool = false
     private var pendingResumeSeconds: Double = 0
     private var consecutiveUnrecoverableFailures: Int = 0
+    private var isApplyingJamState: Bool = false
+    private var transientBannerTask: Task<Void, Never>?
+
+    func showTransientBanner(_ message: String) {
+        errorBanner = message
+        transientBannerTask?.cancel()
+        transientBannerTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_600_000_000)
+            guard !Task.isCancelled, self?.errorBanner == message else { return }
+            self?.errorBanner = nil
+        }
+    }
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
@@ -157,6 +169,19 @@ final class AudioPlayerEngine: ObservableObject {
     }
 
     func play(track: Track, in contextQueue: [Track]? = nil) {
+        if !isApplyingJamState && JamService.shared.isGuest {
+            if let existingIdx = queue.firstIndex(where: { $0.id == track.id }),
+               JamService.shared.canControlPlayback {
+                JamService.shared.dispatchUserAction(.selectIndex(existingIdx))
+            } else if JamService.shared.canAddTracks {
+                JamService.shared.dispatchUserAction(.addTrack(JamTrack.fromDerbisTrack(track)))
+                showTransientBanner("Added \(track.title) to Jam queue.")
+            } else {
+                showTransientBanner("Host controls playback in this Jam.")
+            }
+            return
+        }
+
         if let list = contextQueue, !list.isEmpty {
             queue = list
             currentIndex = list.firstIndex(where: { $0.id == track.id }) ?? 0
@@ -167,26 +192,67 @@ final class AudioPlayerEngine: ObservableObject {
             currentIndex = 0
         }
         startCurrentItem()
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func playNextInQueue(_ track: Track) {
+        if !isApplyingJamState && JamService.shared.isGuest {
+            if JamService.shared.canAddTracks {
+                JamService.shared.dispatchUserAction(.addTrack(JamTrack.fromDerbisTrack(track)))
+                showTransientBanner("Added \(track.title) to Jam queue.")
+            } else {
+                showTransientBanner("Host controls the queue in this Jam.")
+            }
+            return
+        }
+
         if queue.isEmpty {
             play(track: track, in: [track])
             return
         }
         let insertIndex = min(queue.count, currentIndex + 1)
         queue.insert(track, at: insertIndex)
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func appendToQueue(_ track: Track) {
+        if !isApplyingJamState && JamService.shared.isGuest {
+            if JamService.shared.canAddTracks {
+                JamService.shared.dispatchUserAction(.addTrack(JamTrack.fromDerbisTrack(track)))
+                showTransientBanner("Added \(track.title) to Jam queue.")
+            } else {
+                showTransientBanner("Host controls the queue in this Jam.")
+            }
+            return
+        }
+
         if queue.isEmpty {
             play(track: track, in: [track])
             return
         }
         queue.append(track)
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func removeFromQueue(at offsets: IndexSet) {
+        if !isApplyingJamState && JamService.shared.isGuest {
+            guard JamService.shared.canControlPlayback else {
+                showTransientBanner("Host controls the queue in this Jam.")
+                return
+            }
+            for offset in offsets where queue.indices.contains(offset) && offset != currentIndex {
+                let wireId = queue[offset].videoId ?? queue[offset].id
+                JamService.shared.dispatchUserAction(.removeTrack(wireId))
+            }
+            return
+        }
+
         for offset in offsets.sorted(by: >) {
             guard queue.indices.contains(offset) else { continue }
             if offset == currentIndex { continue }
@@ -195,10 +261,18 @@ final class AudioPlayerEngine: ObservableObject {
                 currentIndex = max(0, currentIndex - 1)
             }
         }
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func togglePlayPause() {
         guard let track = currentTrack else { return }
+        if !isApplyingJamState && JamService.shared.isGuest {
+            JamService.shared.dispatchUserAction(.setPlayWhenReady(!isPlaying))
+            return
+        }
+
         if isPlaying {
             player.pause()
             isPlaying = false
@@ -214,6 +288,9 @@ final class AudioPlayerEngine: ObservableObject {
             isPlaying = true
         }
         updateNowPlayingMetadata()
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func skipBy(seconds delta: Double) {
@@ -224,11 +301,25 @@ final class AudioPlayerEngine: ObservableObject {
     func skipNext(automatic: Bool = false) {
         guard !queue.isEmpty else { return }
 
+        if !isApplyingJamState && JamService.shared.isGuest {
+            if automatic {
+                player.pause()
+                isPlaying = false
+                updateNowPlayingMetadata()
+            } else {
+                JamService.shared.dispatchUserAction(.next)
+            }
+            return
+        }
+
         if automatic && repeatMode == .one {
             seek(to: 0)
             player.play()
             player.rate = playbackRate
             isPlaying = true
+            if !isApplyingJamState && JamService.shared.isHost {
+                JamService.shared.notifyHostPlaybackChanged()
+            }
             return
         }
 
@@ -240,6 +331,9 @@ final class AudioPlayerEngine: ObservableObject {
             if let pick = (pool.isEmpty ? fallbackPool : pool).randomElement() {
                 currentIndex = pick
                 startCurrentItem()
+                if !isApplyingJamState && JamService.shared.isHost {
+                    JamService.shared.notifyHostPlaybackChanged()
+                }
                 return
             }
         }
@@ -256,10 +350,18 @@ final class AudioPlayerEngine: ObservableObject {
             player.pause()
             updateNowPlayingMetadata()
         }
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func skipPrevious() {
         guard !queue.isEmpty else { return }
+        if !isApplyingJamState && JamService.shared.isGuest {
+            JamService.shared.dispatchUserAction(.previous)
+            return
+        }
+
         if currentTime > 3.5 {
             seek(to: 0)
             return
@@ -276,6 +378,9 @@ final class AudioPlayerEngine: ObservableObject {
             startCurrentItem()
         } else {
             seek(to: 0)
+        }
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
         }
     }
 
@@ -300,12 +405,19 @@ final class AudioPlayerEngine: ObservableObject {
 
     func seek(to seconds: Double) {
         let clamped = max(0, min(seconds, max(duration, seconds)))
+        if !isApplyingJamState && JamService.shared.isGuest {
+            JamService.shared.dispatchUserAction(.seek(Int64(clamped * 1000.0)))
+            return
+        }
         let cm = CMTime(seconds: clamped, preferredTimescale: 600)
         player.currentItem?.cancelPendingSeeks()
         player.seek(to: cm, toleranceBefore: .zero, toleranceAfter: .zero)
         PlaybackClock.shared.currentTime = clamped
         updateActiveLyricIndex(at: clamped)
         updateNowPlayingMetadata()
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
     }
 
     func setRate(_ rate: Float) {
@@ -1203,6 +1315,155 @@ final class AudioPlayerEngine: ObservableObject {
                 ]
                 nextText.draw(in: CGRect(x: 36, y: 420, width: side - 72, height: 78), withAttributes: nextAttrs)
             }
+        }
+    }
+
+    struct JamPlaybackSnapshot {
+        let queue: [JamTrack]
+        let currentIndex: Int
+        let positionMs: Int64
+        let playWhenReady: Bool
+        let shuffle: Bool
+        let repeatMode: Int
+    }
+
+    func jamSnapshot() -> JamPlaybackSnapshot {
+        let mapped = queue.prefix(JamSessionState.maxQueueSize).map { JamTrack.fromDerbisTrack($0) }
+        let repOrdinal: Int = {
+            switch repeatMode {
+            case .off: return 0
+            case .all: return 1
+            case .one: return 2
+            }
+        }()
+        let liveSec = CMTimeGetSeconds(player.currentTime())
+        let effectiveSec = (liveSec.isFinite && liveSec >= 0) ? liveSec : currentTime
+        return JamPlaybackSnapshot(
+            queue: mapped,
+            currentIndex: mapped.isEmpty ? -1 : min(max(0, currentIndex), mapped.count - 1),
+            positionMs: Int64(max(0, effectiveSec * 1000.0)),
+            playWhenReady: isPlaying,
+            shuffle: isShuffleEnabled,
+            repeatMode: repOrdinal
+        )
+    }
+
+    func applyJamHostAction(_ action: JamAction) {
+        isApplyingJamState = true
+        defer { isApplyingJamState = false }
+
+        switch action {
+        case .addTrack(let jt):
+            let converted = jt.toDerbisTrack()
+            if queue.isEmpty {
+                play(track: converted, in: [converted])
+            } else if !queue.contains(where: { $0.id == converted.id }) {
+                queue.append(converted)
+            }
+        case .addTracks(let list):
+            let existing = Set(queue.map(\.id))
+            let converted = list.map { $0.toDerbisTrack() }.filter { !existing.contains($0.id) }
+            if queue.isEmpty, let first = converted.first {
+                play(track: first, in: converted)
+            } else {
+                queue.append(contentsOf: converted)
+            }
+        case .playNextTracks(let list):
+            let existing = Set(queue.map(\.id))
+            let converted = list.map { $0.toDerbisTrack() }.filter { !existing.contains($0.id) }
+            if queue.isEmpty, let first = converted.first {
+                play(track: first, in: converted)
+            } else {
+                let idx = min(queue.count, currentIndex + 1)
+                queue.insert(contentsOf: converted, at: idx)
+            }
+        case .removeTrack(let wireId):
+            if let idx = queue.firstIndex(where: { ($0.videoId ?? $0.id) == wireId || $0.id == wireId }),
+               idx != currentIndex {
+                removeFromQueue(at: IndexSet(integer: idx))
+            }
+        case .selectIndex(let idx):
+            if queue.indices.contains(idx) {
+                currentIndex = idx
+                startCurrentItem()
+            }
+        case .setPlayWhenReady(let playReady):
+            if isPlaying != playReady {
+                togglePlayPause()
+            }
+        case .seek(let posMs):
+            seek(to: Double(max(0, posMs)) / 1000.0)
+        case .next:
+            skipNext(automatic: false)
+        case .previous:
+            skipPrevious()
+        }
+    }
+
+    func applyJamRemoteState(_ state: JamSessionState) {
+        guard !JamService.shared.isHost else { return }
+        isApplyingJamState = true
+        defer { isApplyingJamState = false }
+
+        isShuffleEnabled = state.shuffle
+        switch state.repeatMode {
+        case 1: repeatMode = .all
+        case 2: repeatMode = .one
+        default: repeatMode = .off
+        }
+
+        if state.queue.isEmpty {
+            player.pause()
+            isPlaying = false
+            queue = []
+            currentTrack = nil
+            return
+        }
+
+        let mappedQueue = state.queue.map { $0.toDerbisTrack() }
+        let targetIdx = min(max(0, state.currentIndex), mappedQueue.count - 1)
+        let targetTrack = mappedQueue[targetIdx]
+        let predictedMs = JamService.predictedPositionMs(for: state)
+        let predictedSec = Double(predictedMs) / 1000.0
+
+        let queueChanged = mappedQueue.map(\.id) != queue.map(\.id)
+        let trackChanged = currentTrack?.id != targetTrack.id
+
+        if queueChanged {
+            queue = mappedQueue
+        }
+        currentIndex = targetIdx
+
+        if trackChanged {
+            startCurrentItem(resumeFromSeconds: predictedSec, targetTrack: targetTrack)
+            if !state.playWhenReady {
+                player.pause()
+                isPlaying = false
+                updateNowPlayingMetadata()
+            }
+            return
+        }
+
+        if isPlaying != state.playWhenReady {
+            if state.playWhenReady {
+                if player.currentItem == nil || player.currentItem?.status == .failed {
+                    startCurrentItem(resumeFromSeconds: predictedSec, targetTrack: targetTrack)
+                    return
+                }
+                try? AVAudioSession.sharedInstance().setActive(true)
+                player.play()
+                player.rate = playbackRate
+                isPlaying = true
+            } else {
+                player.pause()
+                isPlaying = false
+            }
+            updateNowPlayingMetadata()
+        }
+
+        let localMs = Int64(max(0, currentTime * 1000.0))
+        if !isLoading && JamService.shouldSeek(localMs: localMs, predictedMs: predictedMs, playWhenReady: state.playWhenReady) {
+            seek(to: predictedSec)
         }
     }
 }

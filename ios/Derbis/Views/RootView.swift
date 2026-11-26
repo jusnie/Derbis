@@ -21,9 +21,11 @@ enum MainTab: String, CaseIterable, Identifiable {
 struct RootView: View {
     @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var theme: ThemeManager
+    @ObservedObject private var jam = JamService.shared
 
     @State private var activeTab: MainTab = .home
     @State private var showingFullPlayer: Bool = false
+    @State private var showingJamSheetFromRoot: Bool = false
     @State private var isTabBarMinimized: Bool = false
     @State private var miniDragOffset: CGFloat = 0
 
@@ -101,6 +103,15 @@ struct RootView: View {
                 .environmentObject(LibraryStore.shared)
                 .environmentObject(theme)
                 .presentationDragIndicator(.hidden)
+        }
+        .sheet(isPresented: $showingJamSheetFromRoot) {
+            JamSheet()
+                .environmentObject(player)
+                .environmentObject(theme)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .derbisPresentJamSheet)) { _ in
+            showingFullPlayer = false
+            showingJamSheetFromRoot = true
         }
     }
 
@@ -181,10 +192,26 @@ struct RootView: View {
                                 .foregroundColor(.white)
                                 .lineLimit(1)
 
-                            Text(track.artist)
-                                .font(theme.font(size: compactDocked ? 11 : 12))
-                                .foregroundColor(Color.white.opacity(0.68))
-                                .lineLimit(1)
+                            HStack(spacing: 5) {
+                                if jam.isActive {
+                                    HStack(spacing: 3) {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 5, height: 5)
+                                        Text("JAM · \(max(1, jam.participantCount))")
+                                            .font(.system(size: 9.5, weight: .black, design: .rounded))
+                                            .foregroundColor(theme.accent)
+                                    }
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1.5)
+                                    .background(Capsule().fill(theme.accent.opacity(0.18)))
+                                }
+
+                                Text(track.artist)
+                                    .font(theme.font(size: compactDocked ? 11 : 12))
+                                    .foregroundColor(Color.white.opacity(0.68))
+                                    .lineLimit(1)
+                            }
                         }
                         Spacer(minLength: 2)
                     }

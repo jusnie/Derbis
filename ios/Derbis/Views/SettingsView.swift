@@ -10,6 +10,7 @@ struct SettingsView: View {
     @ObservedObject private var googleSync = GoogleAccountSyncService.shared
     @ObservedObject private var fx = AudioEffectsEngine.shared
     @ObservedObject private var haptics = HapticsAndGesturesService.shared
+    @ObservedObject private var jam = JamService.shared
 
     @State private var serverURLInput: String = ""
     @State private var usernameInput: String = ""
@@ -20,6 +21,7 @@ struct SettingsView: View {
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
     @State private var showingGoogleAccountSheet: Bool = false
+    @State private var showingJamSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -47,6 +49,7 @@ struct SettingsView: View {
                         }
 
                         googleAccountSection
+                        jamListenTogetherSection
                         audioStudioAndHapticsSection
                         skinSection
                         liquidGlassSection
@@ -96,6 +99,11 @@ struct SettingsView: View {
                 GoogleAccountSheet()
                     .environmentObject(player)
                     .environmentObject(library)
+                    .environmentObject(theme)
+            }
+            .sheet(isPresented: $showingJamSheet) {
+                JamSheet()
+                    .environmentObject(player)
                     .environmentObject(theme)
             }
             .onChange(of: theme.motionCanvasEnabled) { _ in
@@ -179,6 +187,50 @@ struct SettingsView: View {
                     }
                 }
             }
+            .padding(14)
+            .derbisCard(elevated: true)
+        }
+    }
+
+    private var jamListenTogetherSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Listen Together")
+
+            Button {
+                haptics.playControlTap(style: .light)
+                showingJamSheet = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.2.wave.2.fill")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 38, height: 38)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 10, style: .continuous)
+                                .fill(theme.accent)
+                        )
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Derbis Jam")
+                            .font(theme.font(size: 15, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+                        Text(
+                            jam.isActive
+                                ? "Live Session · \(max(1, jam.participantCount)) listening together"
+                                : "Host or join synchronized sessions with iOS & Android"
+                        )
+                        .font(theme.font(size: 12))
+                        .foregroundColor(jam.isActive ? theme.accent : theme.secondaryText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.secondaryText)
+                }
+            }
+            .buttonStyle(.plain)
             .padding(14)
             .derbisCard(elevated: true)
         }

@@ -48,6 +48,14 @@
 	</dict>
 	<key>NSMotionUsageDescription</key>
 	<string>Derbis uses headphone motion sensors when AirPods head gestures are enabled to play, pause, or skip tracks with a nod or head shake.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Derbis Jam uses your local network to discover nearby Listen Together rooms and synchronize playback over Wi-Fi or Hotspot.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_derbis-jam._tcp</string>
+	</array>
+	<key>DerbisJamRelayURL</key>
+	<string></string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>pixelify_sans_regular.ttf</string>

@@ -26,6 +26,10 @@ struct DerbisApp: App {
     }
 
     private func handleIncomingURL(_ url: URL) {
+        if JamService.shared.handleIncomingJamURL(url) {
+            return
+        }
+
         if url.isFileURL {
             Task {
                 await library.importLocalAudioFiles(urls: [url])
