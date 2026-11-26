@@ -5,7 +5,7 @@ export const LATEST_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag
 export const APK_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk";
 export const SHA256_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk.sha256";
 
-export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e";
+export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d96cf25";
 export const IOS_IPA_DOWNLOAD_URL = "/Derbis.ipa";
 export const IOS_IPA_PUBLIC_URL = "https://derbis-web.vercel.app/Derbis.ipa";
 export const IOS_SHA256_DOWNLOAD_URL = "/Derbis.ipa.sha256";
@@ -22,14 +22,14 @@ export const RELEASE_META = {
 
 export const IOS_RELEASE_META = {
   version: "v1.8.0",
-  buildId: "6e9198e",
-  upstreamTag: "ios-unofficial-6e9198e",
+  buildId: "d96cf25",
+  upstreamTag: "ios-unofficial-d96cf25",
   bundleId: "com.derbis.ios",
   sizeLabel: "2.8 MB",
   iosMin: "iOS 16.0+",
   archLabel: "arm64 SwiftUI",
   publishedLabel: "October 2026",
-  sha256: "75f59ac934b17295fc0210091f0061c53091800bcccda7998521327df58a50cc"
+  sha256: "334d50f8e26cf1a82ddd4a47d3f1fa0ee6eb5278bcf2e888b163ab242c52f69d"
 };
 
 export const UPCOMING_PLATFORMS = {
@@ -421,7 +421,7 @@ export const INITIAL_RELEASES = [
     ]
   },
   {
-    tag: "ios-unofficial-6e9198e",
+    tag: "ios-unofficial-d96cf25",
     displayTag: "v1.8.0-beta · iOS",
     name: "Derbis v1.8.0 Beta for iOS",
     channel: "iOS Beta",
@@ -430,7 +430,7 @@ export const INITIAL_RELEASES = [
     prerelease: true,
     downloads: null,
     sizeLabel: "2.8 MB",
-    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e",
+    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d96cf25",
     ipaUrl: "/Derbis.ipa",
     groups: [
       {
