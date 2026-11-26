@@ -6,14 +6,32 @@ import UIKit
 final class LibraryStore: ObservableObject {
     static let shared = LibraryStore()
 
-    @Published var likedTracks: [Track] = []
+    @Published var likedTracks: [Track] = [] {
+        didSet {
+            likedTrackIds = Set(likedTracks.map(\.id))
+        }
+    }
     @Published var playlists: [UserPlaylist] = []
-    @Published var offlineTracks: [Track] = []
+    @Published var offlineTracks: [Track] = [] {
+        didSet {
+            rebuildDownloadedSet()
+        }
+    }
     @Published var localTracks: [Track] = []
     @Published var history: [ListeningRecord] = []
-    @Published var blockedArtists: [String] = []
+    @Published var blockedArtists: [String] = [] {
+        didSet {
+            blockedArtistsLower = Set(blockedArtists.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
+        }
+    }
     @Published var activeDownloads: [String: Double] = [:]
     @Published var cachedHomeShelves: [HomeShelf] = []
+
+    private var likedTrackIds: Set<String> = []
+    private var downloadedTrackIds: Set<String> = []
+    private var blockedArtistsLower: Set<String> = []
+    private var saveWorkTask: Task<Void, Never>?
+    private let persistenceQueue = DispatchQueue(label: "com.derbis.library.persistence", qos: .utility)
 
     private struct PersistedState: Codable {
         var likedTracks: [Track]
@@ -31,7 +49,7 @@ final class LibraryStore: ObservableObject {
     }
 
     func isLiked(_ track: Track) -> Bool {
-        likedTracks.contains { $0.id == track.id }
+        likedTrackIds.contains(track.id)
     }
 
     func toggleLike(_ track: Track) {
@@ -130,12 +148,11 @@ final class LibraryStore: ObservableObject {
     }
 
     func isArtistBlocked(_ artistName: String) -> Bool {
-        guard !blockedArtists.isEmpty else { return false }
-        let blockedLower = Set(blockedArtists.map { $0.lowercased() })
+        guard !blockedArtistsLower.isEmpty else { return false }
         let fullLower = artistName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if blockedLower.contains(fullLower) { return true }
+        if blockedArtistsLower.contains(fullLower) { return true }
         for token in normalizedArtistTokens(from: artistName) {
-            if blockedLower.contains(token.lowercased()) {
+            if blockedArtistsLower.contains(token.lowercased()) {
                 return true
             }
         }
@@ -191,13 +208,29 @@ final class LibraryStore: ObservableObject {
             .map { ($0.track, $0.plays) }
     }
 
-    func isDownloaded(_ track: Track) -> Bool {
-        guard let item = offlineTracks.first(where: { $0.id == track.id }),
-              let fileName = item.localFileName else {
-            return false
+    private func rebuildDownloadedSet() {
+        let dir = downloadsDirectory()
+        var valid = Set<String>()
+        for item in offlineTracks {
+            if let fileName = item.localFileName,
+               FileManager.default.fileExists(atPath: dir.appendingPathComponent(fileName).path) {
+                valid.insert(item.id)
+            }
         }
-        let url = downloadsDirectory().appendingPathComponent(fileName)
-        return FileManager.default.fileExists(atPath: url.path)
+        downloadedTrackIds = valid
+    }
+
+    func isDownloaded(_ track: Track) -> Bool {
+        downloadedTrackIds.contains(track.id)
+    }
+
+    func invalidateCorruptedOfflineDownload(_ track: Track) {
+        if let existing = offlineTracks.first(where: { $0.id == track.id }),
+           let fileName = existing.localFileName {
+            try? FileManager.default.removeItem(at: downloadsDirectory().appendingPathComponent(fileName))
+        }
+        offlineTracks.removeAll { $0.id == track.id }
+        saveState()
     }
 
     func localPlaybackURL(for track: Track) -> URL? {
@@ -582,17 +615,24 @@ final class LibraryStore: ObservableObject {
     }
 
     private func saveState() {
-        let state = PersistedState(
-            likedTracks: likedTracks,
-            playlists: playlists,
-            offlineTracks: offlineTracks,
-            localTracks: localTracks,
-            history: history,
-            blockedArtists: blockedArtists
-        )
-        let url = appSupportDirectory().appendingPathComponent("library.json")
-        if let data = try? JSONEncoder().encode(state) {
-            try? data.write(to: url, options: .atomic)
+        saveWorkTask?.cancel()
+        saveWorkTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            guard !Task.isCancelled, let self = self else { return }
+            let snapshot = PersistedState(
+                likedTracks: self.likedTracks,
+                playlists: self.playlists,
+                offlineTracks: self.offlineTracks,
+                localTracks: self.localTracks,
+                history: self.history,
+                blockedArtists: self.blockedArtists
+            )
+            let url = self.appSupportDirectory().appendingPathComponent("library.json")
+            self.persistenceQueue.async {
+                if let data = try? JSONEncoder().encode(snapshot) {
+                    try? data.write(to: url, options: .atomic)
+                }
+            }
         }
     }
 

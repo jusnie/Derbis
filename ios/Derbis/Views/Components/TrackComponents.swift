@@ -1,11 +1,123 @@
 import SwiftUI
 import UIKit
 
+final class ArtworkImageCache: @unchecked Sendable {
+    static let shared = ArtworkImageCache()
+
+    private let cache = NSCache<NSString, UIImage>()
+    private let session: URLSession
+    private let lock = NSLock()
+    private var inFlightTasks: [String: Task<UIImage?, Never>] = [:]
+
+    private init() {
+        cache.countLimit = 280
+        cache.totalCostLimit = 48 * 1024 * 1024
+
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 8
+        config.timeoutIntervalForResource = 14
+        config.urlCache = URLCache(
+            memoryCapacity: 24 * 1024 * 1024,
+            diskCapacity: 120 * 1024 * 1024
+        )
+        self.session = URLSession(configuration: config)
+    }
+
+    private func cacheKey(url: URL, bucketPx: Int) -> String {
+        "\(bucketPx)|\(url.absoluteString)"
+    }
+
+    private func pixelBucket(for pointSize: CGFloat) -> Int {
+        if pointSize <= 64 { return 160 }
+        if pointSize <= 170 { return 360 }
+        return 760
+    }
+
+    func cachedImage(for url: URL, pointSize: CGFloat) -> UIImage? {
+        let key = cacheKey(url: url, bucketPx: pixelBucket(for: pointSize)) as NSString
+        return cache.object(forKey: key)
+    }
+
+    func prefetch(url: URL?, pointSize: CGFloat = 320) {
+        guard let url = url else { return }
+        if cachedImage(for: url, pointSize: pointSize) != nil { return }
+        Task.detached(priority: .utility) {
+            _ = await ArtworkImageCache.shared.loadImage(for: url, pointSize: pointSize)
+        }
+    }
+
+    func loadImage(for url: URL, pointSize: CGFloat) async -> UIImage? {
+        let bucket = pixelBucket(for: pointSize)
+        let key = cacheKey(url: url, bucketPx: bucket)
+        if let hit = cache.object(forKey: key as NSString) {
+            return hit
+        }
+
+        lock.lock()
+        if let existing = inFlightTasks[key] {
+            lock.unlock()
+            return await existing.value
+        }
+
+        let task = Task.detached(priority: .userInitiated) { [weak self] () -> UIImage? in
+            guard let self = self else { return nil }
+            let rawData: Data?
+            if url.isFileURL {
+                rawData = try? Data(contentsOf: url, options: [.mappedIfSafe])
+            } else {
+                var req = URLRequest(url: url)
+                req.cachePolicy = .returnCacheDataElseLoad
+                if let (data, resp) = try? await self.session.data(for: req),
+                   let http = resp as? HTTPURLResponse,
+                   (200..<300).contains(http.statusCode) {
+                    rawData = data
+                } else {
+                    rawData = nil
+                }
+            }
+
+            guard let data = rawData, !data.isEmpty, let decoded = UIImage(data: data) else {
+                return nil
+            }
+
+            let maxDim = CGFloat(bucket)
+            let origW = decoded.size.width * decoded.scale
+            let origH = decoded.size.height * decoded.scale
+            let prepared: UIImage
+            if max(origW, origH) > maxDim * 1.25 {
+                let ratio = min(maxDim / max(1, origW), maxDim / max(1, origH))
+                let targetSize = CGSize(width: max(1, floor(origW * ratio)), height: max(1, floor(origH * ratio)))
+                prepared = decoded.preparingThumbnail(of: targetSize) ?? decoded
+            } else {
+                prepared = decoded.byPreparingForDisplay() ?? decoded
+            }
+
+            let cost = Int(prepared.size.width * prepared.size.height * prepared.scale * prepared.scale * 4)
+            self.cache.setObject(prepared, forKey: key as NSString, cost: max(1024, cost))
+            return prepared
+        }
+
+        inFlightTasks[key] = task
+        lock.unlock()
+
+        let result = await task.value
+
+        lock.lock()
+        inFlightTasks.removeValue(forKey: key)
+        lock.unlock()
+
+        return result
+    }
+}
+
 struct TrackArtworkView: View {
     @EnvironmentObject private var theme: ThemeManager
     let url: URL?
     let size: CGFloat
     var cornerRadius: CGFloat? = nil
+
+    @State private var loadedImage: UIImage?
+    @State private var loadedKey: String = ""
 
     private var isYouTubeFourByThreeThumb: Bool {
         guard let host = url?.host?.lowercased(), let path = url?.path.lowercased() else {
@@ -17,33 +129,19 @@ struct TrackArtworkView: View {
     var body: some View {
         let radius = theme.isPixelSkin ? 0 : (cornerRadius ?? theme.artworkRadius)
         let zoom: CGFloat = isYouTubeFourByThreeThumb ? 1.35 : 1.0
+        let instantHit = url.flatMap { ArtworkImageCache.shared.cachedImage(for: $0, pointSize: size) }
+        let currentKey = url?.absoluteString ?? ""
+        let resolvedImage = instantHit ?? (loadedKey == currentKey ? loadedImage : nil)
+
         ZStack {
             theme.elevatedSurface
-            if let url = url {
-                if url.isFileURL, let data = try? Data(contentsOf: url), let uiImg = UIImage(data: data) {
-                    Image(uiImage: uiImg)
-                        .resizable()
-                        .scaledToFill()
-                        .scaleEffect(zoom)
-                        .frame(width: size, height: size)
-                        .clipped()
-                } else {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .scaleEffect(zoom)
-                                .frame(width: size, height: size)
-                                .clipped()
-                        default:
-                            placeholderIcon
-                        }
-                    }
+            if let uiImg = resolvedImage {
+                Image(uiImage: uiImg)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(zoom)
                     .frame(width: size, height: size)
                     .clipped()
-                }
             } else {
                 placeholderIcon
             }
@@ -54,6 +152,25 @@ struct TrackArtworkView: View {
             RoundedRectangle(cornerRadius: radius, style: .continuous)
                 .stroke(theme.border, lineWidth: theme.isPixelSkin ? 2 : 0.8)
         )
+        .task(id: url?.absoluteString ?? "") {
+            guard let targetURL = url else {
+                loadedImage = nil
+                loadedKey = ""
+                return
+            }
+            let key = targetURL.absoluteString
+            if let hit = ArtworkImageCache.shared.cachedImage(for: targetURL, pointSize: size) {
+                if loadedKey != key || loadedImage !== hit {
+                    loadedKey = key
+                    loadedImage = hit
+                }
+                return
+            }
+            let fetched = await ArtworkImageCache.shared.loadImage(for: targetURL, pointSize: size)
+            guard !Task.isCancelled else { return }
+            loadedKey = key
+            loadedImage = fetched
+        }
     }
 
     private var placeholderIcon: some View {

@@ -120,8 +120,17 @@ private struct BiquadChannelState {
     @inline(__always)
     mutating func process(_ x: Float, coeffs: BiquadCoeffs) -> Float {
         let y = coeffs.b0 * x + z1
-        z1 = coeffs.b1 * x - coeffs.a1 * y + z2
-        z2 = coeffs.b2 * x - coeffs.a2 * y
+        guard y.isFinite else {
+            z1 = 0
+            z2 = 0
+            return 0
+        }
+        var nextZ1 = coeffs.b1 * x - coeffs.a1 * y + z2
+        var nextZ2 = coeffs.b2 * x - coeffs.a2 * y
+        if !nextZ1.isFinite || abs(nextZ1) < 1e-20 { nextZ1 = 0 }
+        if !nextZ2.isFinite || abs(nextZ2) < 1e-20 { nextZ2 = 0 }
+        z1 = nextZ1
+        z2 = nextZ2
         return y
     }
 
@@ -670,6 +679,10 @@ final class AudioEffectsEngine: ObservableObject {
 
                 let storage = Unmanaged<RealtimeTapStorage>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
                 guard storage.isFloat32PCM else { return }
+
+                if (flagsOut.pointee & MTAudioProcessingTapFlags(kMTAudioProcessingTapFlag_StartOfStream)) != 0 {
+                    storage.resetStates()
+                }
 
                 if os_unfair_lock_trylock(AudioEffectsEngine.paramLock) {
                     storage.cachedParams = AudioEffectsEngine.sharedParamsPtr.pointee

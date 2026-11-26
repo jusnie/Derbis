@@ -891,18 +891,15 @@ struct NowPlayingView: View {
                                     ? payload.lines[idx - 1].endTimeSec
                                     : 0.0
                                 let gapDuration = line.startTimeSec - prevEnd
-                                let inInstrumentalGap = payload.synced
-                                    && gapDuration >= 7.0
-                                    && player.currentTime >= prevEnd
-                                    && player.currentTime < line.startTimeSec
 
                                 VStack(spacing: 12) {
-                                    if inInstrumentalGap {
-                                        InstrumentalBreathingDots(
-                                            progress: min(1.0, max(0.0, (player.currentTime - prevEnd) / max(0.1, gapDuration))),
+                                    if payload.synced && gapDuration >= 7.0 {
+                                        NowPlayingInstrumentalGapSlot(
+                                            prevEnd: prevEnd,
+                                            lineStart: line.startTimeSec,
+                                            gapDuration: gapDuration,
                                             accent: theme.accent
                                         )
-                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
 
                                     Button {
@@ -989,9 +986,12 @@ struct NowPlayingView: View {
 
         VStack(alignment: align, spacing: 5) {
             if isActive && line.words.count >= 2 {
-                Text(buildKaraokeAttributedText(for: line))
-                    .font(theme.font(size: 23, weight: .bold))
-                    .multilineTextAlignment(textAlign)
+                NowPlayingKaraokeActiveText(
+                    line: line,
+                    fgPrimary: fgPrimary,
+                    font: theme.font(size: 23, weight: .bold),
+                    textAlign: textAlign
+                )
             } else {
                 Text(line.text)
                     .font(theme.font(size: isActive ? 23 : 18.5, weight: .bold))
@@ -1026,29 +1026,6 @@ struct NowPlayingView: View {
         .animation(.easeOut(duration: 0.2), value: isActive)
     }
 
-    private func buildKaraokeAttributedText(for line: LyricLine) -> AttributedString {
-        var result = AttributedString()
-        let now = player.currentTime + 0.08
-
-        for (idx, word) in line.words.enumerated() {
-            if idx > 0 && !word.joinedToPrevious {
-                result.append(AttributedString(" "))
-            }
-            var piece = AttributedString(word.text)
-            if now >= word.endTimeSec {
-                piece.foregroundColor = fgPrimary
-            } else if now >= word.startTimeSec {
-                let dur = max(0.05, word.endTimeSec - word.startTimeSec)
-                let prog = min(1.0, max(0.0, (now - word.startTimeSec) / dur))
-                piece.foregroundColor = fgPrimary.opacity(0.62 + 0.38 * prog)
-            } else {
-                piece.foregroundColor = fgPrimary.opacity(0.36)
-            }
-            result.append(piece)
-        }
-        return result
-    }
-
     private func titleAndLikeRow(track: Track) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
@@ -1077,57 +1054,21 @@ struct NowPlayingView: View {
     }
 
     private var scrubberSection: some View {
-        let total = max(1.0, player.duration)
-        let displayed = isScrubbing ? scrubTime : min(player.currentTime, total)
-
-        return VStack(spacing: 6) {
-            Slider(
-                value: Binding(
-                    get: { displayed },
-                    set: { newVal in
-                        scrubTime = newVal
-                        if isScrubbing {
-                            haptics.playScrubberNotchIfNeeded(
-                                progress: newVal / total,
-                                lastNotch: &lastScrubNotch
-                            )
-                        }
-                    }
-                ),
-                in: 0...total,
-                onEditingChanged: { editing in
-                    isScrubbing = editing
-                    if editing {
-                        lastScrubNotch = Int(((displayed / total) * 10.0).rounded(.down))
-                        haptics.playControlTap(style: .soft, scale: 0.6)
-                    } else {
-                        lastScrubNotch = -1
-                        haptics.playControlTap(style: .light, scale: 0.75)
-                        player.seek(to: scrubTime)
-                        scheduleLyricsControlsAutoHide()
-                    }
-                }
-            )
-            .tint((theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop) ? theme.accent : fgPrimary)
-
-            HStack {
-                Text(TimeFormatting.clockString(seconds: displayed))
-                    .font(theme.font(size: 11, weight: .semibold))
-                    .foregroundColor(fgSecondary)
-                    .monospacedDigit()
-
-                Spacer()
-
+        NowPlayingScrubberControl(
+            isScrubbing: $isScrubbing,
+            scrubTime: $scrubTime,
+            lastScrubNotch: $lastScrubNotch,
+            tintColor: (theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop) ? theme.accent : fgPrimary,
+            fgSecondary: fgSecondary,
+            labelFont: theme.font(size: 11, weight: .semibold),
+            onSeekCommit: { target in
+                player.seek(to: target)
+                scheduleLyricsControlsAutoHide()
+            },
+            centerAccessory: {
                 codecBadgePill
-
-                Spacer()
-
-                Text("-\(TimeFormatting.clockString(seconds: max(0, total - displayed)))")
-                    .font(theme.font(size: 11, weight: .semibold))
-                    .foregroundColor(fgSecondary)
-                    .monospacedDigit()
             }
-        }
+        )
     }
 
     private var codecBadgePill: some View {
@@ -1491,3 +1432,127 @@ struct UpNextQueueSheet: View {
         }
     }
 }
+
+private struct NowPlayingInstrumentalGapSlot: View {
+    @ObservedObject private var clock = PlaybackClock.shared
+    let prevEnd: Double
+    let lineStart: Double
+    let gapDuration: Double
+    let accent: Color
+
+    var body: some View {
+        if clock.currentTime >= prevEnd && clock.currentTime < lineStart {
+            InstrumentalBreathingDots(
+                progress: min(1.0, max(0.0, (clock.currentTime - prevEnd) / max(0.1, gapDuration))),
+                accent: accent
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct NowPlayingKaraokeActiveText: View {
+    @ObservedObject private var clock = PlaybackClock.shared
+    let line: LyricLine
+    let fgPrimary: Color
+    let font: Font
+    let textAlign: TextAlignment
+
+    var body: some View {
+        Text(buildAttributedText())
+            .font(font)
+            .multilineTextAlignment(textAlign)
+    }
+
+    private func buildAttributedText() -> AttributedString {
+        var result = AttributedString()
+        let now = clock.currentTime + 0.08
+
+        for (idx, word) in line.words.enumerated() {
+            if idx > 0 && !word.joinedToPrevious {
+                result.append(AttributedString(" "))
+            }
+            var piece = AttributedString(word.text)
+            if now >= word.endTimeSec {
+                piece.foregroundColor = fgPrimary
+            } else if now >= word.startTimeSec {
+                let dur = max(0.05, word.endTimeSec - word.startTimeSec)
+                let prog = min(1.0, max(0.0, (now - word.startTimeSec) / dur))
+                piece.foregroundColor = fgPrimary.opacity(0.62 + 0.38 * prog)
+            } else {
+                piece.foregroundColor = fgPrimary.opacity(0.36)
+            }
+            result.append(piece)
+        }
+        return result
+    }
+}
+
+private struct NowPlayingScrubberControl<CenterAccessory: View>: View {
+    @ObservedObject private var clock = PlaybackClock.shared
+    private let haptics = HapticsAndGesturesService.shared
+
+    @Binding var isScrubbing: Bool
+    @Binding var scrubTime: Double
+    @Binding var lastScrubNotch: Int
+    let tintColor: Color
+    let fgSecondary: Color
+    let labelFont: Font
+    let onSeekCommit: (Double) -> Void
+    @ViewBuilder let centerAccessory: () -> CenterAccessory
+
+    var body: some View {
+        let total = max(1.0, clock.duration)
+        let displayed = isScrubbing ? scrubTime : min(clock.currentTime, total)
+
+        VStack(spacing: 6) {
+            Slider(
+                value: Binding(
+                    get: { displayed },
+                    set: { newVal in
+                        scrubTime = newVal
+                        if isScrubbing {
+                            haptics.playScrubberNotchIfNeeded(
+                                progress: newVal / total,
+                                lastNotch: &lastScrubNotch
+                            )
+                        }
+                    }
+                ),
+                in: 0...total,
+                onEditingChanged: { editing in
+                    isScrubbing = editing
+                    if editing {
+                        scrubTime = displayed
+                        lastScrubNotch = Int(((displayed / total) * 10.0).rounded(.down))
+                        haptics.playControlTap(style: .soft, scale: 0.6)
+                    } else {
+                        lastScrubNotch = -1
+                        haptics.playControlTap(style: .light, scale: 0.75)
+                        onSeekCommit(scrubTime)
+                    }
+                }
+            )
+            .tint(tintColor)
+
+            HStack {
+                Text(TimeFormatting.clockString(seconds: displayed))
+                    .font(labelFont)
+                    .foregroundColor(fgSecondary)
+                    .monospacedDigit()
+
+                Spacer()
+
+                centerAccessory()
+
+                Spacer()
+
+                Text("-\(TimeFormatting.clockString(seconds: max(0, total - displayed)))")
+                    .font(labelFont)
+                    .foregroundColor(fgSecondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+}
+

@@ -103,6 +103,14 @@ final class HapticsAndGesturesService: ObservableObject {
         }
     }
 
+    private let lightImpact = UIImpactFeedbackGenerator(style: .light)
+    private let mediumImpact = UIImpactFeedbackGenerator(style: .medium)
+    private let softImpact = UIImpactFeedbackGenerator(style: .soft)
+    private let rigidImpact = UIImpactFeedbackGenerator(style: .rigid)
+    private let heavyImpact = UIImpactFeedbackGenerator(style: .heavy)
+    private let selectionGenerator = UISelectionFeedbackGenerator()
+    private let notificationGenerator = UINotificationFeedbackGenerator()
+
     func setPlaybackActive(_ active: Bool) {
         guard playbackActive != active else { return }
         playbackActive = active
@@ -111,21 +119,29 @@ final class HapticsAndGesturesService: ObservableObject {
 
     func playControlTap(style: UIImpactFeedbackGenerator.FeedbackStyle = .light, scale: Double = 1.0) {
         guard controlHapticsEnabled else { return }
-        let generator = UIImpactFeedbackGenerator(style: style)
+        let generator: UIImpactFeedbackGenerator
+        switch style {
+        case .light: generator = lightImpact
+        case .medium: generator = mediumImpact
+        case .soft: generator = softImpact
+        case .rigid: generator = rigidImpact
+        default: generator = heavyImpact
+        }
         let intensity = CGFloat(min(1.0, max(0.08, controlHapticsStrength * scale)))
         generator.impactOccurred(intensity: intensity)
+        generator.prepare()
     }
 
     func playSelectionTick() {
         guard controlHapticsEnabled else { return }
-        let generator = UISelectionFeedbackGenerator()
-        generator.selectionChanged()
+        selectionGenerator.selectionChanged()
+        selectionGenerator.prepare()
     }
 
     func playSuccessFeedback() {
         guard controlHapticsEnabled else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        notificationGenerator.notificationOccurred(.success)
+        notificationGenerator.prepare()
     }
 
     func playScrubberNotchIfNeeded(progress: Double, lastNotch: inout Int) {

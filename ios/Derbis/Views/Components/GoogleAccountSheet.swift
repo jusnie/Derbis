@@ -555,7 +555,7 @@ struct GoogleAccountSheet: View {
                         }
                     }
 
-                    VStack(spacing: 2) {
+                    LazyVStack(spacing: 2) {
                         ForEach(cloudTracks) { track in
                             TrackRowView(track: track, contextQueue: cloudTracks)
                         }
@@ -720,7 +720,7 @@ struct GoogleCloudEntryDetailView: View {
                             .font(theme.font(size: 14))
                             .foregroundColor(theme.secondaryText)
                     } else {
-                        VStack(spacing: 2) {
+                        LazyVStack(spacing: 2) {
                             ForEach(tracks) { track in
                                 TrackRowView(track: track, contextQueue: tracks)
                             }

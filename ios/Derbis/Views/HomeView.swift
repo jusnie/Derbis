@@ -46,6 +46,7 @@ struct HomeView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 120)
                 }
+                .derbisAutoMinimizeTabBarOnScroll()
                 .refreshable {
                     await reloadFeed(force: true)
                 }

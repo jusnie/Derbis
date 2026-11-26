@@ -6,6 +6,14 @@ import SwiftUI
 import UIKit
 
 @MainActor
+final class PlaybackClock: ObservableObject {
+    static let shared = PlaybackClock()
+
+    @Published var currentTime: Double = 0
+    @Published var duration: Double = 0
+}
+
+@MainActor
 final class AudioPlayerEngine: ObservableObject {
     static let shared = AudioPlayerEngine()
 
@@ -19,8 +27,25 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
     @Published var isLoading: Bool = false
-    @Published var currentTime: Double = 0
-    @Published var duration: Double = 0
+
+    var currentTime: Double {
+        get { PlaybackClock.shared.currentTime }
+        set {
+            if abs(PlaybackClock.shared.currentTime - newValue) > 0.015 {
+                PlaybackClock.shared.currentTime = newValue
+            }
+        }
+    }
+
+    var duration: Double {
+        get { PlaybackClock.shared.duration }
+        set {
+            if abs(PlaybackClock.shared.duration - newValue) > 0.05 {
+                PlaybackClock.shared.duration = newValue
+            }
+        }
+    }
+
     @Published var isShuffleEnabled: Bool = false
     @Published var repeatMode: RepeatMode = .off
     @Published var playbackRate: Float = 1.0
@@ -55,6 +80,8 @@ final class AudioPlayerEngine: ObservableObject {
     private var statusObservation: NSKeyValueObservation?
     private var loadTask: Task<Void, Never>?
     private var motionTask: Task<Void, Never>?
+    private var prewarmTask: Task<Void, Never>?
+    private var autoSkipTask: Task<Void, Never>?
     private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
 
@@ -68,6 +95,7 @@ final class AudioPlayerEngine: ObservableObject {
     private var recoveryPass: Int = 0
     private var isRecovering: Bool = false
     private var pendingResumeSeconds: Double = 0
+    private var consecutiveUnrecoverableFailures: Int = 0
 
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
@@ -273,8 +301,9 @@ final class AudioPlayerEngine: ObservableObject {
     func seek(to seconds: Double) {
         let clamped = max(0, min(seconds, max(duration, seconds)))
         let cm = CMTime(seconds: clamped, preferredTimescale: 600)
+        player.currentItem?.cancelPendingSeeks()
         player.seek(to: cm, toleranceBefore: .zero, toleranceAfter: .zero)
-        currentTime = clamped
+        PlaybackClock.shared.currentTime = clamped
         updateActiveLyricIndex(at: clamped)
         updateNowPlayingMetadata()
     }
@@ -344,6 +373,8 @@ final class AudioPlayerEngine: ObservableObject {
         AudioEffectsEngine.shared.markCurrentStreamTapActive(false)
 
         loadTask?.cancel()
+        prewarmTask?.cancel()
+        autoSkipTask?.cancel()
         stallWatchdogTask?.cancel()
         statusObservation?.invalidate()
         player.pause()
@@ -403,9 +434,53 @@ final class AudioPlayerEngine: ObservableObject {
                 }
             } catch {
                 guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
-                self.isLoading = false
-                self.isPlaying = false
-                self.errorBanner = "Stream unavailable right now. Tap play to retry or skip to next."
+                self.handleTerminalPlaybackFailure(for: track)
+            }
+        }
+    }
+
+    private func handleTerminalPlaybackFailure(for track: Track) {
+        isRecovering = false
+        isLoading = false
+        isPlaying = false
+        consecutiveUnrecoverableFailures += 1
+
+        if queue.count > 1,
+           consecutiveUnrecoverableFailures <= 3,
+           findNextPlayableIndex(startingAfter: currentIndex, wrapAround: repeatMode == .all) != nil {
+            errorBanner = "Track unavailable — skipping to next…"
+            autoSkipTask?.cancel()
+            autoSkipTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled, let self = self, self.currentTrack?.id == track.id else { return }
+                self.skipNext(automatic: true)
+            }
+        } else {
+            errorBanner = "Stream unavailable right now. Tap play to retry or skip to next."
+        }
+    }
+
+    private func prewarmUpcomingTrack() {
+        prewarmTask?.cancel()
+        guard let nextIdx = findNextPlayableIndex(startingAfter: currentIndex, wrapAround: repeatMode == .all),
+              queue.indices.contains(nextIdx) else {
+            return
+        }
+        let nextTrack = queue[nextIdx]
+        let preferHQ = UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil
+            ? true
+            : UserDefaults.standard.bool(forKey: "derbis.highQualityAudio")
+
+        prewarmTask = Task(priority: .utility) {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            ArtworkImageCache.shared.prefetch(url: nextTrack.displayArtworkURL, pointSize: 320)
+            if nextTrack.source == .youtubeMusic, LibraryStore.shared.localPlaybackURL(for: nextTrack) == nil {
+                _ = try? await InnerTubeService.shared.resolveStreamCandidates(
+                    for: nextTrack,
+                    preferHighQuality: preferHQ,
+                    forceRefresh: false
+                )
             }
         }
     }
@@ -452,12 +527,18 @@ final class AudioPlayerEngine: ObservableObject {
 
         let resumeSeconds = currentTime > 1.5 ? currentTime : 0
 
+        if failedCandidate.clientLabel == "LOCAL" && track.source == .youtubeMusic {
+            LibraryStore.shared.invalidateCorruptedOfflineDownload(track)
+        }
+
         Task { [weak self] in
-            await InnerTubeService.shared.quarantineStream(
-                url: failedCandidate.url,
-                videoId: track.videoId,
-                clientLabel: failedCandidate.clientLabel
-            )
+            if !failedCandidate.url.isFileURL {
+                await InnerTubeService.shared.quarantineStream(
+                    url: failedCandidate.url,
+                    videoId: track.videoId,
+                    clientLabel: failedCandidate.clientLabel
+                )
+            }
 
             guard let self = self, self.currentTrack?.id == track.id else { return }
 
@@ -489,10 +570,7 @@ final class AudioPlayerEngine: ObservableObject {
                 }
             }
 
-            self.isRecovering = false
-            self.isLoading = false
-            self.isPlaying = false
-            self.errorBanner = "Playback interrupted for \(track.title). Tap play to retry."
+            self.handleTerminalPlaybackFailure(for: track)
         }
     }
 
@@ -603,6 +681,7 @@ final class AudioPlayerEngine: ObservableObject {
                 switch observed.status {
                 case .readyToPlay:
                     self.isLoading = false
+                    self.consecutiveUnrecoverableFailures = 0
                     let assetSec = CMTimeGetSeconds(observed.duration)
                     if assetSec.isFinite && assetSec > 0 {
                         self.duration = assetSec
@@ -627,6 +706,7 @@ final class AudioPlayerEngine: ObservableObject {
                             )
                         }
                     }
+                    self.prewarmUpcomingTrack()
                     self.updateNowPlayingMetadata()
                 case .failed:
                     self.recoverFromStreamFailure(for: track, failedCandidate: candidate)
@@ -650,15 +730,10 @@ final class AudioPlayerEngine: ObservableObject {
             return
         }
 
-        let imageData: Data?
-        if url.isFileURL {
-            imageData = try? Data(contentsOf: url)
-        } else {
-            imageData = (try? await URLSession.shared.data(from: url))?.0
-        }
+        let resolvedUIImage = await ArtworkImageCache.shared.loadImage(for: url, pointSize: 512)
 
         guard self.currentTrack?.id == track.id else { return }
-        if let data = imageData, let uiImage = UIImage(data: data) {
+        if let uiImage = resolvedUIImage {
             currentArtworkImage = uiImage
             lastRenderedLyricCardLine = nil
             cachedLyricCardArtwork = nil
@@ -942,6 +1017,22 @@ final class AudioPlayerEngine: ObservableObject {
                 self.player.pause()
                 self.isPlaying = false
                 self.updateNowPlayingMetadata()
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.configureAudioSession()
+                self.configureRemoteCommands()
+                if let track = self.currentTrack, self.isPlaying {
+                    let resume = self.currentTime
+                    self.startCurrentItem(resumeFromSeconds: resume, targetTrack: track)
+                }
             }
         }
     }

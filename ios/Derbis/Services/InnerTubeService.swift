@@ -502,7 +502,7 @@ actor InnerTubeService {
         ]
 
         for profile in playerProfiles {
-            if verified.count >= 3 { break }
+            if !verified.isEmpty { break }
             if isClientQuarantined(profile.label) { continue }
 
             guard let rawCandidates = try? await requestPlayerCandidates(
@@ -522,7 +522,27 @@ actor InnerTubeService {
                 if let checked = await verifyAndAdaptStream(candidate) {
                     seenURLs.insert(canonicalURLKey(checked.url))
                     verified.append(checked)
-                    if verified.count >= 3 { break }
+                    if verified.count >= 2 { break }
+                }
+            }
+        }
+
+        if verified.isEmpty, !isClientQuarantined("AUTH_TVHTML5") {
+            if let authCandidates = try? await requestAuthenticatedPlayerCandidates(
+                videoId: videoId,
+                hl: hl,
+                gl: gl,
+                preferHighQuality: preferHighQuality,
+                requireDirectFile: requireDirectFile
+            ) {
+                for candidate in authCandidates {
+                    let key = canonicalURLKey(candidate.url)
+                    guard !seenURLs.contains(key), !isURLQuarantined(candidate.url) else { continue }
+                    if let checked = await verifyAndAdaptStream(candidate) {
+                        seenURLs.insert(canonicalURLKey(checked.url))
+                        verified.append(checked)
+                        if verified.count >= 2 { break }
+                    }
                 }
             }
         }
@@ -728,6 +748,69 @@ actor InnerTubeService {
             clientLabel: profile.label,
             preferHighQuality: preferHighQuality,
             preferHLSFirst: profile.preferHLSFirst,
+            requireDirectFile: requireDirectFile
+        )
+    }
+
+    private func requestAuthenticatedPlayerCandidates(
+        videoId: String,
+        hl: String,
+        gl: String,
+        preferHighQuality: Bool,
+        requireDirectFile: Bool
+    ) async throws -> [ResolvedStream] {
+        guard let authHeaders = GoogleAccountSyncService.currentAuthenticatedHeaders(customOrigin: "https://www.youtube.com") else {
+            return []
+        }
+
+        let querySuffix = cachedApiKey.isEmpty ? "prettyPrint=false" : "key=\(cachedApiKey)&prettyPrint=false"
+        guard let url = URL(string: "https://www.youtube.com/youtubei/v1/player?\(querySuffix)") else {
+            return []
+        }
+
+        let tvUserAgent = "Mozilla/5.0 (PlayStation; PlayStation 5/8.20) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Safari/605.1.15"
+        let body: [String: Any] = [
+            "context": [
+                "client": [
+                    "clientName": "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+                    "clientVersion": "2.0",
+                    "hl": hl,
+                    "gl": gl
+                ],
+                "thirdParty": [
+                    "embedUrl": "https://www.youtube.com/"
+                ]
+            ],
+            "videoId": videoId,
+            "contentCheckOk": true,
+            "racyCheckOk": true
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(tvUserAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("85", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue("2.0", forHTTPHeaderField: "X-YouTube-Client-Version")
+        for (k, v) in authHeaders {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let playerResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return []
+        }
+
+        return extractCandidatesFromPlayerResponse(
+            playerResponse,
+            userAgent: tvUserAgent,
+            clientLabel: "AUTH_TVHTML5",
+            preferHighQuality: preferHighQuality,
+            preferHLSFirst: false,
             requireDirectFile: requireDirectFile
         )
     }

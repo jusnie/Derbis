@@ -745,3 +745,47 @@ private struct TaurusFallbackLensTabBar: View {
         }
     }
 }
+
+extension Notification.Name {
+    static let derbisScrollTabBarMinimizeChanged = Notification.Name("derbis.scrollTabBarMinimizeChanged")
+}
+
+private struct DerbisScrollMinimizeModifier: ViewModifier {
+    @State private var lastDispatchedMinimized: Bool?
+
+    func body(content: Content) -> some View {
+        content.simultaneousGesture(
+            DragGesture(minimumDistance: 22)
+                .onChanged { value in
+                    let dy = value.translation.height
+                    let dx = value.translation.width
+                    guard abs(dy) > abs(dx) * 1.35 else { return }
+                    if dy < -34, lastDispatchedMinimized != true {
+                        lastDispatchedMinimized = true
+                        NotificationCenter.default.post(
+                            name: .derbisScrollTabBarMinimizeChanged,
+                            object: nil,
+                            userInfo: ["minimized": true]
+                        )
+                    } else if dy > 28, lastDispatchedMinimized != false {
+                        lastDispatchedMinimized = false
+                        NotificationCenter.default.post(
+                            name: .derbisScrollTabBarMinimizeChanged,
+                            object: nil,
+                            userInfo: ["minimized": false]
+                        )
+                    }
+                }
+                .onEnded { _ in
+                    lastDispatchedMinimized = nil
+                }
+        )
+    }
+}
+
+extension View {
+    func derbisAutoMinimizeTabBarOnScroll() -> some View {
+        modifier(DerbisScrollMinimizeModifier())
+    }
+}
+

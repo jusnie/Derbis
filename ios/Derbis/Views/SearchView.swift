@@ -49,7 +49,7 @@ struct SearchView: View {
                                         Text("From your server")
                                             .font(theme.font(size: 17, weight: .bold))
                                             .foregroundColor(theme.primaryText)
-                                        VStack(spacing: 2) {
+                                        LazyVStack(spacing: 2) {
                                             ForEach(serverResults) { track in
                                                 TrackRowView(track: track, contextQueue: serverResults)
                                             }
@@ -70,7 +70,7 @@ struct SearchView: View {
                                                 .font(theme.font(size: 12))
                                                 .foregroundColor(theme.secondaryText)
                                         }
-                                        VStack(spacing: 2) {
+                                        LazyVStack(spacing: 2) {
                                             ForEach(results) { track in
                                                 TrackRowView(track: track, contextQueue: results)
                                             }
@@ -84,6 +84,7 @@ struct SearchView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 120)
                     }
+                    .derbisAutoMinimizeTabBarOnScroll()
                 }
                 .padding(.top, 12)
             }

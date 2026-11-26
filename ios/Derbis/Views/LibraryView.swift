@@ -56,6 +56,7 @@ struct LibraryView: View {
                     .padding(.top, 12)
                     .padding(.bottom, 120)
                 }
+                .derbisAutoMinimizeTabBarOnScroll()
             }
             .toolbar(.hidden, for: .navigationBar)
             .fileImporter(
@@ -222,7 +223,7 @@ struct LibraryView: View {
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     actionHeader(title: "Liked songs", tracks: library.likedTracks)
-                    VStack(spacing: 2) {
+                    LazyVStack(spacing: 2) {
                         ForEach(library.likedTracks) { track in
                             TrackRowView(track: track, contextQueue: library.likedTracks)
                         }
@@ -246,7 +247,7 @@ struct LibraryView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     if !library.offlineTracks.isEmpty {
                         actionHeader(title: "Downloaded (\(library.offlineStorageSizeString()))", tracks: library.offlineTracks)
-                        VStack(spacing: 2) {
+                        LazyVStack(spacing: 2) {
                             ForEach(library.offlineTracks) { track in
                                 TrackRowView(track: track, contextQueue: library.offlineTracks)
                             }
@@ -269,7 +270,7 @@ struct LibraryView: View {
                 )
             } else {
                 actionHeader(title: "Imported files", tracks: library.localTracks)
-                VStack(spacing: 2) {
+                LazyVStack(spacing: 2) {
                     ForEach(library.localTracks) { track in
                         HStack(spacing: 0) {
                             TrackRowView(track: track, contextQueue: library.localTracks)
@@ -557,7 +558,7 @@ struct PlaylistDetailView: View {
                                 .foregroundColor(theme.secondaryText)
                                 .padding(.top, 20)
                         } else {
-                            VStack(spacing: 2) {
+                            LazyVStack(spacing: 2) {
                                 ForEach(playlist.tracks) { track in
                                     HStack(spacing: 0) {
                                         TrackRowView(track: track, contextQueue: playlist.tracks)

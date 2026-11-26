@@ -76,6 +76,25 @@ struct RootView: View {
                 }
             }
         }
+        .onChange(of: activeTab) { _ in
+            if isTabBarMinimized {
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+                    isTabBarMinimized = false
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .derbisScrollTabBarMinimizeChanged)) { note in
+            guard theme.usesLiquidGlass,
+                  theme.tabBarMinimizesOnScroll,
+                  player.currentTrack != nil,
+                  let target = note.userInfo?["minimized"] as? Bool,
+                  target != isTabBarMinimized else {
+                return
+            }
+            withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) {
+                isTabBarMinimized = target
+            }
+        }
         .sheet(isPresented: $showingFullPlayer) {
             NowPlayingView()
                 .environmentObject(player)
@@ -140,7 +159,6 @@ struct RootView: View {
     }
 
     private func liquidGlassMiniPlayer(track: Track, compactDocked: Bool) -> some View {
-        let progress = player.duration > 0 ? min(1.0, max(0.0, player.currentTime / player.duration)) : 0
         let barThickness = CGFloat(theme.miniPlayerProgressThickness)
         let cardRadius: CGFloat = 24
 
@@ -210,23 +228,7 @@ struct RootView: View {
             .padding(.bottom, compactDocked ? (barThickness > 0 ? 9 : 6) : (barThickness > 0 ? 12 : 9))
 
             if barThickness > 0 {
-                GeometryReader { geo in
-                    let inset: CGFloat = 14
-                    let usableWidth = max(0, geo.size.width - inset * 2)
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.24))
-                            .frame(width: usableWidth, height: barThickness)
-                        Capsule()
-                            .fill(Color.white)
-                            .frame(width: usableWidth * progress, height: barThickness)
-                    }
-                    .padding(.horizontal, inset)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 3.5)
-                }
-                .frame(height: barThickness + 6)
-                .allowsHitTesting(false)
+                MiniPlayerGlassProgressLine(barThickness: barThickness)
             }
         }
         .offset(x: miniDragOffset)
@@ -316,9 +318,7 @@ struct RootView: View {
     }
 
     private func classicMiniPlayerBar(track: Track) -> some View {
-        let progress = player.duration > 0 ? min(1.0, max(0.0, player.currentTime / player.duration)) : 0
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             HStack(spacing: 12) {
                 Button {
                     showingFullPlayer = true
@@ -369,16 +369,7 @@ struct RootView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(theme.border.opacity(0.3))
-                    Rectangle()
-                        .fill(theme.accent)
-                        .frame(width: geo.size.width * progress)
-                }
-            }
-            .frame(height: 2)
+            ClassicMiniPlayerProgressLine(accent: theme.accent, border: theme.border)
         }
         .clipShape(RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous))
         .derbisCard(elevated: true)
@@ -416,5 +407,51 @@ struct RootView: View {
                 )
                 .ignoresSafeArea(edges: .bottom)
         )
+    }
+}
+
+private struct MiniPlayerGlassProgressLine: View {
+    @ObservedObject private var clock = PlaybackClock.shared
+    let barThickness: CGFloat
+
+    var body: some View {
+        let progress = clock.duration > 0 ? min(1.0, max(0.0, clock.currentTime / clock.duration)) : 0
+        GeometryReader { geo in
+            let inset: CGFloat = 14
+            let usableWidth = max(0, geo.size.width - inset * 2)
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.24))
+                    .frame(width: usableWidth, height: barThickness)
+                Capsule()
+                    .fill(Color.white)
+                    .frame(width: usableWidth * progress, height: barThickness)
+            }
+            .padding(.horizontal, inset)
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 3.5)
+        }
+        .frame(height: barThickness + 6)
+        .allowsHitTesting(false)
+    }
+}
+
+private struct ClassicMiniPlayerProgressLine: View {
+    @ObservedObject private var clock = PlaybackClock.shared
+    let accent: Color
+    let border: Color
+
+    var body: some View {
+        let progress = clock.duration > 0 ? min(1.0, max(0.0, clock.currentTime / clock.duration)) : 0
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(border.opacity(0.3))
+                Rectangle()
+                    .fill(accent)
+                    .frame(width: geo.size.width * progress)
+            }
+        }
+        .frame(height: 2)
     }
 }

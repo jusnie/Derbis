@@ -181,18 +181,26 @@ final class GoogleAccountSyncService: ObservableObject {
         return !sap.isEmpty
     }
 
-    nonisolated static func authorizationHeader(for rawCookie: String, epochSeconds: Int64 = Int64(Date().timeIntervalSince1970)) -> String? {
+    nonisolated static func authorizationHeader(
+        for rawCookie: String,
+        epochSeconds: Int64 = Int64(Date().timeIntervalSince1970),
+        targetOrigin: String? = nil
+    ) -> String? {
         let map = parseCookieMap(rawCookie)
         guard let sapisid = map["SAPISID"] ?? map["__Secure-3PAPISID"], !sapisid.isEmpty else {
             return nil
         }
-        let input = "\(epochSeconds) \(sapisid) \(origin)"
+        let effectiveOrigin = targetOrigin ?? origin
+        let input = "\(epochSeconds) \(sapisid) \(effectiveOrigin)"
         let digest = Insecure.SHA1.hash(data: Data(input.utf8))
         let hex = digest.map { String(format: "%02x", $0) }.joined()
         return "SAPISIDHASH \(epochSeconds)_\(hex)"
     }
 
-    nonisolated static func currentAuthenticatedHeaders(requirePersonalizedHomeToggle: Bool = false) -> [String: String]? {
+    nonisolated static func currentAuthenticatedHeaders(
+        requirePersonalizedHomeToggle: Bool = false,
+        customOrigin: String? = nil
+    ) -> [String: String]? {
         os_unfair_lock_lock(snapshotLock)
         let snap = authSnapshotPtr.pointee
         os_unfair_lock_unlock(snapshotLock)
@@ -201,13 +209,14 @@ final class GoogleAccountSyncService: ObservableObject {
         if requirePersonalizedHomeToggle && !snap.personalizedHomeEnabled {
             return nil
         }
-        guard let auth = authorizationHeader(for: snap.cookie) else { return nil }
+        let effectiveOrigin = customOrigin ?? origin
+        guard let auth = authorizationHeader(for: snap.cookie, targetOrigin: effectiveOrigin) else { return nil }
         var headers: [String: String] = [
             "Cookie": snap.cookie,
             "Authorization": auth,
-            "Origin": origin,
-            "x-origin": origin,
-            "Referer": "\(origin)/",
+            "Origin": effectiveOrigin,
+            "x-origin": effectiveOrigin,
+            "Referer": "\(effectiveOrigin)/",
             "X-Goog-Authuser": String(snap.authUser),
             "X-Goog-Api-Format-Version": "1"
         ]
