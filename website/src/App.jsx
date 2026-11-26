@@ -85,14 +85,20 @@ export default function App() {
 
       try {
         const relRes = await fetch(
-          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=15`,
+          `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=30`,
           { headers: { Accept: "application/vnd.github+json" } }
         );
         if (!relRes.ok) return;
         const relList = await relRes.json();
         if (cancelled || !Array.isArray(relList) || !relList.length) return;
 
-        const official = relList.filter((r) => !r.draft && !r.prerelease);
+        const byPublishedDesc = (a, b) =>
+          (Date.parse(b.published_at || b.created_at || "") || 0) -
+          (Date.parse(a.published_at || a.created_at || "") || 0);
+
+        const official = relList
+          .filter((r) => !r.draft && !r.prerelease)
+          .sort(byPublishedDesc);
         const primary = official[0];
         if (primary) {
           const apkAsset = (primary.assets || []).find(
@@ -105,15 +111,18 @@ export default function App() {
           }
         }
 
-        const iosRel = relList.find(
-          (r) =>
-            !r.draft &&
-            typeof r.tag_name === "string" &&
-            r.tag_name.startsWith("ios-") &&
-            (r.assets || []).some(
-              (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")
-            )
-        );
+        const iosReleases = relList
+          .filter(
+            (r) =>
+              !r.draft &&
+              typeof r.tag_name === "string" &&
+              r.tag_name.startsWith("ios-") &&
+              (r.assets || []).some(
+                (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")
+              )
+          )
+          .sort(byPublishedDesc);
+        const iosRel = iosReleases[0];
         if (iosRel) {
           const ipaAsset = (iosRel.assets || []).find(
             (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")

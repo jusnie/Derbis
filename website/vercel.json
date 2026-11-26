@@ -2,14 +2,6 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/install",
-      "destination": "/install.html"
-    },
-    {
-      "source": "/ios",
-      "destination": "/install.html"
-    },
-    {
       "source": "/t/:id",
       "destination": "/api/track?id=:id"
     },
