@@ -242,10 +242,13 @@ actor InnerTubeService {
             let unique = tracks.filter { seen.insert($0.id).inserted }
             guard unique.count >= 3 else { continue }
 
-            let headerNode = shelfDict["header"] ?? shelfDict["title"]
-            let runs = extractRuns(from: headerNode ?? [:])
-            let shelfTitle = runs.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "For You"
-            let shelfSub = runs.count > 1 ? runs[1].trimmingCharacters(in: .whitespacesAndNewlines) : "Personalized from your Google account"
+            let basicHeader = (shelfDict["header"] as? [String: Any])?["musicCarouselShelfBasicHeaderRenderer"] as? [String: Any]
+            let rawTitle = extractText(from: basicHeader?["title"] ?? shelfDict["title"])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let rawSub = extractText(from: basicHeader?["strapline"])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let shelfTitle = rawTitle.isEmpty ? "For You" : rawTitle
+            let shelfSub = rawSub.isEmpty ? "Personalized from your Google account" : rawSub
 
             built.append(
                 HomeShelf(

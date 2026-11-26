@@ -1114,8 +1114,7 @@ final class GoogleAccountSyncService: ObservableObject {
             largeThumbnailURL: hiResThumb,
             source: .youtubeMusic,
             codecBadge: "AAC 256k",
-            bitrateKbps: 256,
-            videoId: vid
+            bitrateKbps: 256
         )
     }
 
