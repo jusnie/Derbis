@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
-import { AppleIcon, DownloadIcon, PixelMark } from "./components/Icons";
+import {
+  AppleIcon,
+  DesktopIcon,
+  DownloadIcon,
+  LaptopIcon,
+  PixelMark
+} from "./components/Icons";
 import { KSignGuideSection } from "./components/KSignGuideSection";
 import { Navbar } from "./components/Navbar";
 import { ScreenGallery } from "./components/ScreenGallery";
@@ -52,7 +58,7 @@ export default function App() {
   const [sizeLabel, setSizeLabel] = useState(RELEASE_META.sizeLabel);
 
   const [ipaUrl, setIpaUrl] = useState(IOS_IPA_DOWNLOAD_URL);
-  const [iosReleaseTag, setIosReleaseTag] = useState(IOS_RELEASE_META.tag);
+  const [iosVersion, setIosVersion] = useState(IOS_RELEASE_META.version);
   const [iosReleaseUrl, setIosReleaseUrl] = useState(IOS_RELEASE_URL);
   const [iosSizeLabel, setIosSizeLabel] = useState(IOS_RELEASE_META.sizeLabel);
   const [iosSha256, setIosSha256] = useState(IOS_RELEASE_META.sha256);
@@ -127,14 +133,19 @@ export default function App() {
           const ipaAsset = (iosRel.assets || []).find(
             (a) => typeof a.name === "string" && a.name.toLowerCase().endsWith(".ipa")
           );
-          if (iosRel.tag_name) {
-            setIosReleaseTag(iosRel.tag_name);
-            if (iosRel.tag_name !== IOS_RELEASE_META.tag) {
-              setIosSha256("");
-            }
+          if (iosRel.tag_name && iosRel.tag_name !== IOS_RELEASE_META.upstreamTag) {
+            const semverMatch = iosRel.tag_name.match(/v\d+\.\d+\.\d+/i);
+            if (semverMatch) setIosVersion(semverMatch[0]);
+            setIosSha256("");
           }
           if (iosRel.html_url) setIosReleaseUrl(iosRel.html_url);
-          if (ipaAsset?.browser_download_url) setIpaUrl(ipaAsset.browser_download_url);
+          if (
+            ipaAsset?.browser_download_url &&
+            typeof ipaAsset.name === "string" &&
+            ipaAsset.name.toLowerCase() === "derbis.ipa"
+          ) {
+            setIpaUrl(ipaAsset.browser_download_url);
+          }
           if (typeof ipaAsset?.size === "number") {
             setIosSizeLabel(`${(ipaAsset.size / (1024 * 1024)).toFixed(1)} MB`);
           }
@@ -197,41 +208,57 @@ export default function App() {
                   <DownloadIcon />
                   <span>Download Derbis.apk</span>
                 </a>
+                <a className="btn btn-secondary" href={ipaUrl} download="Derbis.ipa">
+                  <AppleIcon />
+                  <span>Download Derbis.ipa</span>
+                </a>
                 <a
                   className="btn btn-secondary"
                   href="#ksign"
                   onClick={() => setPlatform("ios")}
                 >
-                  <AppleIcon />
-                  <span>Derbis for iOS (KSign)</span>
+                  <span>KSign iOS Guide</span>
+                </a>
+              </div>
+
+              <div className="hero-platforms-note" aria-label="Upcoming desktop platforms">
+                <a
+                  href="#download"
+                  className="hero-soon-chip"
+                  onClick={() => setPlatform("macos")}
+                >
+                  <LaptopIcon />
+                  <span>macOS</span>
+                  <span className="soon-tag">Coming soon</span>
                 </a>
                 <a
-                  className="btn btn-secondary"
-                  href={REPO_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#download"
+                  className="hero-soon-chip"
+                  onClick={() => setPlatform("desktop")}
                 >
-                  <span>View on GitHub</span>
+                  <DesktopIcon />
+                  <span>Desktop (Windows &amp; Linux)</span>
+                  <span className="soon-tag">Coming soon</span>
                 </a>
               </div>
             </div>
 
-            <dl className="hero-specs" aria-label="Current release summary">
+            <dl className="hero-specs" aria-label="Platform release summary">
               <div className="spec-cell">
-                <dt>Android Official</dt>
+                <dt>Android · Official</dt>
                 <dd>{releaseTag} · {sizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>iOS Unofficial</dt>
-                <dd>{iosSizeLabel} · KSign IPA</dd>
+                <dt>iOS · Official</dt>
+                <dd>Derbis.ipa · {iosSizeLabel}</dd>
               </div>
               <div className="spec-cell">
-                <dt>Targets</dt>
-                <dd>Android 8+ · iOS 16+</dd>
+                <dt>macOS</dt>
+                <dd className="spec-soon">Coming soon</dd>
               </div>
               <div className="spec-cell">
-                <dt>License</dt>
-                <dd>GPL-3.0-only</dd>
+                <dt>Desktop</dt>
+                <dd className="spec-soon">Coming soon</dd>
               </div>
             </dl>
           </div>
@@ -246,7 +273,7 @@ export default function App() {
           sizeLabel={sizeLabel}
           totalDownloads={totalDownloads}
           ipaUrl={ipaUrl}
-          iosReleaseTag={iosReleaseTag}
+          iosVersion={iosVersion}
           iosReleaseUrl={iosReleaseUrl}
           iosSizeLabel={iosSizeLabel}
           iosSha256={iosSha256}
@@ -255,7 +282,7 @@ export default function App() {
         />
         <KSignGuideSection
           ipaUrl={ipaUrl}
-          iosReleaseTag={iosReleaseTag}
+          iosVersion={iosVersion}
           iosReleaseUrl={iosReleaseUrl}
           iosSizeLabel={iosSizeLabel}
         />
@@ -272,10 +299,13 @@ export default function App() {
 
           <div className="footer-links">
             <a href={LATEST_RELEASE_URL} target="_blank" rel="noopener noreferrer">
-              Latest APK
+              Derbis.apk
+            </a>
+            <a href={ipaUrl} download="Derbis.ipa">
+              Derbis.ipa
             </a>
             <a href="#ksign">
-              iOS &amp; KSign
+              KSign Guide
             </a>
             <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
               Releases

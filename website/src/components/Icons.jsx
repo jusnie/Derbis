@@ -141,3 +141,21 @@ export function ShieldIcon() {
   );
 }
 
+export function LaptopIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2.5" y="3" width="11" height="7.5" rx="1" />
+      <path d="M1.5 12.5h13" />
+    </svg>
+  );
+}
+
+export function DesktopIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="2.5" width="12" height="8" rx="1" />
+      <path d="M6 13.5h4M8 10.5v3" />
+    </svg>
+  );
+}
+

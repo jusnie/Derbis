@@ -6,8 +6,9 @@ export const APK_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/downl
 export const SHA256_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk.sha256";
 
 export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e";
-export const IOS_IPA_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/ios-unofficial-6e9198e/Derbis-unofficial.ipa";
-export const IOS_SHA256_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/ios-unofficial-6e9198e/Derbis-unofficial.ipa.sha256";
+export const IOS_IPA_DOWNLOAD_URL = "/Derbis.ipa";
+export const IOS_IPA_PUBLIC_URL = "https://derbis-web.vercel.app/Derbis.ipa";
+export const IOS_SHA256_DOWNLOAD_URL = "/Derbis.ipa.sha256";
 
 export const RELEASE_META = {
   version: "v1.8.0",
@@ -20,15 +21,72 @@ export const RELEASE_META = {
 };
 
 export const IOS_RELEASE_META = {
-  tag: "ios-unofficial-6e9198e",
-  shortCommit: "6e9198e",
-  version: "1.8.0",
+  version: "v1.8.0",
+  buildId: "6e9198e",
+  upstreamTag: "ios-unofficial-6e9198e",
   bundleId: "com.derbis.ios",
   sizeLabel: "2.8 MB",
   iosMin: "iOS 16.0+",
   archLabel: "arm64 SwiftUI",
   publishedLabel: "October 2026",
   sha256: "75f59ac934b17295fc0210091f0061c53091800bcccda7998521327df58a50cc"
+};
+
+export const UPCOMING_PLATFORMS = {
+  macos: {
+    id: "macos",
+    name: "Derbis for macOS",
+    packageLabel: "Derbis.dmg",
+    status: "Coming soon",
+    target: "macOS 14.0+ · Apple Silicon & Intel",
+    arch: "Universal2 Native App",
+    summary:
+      "Native macOS build designed for Apple Silicon and Intel Macs with system media keys, AirPlay 2 output, CoreAudio hog/exclusive mode, menu bar mini-player, and full skin parity.",
+    highlights: [
+      {
+        step: "01",
+        title: "Native Apple Silicon & CoreAudio output",
+        detail: "Low-overhead native playback for FLAC, ALAC, and YouTube Music streams with bit-accurate sample-rate switching"
+      },
+      {
+        step: "02",
+        title: "Menu bar mini-player & synced lyrics",
+        detail: "Quick transport dock in the macOS menu bar plus full-window karaoke lyrics and Motion Canvas backdrops"
+      },
+      {
+        step: "03",
+        title: "Navidrome, Subsonic & live Jam sync",
+        detail: "Share the same self-hosted library, Last.fm scrobbling, Discord Rich Presence, and Jam rooms with Android and iOS"
+      }
+    ]
+  },
+  desktop: {
+    id: "desktop",
+    name: "Derbis Desktop",
+    packageLabel: "Windows & Linux",
+    status: "Coming soon",
+    target: "Windows 10/11 & Linux (x64 / ARM64)",
+    arch: "Installer · Portable · AppImage / Flatpak",
+    summary:
+      "Cross-platform desktop player for Windows and Linux featuring bundled FFmpeg lossless decoding, native Discord Rich Presence, WASAPI / PipeWire audio routing, and keyboard-first search.",
+    highlights: [
+      {
+        step: "01",
+        title: "Bundled FFmpeg lossless audio engine",
+        detail: "Plays local FLAC, ALAC, Opus, Vorbis, and WAV libraries alongside YouTube Music and Subsonic servers"
+      },
+      {
+        step: "02",
+        title: "All Derbis skins adapted for widescreen",
+        detail: "Switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night in a responsive desktop shell"
+      },
+      {
+        step: "03",
+        title: "System tray controls & Discord Presence",
+        detail: "Global media hotkeys, background tray playback, Last.fm scrobbling, and real-time Jam room synchronization"
+      }
+    ]
+  }
 };
 
 export const KSIGN_LINKS = {
@@ -200,8 +258,8 @@ export const IOS_INSTALL_STEPS = [
   },
   {
     step: "03",
-    title: "Sign & install Derbis-unofficial.ipa",
-    detail: "Import Derbis-unofficial.ipa into KSign Library, tap Sign & Install with your certificate, and confirm the iOS prompt"
+    title: "Sign & install Derbis.ipa",
+    detail: "Download Derbis.ipa, import it into KSign Library, tap Sign & Install with your certificate, and confirm the iOS prompt"
   }
 ];
 
@@ -319,17 +377,17 @@ export const KSIGN_GUIDE_PHASES = [
   {
     id: "sign-derbis",
     phase: "Part 03",
-    title: "Import, sign & install Derbis-unofficial.ipa",
-    subtitle: "Derbis for iOS is built as a clean single-bundle arm64 app with zero restricted entitlements so KSign signs it cleanly on any certificate",
+    title: "Import, sign & install Derbis.ipa",
+    subtitle: "Derbis for iOS is built as a clean single-bundle arm64 app with zero restricted entitlements so KSign signs Derbis.ipa cleanly on any certificate",
     useIpaAction: true,
     steps: [
       {
         id: "ipa-import",
         step: "08",
         badge: "Import IPA",
-        title: "Import Derbis-unofficial.ipa to KSign Library",
-        detail: "Download Derbis-unofficial.ipa to your iPhone, open KSign → Files tab, tap + to pick Derbis-unofficial.ipa from Downloads, then tap the imported file and choose Import to Library.",
-        pathHint: "KSign → Files → + → Tap Derbis-unofficial.ipa → Import to Library",
+        title: "Import Derbis.ipa to KSign Library",
+        detail: "Download Derbis.ipa to your iPhone, open KSign → Files tab, tap + to pick Derbis.ipa from Downloads, then tap the imported file and choose Import to Library.",
+        pathHint: "KSign → Files → + → Tap Derbis.ipa → Import to Library",
         img: "https://ksignios.app/assets/home-guide/ipa-import.webp",
         alt: "KSign IPA guide step 1 showing importing an IPA file into KSign Library"
       },
@@ -360,7 +418,8 @@ export const KSIGN_GUIDE_PHASES = [
 export const INITIAL_RELEASES = [
   {
     tag: "v1.8.0",
-    name: "Derbis v1.8.0",
+    displayTag: "v1.8.0",
+    name: "Derbis v1.8.0 (Android)",
     channel: "Official Android",
     date: "Oct 30, 2026",
     latest: true,
@@ -390,20 +449,21 @@ export const INITIAL_RELEASES = [
   },
   {
     tag: "ios-unofficial-6e9198e",
-    name: "Derbis iOS Unofficial (6e9198e)",
-    channel: "Unofficial iOS · KSign",
+    displayTag: "v1.8.0 · iOS",
+    name: "Derbis v1.8.0 for iOS",
+    channel: "Official iOS",
     date: "Oct 30, 2026",
-    latest: false,
-    prerelease: true,
+    latest: true,
+    prerelease: false,
     downloads: null,
     sizeLabel: "2.8 MB",
     url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-6e9198e",
-    ipaUrl: "https://github.com/jusnie/Derbis/releases/download/ios-unofficial-6e9198e/Derbis-unofficial.ipa",
+    ipaUrl: "/Derbis.ipa",
     groups: [
       {
         heading: "Native SwiftUI iOS client",
         items: [
-          "100% native arm64 Swift + SwiftUI + AVPlayer build (iOS 16.0+) packaged as a single KSign-ready Payload/Derbis.app bundle",
+          "100% native arm64 Swift + SwiftUI + AVPlayer build (iOS 16.0+) packaged as Derbis.ipa for direct KSign, SideStore, and AltStore installation",
           "Includes 9 Derbis visual skins, Motion Canvas looping video player, Lock Screen & Dynamic Island controls, and viewport-locked Now Playing backdrops",
           "Live Jam room sync over WebSockets, Listening Insights dashboard, Offline M4A downloads, Local FLAC/ALAC import, and Navidrome/Subsonic support"
         ]
@@ -413,13 +473,14 @@ export const INITIAL_RELEASES = [
         items: [
           "Lock-free MTAudioProcessingTap 5-band biquad EQ, Bass Boost, Spatial Widener, Loudness Normalization, and Crossfade engine",
           "120Hz karaoke word-by-word synced lyrics with multi-script romanization, translation toggle, and calibration offset",
-          "Audited multi-client InnerTube stream resolver with automatic HLS fallback and zero Xcode 26.6 compiler warnings"
+          "Multi-client InnerTube stream resolver with automatic HLS fallback and zero Xcode 26.6 compiler warnings"
         ]
       }
     ]
   },
   {
     tag: "v1.7.0",
+    displayTag: "v1.7.0",
     name: "Derbis v1.7.0",
     channel: "Official Android",
     date: "Sep 2026",
@@ -441,6 +502,7 @@ export const INITIAL_RELEASES = [
   },
   {
     tag: "v1.6.0",
+    displayTag: "v1.6.0",
     name: "Derbis v1.6.0",
     channel: "Official Android",
     date: "Aug 2026",
@@ -464,7 +526,8 @@ export const INITIAL_RELEASES = [
 
 export const SOURCE_FACTS = [
   { label: "License", value: "GPL-3.0-only with REUSE-compliant SPDX headers" },
-  { label: "Platforms", value: "Android 8.0+ (Official universal APK) · iOS / iPadOS 16.0+ (Unofficial KSign IPA)" },
+  { label: "Mobile", value: "Android 8.0+ (Derbis.apk) · iOS / iPadOS 16.0+ (Derbis.ipa)" },
+  { label: "Desktop", value: "macOS (Apple Silicon & Intel) · Windows & Linux — Coming soon" },
   { label: "Android stack", value: "Kotlin, Jetpack Compose, Material 3, Media3 ExoPlayer + C++ FFmpeg" },
   { label: "iOS stack", value: "Swift 5, SwiftUI, AVPlayer, lock-free MTAudioProcessingTap DSP" },
   { label: "Privacy", value: "Zero analytics SDKs, zero ad trackers, local encrypted backups" },

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   IOS_IPA_DOWNLOAD_URL,
+  IOS_IPA_PUBLIC_URL,
   IOS_RELEASE_META,
   IOS_RELEASE_URL,
   KSIGN_GUIDE_PHASES,
@@ -53,17 +54,19 @@ function GuideStepImage({ src, alt, stepLabel, pathHint, onInspect }) {
   );
 }
 
-export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSizeLabel }) {
+export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLabel }) {
   const { ref, visible } = useScrollReveal();
   const [activePhase, setActivePhase] = useState("all");
   const [heroFailed, setHeroFailed] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState(null);
 
   const resolvedIpaUrl = ipaUrl || IOS_IPA_DOWNLOAD_URL;
-  const resolvedTag = iosReleaseTag || IOS_RELEASE_META.tag;
+  const resolvedPublicIpaUrl =
+    resolvedIpaUrl.startsWith("http") ? resolvedIpaUrl : IOS_IPA_PUBLIC_URL;
+  const resolvedVersion = iosVersion || IOS_RELEASE_META.version;
   const resolvedReleaseUrl = iosReleaseUrl || IOS_RELEASE_URL;
   const resolvedSize = iosSizeLabel || IOS_RELEASE_META.sizeLabel;
-  const encodedIpaUrl = encodeURIComponent(resolvedIpaUrl);
+  const encodedIpaUrl = encodeURIComponent(resolvedPublicIpaUrl);
 
   const allLightboxItems = useMemo(() => {
     const items = [
@@ -71,7 +74,7 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
         id: "hero",
         step: "KSign",
         title: "KSign iOS on-device IPA signer",
-        detail: "Sign and install Derbis-unofficial.ipa directly on iPhone or iPad with no computer or jailbreak required.",
+        detail: "Sign and install Derbis.ipa directly on iPhone or iPad with no computer or jailbreak required.",
         img: KSIGN_LINKS.heroImage,
         alt: "KSign iOS app preview showing on-device IPA signing interface"
       }
@@ -131,15 +134,15 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
             <div className="eyebrow-row">
               <span className="eyebrow-badge">
                 <AppleIcon />
-                <span>Derbis for iOS · Unofficial</span>
+                <span>Derbis for iOS · Official</span>
               </span>
-              <span className="eyebrow-meta">{resolvedTag} · {resolvedSize} · iOS / iPadOS 16.0+</span>
+              <span className="eyebrow-meta">Derbis.ipa · {resolvedVersion} · {resolvedSize} · iOS / iPadOS 16.0+</span>
             </div>
             <h2 id="ksign-heading" className="section-title">
-              Install Derbis on iPhone &amp; iPad with KSign
+              Install Derbis.ipa on iPhone &amp; iPad with KSign
             </h2>
             <p className="section-sub">
-              Visual step-by-step guide to installing KSign, importing an active signing certificate, and sideloading Derbis-unofficial.ipa directly on your device with no PC
+              Visual step-by-step guide to installing KSign, importing an active signing certificate, and installing Derbis.ipa directly on your device with no PC
             </p>
           </div>
 
@@ -171,7 +174,7 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
         <div className="ksign-overview-card">
           <div className="ksign-overview-copy">
             <div className="bench-meta-row">
-              <span className="version-badge version-badge-accent">{resolvedTag}</span>
+              <span className="version-badge version-badge-accent">Derbis.ipa · {resolvedVersion}</span>
               <span className="meta-item">{resolvedSize}</span>
               <span className="meta-item">Single-bundle arm64 SwiftUI</span>
               <span className="meta-item">No PC · No Jailbreak</span>
@@ -179,13 +182,13 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
 
             <h3 className="bench-title">Everything you need before starting</h3>
             <p className="bench-desc">
-              Derbis for iOS ships as an unsigned/ad-hoc single-bundle IPA with zero restricted Apple entitlements so KSign v1.6 can sign and install it directly on iOS or iPadOS 16.0 and newer. Grab the Derbis IPA below alongside the Anti-Revoke DNS profile and an active certificate pair from ksignios.app.
+              Derbis for iOS ships as a single-bundle native arm64 IPA with zero restricted Apple entitlements so KSign v1.6 can sign and install Derbis.ipa directly on iOS or iPadOS 16.0 and newer. Grab Derbis.ipa below alongside the Anti-Revoke DNS profile and an active certificate pair from ksignios.app.
             </p>
 
             <div className="ksign-quick-actions">
-              <a className="btn btn-primary" href={resolvedIpaUrl}>
+              <a className="btn btn-primary" href={resolvedIpaUrl} download="Derbis.ipa">
                 <DownloadIcon />
-                <span>Download Derbis-unofficial.ipa</span>
+                <span>Download Derbis.ipa</span>
               </a>
               <a
                 className="btn btn-secondary"
@@ -218,7 +221,7 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
 
             <div className="ksign-inline-links">
               <a href={resolvedReleaseUrl} target="_blank" rel="noopener noreferrer">
-                View {resolvedTag} release notes on GitHub
+                View iOS {resolvedVersion} release notes on GitHub
               </a>
               <span aria-hidden="true">·</span>
               <a href={KSIGN_LINKS.ksignIpaUrl} target="_blank" rel="noopener noreferrer">
@@ -268,9 +271,9 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
 
                 <div className="ksign-phase-actions">
                   {phase.useIpaAction ? (
-                    <a className="btn btn-primary btn-compact" href={resolvedIpaUrl}>
+                    <a className="btn btn-primary btn-compact" href={resolvedIpaUrl} download="Derbis.ipa">
                       <DownloadIcon />
-                      <span>Derbis-unofficial.ipa ({resolvedSize})</span>
+                      <span>Derbis.ipa ({resolvedSize})</span>
                     </a>
                   ) : (
                     (phase.actions || []).map((act) => (
@@ -342,7 +345,7 @@ export function KSignGuideSection({ ipaUrl, iosReleaseTag, iosReleaseUrl, iosSiz
           <div className="ksign-tip-card">
             <h3 className="ksign-tip-title">Alternative iOS sideloaders</h3>
             <p className="ksign-tip-copy">
-              Already use SideStore, AltStore, Sideloadly, Feather, or TrollStore? Derbis-unofficial.ipa uses a clean single-target bundle identifier with no App Group or extension plug-in restrictions, so you can open it directly:
+              Already use SideStore, AltStore, Sideloadly, Feather, or TrollStore? Derbis.ipa uses a clean single-target bundle identifier with no App Group or extension plug-in restrictions, so you can open it directly:
             </p>
             <div className="ksign-alt-buttons">
               <a className="copy-btn" href={`sidestore://install?url=${encodedIpaUrl}`}>

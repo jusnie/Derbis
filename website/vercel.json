@@ -2,6 +2,14 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/Derbis.ipa",
+      "destination": "/api/ipa"
+    },
+    {
+      "source": "/Derbis.ipa.sha256",
+      "destination": "/api/ipa-sha256"
+    },
+    {
       "source": "/t/:id",
       "destination": "/api/track?id=:id"
     },

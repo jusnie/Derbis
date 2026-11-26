@@ -1341,6 +1341,16 @@ section[id] {
   color: var(--ink-3);
 }
 
+.platform-pill-live {
+  background-color: rgba(255, 92, 138, 0.14);
+  color: var(--accent);
+}
+
+.platform-pill-soon {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--ink-3);
+}
+
 .platform-pill-accent,
 .shot-tag-accent {
   background-color: rgba(255, 92, 138, 0.14);
@@ -1351,6 +1361,124 @@ section[id] {
 .version-badge-accent {
   border-color: rgba(255, 92, 138, 0.45);
   color: var(--accent);
+}
+
+.version-badge-soon {
+  border-color: var(--line-strong);
+  color: var(--ink-2);
+}
+
+.btn-disabled {
+  background-color: var(--bg-3);
+  border-color: var(--line);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.hero-platforms-note {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-soon-chip {
+  height: 30px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: var(--r-xs);
+  border: 1px solid var(--line);
+  background-color: var(--bg-1);
+  color: var(--ink-2);
+  font-size: 12px;
+  text-decoration: none;
+  transition: border-color 150ms var(--ease), color 150ms var(--ease), background-color 150ms var(--ease);
+}
+
+.hero-soon-chip:hover {
+  border-color: var(--line-strong);
+  background-color: var(--bg-2);
+  color: var(--ink);
+}
+
+.soon-tag {
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+  background-color: var(--bg-3);
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.spec-soon {
+  color: var(--ink-2);
+}
+
+.platform-matrix {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .platform-matrix {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .platform-matrix {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matrix-card {
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background-color: var(--bg-2);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
+}
+
+.matrix-card:hover {
+  border-color: var(--line-strong);
+  background-color: var(--bg-3);
+}
+
+.matrix-card.is-active {
+  border-color: rgba(255, 92, 138, 0.45);
+  background-color: var(--bg-3);
+}
+
+.matrix-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.matrix-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.matrix-meta {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .steps-card-flex {

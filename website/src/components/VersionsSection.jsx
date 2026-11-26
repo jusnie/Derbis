@@ -49,7 +49,7 @@ export function VersionsSection({ releases }) {
                 >
                   <span className="release-tag">
                     {rel.latest && <span className="latest-dot" aria-hidden="true" />}
-                    <span>{rel.tag}</span>
+                    <span>{rel.displayTag || rel.tag}</span>
                   </span>
                   {rel.channel && (
                     <span className={rel.prerelease ? "shot-tag shot-tag-accent" : "shot-tag"}>
@@ -83,10 +83,14 @@ export function VersionsSection({ releases }) {
 
                     <div className="release-foot">
                       <a href={rel.url} target="_blank" rel="noopener noreferrer">
-                        View {rel.tag} on GitHub
+                        View {rel.displayTag || rel.tag} on GitHub
                       </a>
-                      {rel.apkUrl && <a href={rel.apkUrl}>Download {rel.tag} APK</a>}
-                      {rel.ipaUrl && <a href={rel.ipaUrl}>Download {rel.tag} IPA</a>}
+                      {rel.apkUrl && <a href={rel.apkUrl}>Download Derbis.apk</a>}
+                      {rel.ipaUrl && (
+                        <a href={rel.ipaUrl} download="Derbis.ipa">
+                          Download Derbis.ipa
+                        </a>
+                      )}
                       {rel.ipaUrl && <a href="#ksign">KSign iOS guide</a>}
                     </div>
                   </div>
