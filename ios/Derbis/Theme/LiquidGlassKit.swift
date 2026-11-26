@@ -436,6 +436,7 @@ struct TaurusLiquidGlassTabBar: View {
 
     let items: [TaurusTabBarItemSpec]
     @Binding var selectedId: Int
+    var onLongPressFirstItem: (() -> Void)? = nil
 
     var body: some View {
         #if compiler(>=6.2)
@@ -448,17 +449,26 @@ struct TaurusLiquidGlassTabBar: View {
                     if selectedId != newId {
                         selectedId = newId
                     }
-                }
+                },
+                onLongPressFirstItem: onLongPressFirstItem
             )
             .frame(height: 62)
             .transaction { $0.animation = nil }
         } else {
-            TaurusFallbackLensTabBar(items: items, selectedId: $selectedId)
-                .frame(height: 62)
+            TaurusFallbackLensTabBar(
+                items: items,
+                selectedId: $selectedId,
+                onLongPressFirstItem: onLongPressFirstItem
+            )
+            .frame(height: 62)
         }
         #else
-        TaurusFallbackLensTabBar(items: items, selectedId: $selectedId)
-            .frame(height: 62)
+        TaurusFallbackLensTabBar(
+            items: items,
+            selectedId: $selectedId,
+            onLongPressFirstItem: onLongPressFirstItem
+        )
+        .frame(height: 62)
         #endif
     }
 }
@@ -468,6 +478,7 @@ private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
     let selectedId: Int
     let accentColor: UIColor
     let onSelect: (Int) -> Void
+    var onLongPressFirstItem: (() -> Void)?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onSelect: onSelect)
@@ -476,12 +487,14 @@ private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
     func makeUIView(context: Context) -> TaurusTabBarHostView {
         let host = TaurusTabBarHostView()
         host.bar.delegate = context.coordinator
+        host.onLongPressFirstItem = onLongPressFirstItem
         host.configure(items: items, selectedId: selectedId, accentColor: accentColor)
         return host
     }
 
     func updateUIView(_ uiView: TaurusTabBarHostView, context: Context) {
         context.coordinator.onSelect = onSelect
+        uiView.onLongPressFirstItem = onLongPressFirstItem
         uiView.configure(items: items, selectedId: selectedId, accentColor: accentColor)
     }
 
@@ -500,6 +513,7 @@ private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
 
 private final class TaurusTabBarHostView: UIView {
     let bar = UITabBar()
+    var onLongPressFirstItem: (() -> Void)?
     private var currentSpecs: [TaurusTabBarItemSpec] = []
     private var barItems: [UITabBarItem] = []
 
@@ -517,6 +531,20 @@ private final class TaurusTabBarHostView: UIView {
         bar.itemSpacing = 0
         bar.clipsToBounds = false
         addSubview(bar)
+
+        let hold = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        hold.minimumPressDuration = 0.48
+        hold.cancelsTouchesInView = false
+        addGestureRecognizer(hold)
+    }
+
+    @objc private func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+        guard gr.state == .began, !barItems.isEmpty else { return }
+        let loc = gr.location(in: self)
+        let firstSlotMaxX = bounds.width / CGFloat(barItems.count)
+        if loc.x >= 0 && loc.x <= firstSlotMaxX {
+            onLongPressFirstItem?()
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -534,9 +562,13 @@ private final class TaurusTabBarHostView: UIView {
         if currentSpecs != items {
             currentSpecs = items
             let built = items.map { spec -> UITabBarItem in
-                let config = UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
+                let config = UIImage.SymbolConfiguration(pointSize: spec.title.isEmpty ? 19 : 17, weight: .semibold)
                 let img = UIImage(systemName: spec.symbol, withConfiguration: config)
-                return UITabBarItem(title: spec.title, image: img, tag: spec.id)
+                let barItem = UITabBarItem(title: spec.title.isEmpty ? nil : spec.title, image: img, tag: spec.id)
+                if spec.title.isEmpty {
+                    barItem.imageInsets = UIEdgeInsets(top: 5, left: 0, bottom: -5, right: 0)
+                }
+                return barItem
             }
             barItems = built
             bar.setItems(built, animated: false)
@@ -576,6 +608,7 @@ private struct TaurusFallbackLensTabBar: View {
 
     let items: [TaurusTabBarItemSpec]
     @Binding var selectedId: Int
+    var onLongPressFirstItem: (() -> Void)? = nil
 
     @State private var isHoldingLens: Bool = false
     @State private var lensX: CGFloat = 0
@@ -631,9 +664,11 @@ private struct TaurusFallbackLensTabBar: View {
                         let magnified = isHoldingLens && selected
                         VStack(spacing: 3) {
                             Image(systemName: spec.symbol)
-                                .font(.system(size: 18, weight: selected ? .bold : .medium))
-                            Text(spec.title)
-                                .font(theme.font(size: 10.5, weight: selected ? .bold : .medium))
+                                .font(.system(size: spec.title.isEmpty ? 20 : 18, weight: selected ? .bold : .medium))
+                            if !spec.title.isEmpty {
+                                Text(spec.title)
+                                    .font(theme.font(size: 10.5, weight: selected ? .bold : .medium))
+                            }
                         }
                         .foregroundColor(selected ? theme.accent : Color.white.opacity(0.68))
                         .scaleEffect(magnified ? 1.16 : 1.0)
@@ -679,9 +714,11 @@ private struct TaurusFallbackLensTabBar: View {
                             let activeSpec = items[activeIndex]
                             VStack(spacing: 3) {
                                 Image(systemName: activeSpec.symbol)
-                                    .font(.system(size: 19, weight: .bold))
-                                Text(activeSpec.title)
-                                    .font(theme.font(size: 11, weight: .bold))
+                                    .font(.system(size: activeSpec.title.isEmpty ? 21 : 19, weight: .bold))
+                                if !activeSpec.title.isEmpty {
+                                    Text(activeSpec.title)
+                                        .font(theme.font(size: 11, weight: .bold))
+                                }
                             }
                             .foregroundColor(.white)
                         }

@@ -288,7 +288,7 @@ struct RootView: View {
 
     private var tabBarSpecs: [TaurusTabBarItemSpec] {
         MainTab.allCases.enumerated().map { idx, tab in
-            TaurusTabBarItemSpec(id: idx, title: tab.rawValue, symbol: tab.icon)
+            TaurusTabBarItemSpec(id: idx, title: theme.hideTabLabels ? "" : tab.rawValue, symbol: tab.icon)
         }
     }
 
@@ -311,7 +311,11 @@ struct RootView: View {
         HStack(spacing: 10) {
             TaurusLiquidGlassTabBar(
                 items: tabBarSpecs,
-                selectedId: selectedTabIndexBinding
+                selectedId: selectedTabIndexBinding,
+                onLongPressFirstItem: {
+                    HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                    activeTab = .settings
+                }
             )
 
             if theme.tabBarMinimizesOnScroll, player.currentTrack != nil {
@@ -411,17 +415,28 @@ struct RootView: View {
                 } label: {
                     VStack(spacing: 4) {
                         Image(systemName: tab.icon)
-                            .font(.system(size: 18, weight: selected ? .bold : .medium))
-                        Text(tab.rawValue)
-                            .font(theme.font(size: 11, weight: selected ? .bold : .medium))
+                            .font(.system(size: theme.hideTabLabels ? 20 : 18, weight: selected ? .bold : .medium))
+                        if !theme.hideTabLabels {
+                            Text(tab.rawValue)
+                                .font(theme.font(size: 11, weight: selected ? .bold : .medium))
+                        }
                     }
                     .foregroundColor(selected ? theme.accent : theme.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, 10)
-                    .padding(.bottom, 8)
+                    .padding(.top, theme.hideTabLabels ? 13 : 10)
+                    .padding(.bottom, theme.hideTabLabels ? 11 : 8)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .simultaneousGesture(
+                    LongPressGesture(minimumDuration: 0.48)
+                        .onEnded { _ in
+                            if tab == .home {
+                                HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                                activeTab = .settings
+                            }
+                        }
+                )
             }
         }
         .background(

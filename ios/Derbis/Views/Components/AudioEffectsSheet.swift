@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AudioEffectsSheet: View {
     @EnvironmentObject private var theme: ThemeManager
@@ -7,14 +8,15 @@ struct AudioEffectsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private enum StudioTab: String, CaseIterable, Identifiable {
-        case equalizer = "EQ & Curve"
-        case spatial = "Speed & FX"
+        case equalizer = "EQ & AutoEQ"
+        case spatial = "Sing & FX"
         case haptics = "Haptics & AirPods"
 
         var id: String { rawValue }
     }
 
     @State private var selectedTab: StudioTab = .equalizer
+    @State private var autoEQBanner: String?
 
     var body: some View {
         NavigationStack {
@@ -210,7 +212,84 @@ struct AudioEffectsSheet: View {
             }
             .padding(14)
             .background(studioCardBackground)
+
+            autoEQHeadphoneCard
         }
+    }
+
+    private var autoEQHeadphoneCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AutoEQ Headphone Profiles")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Text(
+                        fx.activeAutoEQProfileName.isEmpty
+                            ? "Harman target correction curves or paste GraphicEQ: text"
+                            : "Active: \(fx.activeAutoEQProfileName)"
+                    )
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(fx.activeAutoEQProfileName.isEmpty ? .white.opacity(0.55) : theme.accent)
+                }
+                Spacer()
+                Button {
+                    if let pasted = UIPasteboard.general.string,
+                       fx.applyAutoEQGraphicEQString(pasted) {
+                        haptics.playSuccessFeedback()
+                        autoEQBanner = "Applied GraphicEQ curve from clipboard!"
+                    } else {
+                        autoEQBanner = "Clipboard didn't contain a GraphicEQ: curve."
+                    }
+                } label: {
+                    Label("Paste", systemImage: "doc.on.clipboard")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(theme.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.white.opacity(0.09)))
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let msg = autoEQBanner {
+                Text(msg)
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AudioEffectsEngine.builtInAutoEQProfiles) { profile in
+                        let full = "\(profile.brand) \(profile.name)"
+                        let active = fx.activeAutoEQProfileName == full
+                        Button {
+                            haptics.playSelectionTick()
+                            fx.applyAutoEQProfile(profile)
+                            autoEQBanner = nil
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(profile.brand.uppercased())
+                                    .font(.system(size: 9.5, weight: .black, design: .rounded))
+                                    .foregroundStyle(active ? .black.opacity(0.65) : .white.opacity(0.5))
+                                Text(profile.name)
+                                    .font(.system(size: 12.5, weight: .bold))
+                                    .foregroundStyle(active ? .black : .white)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(active ? Color.white : Color.white.opacity(0.08))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(studioCardBackground)
     }
 
     private var frequencyResponseCard: some View {
@@ -373,6 +452,96 @@ struct AudioEffectsSheet: View {
                 .tint(theme.accent)
                 .onChange(of: fx.warmTubeSaturation) { _ in
                     haptics.playSelectionTick()
+                }
+            }
+            .padding(14)
+            .background(studioCardBackground)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle(isOn: $fx.singEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label("Taurus Sing (Karaoke Vocal Control)", systemImage: "mic.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Attenuates center vocals while keeping <165 Hz bass & stereo instruments")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                }
+                .tint(theme.accent)
+                .onChange(of: fx.singEnabled) { _ in
+                    haptics.playSelectionTick()
+                }
+
+                if fx.singEnabled {
+                    VStack(spacing: 6) {
+                        HStack {
+                            Text("Vocal Volume")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text("\(Int((fx.singVocalLevel * 100).rounded()))%")
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundStyle(theme.accent)
+                        }
+                        Slider(value: $fx.singVocalLevel, in: 0.0...1.0, step: 0.05)
+                            .tint(theme.accent)
+                    }
+                }
+            }
+            .padding(14)
+            .background(studioCardBackground)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label("Spatial Room & Hall Reverb", systemImage: "dot.radiowaves.up.forward")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text("Schroeder-Moorer stereo acoustic environment")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
+                    Spacer()
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(ReverbRoomPreset.allCases) { room in
+                            let active = fx.reverbPreset == room
+                            Button {
+                                haptics.playSelectionTick()
+                                fx.reverbPreset = room
+                            } label: {
+                                Text(room.rawValue)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(active ? .black : .white.opacity(0.85))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        Capsule()
+                                            .fill(active ? Color.white : Color.white.opacity(0.09))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if fx.reverbPreset != .off {
+                    VStack(spacing: 6) {
+                        HStack {
+                            Text("Room Wet Mix")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Text("\(Int((fx.reverbWetMix / 0.65 * 100).rounded()))%")
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundStyle(theme.accent)
+                        }
+                        Slider(value: $fx.reverbWetMix, in: 0.05...0.65, step: 0.05)
+                            .tint(theme.accent)
+                    }
                 }
             }
             .padding(14)

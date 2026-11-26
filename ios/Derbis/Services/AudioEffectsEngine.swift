@@ -177,7 +177,13 @@ private struct SharedDSPParameters {
     var stereoWidthAmount: Float = 0
     var crossfeedAmount: Float = 0
     var warmTubeEnabled: Bool = false
+    var singEnabled: Bool = false
+    var singVocalLevel: Float = 1.0
+    var reverbFeedback: Float = 0
+    var reverbDamping: Float = 0.35
+    var reverbWet: Float = 0
     var analyzerEnabled: Bool = false
+    var visualizerEnabled: Bool = false
 
     var hasAnyAudioEffect: Bool {
         eqEnabled
@@ -186,12 +192,17 @@ private struct SharedDSPParameters {
             || stereoWidthAmount > 0.01
             || crossfeedAmount > 0.01
             || warmTubeEnabled
+            || (singEnabled && singVocalLevel < 0.99)
+            || (reverbWet > 0.01 && reverbFeedback > 0.05)
     }
 }
 
 private struct SharedBeatMailbox {
     var kickPeak: Float = 0
     var snapPeak: Float = 0
+    var visLow: Float = 0
+    var visMid: Float = 0
+    var visHigh: Float = 0
 }
 
 private final class RealtimeTapStorage {
@@ -222,6 +233,27 @@ private final class RealtimeTapStorage {
     var crossfeedLeftState = BiquadChannelState()
     var crossfeedRightState = BiquadChannelState()
 
+    var singBassLPFCoeffs: BiquadCoeffs = .identity
+    var singAirHPFCoeffs: BiquadCoeffs = .identity
+    var singBassState = BiquadChannelState()
+    var singAirState = BiquadChannelState()
+
+    static let combLen1L = 1557
+    static let combLen1R = 1617
+    static let combLen2L = 1491
+    static let combLen2R = 1422
+    static let apLenL = 225
+    static let apLenR = 248
+
+    var comb1L = [Float](repeating: 0, count: 1557)
+    var comb1R = [Float](repeating: 0, count: 1617)
+    var comb2L = [Float](repeating: 0, count: 1491)
+    var comb2R = [Float](repeating: 0, count: 1422)
+    var apL = [Float](repeating: 0, count: 225)
+    var apR = [Float](repeating: 0, count: 248)
+    var c1LIdx = 0, c1RIdx = 0, c2LIdx = 0, c2RIdx = 0, apLIdx = 0, apRIdx = 0
+    var c1LStore: Float = 0, c1RStore: Float = 0, c2LStore: Float = 0, c2RStore: Float = 0
+
     var kickLPF1: BiquadCoeffs = .identity
     var kickLPF2: BiquadCoeffs = .identity
     var kickState1 = BiquadChannelState()
@@ -251,6 +283,16 @@ private final class RealtimeTapStorage {
         sideHPFState.reset()
         crossfeedLeftState.reset()
         crossfeedRightState.reset()
+        singBassState.reset()
+        singAirState.reset()
+        for i in 0..<comb1L.count { comb1L[i] = 0 }
+        for i in 0..<comb1R.count { comb1R[i] = 0 }
+        for i in 0..<comb2L.count { comb2L[i] = 0 }
+        for i in 0..<comb2R.count { comb2R[i] = 0 }
+        for i in 0..<apL.count { apL[i] = 0 }
+        for i in 0..<apR.count { apR[i] = 0 }
+        c1LIdx = 0; c1RIdx = 0; c2LIdx = 0; c2RIdx = 0; apLIdx = 0; apRIdx = 0
+        c1LStore = 0; c1RStore = 0; c2LStore = 0; c2RStore = 0
         kickState1.reset()
         kickState2.reset()
         snapState1.reset()
@@ -289,6 +331,8 @@ private final class RealtimeTapStorage {
         adaptiveBassCoeffs = BiquadCoeffs.lowShelf(sampleRate: validSR, freq: 100.0, gainDB: targetBassDB)
         sideHPFCoeffs = BiquadCoeffs.highPass(sampleRate: validSR, freq: 150.0)
         crossfeedLPFCoeffs = BiquadCoeffs.lowPass(sampleRate: validSR, freq: 700.0, q: 0.65)
+        singBassLPFCoeffs = BiquadCoeffs.lowPass(sampleRate: validSR, freq: 165.0, q: 0.707)
+        singAirHPFCoeffs = BiquadCoeffs.highPass(sampleRate: validSR, freq: 8500.0, q: 0.707)
 
         kickLPF1 = BiquadCoeffs.lowPass(sampleRate: validSR, freq: 110.0, q: 0.541)
         kickLPF2 = BiquadCoeffs.lowPass(sampleRate: validSR, freq: 110.0, q: 1.306)
@@ -415,6 +459,50 @@ final class AudioEffectsEngine: ObservableObject {
         }
     }
 
+    @Published var singEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(singEnabled, forKey: "derbis.fx.singEnabled")
+            pushParametersToRealtimeSnapshot()
+        }
+    }
+
+    @Published var singVocalLevel: Double {
+        didSet {
+            let clamped = min(1.0, max(0.0, singVocalLevel))
+            if abs(clamped - singVocalLevel) > 0.0001 {
+                singVocalLevel = clamped
+                return
+            }
+            UserDefaults.standard.set(singVocalLevel, forKey: "derbis.fx.singVocalLevel")
+            pushParametersToRealtimeSnapshot()
+        }
+    }
+
+    @Published var reverbPreset: ReverbRoomPreset {
+        didSet {
+            UserDefaults.standard.set(reverbPreset.rawValue, forKey: "derbis.fx.reverbPreset")
+            pushParametersToRealtimeSnapshot()
+        }
+    }
+
+    @Published var reverbWetMix: Double {
+        didSet {
+            let clamped = min(0.65, max(0.0, reverbWetMix))
+            if abs(clamped - reverbWetMix) > 0.0001 {
+                reverbWetMix = clamped
+                return
+            }
+            UserDefaults.standard.set(reverbWetMix, forKey: "derbis.fx.reverbWetMix")
+            pushParametersToRealtimeSnapshot()
+        }
+    }
+
+    @Published var activeAutoEQProfileName: String {
+        didSet {
+            UserDefaults.standard.set(activeAutoEQProfileName, forKey: "derbis.fx.activeAutoEQProfileName")
+        }
+    }
+
     @Published private(set) var dspTapActiveOnCurrentStream: Bool = false
 
     var onPlaybackRateSettingsChanged: (() -> Void)?
@@ -452,6 +540,18 @@ final class AudioEffectsEngine: ObservableObject {
         self.crossfeedAmount = min(1.0, max(0.0, savedCross))
 
         self.warmTubeSaturation = UserDefaults.standard.bool(forKey: "derbis.fx.warmTubeSaturation")
+        self.singEnabled = UserDefaults.standard.bool(forKey: "derbis.fx.singEnabled")
+
+        let savedVocal = UserDefaults.standard.object(forKey: "derbis.fx.singVocalLevel") as? Double ?? 0.12
+        self.singVocalLevel = min(1.0, max(0.0, savedVocal))
+
+        let savedRev = UserDefaults.standard.string(forKey: "derbis.fx.reverbPreset") ?? ReverbRoomPreset.off.rawValue
+        self.reverbPreset = ReverbRoomPreset(rawValue: savedRev) ?? .off
+
+        let savedWet = UserDefaults.standard.object(forKey: "derbis.fx.reverbWetMix") as? Double ?? 0.22
+        self.reverbWetMix = min(0.65, max(0.0, savedWet))
+
+        self.activeAutoEQProfileName = UserDefaults.standard.string(forKey: "derbis.fx.activeAutoEQProfileName") ?? ""
 
         pushParametersToRealtimeSnapshot()
     }
@@ -465,10 +565,13 @@ final class AudioEffectsEngine: ObservableObject {
             || stereoWidener > 0.01
             || crossfeedAmount > 0.01
             || warmTubeSaturation
+            || (singEnabled && singVocalLevel < 0.99)
+            || (reverbPreset != .off && reverbWetMix > 0.01)
     }
 
     func applyPreset(_ preset: EqualizerPreset) {
         selectedPreset = preset
+        activeAutoEQProfileName = ""
         if preset != .custom {
             bandGainsDB = preset.gains
             if preset != .flat && !eqEnabled {
@@ -481,6 +584,7 @@ final class AudioEffectsEngine: ObservableObject {
         guard bandGainsDB.indices.contains(index) else { return }
         bandGainsDB[index] = min(12.0, max(-12.0, gainDB))
         selectedPreset = .custom
+        activeAutoEQProfileName = ""
         if !eqEnabled {
             eqEnabled = true
         }
@@ -497,6 +601,93 @@ final class AudioEffectsEngine: ObservableObject {
         stereoWidener = 0.0
         crossfeedAmount = 0.0
         warmTubeSaturation = false
+        singEnabled = false
+        singVocalLevel = 0.12
+        reverbPreset = .off
+        reverbWetMix = 0.22
+        activeAutoEQProfileName = ""
+    }
+
+    struct AutoEQProfile: Identifiable {
+        var id: String { name }
+        let name: String
+        let brand: String
+        let gains: [Double]
+        let preamp: Double
+    }
+
+    static let builtInAutoEQProfiles: [AutoEQProfile] = [
+        AutoEQProfile(name: "AirPods Pro 2", brand: "Apple", gains: [2.4, 1.6, 0.2, -0.8, -0.5, 0.9, 1.8, 2.2, 1.4, 0.6], preamp: -2.2),
+        AutoEQProfile(name: "AirPods Max", brand: "Apple", gains: [1.8, 1.0, -0.4, -1.2, 0.4, 1.8, 3.2, 2.6, 1.2, 0.5], preamp: -3.0),
+        AutoEQProfile(name: "EarPods", brand: "Apple", gains: [6.8, 5.2, 1.6, -1.4, -2.0, -0.8, 0.8, 1.6, 1.2, 0.8], preamp: -5.5),
+        AutoEQProfile(name: "WH-1000XM5", brand: "Sony", gains: [-2.8, -3.6, -3.2, -1.4, 0.6, 1.8, 2.8, 2.4, 1.6, 1.0], preamp: -2.6),
+        AutoEQProfile(name: "WF-1000XM5", brand: "Sony", gains: [0.8, -0.6, -1.4, -0.8, 0.4, 1.6, 2.6, 2.2, 1.2, 0.6], preamp: -2.4),
+        AutoEQProfile(name: "HD 600", brand: "Sennheiser", gains: [5.6, 3.8, 1.2, -0.6, -0.8, -0.4, 0.6, 1.2, 0.8, 0.4], preamp: -5.0),
+        AutoEQProfile(name: "QuietComfort Ultra", brand: "Bose", gains: [-2.4, -3.0, -2.2, -0.6, 0.8, 1.6, 2.2, 1.8, 1.0, 0.4], preamp: -2.0),
+        AutoEQProfile(name: "Blessing 3", brand: "Moondrop", gains: [3.2, 2.4, 0.8, -0.4, -0.2, 0.4, 0.6, 0.2, -0.8, -0.4], preamp: -3.0)
+    ]
+
+    func applyAutoEQProfile(_ profile: AutoEQProfile) {
+        bandGainsDB = profile.gains
+        preampDB = min(6.0, max(-6.0, profile.preamp))
+        selectedPreset = .custom
+        activeAutoEQProfileName = "\(profile.brand) \(profile.name)"
+        eqEnabled = true
+    }
+
+    func applyAutoEQGraphicEQString(_ raw: String, profileLabel: String = "Imported AutoEQ") -> Bool {
+        var body = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let range = body.range(of: "GraphicEQ:", options: .caseInsensitive) {
+            body = String(body[range.upperBound...])
+        }
+        var points: [(freq: Double, db: Double)] = []
+        for segment in body.split(separator: ";") {
+            let parts = segment.trimmingCharacters(in: .whitespacesAndNewlines)
+                .split(whereSeparator: { $0.isWhitespace })
+            guard parts.count >= 2,
+                  let f = Double(parts[0]),
+                  let g = Double(parts[1]),
+                  f > 10, f <= 24_000, g.isFinite else {
+                continue
+            }
+            points.append((f, g))
+        }
+        guard points.count >= 3 else { return false }
+        points.sort { $0.freq < $1.freq }
+
+        var mapped: [Double] = []
+        for targetFreq in EqualizerPreset.bandFrequencies {
+            if let first = points.first, targetFreq <= first.freq {
+                mapped.append(min(12.0, max(-12.0, first.db)))
+            } else if let last = points.last, targetFreq >= last.freq {
+                mapped.append(min(12.0, max(-12.0, last.db)))
+            } else {
+                var value = 0.0
+                for idx in 0..<(points.count - 1) {
+                    let p0 = points[idx]
+                    let p1 = points[idx + 1]
+                    if targetFreq >= p0.freq && targetFreq <= p1.freq {
+                        let logF = log10(targetFreq)
+                        let log0 = log10(p0.freq)
+                        let log1 = log10(max(p0.freq + 0.01, p1.freq))
+                        let t = (logF - log0) / max(0.0001, log1 - log0)
+                        value = p0.db + (p1.db - p0.db) * t
+                        break
+                    }
+                }
+                mapped.append(min(12.0, max(-12.0, (value * 10.0).rounded() / 10.0)))
+            }
+        }
+
+        let peakBoost = mapped.max() ?? 0
+        bandGainsDB = mapped
+        if peakBoost > 0.5 {
+            preampDB = max(-6.0, -min(6.0, peakBoost * 0.75))
+        }
+        selectedPreset = .custom
+        activeAutoEQProfileName = profileLabel
+        eqEnabled = true
+        return true
     }
 
     func markCurrentStreamTapActive(_ active: Bool) {
@@ -605,8 +796,27 @@ final class AudioEffectsEngine: ObservableObject {
         next.stereoWidthAmount = Float(stereoWidener)
         next.crossfeedAmount = Float(crossfeedAmount)
         next.warmTubeEnabled = warmTubeSaturation
+        next.singEnabled = singEnabled
+        next.singVocalLevel = Float(singVocalLevel)
+        next.reverbFeedback = reverbPreset.feedback
+        next.reverbDamping = reverbPreset.damping
+        next.reverbWet = reverbPreset == .off ? 0 : Float(reverbWetMix)
         Self.sharedParamsPtr.pointee = next
         os_unfair_lock_unlock(Self.paramLock)
+    }
+
+    nonisolated static func setVisualizerActive(_ active: Bool) {
+        os_unfair_lock_lock(paramLock)
+        sharedParamsPtr.pointee.visualizerEnabled = active
+        sharedParamsPtr.pointee.generation &+= 1
+        os_unfair_lock_unlock(paramLock)
+    }
+
+    nonisolated static func readVisualizerLevels() -> (low: Float, mid: Float, high: Float) {
+        guard os_unfair_lock_trylock(beatLock) else { return (0, 0, 0) }
+        let box = beatMailboxPtr.pointee
+        os_unfair_lock_unlock(beatLock)
+        return (box.visLow, box.visMid, box.visHigh)
     }
 
     nonisolated static func setMusicAnalyzerActive(_ active: Bool) {
@@ -695,7 +905,7 @@ final class AudioEffectsEngine: ObservableObject {
                 }
 
                 let runAudioFX = params.hasAnyAudioEffect
-                let runAnalyzer = params.analyzerEnabled
+                let runAnalyzer = params.analyzerEnabled || params.visualizerEnabled
                 guard runAudioFX || runAnalyzer else { return }
 
                 let buffers = UnsafeMutableAudioBufferListPointer(bufferListInOut)
@@ -878,6 +1088,18 @@ final class AudioEffectsEngine: ObservableObject {
         l *= params.preampLinear
         r *= params.preampLinear
 
+        if params.singEnabled && params.singVocalLevel < 0.99 {
+            let mid = 0.5 * (l + r)
+            let side = 0.5 * (l - r)
+            let lowKeep = storage.singBassState.process(mid, coeffs: storage.singBassLPFCoeffs)
+            let airKeep = storage.singAirState.process(mid, coeffs: storage.singAirHPFCoeffs)
+            let vocalBand = mid - lowKeep - airKeep
+            let attenuatedMid = lowKeep + airKeep + vocalBand * params.singVocalLevel
+            let compSide = side * (1.0 + (1.0 - params.singVocalLevel) * 0.14)
+            l = attenuatedMid + compSide
+            r = attenuatedMid - compSide
+        }
+
         if params.eqEnabled {
             for b in 0..<10 {
                 let c = storage.eqCoeffs[b]
@@ -925,6 +1147,56 @@ final class AudioEffectsEngine: ObservableObject {
             r = nextR
         }
 
+        if params.reverbWet > 0.01 && params.reverbFeedback > 0.05 {
+            let fb = params.reverbFeedback
+            let damp1 = params.reverbDamping
+            let damp2 = 1.0 - damp1
+            let inputMono = (l + r) * 0.18
+
+            let out1L = storage.comb1L[storage.c1LIdx]
+            storage.c1LStore = out1L * damp2 + storage.c1LStore * damp1
+            storage.comb1L[storage.c1LIdx] = inputMono + storage.c1LStore * fb
+            storage.c1LIdx += 1
+            if storage.c1LIdx >= RealtimeTapStorage.combLen1L { storage.c1LIdx = 0 }
+
+            let out2L = storage.comb2L[storage.c2LIdx]
+            storage.c2LStore = out2L * damp2 + storage.c2LStore * damp1
+            storage.comb2L[storage.c2LIdx] = inputMono + storage.c2LStore * fb
+            storage.c2LIdx += 1
+            if storage.c2LIdx >= RealtimeTapStorage.combLen2L { storage.c2LIdx = 0 }
+
+            let out1R = storage.comb1R[storage.c1RIdx]
+            storage.c1RStore = out1R * damp2 + storage.c1RStore * damp1
+            storage.comb1R[storage.c1RIdx] = inputMono + storage.c1RStore * fb
+            storage.c1RIdx += 1
+            if storage.c1RIdx >= RealtimeTapStorage.combLen1R { storage.c1RIdx = 0 }
+
+            let out2R = storage.comb2R[storage.c2RIdx]
+            storage.c2RStore = out2R * damp2 + storage.c2RStore * damp1
+            storage.comb2R[storage.c2RIdx] = inputMono + storage.c2RStore * fb
+            storage.c2RIdx += 1
+            if storage.c2RIdx >= RealtimeTapStorage.combLen2R { storage.c2RIdx = 0 }
+
+            let wetInL = out1L + out2L
+            let bufApL = storage.apL[storage.apLIdx]
+            let wetL = -wetInL + bufApL
+            storage.apL[storage.apLIdx] = wetInL + bufApL * 0.5
+            storage.apLIdx += 1
+            if storage.apLIdx >= RealtimeTapStorage.apLenL { storage.apLIdx = 0 }
+
+            let wetInR = out1R + out2R
+            let bufApR = storage.apR[storage.apRIdx]
+            let wetR = -wetInR + bufApR
+            storage.apR[storage.apRIdx] = wetInR + bufApR * 0.5
+            storage.apRIdx += 1
+            if storage.apRIdx >= RealtimeTapStorage.apLenR { storage.apRIdx = 0 }
+
+            let wet = params.reverbWet
+            let dry = 1.0 - wet * 0.35
+            l = l * dry + wetL * wet
+            r = r * dry + wetR * wet
+        }
+
         l = RealtimeTapStorage.softSaturate(l, warm: params.warmTubeEnabled)
         r = RealtimeTapStorage.softSaturate(r, warm: params.warmTubeEnabled)
     }
@@ -960,6 +1232,16 @@ final class AudioEffectsEngine: ObservableObject {
             let prevSnapMean = max(0.00008, storage.snapRollingMean)
             storage.kickRollingMean = storage.kickRollingMean * 0.94 + kickInst * 0.06
             storage.snapRollingMean = storage.snapRollingMean * 0.94 + snapInst * 0.06
+
+            if os_unfair_lock_trylock(beatLock) {
+                let lowNorm = min(1.0, sqrt(kickInst) * 3.4)
+                let highNorm = min(1.0, sqrt(snapInst) * 4.5)
+                let midNorm = min(1.0, (lowNorm * 0.55 + highNorm * 0.65))
+                beatMailboxPtr.pointee.visLow = beatMailboxPtr.pointee.visLow * 0.55 + lowNorm * 0.45
+                beatMailboxPtr.pointee.visMid = beatMailboxPtr.pointee.visMid * 0.55 + midNorm * 0.45
+                beatMailboxPtr.pointee.visHigh = beatMailboxPtr.pointee.visHigh * 0.55 + highNorm * 0.45
+                os_unfair_lock_unlock(beatLock)
+            }
 
             let sr = Int(storage.sampleRate)
             if storage.kickCooldownFrames == 0 && kickInst > 0.0012 && (kickInst / prevKickMean) >= 1.65 {

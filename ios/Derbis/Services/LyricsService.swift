@@ -13,14 +13,19 @@ actor LyricsService {
         self.session = URLSession(configuration: config)
     }
 
-    func fetchLyrics(for track: Track, forceRefresh: Bool = false) async -> LyricsPayload? {
-        if !forceRefresh {
+    func fetchLyrics(
+        for track: Track,
+        forceRefresh: Bool = false,
+        preferredSource: LyricsSourceKind? = nil
+    ) async -> LyricsPayload? {
+        if !forceRefresh && preferredSource == nil {
             if let cached = memoryCache[track.id] {
-                return cached
+                return LyricsIntelligenceService.enrichWithOnDeviceRomanization(cached)
             }
             if let disk = loadFromDisk(trackId: track.id) {
-                memoryCache[track.id] = disk
-                return disk
+                let enriched = LyricsIntelligenceService.enrichWithOnDeviceRomanization(disk)
+                memoryCache[track.id] = enriched
+                return enriched
             }
         }
 
@@ -30,54 +35,87 @@ actor LyricsService {
             .replacingOccurrences(of: "VEVO", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let unison = await queryUnisonTTML(
-            trackId: track.id,
-            title: cleanTitle,
-            artist: cleanArtist,
-            album: track.album,
-            durationSec: track.durationSec
-        ) {
-            memoryCache[track.id] = unison
-            saveToDisk(unison)
-            return unison
-        }
+        let orderedSources: [LyricsSourceKind] = {
+            if let forced = preferredSource {
+                return [forced]
+            }
+            if let data = UserDefaults.standard.data(forKey: "derbis.lyricsSourcePriority"),
+               let saved = try? JSONDecoder().decode([LyricsSourceKind].self, from: data),
+               !saved.isEmpty {
+                return saved
+            }
+            return [.appleTTML, .netEaseYRC, .lrclib]
+        }()
 
-        if let bini = await queryBiniLyricsTTML(
-            trackId: track.id,
-            title: cleanTitle,
-            artist: cleanArtist,
-            album: track.album,
-            durationSec: track.durationSec
-        ) {
-            memoryCache[track.id] = bini
-            saveToDisk(bini)
-            return bini
-        }
-
-        if let direct = await queryLRCLibDirect(
-            trackId: track.id,
-            title: cleanTitle,
-            artist: cleanArtist,
-            album: track.album,
-            durationSec: track.durationSec
-        ) {
-            memoryCache[track.id] = direct
-            saveToDisk(direct)
-            return direct
-        }
-
-        if let searched = await queryLRCLibSearch(
-            trackId: track.id,
-            title: cleanTitle,
-            artist: cleanArtist,
-            durationSec: track.durationSec
-        ) {
-            memoryCache[track.id] = searched
-            saveToDisk(searched)
-            return searched
+        for source in orderedSources {
+            if let found = await querySource(
+                source,
+                trackId: track.id,
+                title: cleanTitle,
+                artist: cleanArtist,
+                album: track.album,
+                durationSec: track.durationSec
+            ) {
+                let enriched = LyricsIntelligenceService.enrichWithOnDeviceRomanization(found)
+                memoryCache[track.id] = enriched
+                saveToDisk(enriched)
+                return enriched
+            }
         }
 
         return nil
+    }
+
+    private func querySource(
+        _ source: LyricsSourceKind,
+        trackId: String,
+        title: String,
+        artist: String,
+        album: String,
+        durationSec: Int
+    ) async -> LyricsPayload? {
+        switch source {
+        case .appleTTML:
+            if let unison = await queryUnisonTTML(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                album: album,
+                durationSec: durationSec
+            ) {
+                return unison
+            }
+            return await queryBiniLyricsTTML(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                album: album,
+                durationSec: durationSec
+            )
+        case .netEaseYRC:
+            return await queryNetEaseYRC(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                durationSec: durationSec
+            )
+        case .lrclib:
+            if let direct = await queryLRCLibDirect(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                album: album,
+                durationSec: durationSec
+            ) {
+                return direct
+            }
+            return await queryLRCLibSearch(
+                trackId: trackId,
+                title: title,
+                artist: artist,
+                durationSec: durationSec
+            )
+        }
     }
 
     func clearCache() {
@@ -280,6 +318,179 @@ actor LyricsService {
             }
         }
         return nil
+    }
+
+    private func queryNetEaseYRC(
+        trackId: String,
+        title: String,
+        artist: String,
+        durationSec: Int
+    ) async -> LyricsPayload? {
+        guard !title.isEmpty,
+              var searchComps = URLComponents(string: "https://music.163.com/api/search/get/web") else {
+            return nil
+        }
+        searchComps.queryItems = [
+            URLQueryItem(name: "s", value: "\(title) \(artist)"),
+            URLQueryItem(name: "type", value: "1"),
+            URLQueryItem(name: "offset", value: "0"),
+            URLQueryItem(name: "limit", value: "5")
+        ]
+        guard let searchURL = searchComps.url else { return nil }
+
+        var searchReq = URLRequest(url: searchURL)
+        searchReq.timeoutInterval = 5.0
+        searchReq.setValue("https://music.163.com", forHTTPHeaderField: "Referer")
+        searchReq.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (sData, sResp) = try? await session.data(for: searchReq),
+              let sHttp = sResp as? HTTPURLResponse,
+              sHttp.statusCode == 200,
+              let sRoot = (try? JSONSerialization.jsonObject(with: sData)) as? [String: Any],
+              let sResult = sRoot["result"] as? [String: Any],
+              let songs = sResult["songs"] as? [[String: Any]],
+              !songs.isEmpty else {
+            return nil
+        }
+
+        let matchedSong = songs.first { song in
+            guard durationSec > 0 else { return true }
+            let durMs = extractInteger(song["duration"])
+            guard durMs > 0 else { return true }
+            return abs((durMs / 1000) - durationSec) <= 6
+        } ?? songs.first
+
+        guard let songId = matchedSong?["id"] as? Int,
+              var lyrComps = URLComponents(string: "https://music.163.com/api/song/lyric") else {
+            return nil
+        }
+        lyrComps.queryItems = [
+            URLQueryItem(name: "id", value: String(songId)),
+            URLQueryItem(name: "yv", value: "1"),
+            URLQueryItem(name: "lv", value: "1"),
+            URLQueryItem(name: "tv", value: "1"),
+            URLQueryItem(name: "rv", value: "1")
+        ]
+        guard let lyrURL = lyrComps.url else { return nil }
+
+        var lyrReq = URLRequest(url: lyrURL)
+        lyrReq.timeoutInterval = 5.0
+        lyrReq.setValue("https://music.163.com", forHTTPHeaderField: "Referer")
+        lyrReq.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
+
+        guard let (lData, lResp) = try? await session.data(for: lyrReq),
+              let lHttp = lResp as? HTTPURLResponse,
+              lHttp.statusCode == 200,
+              let lRoot = (try? JSONSerialization.jsonObject(with: lData)) as? [String: Any] else {
+            return nil
+        }
+
+        let transLines = parseLRC(((lRoot["tlyric"] as? [String: Any])?["lyric"] as? String) ?? "")
+        let romaLines = parseLRC(((lRoot["romalrc"] as? [String: Any])?["lyric"] as? String) ?? "")
+
+        var baseLines: [LyricLine] = []
+        var isWordSynced = false
+
+        if let yrcRaw = (lRoot["yrc"] as? [String: Any])?["lyric"] as? String, !yrcRaw.isEmpty {
+            let yrcParsed = parseNetEaseYRCText(yrcRaw)
+            if !yrcParsed.isEmpty {
+                baseLines = yrcParsed
+                isWordSynced = true
+            }
+        }
+
+        if baseLines.isEmpty,
+           let lrcRaw = (lRoot["lrc"] as? [String: Any])?["lyric"] as? String, !lrcRaw.isEmpty {
+            baseLines = parseLRC(lrcRaw)
+        }
+
+        guard !baseLines.isEmpty else { return nil }
+
+        var hasRoma = false
+        var hasTrans = false
+        for i in baseLines.indices {
+            let tStart = baseLines[i].startTimeSec
+            if let rMatch = romaLines.min(by: { abs($0.startTimeSec - tStart) < abs($1.startTimeSec - tStart) }),
+               abs(rMatch.startTimeSec - tStart) < 1.2 {
+                baseLines[i].pronunciation = rMatch.text
+                hasRoma = true
+            }
+            if let tMatch = transLines.min(by: { abs($0.startTimeSec - tStart) < abs($1.startTimeSec - tStart) }),
+               abs(tMatch.startTimeSec - tStart) < 1.2 {
+                baseLines[i].translation = tMatch.text
+                hasTrans = true
+            }
+        }
+
+        return LyricsPayload(
+            trackId: trackId,
+            synced: true,
+            wordSynced: isWordSynced,
+            provider: isWordSynced ? "NetEase YRC" : "NetEase LRC",
+            lines: baseLines,
+            hasRomanization: hasRoma,
+            hasTranslation: hasTrans
+        )
+    }
+
+    private func parseNetEaseYRCText(_ raw: String) -> [LyricLine] {
+        guard let lineHeaderRegex = try? NSRegularExpression(pattern: #"^\[(\d+),(\d+)\](.*)$"#),
+              let tokenRegex = try? NSRegularExpression(pattern: #"\((\d+),(\d+),\d+\)([^\(]*)"#) else {
+            return []
+        }
+
+        var lines: [LyricLine] = []
+        for rawRow in raw.components(separatedBy: .newlines) {
+            let trimmed = rawRow.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.hasPrefix("[") else { continue }
+            let nsRow = NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)
+            guard let m = lineHeaderRegex.firstMatch(in: trimmed, range: nsRow),
+                  let startR = Range(m.range(at: 1), in: trimmed),
+                  let durR = Range(m.range(at: 2), in: trimmed),
+                  let bodyR = Range(m.range(at: 3), in: trimmed) else {
+                continue
+            }
+            let lineStartSec = (Double(trimmed[startR]) ?? 0) / 1000.0
+            let lineDurSec = max(0.35, (Double(trimmed[durR]) ?? 2500) / 1000.0)
+            let body = String(trimmed[bodyR])
+            let nsBody = NSRange(body.startIndex..<body.endIndex, in: body)
+
+            var words: [LyricWord] = []
+            var fullText = ""
+            for tm in tokenRegex.matches(in: body, range: nsBody) {
+                guard let wStartR = Range(tm.range(at: 1), in: body),
+                      let wDurR = Range(tm.range(at: 2), in: body),
+                      let wTextR = Range(tm.range(at: 3), in: body) else {
+                    continue
+                }
+                let wStart = (Double(body[wStartR]) ?? 0) / 1000.0
+                let wDur = max(0.06, (Double(body[wDurR]) ?? 180) / 1000.0)
+                let wText = String(body[wTextR])
+                guard !wText.isEmpty else { continue }
+                fullText += wText
+                words.append(
+                    LyricWord(
+                        id: words.count,
+                        text: wText,
+                        startTimeSec: wStart,
+                        endTimeSec: wStart + wDur
+                    )
+                )
+            }
+
+            let cleanFull = fullText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanFull.isEmpty else { continue }
+            lines.append(
+                LyricLine(
+                    id: lines.count,
+                    startTimeSec: lineStartSec,
+                    endTimeSec: lineStartSec + lineDurSec,
+                    text: cleanFull,
+                    words: words
+                )
+            )
+        }
+        return lines
     }
 
     private func parseLRCLibObject(_ json: [String: Any], trackId: String) -> LyricsPayload? {

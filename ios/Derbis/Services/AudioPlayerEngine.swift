@@ -62,6 +62,8 @@ final class AudioPlayerEngine: ObservableObject {
     }
     @Published var activeLyricIndex: Int?
     @Published var isLoadingLyrics: Bool = false
+    @Published var currentGeniusMeanings: [Int: GeniusAnnotationEntry] = [:]
+    @Published var isTranslatingLyrics: Bool = false
 
     @Published var currentMotionCanvas: MotionCanvasAsset?
 
@@ -98,6 +100,9 @@ final class AudioPlayerEngine: ObservableObject {
     private var consecutiveUnrecoverableFailures: Int = 0
     private var isApplyingJamState: Bool = false
     private var transientBannerTask: Task<Void, Never>?
+    private var hasLoggedCurrentTrackToStats: Bool = false
+    private var autoMixTriggeredForCurrentItem: Bool = false
+    private var fadeInRampTask: Task<Void, Never>?
 
     func showTransientBanner(_ message: String) {
         errorBanner = message
@@ -468,13 +473,19 @@ final class AudioPlayerEngine: ObservableObject {
             currentTime = 0
             duration = Double(track.durationSec)
             currentLyrics = nil
+            currentGeniusMeanings = [:]
             activeLyricIndex = nil
             currentMotionCanvas = nil
             lastLockScreenSubtitle = nil
             lastRenderedLyricCardLine = nil
             cachedLyricCardArtwork = nil
             recoveryPass = 0
+            hasLoggedCurrentTrackToStats = false
+            autoMixTriggeredForCurrentItem = false
         }
+
+        fadeInRampTask?.cancel()
+        player.volume = 1.0
 
         isLoading = true
         isRecovering = false
@@ -686,16 +697,95 @@ final class AudioPlayerEngine: ObservableObject {
         }
     }
 
-    func loadLyrics(for track: Track, forceRefresh: Bool = false) {
+    func loadLyrics(
+        for track: Track,
+        forceRefresh: Bool = false,
+        preferredSource: LyricsSourceKind? = nil
+    ) {
         isLoadingLyrics = true
         Task {
-            let result = await LyricsService.shared.fetchLyrics(for: track, forceRefresh: forceRefresh)
-            if self.currentTrack?.id == track.id {
-                self.currentLyrics = result
-                self.updateActiveLyricIndex(at: self.currentTime)
-                self.isLoadingLyrics = false
+            var result = await LyricsService.shared.fetchLyrics(
+                for: track,
+                forceRefresh: forceRefresh,
+                preferredSource: preferredSource
+            )
+            let wantTrans = UserDefaults.standard.bool(forKey: "derbis.showLyricsTranslation")
+            if wantTrans, let existing = result, !existing.hasTranslation {
+                let rawLang = UserDefaults.standard.string(forKey: "derbis.lyricsTranslationLanguage") ?? "en"
+                let lang = LyricsTranslationLanguage(rawValue: rawLang) ?? .english
+                result = await LyricsIntelligenceService.shared.translateLyrics(
+                    payload: existing,
+                    targetLanguage: lang
+                )
+            }
+            guard self.currentTrack?.id == track.id else { return }
+            self.currentLyrics = result
+            self.updateActiveLyricIndex(at: self.currentTime)
+            self.isLoadingLyrics = false
+
+            if let payload = result, !payload.lines.isEmpty {
+                let rawFilter = UserDefaults.standard.string(forKey: "derbis.geniusMeaningsFilter")
+                    ?? GeniusMeaningFilter.everyone.rawValue
+                let filter = GeniusMeaningFilter(rawValue: rawFilter) ?? .everyone
+                if filter != .off {
+                    let meanings = await LyricsIntelligenceService.shared.fetchLineMeanings(
+                        for: track,
+                        lines: payload.lines,
+                        filter: filter
+                    )
+                    if self.currentTrack?.id == track.id {
+                        self.currentGeniusMeanings = meanings
+                    }
+                }
             }
         }
+    }
+
+    func ensureLyricsTranslated(to language: LyricsTranslationLanguage) {
+        guard let track = currentTrack, let payload = currentLyrics, !isTranslatingLyrics else { return }
+        isTranslatingLyrics = true
+        Task {
+            let translated = await LyricsIntelligenceService.shared.translateLyrics(
+                payload: payload,
+                targetLanguage: language
+            )
+            if self.currentTrack?.id == track.id {
+                self.currentLyrics = translated
+            }
+            self.isTranslatingLyrics = false
+        }
+    }
+
+    func refreshGeniusMeanings(filter: GeniusMeaningFilter) {
+        guard let track = currentTrack, let payload = currentLyrics else { return }
+        if filter == .off {
+            currentGeniusMeanings = [:]
+            return
+        }
+        Task {
+            let meanings = await LyricsIntelligenceService.shared.fetchLineMeanings(
+                for: track,
+                lines: payload.lines,
+                filter: filter
+            )
+            if self.currentTrack?.id == track.id {
+                self.currentGeniusMeanings = meanings
+            }
+        }
+    }
+
+    func previewAutoMixTransition() -> Bool {
+        guard currentTrack != nil, duration > 18.0, queue.count > 1 else {
+            return false
+        }
+        autoMixTriggeredForCurrentItem = false
+        player.volume = 1.0
+        let target = max(0, duration - 15.0)
+        seek(to: target)
+        if !isPlaying {
+            togglePlayPause()
+        }
+        return true
     }
 
     func refreshMotionCanvas() {
@@ -899,6 +989,44 @@ final class AudioPlayerEngine: ObservableObject {
                 if sec.isFinite && sec >= 0 {
                     self.currentTime = sec
                     self.updateActiveLyricIndex(at: sec)
+
+                    if !self.hasLoggedCurrentTrackToStats,
+                       let track = self.currentTrack,
+                       self.isPlaying {
+                        let threshold = (self.duration > 0 && self.duration < 60.0)
+                            ? max(10.0, self.duration * 0.5)
+                            : 30.0
+                        if sec >= threshold {
+                            self.hasLoggedCurrentTrackToStats = true
+                            ListeningStatsStore.shared.recordPlayIfQualified(
+                                track: track,
+                                listenedSeconds: max(sec, Double(track.durationSec) * 0.6)
+                            )
+                        }
+                    }
+
+                    if self.isPlaying,
+                       !self.isLoading,
+                       self.duration > 20.0,
+                       self.repeatMode != .one,
+                       !JamService.shared.isGuest,
+                       self.queue.count > 1,
+                       UserDefaults.standard.bool(forKey: "derbis.autoMixEnabled") {
+                        let rawMixSec = UserDefaults.standard.double(forKey: "derbis.autoMixSeconds")
+                        let mixWindow = min(12.0, max(1.0, rawMixSec > 0 ? rawMixSec : 6.0))
+                        let remaining = self.duration - sec
+                        if remaining > 0.35 && remaining <= mixWindow {
+                            let progress = 1.0 - (remaining / mixWindow)
+                            let nextVol = Float(cos(progress * .pi * 0.44))
+                            self.player.volume = max(0.12, min(1.0, nextVol))
+                        } else if remaining <= 0.35 && remaining > -1.0 && !self.autoMixTriggeredForCurrentItem {
+                            self.autoMixTriggeredForCurrentItem = true
+                            self.skipNext(automatic: true)
+                            self.startSmoothFadeInRamp()
+                        } else if remaining > mixWindow && self.player.volume < 0.99 && self.fadeInRampTask == nil {
+                            self.player.volume = 1.0
+                        }
+                    }
                 }
                 if let item = self.player.currentItem {
                     let dur = CMTimeGetSeconds(item.duration)
@@ -908,6 +1036,22 @@ final class AudioPlayerEngine: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    private func startSmoothFadeInRamp() {
+        fadeInRampTask?.cancel()
+        player.volume = 0.22
+        fadeInRampTask = Task { @MainActor [weak self] in
+            let steps = 10
+            for step in 1...steps {
+                try? await Task.sleep(nanoseconds: 110_000_000)
+                guard !Task.isCancelled, let self = self else { return }
+                let t = Double(step) / Double(steps)
+                self.player.volume = Float(0.22 + 0.78 * sin(t * .pi * 0.5))
+            }
+            self?.player.volume = 1.0
+            self?.fadeInRampTask = nil
         }
     }
 

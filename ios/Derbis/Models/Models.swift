@@ -294,7 +294,9 @@ enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
 enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
     case skinDefault = "skin"
     case sfPro = "sf_pro"
+    case sfRounded = "sf_rounded"
     case pixelify = "pixelify"
+    case customFile = "custom_file"
 
     var id: String { rawValue }
 
@@ -302,7 +304,9 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .skinDefault: return "Match skin"
         case .sfPro: return "SF Pro"
+        case .sfRounded: return "SF Rounded"
         case .pixelify: return "Pixelify Sans"
+        case .customFile: return "Imported Font (.ttf/.otf)"
         }
     }
 }
@@ -325,18 +329,127 @@ enum PlayerBackdropStyle: String, Codable, CaseIterable, Identifiable, Sendable 
     case animated = "Motion"
     case fill = "Fill"
     case fluid = "Fluid"
-    case ambient = "Ambient"
-    case still = "Minimal"
+    case visualiser = "Visualiser"
+    case ambient = "Colors"
+    case still = "Still"
 
     var id: String { rawValue }
 
     var subtitle: String {
         switch self {
-        case .animated: return "Motion Canvas with progressive ambient fallback"
-        case .fill: return "Full-bleed cover dissolving through progressive dark fade"
+        case .animated: return "Motion Canvas with progressive Fill fallback"
+        case .fill: return "Taurus full-bleed cover dissolving into sampled dark tint"
         case .fluid: return "Drifting multi-color aura sampled from cover art"
+        case .visualiser: return "Audio-reactive spectrum waves & beat-pulsing glass aura"
         case .ambient: return "Soft blurred cover wash over dark glass"
-        case .still: return "Clean minimal surface with zero backdrop motion"
+        case .still: return "Clean AMOLED surface with zero backdrop motion"
+        }
+    }
+}
+
+enum LyricsSourceKind: String, Codable, CaseIterable, Identifiable, Sendable {
+    case appleTTML = "apple_ttml"
+    case netEaseYRC = "netease_yrc"
+    case lrclib = "lrclib"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .appleTTML: return "Apple Music TTML (Unison & BiniLyrics)"
+        case .netEaseYRC: return "NetEase YRC (Word-Synced + Romaji/Trans)"
+        case .lrclib: return "LRCLIB (Open Synced & Plain)"
+        }
+    }
+
+    var shortBadge: String {
+        switch self {
+        case .appleTTML: return "Apple TTML"
+        case .netEaseYRC: return "NetEase YRC"
+        case .lrclib: return "LRCLIB"
+        }
+    }
+}
+
+enum GeniusMeaningFilter: String, Codable, CaseIterable, Identifiable, Sendable {
+    case off = "Off"
+    case artistOnly = "From the Artist"
+    case artistAndEditors = "Artist & Editors"
+    case everyone = "Everyone"
+
+    var id: String { rawValue }
+}
+
+enum LyricsTranslationLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
+    case english = "en"
+    case filipino = "tl"
+    case spanish = "es"
+    case japanese = "ja"
+    case korean = "ko"
+    case chineseSimplified = "zh-CN"
+    case indonesian = "id"
+    case french = "fr"
+    case german = "de"
+    case portuguese = "pt"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .english: return "English"
+        case .filipino: return "Filipino / Tagalog"
+        case .spanish: return "Spanish"
+        case .japanese: return "Japanese"
+        case .korean: return "Korean"
+        case .chineseSimplified: return "Chinese (Simplified)"
+        case .indonesian: return "Indonesian"
+        case .french: return "French"
+        case .german: return "German"
+        case .portuguese: return "Portuguese"
+        }
+    }
+}
+
+enum ReverbRoomPreset: String, Codable, CaseIterable, Identifiable, Sendable {
+    case off = "Off"
+    case studio = "Small Studio"
+    case club = "Intimate Club"
+    case concertHall = "Concert Hall"
+    case cathedral = "Cathedral"
+
+    var id: String { rawValue }
+
+    var feedback: Float {
+        switch self {
+        case .off: return 0
+        case .studio: return 0.58
+        case .club: return 0.70
+        case .concertHall: return 0.81
+        case .cathedral: return 0.88
+        }
+    }
+
+    var damping: Float {
+        switch self {
+        case .off: return 0.5
+        case .studio: return 0.42
+        case .club: return 0.34
+        case .concertHall: return 0.26
+        case .cathedral: return 0.18
+        }
+    }
+}
+
+enum AutoMixStyle: String, Codable, CaseIterable, Identifiable, Sendable {
+    case smartBlend = "Smart Blend"
+    case crossfade = "Crossfade"
+
+    var id: String { rawValue }
+
+    var subtitle: String {
+        switch self {
+        case .smartBlend: return "Adapts transition length to song energy & tempo"
+        case .crossfade: return "Always blends using your exact crossfade duration"
         }
     }
 }

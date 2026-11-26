@@ -80,6 +80,57 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(tabBarMinimizesOnScroll, forKey: "derbis.tabBarMinimizesOnScroll") }
     }
 
+    @Published var hideTabLabels: Bool {
+        didSet { UserDefaults.standard.set(hideTabLabels, forKey: "derbis.hideTabLabels") }
+    }
+
+    @Published var lyricsTranslationLanguage: LyricsTranslationLanguage {
+        didSet { UserDefaults.standard.set(lyricsTranslationLanguage.rawValue, forKey: "derbis.lyricsTranslationLanguage") }
+    }
+
+    @Published var geniusMeaningsFilter: GeniusMeaningFilter {
+        didSet { UserDefaults.standard.set(geniusMeaningsFilter.rawValue, forKey: "derbis.geniusMeaningsFilter") }
+    }
+
+    @Published var showGeniusMeaningMarkers: Bool {
+        didSet { UserDefaults.standard.set(showGeniusMeaningMarkers, forKey: "derbis.showGeniusMeaningMarkers") }
+    }
+
+    @Published var lyricsSourcePriority: [LyricsSourceKind] {
+        didSet {
+            if let data = try? JSONEncoder().encode(lyricsSourcePriority) {
+                UserDefaults.standard.set(data, forKey: "derbis.lyricsSourcePriority")
+            }
+        }
+    }
+
+    @Published var autoMixEnabled: Bool {
+        didSet { UserDefaults.standard.set(autoMixEnabled, forKey: "derbis.autoMixEnabled") }
+    }
+
+    @Published var autoMixSeconds: Double {
+        didSet {
+            let clamped = min(12.0, max(1.0, autoMixSeconds.rounded()))
+            if abs(clamped - autoMixSeconds) > 0.01 {
+                autoMixSeconds = clamped
+                return
+            }
+            UserDefaults.standard.set(autoMixSeconds, forKey: "derbis.autoMixSeconds")
+        }
+    }
+
+    @Published var autoMixStyle: AutoMixStyle {
+        didSet { UserDefaults.standard.set(autoMixStyle.rawValue, forKey: "derbis.autoMixStyle") }
+    }
+
+    @Published var customFontPostScriptName: String {
+        didSet { UserDefaults.standard.set(customFontPostScriptName, forKey: "derbis.customFontPostScriptName") }
+    }
+
+    @Published var customFontDisplayName: String {
+        didSet { UserDefaults.standard.set(customFontDisplayName, forKey: "derbis.customFontDisplayName") }
+    }
+
     @Published var dynamicCoverAccent: Color? = nil
 
     init() {
@@ -185,6 +236,46 @@ final class ThemeManager: ObservableObject {
         } else {
             self.tabBarMinimizesOnScroll = UserDefaults.standard.bool(forKey: "derbis.tabBarMinimizesOnScroll")
         }
+
+        self.hideTabLabels = UserDefaults.standard.bool(forKey: "derbis.hideTabLabels")
+
+        let savedTransLang = UserDefaults.standard.string(forKey: "derbis.lyricsTranslationLanguage") ?? LyricsTranslationLanguage.english.rawValue
+        self.lyricsTranslationLanguage = LyricsTranslationLanguage(rawValue: savedTransLang) ?? .english
+
+        let savedGeniusFilter = UserDefaults.standard.string(forKey: "derbis.geniusMeaningsFilter") ?? GeniusMeaningFilter.everyone.rawValue
+        self.geniusMeaningsFilter = GeniusMeaningFilter(rawValue: savedGeniusFilter) ?? .everyone
+
+        if UserDefaults.standard.object(forKey: "derbis.showGeniusMeaningMarkers") == nil {
+            self.showGeniusMeaningMarkers = true
+        } else {
+            self.showGeniusMeaningMarkers = UserDefaults.standard.bool(forKey: "derbis.showGeniusMeaningMarkers")
+        }
+
+        if let srcData = UserDefaults.standard.data(forKey: "derbis.lyricsSourcePriority"),
+           let decodedSrc = try? JSONDecoder().decode([LyricsSourceKind].self, from: srcData),
+           !decodedSrc.isEmpty {
+            var unique: [LyricsSourceKind] = []
+            for item in decodedSrc where !unique.contains(item) { unique.append(item) }
+            for missing in LyricsSourceKind.allCases where !unique.contains(missing) { unique.append(missing) }
+            self.lyricsSourcePriority = unique
+        } else {
+            self.lyricsSourcePriority = [.appleTTML, .netEaseYRC, .lrclib]
+        }
+
+        self.autoMixEnabled = UserDefaults.standard.bool(forKey: "derbis.autoMixEnabled")
+
+        if UserDefaults.standard.object(forKey: "derbis.autoMixSeconds") == nil {
+            self.autoMixSeconds = 6.0
+        } else {
+            let savedMix = UserDefaults.standard.double(forKey: "derbis.autoMixSeconds")
+            self.autoMixSeconds = min(12.0, max(1.0, savedMix.rounded()))
+        }
+
+        let savedMixStyle = UserDefaults.standard.string(forKey: "derbis.autoMixStyle") ?? AutoMixStyle.smartBlend.rawValue
+        self.autoMixStyle = AutoMixStyle(rawValue: savedMixStyle) ?? .smartBlend
+
+        self.customFontPostScriptName = UserDefaults.standard.string(forKey: "derbis.customFontPostScriptName") ?? ""
+        self.customFontDisplayName = UserDefaults.standard.string(forKey: "derbis.customFontDisplayName") ?? ""
     }
 
     var usesLiquidGlass: Bool {
@@ -195,7 +286,7 @@ final class ThemeManager: ObservableObject {
         switch fontChoice {
         case .pixelify:
             return true
-        case .sfPro:
+        case .sfPro, .sfRounded, .customFile:
             return false
         case .skinDefault:
             return skin == .pixelUI
@@ -323,13 +414,58 @@ final class ThemeManager: ObservableObject {
             let name = isBold ? "PixelifySans-Bold" : "PixelifySans-Regular"
             return Font.custom(name, size: size)
         }
+        if fontChoice == .customFile, !customFontPostScriptName.isEmpty {
+            return Font.custom(customFontPostScriptName, size: size)
+        }
+        if fontChoice == .sfRounded {
+            return Font.system(size: size, weight: weight, design: .rounded)
+        }
         return Font.system(size: size, weight: weight, design: .default)
+    }
+
+    func importCustomFontFile(from url: URL) -> Bool {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        guard let data = try? Data(contentsOf: url), !data.isEmpty,
+              let provider = CGDataProvider(data: data as CFData),
+              let cgFont = CGFont(provider),
+              let postScript = cgFont.postScriptName as String?,
+              !postScript.isEmpty else {
+            return false
+        }
+
+        let fm = FileManager.default
+        guard let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return false
+        }
+        let dir = appSupport.appendingPathComponent("Derbis/ImportedFonts", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let ext = url.pathExtension.isEmpty ? "ttf" : url.pathExtension.lowercased()
+        let dst = dir.appendingPathComponent("custom_font.\(ext)")
+        try? fm.removeItem(at: dst)
+        guard (try? data.write(to: dst, options: .atomic)) != nil else { return false }
+
+        CTFontManagerRegisterFontsForURL(dst as CFURL, .process, nil)
+        customFontPostScriptName = postScript
+        customFontDisplayName = (cgFont.fullName as String?) ?? url.deletingPathExtension().lastPathComponent
+        fontChoice = .customFile
+        return true
     }
 
     static func registerBundledFonts() {
         for file in ["pixelify_sans_regular", "pixelify_sans_bold"] {
             if let url = Bundle.main.url(forResource: file, withExtension: "ttf") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+        if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            let dir = appSupport.appendingPathComponent("Derbis/ImportedFonts", isDirectory: true)
+            if let files = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
+                for fontURL in files {
+                    CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
+                }
             }
         }
     }

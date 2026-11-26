@@ -23,6 +23,8 @@ struct LibraryView: View {
     @State private var showingAudioImporter = false
     @State private var showingNewPlaylistAlert = false
     @State private var showingGoogleAccountSheet = false
+    @State private var showingFullStatsSheet = false
+    @State private var likedSortedAlphabetically = false
     @State private var newPlaylistTitle = ""
 
     var body: some View {
@@ -84,6 +86,10 @@ struct LibraryView: View {
                 GoogleAccountSheet()
                     .environmentObject(player)
                     .environmentObject(library)
+                    .environmentObject(theme)
+            }
+            .sheet(isPresented: $showingFullStatsSheet) {
+                ListeningStatsSheet()
                     .environmentObject(theme)
             }
         }
@@ -213,7 +219,11 @@ struct LibraryView: View {
     }
 
     private var likedSection: some View {
-        Group {
+        let displayedTracks: [Track] = likedSortedAlphabetically
+            ? library.likedTracks.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+            : library.likedTracks
+
+        return Group {
             if library.likedTracks.isEmpty {
                 emptyStateCard(
                     icon: "heart",
@@ -222,14 +232,59 @@ struct LibraryView: View {
                 )
             } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    actionHeader(title: "Liked songs", tracks: library.likedTracks)
-                    LazyVStack(spacing: 2) {
-                        ForEach(library.likedTracks) { track in
-                            TrackRowView(track: track, contextQueue: library.likedTracks)
+                    HStack(spacing: 8) {
+                        actionHeader(title: "Liked songs", tracks: displayedTracks)
+                        Button {
+                            HapticsAndGesturesService.shared.playSelectionTick()
+                            likedSortedAlphabetically.toggle()
+                        } label: {
+                            Text(likedSortedAlphabetically ? "A–Z" : "Recent")
+                                .font(theme.font(size: 11.5, weight: .bold))
+                                .foregroundColor(likedSortedAlphabetically ? .white : theme.primaryText)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .derbisGlassCapsule(prominent: likedSortedAlphabetically)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.vertical, 6)
-                    .derbisCard()
+
+                    if likedSortedAlphabetically && displayedTracks.count >= 8 {
+                        ScrollViewReader { proxy in
+                            HStack(alignment: .top, spacing: 6) {
+                                LazyVStack(spacing: 2) {
+                                    ForEach(displayedTracks) { track in
+                                        TrackRowView(track: track, contextQueue: displayedTracks)
+                                            .id(track.id)
+                                    }
+                                }
+                                .padding(.vertical, 6)
+                                .derbisCard()
+
+                                TaurusAlphaIndexBar { letter in
+                                    let target = displayedTracks.first { t in
+                                        guard let ch = t.title.trimmingCharacters(in: .whitespaces).uppercased().first else {
+                                            return letter == "#"
+                                        }
+                                        if letter == "#" { return !("A"..."Z").contains(ch) }
+                                        return String(ch) >= letter
+                                    }
+                                    if let hit = target {
+                                        withAnimation(.easeOut(duration: 0.18)) {
+                                            proxy.scrollTo(hit.id, anchor: .top)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        LazyVStack(spacing: 2) {
+                            ForEach(displayedTracks) { track in
+                                TrackRowView(track: track, contextQueue: displayedTracks)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        .derbisCard()
+                    }
                 }
             }
         }
@@ -346,12 +401,41 @@ struct LibraryView: View {
         let topArtists = library.topArtistsStats
         let topTracks = library.topTracksStats
 
-        return Group {
+        return VStack(alignment: .leading, spacing: 16) {
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                showingFullStatsSheet = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.xyaxis.line")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 40, height: 40)
+                        .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(theme.accent))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Taurus Listening Stats & Export Import")
+                            .font(theme.font(size: 14.5, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Past week, month, year, all-time Top 25 & Spotify JSON import")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundColor(theme.secondaryText)
+                }
+                .padding(14)
+                .derbisGlassPanel(cornerRadius: 18, tint: theme.accent.opacity(0.22), interactive: false)
+            }
+            .buttonStyle(.plain)
+
             if library.history.isEmpty {
                 emptyStateCard(
                     icon: "chart.bar.xaxis",
                     title: "No listening stats yet",
-                    subtitle: "Start playing songs on Derbis to build your on-device top artists and track insights"
+                    subtitle: "Start playing songs on Derbis or import your Spotify StreamingHistory JSON above"
                 )
             } else {
                 VStack(alignment: .leading, spacing: 18) {
@@ -493,6 +577,54 @@ struct LibraryView: View {
     }
 }
 
+struct TaurusAlphaIndexBar: View {
+    @EnvironmentObject private var theme: ThemeManager
+    let onSelectLetter: (String) -> Void
+
+    private static let letters: [String] = [
+        "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+        "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "#"
+    ]
+
+    @State private var lastLetter: String = ""
+
+    var body: some View {
+        VStack(spacing: 1.5) {
+            ForEach(Self.letters, id: \.self) { ch in
+                Button {
+                    HapticsAndGesturesService.shared.playSelectionTick()
+                    onSelectLetter(ch)
+                } label: {
+                    Text(ch)
+                        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                        .foregroundColor(theme.accent)
+                        .frame(width: 18, height: 13)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 2)
+        .derbisGlassCapsule()
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let rowH: CGFloat = 14.5
+                    let idx = min(Self.letters.count - 1, max(0, Int((value.location.y - 8) / rowH)))
+                    let chosen = Self.letters[idx]
+                    if chosen != lastLetter {
+                        lastLetter = chosen
+                        HapticsAndGesturesService.shared.playSelectionTick()
+                        onSelectLetter(chosen)
+                    }
+                }
+                .onEnded { _ in
+                    lastLetter = ""
+                }
+        )
+    }
+}
+
 struct PlaylistDetailView: View {
     @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var library: LibraryStore
@@ -500,42 +632,95 @@ struct PlaylistDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     let playlistId: String
+    @State private var curtainRevealed: Bool = false
 
     private var playlist: UserPlaylist? {
         library.playlists.first { $0.id == playlistId }
     }
 
+    private var totalDurationText: String {
+        guard let tracks = playlist?.tracks, !tracks.isEmpty else { return "0 min" }
+        let totalSec = tracks.reduce(0) { $0 + max(0, $1.durationSec) }
+        let mins = max(1, totalSec / 60)
+        return mins >= 60 ? "\(mins / 60)h \(mins % 60)m" : "\(mins) min"
+    }
+
     var body: some View {
         ZStack {
-            PixelGraphPaperBackground()
+            Color.black.ignoresSafeArea()
 
             if let playlist = playlist {
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        HStack(spacing: 16) {
-                            TrackArtworkView(url: playlist.tracks.first?.displayArtworkURL, size: 92)
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(playlist.name)
-                                    .font(theme.font(size: 22, weight: .bold))
-                                    .foregroundColor(theme.primaryText)
-                                Text("\(playlist.tracks.count) tracks")
-                                    .font(theme.font(size: 13))
-                                    .foregroundColor(theme.secondaryText)
+                    VStack(spacing: 20) {
+                        ZStack(alignment: .bottom) {
+                            if let artURL = playlist.tracks.first?.displayArtworkURL {
+                                TrackArtworkView(url: artURL, size: 360, cornerRadius: 0)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 290)
+                                    .blur(radius: 42)
+                                    .opacity(0.62)
+                                    .clipped()
+                            }
 
-                                HStack(spacing: 10) {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: Color.black.opacity(0.18), location: 0.0),
+                                    .init(color: Color.black.opacity(0.65), location: 0.65),
+                                    .init(color: Color.black, location: 1.0)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 290)
+
+                            VStack(spacing: 12) {
+                                TrackArtworkView(url: playlist.tracks.first?.displayArtworkURL, size: 164, cornerRadius: 20)
+                                    .shadow(color: .black.opacity(0.55), radius: 20, x: 0, y: 10)
+
+                                VStack(spacing: 4) {
+                                    Text(playlist.name)
+                                        .font(theme.font(size: 24, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+
+                                    Text("\(playlist.tracks.count) tracks · \(totalDurationText)")
+                                        .font(theme.font(size: 13, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.66))
+                                }
+
+                                HStack(spacing: 12) {
+                                    Button {
+                                        let shuffled = playlist.tracks.shuffled()
+                                        if let first = shuffled.first {
+                                            HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                                            player.play(track: first, in: shuffled)
+                                        }
+                                    } label: {
+                                        Label("Shuffle", systemImage: "shuffle")
+                                            .font(theme.font(size: 14, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 11)
+                                            .derbisGlassCapsule()
+                                    }
+                                    .disabled(playlist.tracks.isEmpty)
+                                    .buttonStyle(.plain)
+
                                     Button {
                                         if let first = playlist.tracks.first {
+                                            HapticsAndGesturesService.shared.playControlTap(style: .medium)
                                             player.play(track: first, in: playlist.tracks)
                                         }
                                     } label: {
                                         Label("Play", systemImage: "play.fill")
-                                            .font(theme.font(size: 13, weight: .bold))
+                                            .font(theme.font(size: 14.5, weight: .bold))
                                             .foregroundColor(.white)
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 8)
-                                            .background(Capsule().fill(theme.accent))
+                                            .padding(.horizontal, 28)
+                                            .padding(.vertical, 11)
+                                            .derbisGlassCapsule(prominent: true)
                                     }
                                     .disabled(playlist.tracks.isEmpty)
+                                    .buttonStyle(.plain)
 
                                     Button(role: .destructive) {
                                         library.deletePlaylist(id: playlist.id)
@@ -543,13 +728,15 @@ struct PlaylistDetailView: View {
                                     } label: {
                                         Image(systemName: "trash")
                                             .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(theme.secondaryText)
-                                            .padding(8)
-                                            .derbisCard()
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .derbisGlassCircle(size: 40)
                                     }
+                                    .buttonStyle(.plain)
                                 }
+                                .padding(.top, 2)
                             }
-                            Spacer()
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 8)
                         }
 
                         if playlist.tracks.isEmpty {
@@ -558,26 +745,37 @@ struct PlaylistDetailView: View {
                                 .foregroundColor(theme.secondaryText)
                                 .padding(.top, 20)
                         } else {
-                            LazyVStack(spacing: 2) {
-                                ForEach(playlist.tracks) { track in
-                                    HStack(spacing: 0) {
-                                        TrackRowView(track: track, contextQueue: playlist.tracks)
-                                        Button {
-                                            library.removeTrack(trackId: track.id, fromPlaylistId: playlist.id)
-                                        } label: {
-                                            Image(systemName: "minus.circle")
-                                                .foregroundColor(theme.secondaryText)
-                                                .padding(.trailing, 12)
+                            LazyVStack(spacing: 0) {
+                                ForEach(Array(playlist.tracks.enumerated()), id: \.element.id) { idx, track in
+                                    VStack(spacing: 0) {
+                                        HStack(spacing: 0) {
+                                            TrackRowView(track: track, contextQueue: playlist.tracks)
+                                            Button {
+                                                library.removeTrack(trackId: track.id, fromPlaylistId: playlist.id)
+                                            } label: {
+                                                Image(systemName: "minus.circle")
+                                                    .foregroundColor(theme.secondaryText)
+                                                    .padding(.trailing, 14)
+                                            }
+                                        }
+                                        if idx + 1 < playlist.tracks.count {
+                                            Divider()
+                                                .background(Color.white.opacity(0.08))
+                                                .padding(.leading, 68)
                                         }
                                     }
                                 }
                             }
-                            .padding(.vertical, 6)
-                            .derbisCard()
+                            .padding(.horizontal, 12)
                         }
                     }
-                    .padding(16)
                     .padding(.bottom, 120)
+                }
+                .opacity(curtainRevealed ? 1.0 : 0.0)
+                .onAppear {
+                    withAnimation(.easeOut(duration: 0.32)) {
+                        curtainRevealed = true
+                    }
                 }
             }
         }

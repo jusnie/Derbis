@@ -12,16 +12,23 @@ struct SettingsView: View {
     @ObservedObject private var haptics = HapticsAndGesturesService.shared
     @ObservedObject private var jam = JamService.shared
 
+    private enum SettingsFileImportKind {
+        case backupJSON
+        case customFont
+    }
+
     @State private var serverURLInput: String = ""
     @State private var usernameInput: String = ""
     @State private var passwordInput: String = ""
     @State private var preferRawLossless: Bool = true
     @State private var isTestingServer: Bool = false
-    @State private var showingBackupImporter: Bool = false
+    @State private var activeFileImportKind: SettingsFileImportKind = .backupJSON
+    @State private var showingFileImporter: Bool = false
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
     @State private var showingGoogleAccountSheet: Bool = false
     @State private var showingJamSheet: Bool = false
+    @State private var showingListeningStatsSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -50,10 +57,13 @@ struct SettingsView: View {
 
                         googleAccountSection
                         jamListenTogetherSection
+                        taurusListeningStatsSection
                         audioStudioAndHapticsSection
+                        autoMixSection
                         skinSection
                         liquidGlassSection
                         playerBackdropAndGesturesSection
+                        taurusLyricsIntelligenceSection
                         typographySection
                         motionCanvasSection
                         playbackSection
@@ -77,14 +87,24 @@ struct SettingsView: View {
                 preferRawLossless = subsonic.config.preferRawLossless
             }
             .fileImporter(
-                isPresented: $showingBackupImporter,
-                allowedContentTypes: [.json],
+                isPresented: $showingFileImporter,
+                allowedContentTypes: activeFileImportKind == .backupJSON ? [.json] : [.font],
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let first = urls.first {
-                    let ok = library.importBackup(from: first)
-                    statusBanner = ok ? "Library backup restored" : "Invalid backup file"
+                    switch activeFileImportKind {
+                    case .backupJSON:
+                        let ok = library.importBackup(from: first)
+                        statusBanner = ok ? "Library backup restored" : "Invalid backup file"
+                    case .customFont:
+                        let ok = theme.importCustomFontFile(from: first)
+                        statusBanner = ok ? "Custom font \(theme.customFontPostScriptName) active" : "Unsupported font file (use .ttf or .otf)"
+                    }
                 }
+            }
+            .sheet(isPresented: $showingListeningStatsSheet) {
+                ListeningStatsSheet()
+                    .environmentObject(theme)
             }
             .sheet(isPresented: $showingSpotifyCanvasSheet) {
                 SpotifyCanvasSheet()
@@ -477,6 +497,20 @@ struct SettingsView: View {
 
                 Divider()
 
+                Toggle(isOn: $theme.hideTabLabels) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hide Tab Bar Labels")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Clean icon-only Liquid Glass tab bar; hold Home anytime to jump to Settings")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                Divider()
+
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Mini-Player Progress Thickness")
@@ -498,32 +532,261 @@ struct SettingsView: View {
 
     private var typographySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Typography")
+            sectionTitle("Typography & Custom Fonts")
 
-            HStack(spacing: 8) {
-                ForEach(DerbisFontChoice.allCases) { choice in
-                    let active = theme.fontChoice == choice
-                    Button {
-                        haptics.playSelectionTick()
-                        theme.fontChoice = choice
-                    } label: {
-                        Text(choice.title)
-                            .font(theme.font(size: 13, weight: .bold))
-                            .foregroundColor(active ? .white : theme.primaryText)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
-                                    .fill(active ? theme.accent : theme.surface)
-                                    .overlay(
+            VStack(alignment: .leading, spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(DerbisFontChoice.allCases) { choice in
+                            let active = theme.fontChoice == choice
+                            Button {
+                                haptics.playSelectionTick()
+                                if choice == .customFile && theme.customFontPostScriptName.isEmpty {
+                                    activeFileImportKind = .customFont
+                                    showingFileImporter = true
+                                } else {
+                                    theme.fontChoice = choice
+                                }
+                            } label: {
+                                Text(choice.title)
+                                    .font(theme.font(size: 13, weight: .bold))
+                                    .foregroundColor(active ? .white : theme.primaryText)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(
                                         RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
-                                            .stroke(theme.border, lineWidth: theme.isPixelSkin ? 2 : 1)
+                                            .fill(active ? theme.accent : theme.surface)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                                                    .stroke(theme.border, lineWidth: theme.isPixelSkin ? 2 : 1)
+                                            )
                                     )
-                            )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button {
+                        activeFileImportKind = .customFont
+                        showingFileImporter = true
+                    } label: {
+                        Label(
+                            theme.customFontPostScriptName.isEmpty ? "Import .ttf / .otf Font File…" : "Change Font (\(theme.customFontPostScriptName))",
+                            systemImage: "textformat.alt"
+                        )
+                        .font(theme.font(size: 12.5, weight: .bold))
+                        .foregroundColor(theme.accent)
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+            }
+            .padding(14)
+            .derbisCard()
+        }
+    }
+
+    private var taurusListeningStatsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Listening Stats & History")
+
+            Button {
+                haptics.playControlTap(style: .light)
+                showingListeningStatsSheet = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.bar.doc.horizontal.fill")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 42, height: 42)
+                        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(theme.accent))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("On-Device Listening Stats")
+                            .font(theme.font(size: 15, weight: .bold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Past week, month, year & all-time Top 25 + Spotify StreamingHistory JSON import")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(theme.secondaryText)
+                }
+                .padding(14)
+                .derbisCard(elevated: true)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var autoMixSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("AutoMix & Smart Crossfade")
+
+            VStack(alignment: .leading, spacing: 14) {
+                Toggle(isOn: $theme.autoMixEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AutoMix Seamless Transitions")
+                            .font(theme.font(size: 14.5, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Text("Equal-power volume curve blending the outro into the next song's intro")
+                            .font(theme.font(size: 12))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .tint(theme.accent)
+
+                if theme.autoMixEnabled {
+                    Divider()
+
+                    HStack(spacing: 8) {
+                        ForEach(AutoMixStyle.allCases) { style in
+                            let selected = theme.autoMixStyle == style
+                            Button {
+                                haptics.playSelectionTick()
+                                theme.autoMixStyle = style
+                            } label: {
+                                Text(style.title)
+                                    .font(theme.font(size: 12.5, weight: .bold))
+                                    .foregroundColor(selected ? .white : theme.primaryText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .derbisGlassCapsule(prominent: selected)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("Transition Overlap")
+                                .font(theme.font(size: 13.5, weight: .semibold))
+                                .foregroundColor(theme.primaryText)
+                            Spacer()
+                            Text(String(format: "%.0fs", theme.autoMixSeconds))
+                                .font(theme.font(size: 13, weight: .bold).monospacedDigit())
+                                .foregroundColor(theme.accent)
+                        }
+                        Slider(value: $theme.autoMixSeconds, in: 1...12, step: 1)
+                            .tint(theme.accent)
+                    }
+
+                    Button {
+                        haptics.playControlTap(style: .medium)
+                        let jumped = player.previewAutoMixTransition()
+                        statusBanner = jumped
+                            ? "Jumped to 15s before song end to preview AutoMix"
+                            : "Start playing a song with 2+ tracks in queue to preview AutoMix"
+                    } label: {
+                        Label("Preview Next Transition", systemImage: "waveform.path.badge.plus")
+                            .font(theme.font(size: 13, weight: .bold))
+                            .foregroundColor(theme.accent)
                     }
                     .buttonStyle(.plain)
                 }
             }
+            .padding(14)
+            .derbisCard()
+        }
+    }
+
+    private var taurusLyricsIntelligenceSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Taurus Lyrics Intelligence")
+
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Lyrics Source Priority (Tap ↑ to promote)")
+                        .font(theme.font(size: 13.5, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+
+                    ForEach(Array(theme.lyricsSourcePriority.enumerated()), id: \.element.id) { idx, source in
+                        HStack(spacing: 10) {
+                            Text("#\(idx + 1)")
+                                .font(theme.font(size: 12, weight: .bold).monospacedDigit())
+                                .foregroundColor(idx == 0 ? theme.accent : theme.secondaryText)
+                                .frame(width: 24, alignment: .leading)
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(source.title)
+                                    .font(theme.font(size: 13.5, weight: .semibold))
+                                    .foregroundColor(theme.primaryText)
+                                Text(source.subtitle)
+                                    .font(theme.font(size: 11))
+                                    .foregroundColor(theme.secondaryText)
+                            }
+                            Spacer()
+
+                            if idx > 0 {
+                                Button {
+                                    haptics.playSelectionTick()
+                                    var order = theme.lyricsSourcePriority
+                                    order.swapAt(idx, idx - 1)
+                                    theme.lyricsSourcePriority = order
+                                } label: {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(theme.accent)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
+                HStack {
+                    Text("Live Translation Target")
+                        .font(theme.font(size: 13.5, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+                    Spacer()
+                    Picker("Translation Language", selection: $theme.lyricsTranslationLanguage) {
+                        ForEach(LyricsTranslationLanguage.allCases) { lang in
+                            Text(lang.title).tag(lang)
+                        }
+                    }
+                    .tint(theme.accent)
+                }
+                .onChange(of: theme.lyricsTranslationLanguage) { newLang in
+                    if theme.showLyricsTranslation {
+                        player.ensureLyricsTranslated(to: newLang)
+                    }
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Genius Line Meanings")
+                            .font(theme.font(size: 13.5, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Picker("Genius Filter", selection: $theme.geniusMeaningsFilter) {
+                            ForEach(GeniusMeaningFilter.allCases) { filter in
+                                Text(filter.title).tag(filter)
+                            }
+                        }
+                        .tint(theme.accent)
+                    }
+                    .onChange(of: theme.geniusMeaningsFilter) { newFilter in
+                        player.refreshGeniusMeanings(filter: newFilter)
+                    }
+
+                    Toggle("Show Inline Genius Meaning Badges", isOn: $theme.showGeniusMeaningMarkers)
+                        .font(theme.font(size: 13, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+                        .tint(theme.accent)
+                }
+            }
+            .padding(14)
+            .derbisCard()
         }
     }
 
@@ -846,7 +1109,8 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        showingBackupImporter = true
+                        activeFileImportKind = .backupJSON
+                        showingFileImporter = true
                     } label: {
                         Label("Restore backup", systemImage: "square.and.arrow.down")
                             .font(theme.font(size: 13, weight: .bold))
@@ -887,7 +1151,7 @@ struct SettingsView: View {
                 Text("Version 1.8.0 (Unofficial native iOS build · KSign ready)")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
-                Text("Word-Synced TTML · 10-Band 32-Bit DSP · Vinyl Varispeed · Music Haptics · AirPods Gestures · GPL-3.0")
+                Text("Taurus Liquid Glass · Genius Meanings · Sing Karaoke DSP · AutoEQ & Reverb · AutoMix · Jam · GPL-3.0")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
             }

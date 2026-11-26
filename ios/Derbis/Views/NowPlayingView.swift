@@ -16,6 +16,9 @@ struct NowPlayingView: View {
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
     @State private var showingJamSheet: Bool = false
+    @State private var showingTaurusPlayerMenu: Bool = false
+    @State private var selectedGeniusMeaning: GeniusAnnotationEntry?
+    @State private var selectedGeniusLineText: String = ""
 
     @State private var isScrubbing: Bool = false
     @State private var scrubTime: Double = 0
@@ -185,6 +188,26 @@ struct NowPlayingView: View {
                             .environmentObject(player)
                             .environmentObject(theme)
                     }
+                    .sheet(isPresented: $showingTaurusPlayerMenu) {
+                        TaurusPlayerGlassMenuSheet(
+                            track: track,
+                            onOpenPlaylistPicker: { showingPlaylistSheet = true },
+                            onOpenAudioStudio: { showingAudioStudioSheet = true },
+                            onOpenJam: { showingJamSheet = true }
+                        )
+                        .environmentObject(player)
+                        .environmentObject(library)
+                        .environmentObject(theme)
+                        .presentationDetents([.medium, .large])
+                    }
+                    .sheet(item: $selectedGeniusMeaning) { entry in
+                        GeniusLineMeaningSheet(
+                            lineText: selectedGeniusLineText,
+                            annotation: entry
+                        )
+                        .environmentObject(theme)
+                        .presentationDetents([.medium, .large])
+                    }
                     .onChange(of: theme.motionCanvasEnabled) { _ in
                         player.refreshMotionCanvas()
                     }
@@ -347,6 +370,16 @@ struct NowPlayingView: View {
                     .frame(width: bleedWidth, height: bleedHeight)
                     .clipped()
 
+                case .visualiser:
+                    TaurusAudioVisualiserBackdropView(
+                        primary: player.ambientPrimary,
+                        secondary: player.ambientSecondary,
+                        accent: theme.accent,
+                        isPlaying: player.isPlaying
+                    )
+                    .frame(width: bleedWidth, height: bleedHeight)
+                    .clipped()
+
                 case .ambient, .animated:
                     if theme.skin == .lateNight && !isImmersiveCanvas {
                         LinearGradient(
@@ -484,186 +517,19 @@ struct NowPlayingView: View {
 
                 Spacer()
 
-                Menu {
-                    Button {
-                        showingAudioStudioSheet = true
-                    } label: {
-                        Label("Audio Studio (EQ, Speed & FX)…", systemImage: "slider.vertical.3")
-                    }
-
-                    Button {
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
-                            showingLyrics.toggle()
-                        }
-                        if showingLyrics && player.currentLyrics == nil && !player.isLoadingLyrics {
-                            player.loadLyrics(for: track)
-                        }
-                    } label: {
-                        Label(showingLyrics ? "Show artwork" : "Synced lyrics", systemImage: "quote.bubble")
-                    }
-
-                    Menu("Player Backdrop") {
-                        ForEach(PlayerBackdropStyle.allCases) { style in
-                            Button {
-                                theme.backdropStyle = style
-                            } label: {
-                                HStack {
-                                    Text("\(style.rawValue) — \(style.subtitle)")
-                                    if theme.backdropStyle == style {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Menu("Lyrics & Lock Screen") {
-                        Button {
-                            theme.showLyricsRomanization.toggle()
-                        } label: {
-                            Label(
-                                "Pronunciation (Romanization)",
-                                systemImage: theme.showLyricsRomanization ? "checkmark.circle.fill" : "circle"
-                            )
-                        }
-
-                        Button {
-                            theme.showLyricsTranslation.toggle()
-                        } label: {
-                            Label(
-                                "Translated Lyrics",
-                                systemImage: theme.showLyricsTranslation ? "checkmark.circle.fill" : "circle"
-                            )
-                        }
-
-                        Button {
-                            theme.autoHideLyricsControls.toggle()
-                        } label: {
-                            Label(
-                                "Auto-Hide Controls in Lyrics",
-                                systemImage: theme.autoHideLyricsControls ? "checkmark.circle.fill" : "circle"
-                            )
-                        }
-
-                        Divider()
-
-                        Button {
-                            theme.lockScreenLiveLyrics.toggle()
-                            player.refreshNowPlayingLockScreenPreferences()
-                        } label: {
-                            Label(
-                                "Lock Screen Live Lyrics",
-                                systemImage: theme.lockScreenLiveLyrics ? "checkmark.circle.fill" : "circle"
-                            )
-                        }
-
-                        Button {
-                            theme.lockScreenLyricArt.toggle()
-                            player.refreshNowPlayingLockScreenPreferences()
-                        } label: {
-                            Label(
-                                "Lock Screen Lyric Card Art",
-                                systemImage: theme.lockScreenLyricArt ? "checkmark.circle.fill" : "circle"
-                            )
-                        }
-                    }
-
-                    Button {
-                        showingPlaylistSheet = true
-                    } label: {
-                        Label("Add to playlist", systemImage: "music.note.list")
-                    }
-
-                    if track.source != .localFile {
-                        if library.isDownloaded(track) {
-                            Button(role: .destructive) {
-                                library.removeOfflineDownload(track)
-                            } label: {
-                                Label("Remove offline copy", systemImage: "trash")
-                            }
-                        } else {
-                            Button {
-                                Task {
-                                    await library.downloadTrackForOffline(track, preferHighQuality: theme.highQualityAudio)
-                                }
-                            } label: {
-                                Label("Download offline", systemImage: "arrow.down.circle")
-                            }
-                        }
-                    }
-
-                    Menu("Motion Canvas") {
-                        Button {
-                            theme.motionCanvasEnabled.toggle()
-                        } label: {
-                            Label(
-                                theme.motionCanvasEnabled ? "Disable Motion Canvas" : "Enable Motion Canvas",
-                                systemImage: theme.motionCanvasEnabled ? "sparkles.rectangle.stack.fill" : "sparkles.rectangle.stack"
-                            )
-                        }
-
-                        ForEach(MotionCanvasStyle.allCases) { styleOption in
-                            Button {
-                                theme.motionCanvasStyle = styleOption
-                            } label: {
-                                HStack {
-                                    Text(styleOption.title)
-                                    if theme.motionCanvasStyle == styleOption {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-
-                        Button {
-                            showingSpotifyCanvasSheet = true
-                        } label: {
-                            Label("Spotify Canvas account…", systemImage: "person.badge.key")
-                        }
-                    }
-
-                    Menu("Sleep timer") {
-                        ForEach(SleepTimerOption.allCases) { opt in
-                            Button {
-                                player.setSleepTimer(opt)
-                            } label: {
-                                Text(opt.label)
-                            }
-                        }
-                    }
-
-                    Divider()
-
-                    Button(role: library.isArtistBlocked(track.artist) ? .none : .destructive) {
-                        let willBlock = !library.isArtistBlocked(track.artist)
-                        library.toggleBlockedArtist(track.artist)
-                        haptics.playControlTap(style: .medium)
-                        if willBlock && player.queue.count > 1 {
-                            player.skipNext()
-                        }
-                    } label: {
-                        Label(
-                            library.isArtistBlocked(track.artist) ? "Unblock \(track.artist)" : "Don't Play \(track.artist)",
-                            systemImage: library.isArtistBlocked(track.artist) ? "person.crop.circle.badge.checkmark" : "hand.raised.slash"
-                        )
-                    }
+                Button {
+                    haptics.playControlTap(style: .light)
+                    showingTaurusPlayerMenu = true
                 } label: {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(fgPrimary)
-                        .frame(width: 38, height: 38)
-                        .background {
-                            if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
-                                Rectangle()
-                                    .fill(theme.elevatedSurface)
-                                    .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
-                            } else {
-                                Circle()
-                                    .fill(Color.white.opacity(0.14))
-                                    .overlay(Circle().stroke(Color.white.opacity(0.24), lineWidth: 0.7))
-                            }
-                        }
+                        .derbisGlassCircle(
+                            size: 38,
+                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                        )
                 }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -909,18 +775,56 @@ struct NowPlayingView: View {
                                         )
                                     }
 
-                                    Button {
-                                        if payload.synced {
-                                            haptics.playControlTap(style: .light)
-                                            player.seek(to: line.startTimeSec)
+                                    let meaning = player.currentGeniusMeanings[line.id]
+                                    VStack(alignment: line.isSecondaryVoice ? .trailing : .leading, spacing: 6) {
+                                        Button {
+                                            if payload.synced {
+                                                haptics.playControlTap(style: .light)
+                                                player.seek(to: line.startTimeSec)
+                                            }
+                                            if controlsCollapsedInLyrics {
+                                                revealLyricsControlsTemporarily()
+                                            }
+                                        } label: {
+                                            lyricLineContent(line: line, isActive: isActive)
                                         }
-                                        if controlsCollapsedInLyrics {
-                                            revealLyricsControlsTemporarily()
+                                        .buttonStyle(.plain)
+                                        .contextMenu {
+                                            if let entry = meaning {
+                                                Button {
+                                                    selectedGeniusLineText = line.text
+                                                    selectedGeniusMeaning = entry
+                                                } label: {
+                                                    Label("View Genius Meaning", systemImage: "quote.bubble.fill")
+                                                }
+                                            }
+                                            Button {
+                                                UIPasteboard.general.string = line.text
+                                            } label: {
+                                                Label("Copy Lyric Line", systemImage: "doc.on.doc")
+                                            }
                                         }
-                                    } label: {
-                                        lyricLineContent(line: line, isActive: isActive)
+
+                                        if let entry = meaning, theme.showGeniusMeaningMarkers {
+                                            Button {
+                                                haptics.playSelectionTick()
+                                                selectedGeniusLineText = line.text
+                                                selectedGeniusMeaning = entry
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: entry.isVerifiedArtist ? "checkmark.seal.fill" : "quote.bubble.fill")
+                                                        .font(.system(size: 9.5, weight: .bold))
+                                                    Text(entry.isVerifiedArtist ? "Artist Meaning" : "Genius Meaning")
+                                                        .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                                                }
+                                                .foregroundColor(theme.accent)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 3.5)
+                                                .background(Capsule().fill(Color.white.opacity(0.12)))
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
                                     }
-                                    .buttonStyle(.plain)
                                 }
                                 .id(line.id)
                             }
@@ -950,6 +854,8 @@ struct NowPlayingView: View {
                         }
                     }
                 }
+
+                TaurusSingLyricsFloatingBar()
             } else {
                 Spacer()
                 VStack(spacing: 10) {
