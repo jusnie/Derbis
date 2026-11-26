@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { REPO_URL, SOURCE_FACTS } from "../data/siteData";
 import { useScrollReveal } from "../hooks/useScrollEffects";
 import { ExternalIcon, PixelMark, StarIcon } from "./Icons";
 
-export function SourceSection({ stars }) {
+export const SourceSection = memo(function SourceSection({ stars }) {
   const { ref, visible } = useScrollReveal();
 
   return (
@@ -66,4 +67,4 @@ export function SourceSection({ stars }) {
       </div>
     </section>
   );
-}
+});

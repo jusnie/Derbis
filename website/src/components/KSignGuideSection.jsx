@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   IOS_IPA_DOWNLOAD_URL,
   IOS_IPA_PUBLIC_URL,
@@ -43,7 +43,7 @@ function GuideStepImage({ imgKey, fallbackSrc, alt, stepLabel, onInspect, onUnav
       <img
         src={activeSrc}
         alt={alt}
-        loading="eager"
+        loading="lazy"
         decoding="async"
         className="ksign-step-img"
         onLoad={(e) => {
@@ -69,7 +69,12 @@ function GuideStepImage({ imgKey, fallbackSrc, alt, stepLabel, onInspect, onUnav
   );
 }
 
-export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLabel }) {
+export const KSignGuideSection = memo(function KSignGuideSection({
+  ipaUrl,
+  iosVersion,
+  iosReleaseUrl,
+  iosSizeLabel
+}) {
   const { ref, visible } = useScrollReveal();
   const [activePhase, setActivePhase] = useState("all");
   const [heroStage, setHeroStage] = useState("proxy");
@@ -284,7 +289,7 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
                       : KSIGN_LINKS.heroImage
                   }
                   alt="KSign iOS app preview showing on-device IPA signing workflow"
-                  loading="eager"
+                  loading="lazy"
                   decoding="async"
                   onLoad={(e) => {
                     if (e.currentTarget.naturalWidth > 0) {
@@ -483,4 +488,4 @@ export function KSignGuideSection({ ipaUrl, iosVersion, iosReleaseUrl, iosSizeLa
       )}
     </section>
   );
-}
+});

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { RELEASES_URL } from "../data/siteData";
 import { useScrollReveal } from "../hooks/useScrollEffects";
 import { ChevronDownIcon, ExternalIcon } from "./Icons";
 
-export function VersionsSection({ releases }) {
+export const VersionsSection = memo(function VersionsSection({ releases }) {
   const { ref, visible } = useScrollReveal();
   const [openTag, setOpenTag] = useState(releases[0]?.tag || "v1.8.0");
 
@@ -102,4 +102,4 @@ export function VersionsSection({ releases }) {
       </div>
     </section>
   );
-}
+});

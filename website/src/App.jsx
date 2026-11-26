@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DownloadSection } from "./components/DownloadSection";
 import { FeaturesSection } from "./components/FeaturesSection";
 import {
@@ -26,7 +26,7 @@ import {
   RELEASES_URL,
   REPO_URL
 } from "./data/siteData";
-import { usePageScroll } from "./hooks/useScrollEffects";
+import { useActiveSection } from "./hooks/useScrollEffects";
 
 const FONT_STORAGE_KEY = "derbis-site-font";
 
@@ -38,9 +38,120 @@ function detectDefaultPlatform() {
   return "android";
 }
 
+const HeroVersionBar = memo(function HeroVersionBar({
+  apkUrl,
+  ipaUrl,
+  onSelectPlatform
+}) {
+  const [open, setOpen] = useState(false);
+  const shellRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (e) => {
+      if (shellRef.current && !shellRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={shellRef}
+      className={open ? "version-bar-shell is-open" : "version-bar-shell"}
+    >
+      <div className="version-split-bar">
+        <a className="version-bar-main" href={apkUrl}>
+          <AndroidIcon />
+          <span>Download Derbis.apk</span>
+        </a>
+
+        <button
+          type="button"
+          className="version-bar-toggle"
+          aria-expanded={open}
+          aria-controls="hero-other-versions"
+          aria-label={
+            open
+              ? "Hide other versions"
+              : "Show iOS, macOS, and Desktop versions"
+          }
+          title={open ? "Hide other versions" : "Other versions"}
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          <ChevronToggleIcon open={open} />
+        </button>
+      </div>
+
+      <div
+        id="hero-other-versions"
+        className="version-flyout"
+        aria-hidden={!open}
+      >
+        <a
+          className="version-chip"
+          href={ipaUrl}
+          download="Derbis.ipa"
+          tabIndex={open ? 0 : -1}
+          onClick={() => setOpen(false)}
+        >
+          <span className="version-chip-lead">
+            <AppleIcon />
+            <span>Derbis.ipa</span>
+          </span>
+          <span className="platform-pill platform-pill-live">Beta</span>
+        </a>
+
+        <a
+          className="version-chip"
+          href="#ksign"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            onSelectPlatform("ios");
+            setOpen(false);
+          }}
+        >
+          <span className="version-chip-lead">
+            <span>KSign Guide</span>
+          </span>
+        </a>
+
+        <a
+          className="version-chip version-chip-soon"
+          href="#download"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            onSelectPlatform("desktop");
+            setOpen(false);
+          }}
+        >
+          <span className="version-chip-lead">
+            <LaptopIcon />
+            <span>macOS &amp; Desktop</span>
+          </span>
+          <span className="platform-pill platform-pill-soon">Soon</span>
+        </a>
+      </div>
+    </div>
+  );
+});
+
 export default function App() {
   const sectionIds = useMemo(() => NAV_ITEMS.map((item) => item.id), []);
-  const { progress, activeSection } = usePageScroll(sectionIds);
+  const activeSection = useActiveSection(sectionIds);
 
   const [fontMode, setFontMode] = useState(() => {
     try {
@@ -52,7 +163,6 @@ export default function App() {
   });
 
   const [platform, setPlatform] = useState(detectDefaultPlatform);
-  const [heroVersionsOpen, setHeroVersionsOpen] = useState(false);
   const [stars, setStars] = useState(7);
   const [apkUrl, setApkUrl] = useState(APK_DOWNLOAD_URL);
   const [releaseTag, setReleaseTag] = useState(RELEASE_META.version);
@@ -66,6 +176,10 @@ export default function App() {
 
   const [totalDownloads, setTotalDownloads] = useState(null);
   const [releases, setReleases] = useState(INITIAL_RELEASES);
+
+  const handleSelectPlatform = useCallback((next) => {
+    setPlatform(next);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.font = fontMode;
@@ -187,7 +301,6 @@ export default function App() {
       </a>
 
       <Navbar
-        scrollProgress={progress}
         activeSection={activeSection}
         stars={stars}
         fontMode={fontMode}
@@ -204,88 +317,12 @@ export default function App() {
               <p className="hero-lede">
                 Stream songs with no account, connect Navidrome or Subsonic for your FLAC collection, and switch between Apple Music 13, Pixel UI, Derbis Default, Synced lyrics, and Late Night
               </p>
-              <div className="hero-cta-wrap">
-                <div
-                  className={
-                    heroVersionsOpen ? "version-bar is-open" : "version-bar"
-                  }
-                >
-                  <a className="version-bar-main" href={apkUrl}>
-                    <AndroidIcon />
-                    <span>Download Derbis.apk</span>
-                  </a>
 
-                  <div
-                    id="hero-other-versions"
-                    className="version-bar-drawer"
-                    aria-hidden={!heroVersionsOpen}
-                  >
-                    <div className="version-bar-drawer-inner">
-                      <a
-                        className="version-chip"
-                        href={ipaUrl}
-                        download="Derbis.ipa"
-                        tabIndex={heroVersionsOpen ? 0 : -1}
-                      >
-                        <AppleIcon />
-                        <span>Derbis.ipa</span>
-                        <span className="platform-pill platform-pill-live">Beta</span>
-                      </a>
-
-                      <a
-                        className="version-chip version-chip-soon"
-                        href="#download"
-                        tabIndex={heroVersionsOpen ? 0 : -1}
-                        onClick={() => setPlatform("desktop")}
-                      >
-                        <LaptopIcon />
-                        <span>macOS &amp; Desktop</span>
-                        <span className="platform-pill platform-pill-soon">
-                          Coming soon
-                        </span>
-                      </a>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="version-bar-toggle"
-                    aria-expanded={heroVersionsOpen}
-                    aria-controls="hero-other-versions"
-                    aria-label={
-                      heroVersionsOpen
-                        ? "Hide other versions"
-                        : "Show iOS, macOS, and Desktop versions"
-                    }
-                    title={
-                      heroVersionsOpen
-                        ? "Hide other versions"
-                        : "Show other versions"
-                    }
-                    onClick={() => setHeroVersionsOpen((prev) => !prev)}
-                  >
-                    <ChevronToggleIcon open={heroVersionsOpen} />
-                  </button>
-                </div>
-
-                <div
-                  className={
-                    heroVersionsOpen
-                      ? "hero-sub-hint is-open"
-                      : "hero-sub-hint"
-                  }
-                >
-                  <div className="hero-sub-hint-inner">
-                    <a
-                      href="#ksign"
-                      tabIndex={heroVersionsOpen ? 0 : -1}
-                      onClick={() => setPlatform("ios")}
-                    >
-                      Installing Derbis.ipa on iPhone or iPad? Open the KSign visual guide &rarr;
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <HeroVersionBar
+                apkUrl={apkUrl}
+                ipaUrl={ipaUrl}
+                onSelectPlatform={handleSelectPlatform}
+              />
             </div>
 
             <dl className="hero-specs" aria-label="Platform release summary">
@@ -323,7 +360,7 @@ export default function App() {
           iosSizeLabel={iosSizeLabel}
           iosSha256={iosSha256}
           platform={platform}
-          onPlatformChange={setPlatform}
+          onPlatformChange={handleSelectPlatform}
         />
         <KSignGuideSection
           ipaUrl={ipaUrl}

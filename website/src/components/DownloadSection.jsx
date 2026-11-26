@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   APK_DOWNLOAD_URL,
   INSTALL_STEPS,
@@ -25,7 +25,124 @@ import {
   StarIcon
 } from "./Icons";
 
-export function DownloadSection({
+const PlatformSwitchBar = memo(function PlatformSwitchBar({ platform, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const activeIsDesktop = platform === "desktop" || platform === "macos";
+
+  return (
+    <div
+      ref={wrapRef}
+      className={open ? "dl-switch-shell is-open" : "dl-switch-shell"}
+    >
+      <div className="dl-switch-bar" role="tablist" aria-label="Choose download platform">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={platform === "android"}
+          className={
+            platform === "android"
+              ? "platform-tab is-active"
+              : "platform-tab"
+          }
+          onClick={() => onSelect("android")}
+        >
+          <AndroidIcon />
+          <span>Android</span>
+          <span className="platform-pill platform-pill-live">Official</span>
+        </button>
+
+        {platform === "ios" && (
+          <span className="dl-active-tag">
+            <AppleIcon />
+            <span>iOS · Beta</span>
+          </span>
+        )}
+        {activeIsDesktop && (
+          <span className="dl-active-tag">
+            <LaptopIcon />
+            <span>macOS &amp; Desktop</span>
+          </span>
+        )}
+
+        <button
+          type="button"
+          className="platform-switch-toggle"
+          aria-expanded={open}
+          aria-controls="download-other-platforms"
+          aria-label={open ? "Hide other platforms" : "Show iOS, macOS, and Desktop"}
+          title={open ? "Hide other versions" : "Other versions"}
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          <ChevronToggleIcon open={open} />
+        </button>
+      </div>
+
+      <div
+        id="download-other-platforms"
+        className="dl-switch-flyout"
+        aria-hidden={!open}
+      >
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          className={platform === "ios" ? "version-chip is-selected" : "version-chip"}
+          onClick={() => {
+            onSelect("ios");
+            setOpen(false);
+          }}
+        >
+          <span className="version-chip-lead">
+            <AppleIcon />
+            <span>iOS &amp; iPadOS</span>
+          </span>
+          <span className="platform-pill platform-pill-live">Beta</span>
+        </button>
+
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          className={
+            activeIsDesktop
+              ? "version-chip version-chip-soon is-selected"
+              : "version-chip version-chip-soon"
+          }
+          onClick={() => {
+            onSelect("desktop");
+            setOpen(false);
+          }}
+        >
+          <span className="version-chip-lead">
+            <LaptopIcon />
+            <span>macOS &amp; Desktop</span>
+          </span>
+          <span className="platform-pill platform-pill-soon">Coming soon</span>
+        </button>
+      </div>
+    </div>
+  );
+});
+
+export const DownloadSection = memo(function DownloadSection({
   apkUrl,
   releaseTag,
   sizeLabel,
@@ -40,13 +157,6 @@ export function DownloadSection({
 }) {
   const { ref, visible } = useScrollReveal();
   const [copied, setCopied] = useState(false);
-  const [switcherOpen, setSwitcherOpen] = useState(() => platform !== "android");
-
-  useEffect(() => {
-    if (platform !== "android") {
-      setSwitcherOpen(true);
-    }
-  }, [platform]);
 
   const activeSha =
     platform === "ios" ? iosSha256 || IOS_RELEASE_META.sha256 : RELEASE_META.sha256;
@@ -89,82 +199,7 @@ export function DownloadSection({
             </p>
           </div>
 
-          <div
-            className={
-              switcherOpen
-                ? "platform-switch platform-switch-collapsible is-open"
-                : "platform-switch platform-switch-collapsible"
-            }
-            role="tablist"
-            aria-label="Choose download platform"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={platform === "android"}
-              className={
-                platform === "android"
-                  ? "platform-tab platform-tab-main is-active"
-                  : "platform-tab platform-tab-main"
-              }
-              onClick={() => handleSelect("android")}
-            >
-              <AndroidIcon />
-              <span>Android</span>
-              <span className="platform-pill platform-pill-live">Official</span>
-            </button>
-
-            <div
-              id="download-other-platforms"
-              className="platform-switch-drawer"
-              aria-hidden={!switcherOpen}
-            >
-              <div className="platform-switch-drawer-inner">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={platform === "ios"}
-                  tabIndex={switcherOpen ? 0 : -1}
-                  className={platform === "ios" ? "platform-tab is-active" : "platform-tab"}
-                  onClick={() => handleSelect("ios")}
-                >
-                  <AppleIcon />
-                  <span>iOS</span>
-                  <span className="platform-pill platform-pill-live">Beta</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={platform === "desktop" || platform === "macos"}
-                  tabIndex={switcherOpen ? 0 : -1}
-                  className={
-                    platform === "desktop" || platform === "macos"
-                      ? "platform-tab is-active"
-                      : "platform-tab"
-                  }
-                  onClick={() => handleSelect("desktop")}
-                >
-                  <LaptopIcon />
-                  <span>macOS &amp; Desktop</span>
-                  <span className="platform-pill platform-pill-soon">Coming soon</span>
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="platform-switch-toggle"
-              aria-expanded={switcherOpen}
-              aria-controls="download-other-platforms"
-              aria-label={
-                switcherOpen ? "Collapse other platforms" : "Show iOS, macOS, and Desktop"
-              }
-              title={switcherOpen ? "Hide other versions" : "Show other versions"}
-              onClick={() => setSwitcherOpen((prev) => !prev)}
-            >
-              <ChevronToggleIcon open={switcherOpen} />
-            </button>
-          </div>
+          <PlatformSwitchBar platform={platform} onSelect={handleSelect} />
         </div>
 
         {platform === "android" && (
@@ -428,4 +463,4 @@ export function DownloadSection({
       </div>
     </section>
   );
-}
+});

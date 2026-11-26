@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { APP_SCREENS } from "../data/siteData";
 import { ArrowLeftIcon, ArrowRightIcon, CloseIcon } from "./Icons";
 
 const SCREEN_COUNT = APP_SCREENS.length;
-const AUTO_SWIPE_MS = 2800;
-const RESUME_IDLE_MS = 3000;
+const AUTO_SWIPE_MS = 3200;
+const RESUME_IDLE_MS = 3200;
 
-export function ScreenGallery() {
+export const ScreenGallery = memo(function ScreenGallery() {
   const loopScreens = useMemo(
     () => [
       ...APP_SCREENS.map((s) => ({ ...s, loopKey: `a-${s.id}` })),
@@ -18,6 +18,7 @@ export function ScreenGallery() {
 
   const railRef = useRef(null);
   const cardRefs = useRef([]);
+  const metricsRef = useRef({ padStart: 24, setSpan: 0, cardStep: 276 });
   const interactingRef = useRef(false);
   const lastInteractionRef = useRef(0);
   const dragRef = useRef({ active: false, moved: false, startX: 0, startScrollLeft: 0 });
@@ -25,87 +26,89 @@ export function ScreenGallery() {
   const [activeRealIndex, setActiveRealIndex] = useState(0);
   const [inspectedIndex, setInspectedIndex] = useState(null);
 
-  const getPadStart = useCallback((rail) => {
+  const measureMetrics = useCallback(() => {
     const first = cardRefs.current[0];
-    return first ? first.offsetLeft : 24;
-  }, []);
-
-  const getSetSpan = useCallback(() => {
-    const first = cardRefs.current[0];
+    const second = cardRefs.current[1];
     const middle = cardRefs.current[SCREEN_COUNT];
-    if (!first || !middle) return 0;
-    return middle.offsetLeft - first.offsetLeft;
+    if (!first || !middle) return;
+
+    const padStart = first.offsetLeft;
+    const setSpan = middle.offsetLeft - first.offsetLeft;
+    const cardStep = second ? Math.max(1, second.offsetLeft - first.offsetLeft) : Math.max(1, setSpan / SCREEN_COUNT);
+    metricsRef.current = { padStart, setSpan, cardStep };
   }, []);
 
   const findClosestLoopIndex = useCallback(() => {
     const rail = railRef.current;
     if (!rail) return SCREEN_COUNT;
-    const padStart = getPadStart(rail);
-    const current = rail.scrollLeft;
-
-    let bestIdx = SCREEN_COUNT;
-    let bestDist = Number.POSITIVE_INFINITY;
-
-    cardRefs.current.forEach((card, idx) => {
-      if (!card) return;
-      const targetLeft = card.offsetLeft - padStart;
-      const dist = Math.abs(targetLeft - current);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestIdx = idx;
-      }
-    });
-
-    return bestIdx;
-  }, [getPadStart]);
+    const { cardStep } = metricsRef.current;
+    if (cardStep <= 0) return SCREEN_COUNT;
+    const rawIdx = Math.round(rail.scrollLeft / cardStep);
+    return Math.max(0, Math.min(loopScreens.length - 1, rawIdx));
+  }, [loopScreens.length]);
 
   const normalizeLoopPosition = useCallback(() => {
     const rail = railRef.current;
     if (!rail) return;
-    const span = getSetSpan();
-    if (span <= 0) return;
+    const { setSpan } = metricsRef.current;
+    if (setSpan <= 0) return;
 
-    if (rail.scrollLeft < span * 0.5) {
-      rail.scrollLeft += span;
-    } else if (rail.scrollLeft >= span * 1.5) {
-      rail.scrollLeft -= span;
+    if (rail.scrollLeft < setSpan * 0.5) {
+      rail.scrollLeft += setSpan;
+    } else if (rail.scrollLeft >= setSpan * 1.5) {
+      rail.scrollLeft -= setSpan;
     }
-  }, [getSetSpan]);
+  }, []);
 
   useEffect(() => {
     const rail = railRef.current;
     if (!rail) return undefined;
 
     const placeAtMiddleStart = () => {
-      const span = getSetSpan();
-      if (span > 0) {
-        rail.scrollLeft = span;
+      measureMetrics();
+      const { setSpan } = metricsRef.current;
+      if (setSpan > 0) {
+        rail.scrollLeft = setSpan;
       }
     };
 
     placeAtMiddleStart();
     const raf = window.requestAnimationFrame(placeAtMiddleStart);
 
+    const onResize = () => {
+      measureMetrics();
+    };
+    window.addEventListener("resize", onResize, { passive: true });
+
     let settleTimer = 0;
+    let scrollRaf = 0;
     const onScroll = () => {
-      const closest = findClosestLoopIndex();
-      setActiveRealIndex(closest % SCREEN_COUNT);
+      if (!scrollRaf) {
+        scrollRaf = window.requestAnimationFrame(() => {
+          scrollRaf = 0;
+          const closest = findClosestLoopIndex();
+          const nextReal = closest % SCREEN_COUNT;
+          setActiveRealIndex((prev) => (prev === nextReal ? prev : nextReal));
+        });
+      }
 
       if (settleTimer) window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(() => {
         if (!interactingRef.current && !dragRef.current.active) {
           normalizeLoopPosition();
         }
-      }, 180);
+      }, 200);
     };
 
     rail.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.cancelAnimationFrame(raf);
+      if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
       if (settleTimer) window.clearTimeout(settleTimer);
+      window.removeEventListener("resize", onResize);
       rail.removeEventListener("scroll", onScroll);
     };
-  }, [findClosestLoopIndex, getSetSpan, normalizeLoopPosition]);
+  }, [findClosestLoopIndex, measureMetrics, normalizeLoopPosition]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -124,18 +127,15 @@ export function ScreenGallery() {
           ? SCREEN_COUNT + (currentIdx % SCREEN_COUNT)
           : currentIdx;
 
-      const nextCard = cardRefs.current[safeIdx + 1];
-      if (!nextCard) return;
-
-      const padStart = getPadStart(rail);
+      const { cardStep } = metricsRef.current;
       rail.scrollTo({
-        left: Math.max(0, nextCard.offsetLeft - padStart),
+        left: Math.max(0, (safeIdx + 1) * cardStep),
         behavior: "smooth"
       });
     }, AUTO_SWIPE_MS);
 
     return () => window.clearInterval(interval);
-  }, [findClosestLoopIndex, getPadStart, inspectedIndex, normalizeLoopPosition]);
+  }, [findClosestLoopIndex, inspectedIndex, normalizeLoopPosition]);
 
   const markTouchStart = () => {
     interactingRef.current = true;
@@ -347,4 +347,4 @@ export function ScreenGallery() {
       )}
     </section>
   );
-}
+});

@@ -1,9 +1,40 @@
-import { useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { NAV_ITEMS, REPO_URL } from "../data/siteData";
 import { PixelMark, StarIcon } from "./Icons";
 
-export function Navbar({ scrollProgress, activeSection, stars, fontMode, onFontChange }) {
+export const Navbar = memo(function Navbar({ activeSection, stars, fontMode, onFontChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const progressFillRef = useRef(null);
+
+  useEffect(() => {
+    let rafId = 0;
+
+    const syncProgress = () => {
+      rafId = 0;
+      const el = progressFillRef.current;
+      if (!el) return;
+      const doc = document.documentElement;
+      const maxScroll = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const ratio = Math.min(1, Math.max(0, window.scrollY / maxScroll));
+      el.style.transform = `scaleX(${ratio.toFixed(4)})`;
+    };
+
+    const onScroll = () => {
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(syncProgress);
+      }
+    };
+
+    syncProgress();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   return (
     <header className="site-nav">
@@ -95,10 +126,11 @@ export function Navbar({ scrollProgress, activeSection, stars, fontMode, onFontC
 
       <div className="page-progress-track" aria-hidden="true">
         <div
+          ref={progressFillRef}
           className="page-progress-fill"
-          style={{ transform: `scaleX(${scrollProgress.toFixed(4)})` }}
+          style={{ transform: "scaleX(0)" }}
         />
       </div>
     </header>
   );
-}
+});

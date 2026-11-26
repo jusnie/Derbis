@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { CAPABILITIES } from "../data/siteData";
 import { useScrollReveal } from "../hooks/useScrollEffects";
 import { DiscordLogo, LastFmLogo } from "./Icons";
 
-export function FeaturesSection() {
+export const FeaturesSection = memo(function FeaturesSection() {
   const { ref, visible } = useScrollReveal();
 
   return (
@@ -44,4 +45,4 @@ export function FeaturesSection() {
       </div>
     </section>
   );
-}
+});

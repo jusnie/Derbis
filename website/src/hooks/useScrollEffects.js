@@ -1,36 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-export function usePageScroll(sectionIds) {
-  const [progress, setProgress] = useState(0);
+export function useActiveSection(sectionIds) {
   const [activeSection, setActiveSection] = useState(sectionIds[0] || "screens");
-
-  useEffect(() => {
-    let rafId = 0;
-
-    const updateProgress = () => {
-      rafId = 0;
-      const doc = document.documentElement;
-      const maxScroll = Math.max(1, doc.scrollHeight - window.innerHeight);
-      const next = Math.min(1, Math.max(0, window.scrollY / maxScroll));
-      setProgress(next);
-    };
-
-    const onScroll = () => {
-      if (!rafId) {
-        rafId = window.requestAnimationFrame(updateProgress);
-      }
-    };
-
-    updateProgress();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (rafId) window.cancelAnimationFrame(rafId);
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return undefined;
@@ -46,13 +17,14 @@ export function usePageScroll(sectionIds) {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]?.target?.id) {
-          setActiveSection(visible[0].target.id);
+        const nextId = visible[0]?.target?.id;
+        if (nextId) {
+          setActiveSection((prev) => (prev === nextId ? prev : nextId));
         }
       },
       {
         rootMargin: "-20% 0px -55% 0px",
-        threshold: [0.05, 0.2, 0.5]
+        threshold: [0.05, 0.25]
       }
     );
 
@@ -60,7 +32,7 @@ export function usePageScroll(sectionIds) {
     return () => observer.disconnect();
   }, [sectionIds]);
 
-  return { progress, activeSection };
+  return activeSection;
 }
 
 export function useScrollReveal() {
