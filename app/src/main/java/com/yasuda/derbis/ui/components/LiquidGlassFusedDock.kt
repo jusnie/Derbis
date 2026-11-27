@@ -157,7 +157,8 @@ private fun fusedOrbFallback(): Color =
     if (DerbisActivePalette.isLight) {
         Color(0xFFFAFAFA).copy(alpha = 0.82f)
     } else {
-        Color(0xFF121212).copy(alpha = 0.82f)
+        // Taurus: night orb fallback is the white reduced-transparency film, not a dark slab.
+        Color.White.copy(alpha = 0.16f)
     }
 
 /**
