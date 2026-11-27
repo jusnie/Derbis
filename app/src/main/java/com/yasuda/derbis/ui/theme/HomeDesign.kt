@@ -21,13 +21,13 @@ object DerbisHomeDesign {
     val SectionGapCompact: Dp = 6.dp
     val SectionStride: Dp = 24.dp
     val SectionStrideCompact: Dp = 20.dp
-    val HeaderCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 20.dp
+    val HeaderCorner: Dp get() = if (DerbisIsLiquidGlass) 20.dp else if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 20.dp
     val HeaderPadding: Dp = 12.dp
     val SettingsControlHeight: Dp = 48.dp
     val MoodChipHeight: Dp = 48.dp
     val MoodChipVisualHeight: Dp = 32.dp
     val MoodChipCorner: Dp get() = if (DerbisIsPixel) 0.dp else 16.dp
-    val HeroCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 28.dp
+    val HeroCorner: Dp get() = if (DerbisIsLiquidGlass) 20.dp else if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 8.dp else if (DerbisIsPrism) 24.dp else if (DerbisIsPixel) 0.dp else 28.dp
     val EditorialPadding: Dp = 20.dp
     val EditorialThumb: Dp = 104.dp
     val EditorialPeek: Dp = 40.dp
@@ -38,7 +38,7 @@ object DerbisHomeDesign {
     const val EditorialArtworkRatio: Float = 1.5f
     val HeroHeight: Dp = 340.dp
     val ShelfCorner: Dp = 2.dp
-    val ArtworkCorner: Dp get() = if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 4.dp else if (DerbisIsPrism) 16.dp else if (DerbisIsPixel) 0.dp else 20.dp
+    val ArtworkCorner: Dp get() = if (DerbisIsLiquidGlass) 12.dp else if (DerbisIsTorque) 2.dp else if (DerbisIsSpotify) 4.dp else if (DerbisIsPrism) 16.dp else if (DerbisIsPixel) 0.dp else 20.dp
     val ThumbCorner: Dp get() = DerbisCardDesign.ThumbCorner
     val ArtworkCardWidth: Dp get() = if (DerbisIsPixel) 148.dp else 156.dp
     val ArtworkGridCardWidth: Dp = 122.dp

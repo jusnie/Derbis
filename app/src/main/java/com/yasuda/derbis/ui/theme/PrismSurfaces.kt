@@ -30,6 +30,16 @@ internal fun prismGlassColor(): Color {
 @Composable
 internal fun PrismAtmosphere(modifier: Modifier = Modifier) {
     val palette = DerbisActivePalette
+    if (DerbisIsLiquidGlass) {
+        // Taurus parity: page background is #020306 with a faint sky-to-clear wash from
+        // the top — the same atmosphere the iOS LiquidGlass skin sits on.
+        val sky = palette.cyan.copy(alpha = if (palette.isLight) 0.05f else 0.16f)
+        Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
+            val top = Brush.verticalGradient(listOf(sky, Color.Transparent), endY = size.height * 0.36f)
+            onDrawBehind { drawRect(top) }
+        })
+        return
+    }
     val wash = PrismAccent.wash(palette.isLight)
     Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
         val top = Brush.verticalGradient(listOf(wash.copy(alpha = wash.alpha * 0.6f), Color.Transparent), endY = size.height * 0.32f)
@@ -42,6 +52,19 @@ internal fun PrismPlayerAtmosphere(modifier: Modifier = Modifier) {
     val palette = DerbisActivePalette
     if (DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) {
         Box(modifier.fillMaxSize().background(if (DerbisIsAppleMusic || DerbisIsYouTubeMusic) Color.Black else palette.black))
+        return
+    }
+    if (DerbisIsLiquidGlass) {
+        // Taurus parity: same black pane, sky wash falling away, indigo halo mid-page.
+        Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
+            val sky = palette.cyan
+            val fall = Brush.verticalGradient(listOf(sky.copy(alpha = 0.16f), sky.copy(alpha = 0.05f), Color.Transparent), endY = size.height * 0.72f)
+            val halo = Brush.radialGradient(
+                listOf(palette.violet.copy(alpha = if (palette.isLight) 0.05f else 0.10f), Color.Transparent),
+                center = Offset(size.width * 0.5f, size.height * 0.3f), radius = size.width * 0.8f
+            )
+            onDrawBehind { drawRect(fall); drawRect(halo) }
+        })
         return
     }
     val wash = PrismAccent.wash(palette.isLight)

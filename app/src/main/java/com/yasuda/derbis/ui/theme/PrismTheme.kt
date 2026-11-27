@@ -115,18 +115,21 @@ internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark:
     return DerbisThemes.cosmic.copy(
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
-        black = prismColor(light, 0xFFF5F8FC, 0xFF080A0F),
+        // Night pair is re-derived to the iOS Taurus Liquid Glass values exactly:
+        // background #020306, accent sky #38BDF8, secondary indigo #818CF8, tertiary
+        // pink #F472B6, hairline white@15%. Light pair left as-is (unverified).
+        black = prismColor(light, 0xFFF5F8FC, 0xFF020306),
         ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.52f else 0.46f),
         panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.46f else 0.40f),
         panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.58f else 0.50f),
-        cyan = prismColor(light, 0xFF006E99, 0xFF7DD3FC),
+        cyan = prismColor(light, 0xFF006E99, 0xFF38BDF8),
         blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
-        violet = prismColor(light, 0xFF635BCE, 0xFFC4B5FD),
-        pink = prismColor(light, 0xFF3D7EA6, 0xFFA5D8FF),
+        violet = prismColor(light, 0xFF635BCE, 0xFF818CF8),
+        pink = prismColor(light, 0xFF3D7EA6, 0xFFF472B6),
         orange = prismColor(light, 0xFF007C91, 0xFF67E8F9),
         text = prismColor(light, 0xFF121821, 0xFFF4F8FF),
         muted = prismColor(light, 0xFF556271, 0xFFAAB6C7),
-        outline = prismColor(light, 0xFFD5E0EB, 0xFF334155)
+        outline = if (light) Color(0xFFD5E0EB) else Color.White.copy(alpha = 0.15f)
     )
 }
 
