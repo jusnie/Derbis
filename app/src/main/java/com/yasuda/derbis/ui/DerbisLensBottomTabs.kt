@@ -93,7 +93,8 @@ internal fun DerbisLiquidGlassTabs(
     val haptics = LocalDerbisHaptics.current
     val density = LocalDensity.current
     val capsule = RoundedCornerShape(percent = 50)
-    val dockHeight = 62.dp
+    // Taurus parity: the iOS DerbisLiquidGlassTabBar is 54pt tall (Floating capsule).
+    val dockHeight = 54.dp
     val dockGutter = 16.dp
     var lensPositionPx by remember { mutableFloatStateOf(0f) }
     var isHoldingLens by remember { mutableStateOf(false) }
