@@ -2251,8 +2251,25 @@ fun DerbisApp(
     // The glass has no options any more: the Liquid Glass skin always renders it. Low RAM and
     // the battery saver drop it to the cheap tier (no lens, coarser sampling) instead of
     // removing it, because "the skin is liquid glass and nothing is glass" was the bug.
+    //
+    // Equipping the skin flips the whole tree to glass in a single recomposition — the single
+    // heaviest frame the app ever issues. Let the tree settle for two frames first (skin on,
+    // engine still off) so the recording layer and the sampled chrome start from a settled
+    // frame instead of from the equip frame itself.
+    var glassArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(DerbisIsLiquidGlass) {
+        if (!DerbisIsLiquidGlass) {
+            glassArmed = false
+            return@LaunchedEffect
+        }
+        glassArmed = false
+        withFrameNanos { }
+        withFrameNanos { }
+        glassArmed = true
+    }
     val appBackdrop = rememberDerbisAppBackdrop(
-        enabled = DerbisIsLiquidGlass &&
+        enabled = glassArmed &&
+            DerbisIsLiquidGlass &&
             !glassMaterialIsOpaque &&
             rememberLiquidGlassEngineAllowed(
                 explicitlyReduced = state.interfaceSettings.visualPerformance ==
@@ -29384,9 +29401,12 @@ private fun SettingsSkinSelection(interfaceSettings: DerbisInterfaceSettings, on
             )
         }
     )
-    if (interfaceSettings.skin == DerbisSkin.LiquidGlass) {
-        PrismSettingsPanel(interfaceSettings.prism) { onInterfaceSettings(interfaceSettings.copy(prism = it)) }
-    }
+    // The Liquid Glass skin is opinionated: its appearance, its player layout and its
+    // translucent effects are part of the material, not options, so those rows are not
+    // rendered. The stored preferences are untouched — the fallbacks they feed (prismPalette's
+    // translucency branch, prismGlassColor's opaque path, the reduced-transparency and
+    // low-RAM/battery accessibility fallbacks) stay wired and apply internally as before.
+    // See PrismSettingsPanel for the removed rows; it is intentionally no longer called.
     if (interfaceSettings.skin == DerbisSkin.Torque) {
         TorqueSettingsPanel(interfaceSettings.torque) { onInterfaceSettings(interfaceSettings.copy(torque = it)) }
     }

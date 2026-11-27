@@ -374,7 +374,13 @@ internal class PlayerDeckSlots(
     val error: @Composable () -> Unit,
     val dock: @Composable (Track) -> Unit,
     val dockActions: @Composable (Track) -> List<PlayerDockAction>,
-    val creditsEyebrow: PlayerCreditsEyebrow? = null
+    val creditsEyebrow: PlayerCreditsEyebrow? = null,
+    /**
+     * Optional studio chip strip (Endless / speed / vocal cut / sleep+studio menu) rendered
+     * between the transport and the action dock on decks that opt in. Empty by default: only the
+     * Flow deck draws it.
+     */
+    val chips: @Composable () -> Unit = {}
 )
 
 internal class PlayerCreditsEyebrow(

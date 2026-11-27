@@ -24,6 +24,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
@@ -59,7 +61,7 @@ fun isBackdropGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
 
 /** Apple-matched defaults, fixed rather than exposed as sliders. */
 private const val VIBRANCY = 1f
-private const val BLUR_RADIUS_DP = 8f
+private const val BLUR_RADIUS_DP = 16f
 private const val LENS_HEIGHT = 0.5f
 private const val LENS_AMOUNT = 0.5f
 private const val LENS_MAX_DP = 48f
@@ -110,7 +112,9 @@ fun rememberDerbisAppBackdrop(enabled: Boolean, background: Color): LayerBackdro
 fun Modifier.derbisBackdropGlass(
     shape: CornerBasedShape,
     tint: Color = Color.Transparent,
-    lensEnabled: Boolean = true
+    lensEnabled: Boolean = true,
+    /** Optional accent used for the artwork bloom under the content (defaults off for callers without artwork). */
+    bloom: Color? = null
 ): Modifier {
     val backdrop = LocalDerbisAppBackdrop.current
         ?.takeUnless { DerbisGlassSafety.disabled }
@@ -132,11 +136,18 @@ fun Modifier.derbisBackdropGlass(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     val surfaceTint = tint.takeIf { it.alpha > 0f }
 
+    val prominentRim = lensEnabled
+    val sheen = Brush.verticalGradient(
+        0f to Color.White.copy(alpha = if (prominentRim) 0.62f else 0.44f),
+        0.42f to Color.White.copy(alpha = 0.06f),
+        1f to Color.White.copy(alpha = if (prominentRim) 0.22f else 0.14f)
+    )
+    val glow = bloom?.takeIf { it.alpha > 0f }
     return drawBackdrop(
         backdrop = backdrop,
         shape = { shape },
         effects = {
-            colorControls(saturation = 1f + 0.5f * VIBRANCY)
+            colorControls(saturation = 1f + 0.75f * VIBRANCY)
             blur(blurPx)
             if (showLens) {
                 lens(
@@ -149,14 +160,45 @@ fun Modifier.derbisBackdropGlass(
         },
         highlight = { Highlight.Default },
         shadow = { Shadow.Default },
-        onDrawSurface = if (surfaceTint == null) {
+        onDrawSurface = if (surfaceTint == null && glow == null) {
             null
         } else {
             {
-                drawRect(color = surfaceTint, size = size)
+                if (surfaceTint != null) drawRect(color = surfaceTint, size = size)
+                // Bloom: a soft artwork-accent wash over the blurred sample, under the
+                // content. This is the iOS bloom: the light that makes the panel read as
+                // lit from behind rather than merely frosted.
+                if (glow != null) {
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                glow.copy(alpha = 0.34f),
+                                glow.copy(alpha = 0.12f),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width * 0.5f, size.height * 0.18f),
+                            radius = size.maxDimension * 0.82f
+                        ),
+                        size = size
+                    )
+                }
+                // Sheen: the short light a ceiling throws across the upper third of a pane.
+                // The rim catches the edge; this is the body of the pane picking it up.
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0f to Color.White.copy(alpha = if (prominentRim) 0.16f else 0.10f),
+                        0.26f to Color.White.copy(alpha = 0.03f),
+                        0.52f to Color.Transparent
+                    ),
+                    size = size
+                )
             }
         },
         backdropScale = scale
+    ).then(
+        // Specular rim: a one-pixel edge light along the top of the material, drawn above
+        // everything else on the surface, the same way the iOS rim catches the top edge.
+        Modifier.border(1.dp, sheen, shape)
     )
 }
 
@@ -170,11 +212,14 @@ fun Modifier.derbisBackdropGlass(
 fun Modifier.derbisChromeGlass(
     shape: Shape,
     tint: Color,
-    fallback: Modifier
+    fallback: Modifier,
+    /** Artwork accent for the bloom wash, when the caller has it. Bars and docks pass the
+     *  dominant artwork colour; panels pass null and draw their own bloom. */
+    bloom: Color? = null
 ): Modifier = composed {
     val backdropShape = shape as? CornerBasedShape
     if (backdropShape != null && LocalDerbisAppBackdrop.current != null) {
-        this.derbisBackdropGlass(shape = backdropShape, tint = tint)
+        this.derbisBackdropGlass(shape = backdropShape, tint = tint, bloom = bloom)
     } else {
         this.then(fallback)
     }

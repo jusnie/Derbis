@@ -182,7 +182,9 @@ import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
 import com.yasuda.derbis.viewmodel.DerbisUiState
 import com.yasuda.derbis.viewmodel.PlayerViewModel
+import android.os.SystemClock
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.mutableLongStateOf
 import kotlin.math.roundToInt
 
 private const val CreditsPrefetchDelayMs = 1_200L
@@ -456,13 +458,19 @@ private fun DerbisNowPlayingContent(
             !liveRadio &&
             !state.isVideoMode &&
             playerPane != DerbisPlayerPane.SideBySide
-        val deckLayout = if (DerbisSkinManagesLayout && !pixel) PlayerDeckLayout.Derbis else resolvePlayerDeckLayout(
-            mode = visualMode,
-            isVideoMode = state.isVideoMode,
-            isLiveRadio = liveRadio,
-            pane = playerPane,
-            hasTrack = track != null
-        )
+        val deckLayout = when {
+            // The Liquid Glass skin used to route to the Prism scene; iOS parity puts it on the
+            // Flow deck, which is where the glass artwork stage and the studio chip bar live.
+            DerbisIsLiquidGlass -> PlayerDeckLayout.Flow
+            DerbisSkinManagesLayout && !pixel -> PlayerDeckLayout.Derbis
+            else -> resolvePlayerDeckLayout(
+                mode = visualMode,
+                isVideoMode = state.isVideoMode,
+                isLiveRadio = liveRadio,
+                pane = playerPane,
+                hasTrack = track != null
+            )
+        }
         val deckMode = if (liveRadio) PlayerVisualMode.Artwork else resolvePlayerDeckVisualMode(visualMode, deckLayout)
         val deckOwnsStageGestures = deckLayout != PlayerDeckLayout.Derbis
         val lyricsFlipAvailable = track != null && !liveRadio && !state.isVideoMode && deckLayout.showsLyricsFace()
@@ -1170,7 +1178,27 @@ private fun DerbisNowPlayingContent(
                         contentDescription = strings.trackCreditsCopy().title,
                         onClick = { showTrackCredits = true }
                     )
+                },
+            // The Flow studio chip bar (iOS parity): Endless, speed, vocal cut, sleep/studio.
+            chips = if (!liveRadio && !state.isVideoMode && !compactPlayer) {
+                {
+                    StudioChipsSlot(
+                        state = state,
+                        strings = strings,
+                        accent = surfaces.hero,
+                        accentContent = surfaces.heroContent,
+                        compact = compactPlayer,
+                        onToggleEndless = viewModel::toggleEndlessListening,
+                        onCycleSpeed = viewModel::cycleSpeed,
+                        onToggleKaraoke = { viewModel.setKaraokeMode(!state.audioSettings.karaokeMode) },
+                        onOpenSleepTimer = viewModel::openSleepTimer,
+                        onOpenSimilarSongs = { showActions = true },
+                        onOpenAudioStudio = viewModel::openAudioQualityPanel
+                    )
                 }
+            } else {
+                {}
+            }
         )
         val deckModifier = rootModifier
             .widthIn(max = detailMaxWidth)
@@ -1199,7 +1227,7 @@ private fun DerbisNowPlayingContent(
             onOpenLyrics = viewModel::openLyrics
         )
 
-        if (((DerbisIsPrism && !DerbisIsTidal) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != DerbisPlayerPane.SideBySide || appleMusicPlayer)) {
+        if (((DerbisIsPrism && !DerbisIsTidal && !DerbisIsLiquidGlass) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != DerbisPlayerPane.SideBySide || appleMusicPlayer)) {
             if (DerbisIsYouTubeMusic) {
                 YouTubeMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
@@ -2372,4 +2400,57 @@ private fun PlayerGestureFeedbackPill(text: String, modifier: Modifier = Modifie
             )
         }
     }
+}
+
+/**
+ * Hosts the Flow studio chip bar under the transport, including the sleep-timer label that has to
+ * tick on its own clock without recomposing the whole deck.
+ */
+@Composable
+private fun StudioChipsSlot(
+    state: DerbisUiState,
+    strings: com.yasuda.derbis.ui.i18n.DerbisStrings,
+    accent: Color,
+    accentContent: Color,
+    compact: Boolean,
+    onToggleEndless: () -> Unit,
+    onCycleSpeed: () -> Unit,
+    onToggleKaraoke: () -> Unit,
+    onOpenSleepTimer: () -> Unit,
+    onOpenSimilarSongs: () -> Unit,
+    onOpenAudioStudio: () -> Unit
+) {
+    val deadline = state.sleepTimerDeadlineElapsedRealtimeMs
+    var tickMs by remember(deadline) { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(deadline) {
+        while (deadline > 0L) {
+            tickMs = SystemClock.elapsedRealtime()
+            if (tickMs >= deadline) break
+            delay(1_000L)
+        }
+    }
+    val sleepLabel = when {
+        state.sleepTimerEndOfTrack -> strings.sleepTimerEndOfTrack
+        deadline > 0L -> {
+            val remainingMs = (deadline - tickMs).coerceAtLeast(0L)
+            val minutes = ((remainingMs + 59_999L) / 60_000L).toInt().coerceAtLeast(1)
+            "${minutes}m"
+        }
+        else -> null
+    }
+    PlayerStudioChipBar(
+        radioEnabled = state.radioEnabled,
+        playbackSpeed = state.playbackSpeed,
+        karaokeMode = state.audioSettings.karaokeMode,
+        sleepTimerLabel = sleepLabel,
+        accent = accent,
+        accentContent = accentContent,
+        onToggleEndless = onToggleEndless,
+        onCycleSpeed = onCycleSpeed,
+        onToggleKaraoke = onToggleKaraoke,
+        onOpenSleepTimer = onOpenSleepTimer,
+        onOpenSimilarSongs = onOpenSimilarSongs,
+        onOpenAudioStudio = onOpenAudioStudio
+    )
+    Spacer(modifier = Modifier.height(if (compact) DerbisPlayerDesign.SpaceXs else DerbisPlayerDesign.SpaceSm))
 }

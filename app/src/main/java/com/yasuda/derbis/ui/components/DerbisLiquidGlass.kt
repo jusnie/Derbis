@@ -202,7 +202,10 @@ internal fun Modifier.resolvedDerbisGlass(
             // BitChord's surface film: a neutral near-black (or near-white) at 40%, not a
             // tint of the artwork. Anything stronger hides the page it is supposed to show.
             tint = defaultGlassSurfaceTint(DerbisActivePalette.isLight),
-            lensEnabled = lensAllowed
+            lensEnabled = lensAllowed,
+            // The artwork accent washes the glass with the light from behind it, the same
+            // way the iOS material picks up its backdrop.
+            bloom = artworkTint
         )
     }
     // No frost layer any more: a surface either samples the page backdrop with the real

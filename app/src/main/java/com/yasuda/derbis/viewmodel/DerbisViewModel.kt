@@ -1143,8 +1143,15 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private val startupMoods = moodEngine.moodsForLanguage(startupSettings.languageCode)
     private val _integrationAuthorizationUrls = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val integrationAuthorizationUrls = _integrationAuthorizationUrls.asSharedFlow()
+    // Restored before the first frame: if the process died under Liquid Glass (or anywhere
+    // else), the user comes back to the tab they were on instead of the default tab. Player
+    // itself is not a cold-start destination, so it resolves to whatever tab was behind it.
+    private val restoredTab = DerbisTab.entries.firstOrNull { it.name == preferences.lastKnownTab() }
+        ?.takeIf { it != DerbisTab.Player }
+        ?: DerbisTab.Home
     private val _state = MutableStateFlow(
         DerbisUiState(
+            selectedTab = restoredTab,
             moods = startupMoods,
             tastes = moodEngine.tastesForLanguage(startupSettings.languageCode),
             quickPickSeeds = DerbisStartupCatalog.quickPickSeeds(startupSettings.languageCode),
@@ -9334,6 +9341,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         _state.update { it.copy(selectedTab = tab) }
+        preferences.setLastKnownTab(if (tab == DerbisTab.Player) current.name else tab.name)
         if (current == DerbisTab.Player) restorePlayerReturnDetail()
     }
 

@@ -42,31 +42,23 @@ internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (
         onSelect(entry.tab)
     }
     if (SkinBottomTabs(entries, selected, applySystemInset, skinModifier, skinSelect)) return
-    val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    val liquidGlass = DerbisIsLiquidGlass
-    val dockModifier = if (liquidGlass) {
-        Modifier.derbisGlass(
-            shape = dockShape,
-            baseTint = Color.White,
-            fallbackColor = prismGlassColor(),
-            fallbackBorderColor = Color.White.copy(alpha = if (DerbisActivePalette.isLight) 0.32f else 0.22f),
-            intensity = DerbisGlassIntensity.Strong,
-            artworkTint = DerbisActivePalette.cyan
-        )
-    } else {
-        Modifier
+    if (DerbisIsLiquidGlass) {
+        // The Liquid Glass bar is a floating lens dock, not a full-width surface: drag to
+        // scrub, hold to magnify the active tab under a droplet of glass.
+        DerbisLiquidGlassTabs(entries, selected, applySystemInset, skinModifier, skinSelect)
+        return
     }
+    val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     Column(Modifier.fillMaxWidth()) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .onSizeChanged { size ->
                     measuredHeight?.value = with(density) { size.height.toDp() }
-                }
-                .then(dockModifier),
+                },
             shape = dockShape,
-            color = if (liquidGlass) Color.Transparent else prismGlassColor(),
-            border = if (liquidGlass) null else if (DerbisActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
+            color = prismGlassColor(),
+            border = if (DerbisActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
         ) {
             Column {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {

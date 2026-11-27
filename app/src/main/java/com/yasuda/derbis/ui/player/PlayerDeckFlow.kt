@@ -11,6 +11,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -54,6 +57,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -66,7 +70,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.yasuda.derbis.ui.pixelHardShadow
+import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
 import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.DerbisIsTorque
+import com.yasuda.derbis.ui.theme.DerbisViolet
 import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.PixelPalette
 import androidx.compose.ui.unit.LayoutDirection
@@ -269,6 +276,7 @@ internal fun PlayerFlowDeck(
             onNext = onNext
         )
         Spacer(Modifier.height(metrics.actionGap))
+        slots.chips()
         FlowActionRow(
             track = track,
             slots = slots,
@@ -582,18 +590,32 @@ private fun FlowPlayButton(
     val interaction = remember { MutableInteractionSource() }
     val press = flowPressProgress(interaction, animated)
     val pixel = DerbisIsPixel
+    val liquidGlass = DerbisIsLiquidGlass
+    val torque = DerbisIsTorque
+    val playSquircle = RoundedCornerShape(size / 2f + (18.dp - size / 2f) * playProgress.value)
     val label = if (isPlaying) labels.pause else labels.play
     Box(
         modifier = Modifier
-            .size(size)
+            .then(if (liquidGlass) Modifier.width(size + 8.dp).height(size) else Modifier.size(size))
             .then(
-                if (pixel) {
-                    Modifier
+                when {
+                    pixel -> Modifier
                         .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
                         .background(container, RectangleShape)
                         .border(PixelDesign.border, PixelPalette.text, RectangleShape)
-                } else {
-                    Modifier
+                    torque -> Modifier
+                        .clip(CutCornerShape(12.dp))
+                        .background(container, CutCornerShape(12.dp))
+                    liquidGlass -> Modifier
+                        .shadow(
+                            elevation = 14.dp,
+                            shape = playSquircle,
+                            ambientColor = container.copy(alpha = 0.30f),
+                            spotColor = container.copy(alpha = 0.38f)
+                        )
+                        .clip(playSquircle)
+                        .background(Brush.linearGradient(listOf(container, container.playerMix(DerbisViolet, 0.42f))))
+                    else -> Modifier
                         .graphicsLayer {
                             val progress = playProgress.value
                             val pressed = press.value
@@ -643,20 +665,28 @@ private fun FlowSideButton(
     onClick: () -> Unit
 ) {
     val pixel = DerbisIsPixel
+    val liquidGlass = DerbisIsLiquidGlass
+    val torque = DerbisIsTorque
     val haptics = LocalDerbisHaptics.current
     val interaction = remember { MutableInteractionSource() }
     val press = flowPressProgress(interaction, animated)
+    val capsule = RoundedCornerShape(percent = 50)
     Box(
         modifier = Modifier
             .size(size)
             .then(
-                if (pixel) {
-                    Modifier
+                when {
+                    pixel -> Modifier
                         .pixelHardShadow(offset = 2.dp, color = PixelPalette.outline)
                         .background(container, RectangleShape)
                         .border(PixelDesign.border, PixelPalette.outline, RectangleShape)
-                } else {
-                    Modifier
+                    torque -> Modifier
+                        .clip(CutCornerShape(10.dp))
+                        .background(container, CutCornerShape(10.dp))
+                    liquidGlass -> Modifier
+                        .clip(capsule)
+                        .background(container, capsule)
+                    else -> Modifier
                         .graphicsLayer {
                             val pressed = press.value
                             shape = FlowLeafShape(

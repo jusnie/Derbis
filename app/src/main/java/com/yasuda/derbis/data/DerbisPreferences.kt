@@ -63,6 +63,7 @@ import com.yasuda.derbis.domain.AudioOffloadPreference
 import com.yasuda.derbis.domain.ReplayGainMode
 import com.yasuda.derbis.domain.PlaybackBufferMode
 import com.yasuda.derbis.domain.PlaybackBufferSettings
+import com.yasuda.derbis.domain.DerbisTab
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -428,6 +429,17 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
     }
 
     fun interfaceSettings(): DerbisInterfaceSettings = read { interfaceSettingsFrom(it) }
+
+    /**
+     * The tab the user was on when the process last went away, restored on cold start. The
+     * Liquid Glass GPU path has been known to take the process down mid-session; without this,
+     * the user is bounced onto the default tab (Home) every time it happens.
+     */
+    fun lastKnownTab(): String = read { it[KEY_LAST_TAB] ?: DerbisTab.Home.name }
+
+    fun setLastKnownTab(tab: String) {
+        write { it[KEY_LAST_TAB] = tab }
+    }
 
     fun setInterfaceSettings(value: DerbisInterfaceSettings) {
         val normalized = value.normalized()
@@ -1480,6 +1492,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_DATA_SAVER = booleanPreferencesKey("ui_data_saver_enabled")
         val KEY_UI_PURE_BLACK = booleanPreferencesKey("ui_pure_black")
         val KEY_UI_SKIN = stringPreferencesKey("ui_skin")
+        val KEY_LAST_TAB = stringPreferencesKey("last_known_tab")
         val KEY_PRISM_APPEARANCE = stringPreferencesKey("prism_appearance")
         val KEY_PRISM_PLAYER_LAYOUT = stringPreferencesKey("prism_player_layout")
         val KEY_PRISM_TRANSLUCENCY = stringPreferencesKey("prism_translucency")
