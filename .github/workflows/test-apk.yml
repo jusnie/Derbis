@@ -34,11 +34,11 @@ env:
   # Test builds report the requested version name, but keep a version code above the
   # previous prebuild so the APK installs over it instead of failing as a downgrade.
   #
-  # 3000214 sits one above the official v1.5.0 (3000213) so this build installs straight
-  # over a released app. The eventual official 1.8.0 must ship at a HIGHER code than this
-  # (3000215 or up), or anyone on this test build cannot update to it without uninstalling.
+  # Official v1.8.0 ships at 3000215, so unofficial test builds target higher still (3000216)
+  # to keep installing straight over a released app. The verify step below reads this same
+  # value, so the package identity the release is allowed to carry stays consistent.
   DERBIS_VERSION_NAME: "1.8.0"
-  DERBIS_VERSION_CODE: "3000214"
+  DERBIS_VERSION_CODE: "3000216"
 
 jobs:
   prebuild-apk:
