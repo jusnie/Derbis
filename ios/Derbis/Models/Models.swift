@@ -432,6 +432,30 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum DerbisGlassEffects: String, Codable, CaseIterable, Identifiable, Sendable {
+    case automatic = "automatic"
+    case alwaysOn = "always_on"
+    case off = "off"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic: return "Auto"
+        case .alwaysOn: return "Always on"
+        case .off: return "Off"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .automatic: return "Full lens on capable devices, frost only in Low Power Mode"
+        case .alwaysOn: return "Force the lens, rim and dispersion everywhere"
+        case .off: return "Plain frosted film, cheapest to draw"
+        }
+    }
+}
+
 enum MotionCanvasStyle: String, Codable, CaseIterable, Identifiable, Sendable {
     case immersive = "immersive"
     case framed = "framed"

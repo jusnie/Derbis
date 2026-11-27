@@ -1,21 +1,6 @@
 import SwiftUI
 import UIKit
 
-struct DerbisChromeBlurView: UIViewRepresentable {
-    var style: UIBlurEffect.Style = .systemChromeMaterialDark
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
-        view.overrideUserInterfaceStyle = .dark
-        view.isUserInteractionEnabled = false
-        return view
-    }
-
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: style)
-    }
-}
-
 struct DerbisGlassContainer<Content: View>: View {
     @EnvironmentObject private var theme: ThemeManager
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -55,7 +40,7 @@ struct DerbisGlassCapsuleModifier: ViewModifier {
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
         let useTorque = theme.isTorqueSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
 
         if usePixel {
             content
@@ -135,36 +120,12 @@ struct DerbisGlassCapsuleModifier: ViewModifier {
     private func fallbackSpecularCapsule(content: Content) -> some View {
         content
             .background {
-                ZStack {
-                    DerbisChromeBlurView(style: .systemThinMaterialDark)
-                        .clipShape(Capsule())
-
-                    if prominent {
-                        Capsule()
-                            .fill((tint ?? theme.accent).opacity(0.76))
-                    } else if let tint = tint {
-                        Capsule()
-                            .fill(tint.opacity(0.24))
-                    } else {
-                        Capsule()
-                            .fill(Color.white.opacity(0.06))
-                    }
-
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(prominent ? 0.45 : 0.34),
-                                    Color.white.opacity(0.07),
-                                    Color.white.opacity(0.18)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.75
-                        )
-                }
-                .shadow(color: Color.black.opacity(0.28), radius: 8, x: 0, y: 4)
+                DerbisOpticalMaterial(
+                    shape: AnyShape(Capsule()),
+                    intensity: .control,
+                    prominent: prominent,
+                    tint: tint
+                )
             }
             .contentShape(Capsule())
     }
@@ -183,7 +144,7 @@ struct DerbisGlassCircleModifier: ViewModifier {
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
         let useTorque = theme.isTorqueSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
 
         if usePixel {
             content
@@ -264,36 +225,12 @@ struct DerbisGlassCircleModifier: ViewModifier {
         content
             .frame(width: size, height: size)
             .background {
-                ZStack {
-                    DerbisChromeBlurView(style: .systemThinMaterialDark)
-                        .clipShape(Circle())
-
-                    if prominent {
-                        Circle()
-                            .fill((tint ?? theme.accent).opacity(0.78))
-                    } else if let tint = tint {
-                        Circle()
-                            .fill(tint.opacity(0.22))
-                    } else {
-                        Circle()
-                            .fill(Color.white.opacity(0.08))
-                    }
-
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.38),
-                                    Color.white.opacity(0.06),
-                                    Color.white.opacity(0.16)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.75
-                        )
-                }
-                .shadow(color: Color.black.opacity(0.32), radius: 8, x: 0, y: 4)
+                DerbisOpticalMaterial(
+                    shape: AnyShape(Circle()),
+                    intensity: .control,
+                    prominent: prominent,
+                    tint: tint
+                )
             }
             .contentShape(Circle())
     }
@@ -310,7 +247,7 @@ struct DerbisGlassPanelModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
         let resolvedRadius = theme.isTorqueSkin && !forceGlassOverBackdrop ? 8 : cornerRadius
 
         if usePixel {
@@ -388,31 +325,12 @@ struct DerbisGlassPanelModifier: ViewModifier {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return content
             .background {
-                ZStack {
-                    DerbisChromeBlurView(style: .systemChromeMaterialDark)
-                        .clipShape(shape)
-
-                    if let tint = tint {
-                        shape.fill(tint.opacity(0.18))
-                    } else {
-                        shape.fill(Color.white.opacity(0.05))
-                    }
-
-                    shape
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.36),
-                                    Color.white.opacity(0.06),
-                                    Color.white.opacity(0.16)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
-                }
-                .shadow(color: Color.black.opacity(0.42), radius: 16, x: 0, y: 8)
+                DerbisOpticalMaterial(
+                    shape: AnyShape(shape),
+                    intensity: .chrome,
+                    prominent: false,
+                    tint: tint
+                )
             }
             .contentShape(shape)
     }
@@ -684,26 +602,10 @@ private struct DerbisLensTabBar: View {
             let dropletWidth = min(slotWidth + 14, max(76, slotWidth * 1.08))
 
             ZStack {
-                ZStack {
-                    DerbisChromeBlurView(style: .systemChromeMaterialDark)
-                        .clipShape(Capsule())
-                    Capsule()
-                        .fill(Color.white.opacity(0.05))
-                    Capsule()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.36),
-                                    Color.white.opacity(0.06),
-                                    Color.white.opacity(0.18)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
-                }
-                .shadow(color: Color.black.opacity(0.42), radius: 16, x: 0, y: 8)
+                DerbisOpticalMaterial(
+                    shape: AnyShape(Capsule()),
+                    intensity: .chrome
+                )
 
                 if !isHoldingLens {
                     Capsule()
@@ -739,35 +641,16 @@ private struct DerbisLensTabBar: View {
 
                 if isHoldingLens {
                     ZStack {
-                        DerbisChromeBlurView(style: .systemUltraThinMaterialDark)
-                            .clipShape(Capsule())
-
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.24),
-                                        theme.accent.opacity(0.18),
-                                        Color.white.opacity(0.08)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.78),
-                                        Color.white.opacity(0.16),
-                                        Color.white.opacity(0.46)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.15
-                            )
+                        // The droplet is the one surface that should read as a bead of
+                        // liquid rather than a panel: a denser film, a bright rim and the
+                        // full lens band, so dragging it visibly bends the bar underneath.
+                        DerbisOpticalMaterial(
+                            shape: AnyShape(Capsule()),
+                            intensity: .chrome,
+                            prominent: true,
+                            tint: theme.accent
+                        )
+                        .clipShape(Capsule())
 
                         if activeIndex < items.count {
                             let activeSpec = items[activeIndex]
@@ -784,7 +667,7 @@ private struct DerbisLensTabBar: View {
                     }
                     .frame(width: dropletWidth, height: 58)
                     .scaleEffect(1.12)
-                    .shadow(color: Color.white.opacity(0.18), radius: 10, x: 0, y: 0)
+                    .shadow(color: Color.white.opacity(0.20), radius: 10, x: 0, y: 0)
                     .shadow(color: Color.black.opacity(0.5), radius: 16, x: 0, y: 8)
                     .position(x: clampedLensX, y: geo.size.height / 2 - 4)
                     .transition(.scale(scale: 0.88).combined(with: .opacity))

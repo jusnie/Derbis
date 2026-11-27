@@ -91,10 +91,16 @@ struct RootView: View {
         .preferredColorScheme(theme.colorScheme)
         .onAppear {
             theme.dynamicCoverAccent = player.coverVibrantAccent
+            refreshGlassArtwork()
+            syncGlassBloom()
             player.syncEndlessListeningFromPreferences(theme.endlessRadioEnabled)
         }
         .onChange(of: player.coverVibrantAccent) { newAccent in
             theme.dynamicCoverAccent = newAccent
+        }
+        .onChange(of: player.currentTrack?.id) { _ in
+            refreshGlassArtwork()
+            syncGlassBloom()
         }
         .onChange(of: player.currentTrack?.id) { newId in
             if newId == nil && isTabBarMinimized {
@@ -135,6 +141,32 @@ struct RootView: View {
         .onReceive(NotificationCenter.default.publisher(for: .derbisPresentJamSheet)) { _ in
             showingFullPlayer = false
             showingJamSheetFromRoot = true
+        }
+    }
+
+    /// Mirrors the player's extracted cover palette into the theme so glass surfaces can
+    /// bloom with the current track without any of them observing playback.
+    private func syncGlassBloom() {
+        theme.ambientBloomOverride = player.currentTrack == nil
+            ? nil
+            : (player.ambientPrimary, player.ambientSecondary)
+    }
+
+    /// The glass blooms with whatever is playing, so the artwork is decoded once here at a
+    /// modest size instead of by every surface that wants a colour to bloom with.
+    private func refreshGlassArtwork() {
+        guard let url = player.currentTrack?.displayArtworkURL else {
+            theme.glassArtwork = nil
+            return
+        }
+        if let hit = ArtworkImageCache.shared.cachedImage(for: url, pointSize: 360) {
+            theme.glassArtwork = hit
+            return
+        }
+        Task { @MainActor in
+            let loaded = await ArtworkImageCache.shared.loadImage(for: url, pointSize: 360)
+            guard player.currentTrack?.displayArtworkURL == url else { return }
+            theme.glassArtwork = loaded
         }
     }
 

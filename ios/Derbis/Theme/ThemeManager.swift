@@ -75,6 +75,21 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(ambientGlassBackdropEnabled, forKey: "derbis.ambientGlassBackdropEnabled") }
     }
 
+    /// Optical budget for the glass material: Auto / Always on / Off.
+    @Published var glassEffects: DerbisGlassEffects {
+        didSet { UserDefaults.standard.set(glassEffects.rawValue, forKey: "derbis.glassEffects") }
+    }
+
+    /// Thinnest the frozen backdrop may get before type stops being readable.
+    @Published var glassTransparency: Double {
+        didSet { UserDefaults.standard.set(glassTransparency, forKey: "derbis.glassTransparency") }
+    }
+
+    /// How hard the lens bends the backdrop along the rim.
+    @Published var glassRefraction: Double {
+        didSet { UserDefaults.standard.set(glassRefraction, forKey: "derbis.glassRefraction") }
+    }
+
     @Published var coverFollowsAccent: Bool {
         didSet { UserDefaults.standard.set(coverFollowsAccent, forKey: "derbis.coverFollowsAccent") }
     }
@@ -139,6 +154,13 @@ final class ThemeManager: ObservableObject {
     }
 
     @Published var dynamicCoverAccent: Color? = nil
+
+    /// Artwork the glass blooms with. Resolved once per track by the root view rather than by
+    /// each of the sixty-odd glass surfaces observing the player.
+    @Published var glassArtwork: UIImage? = nil
+
+    /// Live cover palette, mirrored from the player by the root view.
+    @Published var ambientBloomOverride: (primary: Color, secondary: Color)? = nil
 
     init() {
         let defaults = UserDefaults.standard
@@ -241,6 +263,21 @@ final class ThemeManager: ObservableObject {
             self.ambientGlassBackdropEnabled = defaults.bool(forKey: "derbis.ambientGlassBackdropEnabled")
         }
 
+        let savedGlassEffects = defaults.string(forKey: "derbis.glassEffects") ?? DerbisGlassEffects.automatic.rawValue
+        self.glassEffects = DerbisGlassEffects(rawValue: savedGlassEffects) ?? .automatic
+
+        if defaults.object(forKey: "derbis.glassTransparency") == nil {
+            self.glassTransparency = 50
+        } else {
+            self.glassTransparency = defaults.double(forKey: "derbis.glassTransparency")
+        }
+
+        if defaults.object(forKey: "derbis.glassRefraction") == nil {
+            self.glassRefraction = 55
+        } else {
+            self.glassRefraction = defaults.double(forKey: "derbis.glassRefraction")
+        }
+
         if defaults.object(forKey: "derbis.coverFollowsAccent") == nil {
             self.coverFollowsAccent = false
         } else {
@@ -311,8 +348,39 @@ final class ThemeManager: ObservableObject {
         return playerDeck
     }
 
+    /// Bloom colours for the glass field. Published by the root view from the player's
+    /// ambient extraction, so the material never has to observe playback itself.
+    var activeAmbientColors: (primary: Color, secondary: Color) {
+        if let ambient = ambientBloomOverride {
+            return ambient
+        }
+        return (accent, secondaryAccent)
+    }
+
     var usesLiquidGlass: Bool {
         !skin.isLight && !isPixelSkin && (skin == .liquidGlass || liquidGlassEnabled)
+    }
+
+    /// Whether a surface is allowed to draw the optical material at all. Off is the user
+    /// asking for the cheap, flat version explicitly, so it outranks everything else.
+    var opticalGlassAllowed: Bool {
+        usesLiquidGlass && glassEffects != .off
+    }
+
+    /// `true` when even the frost should give way to an opaque, bordered panel.
+    var glassPrefersOpaque: Bool {
+        glassTransparency <= 16
+    }
+
+    /// 0...1 strength of the frosted film. Low numbers are the legibility choice on the
+    /// transparency slider, not merely a darker blur.
+    var glassFilmAlpha: Double {
+        let t = min(100, max(0, glassTransparency)) / 100
+        return 0.30 + (1 - t) * 0.52
+    }
+
+    var glassRefractionScale: Double {
+        min(100, max(0, glassRefraction)) / 100
     }
 
     var usesPixelFont: Bool {

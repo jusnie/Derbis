@@ -619,7 +619,75 @@ struct SettingsView: View {
                     }
                 }
                 .derbisToggleTint()
-                .disabled(theme.skin == .liquidGlass || theme.isLightSkin)
+                .disabled(theme.skin == .liquidGlass)
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Optical Lens")
+                        .font(theme.font(size: 14, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+                    Text("How much the material refracts, disperses and catches light along its rim")
+                        .font(theme.font(size: 12))
+                        .foregroundColor(theme.secondaryText)
+
+                    HStack(spacing: 8) {
+                        ForEach(DerbisGlassEffects.allCases) { effect in
+                            let active = theme.glassEffects == effect
+                            Button {
+                                haptics.playSelectionTick()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    theme.glassEffects = effect
+                                }
+                            } label: {
+                                Text(effect.title)
+                                    .font(theme.font(size: 12.5, weight: active ? .bold : .semibold))
+                                    .foregroundColor(active ? theme.onAccentText : theme.primaryText)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .derbisGlassCapsule(prominent: active)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    Text(theme.glassEffects.caption)
+                        .font(theme.font(size: 11.5))
+                        .foregroundColor(theme.secondaryText)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Frost Density")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Text(theme.glassTransparency <= 16 ? "Opaque" : "\(Int(theme.glassTransparency))%")
+                            .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                            .foregroundColor(theme.accent)
+                    }
+                    Text("Lower values thicken the frozen film and keep type readable over busy artwork")
+                        .font(theme.font(size: 11.5))
+                        .foregroundColor(theme.secondaryText)
+                    Slider(value: $theme.glassTransparency, in: 0...100, step: 5)
+                        .tint(theme.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Refraction Strength")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Text("\(Int(theme.glassRefraction))%")
+                            .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                            .foregroundColor(theme.accent)
+                    }
+                    Slider(value: $theme.glassRefraction, in: 0...100, step: 5)
+                        .tint(theme.accent)
+                }
 
                 Divider()
 
