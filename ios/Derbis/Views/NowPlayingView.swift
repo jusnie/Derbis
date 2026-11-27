@@ -718,7 +718,7 @@ struct NowPlayingView: View {
                                 .foregroundColor(.white.opacity(0.92))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.white.opacity(0.16)))
+                                .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
                         }
                         .buttonStyle(.plain)
                     } else if let timer = player.sleepTimerRemainingSec {
@@ -736,7 +736,7 @@ struct NowPlayingView: View {
                                 .foregroundColor(theme.accent)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
-                                .background(Capsule().fill(Color.white.opacity(0.12)))
+                                .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
                         }
                         .buttonStyle(.plain)
                     }
@@ -889,7 +889,7 @@ struct NowPlayingView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Capsule().fill(Color.white.opacity(0.08)))
+                .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
                 .padding(.horizontal, 24)
             }
         }
@@ -916,7 +916,7 @@ struct NowPlayingView: View {
                                 .foregroundColor(theme.accent)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 1.5)
-                                .background(Capsule().fill(Color.white.opacity(0.12)))
+                                .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
                         }
                     }
 
@@ -1040,7 +1040,7 @@ struct NowPlayingView: View {
                                                 .foregroundColor(theme.accent)
                                                 .padding(.horizontal, 8)
                                                 .padding(.vertical, 3.5)
-                                                .background(Capsule().fill(Color.white.opacity(0.12)))
+                                                .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
                                             }
                                             .buttonStyle(.plain)
                                         }
@@ -1104,10 +1104,14 @@ struct NowPlayingView: View {
                 .foregroundColor(active ? .black : fgPrimary.opacity(0.85))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
-                .background(
-                    Capsule()
-                        .fill(active ? Color.white : Color.white.opacity(0.14))
-                )
+                .background {
+                    if active {
+                        Capsule().fill(Color.white)
+                    } else {
+                        Capsule().fill(Color.clear)
+                            .derbisGlassCapsule(forceGlassOverBackdrop: isReferenceBackdrop)
+                    }
+                }
         }
         .buttonStyle(.plain)
     }

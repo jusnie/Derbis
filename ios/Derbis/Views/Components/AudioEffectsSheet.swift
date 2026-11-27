@@ -247,7 +247,7 @@ struct AudioEffectsSheet: View {
                         .foregroundStyle(theme.accent)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(Capsule().fill(Color.white.opacity(0.09)))
+                        .derbisGlassCapsule()
                 }
                 .buttonStyle(.plain)
             }

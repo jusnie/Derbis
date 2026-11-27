@@ -16,7 +16,6 @@
 package com.yasuda.derbis.ui.components
 
 import android.os.Build
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.runtime.Composable
@@ -25,6 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -230,11 +234,45 @@ internal val DerbisGlassEdgeWidth = 0.5.dp
 internal val DerbisGlassEdgeColor = Color.White.copy(alpha = 0.10f)
 
 /**
- * BitChord's lightweight glass: the surface tint, the edge hairline and, when [rim] is set, the
- * directional [Highlight] that catches the light along a glass edge — with no sample of the page
- * behind. This is what a content row, a card or a control draws when it must not sample the
- * layer it is being recorded into, and what every surface draws when the backdrop engine cannot
- * run at all (Android 11 and older, high-contrast materials).
+ * The Taurus optical substrate, drawn locally by every lightweight glass surface.
+ *
+ * The iOS material never samples the page: each surface paints its own small "field" (the skin
+ * atmosphere plus the accent ramps), films it and rims it. This is the Android twin of that
+ * substrate, used wherever a surface cannot or must not sample the recorded page layer — inside
+ * a recorded page, on Android 11 and older, in the cheap tiers. The blooms are soft by
+ * construction (large radial gradients), so no blur pass is required and the cost stays a single
+ * draw pass.
+ *
+ * Layer order mirrors the iOS material: base, field blooms, caller film, content, sheen.
+ */
+private object DerbisOpticalSubstrate {
+    // The cool spectral refraction ramp of the Liquid Glass skin (night pair / light pair).
+    val accentDark = Color(0xFF72D5FF)    // nightStart
+    val accentLight = Color(0xFF007B9B)   // lightStart
+    val secondaryDark = Color(0xFFC4B5FD)  // nightEnd (violet)
+    val secondaryLight = Color(0xFF5E5CC6) // lightEnd
+
+    val baseDark = Color(0xFF080A10)
+    val baseLight = Color(0xFFF5F8FD)
+
+    fun base(isLight: Boolean): Color = if (isLight) baseLight else baseDark
+    fun accent(isLight: Boolean): Color = if (isLight) accentLight else accentDark
+    fun secondary(isLight: Boolean): Color = if (isLight) secondaryLight else secondaryDark
+}
+
+private fun pathOf(outline: Outline): Path = when (outline) {
+    is Outline.Rectangle -> Path().apply { addRect(outline.rect) }
+    is Outline.Rounded -> Path().apply { addRoundRect(outline.roundRect) }
+    is Outline.Generic -> outline.path
+}
+
+/**
+ * BitChord's lightweight glass, rebuilt to the Taurus optical recipe: a locally-drawn field
+ * (base + two accent blooms), the caller's film, the ceiling sheen above the content and, when
+ * [rim] is set, the dispersed lens-band fringe and the directional [Highlight] — with no sample
+ * of the page behind. This is what a content row, a card or a control draws when it must not
+ * sample the layer it is being recorded into, and what every surface draws when the backdrop
+ * engine cannot run at all (Android 11 and older, high-contrast materials).
  */
 fun Modifier.derbisLightweightGlass(
     shape: Shape,
@@ -243,9 +281,111 @@ fun Modifier.derbisLightweightGlass(
     hairline: Boolean = true
 ): Modifier {
     val corner = shape as? CornerBasedShape
+    val isLight = com.yasuda.derbis.ui.theme.DerbisActivePalette.isLight
+    val base = DerbisOpticalSubstrate.base(isLight)
+    val accent = DerbisOpticalSubstrate.accent(isLight)
+    val secondary = DerbisOpticalSubstrate.secondary(isLight)
     return this
         .clip(shape)
-        .background(fill, shape)
+        .drawWithContent {
+            // Base: the near-black pane the field is lit on top of.
+            drawRect(base)
+            // Field: two radial blooms, top-leading and bottom-trailing — the same sides the
+            // iOS field blooms from.
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        accent.copy(alpha = 0.20f),
+                        accent.copy(alpha = 0.05f),
+                        Color.Transparent
+                    ),
+                    center = Offset(0f, 0f),
+                    radius = size.maxDimension * 0.92f
+                )
+            )
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        secondary.copy(alpha = 0.17f),
+                        secondary.copy(alpha = 0.05f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 1.08f, size.height * 1.12f),
+                    radius = size.maxDimension * 0.86f
+                )
+            )
+            if (rim) {
+                // Chrome-tier bloom: the third light from the lower-leading corner.
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            secondary.copy(alpha = 0.11f),
+                            Color.Transparent
+                        ),
+                        center = Offset(0f, size.height * 1.1f),
+                        radius = size.maxDimension * 0.7f
+                    )
+                )
+            }
+            // Film: the caller's tint sits over the field and under the content.
+            drawRect(fill)
+            drawContent()
+            // Sheen: the short light a ceiling throws across the upper third of a pane.
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0f to Color.White.copy(alpha = if (rim) 0.15f else 0.10f),
+                    0.26f to Color.White.copy(alpha = 0.03f),
+                    0.52f to Color.Transparent
+                )
+            )
+        }
+        .then(
+            if (rim) {
+                Modifier.drawWithContent {
+                    drawContent()
+                    val outline = shape.createOutline(size, layoutDirection, this)
+                    val fringe = pathOf(outline)
+                    val stroke = 1.4.dp.toPx()
+                    val shift = 0.7.dp.toPx()
+                    // Two sub-pixel-offset gradient strokes split the accent into its colour
+                    // fringes — the refraction cue a flat fill can never imitate.
+                    withTransform({ translate(shift, 0f) }) {
+                        drawPath(
+                            fringe,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    accent.copy(alpha = 0.30f),
+                                    Color.White.copy(alpha = 0.14f),
+                                    secondary.copy(alpha = 0.24f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(size.width, size.height)
+                            ),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                            blendMode = BlendMode.Plus
+                        )
+                    }
+                    withTransform({ translate(-shift, 0f) }) {
+                        drawPath(
+                            fringe,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    secondary.copy(alpha = 0.22f),
+                                    Color.White.copy(alpha = 0.10f),
+                                    accent.copy(alpha = 0.26f)
+                                ),
+                                start = Offset(size.width, size.height),
+                                end = Offset.Zero
+                            ),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                            blendMode = BlendMode.Plus
+                        )
+                    }
+                }
+            } else {
+                Modifier
+            }
+        )
         .then(
             if (rim && corner != null) {
                 HighlightElement(
