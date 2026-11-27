@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-struct TaurusChromeBlurView: UIViewRepresentable {
+struct DerbisChromeBlurView: UIViewRepresentable {
     var style: UIBlurEffect.Style = .systemChromeMaterialDark
 
     func makeUIView(context: Context) -> UIVisualEffectView {
@@ -54,22 +54,42 @@ struct DerbisGlassCapsuleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
+        let useTorque = theme.isTorqueSkin && !forceGlassOverBackdrop
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
 
         if usePixel {
             content
                 .background(
-                    Rectangle()
-                        .fill(prominent ? theme.accent : theme.surface)
-                        .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                    ZStack {
+                        Rectangle()
+                            .fill(Color(hex: 0x5B2338, opacity: 0.22))
+                            .offset(x: 2, y: 2)
+                        Rectangle()
+                            .fill(prominent ? (tint ?? theme.accent) : theme.surface)
+                            .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                    }
                 )
                 .contentShape(Rectangle())
+        } else if useTorque {
+            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            content
+                .background(
+                    shape
+                        .fill(prominent ? (tint ?? theme.accent) : theme.elevatedSurface)
+                        .overlay(shape.stroke(prominent ? Color.white.opacity(0.25) : theme.border, lineWidth: 1))
+                )
+                .contentShape(shape)
         } else if !useGlass {
             content
                 .background(
                     Capsule()
-                        .fill(prominent ? (tint ?? theme.accent) : theme.surface)
-                        .overlay(Capsule().stroke(theme.border, lineWidth: 1))
+                        .fill(prominent ? (tint ?? theme.accent) : theme.elevatedSurface)
+                        .overlay(
+                            Capsule().stroke(
+                                prominent ? Color.white.opacity(0.22) : theme.border,
+                                lineWidth: 1
+                            )
+                        )
                 )
                 .contentShape(Capsule())
         } else if reduceTransparency {
@@ -116,7 +136,7 @@ struct DerbisGlassCapsuleModifier: ViewModifier {
         content
             .background {
                 ZStack {
-                    TaurusChromeBlurView(style: .systemThinMaterialDark)
+                    DerbisChromeBlurView(style: .systemThinMaterialDark)
                         .clipShape(Capsule())
 
                     if prominent {
@@ -162,24 +182,40 @@ struct DerbisGlassCircleModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
+        let useTorque = theme.isTorqueSkin && !forceGlassOverBackdrop
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
 
         if usePixel {
             content
                 .frame(width: size, height: size)
                 .background(
-                    Rectangle()
-                        .fill(prominent ? theme.accent : theme.elevatedSurface)
-                        .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                    ZStack {
+                        Rectangle()
+                            .fill(Color(hex: 0x5B2338, opacity: 0.22))
+                            .offset(x: 2, y: 2)
+                        Rectangle()
+                            .fill(prominent ? (tint ?? theme.accent) : theme.elevatedSurface)
+                            .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                    }
                 )
                 .contentShape(Rectangle())
+        } else if useTorque {
+            let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+            content
+                .frame(width: size, height: size)
+                .background(
+                    shape
+                        .fill(prominent ? (tint ?? theme.accent) : theme.elevatedSurface)
+                        .overlay(shape.stroke(theme.border, lineWidth: 1))
+                )
+                .contentShape(shape)
         } else if !useGlass {
             content
                 .frame(width: size, height: size)
                 .background(
                     Circle()
-                        .fill(prominent ? (tint ?? theme.accent) : Color.white.opacity(0.12))
-                        .overlay(Circle().stroke(theme.border, lineWidth: 0.8))
+                        .fill(prominent ? (tint ?? theme.accent) : theme.elevatedSurface)
+                        .overlay(Circle().stroke(theme.border, lineWidth: 1))
                 )
                 .contentShape(Circle())
         } else if reduceTransparency {
@@ -229,7 +265,7 @@ struct DerbisGlassCircleModifier: ViewModifier {
             .frame(width: size, height: size)
             .background {
                 ZStack {
-                    TaurusChromeBlurView(style: .systemThinMaterialDark)
+                    DerbisChromeBlurView(style: .systemThinMaterialDark)
                         .clipShape(Circle())
 
                     if prominent {
@@ -274,47 +310,57 @@ struct DerbisGlassPanelModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         let usePixel = theme.isPixelSkin && !forceGlassOverBackdrop
-        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel
+        let useGlass = (theme.usesLiquidGlass || forceGlassOverBackdrop) && !usePixel && (!theme.isLightSkin || forceGlassOverBackdrop)
+        let resolvedRadius = theme.isTorqueSkin && !forceGlassOverBackdrop ? 8 : cornerRadius
 
         if usePixel {
             content
                 .background(
                     ZStack {
                         Rectangle()
-                            .fill(Color(hex: 0x5B2338, opacity: 0.22))
+                            .fill(Color(hex: 0x5B2338, opacity: 0.24))
                             .offset(x: 3, y: 3)
                         Rectangle()
-                            .fill(theme.elevatedSurface)
+                            .fill(tint?.opacity(0.22) ?? theme.elevatedSurface)
+                            .background(theme.surface)
                             .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
                     }
                 )
         } else if !useGlass {
+            let shape = RoundedRectangle(cornerRadius: resolvedRadius, style: .continuous)
             content
                 .background(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(theme.elevatedSurface)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .stroke(theme.border, lineWidth: 1)
-                        )
+                    ZStack {
+                        shape.fill(theme.elevatedSurface)
+                        if let tint = tint {
+                            shape.fill(
+                                LinearGradient(
+                                    colors: [tint.opacity(theme.isLightSkin ? 0.86 : 0.34), tint.opacity(theme.isLightSkin ? 0.68 : 0.12)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        }
+                        shape.stroke(theme.border, lineWidth: 1)
+                    }
                 )
         } else if reduceTransparency {
             content
                 .background(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: resolvedRadius, style: .continuous)
                         .fill(Color(hex: 0x1A1A22))
                         .overlay(
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            RoundedRectangle(cornerRadius: resolvedRadius, style: .continuous)
                                 .stroke(Color.white.opacity(0.22), lineWidth: 0.8)
                         )
                 )
         } else {
-            systemOrSpecularPanel(content: content)
+            systemOrSpecularPanel(content: content, radius: resolvedRadius)
         }
     }
 
     @ViewBuilder
-    private func systemOrSpecularPanel(content: Content) -> some View {
+    private func systemOrSpecularPanel(content: Content, radius: CGFloat) -> some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             let base: SwiftUI.Glass = {
@@ -328,22 +374,22 @@ struct DerbisGlassPanelModifier: ViewModifier {
                 return g
             }()
             content
-                .glassEffect(base, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .glassEffect(base, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         } else {
-            fallbackSpecularPanel(content: content)
+            fallbackSpecularPanel(content: content, radius: radius)
         }
         #else
-        fallbackSpecularPanel(content: content)
+        fallbackSpecularPanel(content: content, radius: radius)
         #endif
     }
 
-    private func fallbackSpecularPanel(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    private func fallbackSpecularPanel(content: Content, radius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         return content
             .background {
                 ZStack {
-                    TaurusChromeBlurView(style: .systemChromeMaterialDark)
+                    DerbisChromeBlurView(style: .systemChromeMaterialDark)
                         .clipShape(shape)
 
                     if let tint = tint {
@@ -424,24 +470,24 @@ extension View {
     }
 }
 
-struct TaurusTabBarItemSpec: Equatable, Identifiable {
+struct DerbisTabBarItemSpec: Equatable, Identifiable {
     let id: Int
     let title: String
     let symbol: String
 }
 
-struct TaurusLiquidGlassTabBar: View {
+struct DerbisLiquidGlassTabBar: View {
     @EnvironmentObject private var theme: ThemeManager
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    let items: [TaurusTabBarItemSpec]
+    let items: [DerbisTabBarItemSpec]
     @Binding var selectedId: Int
     var onLongPressFirstItem: (() -> Void)? = nil
 
     var body: some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, *), !reduceTransparency {
-            TaurusSystemTabBarRepresentable(
+        if #available(iOS 26.0, *), theme.skin == .appleMusic13, !reduceTransparency {
+            DerbisSystemTabBarRepresentable(
                 items: items,
                 selectedId: selectedId,
                 accentColor: UIColor(theme.accent),
@@ -455,7 +501,7 @@ struct TaurusLiquidGlassTabBar: View {
             .frame(height: 54)
             .transaction { $0.animation = nil }
         } else {
-            TaurusFallbackLensTabBar(
+            DerbisLensTabBar(
                 items: items,
                 selectedId: $selectedId,
                 onLongPressFirstItem: onLongPressFirstItem
@@ -463,7 +509,7 @@ struct TaurusLiquidGlassTabBar: View {
             .frame(height: 54)
         }
         #else
-        TaurusFallbackLensTabBar(
+        DerbisLensTabBar(
             items: items,
             selectedId: $selectedId,
             onLongPressFirstItem: onLongPressFirstItem
@@ -473,8 +519,8 @@ struct TaurusLiquidGlassTabBar: View {
     }
 }
 
-private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
-    let items: [TaurusTabBarItemSpec]
+private struct DerbisSystemTabBarRepresentable: UIViewRepresentable {
+    let items: [DerbisTabBarItemSpec]
     let selectedId: Int
     let accentColor: UIColor
     let onSelect: (Int) -> Void
@@ -484,15 +530,15 @@ private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
         Coordinator(onSelect: onSelect)
     }
 
-    func makeUIView(context: Context) -> TaurusTabBarHostView {
-        let host = TaurusTabBarHostView()
+    func makeUIView(context: Context) -> DerbisTabBarHostView {
+        let host = DerbisTabBarHostView()
         host.bar.delegate = context.coordinator
         host.onLongPressFirstItem = onLongPressFirstItem
         host.configure(items: items, selectedId: selectedId, accentColor: accentColor)
         return host
     }
 
-    func updateUIView(_ uiView: TaurusTabBarHostView, context: Context) {
+    func updateUIView(_ uiView: DerbisTabBarHostView, context: Context) {
         context.coordinator.onSelect = onSelect
         uiView.onLongPressFirstItem = onLongPressFirstItem
         uiView.configure(items: items, selectedId: selectedId, accentColor: accentColor)
@@ -511,10 +557,10 @@ private struct TaurusSystemTabBarRepresentable: UIViewRepresentable {
     }
 }
 
-private final class TaurusTabBarHostView: UIView {
+private final class DerbisTabBarHostView: UIView {
     let bar = UITabBar()
     var onLongPressFirstItem: (() -> Void)?
-    private var currentSpecs: [TaurusTabBarItemSpec] = []
+    private var currentSpecs: [DerbisTabBarItemSpec] = []
     private var barItems: [UITabBarItem] = []
 
     override var safeAreaInsets: UIEdgeInsets {
@@ -551,7 +597,7 @@ private final class TaurusTabBarHostView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(items: [TaurusTabBarItemSpec], selectedId: Int, accentColor: UIColor) {
+    func configure(items: [DerbisTabBarItemSpec], selectedId: Int, accentColor: UIColor) {
         if bar.tintColor != accentColor {
             bar.tintColor = accentColor
         }
@@ -583,19 +629,7 @@ private final class TaurusTabBarHostView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        guard bounds.width > 0 else { return }
-        let platterHeight: CGFloat = max(49, bounds.height)
-        let fitted = bar.sizeThatFits(CGSize(width: bounds.width, height: platterHeight))
-        let resolvedHeight = min(max(platterHeight, fitted.height), platterHeight + 4)
-        let targetFrame = CGRect(
-            x: 0,
-            y: (bounds.height - resolvedHeight) * 0.5,
-            width: bounds.width,
-            height: resolvedHeight
-        )
-        if bar.frame != targetFrame {
-            bar.frame = targetFrame
-        }
+        bar.frame = bounds
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
@@ -604,7 +638,7 @@ private final class TaurusTabBarHostView: UIView {
 }
 
 private struct DerbisBottomOverlayInsetKey: EnvironmentKey {
-    static let defaultValue: CGFloat = 76
+    static let defaultValue: CGFloat = 84
 }
 
 extension EnvironmentValues {
@@ -628,10 +662,10 @@ extension View {
     }
 }
 
-private struct TaurusFallbackLensTabBar: View {
+private struct DerbisLensTabBar: View {
     @EnvironmentObject private var theme: ThemeManager
 
-    let items: [TaurusTabBarItemSpec]
+    let items: [DerbisTabBarItemSpec]
     @Binding var selectedId: Int
     var onLongPressFirstItem: (() -> Void)? = nil
 
@@ -651,7 +685,7 @@ private struct TaurusFallbackLensTabBar: View {
 
             ZStack {
                 ZStack {
-                    TaurusChromeBlurView(style: .systemChromeMaterialDark)
+                    DerbisChromeBlurView(style: .systemChromeMaterialDark)
                         .clipShape(Capsule())
                     Capsule()
                         .fill(Color.white.opacity(0.05))
@@ -673,12 +707,12 @@ private struct TaurusFallbackLensTabBar: View {
 
                 if !isHoldingLens {
                     Capsule()
-                        .fill(Color.white.opacity(0.12))
+                        .fill(theme.accent.opacity(0.18))
                         .overlay(
                             Capsule()
-                                .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.65)
+                                .strokeBorder(theme.accent.opacity(0.42), lineWidth: 0.85)
                         )
-                        .frame(width: max(54, slotWidth - 10), height: 50)
+                        .frame(width: max(54, slotWidth - 10), height: 48)
                         .position(x: restingCenterX, y: geo.size.height / 2)
                         .animation(.spring(response: 0.34, dampingFraction: 0.78), value: selectedId)
                 }
@@ -705,7 +739,7 @@ private struct TaurusFallbackLensTabBar: View {
 
                 if isHoldingLens {
                     ZStack {
-                        TaurusChromeBlurView(style: .systemUltraThinMaterialDark)
+                        DerbisChromeBlurView(style: .systemUltraThinMaterialDark)
                             .clipShape(Capsule())
 
                         Capsule()
@@ -713,7 +747,7 @@ private struct TaurusFallbackLensTabBar: View {
                                 LinearGradient(
                                     colors: [
                                         Color.white.opacity(0.24),
-                                        theme.accent.opacity(0.14),
+                                        theme.accent.opacity(0.18),
                                         Color.white.opacity(0.08)
                                     ],
                                     startPoint: .top,
@@ -850,4 +884,3 @@ extension View {
         modifier(DerbisScrollMinimizeModifier())
     }
 }
-

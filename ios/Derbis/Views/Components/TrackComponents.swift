@@ -331,6 +331,8 @@ struct TrackRowView: View {
     let track: Track
     let contextQueue: [Track]
     @State private var showingPlaylistSheet = false
+    @State private var showingArtistSheet = false
+    @State private var showingAlbumSheet = false
 
     private var isCurrent: Bool {
         player.currentTrack?.id == track.id
@@ -391,6 +393,12 @@ struct TrackRowView: View {
             } else {
                 Menu {
                     Button {
+                        player.startSongRadio(from: track)
+                    } label: {
+                        Label("Start song radio", systemImage: "infinity")
+                    }
+
+                    Button {
                         player.playNextInQueue(track)
                     } label: {
                         Label("Play next", systemImage: "text.line.first.and.arrowtriangle.forward")
@@ -415,6 +423,22 @@ struct TrackRowView: View {
                         showingPlaylistSheet = true
                     } label: {
                         Label("Add to playlist", systemImage: "music.note.list")
+                    }
+
+                    if !track.artist.isEmpty && track.artist.lowercased() != "unknown artist" {
+                        Button {
+                            showingArtistSheet = true
+                        } label: {
+                            Label("Go to artist", systemImage: "person.wave.2")
+                        }
+                    }
+
+                    if !track.album.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            showingAlbumSheet = true
+                        } label: {
+                            Label("Go to album", systemImage: "opticaldisc")
+                        }
                     }
 
                     if track.source != .localFile {
@@ -459,6 +483,11 @@ struct TrackRowView: View {
         .padding(.horizontal, 12)
         .contextMenu {
             Button {
+                player.startSongRadio(from: track)
+            } label: {
+                Label("Start song radio", systemImage: "infinity")
+            }
+            Button {
                 player.playNextInQueue(track)
             } label: {
                 Label("Play next", systemImage: "text.line.first.and.arrowtriangle.forward")
@@ -473,6 +502,20 @@ struct TrackRowView: View {
             } label: {
                 Label("Add to playlist", systemImage: "music.note.list")
             }
+            if !track.artist.isEmpty && track.artist.lowercased() != "unknown artist" {
+                Button {
+                    showingArtistSheet = true
+                } label: {
+                    Label("Go to artist", systemImage: "person.wave.2")
+                }
+            }
+            if !track.album.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button {
+                    showingAlbumSheet = true
+                } label: {
+                    Label("Go to album", systemImage: "opticaldisc")
+                }
+            }
             Button(role: library.isArtistBlocked(track.artist) ? .none : .destructive) {
                 HapticsAndGesturesService.shared.playControlTap(style: .medium)
                 library.toggleBlockedArtist(track.artist)
@@ -485,6 +528,18 @@ struct TrackRowView: View {
         }
         .sheet(isPresented: $showingPlaylistSheet) {
             PlaylistPickerSheet(track: track)
+                .environmentObject(library)
+                .environmentObject(theme)
+        }
+        .sheet(isPresented: $showingArtistSheet) {
+            ArtistDetailSheet(artistName: track.artist)
+                .environmentObject(player)
+                .environmentObject(library)
+                .environmentObject(theme)
+        }
+        .sheet(isPresented: $showingAlbumSheet) {
+            AlbumDetailSheet(albumTitle: track.album, artistName: track.artist, seedTracks: [track])
+                .environmentObject(player)
                 .environmentObject(library)
                 .environmentObject(theme)
         }

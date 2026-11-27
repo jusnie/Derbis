@@ -329,36 +329,86 @@ enum SleepTimerOption: Int, CaseIterable, Identifiable, Sendable {
 }
 
 enum DerbisSkin: String, Codable, CaseIterable, Identifiable, Sendable {
+    case derbisDefault = "derbis_default"
+    case pixelUI = "pixel_ui"
+    case torque = "torque"
+    case ivory = "ivory"
+    case lateNight = "late_night"
     case liquidGlass = "liquid_glass"
     case appleMusic13 = "apple_music_13"
-    case pixelUI = "pixel_ui"
-    case derbisDefault = "derbis_default"
-    case lateNight = "late_night"
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .derbisDefault: return "Derbis Default"
+        case .pixelUI: return "Pixel"
+        case .torque: return "Torque"
+        case .ivory: return "Ivory"
+        case .lateNight: return "Late Night"
         case .liquidGlass: return "Liquid Glass"
         case .appleMusic13: return "Apple Music 13"
-        case .pixelUI: return "Pixel UI"
-        case .derbisDefault: return "Derbis Default"
-        case .lateNight: return "Late Night"
         }
     }
 
     var caption: String {
         switch self {
-        case .liquidGlass: return "Taurus optical glass bars, AMOLED field, ambient aura"
-        case .appleMusic13: return "Ambient cover glow, inline lyrics, SF Pro"
-        case .pixelUI: return "Blush graph paper, hard shadows, Pixelify"
-        case .derbisDefault: return "AMOLED dark surface with crimson accents"
+        case .derbisDefault: return "Linear Glass obsidian, electric cyan, violet & pink studio glow"
+        case .pixelUI: return "Blush graph paper, plum ink, 0pt corners & hard pixel shadows"
+        case .torque: return "Carbon motorsport dark, sharp 6pt chamfers & cyan-orange accents"
+        case .ivory: return "Warm editorial paper, espresso ink & burnt-terracotta highlights"
         case .lateNight: return "Pure OLED black with warm low-glare amber"
+        case .liquidGlass: return "Optical glass lenses, floating dock & cover-sampled aura"
+        case .appleMusic13: return "Optional crimson accent, inline lyrics & classic dark cards"
         }
     }
 
     var isLight: Bool {
-        self == .pixelUI
+        self == .pixelUI || self == .ivory
+    }
+}
+
+enum DerbisPlayerDeck: String, Codable, CaseIterable, Identifiable, Sendable {
+    case flow = "flow"
+    case vinyl = "vinyl"
+    case sleeve = "sleeve"
+    case frost = "frost"
+    case pixel = "pixel"
+    case appleMusic13 = "apple_music_13"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .flow: return "Flow"
+        case .vinyl: return "Vinyl"
+        case .sleeve: return "Sleeve"
+        case .frost: return "Frost"
+        case .pixel: return "Pixel"
+        case .appleMusic13: return "Classic 13"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .flow: return "leaf.fill"
+        case .vinyl: return "opticaldisc.fill"
+        case .sleeve: return "rectangle.portrait.on.rectangle.portrait.angled.fill"
+        case .frost: return "sparkles.rectangle.stack.fill"
+        case .pixel: return "square.grid.2x2.fill"
+        case .appleMusic13: return "music.note.tv.fill"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .flow: return "Derbis signature asymmetric leaf art, squircle morph play & 4-chip studio bar"
+        case .vinyl: return "Spinning LP platter with concentric grooves, tonearm & center label"
+        case .sleeve: return "Editorial studio sleeve framing cover art, codec & waveform together"
+        case .frost: return "Floating frosted glass console over full-bleed cover wash"
+        case .pixel: return "Hard-bordered 8-bit console with segmented progress & pixel buttons"
+        case .appleMusic13: return "Optional classic centered artwork & minimal transport"
+        }
     }
 }
 
@@ -409,7 +459,7 @@ enum PlayerBackdropStyle: String, Codable, CaseIterable, Identifiable, Sendable 
     var subtitle: String {
         switch self {
         case .animated: return "Motion Canvas with progressive Fill fallback"
-        case .fill: return "Taurus full-bleed cover dissolving into sampled dark tint"
+        case .fill: return "Full-bleed cover art dissolving into sampled studio tint"
         case .fluid: return "Drifting multi-color aura sampled from cover art"
         case .visualiser: return "Audio-reactive spectrum waves & beat-pulsing glass aura"
         case .ambient: return "Soft blurred cover wash over dark glass"

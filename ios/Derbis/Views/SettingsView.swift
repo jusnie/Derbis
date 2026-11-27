@@ -29,6 +29,7 @@ struct SettingsView: View {
     @State private var showingGoogleAccountSheet: Bool = false
     @State private var showingJamSheet: Bool = false
     @State private var showingListeningStatsSheet: Bool = false
+    @State private var showingReceiptSheet: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -38,9 +39,29 @@ struct SettingsView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Settings")
-                            .font(theme.font(size: 24, weight: .bold))
-                            .foregroundColor(theme.primaryText)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(theme.isTorqueSkin ? "STUDIO" : "Studio")
+                                    .font(theme.font(size: 26, weight: .bold))
+                                    .foregroundColor(theme.primaryText)
+                                Text("Skin, deck, sound & sync")
+                                    .font(theme.font(size: 12))
+                                    .foregroundColor(theme.secondaryText)
+                            }
+                            Spacer()
+                            Button {
+                                haptics.playControlTap(style: .light)
+                                showingReceiptSheet = true
+                            } label: {
+                                Label("Receipt", systemImage: "doc.plaintext.fill")
+                                    .font(theme.font(size: 12.5, weight: .bold))
+                                    .foregroundColor(theme.accent)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .derbisGlassCapsule()
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                         if let banner = statusBanner {
                             Text(banner)
@@ -55,15 +76,17 @@ struct SettingsView: View {
                                 )
                         }
 
+                        studioQuickHubSection
                         googleAccountSection
                         jamListenTogetherSection
-                        taurusListeningStatsSection
+                        derbisListeningStatsSection
                         audioStudioAndHapticsSection
                         autoMixSection
                         skinSection
+                        playerDeckSection
                         liquidGlassSection
                         playerBackdropAndGesturesSection
-                        taurusLyricsIntelligenceSection
+                        derbisLyricsIntelligenceSection
                         typographySection
                         motionCanvasSection
                         playbackSection
@@ -108,6 +131,10 @@ struct SettingsView: View {
                 ListeningStatsSheet()
                     .environmentObject(theme)
             }
+            .sheet(isPresented: $showingReceiptSheet) {
+                ListeningReceiptSheet()
+                    .environmentObject(theme)
+            }
             .sheet(isPresented: $showingSpotifyCanvasSheet) {
                 SpotifyCanvasSheet()
                     .environmentObject(player)
@@ -135,6 +162,100 @@ struct SettingsView: View {
                 player.refreshMotionCanvas()
             }
         }
+    }
+
+    private var studioQuickHubSection: some View {
+        let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        return LazyVGrid(columns: columns, spacing: 10) {
+            Menu {
+                ForEach(DerbisSkin.allCases) { option in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { theme.skin = option }
+                    } label: {
+                        Label(option.title, systemImage: theme.skin == option ? "checkmark" : "paintpalette")
+                    }
+                }
+            } label: {
+                hubTile(
+                    icon: "paintpalette.fill",
+                    title: "Skin",
+                    subtitle: theme.skin.title,
+                    highlighted: false
+                )
+            }
+            .buttonStyle(.plain)
+
+            Menu {
+                ForEach(DerbisPlayerDeck.allCases) { deck in
+                    Button {
+                        theme.playerDeck = deck
+                    } label: {
+                        Label(deck.title, systemImage: theme.playerDeck == deck ? "checkmark" : deck.icon)
+                    }
+                }
+            } label: {
+                hubTile(
+                    icon: theme.effectivePlayerDeck.icon,
+                    title: "Player Deck",
+                    subtitle: theme.effectivePlayerDeck.title,
+                    highlighted: false
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                haptics.playSelectionTick()
+                theme.endlessRadioEnabled.toggle()
+            } label: {
+                hubTile(
+                    icon: "infinity",
+                    title: "Endless Radio",
+                    subtitle: theme.endlessRadioEnabled ? "Active" : "Paused",
+                    highlighted: theme.endlessRadioEnabled
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                haptics.playControlTap(style: .light)
+                showingAudioStudioSheet = true
+            } label: {
+                hubTile(
+                    icon: "slider.vertical.3",
+                    title: "32-bit Mix Lab",
+                    subtitle: fx.hasAnyActiveModification ? fx.selectedPreset.rawValue : "AutoEQ & Sing",
+                    highlighted: fx.hasAnyActiveModification
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func hubTile(icon: String, title: String, subtitle: String, highlighted: Bool) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(highlighted ? theme.onAccentText : theme.accent)
+                .frame(width: 34, height: 34)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 10, style: .continuous)
+                        .fill(highlighted ? theme.accent : theme.accent.opacity(0.14))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(theme.font(size: 13, weight: .bold))
+                    .foregroundColor(theme.primaryText)
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(theme.font(size: 11))
+                    .foregroundColor(highlighted ? theme.accent : theme.secondaryText)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(11)
+        .derbisCard(elevated: highlighted)
     }
 
     private var googleAccountSection: some View {
@@ -331,7 +452,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
                 .disabled(!haptics.headTrackingSupported)
             }
             .padding(14)
@@ -389,7 +510,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
             }
             .padding(14)
             .derbisCard()
@@ -437,23 +558,68 @@ struct SettingsView: View {
         }
     }
 
+    private var playerDeckSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Now Playing decks")
+
+            VStack(spacing: 10) {
+                ForEach(DerbisPlayerDeck.allCases) { deck in
+                    let selected = theme.playerDeck == deck
+                    Button {
+                        haptics.playSelectionTick()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            theme.playerDeck = deck
+                        }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: deck.icon)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(selected ? theme.onAccentText : theme.accent)
+                                .frame(width: 34, height: 34)
+                                .background(
+                                    RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 10, style: .continuous)
+                                        .fill(selected ? theme.accent : theme.accent.opacity(0.14))
+                                )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(deck.title)
+                                    .font(theme.font(size: 15, weight: .bold))
+                                    .foregroundColor(theme.primaryText)
+                                Text(deck.subtitle)
+                                    .font(theme.font(size: 12))
+                                    .foregroundColor(theme.secondaryText)
+                            }
+                            Spacer()
+                            Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(selected ? theme.accent : theme.secondaryText)
+                        }
+                        .padding(14)
+                        .derbisCard(elevated: selected)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
     private var liquidGlassSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Taurus Liquid Glass")
+            sectionTitle("Dock & Glass Chrome")
 
             VStack(alignment: .leading, spacing: 14) {
                 Toggle(isOn: $theme.liquidGlassEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Liquid Glass Navigation & Controls")
+                        Text("Optical Glass Dock (Optional)")
                             .font(theme.font(size: 14, weight: .semibold))
                             .foregroundColor(theme.primaryText)
-                        Text("Floating optical glass tab bar, mini-player, search capsule & player pills")
+                        Text("Replaces the Derbis Unified Dock with translucent optical glass lenses")
                             .font(theme.font(size: 12))
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
-                .disabled(theme.skin == .liquidGlass || theme.isPixelSkin)
+                .derbisToggleTint()
+                .disabled(theme.skin == .liquidGlass || theme.isLightSkin)
 
                 Divider()
 
@@ -467,7 +633,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
@@ -481,7 +647,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
@@ -495,7 +661,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
@@ -509,7 +675,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
@@ -591,7 +757,7 @@ struct SettingsView: View {
         }
     }
 
-    private var taurusListeningStatsSection: some View {
+    private var derbisListeningStatsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("Listening Stats & History")
 
@@ -642,7 +808,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 if theme.autoMixEnabled {
                     Divider()
@@ -698,9 +864,9 @@ struct SettingsView: View {
         }
     }
 
-    private var taurusLyricsIntelligenceSection: some View {
+    private var derbisLyricsIntelligenceSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("Taurus Lyrics Intelligence")
+            sectionTitle("Lyrics Intelligence & Genius")
 
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -784,7 +950,7 @@ struct SettingsView: View {
                     Toggle("Show Inline Genius Meaning Badges", isOn: $theme.showGeniusMeaningMarkers)
                         .font(theme.font(size: 13, weight: .semibold))
                         .foregroundColor(theme.primaryText)
-                        .tint(theme.accent)
+                        .derbisToggleTint()
                 }
             }
             .padding(14)
@@ -807,7 +973,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 if theme.motionCanvasEnabled {
                     Divider()
@@ -885,21 +1051,21 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
                 Toggle(isOn: $theme.endlessRadioEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Endless radio continuation")
+                        Text("Endless Listening (Song Radio)")
                             .font(theme.font(size: 15, weight: .semibold))
                             .foregroundColor(theme.primaryText)
-                        Text("Automatically queues related songs when your queue finishes")
+                        Text("Persistent RDAMVM song-radio tuner with rolling refills & infinite queue scroll")
                             .font(theme.font(size: 12))
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
@@ -913,24 +1079,24 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
 
                 Divider()
 
                 Toggle("Show Romanized Pronunciation", isOn: $theme.showLyricsRomanization)
                     .font(theme.font(size: 14, weight: .medium))
                     .foregroundColor(theme.primaryText)
-                    .tint(theme.accent)
+                    .derbisToggleTint()
 
                 Toggle("Show Translated Lyrics", isOn: $theme.showLyricsTranslation)
                     .font(theme.font(size: 14, weight: .medium))
                     .foregroundColor(theme.primaryText)
-                    .tint(theme.accent)
+                    .derbisToggleTint()
 
                 Toggle("Auto-Hide Transport Controls in Lyrics", isOn: $theme.autoHideLyricsControls)
                     .font(theme.font(size: 14, weight: .medium))
                     .foregroundColor(theme.primaryText)
-                    .tint(theme.accent)
+                    .derbisToggleTint()
 
                 Divider()
 
@@ -944,7 +1110,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
                 .onChange(of: theme.lockScreenLiveLyrics) { _ in
                     player.refreshNowPlayingLockScreenPreferences()
                 }
@@ -959,7 +1125,7 @@ struct SettingsView: View {
                             .foregroundColor(theme.secondaryText)
                     }
                 }
-                .tint(theme.accent)
+                .derbisToggleTint()
                 .onChange(of: theme.lockScreenLyricArt) { _ in
                     player.refreshNowPlayingLockScreenPreferences()
                 }
@@ -1025,7 +1191,7 @@ struct SettingsView: View {
                 Toggle("Stream raw lossless (FLAC / ALAC)", isOn: $preferRawLossless)
                     .font(theme.font(size: 14, weight: .medium))
                     .foregroundColor(theme.primaryText)
-                    .tint(theme.accent)
+                    .derbisToggleTint()
 
                 HStack(spacing: 10) {
                     Button {
@@ -1145,7 +1311,7 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    DerbisDiamondMark(color: theme.primaryText, size: 18)
+                    DerbisDiamondMark(color: theme.accent, size: 18)
                     Text("Derbis for iOS · Unofficial")
                         .font(theme.font(size: 15, weight: .bold))
                         .foregroundColor(theme.primaryText)
@@ -1153,7 +1319,7 @@ struct SettingsView: View {
                 Text("Version 1.8.0 (Unofficial native iOS build · KSign ready)")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
-                Text("Taurus Liquid Glass · Genius Meanings · Sing Karaoke DSP · AutoEQ & Reverb · AutoMix · Jam · GPL-3.0")
+                Text("Linear Glass · Flow & Vinyl Decks · Endless Listening · 32-bit Mix Lab · Sing DSP · AutoMix · Jam · GPL-3.0")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
             }
@@ -1164,18 +1330,20 @@ struct SettingsView: View {
     }
 
     private func sectionTitle(_ text: String) -> some View {
-        Text(text)
+        Text(theme.isTorqueSkin ? text.uppercased() : text)
             .font(theme.font(size: 16, weight: .bold))
             .foregroundColor(theme.primaryText)
     }
 
     private func swatchColor(for skin: DerbisSkin) -> Color {
         switch skin {
-        case .liquidGlass: return Color.white.opacity(0.85)
-        case .appleMusic13: return Color(hex: 0xFC3C44)
-        case .pixelUI: return Color(hex: 0xFF85A2)
-        case .derbisDefault: return Color(hex: 0x121218)
+        case .derbisDefault: return Color(hex: 0x2997FF)
+        case .pixelUI: return Color(hex: 0x9E1B44)
+        case .torque: return Color(hex: 0x22D3EE)
+        case .ivory: return Color(hex: 0xC2410C)
         case .lateNight: return Color(hex: 0xF59E0B)
+        case .liquidGlass: return Color(hex: 0x38BDF8)
+        case .appleMusic13: return Color(hex: 0xFC3C44)
         }
     }
 }

@@ -24,6 +24,7 @@ struct LibraryView: View {
     @State private var showingNewPlaylistAlert = false
     @State private var showingGoogleAccountSheet = false
     @State private var showingFullStatsSheet = false
+    @State private var showingReceiptSheet = false
     @State private var likedSortedAlphabetically = false
     @State private var newPlaylistTitle = ""
 
@@ -93,6 +94,10 @@ struct LibraryView: View {
                 ListeningStatsSheet()
                     .environmentObject(theme)
             }
+            .sheet(isPresented: $showingReceiptSheet) {
+                ListeningReceiptSheet()
+                    .environmentObject(theme)
+            }
         }
     }
 
@@ -137,18 +142,35 @@ struct LibraryView: View {
     }
 
     private var headerRow: some View {
-        HStack {
-            Text("Library")
+        HStack(spacing: 8) {
+            Text(theme.isTorqueSkin ? "LIBRARY" : "Library")
                 .font(theme.font(size: 26, weight: .bold))
                 .foregroundColor(theme.primaryText)
             Spacer()
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                showingReceiptSheet = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "doc.plaintext.fill")
+                        .font(.system(size: 12.5, weight: .semibold))
+                    Text("Receipt")
+                        .font(theme.font(size: 12.5, weight: .bold))
+                }
+                .foregroundColor(theme.accent)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 8)
+                .derbisGlassCapsule()
+            }
+            .buttonStyle(.plain)
+
             Button {
                 showingAudioImporter = true
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "folder.badge.plus")
                         .font(.system(size: 13, weight: .semibold))
-                    Text("Import audio")
+                    Text("Import")
                         .font(theme.font(size: 13, weight: .semibold))
                 }
                 .foregroundColor(theme.primaryText)
@@ -261,7 +283,7 @@ struct LibraryView: View {
                                 .padding(.vertical, 6)
                                 .derbisCard()
 
-                                TaurusAlphaIndexBar { letter in
+                                DerbisAlphaIndexBar { letter in
                                     let target = displayedTracks.first { t in
                                         guard let ch = t.title.trimmingCharacters(in: .whitespaces).uppercased().first else {
                                             return letter == "#"
@@ -415,10 +437,10 @@ struct LibraryView: View {
                         .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(theme.accent))
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Taurus Listening Stats & Export Import")
+                        Text("Derbis Listening Stats & Import")
                             .font(theme.font(size: 14.5, weight: .bold))
                             .foregroundColor(theme.primaryText)
-                        Text("Past week, month, year, all-time Top 25 & Spotify JSON import")
+                        Text("Past week, month, year, Top 25, Receipt card & Spotify JSON import")
                             .font(theme.font(size: 12))
                             .foregroundColor(theme.secondaryText)
                     }
@@ -578,7 +600,7 @@ struct LibraryView: View {
     }
 }
 
-struct TaurusAlphaIndexBar: View {
+struct DerbisAlphaIndexBar: View {
     @EnvironmentObject private var theme: ThemeManager
     let onSelectLetter: (String) -> Void
 

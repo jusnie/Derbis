@@ -16,7 +16,10 @@ struct NowPlayingView: View {
     @State private var showingSpotifyCanvasSheet: Bool = false
     @State private var showingAudioStudioSheet: Bool = false
     @State private var showingJamSheet: Bool = false
-    @State private var showingTaurusPlayerMenu: Bool = false
+    @State private var showingStudioConsole: Bool = false
+    @State private var showingArtistSheet: Bool = false
+    @State private var showingAlbumSheet: Bool = false
+    @State private var showingSimilarSheet: Bool = false
     @State private var selectedGeniusMeaning: GeniusAnnotationEntry?
     @State private var selectedGeniusLineText: String = ""
 
@@ -46,17 +49,17 @@ struct NowPlayingView: View {
     }
 
     private var isFillBackdrop: Bool {
-        theme.backdropStyle == .fill && !(theme.isPixelSkin)
+        theme.backdropStyle == .fill && !theme.isLightSkin
     }
 
     private var fgPrimary: Color {
         if isImmersiveCanvas || isFillBackdrop { return Color.white }
-        return theme.isPixelSkin ? theme.primaryText : Color.white
+        return theme.isLightSkin ? theme.primaryText : Color.white
     }
 
     private var fgSecondary: Color {
         if isImmersiveCanvas || isFillBackdrop { return Color.white.opacity(0.74) }
-        return theme.isPixelSkin ? theme.secondaryText : Color.white.opacity(0.65)
+        return theme.isLightSkin ? theme.secondaryText : Color.white.opacity(0.65)
     }
 
     var body: some View {
@@ -68,6 +71,7 @@ struct NowPlayingView: View {
             let compactHeight = viewportHeight < 760
             let expandedLyricsStage = showingLyrics && controlsCollapsedInLyrics
             let inlineLyricVisible = !showingLyrics && !ultraCompact && currentInlineLyricText != nil
+            let showFlowChips = !ultraCompact && !expandedLyricsStage && theme.effectivePlayerDeck != .appleMusic13
 
             let reservedChrome: CGFloat = {
                 if expandedLyricsStage {
@@ -75,13 +79,14 @@ struct NowPlayingView: View {
                 }
                 let topH: CGFloat = ultraCompact ? 50 : 56
                 let inlineH: CGFloat = inlineLyricVisible ? 36 : 0
-                let metaH: CGFloat = 46
+                let metaH: CGFloat = 48
                 let scrubH: CGFloat = ultraCompact ? 56 : (compactHeight ? 62 : 68)
                 let transportH: CGFloat = ultraCompact ? 62 : (compactHeight ? 70 : 78)
+                let chipBarH: CGFloat = showFlowChips ? 42 : 0
                 let dockH: CGFloat = ultraCompact ? 58 : (compactHeight ? 64 : 72)
-                return topH + inlineH + metaH + scrubH + transportH + dockH + 16
+                return topH + inlineH + metaH + scrubH + transportH + chipBarH + dockH + 18
             }()
-            let stageMaxHeight = max(144, viewportHeight - reservedChrome)
+            let stageMaxHeight = max(136, viewportHeight - reservedChrome)
 
             ZStack(alignment: .top) {
                 if let track = player.currentTrack {
@@ -155,8 +160,20 @@ struct NowPlayingView: View {
 
                                     transportControlsRow(playSize: ultraCompact ? 54 : (compactHeight ? 58 : 64))
                                         .padding(.horizontal, 22)
-                                        .padding(.top, ultraCompact ? 8 : (compactHeight ? 12 : 16))
+                                        .padding(.top, ultraCompact ? 8 : (compactHeight ? 10 : 14))
                                         .transition(.opacity.combined(with: .move(edge: .bottom)))
+
+                                    if showFlowChips {
+                                        DerbisFlowStudioChipBar(
+                                            fgPrimary: fgPrimary,
+                                            fgSecondary: fgSecondary,
+                                            forceGlass: isImmersiveCanvas || isFillBackdrop,
+                                            onOpenStudioFX: { showingAudioStudioSheet = true },
+                                            onOpenSimilar: { showingSimilarSheet = true }
+                                        )
+                                        .padding(.horizontal, 18)
+                                        .padding(.top, compactHeight ? 8 : 10)
+                                    }
                                 } else {
                                     Button {
                                         haptics.playSelectionTick()
@@ -211,17 +228,38 @@ struct NowPlayingView: View {
                             .environmentObject(player)
                             .environmentObject(theme)
                     }
-                    .sheet(isPresented: $showingTaurusPlayerMenu) {
-                        TaurusPlayerGlassMenuSheet(
+                    .sheet(isPresented: $showingStudioConsole) {
+                        DerbisPlayerConsoleSheet(
                             track: track,
                             onOpenPlaylistPicker: { showingPlaylistSheet = true },
                             onOpenAudioStudio: { showingAudioStudioSheet = true },
-                            onOpenJam: { showingJamSheet = true }
+                            onOpenJam: { showingJamSheet = true },
+                            onOpenArtist: { showingArtistSheet = true },
+                            onOpenAlbum: { showingAlbumSheet = true },
+                            onOpenSimilar: { showingSimilarSheet = true }
                         )
                         .environmentObject(player)
                         .environmentObject(library)
                         .environmentObject(theme)
                         .presentationDetents([.medium, .large])
+                    }
+                    .sheet(isPresented: $showingArtistSheet) {
+                        ArtistDetailSheet(artistName: track.artist)
+                            .environmentObject(player)
+                            .environmentObject(library)
+                            .environmentObject(theme)
+                    }
+                    .sheet(isPresented: $showingAlbumSheet) {
+                        AlbumDetailSheet(albumTitle: track.album, artistName: track.artist, seedTracks: [track])
+                            .environmentObject(player)
+                            .environmentObject(library)
+                            .environmentObject(theme)
+                    }
+                    .sheet(isPresented: $showingSimilarSheet) {
+                        SimilarSongsSheet(seedTrack: track)
+                            .environmentObject(player)
+                            .environmentObject(library)
+                            .environmentObject(theme)
                     }
                     .sheet(item: $selectedGeniusMeaning) { entry in
                         GeniusLineMeaningSheet(
@@ -409,7 +447,7 @@ struct NowPlayingView: View {
         let bleedHeight = height + 160
 
         ZStack {
-            if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
+            if theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop {
                 PixelGraphPaperBackground()
                     .frame(width: bleedWidth, height: bleedHeight)
                     .clipped()
@@ -474,7 +512,7 @@ struct NowPlayingView: View {
                     .clipped()
 
                 case .visualiser:
-                    TaurusAudioVisualiserBackdropView(
+                    DerbisAudioVisualiserBackdropView(
                         primary: player.ambientPrimary,
                         secondary: player.ambientSecondary,
                         accent: theme.accent,
@@ -576,12 +614,32 @@ struct NowPlayingView: View {
 
                 Spacer()
 
-                VStack(spacing: 2) {
-                    Text(track.source.rawValue.uppercased())
-                        .font(theme.font(size: 10, weight: .bold))
-                        .tracking(1.1)
-                        .foregroundColor(fgSecondary)
-                        .lineLimit(1)
+                VStack(spacing: 3) {
+                    Menu {
+                        Section("Player Deck") {
+                            ForEach(DerbisPlayerDeck.allCases) { deck in
+                                Button {
+                                    haptics.playSelectionTick()
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                                        theme.playerDeck = deck
+                                    }
+                                } label: {
+                                    Label(deck.title, systemImage: theme.playerDeck == deck ? "checkmark" : deck.icon)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: theme.effectivePlayerDeck.icon)
+                                .font(.system(size: 9.5, weight: .bold))
+                                .foregroundColor(theme.accent)
+                            Text("\(track.source.rawValue.uppercased()) · \(theme.effectivePlayerDeck.title.uppercased())")
+                                .font(theme.font(size: 9.5, weight: .bold))
+                                .tracking(0.9)
+                                .foregroundColor(fgSecondary)
+                                .lineLimit(1)
+                        }
+                    }
 
                     if let motion = activeMotionAsset, theme.backdropStyle == .animated {
                         Button {
@@ -608,7 +666,7 @@ struct NowPlayingView: View {
                         Button {
                             showingAudioStudioSheet = true
                         } label: {
-                            Text(abs(fx.playbackSpeed - 1.0) > 0.01 ? String(format: "FX • %.2gx", fx.playbackSpeed) : "AUDIO FX ACTIVE")
+                            Text(abs(fx.playbackSpeed - 1.0) > 0.01 ? String(format: "FX • %.2gx", fx.playbackSpeed) : "MIX LAB ACTIVE")
                                 .font(theme.font(size: 9, weight: .bold))
                                 .tracking(0.7)
                                 .foregroundColor(theme.accent)
@@ -624,10 +682,10 @@ struct NowPlayingView: View {
 
                 Button {
                     haptics.playControlTap(style: .light)
-                    showingTaurusPlayerMenu = true
+                    showingStudioConsole = true
                 } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 14.5, weight: .bold))
+                    Image(systemName: "slider.horizontal.below.rectangle")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
                             size: 36,
@@ -651,55 +709,15 @@ struct NowPlayingView: View {
                     Color.clear
                         .frame(width: viewportWidth, height: availableArtHeight)
                 } else {
-                    ZStack {
-                        if theme.isPixelSkin {
-                            Rectangle()
-                                .fill(Color(hex: 0x5B2338, opacity: 0.28))
-                                .frame(width: side, height: side)
-                                .offset(x: 5, y: 5)
-                        }
-
-                        ZStack {
-                            TrackArtworkView(
-                                url: track.displayArtworkURL,
-                                size: side,
-                                cornerRadius: theme.playerArtworkRadius
-                            )
-
-                            if theme.backdropStyle == .animated,
-                               theme.motionCanvasStyle == .framed,
-                               let motion = activeMotionAsset {
-                                LoopingMotionVideoView(
-                                    url: motion.playbackURL,
-                                    isPlaying: player.isPlaying
-                                )
-                                .id(motion.playbackURL.absoluteString)
-                                .frame(width: side, height: side)
-                                .clipShape(
-                                    RoundedRectangle(
-                                        cornerRadius: theme.playerArtworkRadius,
-                                        style: .continuous
-                                    )
-                                )
-                                .overlay(
-                                    RoundedRectangle(
-                                        cornerRadius: theme.playerArtworkRadius,
-                                        style: .continuous
-                                    )
-                                    .stroke(theme.isPixelSkin ? theme.border : Color.white.opacity(0.08), lineWidth: theme.isPixelSkin ? 2 : 0.6)
-                                )
-                            }
-                        }
-                        .shadow(
-                            color: theme.isPixelSkin ? .clear : Color.black.opacity(0.45),
-                            radius: player.isPlaying ? 22 : 11,
-                            x: 0,
-                            y: player.isPlaying ? 12 : 6
-                        )
-                        .scaleEffect(theme.isPixelSkin ? 1.0 : (player.isPlaying ? 1.0 : 0.90))
-                        .offset(x: artworkDragOffset)
-                        .animation(.spring(response: 0.42, dampingFraction: 0.78), value: player.isPlaying)
-                    }
+                    DerbisDeckArtworkStage(
+                        deck: theme.effectivePlayerDeck,
+                        track: track,
+                        side: side,
+                        activeMotionAsset: activeMotionAsset,
+                        isPlaying: player.isPlaying,
+                        accent: theme.accent
+                    )
+                    .offset(x: artworkDragOffset)
                     .frame(width: viewportWidth, height: side)
                 }
 
@@ -980,7 +998,7 @@ struct NowPlayingView: View {
                     }
                 }
 
-                TaurusSingLyricsFloatingBar()
+                DerbisSingLyricsFloatingBar()
             } else {
                 Spacer()
                 VStack(spacing: 10) {
@@ -1072,10 +1090,21 @@ struct NowPlayingView: View {
                     .foregroundColor(fgPrimary)
                     .lineLimit(1)
 
-                Text(track.artist)
-                    .font(theme.font(size: compact ? 13.5 : 14.5, weight: .medium))
-                    .foregroundColor(fgSecondary)
-                    .lineLimit(1)
+                Button {
+                    haptics.playSelectionTick()
+                    showingArtistSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(track.artist)
+                            .font(theme.font(size: compact ? 13.5 : 14.5, weight: .semibold))
+                            .foregroundColor(fgSecondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(theme.accent.opacity(0.85))
+                    }
+                }
+                .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -1120,11 +1149,18 @@ struct NowPlayingView: View {
     }
 
     private var scrubberSection: some View {
-        NowPlayingScrubberControl(
+        let activeDeck = theme.effectivePlayerDeck
+        let rail: Color = (theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop)
+            ? theme.border.opacity(0.26)
+            : Color.white.opacity(0.20)
+        return DerbisDeckScrubberView(
+            deck: activeDeck,
+            trackId: player.currentTrack?.id ?? "derbis",
             isScrubbing: $isScrubbing,
             scrubTime: $scrubTime,
             lastScrubNotch: $lastScrubNotch,
-            tintColor: (theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop) ? theme.accent : fgPrimary,
+            accentColor: activeDeck == .appleMusic13 ? fgPrimary : theme.accent,
+            railColor: rail,
             fgSecondary: fgSecondary,
             labelFont: theme.font(size: 11, weight: .semibold),
             onSeekCommit: { target in
@@ -1167,7 +1203,12 @@ struct NowPlayingView: View {
     }
 
     private func transportControlsRow(playSize: CGFloat = 62) -> some View {
-        HStack {
+        let deck = theme.effectivePlayerDeck
+        let usePixelButtons = (theme.isPixelSkin || deck == .pixel) && !isImmersiveCanvas && !isFillBackdrop
+        let useSquircleMorph = deck == .flow || deck == .sleeve || deck == .frost
+        let playCorner: CGFloat = usePixelButtons ? 0 : (theme.isTorqueSkin ? 10 : (useSquircleMorph ? (player.isPlaying ? 18 : playSize * 0.5) : playSize * 0.5))
+
+        return HStack {
             Button {
                 haptics.playSelectionTick()
                 player.isShuffleEnabled.toggle()
@@ -1185,9 +1226,21 @@ struct NowPlayingView: View {
                 player.skipPrevious()
             } label: {
                 Image(systemName: "backward.fill")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 48, height: 42)
+                    .background(
+                        Group {
+                            if usePixelButtons {
+                                Rectangle()
+                                    .fill(theme.surface)
+                                    .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                            } else if deck == .flow || deck == .frost {
+                                Capsule()
+                                    .fill(theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
+                            }
+                        }
+                    )
             }
 
             Spacer()
@@ -1197,20 +1250,40 @@ struct NowPlayingView: View {
                 player.togglePlayPause()
             } label: {
                 ZStack {
-                    if theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop {
+                    if usePixelButtons {
+                        Rectangle()
+                            .fill(Color(hex: 0x5B2338, opacity: 0.28))
+                            .frame(width: playSize, height: playSize)
+                            .offset(x: 3, y: 3)
                         Rectangle()
                             .fill(theme.accent)
                             .frame(width: playSize, height: playSize)
                             .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
-                    } else {
+                    } else if deck == .appleMusic13 {
                         Circle()
                             .fill(fgPrimary)
                             .frame(width: playSize, height: playSize)
+                    } else {
+                        RoundedRectangle(cornerRadius: playCorner, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [theme.accent, theme.secondaryAccent.opacity(0.88)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: playSize + (useSquircleMorph ? 8 : 0), height: playSize)
+                            .shadow(color: theme.accent.opacity(0.36), radius: 14, x: 0, y: 6)
+                            .animation(.spring(response: 0.34, dampingFraction: 0.75), value: player.isPlaying)
                     }
 
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: max(21, playSize * 0.41), weight: .bold))
-                        .foregroundColor((theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop) ? .white : .black)
+                        .font(.system(size: max(21, playSize * 0.40), weight: .bold))
+                        .foregroundColor(
+                            usePixelButtons
+                                ? .white
+                                : (deck == .appleMusic13 ? (theme.isLightSkin ? .white : .black) : theme.onAccentText)
+                        )
                         .offset(x: player.isPlaying ? 0 : 2)
                 }
             }
@@ -1222,9 +1295,21 @@ struct NowPlayingView: View {
                 player.skipNext()
             } label: {
                 Image(systemName: "forward.fill")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundColor(fgPrimary)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 48, height: 42)
+                    .background(
+                        Group {
+                            if usePixelButtons {
+                                Rectangle()
+                                    .fill(theme.surface)
+                                    .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                            } else if deck == .flow || deck == .frost {
+                                Capsule()
+                                    .fill(theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
+                            }
+                        }
+                    )
             }
 
             Spacer()
@@ -1242,8 +1327,8 @@ struct NowPlayingView: View {
     }
 
     private func bottomUtilityDock(track: Track) -> some View {
-        let airplayTint: UIColor = (theme.isPixelSkin && !isImmersiveCanvas && !isFillBackdrop)
-            ? UIColor(red: 0.36, green: 0.14, blue: 0.22, alpha: 1.0)
+        let airplayTint: UIColor = (theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop)
+            ? UIColor(theme.primaryText)
             : UIColor.white
 
         return HStack(spacing: 0) {
@@ -1277,7 +1362,7 @@ struct NowPlayingView: View {
                 VStack(spacing: 3) {
                     Image(systemName: "slider.vertical.3")
                         .font(.system(size: 15.5, weight: .semibold))
-                    Text("Audio FX")
+                    Text("Mix Lab")
                         .font(theme.font(size: 10, weight: .semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
@@ -1445,52 +1530,205 @@ struct UpNextQueueSheet: View {
     @EnvironmentObject private var theme: ThemeManager
     @Environment(\.dismiss) private var dismiss
 
+    @State private var showPlayedHistory: Bool = false
+
+    private var playedEntries: [(index: Int, track: Track)] {
+        guard !player.queue.isEmpty, player.currentIndex > 0 else { return [] }
+        let upper = min(player.currentIndex, player.queue.count)
+        return (0..<upper).map { ($0, player.queue[$0]) }
+    }
+
+    private var upcomingEntries: [(index: Int, track: Track)] {
+        guard !player.queue.isEmpty else { return [] }
+        let start = min(max(0, player.currentIndex), player.queue.count - 1)
+        return (start..<player.queue.count).map { ($0, player.queue[$0]) }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 PixelGraphPaperBackground()
 
-                List {
-                    ForEach(Array(player.queue.enumerated()), id: \.element.id) { idx, item in
-                        Button {
-                            player.play(track: item, in: player.queue)
-                            dismiss()
-                        } label: {
-                            HStack(spacing: 12) {
-                                TrackArtworkView(url: item.displayArtworkURL, size: 42)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(item.title)
-                                        .font(theme.font(size: 14, weight: idx == player.currentIndex ? .bold : .medium))
-                                        .foregroundColor(idx == player.currentIndex ? theme.accent : theme.primaryText)
-                                        .lineLimit(1)
-                                    Text(item.artist)
-                                        .font(theme.font(size: 12))
+                VStack(spacing: 0) {
+                    endlessHeaderBar
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 6)
+
+                    List {
+                        if !playedEntries.isEmpty {
+                            Section {
+                                DisclosureGroup(
+                                    isExpanded: $showPlayedHistory
+                                ) {
+                                    ForEach(playedEntries, id: \.index) { entry in
+                                        queueRow(entry: entry)
+                                    }
+                                } label: {
+                                    Text("Played earlier (\(playedEntries.count))")
+                                        .font(theme.font(size: 12.5, weight: .bold))
                                         .foregroundColor(theme.secondaryText)
-                                        .lineLimit(1)
                                 }
+                            }
+                            .listRowBackground(theme.surface)
+                        }
+
+                        Section {
+                            ForEach(upcomingEntries, id: \.index) { entry in
+                                queueRow(entry: entry)
+                                    .onAppear {
+                                        if player.endlessListeningEnabled,
+                                           entry.index >= max(0, player.queue.count - 3) {
+                                            Task {
+                                                await player.loadMoreEndlessRecommendations()
+                                            }
+                                        }
+                                    }
+                            }
+                            .onDelete { relativeOffsets in
+                                let absolute = IndexSet(
+                                    relativeOffsets.compactMap { rel in
+                                        upcomingEntries.indices.contains(rel) ? upcomingEntries[rel].index : nil
+                                    }
+                                )
+                                player.removeFromQueue(at: absolute)
+                            }
+
+                            if player.endlessListeningEnabled {
+                                HStack(spacing: 10) {
+                                    if player.isExpandingEndlessQueue {
+                                        ProgressView()
+                                            .tint(theme.accent)
+                                        Text("Curating more from song radio…")
+                                            .font(theme.font(size: 12.5, weight: .medium))
+                                            .foregroundColor(theme.secondaryText)
+                                    } else {
+                                        Button {
+                                            Task {
+                                                await player.loadMoreEndlessRecommendations()
+                                            }
+                                        } label: {
+                                            Label("Load more endless picks", systemImage: "infinity")
+                                                .font(theme.font(size: 13, weight: .bold))
+                                                .foregroundColor(theme.accent)
+                                        }
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.vertical, 6)
+                                .listRowBackground(theme.surface)
+                            }
+                        } header: {
+                            HStack {
+                                Text(player.endlessListeningEnabled ? "NOW & ENDLESS UP NEXT" : "UP NEXT")
+                                    .font(theme.font(size: 11, weight: .bold))
+                                    .foregroundColor(theme.secondaryText)
                                 Spacer()
-                                if idx == player.currentIndex {
-                                    Image(systemName: "waveform")
-                                        .foregroundColor(theme.accent)
+                                if player.upcomingQueueCount() > 0 {
+                                    Button("Clear upcoming") {
+                                        player.clearUpcomingQueue()
+                                    }
+                                    .font(theme.font(size: 11, weight: .bold))
+                                    .foregroundColor(theme.accent)
                                 }
                             }
                         }
-                        .listRowBackground(theme.surface)
                     }
-                    .onDelete { offsets in
-                        player.removeFromQueue(at: offsets)
-                    }
+                    .scrollContentBackground(.hidden)
                 }
-                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("Queue (\(player.queue.count))")
+            .navigationTitle("Queue (\(upcomingEntries.count))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .font(theme.font(size: 15, weight: .bold))
+                        .foregroundColor(theme.accent)
                 }
             }
         }
+    }
+
+    private var endlessHeaderBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                HapticsAndGesturesService.shared.playSelectionTick()
+                let next = !player.endlessListeningEnabled
+                player.setEndlessListeningEnabled(next)
+                theme.endlessRadioEnabled = next
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "infinity")
+                        .font(.system(size: 12.5, weight: .bold))
+                    Text(player.endlessListeningEnabled ? "Endless Listening On" : "Endless Listening Off")
+                        .font(theme.font(size: 12.5, weight: .bold))
+                }
+                .foregroundColor(player.endlessListeningEnabled ? theme.onAccentText : theme.primaryText)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 8)
+                .derbisGlassCapsule(prominent: player.endlessListeningEnabled)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            if let current = player.currentTrack {
+                Button {
+                    HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                    player.startSongRadio(from: current)
+                } label: {
+                    Label("Reseed Radio", systemImage: "dot.radiowaves.left.and.right")
+                        .font(theme.font(size: 12, weight: .bold))
+                        .foregroundColor(theme.primaryText)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .derbisGlassCapsule()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func queueRow(entry: (index: Int, track: Track)) -> some View {
+        let isCurrent = entry.index == player.currentIndex
+        let isAutoRadio = player.radioAutoTrackIds.contains(entry.track.id)
+
+        return Button {
+            player.play(track: entry.track, in: player.queue)
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                TrackArtworkView(url: entry.track.displayArtworkURL, size: 42)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(entry.track.title)
+                            .font(theme.font(size: 14, weight: isCurrent ? .bold : .medium))
+                            .foregroundColor(isCurrent ? theme.accent : theme.primaryText)
+                            .lineLimit(1)
+
+                        if isAutoRadio && !isCurrent {
+                            Text("RADIO")
+                                .font(.system(size: 8.5, weight: .black, design: .rounded))
+                                .foregroundColor(theme.accent)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1.5)
+                                .background(Capsule().fill(theme.accent.opacity(0.15)))
+                        }
+                    }
+
+                    Text(entry.track.artist)
+                        .font(theme.font(size: 12))
+                        .foregroundColor(theme.secondaryText)
+                        .lineLimit(1)
+                }
+                Spacer()
+                if isCurrent {
+                    Image(systemName: "waveform")
+                        .foregroundColor(theme.accent)
+                }
+            }
+        }
+        .listRowBackground(theme.surface)
     }
 }
 

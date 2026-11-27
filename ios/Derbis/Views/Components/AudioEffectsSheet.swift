@@ -460,7 +460,7 @@ struct AudioEffectsSheet: View {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle(isOn: $fx.singEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Label("Taurus Sing (Karaoke Vocal Control)", systemImage: "mic.fill")
+                        Label("Derbis Sing (Karaoke Vocal Cut)", systemImage: "mic.fill")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(.white)
                         Text("Attenuates center vocals while keeping <165 Hz bass & stereo instruments")

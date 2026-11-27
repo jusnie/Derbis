@@ -17,6 +17,25 @@ struct SearchView: View {
         "Cup of Joe", "Frank Ocean", "NIKI", "Daft Punk", "Bini", "The Weeknd"
     ]
     @State private var searchTask: Task<Void, Never>?
+    @State private var selectedArtist: ArtistStudioDestination?
+
+    private var matchedArtists: [(name: String, artwork: URL?)] {
+        var seen = Set<String>()
+        var list: [(String, URL?)] = []
+        for item in results {
+            let primary = item.artist
+                .components(separatedBy: CharacterSet(charactersIn: ",&"))
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let key = EndlessTrackTextNormalizer.canonicalArtist(primary)
+            guard !primary.isEmpty,
+                  primary.lowercased() != "unknown artist",
+                  seen.insert(key).inserted else { continue }
+            list.append((primary, item.displayArtworkURL))
+            if list.count >= 6 { break }
+        }
+        return list
+    }
 
     var body: some View {
         NavigationStack {
@@ -78,15 +97,56 @@ struct SearchView: View {
                                 }
 
                                 if !results.isEmpty {
+                                    if !matchedArtists.isEmpty {
+                                        VStack(alignment: .leading, spacing: 10) {
+                                            Text(theme.isTorqueSkin ? "ARTISTS" : "Artists")
+                                                .font(theme.font(size: 16, weight: .bold))
+                                                .foregroundColor(theme.primaryText)
+
+                                            ScrollView(.horizontal, showsIndicators: false) {
+                                                HStack(spacing: 10) {
+                                                    ForEach(matchedArtists, id: \.name) { entry in
+                                                        Button {
+                                                            HapticsAndGesturesService.shared.playControlTap(style: .light)
+                                                            selectedArtist = ArtistStudioDestination(artistName: entry.name)
+                                                        } label: {
+                                                            HStack(spacing: 9) {
+                                                                TrackArtworkView(url: entry.artwork, size: 36, cornerRadius: theme.isPixelSkin ? 0 : 18)
+                                                                Text(entry.name)
+                                                                    .font(theme.font(size: 13, weight: .bold))
+                                                                    .foregroundColor(theme.primaryText)
+                                                                    .lineLimit(1)
+                                                                Image(systemName: "chevron.right")
+                                                                    .font(.system(size: 10, weight: .bold))
+                                                                    .foregroundColor(theme.accent)
+                                                            }
+                                                            .padding(.horizontal, 10)
+                                                            .padding(.vertical, 7)
+                                                            .derbisCard(elevated: true)
+                                                        }
+                                                        .buttonStyle(.plain)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     VStack(alignment: .leading, spacing: 10) {
                                         HStack {
-                                            Text("Songs & mixes")
+                                            Text(theme.isTorqueSkin ? "SONGS & MIXES" : "Songs & mixes")
                                                 .font(theme.font(size: 17, weight: .bold))
                                                 .foregroundColor(theme.primaryText)
                                             Spacer()
-                                            Text("\(results.count) results")
-                                                .font(theme.font(size: 12))
-                                                .foregroundColor(theme.secondaryText)
+                                            if let topSeed = results.first {
+                                                Button {
+                                                    HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                                                    player.startSongRadio(from: topSeed)
+                                                } label: {
+                                                    Label("Start Radio", systemImage: "infinity")
+                                                        .font(theme.font(size: 12, weight: .bold))
+                                                        .foregroundColor(theme.accent)
+                                                }
+                                            }
                                         }
                                         LazyVStack(spacing: 2) {
                                             ForEach(results) { track in
@@ -135,12 +195,18 @@ struct SearchView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
+            .sheet(item: $selectedArtist) { dest in
+                ArtistDetailSheet(artistName: dest.artistName)
+                    .environmentObject(player)
+                    .environmentObject(library)
+                    .environmentObject(theme)
+            }
         }
     }
 
     private var searchHeader: some View {
         HStack {
-            Text("Search")
+            Text(theme.isTorqueSkin ? "EXPLORE" : "Explore")
                 .font(theme.font(size: 24, weight: .bold))
                 .foregroundColor(theme.primaryText)
             Spacer()

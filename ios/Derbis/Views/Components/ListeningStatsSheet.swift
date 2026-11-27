@@ -9,6 +9,7 @@ struct ListeningStatsSheet: View {
     @State private var selectedPeriod: StatsPeriod = .month
     @State private var selectedCategory: Int = 0
     @State private var showingExportImporter: Bool = false
+    @State private var showingReceiptSheet: Bool = false
     @State private var showingEraseAlert: Bool = false
     @State private var importFeedback: String?
 
@@ -80,6 +81,10 @@ struct ListeningStatsSheet: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Every recorded and imported play in Listening Stats will be removed from this iPhone.")
+            }
+            .sheet(isPresented: $showingReceiptSheet) {
+                ListeningReceiptSheet()
+                    .environmentObject(theme)
             }
         }
     }
@@ -245,6 +250,26 @@ struct ListeningStatsSheet: View {
 
     private var actionsCard: some View {
         VStack(spacing: 12) {
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                showingReceiptSheet = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "doc.plaintext.fill")
+                        .foregroundColor(theme.accent)
+                    Text("Print & Share Listening Receipt Card")
+                        .font(theme.font(size: 14, weight: .bold))
+                        .foregroundColor(theme.primaryText)
+                    Spacer()
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 12.5, weight: .bold))
+                        .foregroundColor(theme.accent)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+
             Button {
                 HapticsAndGesturesService.shared.playControlTap(style: .light)
                 showingExportImporter = true

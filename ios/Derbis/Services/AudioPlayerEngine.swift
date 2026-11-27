@@ -67,12 +67,18 @@ final class AudioPlayerEngine: ObservableObject {
 
     @Published var currentMotionCanvas: MotionCanvasAsset?
 
-    @Published var ambientPrimary: Color = Color(hex: 0x2A1A2E)
-    @Published var ambientSecondary: Color = Color(hex: 0x0A0A10)
-    @Published var coverVibrantAccent: Color = Color(hex: 0xFC3C44)
+    @Published var ambientPrimary: Color = Color(hex: 0x16243E)
+    @Published var ambientSecondary: Color = Color(hex: 0x0A0C14)
+    @Published var coverVibrantAccent: Color = Color(hex: 0x2997FF)
     @Published var currentArtworkImage: UIImage?
 
     @Published var sleepTimerRemainingSec: Int?
+
+    @Published var endlessListeningEnabled: Bool = true
+    @Published private(set) var radioAutoTrackIds: Set<String> = []
+    @Published private(set) var isExpandingEndlessQueue: Bool = false
+    @Published private(set) var similarTracks: [Track] = []
+    @Published private(set) var isLoadingSimilarTracks: Bool = false
 
     private let player = AVPlayer()
     private var timeObserver: Any?
@@ -88,6 +94,9 @@ final class AudioPlayerEngine: ObservableObject {
     private var autoSkipTask: Task<Void, Never>?
     private var stallWatchdogTask: Task<Void, Never>?
     private var sleepTimerTask: Task<Void, Never>?
+    private var radioTailTask: Task<Void, Never>?
+    private var similarTask: Task<Void, Never>?
+    private var radioSession: RadioSession?
     private var transitionBgTask: UIBackgroundTaskIdentifier = .invalid
 
     private var cachedAutoMixEnabled: Bool = false
@@ -124,6 +133,11 @@ final class AudioPlayerEngine: ObservableObject {
     init() {
         player.automaticallyWaitsToMinimizeStalling = true
         playbackRate = Float(AudioEffectsEngine.shared.playbackSpeed)
+        if UserDefaults.standard.object(forKey: "derbis.endlessRadio") == nil {
+            endlessListeningEnabled = true
+        } else {
+            endlessListeningEnabled = UserDefaults.standard.bool(forKey: "derbis.endlessRadio")
+        }
         syncCachedAutoMixPreferences()
         configureAudioSession()
         configureRemoteCommands()
@@ -224,15 +238,108 @@ final class AudioPlayerEngine: ObservableObject {
         }
 
         if let list = contextQueue, !list.isEmpty {
-            queue = list
-            currentIndex = list.firstIndex(where: { $0.id == track.id }) ?? 0
+            let isSwitchingWithinSameQueue = (list.map(\.id) == queue.map(\.id))
+            if isSwitchingWithinSameQueue, let idx = queue.firstIndex(where: { $0.id == track.id }) {
+                currentIndex = idx
+                radioSession = radioSession?.updatingCurrentAnchor(track) ?? RadioSession(seed: track, addedIds: queue.map(\.id))
+            } else {
+                radioTailTask?.cancel()
+                isExpandingEndlessQueue = false
+                radioAutoTrackIds.removeAll()
+                queue = list
+                currentIndex = list.firstIndex(where: { $0.id == track.id }) ?? 0
+                radioSession = RadioSession(seed: track, addedIds: list.map(\.id))
+            }
         } else if let idx = queue.firstIndex(where: { $0.id == track.id }) {
             currentIndex = idx
+            radioSession = radioSession?.updatingCurrentAnchor(track) ?? RadioSession(seed: track, addedIds: queue.map(\.id))
         } else {
+            radioTailTask?.cancel()
+            isExpandingEndlessQueue = false
+            radioAutoTrackIds.removeAll()
             queue = [track]
             currentIndex = 0
+            radioSession = RadioSession(seed: track, addedIds: [track.id])
         }
         startCurrentItem()
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
+    }
+
+    func startSongRadio(from seed: Track) {
+        if !isApplyingJamState && JamService.shared.isGuest {
+            showTransientBanner("Host controls radio in this Jam.")
+            return
+        }
+        setEndlessListeningEnabled(true)
+        radioTailTask?.cancel()
+        isExpandingEndlessQueue = false
+        radioAutoTrackIds.removeAll()
+        queue = [seed]
+        currentIndex = 0
+        radioSession = RadioSession(seed: seed, addedIds: [seed.id])
+        startCurrentItem()
+        ensureEndlessListeningTail(force: true, minimumAdditions: 15, insertAfterCurrent: true)
+        showTransientBanner("Endless Radio · \(seed.title)")
+        if !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
+    }
+
+    func setEndlessListeningEnabled(_ enabled: Bool) {
+        if endlessListeningEnabled != enabled {
+            endlessListeningEnabled = enabled
+        }
+        UserDefaults.standard.set(enabled, forKey: "derbis.endlessRadio")
+        applyEndlessListeningStateChange(enabled)
+    }
+
+    func syncEndlessListeningFromPreferences(_ enabled: Bool) {
+        guard endlessListeningEnabled != enabled else { return }
+        endlessListeningEnabled = enabled
+        applyEndlessListeningStateChange(enabled)
+    }
+
+    private func applyEndlessListeningStateChange(_ enabled: Bool) {
+        if enabled {
+            if let current = currentTrack {
+                if radioSession == nil {
+                    radioSession = RadioSession(seed: current, addedIds: queue.map(\.id))
+                }
+                ensureEndlessListeningTail(force: true, minimumAdditions: RadioSession.targetUpcomingBuffer)
+            }
+        } else {
+            radioTailTask?.cancel()
+            isExpandingEndlessQueue = false
+            guard !queue.isEmpty else { return }
+            var kept: [Track] = []
+            for (idx, item) in queue.enumerated() {
+                if idx <= currentIndex || !radioAutoTrackIds.contains(item.id) {
+                    kept.append(item)
+                } else {
+                    radioAutoTrackIds.remove(item.id)
+                }
+            }
+            if kept.count != queue.count {
+                queue = kept
+                currentIndex = min(currentIndex, max(0, queue.count - 1))
+                if !isApplyingJamState && JamService.shared.isHost {
+                    JamService.shared.notifyHostPlaybackChanged()
+                }
+            }
+        }
+    }
+
+    func clearUpcomingQueue() {
+        guard !queue.isEmpty, currentIndex + 1 < queue.count else { return }
+        if !isApplyingJamState && JamService.shared.isGuest && !JamService.shared.canControlPlayback {
+            showTransientBanner("Host controls the queue in this Jam.")
+            return
+        }
+        radioTailTask?.cancel()
+        queue.removeSubrange((currentIndex + 1)..<queue.count)
+        radioAutoTrackIds.removeAll()
         if !isApplyingJamState && JamService.shared.isHost {
             JamService.shared.notifyHostPlaybackChanged()
         }
@@ -385,6 +492,9 @@ final class AudioPlayerEngine: ObservableObject {
         } else if unblockedIndices.isEmpty && currentIndex + 1 < queue.count {
             currentIndex += 1
             startCurrentItem()
+        } else if endlessListeningEnabled && !JamService.shared.isGuest {
+            expandEndlessListeningForSkip()
+            return
         } else {
             isPlaying = false
             seek(to: 0)
@@ -554,9 +664,6 @@ final class AudioPlayerEngine: ObservableObject {
         let autoLyrics = UserDefaults.standard.object(forKey: "derbis.autoLoadLyrics") == nil
             ? true
             : UserDefaults.standard.bool(forKey: "derbis.autoLoadLyrics")
-        let autoRadio = UserDefaults.standard.object(forKey: "derbis.endlessRadio") == nil
-            ? true
-            : UserDefaults.standard.bool(forKey: "derbis.endlessRadio")
 
         if !isSameTrackResume {
             artworkTask = Task { [weak self] in
@@ -566,6 +673,7 @@ final class AudioPlayerEngine: ObservableObject {
                 loadLyrics(for: track)
             }
             loadMotionCanvas(for: track)
+            loadSimilarSongs(for: track)
         }
 
         loadTask = Task { [weak self] in
@@ -587,23 +695,201 @@ final class AudioPlayerEngine: ObservableObject {
                     GoogleAccountSyncService.shared.reportPlaybackIfEnabled(track: track)
                 }
 
-                if autoRadio,
-                   self.currentIndex >= self.queue.count - 2,
-                   let vid = track.videoId {
-                    let radioTracks = await InnerTubeService.shared.fetchRadioQueue(seedVideoId: vid)
-                    guard !Task.isCancelled else { return }
-                    let existingIds = Set(self.queue.map(\.id))
-                    let fresh = radioTracks.filter {
-                        !existingIds.contains($0.id) && !LibraryStore.shared.isArtistBlocked($0.artist)
-                    }
-                    if !fresh.isEmpty {
-                        self.queue.append(contentsOf: fresh.prefix(15))
-                    }
+                if self.endlessListeningEnabled {
+                    self.ensureEndlessListeningTail(force: false)
                 }
             } catch {
                 guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
                 self.handleTerminalPlaybackFailure(for: track)
             }
+        }
+    }
+
+    func upcomingQueueCount() -> Int {
+        guard !queue.isEmpty, queue.indices.contains(currentIndex) else { return 0 }
+        return max(0, queue.count - 1 - currentIndex)
+    }
+
+    func ensureEndlessListeningTail(
+        force: Bool,
+        minimumAdditions: Int = RadioSession.targetUpcomingBuffer,
+        insertAfterCurrent: Bool = false
+    ) {
+        guard endlessListeningEnabled, !JamService.shared.isGuest else { return }
+        guard let anchor = currentTrack else { return }
+        if !force && upcomingQueueCount() >= RadioSession.targetUpcomingBuffer {
+            return
+        }
+        guard !isExpandingEndlessQueue else { return }
+
+        if radioSession == nil {
+            radioSession = RadioSession(seed: anchor, addedIds: queue.map(\.id))
+        }
+        radioTailTask?.cancel()
+        radioTailTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            _ = await self.appendEndlessPage(
+                minimumAdditions: max(minimumAdditions, RadioSession.minimumSkipAdditions),
+                insertAfterCurrent: insertAfterCurrent
+            )
+        }
+    }
+
+    func loadMoreEndlessRecommendations() async {
+        guard endlessListeningEnabled, !JamService.shared.isGuest else { return }
+        guard currentTrack != nil, !isExpandingEndlessQueue else { return }
+        _ = await appendEndlessPage(
+            minimumAdditions: RadioSession.scrollAppendBatch,
+            insertAfterCurrent: false
+        )
+    }
+
+    private func expandEndlessListeningForSkip() {
+        guard let anchor = currentTrack else { return }
+        if radioSession == nil {
+            radioSession = RadioSession(seed: anchor, addedIds: queue.map(\.id))
+        }
+        isLoading = true
+        radioTailTask?.cancel()
+        radioTailTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            let startIdxBefore = self.queue.count
+            let addedCount = await self.appendEndlessPage(
+                minimumAdditions: RadioSession.minimumSkipAdditions,
+                insertAfterCurrent: false
+            )
+            guard !Task.isCancelled else { return }
+            if addedCount > 0, let nextIdx = self.findNextPlayableIndex(startingAfter: self.currentIndex, wrapAround: false) {
+                self.currentIndex = nextIdx
+                self.startCurrentItem()
+                if !self.isApplyingJamState && JamService.shared.isHost {
+                    JamService.shared.notifyHostPlaybackChanged()
+                }
+            } else if self.queue.count > startIdxBefore, self.currentIndex + 1 < self.queue.count {
+                self.currentIndex += 1
+                self.startCurrentItem()
+            } else {
+                self.isLoading = false
+                self.isPlaying = false
+                self.seek(to: 0)
+                self.player.pause()
+                self.updateNowPlayingMetadata()
+            }
+        }
+    }
+
+    private func appendEndlessPage(
+        minimumAdditions: Int,
+        insertAfterCurrent: Bool
+    ) async -> Int {
+        guard let anchor = currentTrack else { return 0 }
+        var session = radioSession ?? RadioSession(seed: anchor, addedIds: queue.map(\.id))
+        let targetSessionId = session.sessionId
+        isExpandingEndlessQueue = true
+        defer { isExpandingEndlessQueue = false }
+
+        var fetchedPage: InnerTubeRadioPage?
+        if !session.radioId.isEmpty && !session.continuation.isEmpty {
+            fetchedPage = await InnerTubeService.shared.fetchRadioContinuationPage(
+                seed: session.seed,
+                radioId: session.radioId,
+                continuation: session.continuation
+            )
+        } else if session.radioId.isEmpty {
+            fetchedPage = await InnerTubeService.shared.fetchRadioPage(seed: session.seed)
+        }
+
+        guard !Task.isCancelled, endlessListeningEnabled else { return 0 }
+        guard radioSession == nil || radioSession?.sessionId == targetSessionId else { return 0 }
+
+        var rawCandidates: [Track] = fetchedPage?.tracks ?? []
+        var usedPersistentPage = !rawCandidates.isEmpty
+
+        if rawCandidates.isEmpty {
+            usedPersistentPage = false
+            let excluded = Set(queue.map(\.id)).union(session.addedIds)
+            rawCandidates = await InnerTubeService.shared.fetchFallbackRadioTracks(
+                seed: anchor,
+                excludeIds: excluded,
+                limit: max(18, minimumAdditions * 2)
+            )
+            guard !Task.isCancelled, endlessListeningEnabled else { return 0 }
+        }
+
+        if similarTracks.isEmpty && !rawCandidates.isEmpty {
+            similarTracks = SimilarSongsSelector.select(
+                seed: anchor,
+                candidates: rawCandidates,
+                blockedCheck: { LibraryStore.shared.isArtistBlocked($0) },
+                limit: 12
+            )
+        }
+
+        let batchLimit = usedPersistentPage ? max(rawCandidates.count, minimumAdditions) : max(12, minimumAdditions)
+        let mixed = RadioMixer.mix(
+            candidates: rawCandidates,
+            seed: session.seed,
+            queued: queue,
+            sessionAddedIds: session.addedIds,
+            blockedCheck: { LibraryStore.shared.isArtistBlocked($0) },
+            limit: batchLimit
+        )
+
+        if !mixed.isEmpty {
+            if insertAfterCurrent {
+                let insertIdx = min(queue.count, currentIndex + 1)
+                queue.insert(contentsOf: mixed, at: insertIdx)
+            } else {
+                queue.append(contentsOf: mixed)
+            }
+            for item in mixed {
+                radioAutoTrackIds.insert(item.id)
+            }
+        }
+
+        let addedIds = mixed.map(\.id)
+        if let page = fetchedPage, !page.radioId.isEmpty {
+            session = session.recordingPage(
+                radioId: page.radioId,
+                continuation: page.continuation,
+                added: addedIds
+            )
+        } else {
+            session = session.recordingAdded(addedIds)
+        }
+        radioSession = session
+
+        if !mixed.isEmpty && !isApplyingJamState && JamService.shared.isHost {
+            JamService.shared.notifyHostPlaybackChanged()
+        }
+        return mixed.count
+    }
+
+    private func loadSimilarSongs(for track: Track) {
+        similarTask?.cancel()
+        similarTracks = []
+        isLoadingSimilarTracks = true
+        similarTask = Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            defer { self.isLoadingSimilarTracks = false }
+            let page = await InnerTubeService.shared.fetchRadioPage(seed: track)
+            guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
+            var pool = page?.tracks ?? []
+            if pool.count < 6 {
+                let extra = await InnerTubeService.shared.fetchFallbackRadioTracks(
+                    seed: track,
+                    excludeIds: Set(pool.map(\.id)),
+                    limit: 14
+                )
+                pool.append(contentsOf: extra)
+            }
+            guard !Task.isCancelled, self.currentTrack?.id == track.id else { return }
+            self.similarTracks = SimilarSongsSelector.select(
+                seed: track,
+                candidates: pool,
+                blockedCheck: { LibraryStore.shared.isArtistBlocked($0) },
+                limit: 12
+            )
         }
     }
 

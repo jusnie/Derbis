@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-struct TaurusAudioVisualiserBackdropView: View {
+struct DerbisAudioVisualiserBackdropView: View {
     let primary: Color
     let secondary: Color
     let accent: Color
@@ -9,7 +9,7 @@ struct TaurusAudioVisualiserBackdropView: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Color(hex: 0x030303)
 
             TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: !isPlaying)) { timeline in
                 let t = timeline.date.timeIntervalSinceReferenceDate
@@ -68,7 +68,7 @@ struct TaurusAudioVisualiserBackdropView: View {
                         context.fill(
                             wave,
                             with: .linearGradient(
-                                Gradient(colors: [layer.color, Color.black.opacity(0.92)]),
+                                Gradient(colors: [layer.color, Color(hex: 0x030303, opacity: 0.94)]),
                                 startPoint: CGPoint(x: 0, y: baseY - 60),
                                 endPoint: CGPoint(x: 0, y: size.height)
                             )
@@ -77,7 +77,7 @@ struct TaurusAudioVisualiserBackdropView: View {
                 }
             }
 
-            Color.black.opacity(0.24)
+            Color.black.opacity(0.22)
         }
         .onAppear {
             AudioEffectsEngine.setVisualizerActive(true)
@@ -166,7 +166,7 @@ struct GeniusLineMeaningSheet: View {
     }
 }
 
-struct TaurusSingLyricsFloatingBar: View {
+struct DerbisSingLyricsFloatingBar: View {
     @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var theme: ThemeManager
     @ObservedObject private var fx = AudioEffectsEngine.shared
@@ -224,7 +224,7 @@ struct TaurusSingLyricsFloatingBar: View {
                     Text(theme.showLyricsTranslation ? theme.lyricsTranslationLanguage.rawValue.uppercased() : "Translate")
                         .font(theme.font(size: 12, weight: .bold))
                 }
-                .foregroundColor(theme.showLyricsTranslation ? .white : .white.opacity(0.9))
+                .foregroundColor(theme.showLyricsTranslation ? theme.onAccentText : .white.opacity(0.9))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .derbisGlassCapsule(prominent: theme.showLyricsTranslation, forceGlassOverBackdrop: true)
@@ -299,7 +299,7 @@ struct TaurusSingLyricsFloatingBar: View {
                                 .font(theme.font(size: 12, weight: .bold))
                         }
                     }
-                    .foregroundColor(.white)
+                    .foregroundColor(fx.singEnabled ? theme.onAccentText : .white)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 9)
                     .derbisGlassCapsule(prominent: fx.singEnabled, forceGlassOverBackdrop: true)
@@ -312,11 +312,14 @@ struct TaurusSingLyricsFloatingBar: View {
     }
 }
 
-struct TaurusPlayerGlassMenuSheet: View {
+struct DerbisPlayerConsoleSheet: View {
     let track: Track
     let onOpenPlaylistPicker: () -> Void
     let onOpenAudioStudio: () -> Void
     let onOpenJam: () -> Void
+    let onOpenArtist: () -> Void
+    let onOpenAlbum: () -> Void
+    let onOpenSimilar: () -> Void
 
     @EnvironmentObject private var player: AudioPlayerEngine
     @EnvironmentObject private var library: LibraryStore
@@ -334,27 +337,42 @@ struct TaurusPlayerGlassMenuSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: 0x09090D).ignoresSafeArea()
+                PixelGraphPaperBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(spacing: 12) {
-                            TrackArtworkView(url: track.displayArtworkURL, size: 48, cornerRadius: 10)
+                            TrackArtworkView(url: track.displayArtworkURL, size: 48, cornerRadius: theme.artworkRadius)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(track.title)
                                     .font(theme.font(size: 15.5, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(theme.primaryText)
                                     .lineLimit(1)
                                 Text(track.artist)
                                     .font(theme.font(size: 13))
-                                    .foregroundColor(.white.opacity(0.65))
+                                    .foregroundColor(theme.secondaryText)
                                     .lineLimit(1)
                             }
                             Spacer()
+                            Button {
+                                HapticsAndGesturesService.shared.playControlTap(style: .medium)
+                                player.startSongRadio(from: track)
+                                dismiss()
+                            } label: {
+                                Label("Radio", systemImage: "infinity")
+                                    .font(theme.font(size: 12, weight: .bold))
+                                    .foregroundColor(theme.onAccentText)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .derbisGlassCapsule(prominent: true)
+                            }
+                            .buttonStyle(.plain)
                         }
                         .padding(.bottom, 2)
 
-                        topThreeActionTiles
+                        topFourActionTiles
+
+                        playerDeckCard
 
                         speedAndPitchQuickCard
 
@@ -367,7 +385,7 @@ struct TaurusPlayerGlassMenuSheet: View {
                     .padding(16)
                 }
             }
-            .navigationTitle("Player Menu")
+            .navigationTitle("Studio Console")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -377,11 +395,32 @@ struct TaurusPlayerGlassMenuSheet: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 
-    private var topThreeActionTiles: some View {
-        HStack(spacing: 10) {
+    private var topFourActionTiles: some View {
+        HStack(spacing: 8) {
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    onOpenArtist()
+                }
+            } label: {
+                actionTileLabel(icon: "person.wave.2.fill", title: "Artist")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                HapticsAndGesturesService.shared.playControlTap(style: .light)
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    onOpenSimilar()
+                }
+            } label: {
+                actionTileLabel(icon: "sparkles", title: "Similar")
+            }
+            .buttonStyle(.plain)
+
             Button {
                 HapticsAndGesturesService.shared.playControlTap(style: .light)
                 dismiss()
@@ -389,16 +428,7 @@ struct TaurusPlayerGlassMenuSheet: View {
                     onOpenPlaylistPicker()
                 }
             } label: {
-                actionTileLabel(icon: "text.badge.plus", title: "Add to Playlist")
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                HapticsAndGesturesService.shared.playControlTap(style: .light)
-                player.playNextInQueue(track)
-                dismiss()
-            } label: {
-                actionTileLabel(icon: "text.line.first.and.arrowtriangle.forward", title: "Play Next")
+                actionTileLabel(icon: "text.badge.plus", title: "Playlist")
             }
             .buttonStyle(.plain)
 
@@ -409,18 +439,60 @@ struct TaurusPlayerGlassMenuSheet: View {
     }
 
     private func actionTileLabel(icon: String, title: String) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 7) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundColor(theme.accent)
             Text(title)
-                .font(theme.font(size: 11.5, weight: .bold))
-                .foregroundColor(.white)
+                .font(theme.font(size: 11, weight: .bold))
+                .foregroundColor(theme.primaryText)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .derbisGlassPanel(cornerRadius: 18, interactive: false)
+        .padding(.vertical, 13)
+        .derbisCard(elevated: true)
+    }
+
+    private var playerDeckCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Player Deck", systemImage: "square.stack.3d.up.fill")
+                    .font(theme.font(size: 14, weight: .bold))
+                    .foregroundColor(theme.primaryText)
+                Spacer()
+                Text(theme.effectivePlayerDeck.title)
+                    .font(theme.font(size: 12, weight: .bold))
+                    .foregroundColor(theme.accent)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(DerbisPlayerDeck.allCases) { deck in
+                        let active = theme.playerDeck == deck
+                        Button {
+                            HapticsAndGesturesService.shared.playSelectionTick()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                                theme.playerDeck = deck
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: deck.icon)
+                                    .font(.system(size: 11.5, weight: .bold))
+                                Text(deck.title)
+                                    .font(theme.font(size: 12.5, weight: active ? .bold : .semibold))
+                            }
+                            .foregroundColor(active ? theme.onAccentText : theme.primaryText)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 8)
+                            .derbisGlassCapsule(prominent: active)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .derbisCard()
     }
 
     private var speedAndPitchQuickCard: some View {
@@ -428,7 +500,7 @@ struct TaurusPlayerGlassMenuSheet: View {
             HStack {
                 Label("Speed & Pitch", systemImage: "speedometer")
                     .font(theme.font(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.primaryText)
                 Spacer()
                 Text(String(format: "%.2fx", fx.playbackSpeed))
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
@@ -440,18 +512,18 @@ struct TaurusPlayerGlassMenuSheet: View {
 
             Toggle("Pitch follows speed (Vinyl varispeed)", isOn: $fx.pitchFollowsSpeed)
                 .font(theme.font(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(theme.primaryText)
                 .tint(theme.accent)
         }
         .padding(14)
-        .derbisGlassPanel(cornerRadius: 18, interactive: false)
+        .derbisCard()
     }
 
     private var backdropStyleCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Background Style")
+            Text("Backdrop Atmosphere")
                 .font(theme.font(size: 14, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(theme.primaryText)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -463,7 +535,7 @@ struct TaurusPlayerGlassMenuSheet: View {
                         } label: {
                             Text(style.rawValue)
                                 .font(theme.font(size: 12.5, weight: active ? .bold : .semibold))
-                                .foregroundColor(active ? .white : .white.opacity(0.8))
+                                .foregroundColor(active ? theme.onAccentText : theme.primaryText)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
                                 .derbisGlassCapsule(prominent: active)
@@ -474,15 +546,31 @@ struct TaurusPlayerGlassMenuSheet: View {
             }
         }
         .padding(14)
-        .derbisGlassPanel(cornerRadius: 18, interactive: false)
+        .derbisCard()
     }
 
     private var lyricsAndAutoMixCard: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Toggle(
+                "Endless Listening (Song Radio)",
+                isOn: Binding(
+                    get: { player.endlessListeningEnabled },
+                    set: {
+                        player.setEndlessListeningEnabled($0)
+                        theme.endlessRadioEnabled = $0
+                    }
+                )
+            )
+            .font(theme.font(size: 13.5, weight: .semibold))
+            .foregroundColor(theme.primaryText)
+            .tint(theme.accent)
+
+            Divider()
+
             HStack {
                 Label("Lyrics Source", systemImage: "quote.bubble")
                     .font(theme.font(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.primaryText)
                 Spacer()
                 Menu(player.currentLyrics?.provider ?? "Auto") {
                     Button("Auto Priority Chain") {
@@ -498,7 +586,7 @@ struct TaurusPlayerGlassMenuSheet: View {
                 .foregroundColor(theme.accent)
             }
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider()
 
             Toggle("Lock Screen Live Lyrics", isOn: Binding(
                 get: { theme.lockScreenLiveLyrics },
@@ -508,14 +596,14 @@ struct TaurusPlayerGlassMenuSheet: View {
                 }
             ))
             .font(theme.font(size: 13.5, weight: .medium))
-            .foregroundColor(.white)
+            .foregroundColor(theme.primaryText)
             .tint(theme.accent)
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider()
 
             Toggle("AutoMix Crossfade (\(Int(theme.autoMixSeconds))s)", isOn: $theme.autoMixEnabled)
                 .font(theme.font(size: 13.5, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(theme.primaryText)
                 .tint(theme.accent)
 
             if theme.autoMixEnabled {
@@ -534,11 +622,34 @@ struct TaurusPlayerGlassMenuSheet: View {
             }
         }
         .padding(14)
-        .derbisGlassPanel(cornerRadius: 18, interactive: false)
+        .derbisCard()
     }
 
     private var moreActionsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
+            if !track.album.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Button {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        onOpenAlbum()
+                    }
+                } label: {
+                    HStack {
+                        Label("Go to Album · \(track.album)", systemImage: "opticaldisc")
+                            .font(theme.font(size: 14, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+            }
+
             Button {
                 dismiss()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
@@ -546,18 +657,18 @@ struct TaurusPlayerGlassMenuSheet: View {
                 }
             } label: {
                 HStack {
-                    Label("Open Full Audio Studio & AutoEQ", systemImage: "slider.vertical.3")
+                    Label("32-bit Mix Lab, AutoEQ & Reverb", systemImage: "slider.vertical.3")
                         .font(theme.font(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.primaryText)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.secondaryText)
                 }
             }
             .buttonStyle(.plain)
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider()
 
             Button {
                 dismiss()
@@ -568,21 +679,21 @@ struct TaurusPlayerGlassMenuSheet: View {
                 HStack {
                     Label("Listen Together (Derbis Jam)", systemImage: "person.2.wave.2.fill")
                         .font(theme.font(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.primaryText)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundColor(theme.secondaryText)
                 }
             }
             .buttonStyle(.plain)
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider()
 
             HStack {
                 Label("Sleep Timer", systemImage: "moon.zzz.fill")
                     .font(theme.font(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(theme.primaryText)
                 Spacer()
                 Menu(
                     player.sleepTimerRemainingSec.map { TimeFormatting.clockString(seconds: Double($0)) } ?? "Off"
@@ -597,7 +708,7 @@ struct TaurusPlayerGlassMenuSheet: View {
                 .foregroundColor(theme.accent)
             }
 
-            Divider().background(Color.white.opacity(0.1))
+            Divider()
 
             let blocked = library.isArtistBlocked(track.artist)
             Button(role: blocked ? nil : .destructive) {
@@ -618,6 +729,6 @@ struct TaurusPlayerGlassMenuSheet: View {
             .buttonStyle(.plain)
         }
         .padding(14)
-        .derbisGlassPanel(cornerRadius: 18, interactive: false)
+        .derbisCard()
     }
 }

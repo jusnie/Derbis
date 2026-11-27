@@ -321,26 +321,325 @@ actor InnerTubeService {
     }
 
     func fetchRadioQueue(seedVideoId: String) async -> [Track] {
-        guard !seedVideoId.isEmpty,
-              let url = URL(string: "https://music.youtube.com/youtubei/v1/next?prettyPrint=false") else {
-            return []
+        let placeholder = Track(
+            id: "yt:\(seedVideoId)",
+            title: "",
+            artist: "",
+            album: "",
+            durationSec: 0,
+            thumbnailURL: "",
+            source: .youtubeMusic
+        )
+        if let page = await fetchRadioPage(seed: placeholder), !page.tracks.isEmpty {
+            return page.tracks
         }
+        return []
+    }
+
+    func fetchRadioPage(seed: Track) async -> InnerTubeRadioPage? {
+        let resolvedSeedVid: String? = await resolveRadioSeedVideoId(for: seed)
+        guard let seedVideoId = resolvedSeedVid, !seedVideoId.isEmpty else {
+            return nil
+        }
+        let defaultRadioId = "RDAMVM\(seedVideoId)"
+
+        guard let initialJSON = await postWatchNextJSON(
+            videoId: seedVideoId,
+            playlistId: defaultRadioId,
+            params: "wAEB",
+            continuation: nil
+        ) else {
+            return nil
+        }
+
+        var workingJSON = initialJSON
+        var resolvedRadioId = extractPlaylistId(from: initialJSON)
+        if resolvedRadioId.isEmpty { resolvedRadioId = defaultRadioId }
+
+        var initialTracks = extractRadioTracks(from: initialJSON, excludingVideoId: seedVideoId)
+        if initialTracks.count <= 2, let automix = extractAutomixEndpoint(from: initialJSON) {
+            let handoffPlaylist = automix.playlistId.isEmpty ? resolvedRadioId : automix.playlistId
+            let handoffVid = automix.videoId.isEmpty ? seedVideoId : automix.videoId
+            let handoffParams = automix.params.isEmpty ? "wAEB" : automix.params
+            if let handoffJSON = await postWatchNextJSON(
+                videoId: handoffVid,
+                playlistId: handoffPlaylist,
+                params: handoffParams,
+                continuation: nil
+            ) {
+                let handoffTracks = extractRadioTracks(from: handoffJSON, excludingVideoId: seedVideoId)
+                if !handoffTracks.isEmpty {
+                    workingJSON = handoffJSON
+                    initialTracks = handoffTracks
+                    let nextPid = extractPlaylistId(from: handoffJSON)
+                    resolvedRadioId = nextPid.isEmpty ? handoffPlaylist : nextPid
+                }
+            }
+        }
+
+        let continuation = extractWatchContinuation(from: workingJSON)
+        guard !initialTracks.isEmpty || !continuation.isEmpty else {
+            return nil
+        }
+        return InnerTubeRadioPage(
+            radioId: resolvedRadioId,
+            tracks: initialTracks,
+            continuation: continuation
+        )
+    }
+
+    func fetchRadioContinuationPage(
+        seed: Track,
+        radioId: String,
+        continuation: String
+    ) async -> InnerTubeRadioPage? {
+        let cleanRadioId = radioId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanToken = continuation.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanRadioId.isEmpty, !cleanToken.isEmpty else { return nil }
+
+        guard let json = await postWatchNextJSON(
+            videoId: seed.videoId,
+            playlistId: cleanRadioId,
+            params: "wAEB",
+            continuation: cleanToken
+        ) else {
+            return nil
+        }
+
+        let tracks = extractRadioTracks(from: json, excludingVideoId: seed.videoId)
+        let nextToken = extractWatchContinuation(from: json)
+        let nextPid = extractPlaylistId(from: json)
+        return InnerTubeRadioPage(
+            radioId: nextPid.isEmpty ? cleanRadioId : nextPid,
+            tracks: tracks,
+            continuation: nextToken
+        )
+    }
+
+    func fetchFallbackRadioTracks(
+        seed: Track,
+        excludeIds: Set<String>,
+        limit: Int = 18
+    ) async -> [Track] {
+        let cleanArtist = seed.artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanTitle = seed.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        var queries: [String] = []
+        if !cleanTitle.isEmpty && !cleanArtist.isEmpty && cleanArtist.lowercased() != "unknown artist" {
+            queries.append("\(cleanTitle) \(cleanArtist) mix")
+            queries.append("songs like \(cleanTitle) \(cleanArtist)")
+        }
+        if !cleanArtist.isEmpty && cleanArtist.lowercased() != "unknown artist" {
+            queries.append("\(cleanArtist) best songs")
+        }
+        if queries.isEmpty {
+            queries.append("trending chill hits")
+        }
+
+        return await withTaskGroup(of: [Track].self) { group -> [Track] in
+            for q in queries {
+                group.addTask {
+                    (try? await self.searchTracks(query: q)) ?? []
+                }
+            }
+            var combined: [Track] = []
+            var seen = excludeIds
+            seen.insert(seed.id)
+            if let vid = seed.videoId {
+                seen.insert(vid)
+                seen.insert("yt:\(vid)")
+            }
+            for await batch in group {
+                for item in batch {
+                    if seen.insert(item.id).inserted {
+                        combined.append(item)
+                    }
+                }
+            }
+            return Array(combined.prefix(max(limit, 8)))
+        }
+    }
+
+    func fetchArtistCatalog(artistName: String) async -> ArtistCatalogPayload {
+        let trimmed = artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return ArtistCatalogPayload(artistName: artistName, heroArtworkURL: nil, topTracks: [], albums: [], relatedArtists: [])
+        }
+
+        async let topBatch = (try? searchTracks(query: "\(trimmed) top songs")) ?? []
+        async let deepBatch = (try? searchTracks(query: "\(trimmed) albums singles")) ?? []
+        async let mixBatch = (try? searchTracks(query: "artists similar to \(trimmed) songs")) ?? []
+
+        let (topRaw, deepRaw, similarRaw) = await (topBatch, deepBatch, mixBatch)
+        let targetKey = EndlessTrackTextNormalizer.canonicalArtist(trimmed)
+
+        var seenIds = Set<String>()
+        var primaryTracks: [Track] = []
+        var secondaryTracks: [Track] = []
+
+        for t in topRaw + deepRaw {
+            guard seenIds.insert(t.id).inserted else { continue }
+            let itemArtistKey = EndlessTrackTextNormalizer.canonicalArtist(t.artist)
+            if itemArtistKey == targetKey || t.artist.localizedCaseInsensitiveContains(trimmed) {
+                primaryTracks.append(t)
+            } else {
+                secondaryTracks.append(t)
+            }
+        }
+
+        let orderedTop = Array((primaryTracks.isEmpty ? secondaryTracks : primaryTracks).prefix(20))
+
+        var albumGroups: [String: [Track]] = [:]
+        var albumOrder: [String] = []
+        for track in primaryTracks where !track.album.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let key = track.album.trimmingCharacters(in: .whitespacesAndNewlines)
+            if albumGroups[key] == nil {
+                albumOrder.append(key)
+                albumGroups[key] = []
+            }
+            albumGroups[key]?.append(track)
+        }
+
+        var albumCards: [AlbumSummaryCard] = albumOrder.prefix(12).compactMap { albumTitle in
+            guard let list = albumGroups[albumTitle], let first = list.first else { return nil }
+            return AlbumSummaryCard(
+                id: "\(trimmed.lowercased())|\(albumTitle.lowercased())",
+                title: albumTitle,
+                artist: trimmed,
+                year: "",
+                artworkURL: first.displayArtworkURL?.absoluteString ?? first.thumbnailURL,
+                seedTracks: list
+            )
+        }
+
+        if albumCards.isEmpty {
+            for track in orderedTop.prefix(6) {
+                albumCards.append(
+                    AlbumSummaryCard(
+                        id: "single|\(track.id)",
+                        title: track.album.isEmpty ? "\(track.title) — Single" : track.album,
+                        artist: trimmed,
+                        year: "Single",
+                        artworkURL: track.displayArtworkURL?.absoluteString ?? track.thumbnailURL,
+                        seedTracks: [track]
+                    )
+                )
+            }
+        }
+
+        var relatedArtists: [String] = []
+        var seenArtistKeys: Set<String> = [targetKey]
+        for t in similarRaw + secondaryTracks {
+            let candidate = t.artist
+                .components(separatedBy: CharacterSet(charactersIn: ",&"))
+                .first?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let key = EndlessTrackTextNormalizer.canonicalArtist(candidate)
+            guard !candidate.isEmpty,
+                  candidate.lowercased() != "unknown artist",
+                  seenArtistKeys.insert(key).inserted else { continue }
+            relatedArtists.append(candidate)
+            if relatedArtists.count >= 8 { break }
+        }
+
+        let heroURL = orderedTop.first?.displayArtworkURL?.absoluteString ?? orderedTop.first?.thumbnailURL
+        return ArtistCatalogPayload(
+            artistName: trimmed,
+            heroArtworkURL: heroURL,
+            topTracks: orderedTop,
+            albums: albumCards,
+            relatedArtists: relatedArtists
+        )
+    }
+
+    func fetchAlbumCatalog(
+        albumTitle: String,
+        artistName: String,
+        seedTracks: [Track] = []
+    ) async -> AlbumCatalogPayload {
+        let cleanAlbum = albumTitle.replacingOccurrences(of: " — Single", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanArtist = artistName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = cleanArtist.isEmpty ? "\(cleanAlbum) album" : "\(cleanAlbum) \(cleanArtist) album"
+        let fetched = (try? await searchTracks(query: query)) ?? []
+
+        var seen = Set<String>()
+        var matched: [Track] = []
+        for s in seedTracks where seen.insert(s.id).inserted {
+            matched.append(s)
+        }
+
+        let normAlbum = EndlessTrackTextNormalizer.normalizedTitle(cleanAlbum)
+        let normArtist = EndlessTrackTextNormalizer.canonicalArtist(cleanArtist)
+
+        for item in fetched where seen.insert(item.id).inserted {
+            let itemAlbumNorm = EndlessTrackTextNormalizer.normalizedTitle(item.album)
+            let itemArtistNorm = EndlessTrackTextNormalizer.canonicalArtist(item.artist)
+            if (!normAlbum.isEmpty && itemAlbumNorm == normAlbum) || (!normArtist.isEmpty && itemArtistNorm == normArtist) {
+                matched.append(item)
+            }
+        }
+
+        if matched.isEmpty {
+            matched = Array(fetched.prefix(14))
+        }
+
+        let artwork = matched.first?.displayArtworkURL?.absoluteString ?? matched.first?.thumbnailURL
+        return AlbumCatalogPayload(
+            title: cleanAlbum.isEmpty ? "Release" : cleanAlbum,
+            artistName: cleanArtist.isEmpty ? (matched.first?.artist ?? "Artist") : cleanArtist,
+            artworkURL: artwork,
+            year: "",
+            tracks: Array(matched.prefix(24))
+        )
+    }
+
+    private func resolveRadioSeedVideoId(for seed: Track) async -> String? {
+        if let vid = seed.videoId, !vid.isEmpty {
+            return vid
+        }
+        let q = "\(seed.title) \(seed.artist)".trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return nil }
+        let hits = (try? await searchTracks(query: q)) ?? []
+        return hits.first?.videoId
+    }
+
+    private func postWatchNextJSON(
+        videoId: String?,
+        playlistId: String,
+        params: String,
+        continuation: String?
+    ) async -> [String: Any]? {
+        var urlString = "https://music.youtube.com/youtubei/v1/next?prettyPrint=false"
+        if let token = continuation, !token.isEmpty,
+           let encoded = token.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-_."))) {
+            urlString += "&ctoken=\(encoded)&continuation=\(encoded)"
+        }
+        guard let url = URL(string: urlString) else { return nil }
 
         let hl = effectiveLanguageCode
         let gl = effectiveCountryCode
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "context": [
                 "client": [
                     "clientName": "WEB_REMIX",
                     "clientVersion": webRemixVersion,
                     "hl": hl,
-                    "gl": gl
-                ]
+                    "gl": gl,
+                    "platform": "DESKTOP"
+                ],
+                "user": ["lockedSafetyMode": false]
             ],
-            "videoId": seedVideoId,
-            "playlistId": "RDAMVM\(seedVideoId)",
-            "isAudioOnly": true
+            "enablePersistentPlaylistPanel": true,
+            "isAudioOnly": true,
+            "tunerSettingValue": "AUTOMIX_SETTING_NORMAL",
+            "playlistId": playlistId,
+            "params": params
         ]
+        if let vid = videoId, !vid.isEmpty {
+            body["videoId"] = vid
+        }
+        if let token = continuation, !token.isEmpty {
+            body["continuation"] = token
+        }
 
         do {
             var request = URLRequest(url: url)
@@ -358,17 +657,77 @@ actor InnerTubeService {
             }
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-            let (data, _) = try await session.data(for: request)
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                return []
+            let (data, resp) = try await session.data(for: request)
+            if let http = resp as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                return nil
             }
-            var results: [Track] = []
-            collectTracksFromJSON(json, into: &results)
-            var seen = Set<String>([seedVideoId, "yt:\(seedVideoId)"])
-            return results.filter { seen.insert($0.id).inserted }
+            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
         } catch {
-            return []
+            return nil
         }
+    }
+
+    private func extractRadioTracks(from json: [String: Any], excludingVideoId: String?) -> [Track] {
+        var results: [Track] = []
+        collectTracksFromJSON(json, into: &results)
+        var seen = Set<String>()
+        if let vid = excludingVideoId, !vid.isEmpty {
+            seen.insert(vid)
+            seen.insert("yt:\(vid)")
+        }
+        return results.filter { seen.insert($0.id).inserted }
+    }
+
+    private func extractAutomixEndpoint(from json: [String: Any]) -> (videoId: String, playlistId: String, params: String)? {
+        var previews: [[String: Any]] = []
+        collectNamedDicts("automixPreviewVideoRenderer", in: json, into: &previews)
+        for preview in previews {
+            guard let content = preview["content"] as? [String: Any],
+                  let renderer = content["automixPlaylistVideoRenderer"] as? [String: Any],
+                  let nav = renderer["navigationEndpoint"] as? [String: Any] else {
+                continue
+            }
+            let watch = (nav["watchPlaylistEndpoint"] as? [String: Any]) ?? (nav["watchEndpoint"] as? [String: Any])
+            guard let watch else { continue }
+            let vid = (watch["videoId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let pid = (watch["playlistId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let prm = (watch["params"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !pid.isEmpty || !vid.isEmpty {
+                return (vid, pid, prm)
+            }
+        }
+        return nil
+    }
+
+    private func extractPlaylistId(from json: [String: Any]) -> String {
+        var endpoints: [[String: Any]] = []
+        collectNamedDicts("watchEndpoint", in: json, into: &endpoints)
+        for ep in endpoints {
+            if let pid = ep["playlistId"] as? String, !pid.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return pid.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return ""
+    }
+
+    private func extractWatchContinuation(from json: [String: Any]) -> String {
+        let keys = [
+            "nextRadioContinuationData",
+            "nextContinuationData",
+            "reloadContinuationData",
+            "continuationCommand"
+        ]
+        for key in keys {
+            var objects: [[String: Any]] = []
+            collectNamedDicts(key, in: json, into: &objects)
+            for obj in objects {
+                let c1 = (obj["continuation"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !c1.isEmpty { return c1 }
+                let c2 = (obj["token"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !c2.isEmpty { return c2 }
+            }
+        }
+        return ""
     }
 
     func resolvePlayableStream(
@@ -1512,6 +1871,17 @@ actor InnerTubeService {
         let title = extractText(from: panel["title"]).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return nil }
         let artist = extractText(from: panel["shortBylineText"]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let longByline = extractText(from: panel["longBylineText"]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let bylineParts = longByline
+            .components(separatedBy: CharacterSet(charactersIn: "•·"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let albumName: String = {
+            guard bylineParts.count >= 2 else { return "" }
+            let candidate = bylineParts[1]
+            if Int(candidate) != nil { return "" }
+            return candidate
+        }()
         let lengthStr = extractText(from: panel["lengthText"])
         let durationSec = parseDurationToken(lengthStr) ?? 0
         let rawThumb = extractBestThumbnail(from: panel)
@@ -1521,8 +1891,8 @@ actor InnerTubeService {
         return Track(
             id: "yt:\(vid)",
             title: title,
-            artist: artist.isEmpty ? "Unknown Artist" : artist,
-            album: "",
+            artist: artist.isEmpty ? (bylineParts.first ?? "Unknown Artist") : artist,
+            album: albumName,
             durationSec: durationSec,
             thumbnailURL: smallThumb,
             largeThumbnailURL: largeThumb,

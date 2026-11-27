@@ -8,6 +8,10 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(skin.rawValue, forKey: "derbis.skin") }
     }
 
+    @Published var playerDeck: DerbisPlayerDeck {
+        didSet { UserDefaults.standard.set(playerDeck.rawValue, forKey: "derbis.playerDeck") }
+    }
+
     @Published var fontChoice: DerbisFontChoice {
         didSet { UserDefaults.standard.set(fontChoice.rawValue, forKey: "derbis.fontChoice") }
     }
@@ -17,7 +21,10 @@ final class ThemeManager: ObservableObject {
     }
 
     @Published var endlessRadioEnabled: Bool {
-        didSet { UserDefaults.standard.set(endlessRadioEnabled, forKey: "derbis.endlessRadio") }
+        didSet {
+            UserDefaults.standard.set(endlessRadioEnabled, forKey: "derbis.endlessRadio")
+            AudioPlayerEngine.shared.syncEndlessListeningFromPreferences(endlessRadioEnabled)
+        }
     }
 
     @Published var autoLoadLyrics: Bool {
@@ -134,124 +141,140 @@ final class ThemeManager: ObservableObject {
     @Published var dynamicCoverAccent: Color? = nil
 
     init() {
-        let savedSkin = UserDefaults.standard.string(forKey: "derbis.skin") ?? DerbisSkin.liquidGlass.rawValue
-        self.skin = DerbisSkin(rawValue: savedSkin) ?? .liquidGlass
+        let defaults = UserDefaults.standard
+        let migratedV2 = defaults.bool(forKey: "derbis.migratedLinearGlassV2")
 
-        let savedFont = UserDefaults.standard.string(forKey: "derbis.fontChoice") ?? DerbisFontChoice.skinDefault.rawValue
+        if !migratedV2 {
+            self.skin = .derbisDefault
+            self.playerDeck = .flow
+            self.liquidGlassEnabled = false
+            defaults.set(DerbisSkin.derbisDefault.rawValue, forKey: "derbis.skin")
+            defaults.set(DerbisPlayerDeck.flow.rawValue, forKey: "derbis.playerDeck")
+            defaults.set(false, forKey: "derbis.liquidGlassEnabled")
+            defaults.set(true, forKey: "derbis.migratedLinearGlassV2")
+        } else {
+            let savedSkin = defaults.string(forKey: "derbis.skin") ?? DerbisSkin.derbisDefault.rawValue
+            self.skin = DerbisSkin(rawValue: savedSkin) ?? .derbisDefault
+
+            let savedDeck = defaults.string(forKey: "derbis.playerDeck") ?? DerbisPlayerDeck.flow.rawValue
+            self.playerDeck = DerbisPlayerDeck(rawValue: savedDeck) ?? .flow
+
+            if defaults.object(forKey: "derbis.liquidGlassEnabled") == nil {
+                self.liquidGlassEnabled = false
+            } else {
+                self.liquidGlassEnabled = defaults.bool(forKey: "derbis.liquidGlassEnabled")
+            }
+        }
+
+        let savedFont = defaults.string(forKey: "derbis.fontChoice") ?? DerbisFontChoice.skinDefault.rawValue
         self.fontChoice = DerbisFontChoice(rawValue: savedFont) ?? .skinDefault
 
-        if UserDefaults.standard.object(forKey: "derbis.highQualityAudio") == nil {
+        if defaults.object(forKey: "derbis.highQualityAudio") == nil {
             self.highQualityAudio = true
         } else {
-            self.highQualityAudio = UserDefaults.standard.bool(forKey: "derbis.highQualityAudio")
+            self.highQualityAudio = defaults.bool(forKey: "derbis.highQualityAudio")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.endlessRadio") == nil {
+        if defaults.object(forKey: "derbis.endlessRadio") == nil {
             self.endlessRadioEnabled = true
         } else {
-            self.endlessRadioEnabled = UserDefaults.standard.bool(forKey: "derbis.endlessRadio")
+            self.endlessRadioEnabled = defaults.bool(forKey: "derbis.endlessRadio")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.autoLoadLyrics") == nil {
+        if defaults.object(forKey: "derbis.autoLoadLyrics") == nil {
             self.autoLoadLyrics = true
         } else {
-            self.autoLoadLyrics = UserDefaults.standard.bool(forKey: "derbis.autoLoadLyrics")
+            self.autoLoadLyrics = defaults.bool(forKey: "derbis.autoLoadLyrics")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.motionCanvasEnabled") == nil {
+        if defaults.object(forKey: "derbis.motionCanvasEnabled") == nil {
             self.motionCanvasEnabled = true
         } else {
-            self.motionCanvasEnabled = UserDefaults.standard.bool(forKey: "derbis.motionCanvasEnabled")
+            self.motionCanvasEnabled = defaults.bool(forKey: "derbis.motionCanvasEnabled")
         }
 
-        let savedStyle = UserDefaults.standard.string(forKey: "derbis.motionCanvasStyle") ?? MotionCanvasStyle.immersive.rawValue
-        self.motionCanvasStyle = MotionCanvasStyle(rawValue: savedStyle) ?? .immersive
+        let savedStyle = defaults.string(forKey: "derbis.motionCanvasStyle") ?? MotionCanvasStyle.framed.rawValue
+        self.motionCanvasStyle = MotionCanvasStyle(rawValue: savedStyle) ?? .framed
 
-        let savedBackdrop = UserDefaults.standard.string(forKey: "derbis.backdropStyle") ?? PlayerBackdropStyle.animated.rawValue
-        self.backdropStyle = PlayerBackdropStyle(rawValue: savedBackdrop) ?? .animated
+        let savedBackdrop = defaults.string(forKey: "derbis.backdropStyle") ?? PlayerBackdropStyle.fluid.rawValue
+        self.backdropStyle = PlayerBackdropStyle(rawValue: savedBackdrop) ?? .fluid
 
-        if UserDefaults.standard.object(forKey: "derbis.showLyricsRomanization") == nil {
+        if defaults.object(forKey: "derbis.showLyricsRomanization") == nil {
             self.showLyricsRomanization = true
         } else {
-            self.showLyricsRomanization = UserDefaults.standard.bool(forKey: "derbis.showLyricsRomanization")
+            self.showLyricsRomanization = defaults.bool(forKey: "derbis.showLyricsRomanization")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.showLyricsTranslation") == nil {
+        if defaults.object(forKey: "derbis.showLyricsTranslation") == nil {
             self.showLyricsTranslation = false
         } else {
-            self.showLyricsTranslation = UserDefaults.standard.bool(forKey: "derbis.showLyricsTranslation")
+            self.showLyricsTranslation = defaults.bool(forKey: "derbis.showLyricsTranslation")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.autoHideLyricsControls") == nil {
+        if defaults.object(forKey: "derbis.autoHideLyricsControls") == nil {
             self.autoHideLyricsControls = false
         } else {
-            self.autoHideLyricsControls = UserDefaults.standard.bool(forKey: "derbis.autoHideLyricsControls")
+            self.autoHideLyricsControls = defaults.bool(forKey: "derbis.autoHideLyricsControls")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.lockScreenLiveLyrics") == nil {
+        if defaults.object(forKey: "derbis.lockScreenLiveLyrics") == nil {
             self.lockScreenLiveLyrics = true
         } else {
-            self.lockScreenLiveLyrics = UserDefaults.standard.bool(forKey: "derbis.lockScreenLiveLyrics")
+            self.lockScreenLiveLyrics = defaults.bool(forKey: "derbis.lockScreenLiveLyrics")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.lockScreenLyricArt") == nil {
+        if defaults.object(forKey: "derbis.lockScreenLyricArt") == nil {
             self.lockScreenLyricArt = false
         } else {
-            self.lockScreenLyricArt = UserDefaults.standard.bool(forKey: "derbis.lockScreenLyricArt")
+            self.lockScreenLyricArt = defaults.bool(forKey: "derbis.lockScreenLyricArt")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.playerGesturesEnabled") == nil {
+        if defaults.object(forKey: "derbis.playerGesturesEnabled") == nil {
             self.playerGesturesEnabled = true
         } else {
-            self.playerGesturesEnabled = UserDefaults.standard.bool(forKey: "derbis.playerGesturesEnabled")
+            self.playerGesturesEnabled = defaults.bool(forKey: "derbis.playerGesturesEnabled")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.liquidGlassEnabled") == nil {
-            self.liquidGlassEnabled = true
-        } else {
-            self.liquidGlassEnabled = UserDefaults.standard.bool(forKey: "derbis.liquidGlassEnabled")
-        }
-
-        if UserDefaults.standard.object(forKey: "derbis.ambientGlassBackdropEnabled") == nil {
+        if defaults.object(forKey: "derbis.ambientGlassBackdropEnabled") == nil {
             self.ambientGlassBackdropEnabled = true
         } else {
-            self.ambientGlassBackdropEnabled = UserDefaults.standard.bool(forKey: "derbis.ambientGlassBackdropEnabled")
+            self.ambientGlassBackdropEnabled = defaults.bool(forKey: "derbis.ambientGlassBackdropEnabled")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.coverFollowsAccent") == nil {
+        if defaults.object(forKey: "derbis.coverFollowsAccent") == nil {
             self.coverFollowsAccent = false
         } else {
-            self.coverFollowsAccent = UserDefaults.standard.bool(forKey: "derbis.coverFollowsAccent")
+            self.coverFollowsAccent = defaults.bool(forKey: "derbis.coverFollowsAccent")
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.miniPlayerProgressThickness") == nil {
-            self.miniPlayerProgressThickness = 2.0
+        if defaults.object(forKey: "derbis.miniPlayerProgressThickness") == nil {
+            self.miniPlayerProgressThickness = 2.5
         } else {
-            let savedThickness = UserDefaults.standard.double(forKey: "derbis.miniPlayerProgressThickness")
+            let savedThickness = defaults.double(forKey: "derbis.miniPlayerProgressThickness")
             self.miniPlayerProgressThickness = min(5.0, max(0.0, savedThickness))
         }
 
-        if UserDefaults.standard.object(forKey: "derbis.tabBarMinimizesOnScroll") == nil {
+        if defaults.object(forKey: "derbis.tabBarMinimizesOnScroll") == nil {
             self.tabBarMinimizesOnScroll = true
         } else {
-            self.tabBarMinimizesOnScroll = UserDefaults.standard.bool(forKey: "derbis.tabBarMinimizesOnScroll")
+            self.tabBarMinimizesOnScroll = defaults.bool(forKey: "derbis.tabBarMinimizesOnScroll")
         }
 
-        self.hideTabLabels = UserDefaults.standard.bool(forKey: "derbis.hideTabLabels")
+        self.hideTabLabels = defaults.bool(forKey: "derbis.hideTabLabels")
 
-        let savedTransLang = UserDefaults.standard.string(forKey: "derbis.lyricsTranslationLanguage") ?? LyricsTranslationLanguage.english.rawValue
+        let savedTransLang = defaults.string(forKey: "derbis.lyricsTranslationLanguage") ?? LyricsTranslationLanguage.english.rawValue
         self.lyricsTranslationLanguage = LyricsTranslationLanguage(rawValue: savedTransLang) ?? .english
 
-        let savedGeniusFilter = UserDefaults.standard.string(forKey: "derbis.geniusMeaningsFilter") ?? GeniusMeaningFilter.everyone.rawValue
+        let savedGeniusFilter = defaults.string(forKey: "derbis.geniusMeaningsFilter") ?? GeniusMeaningFilter.everyone.rawValue
         self.geniusMeaningsFilter = GeniusMeaningFilter(rawValue: savedGeniusFilter) ?? .everyone
 
-        if UserDefaults.standard.object(forKey: "derbis.showGeniusMeaningMarkers") == nil {
+        if defaults.object(forKey: "derbis.showGeniusMeaningMarkers") == nil {
             self.showGeniusMeaningMarkers = true
         } else {
-            self.showGeniusMeaningMarkers = UserDefaults.standard.bool(forKey: "derbis.showGeniusMeaningMarkers")
+            self.showGeniusMeaningMarkers = defaults.bool(forKey: "derbis.showGeniusMeaningMarkers")
         }
 
-        if let srcData = UserDefaults.standard.data(forKey: "derbis.lyricsSourcePriority"),
+        if let srcData = defaults.data(forKey: "derbis.lyricsSourcePriority"),
            let decodedSrc = try? JSONDecoder().decode([LyricsSourceKind].self, from: srcData),
            !decodedSrc.isEmpty {
             var unique: [LyricsSourceKind] = []
@@ -262,24 +285,34 @@ final class ThemeManager: ObservableObject {
             self.lyricsSourcePriority = [.appleTTML, .netEaseYRC, .lrclib]
         }
 
-        self.autoMixEnabled = UserDefaults.standard.bool(forKey: "derbis.autoMixEnabled")
+        self.autoMixEnabled = defaults.bool(forKey: "derbis.autoMixEnabled")
 
-        if UserDefaults.standard.object(forKey: "derbis.autoMixSeconds") == nil {
+        if defaults.object(forKey: "derbis.autoMixSeconds") == nil {
             self.autoMixSeconds = 6.0
         } else {
-            let savedMix = UserDefaults.standard.double(forKey: "derbis.autoMixSeconds")
+            let savedMix = defaults.double(forKey: "derbis.autoMixSeconds")
             self.autoMixSeconds = min(12.0, max(1.0, savedMix.rounded()))
         }
 
-        let savedMixStyle = UserDefaults.standard.string(forKey: "derbis.autoMixStyle") ?? AutoMixStyle.smartBlend.rawValue
+        let savedMixStyle = defaults.string(forKey: "derbis.autoMixStyle") ?? AutoMixStyle.smartBlend.rawValue
         self.autoMixStyle = AutoMixStyle(rawValue: savedMixStyle) ?? .smartBlend
 
-        self.customFontPostScriptName = UserDefaults.standard.string(forKey: "derbis.customFontPostScriptName") ?? ""
-        self.customFontDisplayName = UserDefaults.standard.string(forKey: "derbis.customFontDisplayName") ?? ""
+        self.customFontPostScriptName = defaults.string(forKey: "derbis.customFontPostScriptName") ?? ""
+        self.customFontDisplayName = defaults.string(forKey: "derbis.customFontDisplayName") ?? ""
+    }
+
+    var effectivePlayerDeck: DerbisPlayerDeck {
+        if skin == .pixelUI && playerDeck == .flow {
+            return .pixel
+        }
+        if skin == .appleMusic13 && playerDeck == .flow {
+            return .appleMusic13
+        }
+        return playerDeck
     }
 
     var usesLiquidGlass: Bool {
-        !isPixelSkin && (liquidGlassEnabled || skin == .liquidGlass)
+        !skin.isLight && !isPixelSkin && (skin == .liquidGlass || liquidGlassEnabled)
     }
 
     var usesPixelFont: Bool {
@@ -297,107 +330,181 @@ final class ThemeManager: ObservableObject {
         skin == .pixelUI
     }
 
+    var isTorqueSkin: Bool {
+        skin == .torque
+    }
+
+    var isLightSkin: Bool {
+        skin.isLight
+    }
+
     var colorScheme: ColorScheme {
         skin.isLight ? .light : .dark
     }
 
     var background: Color {
         switch skin {
-        case .liquidGlass: return Color(hex: 0x000000)
-        case .appleMusic13: return Color(hex: 0x000000)
+        case .derbisDefault: return Color(hex: 0x030303)
         case .pixelUI: return Color(hex: 0xFFEDF1)
-        case .derbisDefault: return Color(hex: 0x070709)
+        case .torque: return Color(hex: 0x060709)
+        case .ivory: return Color(hex: 0xFAF7F2)
         case .lateNight: return Color(hex: 0x000000)
+        case .liquidGlass: return Color(hex: 0x020306)
+        case .appleMusic13: return Color(hex: 0x000000)
+        }
+    }
+
+    var inkSurface: Color {
+        switch skin {
+        case .derbisDefault: return Color(hex: 0x0A0A0C)
+        case .pixelUI: return Color(hex: 0xFFF8F6)
+        case .torque: return Color(hex: 0x0B0E14)
+        case .ivory: return Color(hex: 0xF4EFE6)
+        case .lateNight: return Color(hex: 0x08080B)
+        case .liquidGlass: return Color(hex: 0x080A10)
+        case .appleMusic13: return Color(hex: 0x111113)
         }
     }
 
     var surface: Color {
         switch skin {
+        case .derbisDefault: return Color(hex: 0x16161A)
+        case .pixelUI: return Color(hex: 0xFFF8F6)
+        case .torque: return Color(hex: 0x11141B)
+        case .ivory: return Color(hex: 0xFFFFFF)
+        case .lateNight: return Color(hex: 0x0E0E12)
         case .liquidGlass: return Color.white.opacity(0.065)
         case .appleMusic13: return Color(hex: 0x1C1C1E)
-        case .pixelUI: return Color(hex: 0xFFF8F6)
-        case .derbisDefault: return Color(hex: 0x121218)
-        case .lateNight: return Color(hex: 0x0E0E12)
         }
     }
 
     var elevatedSurface: Color {
         switch skin {
+        case .derbisDefault: return Color(hex: 0x222228)
+        case .pixelUI: return Color(hex: 0xFFD9E2)
+        case .torque: return Color(hex: 0x1A1F2A)
+        case .ivory: return Color(hex: 0xF1ECE3)
+        case .lateNight: return Color(hex: 0x17171E)
         case .liquidGlass: return Color.white.opacity(0.115)
         case .appleMusic13: return Color(hex: 0x2C2C2E)
-        case .pixelUI: return Color(hex: 0xFFD9E2)
-        case .derbisDefault: return Color(hex: 0x1B1B24)
-        case .lateNight: return Color(hex: 0x17171E)
         }
     }
 
     var primaryText: Color {
         switch skin {
         case .pixelUI: return Color(hex: 0x5B2338)
+        case .ivory: return Color(hex: 0x181615)
+        case .derbisDefault: return Color(hex: 0xF5F5F7)
+        case .torque: return Color(hex: 0xF1F5F9)
         default: return Color.white
         }
     }
 
     var secondaryText: Color {
         switch skin {
-        case .liquidGlass: return Color.white.opacity(0.65)
-        case .appleMusic13: return Color.white.opacity(0.62)
+        case .derbisDefault: return Color(hex: 0x8E8E98)
         case .pixelUI: return Color(hex: 0x7E3B57)
-        case .derbisDefault: return Color(hex: 0xA2A2B2)
+        case .torque: return Color(hex: 0x94A3B8)
+        case .ivory: return Color(hex: 0x6B645C)
         case .lateNight: return Color(hex: 0x9E9890)
+        case .liquidGlass: return Color.white.opacity(0.66)
+        case .appleMusic13: return Color.white.opacity(0.62)
         }
     }
 
     var accent: Color {
-        if coverFollowsAccent, !isPixelSkin, let dynamic = dynamicCoverAccent {
+        if coverFollowsAccent, !isPixelSkin, !isLightSkin, let dynamic = dynamicCoverAccent {
             return dynamic
         }
         switch skin {
-        case .liquidGlass: return Color(hex: 0xFC3C44)
-        case .appleMusic13: return Color(hex: 0xFC3C44)
+        case .derbisDefault: return Color(hex: 0x2997FF)
         case .pixelUI: return Color(hex: 0x9E1B44)
-        case .derbisDefault: return Color(hex: 0xFA2D48)
+        case .torque: return Color(hex: 0x22D3EE)
+        case .ivory: return Color(hex: 0xC2410C)
         case .lateNight: return Color(hex: 0xF59E0B)
+        case .liquidGlass: return Color(hex: 0x38BDF8)
+        case .appleMusic13: return Color(hex: 0xFC3C44)
+        }
+    }
+
+    var secondaryAccent: Color {
+        switch skin {
+        case .derbisDefault: return Color(hex: 0x818CF8)
+        case .pixelUI: return Color(hex: 0xC93B6B)
+        case .torque: return Color(hex: 0xF97316)
+        case .ivory: return Color(hex: 0x9A3412)
+        case .lateNight: return Color(hex: 0xFB923C)
+        case .liquidGlass: return Color(hex: 0x818CF8)
+        case .appleMusic13: return Color(hex: 0xFA2D48)
+        }
+    }
+
+    var tertiaryAccent: Color {
+        switch skin {
+        case .derbisDefault: return Color(hex: 0xEC4899)
+        case .pixelUI: return Color(hex: 0x5B2338)
+        case .torque: return Color(hex: 0x38BDF8)
+        case .ivory: return Color(hex: 0xD97706)
+        case .lateNight: return Color(hex: 0xFBBF24)
+        case .liquidGlass: return Color(hex: 0xF472B6)
+        case .appleMusic13: return Color(hex: 0xFF6482)
+        }
+    }
+
+    var onAccentText: Color {
+        switch skin {
+        case .torque, .lateNight:
+            return Color(hex: 0x060709)
+        default:
+            return Color.white
         }
     }
 
     var border: Color {
         switch skin {
+        case .derbisDefault: return Color.white.opacity(0.09)
+        case .pixelUI: return Color(hex: 0x5B2338)
+        case .torque: return Color(hex: 0x22D3EE, opacity: 0.22)
+        case .ivory: return Color(hex: 0x181615, opacity: 0.11)
+        case .lateNight: return Color(hex: 0xF59E0B).opacity(0.18)
         case .liquidGlass: return Color.white.opacity(0.15)
         case .appleMusic13: return Color.white.opacity(0.10)
-        case .pixelUI: return Color(hex: 0xA84765)
-        case .derbisDefault: return Color.white.opacity(0.08)
-        case .lateNight: return Color(hex: 0xF59E0B).opacity(0.18)
         }
     }
 
     var cardRadius: CGFloat {
         switch skin {
         case .pixelUI: return 0
-        case .liquidGlass: return 18
+        case .torque: return 6
+        case .derbisDefault: return 18
+        case .ivory: return 16
+        case .lateNight: return 14
+        case .liquidGlass: return 20
         case .appleMusic13: return 14
-        case .derbisDefault: return 16
-        case .lateNight: return 12
         }
     }
 
     var artworkRadius: CGFloat {
         switch skin {
         case .pixelUI: return 0
-        case .liquidGlass: return 10
-        case .appleMusic13: return 10
+        case .torque: return 4
         case .derbisDefault: return 12
+        case .ivory: return 10
         case .lateNight: return 8
+        case .liquidGlass: return 12
+        case .appleMusic13: return 10
         }
     }
 
     var playerArtworkRadius: CGFloat {
         switch skin {
         case .pixelUI: return 0
-        case .liquidGlass: return 22
-        case .appleMusic13: return 24
-        case .derbisDefault: return 20
-        case .lateNight: return 14
+        case .torque: return 10
+        case .derbisDefault: return 28
+        case .ivory: return 22
+        case .lateNight: return 16
+        case .liquidGlass: return 24
+        case .appleMusic13: return 20
         }
     }
 
@@ -419,6 +526,9 @@ final class ThemeManager: ObservableObject {
         }
         if fontChoice == .sfRounded {
             return Font.system(size: size, weight: weight, design: .rounded)
+        }
+        if skin == .torque && weight == .bold {
+            return Font.system(size: size, weight: .heavy, design: .default)
         }
         return Font.system(size: size, weight: weight, design: .default)
     }
@@ -480,6 +590,96 @@ extension Color {
     }
 }
 
+struct AsymmetricLeafShape: Shape {
+    var topLeading: CGFloat
+    var bottomLeading: CGFloat
+    var bottomTrailing: CGFloat
+    var topTrailing: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let maxR = min(rect.width, rect.height) * 0.5
+        let tl = min(maxR, max(0, topLeading))
+        let bl = min(maxR, max(0, bottomLeading))
+        let br = min(maxR, max(0, bottomTrailing))
+        let tr = min(maxR, max(0, topTrailing))
+
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX + tl, y: rect.minY))
+        p.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.minY))
+        p.addArc(center: CGPoint(x: rect.maxX - tr, y: rect.minY + tr), radius: tr, startAngle: .degrees(-90), endAngle: .degrees(0), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - br))
+        p.addArc(center: CGPoint(x: rect.maxX - br, y: rect.maxY - br), radius: br, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.minX + bl, y: rect.maxY))
+        p.addArc(center: CGPoint(x: rect.minX + bl, y: rect.maxY - bl), radius: bl, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + tl))
+        p.addArc(center: CGPoint(x: rect.minX + tl, y: rect.minY + tl), radius: tl, startAngle: .degrees(180), endAngle: .degrees(270), clockwise: false)
+        p.closeSubpath()
+        return p
+    }
+}
+
+struct PixelSwitchToggleStyle: ToggleStyle {
+    let accent: Color
+    let ink: Color
+    let surface: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            configuration.label
+            Spacer(minLength: 10)
+            Button {
+                HapticsAndGesturesService.shared.playSelectionTick()
+                withAnimation(.easeOut(duration: 0.14)) {
+                    configuration.isOn.toggle()
+                }
+            } label: {
+                ZStack(alignment: configuration.isOn ? .trailing : .leading) {
+                    Rectangle()
+                        .fill(ink.opacity(0.24))
+                        .frame(width: 44, height: 24)
+                        .offset(x: 2, y: 2)
+
+                    Rectangle()
+                        .fill(configuration.isOn ? accent : surface)
+                        .frame(width: 44, height: 24)
+                        .overlay(Rectangle().stroke(ink, lineWidth: 2))
+
+                    Rectangle()
+                        .fill(configuration.isOn ? Color.white : ink)
+                        .frame(width: 14, height: 14)
+                        .padding(.horizontal, 4)
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+struct DerbisToggleTintModifier: ViewModifier {
+    @EnvironmentObject private var theme: ThemeManager
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if theme.isPixelSkin {
+            content.toggleStyle(
+                PixelSwitchToggleStyle(
+                    accent: theme.accent,
+                    ink: theme.primaryText,
+                    surface: theme.surface
+                )
+            )
+        } else {
+            content.tint(theme.accent)
+        }
+    }
+}
+
+extension View {
+    func derbisToggleTint() -> some View {
+        modifier(DerbisToggleTintModifier())
+    }
+}
+
 struct PixelGraphPaperBackground: View {
     @EnvironmentObject private var theme: ThemeManager
     @ObservedObject private var player = AudioPlayerEngine.shared
@@ -488,7 +688,8 @@ struct PixelGraphPaperBackground: View {
         ZStack {
             theme.background.ignoresSafeArea()
 
-            if theme.isPixelSkin {
+            switch theme.skin {
+            case .pixelUI:
                 Canvas { context, size in
                     let step: CGFloat = 20
                     var path = Path()
@@ -504,22 +705,92 @@ struct PixelGraphPaperBackground: View {
                         path.addLine(to: CGPoint(x: size.width, y: y))
                         y += step
                     }
-                    context.stroke(path, with: .color(Color(hex: 0xA84765, opacity: 0.11)), lineWidth: 1)
+                    context.stroke(path, with: .color(Color(hex: 0x5B2338, opacity: 0.11)), lineWidth: 1)
                 }
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
-            } else if theme.usesLiquidGlass && theme.ambientGlassBackdropEnabled {
+
+            case .derbisDefault:
+                ZStack {
+                    RadialGradient(
+                        colors: [
+                            Color(hex: 0x2997FF, opacity: 0.13),
+                            Color(hex: 0x818CF8, opacity: 0.07),
+                            .clear
+                        ],
+                        center: .topLeading,
+                        startRadius: 12,
+                        endRadius: 360
+                    )
+                    RadialGradient(
+                        colors: [
+                            (player.currentTrack != nil ? player.ambientPrimary.opacity(0.22) : Color(hex: 0xEC4899, opacity: 0.06)),
+                            .clear
+                        ],
+                        center: .topTrailing,
+                        startRadius: 20,
+                        endRadius: 320
+                    )
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            case .torque:
+                ZStack {
+                    LinearGradient(
+                        colors: [
+                            Color(hex: 0x22D3EE, opacity: 0.10),
+                            Color(hex: 0xF97316, opacity: 0.04),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .center
+                    )
+                    Canvas { context, size in
+                        var path = Path()
+                        let strideStep: CGFloat = 28
+                        var offset: CGFloat = -size.height
+                        while offset < size.width + size.height {
+                            path.move(to: CGPoint(x: offset, y: 0))
+                            path.addLine(to: CGPoint(x: offset - size.height * 0.35, y: size.height))
+                            offset += strideStep
+                        }
+                        context.stroke(path, with: .color(Color.white.opacity(0.025)), lineWidth: 1)
+                    }
+                }
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            case .ivory:
                 LinearGradient(
-                    stops: [
-                        .init(color: player.ambientPrimary.opacity(player.currentTrack != nil ? 0.56 : 0.24), location: 0.0),
-                        .init(color: player.ambientSecondary.opacity(player.currentTrack != nil ? 0.34 : 0.14), location: 0.38),
-                        .init(color: theme.background, location: 0.82)
+                    colors: [
+                        Color(hex: 0xC2410C, opacity: 0.05),
+                        Color(hex: 0xFAF7F2),
+                        Color(hex: 0xF1ECE3, opacity: 0.65)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
+
+            case .liquidGlass:
+                if theme.ambientGlassBackdropEnabled {
+                    LinearGradient(
+                        stops: [
+                            .init(color: player.ambientPrimary.opacity(player.currentTrack != nil ? 0.54 : 0.22), location: 0.0),
+                            .init(color: player.ambientSecondary.opacity(player.currentTrack != nil ? 0.32 : 0.14), location: 0.40),
+                            .init(color: theme.background, location: 0.84)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                }
+
+            case .lateNight, .appleMusic13:
+                EmptyView()
             }
         }
     }
@@ -536,7 +807,7 @@ struct DerbisSurfaceCardModifier: ViewModifier {
                 .background(
                     ZStack {
                         Rectangle()
-                            .fill(Color(hex: 0x5B2338, opacity: 0.22))
+                            .fill(Color(hex: 0x5B2338, opacity: 0.24))
                             .offset(x: 3, y: 3)
                         Rectangle()
                             .fill(fill)
@@ -545,6 +816,27 @@ struct DerbisSurfaceCardModifier: ViewModifier {
                                     .stroke(theme.border, lineWidth: 2)
                             )
                     }
+                )
+        } else if theme.skin == .derbisDefault {
+            let shape = RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+            content
+                .background(
+                    shape
+                        .fill(fill)
+                        .overlay(
+                            shape.strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: 0x2997FF, opacity: elevated ? 0.26 : 0.14),
+                                        Color.white.opacity(0.06),
+                                        Color(hex: 0x818CF8, opacity: elevated ? 0.18 : 0.08)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.9
+                            )
+                        )
                 )
         } else if theme.skin == .liquidGlass {
             let shape = RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
@@ -566,6 +858,15 @@ struct DerbisSurfaceCardModifier: ViewModifier {
                                 lineWidth: 0.8
                             )
                         )
+                )
+        } else if theme.skin == .ivory {
+            let shape = RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+            content
+                .background(
+                    shape
+                        .fill(fill)
+                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+                        .overlay(shape.stroke(theme.border, lineWidth: 1))
                 )
         } else {
             content
@@ -590,7 +891,7 @@ extension View {
 enum ArtworkPaletteExtractor {
     static func dominantColors(from image: UIImage) -> (primary: Color, secondary: Color) {
         guard let cgImage = image.cgImage else {
-            return (Color(hex: 0x2A1A2E), Color(hex: 0x0C0C12))
+            return (Color(hex: 0x16243E), Color(hex: 0x0A0C14))
         }
         let width = 16
         let height = 16
@@ -605,7 +906,7 @@ enum ArtworkPaletteExtractor {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            return (Color(hex: 0x2A1A2E), Color(hex: 0x0C0C12))
+            return (Color(hex: 0x16243E), Color(hex: 0x0A0C14))
         }
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
@@ -651,7 +952,7 @@ enum ArtworkPaletteExtractor {
 
     static func vibrantAccent(from image: UIImage) -> Color {
         guard let cgImage = image.cgImage else {
-            return Color(hex: 0xFC3C44)
+            return Color(hex: 0x2997FF)
         }
         let side = 16
         var raw = [UInt8](repeating: 0, count: side * side * 4)
@@ -665,11 +966,11 @@ enum ArtworkPaletteExtractor {
             space: colorSpace,
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else {
-            return Color(hex: 0xFC3C44)
+            return Color(hex: 0x2997FF)
         }
         ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: side, height: side))
 
-        var bestR = 0.98, bestG = 0.23, bestB = 0.27, bestScore = 0.0
+        var bestR = 0.16, bestG = 0.59, bestB = 1.0, bestScore = 0.0
         for idx in stride(from: 0, to: raw.count, by: 4) {
             let r = Double(raw[idx]) / 255.0
             let g = Double(raw[idx + 1]) / 255.0
