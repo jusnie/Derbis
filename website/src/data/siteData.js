@@ -5,7 +5,7 @@ export const LATEST_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag
 export const APK_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk";
 export const SHA256_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk.sha256";
 
-export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d96cf25";
+export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d8d6c36";
 export const IOS_IPA_DOWNLOAD_URL = "/Derbis.ipa";
 export const IOS_IPA_PUBLIC_URL = "https://derbis-web.vercel.app/Derbis.ipa";
 export const IOS_SHA256_DOWNLOAD_URL = "/Derbis.ipa.sha256";
@@ -22,14 +22,14 @@ export const RELEASE_META = {
 
 export const IOS_RELEASE_META = {
   version: "v1.8.0",
-  buildId: "d96cf25",
-  upstreamTag: "ios-unofficial-d96cf25",
+  buildId: "d8d6c36",
+  upstreamTag: "ios-unofficial-d8d6c36",
   bundleId: "com.derbis.ios",
-  sizeLabel: "2.8 MB",
+  sizeLabel: "3.3 MB",
   iosMin: "iOS 16.0+",
   archLabel: "arm64 SwiftUI",
   publishedLabel: "October 2026",
-  sha256: "334d50f8e26cf1a82ddd4a47d3f1fa0ee6eb5278bcf2e888b163ab242c52f69d"
+  sha256: "64282df0c7a30dd1072cd4be0e22a3b23e2ddcc007637060754d633d065f943b"
 };
 
 export const UPCOMING_PLATFORMS = {
@@ -421,7 +421,7 @@ export const INITIAL_RELEASES = [
     ]
   },
   {
-    tag: "ios-unofficial-d96cf25",
+    tag: "ios-unofficial-d8d6c36",
     displayTag: "v1.8.0-beta · iOS",
     name: "Derbis v1.8.0 Beta for iOS",
     channel: "iOS Beta",
@@ -429,16 +429,24 @@ export const INITIAL_RELEASES = [
     latest: false,
     prerelease: true,
     downloads: null,
-    sizeLabel: "2.8 MB",
-    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d96cf25",
+    sizeLabel: "3.3 MB",
+    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-d8d6c36",
     ipaUrl: "/Derbis.ipa",
     groups: [
       {
-        heading: "Native SwiftUI iOS client",
+        heading: "Derbis Studio UI overhaul",
         items: [
-          "100% native arm64 Swift + SwiftUI + AVPlayer build (iOS 16.0+) packaged as Derbis.ipa for direct KSign, SideStore, and AltStore installation",
-          "Includes 9 Derbis visual skins, Motion Canvas looping video player, Lock Screen & Dynamic Island controls, and viewport-locked Now Playing backdrops",
-          "Live Jam room sync over WebSockets, Listening Insights dashboard, Offline M4A downloads, Local FLAC/ALAC import, and Navidrome/Subsonic support"
+          "Linear Glass is now the default skin, joined by Derbis Default, Pixel, Torque, Ivory, Late Night, Liquid Glass, and Apple Music 13 (7 skins total)",
+          "Six Now Playing decks — Flow, Vinyl, Sleeve, Frost, Pixel, and Classic 13 — with morphing squircle, pixel, and chamfered transport buttons plus a swipeable mini-player dock",
+          "Studio Home with Endless Personal Radio hero, 2-column Speed Dial, 3x3 Orbit grid, and a horizontal visual carousel shelf"
+        ]
+      },
+      {
+        heading: "Endless Listening and catalogs",
+        items: [
+          "Persistent RDAMVM song-radio sessions with rolling refills, infinite queue scroll, Similar Songs, and Artist Radio",
+          "Artist and Album studio pages with top tracks, releases, and related artists backed by InnerTube catalog lookups",
+          "Listening Receipt cards (Receipt, Linear Story, Pixel Stamp) with in-app receipt rendering and sharing"
         ]
       },
       {
@@ -446,7 +454,7 @@ export const INITIAL_RELEASES = [
         items: [
           "Lock-free MTAudioProcessingTap 5-band biquad EQ, Bass Boost, Spatial Widener, Loudness Normalization, and Crossfade engine",
           "120Hz karaoke word-by-word synced lyrics with multi-script romanization, translation toggle, and calibration offset",
-          "Multi-client InnerTube stream resolver with automatic HLS fallback and zero Xcode 26.6 compiler warnings"
+          "100% native arm64 Swift + SwiftUI + AVPlayer build (iOS 16.0+) packaged as Derbis.ipa for direct KSign, SideStore, and AltStore installation"
         ]
       }
     ]
