@@ -24,8 +24,17 @@ internal fun prismGlassColor(): Color {
     if (DerbisIsAppleMusic) return AppleMusicDesign.chrome
     if (DerbisIsYouTubeMusic) return YouTubeMusicDesign.surface
     // A single, quiet material keeps the skin coherent; low-RAM/power-save uses an opaque
-    // fallback rather than attempting costly backdrop sampling.
-    return MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 0.88f else 0.42f)
+    // fallback rather than attempting costly backdrop sampling. Night is a Taurus-strength
+    // film (iOS surface white@0.065), not a slate: heavy enough to hide the recording seam,
+    // light enough to read as glass, never a milky slab.
+    return if (DerbisActivePalette.isLight) {
+        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 0.88f else 0.42f)
+    } else {
+        // Translucent devices with a live backdrop get the Taurus film; anything the engine
+        // cannot run behind falls back to the iOS reduced-transparency material (white@0.16),
+        // which stays legible on its own.
+        Color.White.copy(alpha = if (opaque) 0.88f else 0.16f)
+    }
 }
 
 @Composable

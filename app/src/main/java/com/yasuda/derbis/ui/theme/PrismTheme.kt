@@ -112,16 +112,21 @@ internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark:
     val translucent = settings.translucency != PrismTranslucency.Reduced
     fun systemMaterial(day: Long, night: Long, alpha: Float): Color =
         prismColor(light, day, night).copy(alpha = if (translucent) alpha else 1f)
+    // The iOS films are white@low over the near-black field, not dark slate. Under the
+    // Reduced-translucency setting they collapse to an opaque neutral instead.
+    fun glassFilm(opaqueFallback: Long, alpha: Float): Color =
+        if (translucent) Color.White.copy(alpha = alpha) else Color(opaqueFallback)
     return DerbisThemes.cosmic.copy(
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
         // Night pair is re-derived to the iOS Taurus Liquid Glass values exactly:
-        // background #020306, accent sky #38BDF8, secondary indigo #818CF8, tertiary
-        // pink #F472B6, hairline white@15%. Light pair left as-is (unverified).
+        // background #020306, surfaces white films — iOS surface white@0.065, elevated
+        // white@0.115 — accent sky #38BDF8, secondary indigo #818CF8, tertiary pink
+        // #F472B6, hairline white@15%. Light pair left as-is (unverified).
         black = prismColor(light, 0xFFF5F8FC, 0xFF020306),
-        ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.52f else 0.46f),
-        panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.46f else 0.40f),
-        panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.58f else 0.50f),
+        ink = if (light) systemMaterial(0xFFFFFFFF, 0xFF10141C, 0.52f) else glassFilm(0xFF0B0D12, 0.075f),
+        panel = if (light) systemMaterial(0xFFF8FAFD, 0xFF161C27, 0.46f) else glassFilm(0xFF0B0D12, 0.065f),
+        panelSoft = if (light) systemMaterial(0xFFEAF1F8, 0xFF202A38, 0.58f) else glassFilm(0xFFEDF1F8, 0.115f),
         cyan = prismColor(light, 0xFF006E99, 0xFF38BDF8),
         blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
         violet = prismColor(light, 0xFF635BCE, 0xFF818CF8),
