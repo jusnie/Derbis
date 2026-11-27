@@ -39,6 +39,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -46,7 +47,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.awaitPointerEvent
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -98,6 +98,7 @@ internal fun DerbisLiquidGlassTabs(
     var lensPositionPx by remember { mutableFloatStateOf(0f) }
     var isHoldingLens by remember { mutableStateOf(false) }
     val selectedHolder = rememberUpdatedState(entries.indexOfFirst { it.tab == selected }.coerceAtLeast(0))
+    val onSelectHolder = rememberUpdatedState(onSelect)
 
     val dockModifier = modifier.fillMaxWidth()
 
@@ -120,7 +121,7 @@ internal fun DerbisLiquidGlassTabs(
                         artworkTint = DerbisActivePalette.cyan
                     )
                 )
-                .pointerInput(entries.size) {
+                .pointerInput(entries) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                         val slotWidthPx = size.width.toFloat() / entries.size.toFloat()
@@ -134,7 +135,7 @@ internal fun DerbisLiquidGlassTabs(
                             if (idx != lastIndex) {
                                 lastIndex = idx
                                 haptics.perform(DerbisHapticAction.SeekSnap)
-                                onSelect(entries[idx], true)
+                                onSelectHolder.value(entries[idx], true)
                             }
                         }
                         // Select the pressed slot immediately, matching the iOS scrub.
@@ -178,12 +179,12 @@ internal fun DerbisLiquidGlassTabs(
                     }
                 }
         ) {
-            val slotWidth = maxWidth / entries.size
+            val slotWidth = maxWidth / entries.size.toFloat()
             val totalWidth = maxWidth
             val selectedIndex = entries.indexOfFirst { it.tab == selected }.coerceAtLeast(0)
             val indicatorWidth = maxOf(54.dp, slotWidth - 10.dp)
             val restingX by animateDpAsState(
-                targetValue = selectedIndex * slotWidth + (slotWidth - indicatorWidth) / 2f,
+                targetValue = slotWidth * selectedIndex.toFloat() + (slotWidth - indicatorWidth) * 0.5f,
                 animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
                 label = "derbis-lens-resting"
             )

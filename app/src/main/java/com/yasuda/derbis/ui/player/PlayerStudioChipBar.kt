@@ -152,8 +152,10 @@ internal fun PlayerStudioChipBar(
                 DropdownMenuItem(
                     text = { Text(strings.sleepTimer) },
                     leadingIcon = { Icon(Icons.Rounded.Bedtime, contentDescription = null) },
-                    trailingIcon = sleepTimerLabel?.let { left ->
-                        { Text(left, style = TextStyle(fontWeight = FontWeight.Bold)) }
+                    trailingIcon = if (sleepTimerLabel != null) {
+                        { Text(sleepTimerLabel, style = TextStyle(fontWeight = FontWeight.Bold)) }
+                    } else {
+                        null
                     },
                     onClick = {
                         menuExpanded = false

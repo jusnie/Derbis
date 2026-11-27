@@ -536,6 +536,8 @@ class PlayerViewModel(root: DerbisViewModel) : DerbisScreenViewModel(root, ::pla
     fun selectVideoQuality(targetLabel: String?) = root.selectVideoQuality(targetLabel)
     fun setTemporaryPlaybackSpeed(value: Float) = root.setTemporaryPlaybackSpeed(value)
     fun setPlayerVisualMode(mode: PlayerVisualMode) = root.setPlayerVisualMode(mode)
+    fun toggleEndlessListening() = root.toggleEndlessListening()
+    fun setKaraokeMode(value: Boolean) = root.setKaraokeMode(value)
 }
 
 class DerbisScreenViewModelFactory internal constructor(
