@@ -1,8 +1,10 @@
 package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.components.DerbisPlayAllIconButton
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -569,24 +571,38 @@ internal fun LocalLibraryAlphabetRail(
         val targetIndex = (y / slot).toInt().coerceIn(0, index.targets.lastIndex)
         onJump(index.targets[targetIndex].contentIndex)
     }
-    Surface(
-        color = DerbisPanelSoft.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, DerbisMuted.copy(alpha = 0.14f)),
-        shape = RoundedCornerShape(14.dp),
-        modifier = modifier
-            .width(28.dp)
-            .pointerInput(index.targets) {
-                detectDragGestures(
-                    onDragStart = { offset -> jumpAt(offset.y, size.height) },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        jumpAt(change.position.y, size.height)
-                    }
-                )
+    val isGlass = com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
+    val railShape: androidx.compose.foundation.shape.CornerBasedShape =
+        if (isGlass) RoundedCornerShape(percent = 50) else RoundedCornerShape(14.dp)
+    val railModifier = modifier
+        .width(28.dp)
+        .then(
+            // Taurus parity: the iOS index bar is a floating glass capsule (derbisGlassCapsule),
+            // not an opaque panel — the letters stay accent-lit on a sampled backdrop.
+            if (isGlass) {
+                Modifier.derbisLightweightGlass(railShape, DerbisPanel.copy(alpha = 0.32f), rim = false)
+            } else {
+                Modifier.background(DerbisPanelSoft.copy(alpha = 0.94f), railShape)
             }
+        )
+        .pointerInput(index.targets) {
+            detectDragGestures(
+                onDragStart = { offset -> jumpAt(offset.y, size.height) },
+                onDrag = { change, _ ->
+                    change.consume()
+                    jumpAt(change.position.y, size.height)
+                }
+            )
+        }
+    Box(
+        modifier = railModifier
+            .then(
+                if (isGlass) Modifier
+                else Modifier.border(1.dp, DerbisMuted.copy(alpha = 0.14f), railShape)
+            )
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 5.dp),
+            modifier = Modifier.padding(vertical = 5.dp, horizontal = if (isGlass) 1.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             index.targets.forEach { target ->
