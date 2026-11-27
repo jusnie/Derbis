@@ -70,6 +70,7 @@ struct DerbisGlassPalette {
     let secondaryAccent: Color
     let artwork: UIImage?
 
+    @MainActor
     static func resolve(theme: ThemeManager) -> DerbisGlassPalette {
         let isLight = theme.isLightSkin
         let ambient = theme.activeAmbientColors
@@ -378,7 +379,8 @@ struct DerbisOpticalMaterial: View {
                 )
                 .clipShape(shape)
 
-                material
+                Rectangle()
+                    .fill(material)
                     .clipShape(shape)
 
                 shape.fill(filmColor)
