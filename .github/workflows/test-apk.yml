@@ -114,6 +114,13 @@ jobs:
             grep -E "^e: |FAILURE:|error:|What went wrong" build.log | tail -n 20 | while IFS= read -r line; do
               printf '::error::%s\n' "${line}"
             done
+            # Diagnostic for runs whose failure leaves no '^e: ' lines (R8, dexing,
+            # OOM, disk): surface the raw tail of the log as annotations too.
+            tail -n 60 build.log | while IFS= read -r line; do
+              line="${line//$'\n'/ }"
+              [[ -n "${line// /}" ]] || continue
+              printf '::error::%s\n' "$(printf '%s' "${line}" | cut -c1-400)"
+            done
             exit "${status}"
           fi
 
