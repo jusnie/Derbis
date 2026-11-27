@@ -226,11 +226,15 @@ internal fun Modifier.artworkHoldLens(
         onCenter(start)
         val slop = viewConfiguration.touchSlop
 
-        // Phase 1 — a still hold for HoldRevealDelayMs wakes the droplet.
+        // Phase 1 — a still hold for HoldRevealDelayMs wakes the droplet. The deadline is
+        // absolute so a trembling finger cannot starve the reveal with fresh move events.
         var moved = false
         var releasedEarly = false
+        val revealDeadline = System.currentTimeMillis() + HoldRevealDelayMs
         while (true) {
-            val event = withTimeoutOrNull(HoldRevealDelayMs) { awaitPointerEvent() }
+            val remaining = revealDeadline - System.currentTimeMillis()
+            if (remaining <= 0L) break // stillness won — hold achieved
+            val event = withTimeoutOrNull(remaining) { awaitPointerEvent() }
             if (event == null) break // stillness won — hold achieved
             var allUp = true
             for (change in event.changes) {

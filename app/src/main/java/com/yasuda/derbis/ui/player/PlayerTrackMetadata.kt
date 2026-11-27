@@ -227,7 +227,7 @@ private fun metadataArtistSize(compact: Boolean, appleMusic: Boolean): TextUnit 
 private fun metadataTitleWeight(appleMusic: Boolean, prism: Boolean): FontWeight = when {
     DerbisIsYouTubeMusic -> FontWeight.Bold
     DerbisIsSpotify -> FontWeight.Bold
-    appleMusic -> FontWeight.Medium
+    appleMusic -> FontWeight.Bold
     DerbisIsPixel || prism -> FontWeight.Medium
     else -> FontWeight.ExtraBold
 }

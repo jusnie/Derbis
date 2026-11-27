@@ -634,10 +634,12 @@ struct NowPlayingView: View {
 
     private func grabberAndTopBar(track: Track) -> some View {
         VStack(spacing: 5) {
-            Capsule()
-                .fill(fgSecondary.opacity(0.45))
-                .frame(width: 36, height: 4)
-                .onTapGesture { dismiss() }
+            if !(isImmersiveCanvas || isFillBackdrop) {
+                Capsule()
+                    .fill(fgSecondary.opacity(0.45))
+                    .frame(width: 36, height: 4)
+                    .onTapGesture { dismiss() }
+            }
 
             HStack {
                 Button {
@@ -671,15 +673,23 @@ struct NowPlayingView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: theme.effectivePlayerDeck.icon)
-                                .font(.system(size: 9.5, weight: .bold))
-                                .foregroundColor(theme.accent)
-                            Text("\(track.source.rawValue.uppercased()) · \(theme.effectivePlayerDeck.title.uppercased())")
-                                .font(theme.font(size: 9.5, weight: .bold))
-                                .tracking(0.9)
-                                .foregroundColor(fgSecondary)
+                        if isImmersiveCanvas || isFillBackdrop {
+                            // Reference: a single calm, sentence-case context label.
+                            Text(track.source.rawValue.capitalized)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(fgPrimary)
                                 .lineLimit(1)
+                        } else {
+                            HStack(spacing: 5) {
+                                Image(systemName: theme.effectivePlayerDeck.icon)
+                                    .font(.system(size: 9.5, weight: .bold))
+                                    .foregroundColor(theme.accent)
+                                Text("\(track.source.rawValue.uppercased()) · \(theme.effectivePlayerDeck.title.uppercased())")
+                                    .font(theme.font(size: 9.5, weight: .bold))
+                                    .tracking(0.9)
+                                    .foregroundColor(fgSecondary)
+                                    .lineLimit(1)
+                            }
                         }
                     }
 
@@ -726,7 +736,7 @@ struct NowPlayingView: View {
                     haptics.playControlTap(style: .light)
                     showingStudioConsole = true
                 } label: {
-                    Image(systemName: "slider.horizontal.below.rectangle")
+                    Image(systemName: (isImmersiveCanvas || isFillBackdrop) ? "ellipsis" : "slider.horizontal.below.rectangle")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
@@ -1230,7 +1240,7 @@ struct NowPlayingView: View {
             isScrubbing: $isScrubbing,
             scrubTime: $scrubTime,
             lastScrubNotch: $lastScrubNotch,
-            accentColor: activeDeck == .appleMusic13 ? fgPrimary : theme.accent,
+            accentColor: (activeDeck == .appleMusic13 || isImmersiveCanvas || isFillBackdrop) ? fgPrimary : theme.accent,
             railColor: rail,
             fgSecondary: fgSecondary,
             labelFont: theme.font(size: 11, weight: .semibold),
@@ -1292,7 +1302,7 @@ struct NowPlayingView: View {
             } label: {
                 VStack(spacing: 3) {
                     Image(systemName: "shuffle")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 17, weight: .semibold))
                     Circle()
                         .fill(player.isShuffleEnabled ? theme.accent : Color.clear)
                         .frame(width: 4, height: 4)
@@ -1357,7 +1367,7 @@ struct NowPlayingView: View {
             } label: {
                 VStack(spacing: 3) {
                     Image(systemName: player.repeatMode.systemImage)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 17, weight: .semibold))
                     Circle()
                         .fill(player.repeatMode == .off ? Color.clear : theme.accent)
                         .frame(width: 4, height: 4)
@@ -1493,7 +1503,64 @@ struct NowPlayingView: View {
         }
     }
 
+    @ViewBuilder
     private func bottomUtilityDock(track: Track) -> some View {
+        if isImmersiveCanvas || isFillBackdrop {
+            referenceUtilityDock(track: track)
+        } else {
+            legacyUtilityDock(track: track)
+        }
+    }
+
+    /// Full-bleed reference dock: three bare glyphs, no capsule — lyrics on the left,
+    /// the red headphones (tap through to AirPlay output) in the centre, list on the right.
+    private func referenceUtilityDock(track: Track) -> some View {
+        HStack(spacing: 0) {
+            Button {
+                haptics.playControlTap(style: .light)
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                    showingLyrics.toggle()
+                }
+                if showingLyrics && player.currentLyrics == nil && !player.isLoadingLyrics {
+                    player.loadLyrics(for: track)
+                }
+            } label: {
+                Image(systemName: showingLyrics ? "quote.bubble.fill" : "quote.bubble")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(showingLyrics ? theme.accent : fgPrimary)
+                    .frame(width: 52, height: 44)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            ZStack {
+                Image(systemName: "headphones")
+                    .font(.system(size: 23, weight: .medium))
+                    .foregroundColor(theme.accent)
+                    .allowsHitTesting(false)
+                AirPlayRoutePicker(tintColor: .clear)
+                    .frame(width: 52, height: 44)
+            }
+
+            Spacer()
+
+            Button {
+                haptics.playControlTap(style: .light)
+                showingQueue = true
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundColor(fgPrimary)
+                    .frame(width: 52, height: 44)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 44)
+        .frame(height: 44)
+    }
+
+    private func legacyUtilityDock(track: Track) -> some View {
         let airplayTint: UIColor = (theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop)
             ? UIColor(theme.primaryText)
             : UIColor.white

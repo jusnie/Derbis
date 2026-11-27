@@ -34,6 +34,9 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.FastForward
+import androidx.compose.material.icons.rounded.FormatQuote
+import androidx.compose.material.icons.rounded.Headphones
+import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,7 +160,8 @@ internal fun AppleMusicPlayerScene(
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L,
     lyricPositionProvider: (() -> Long)? = null,
-    lyricLines: List<LyricLine> = emptyList()
+    lyricLines: List<LyricLine> = emptyList(),
+    onAudioOutput: (() -> Unit)? = null
 ) {
     // The Apple Music 13 deck deliberately lets the adaptive artwork ambience show through,
     // then protects controls with a neutral, translucent lower scrim.
@@ -207,7 +211,8 @@ internal fun AppleMusicPlayerScene(
                 lyricPositionProvider = lyricPositionProvider,
                 canvas = canvas,
                 playing = playing,
-                lyricLines = lyricLines
+                lyricLines = lyricLines,
+                onAudioOutput = onAudioOutput
             )
         }
     }
@@ -267,7 +272,8 @@ private fun AppleMusicPortraitDeck(
     lyricPositionProvider: (() -> Long)? = null,
     canvas: AppleMusicCanvas? = null,
     playing: Boolean = false,
-    lyricLines: List<LyricLine> = emptyList()
+    lyricLines: List<LyricLine> = emptyList(),
+    onAudioOutput: (() -> Unit)? = null
 ) {
     if (video) {
         AppleMusicVideoPortraitDeck(
@@ -277,7 +283,7 @@ private fun AppleMusicPortraitDeck(
     } else {
         AppleMusic13ReferencePortraitDeck(
             track, slots, metadata, transport, activeLyric, lyricPositionMs,
-            lyricPositionProvider, canvas, playing, lyricLines
+            lyricPositionProvider, canvas, playing, lyricLines, onAudioOutput
         )
     }
 }
@@ -298,7 +304,8 @@ private fun AppleMusic13ReferencePortraitDeck(
     lyricPositionProvider: (() -> Long)?,
     canvas: AppleMusicCanvas?,
     playing: Boolean,
-    lyricLines: List<LyricLine> = emptyList()
+    lyricLines: List<LyricLine> = emptyList(),
+    onAudioOutput: (() -> Unit)? = null
 ) {
     BoxWithConstraints(
         Modifier
@@ -384,7 +391,10 @@ private fun AppleMusic13ReferencePortraitDeck(
                 condensed = true,
                 modifier = Modifier.padding(horizontal = 2.dp)
             )
-            AppleMusic13ActionDock(slots.dockActions(track))
+            AppleMusic13ReferenceDock(
+                actions = slots.dockActions(track),
+                onAudioOutput = onAudioOutput
+            )
             Spacer(Modifier.height(AppleMusicDesign.playerActionBottom + 4.dp))
         }
     }
@@ -442,48 +452,57 @@ private fun AppleMusic13StretchedArtwork(
 
 /** A balanced Derbis utility row with independent, generously sized touch targets. */
 @Composable
-private fun AppleMusic13ActionDock(actions: List<PlayerDockAction>) {
-    val visibleActions = actions.take(4)
-    if (visibleActions.isEmpty()) return
-
+/**
+ * The full-bleed reference dock: three bare glyphs and nothing else — the lyrics quote on the
+ * left, the red headphones (audio studio) dead centre, the up-next list on the right.
+ */
+@Composable
+private fun AppleMusic13ReferenceDock(
+    actions: List<PlayerDockAction>,
+    onAudioOutput: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    val strings = LocalDerbisStrings.current
+    val lyrics = actions.firstOrNull { it.key == "lyrics" }
+    val queue = actions.firstOrNull { it.key == "queue" }
+    val glyphColor = Color.White.copy(alpha = 0.94f)
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(58.dp),
+            .height(46.dp)
+            .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        visibleActions.forEach { action ->
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (action.active) Color.White.copy(alpha = 0.16f) else Color.Transparent)
-                    .clickable(enabled = action.enabled && !action.busy, role = Role.Button, onClick = action.onClick)
-                    .semantics {
-                        contentDescription = action.label
-                        action.stateDescription?.let { stateDescription = it }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (action.busy) {
-                    DerbisLoadingIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Icon(
-                        imageVector = action.icon,
-                        contentDescription = null,
-                        tint = when {
-                            !action.enabled -> Color.White.copy(alpha = 0.36f)
-                            action.active -> Color.White
-                            else -> Color.White.copy(alpha = 0.88f)
-                        },
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+        Box(
+            Modifier.size(48.dp).clip(CircleShape)
+                .clickable(role = Role.Button, enabled = lyrics != null) { lyrics?.onClick?.invoke() }
+                .semantics { contentDescription = strings.lyrics },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Rounded.FormatQuote, null,
+                tint = if (lyrics?.active == true) AppleMusicDesign.accent else glyphColor,
+                modifier = Modifier.size(25.dp)
+            )
+        }
+
+        Box(
+            Modifier.size(48.dp).clip(CircleShape)
+                .clickable(role = Role.Button, enabled = onAudioOutput != null) { onAudioOutput?.invoke() }
+                .semantics { contentDescription = strings.mixLab },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Rounded.Headphones, null, tint = AppleMusicDesign.accent, modifier = Modifier.size(27.dp))
+        }
+
+        Box(
+            Modifier.size(48.dp).clip(CircleShape)
+                .clickable(role = Role.Button, enabled = queue != null) { queue?.onClick?.invoke() }
+                .semantics { contentDescription = strings.queue },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.AutoMirrored.Rounded.Subject, null, tint = glyphColor, modifier = Modifier.size(23.dp))
         }
     }
 }

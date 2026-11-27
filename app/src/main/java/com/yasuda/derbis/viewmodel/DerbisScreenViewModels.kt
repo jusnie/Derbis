@@ -513,6 +513,7 @@ class PlayerViewModel(root: DerbisViewModel) : DerbisScreenViewModel(root, ::pla
     fun openJam() = root.openJam()
     fun openLyrics() = root.openLyrics()
     fun openQueue() = root.openQueue()
+    fun openMixLab() = root.openMixLab()
     fun openYoutubeComments() = root.openYoutubeComments()
     fun closeYoutubeComments() = root.closeYoutubeComments()
     fun retryYoutubeComments() = root.retryYoutubeComments()

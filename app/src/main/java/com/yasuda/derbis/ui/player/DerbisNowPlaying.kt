@@ -610,11 +610,15 @@ private fun DerbisNowPlayingContent(
                 source = playerMetadataSourceLabel(
                     activeQualityLabel = state.videoQuality.activeLabel.takeIf { state.isVideoMode }
                 ),
-                surfaces = surfaces
+                surfaces = surfaces,
+                appleMusic = appleMusicPlayer
             )
         }
         val headerTrailing: @Composable () -> Unit = {
-            if (!state.isVideoMode && !liveRadio) {
+            // The full-bleed Apple Music 13 deck presents the reference top bar: leading
+            // collapse, centred eyebrow, trailing overflow only — the cast button lives on
+            // the dock's red headphones (audio studio) instead.
+            if (!state.isVideoMode && !liveRadio && !appleMusicPlayer) {
                 CastRouteButton(modifier = Modifier.size(headerButtonSize))
             }
 
@@ -1242,7 +1246,8 @@ private fun DerbisNowPlayingContent(
                     video = state.isVideoMode,
                     activeLyric = currentLyricLine ?: state.activeLyric,
                     lyricPositionProvider = { appleMusicLyricsClock.positionMs },
-                    lyricLines = state.lyrics
+                    lyricLines = state.lyrics,
+                    onAudioOutput = viewModel::openMixLab
                 )
             } else {
                 PrismPlayerScene(
@@ -1934,8 +1939,21 @@ private fun DerbisNowPlayingContent(
 private fun PlayerSourceEyebrow(
     label: String,
     source: String,
-    surfaces: PlayerSurfaceTokens
+    surfaces: PlayerSurfaceTokens,
+    appleMusic: Boolean = false
 ) {
+    if (appleMusic) {
+        // Reference top bar: one calm, sentence-case context label, no caps stack.
+        Text(
+            text = source.lowercase().replaceFirstChar { it.titlecase() },
+            color = surfaces.content,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        return
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
