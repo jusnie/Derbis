@@ -198,9 +198,10 @@ internal fun prismMiniSettings(saved: DerbisMiniPlayerStudioSettings): DerbisMin
     val liquidGlass = DerbisActivePalette.id == PrismPaletteId
     val style = if (liquidGlass) MiniPlayerStyle.LiquidGlass else MiniPlayerStyle.Floating
     val tuning = DerbisMiniPlayerStudioSettings.spec(style).defaults.copy(
-        cornerDp = if (torque) 2 else if (DerbisIsIvory) 26 else if (liquidGlass) 30 else 20,
+        // Taurus parity: iOS mini player is a 24pt glass panel with 44pt artwork at 10pt radius.
+        cornerDp = if (torque) 2 else if (DerbisIsIvory) 26 else if (liquidGlass) 24 else 20,
         heightDp = 64,
-        artworkDp = 46,
+        artworkDp = if (liquidGlass) 44 else 46,
         shadow = 0,
         glow = 0,
         artworkShape = if (torque) MiniArtworkShape.Square else MiniArtworkShape.Rounded,
