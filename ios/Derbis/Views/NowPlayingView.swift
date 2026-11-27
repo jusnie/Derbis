@@ -34,6 +34,9 @@ struct NowPlayingView: View {
     @State private var badgeClearTask: Task<Void, Never>?
     @State private var artworkDragOffset: CGFloat = 0
     @State private var dismissDragOffset: CGFloat = 0
+    @State private var holdLensLocation: CGPoint? = nil
+    @State private var holdLensRevealed: Bool = false
+    @State private var holdLensTask: Task<Void, Never>? = nil
 
     private var activeMotionAsset: MotionCanvasAsset? {
         guard theme.motionCanvasEnabled,
@@ -50,6 +53,45 @@ struct NowPlayingView: View {
 
     private var isFillBackdrop: Bool {
         theme.backdropStyle == .fill && !theme.isLightSkin
+    }
+
+    // Press-and-hold lens: the blurred-lyric droplet that wakes under the finger.
+    private var lensLines: [LyricLine] {
+        if let lines = player.currentLyrics?.lines, !lines.isEmpty {
+            return lines
+        }
+        return [LyricLine(id: -1, startTimeSec: 0, text: "Instrumental")]
+    }
+
+    private var artworkHoldGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                holdLensLocation = value.location
+                let travel = hypot(value.translation.width, value.translation.height)
+                if travel > 12 {
+                    // A real swipe — cancel the hold, the stage gestures own it.
+                    holdLensTask?.cancel()
+                    holdLensTask = nil
+                    return
+                }
+                guard !holdLensRevealed, holdLensTask == nil else { return }
+                holdLensTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 150_000_000)
+                    guard !Task.isCancelled else { return }
+                    HapticsAndGesturesService.shared.playControlTap(style: .light)
+                    withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.78)) {
+                        holdLensRevealed = true
+                    }
+                }
+            }
+            .onEnded { _ in
+                holdLensTask?.cancel()
+                holdLensTask = nil
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                    holdLensRevealed = false
+                }
+                holdLensLocation = nil
+            }
     }
 
     private var fgPrimary: Color {
@@ -790,7 +832,20 @@ struct NowPlayingView: View {
                             }
                     )
                 }
+
+                // Hold-to-reveal droplet: blurred lyrics under a chrome bead of glass.
+                if holdLensRevealed, let lensLocation = holdLensLocation {
+                    let stageHeight = (isImmersiveCanvas || isFillBackdrop) ? availableArtHeight : side
+                    let lensX = min(max(lensLocation.x, 118), viewportWidth - 118)
+                    let lensY = min(max(lensLocation.y, 136), stageHeight - 136)
+
+                    ArtworkLyricLens(lines: lensLines, accent: theme.accent)
+                        .position(x: lensX, y: lensY)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                        .allowsHitTesting(false)
+                }
             }
+            .simultaneousGesture(artworkHoldGesture)
 
             if let error = player.errorBanner {
                 Text(error)
@@ -1139,10 +1194,26 @@ struct NowPlayingView: View {
                 haptics.playControlTap(style: .medium)
                 library.toggleLike(track)
             } label: {
-                Image(systemName: library.isLiked(track) ? "heart.fill" : "heart")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundColor(library.isLiked(track) ? theme.accent : fgSecondary)
+                if isImmersiveCanvas || isFillBackdrop {
+                    // Reference treatment: a filled red circle with a white check when the
+                    // record is in your rotation, an open circle otherwise.
+                    ZStack {
+                        Circle()
+                            .fill(library.isLiked(track) ? theme.accent : Color.clear)
+                        Circle()
+                            .strokeBorder(library.isLiked(track) ? Color.clear : Color.white.opacity(0.5), lineWidth: 1.6)
+                        Image(systemName: library.isLiked(track) ? "checkmark" : "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 30, height: 30)
                     .frame(width: 38, height: 38)
+                } else {
+                    Image(systemName: library.isLiked(track) ? "heart.fill" : "heart")
+                        .font(.system(size: 21, weight: .semibold))
+                        .foregroundColor(library.isLiked(track) ? theme.accent : fgSecondary)
+                        .frame(width: 38, height: 38)
+                }
             }
             .buttonStyle(.plain)
         }
@@ -1202,7 +1273,103 @@ struct NowPlayingView: View {
         .buttonStyle(.plain)
     }
 
+    @ViewBuilder
     private func transportControlsRow(playSize: CGFloat = 62) -> some View {
+        if isImmersiveCanvas || isFillBackdrop {
+            chromeTransportRow
+        } else {
+            legacyTransportRow(playSize: playSize)
+        }
+    }
+
+    /// Full-bleed (reference) transport: plain glyphs — red shuffle with its dot,
+    /// white skip glyphs, a big white pause — and the repeat at the far edge.
+    private var chromeTransportRow: some View {
+        return HStack(spacing: 0) {
+            Button {
+                haptics.playSelectionTick()
+                player.isShuffleEnabled.toggle()
+            } label: {
+                VStack(spacing: 3) {
+                    Image(systemName: "shuffle")
+                        .font(.system(size: 17, weight: .bold))
+                    Circle()
+                        .fill(player.isShuffleEnabled ? theme.accent : Color.clear)
+                        .frame(width: 4, height: 4)
+                }
+                .foregroundColor(player.isShuffleEnabled ? theme.accent : fgSecondary)
+                .frame(width: 46, height: 46)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                haptics.playControlTap(style: .medium)
+                player.skipPrevious()
+            } label: {
+                Image(systemName: "backward.fill")
+                    .font(.system(size: 23, weight: .bold))
+                    .foregroundColor(fgPrimary)
+                    .frame(width: 54, height: 46)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                haptics.playControlTap(style: .medium, scale: 1.0)
+                player.togglePlayPause()
+            } label: {
+                ZStack {
+                    if player.isLoading {
+                        ProgressView()
+                            .tint(fgPrimary)
+                    } else {
+                        Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundColor(fgPrimary)
+                            .offset(x: player.isPlaying ? 0 : 4)
+                    }
+                }
+                .frame(width: 74, height: 62)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                haptics.playControlTap(style: .medium)
+                player.skipNext()
+            } label: {
+                Image(systemName: "forward.fill")
+                    .font(.system(size: 23, weight: .bold))
+                    .foregroundColor(fgPrimary)
+                    .frame(width: 54, height: 46)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Button {
+                haptics.playSelectionTick()
+                player.repeatMode = player.repeatMode.next()
+            } label: {
+                VStack(spacing: 3) {
+                    Image(systemName: player.repeatMode.systemImage)
+                        .font(.system(size: 17, weight: .bold))
+                    Circle()
+                        .fill(player.repeatMode == .off ? Color.clear : theme.accent)
+                        .frame(width: 4, height: 4)
+                }
+                .foregroundColor(player.repeatMode == .off ? fgSecondary : theme.accent)
+                .frame(width: 46, height: 46)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func legacyTransportRow(playSize: CGFloat = 62) -> some View {
         let deck = theme.effectivePlayerDeck
         let usePixelButtons = (theme.isPixelSkin || deck == .pixel) && !isImmersiveCanvas && !isFillBackdrop
         let useSquircleMorph = deck == .flow || deck == .sleeve || deck == .frost

@@ -1241,7 +1241,8 @@ private fun DerbisNowPlayingContent(
                     canvas = appleMusicCanvas,
                     video = state.isVideoMode,
                     activeLyric = currentLyricLine ?: state.activeLyric,
-                    lyricPositionProvider = { appleMusicLyricsClock.positionMs }
+                    lyricPositionProvider = { appleMusicLyricsClock.positionMs },
+                    lyricLines = state.lyrics
                 )
             } else {
                 PrismPlayerScene(

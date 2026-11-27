@@ -51,7 +51,9 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -154,7 +156,8 @@ internal fun AppleMusicPlayerScene(
     canvas: AppleMusicCanvas? = null, video: Boolean = false,
     activeLyric: LyricLine? = null,
     lyricPositionMs: Long = 0L,
-    lyricPositionProvider: (() -> Long)? = null
+    lyricPositionProvider: (() -> Long)? = null,
+    lyricLines: List<LyricLine> = emptyList()
 ) {
     // The Apple Music 13 deck deliberately lets the adaptive artwork ambience show through,
     // then protects controls with a neutral, translucent lower scrim.
@@ -203,7 +206,8 @@ internal fun AppleMusicPlayerScene(
                 lyricPositionMs = lyricPositionMs,
                 lyricPositionProvider = lyricPositionProvider,
                 canvas = canvas,
-                playing = playing
+                playing = playing,
+                lyricLines = lyricLines
             )
         }
     }
@@ -262,7 +266,8 @@ private fun AppleMusicPortraitDeck(
     lyricPositionMs: Long = 0L,
     lyricPositionProvider: (() -> Long)? = null,
     canvas: AppleMusicCanvas? = null,
-    playing: Boolean = false
+    playing: Boolean = false,
+    lyricLines: List<LyricLine> = emptyList()
 ) {
     if (video) {
         AppleMusicVideoPortraitDeck(
@@ -272,7 +277,7 @@ private fun AppleMusicPortraitDeck(
     } else {
         AppleMusic13ReferencePortraitDeck(
             track, slots, metadata, transport, activeLyric, lyricPositionMs,
-            lyricPositionProvider, canvas, playing
+            lyricPositionProvider, canvas, playing, lyricLines
         )
     }
 }
@@ -292,7 +297,8 @@ private fun AppleMusic13ReferencePortraitDeck(
     lyricPositionMs: Long,
     lyricPositionProvider: (() -> Long)?,
     canvas: AppleMusicCanvas?,
-    playing: Boolean
+    playing: Boolean,
+    lyricLines: List<LyricLine> = emptyList()
 ) {
     BoxWithConstraints(
         Modifier
@@ -310,14 +316,30 @@ private fun AppleMusic13ReferencePortraitDeck(
         }
 
         // Preserve artwork gestures without putting an invisible surface over the controls.
+        var lensCenter by remember { mutableStateOf<Offset?>(null) }
+        val holdHaptic = LocalHapticFeedback.current
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .fillMaxHeight(AppleMusic13GestureStageHeight)
                 .statusBarsPadding()
+                .artworkHoldLens(
+                    onCenter = { center -> lensCenter = center },
+                    onReveal = {
+                        holdHaptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    }
+                )
         ) {
             slots.gestures(track, Modifier.matchParentSize())
+            // Hold-to-reveal droplet: blurred lyrics under a chrome bead of glass.
+            ArtworkLyricLensOverlay(
+                center = lensCenter,
+                lines = lyricLines,
+                positionProvider = lyricPositionProvider,
+                fallbackPositionMs = lyricPositionMs,
+                accent = AppleMusicDesign.accent
+            )
         }
 
         Box(
@@ -687,12 +709,25 @@ private fun AppleMusicModeToggle(icon: ImageVector, label: String, active: Boole
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            Modifier.size(34.dp).clip(RoundedCornerShape(AppleMusicDesign.cornerM))
-                .background(if (active) AppleMusicVibrant.tertiary else Color.Transparent),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = if (active) AppleMusicVibrant.primary else AppleMusicVibrant.secondary, modifier = Modifier.size(22.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.size(34.dp).clip(RoundedCornerShape(AppleMusicDesign.cornerM))
+                    .background(if (active) AppleMusicDesign.accent.copy(alpha = 0.16f) else Color.Transparent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    null,
+                    tint = if (active) AppleMusicDesign.accent else AppleMusicVibrant.secondary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+            if (active) {
+                Box(Modifier.size(4.dp).clip(CircleShape).background(AppleMusicDesign.accent))
+            } else {
+                Spacer(Modifier.height(4.dp))
+            }
         }
     }
 }

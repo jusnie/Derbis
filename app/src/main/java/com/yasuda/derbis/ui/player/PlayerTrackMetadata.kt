@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Star
@@ -305,12 +307,12 @@ private fun AppleMusicPlayerFavoriteButton(
     ) {
         Box(
             Modifier.size(30.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                .background(if (isFavorite) AppleMusicVibrant.primary else AppleMusicVibrant.quaternary),
+                .background(if (isFavorite) AppleMusicDesign.accent else AppleMusicVibrant.quaternary),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder, label,
-                tint = if (isFavorite) Color.Black.copy(alpha = 0.78f) else AppleMusicVibrant.primary, modifier = Modifier.size(19.dp)
+                if (isFavorite) Icons.Rounded.Check else Icons.Rounded.Add, label,
+                tint = Color.White, modifier = Modifier.size(19.dp)
             )
         }
     }
