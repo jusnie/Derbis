@@ -1,4 +1,4 @@
-const IOS_SHA256 = "64282df0c7a30dd1072cd4be0e22a3b23e2ddcc007637060754d633d065f943b";
+const IOS_SHA256 = "204648914c151dfadb7545362cad6b89ba6ddfe1dd2715e20338a6127c59fdbb";
 
 export default function handler(req, res) {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
