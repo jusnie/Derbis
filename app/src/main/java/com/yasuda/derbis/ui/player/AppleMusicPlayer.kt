@@ -811,7 +811,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                                 .fillMaxWidth(activeFraction)
                                 .fillMaxHeight()
                                 .clip(shape)
-                                .background(if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary)
+                                .background(AppleMusicVibrant.primary)
                         )
                         // RGB progress overlay applied strictly within the progress bar bounds
                         if (crossfadeAlpha > 0.01f) {
@@ -837,7 +837,7 @@ internal fun AppleMusicSeekbar(positionMs: Long, bufferedMs: Long, durationMs: L
                 fontFeatureSettings = "tnum"
             )
             val shown = dragging?.let { (durationMs * it).toLong() } ?: positionMs
-            val timeColor = if (dragging != null) AppleMusicVibrant.primary else AppleMusicVibrant.secondary
+            val timeColor = AppleMusicVibrant.primary
             Text(
                 text = formatSeekbarMillis(shown),
                 style = timeStyle,

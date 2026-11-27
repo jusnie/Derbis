@@ -225,7 +225,10 @@ fun DerbisNowPlaying(
 ) {
     // Apple Music 13 is its own deck and must not pull any other style into this scope,
     // otherwise two different choices would resolve to the same Apple Music scene.
-    val appleMusic13 = !DerbisSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle()
+    // The Liquid Glass skin presents the same full-bleed reference player with real glass
+    // chrome (the Taurus/Derbis optical material), so it opts into the same scope.
+    val appleMusic13 = DerbisIsLiquidGlass ||
+        (!DerbisSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle())
     AppleMusicPlayerStyleScope(appleMusic13) {
         DerbisNowPlayingContent(
             viewModel, state, morphAnchors, morphActive, collapseActions, modifier, motionSuspended,
@@ -266,9 +269,13 @@ private fun DerbisNowPlayingContent(
     val pixel = DerbisIsPixel
     // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
     // Pixel locks its Now Playing stage to the Flow deck with 0dp pixel geometry.
-    val selectedVisualMode = if (pixel) PlayerVisualMode.Flow else if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
+    // Reference parity: the Liquid Glass skin owns the full-bleed Apple Music 13 player,
+    // rendered with the real Taurus/Derbis glass material (forced via forceGlassOverBackdrop
+    // on iOS, and the shared resolvedDerbisGlass engine on Android when the glass system is
+    // active). The Flow deck is therefore no longer reachable from the glass skin.
+    val selectedVisualMode = if (pixel) PlayerVisualMode.Flow else if (DerbisIsLiquidGlass) PlayerVisualMode.AppleMusic13 else if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
-    val appleMusicDeck = !DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
+    val appleMusicDeck = DerbisIsLiquidGlass || (!DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle())
     val appleMusicPlayer = DerbisIsAppleMusic || appleMusicDeck
     val visualMode = selectedVisualMode
     val animated = state.animationsEnabled
@@ -459,9 +466,9 @@ private fun DerbisNowPlayingContent(
             !state.isVideoMode &&
             playerPane != DerbisPlayerPane.SideBySide
         val deckLayout = when {
-            // The Liquid Glass skin used to route to the Prism scene; iOS parity puts it on the
-            // Flow deck, which is where the glass artwork stage and the studio chip bar live.
-            DerbisIsLiquidGlass -> PlayerDeckLayout.Flow
+            // The Liquid Glass skin owns the full-bleed reference deck (the Apple Music 13
+            // portrait scene), chrome rendered with the shared optical glass material.
+            DerbisIsLiquidGlass -> PlayerDeckLayout.AppleMusic13
             DerbisSkinManagesLayout && !pixel -> PlayerDeckLayout.Derbis
             else -> resolvePlayerDeckLayout(
                 mode = visualMode,

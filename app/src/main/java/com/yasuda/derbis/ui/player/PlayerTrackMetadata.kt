@@ -312,7 +312,8 @@ private fun AppleMusicPlayerFavoriteButton(
         ) {
             Icon(
                 if (isFavorite) Icons.Rounded.Check else Icons.Rounded.Add, label,
-                tint = Color.White, modifier = Modifier.size(19.dp)
+                tint = if (isFavorite) Color.Black.copy(alpha = 0.78f) else Color.White,
+                modifier = Modifier.size(19.dp)
             )
         }
     }

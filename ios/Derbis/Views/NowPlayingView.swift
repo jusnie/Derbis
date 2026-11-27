@@ -55,6 +55,14 @@ struct NowPlayingView: View {
         theme.backdropStyle == .fill && !theme.isLightSkin
     }
 
+    /// The full-bleed Apple Music reference player: edge-to-edge artwork, white ink on black,
+    /// glass chrome, bare-glyph dock.
+    /// Used by the Fill backdrop, immersive motion canvas, and now by the Liquid Glass skin itself,
+    /// which is rendered with the real Taurus/Derbis optical glass material.
+    private var isReferenceBackdrop: Bool {
+        isImmersiveCanvas || isFillBackdrop || theme.skin == .liquidGlass
+    }
+
     // Press-and-hold lens: the blurred-lyric droplet that wakes under the finger.
     private var lensLines: [LyricLine] {
         if let lines = player.currentLyrics?.lines, !lines.isEmpty {
@@ -95,12 +103,12 @@ struct NowPlayingView: View {
     }
 
     private var fgPrimary: Color {
-        if isImmersiveCanvas || isFillBackdrop { return Color.white }
+        if isReferenceBackdrop { return Color.white }
         return theme.isLightSkin ? theme.primaryText : Color.white
     }
 
     private var fgSecondary: Color {
-        if isImmersiveCanvas || isFillBackdrop { return Color.white.opacity(0.74) }
+        if isReferenceBackdrop { return Color.white.opacity(0.74) }
         return theme.isLightSkin ? theme.secondaryText : Color.white.opacity(0.65)
     }
 
@@ -183,7 +191,7 @@ struct NowPlayingView: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 5.5)
                                         .derbisGlassCapsule(
-                                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                                            forceGlassOverBackdrop: isReferenceBackdrop
                                         )
                                         .padding(.horizontal, 22)
                                         .padding(.bottom, 6)
@@ -209,7 +217,7 @@ struct NowPlayingView: View {
                                         DerbisFlowStudioChipBar(
                                             fgPrimary: fgPrimary,
                                             fgSecondary: fgSecondary,
-                                            forceGlass: isImmersiveCanvas || isFillBackdrop,
+                                            forceGlass: isReferenceBackdrop,
                                             onOpenStudioFX: { showingAudioStudioSheet = true },
                                             onOpenSimilar: { showingSimilarSheet = true }
                                         )
@@ -489,12 +497,16 @@ struct NowPlayingView: View {
         let bleedHeight = height + 160
 
         ZStack {
-            if theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop {
+            if theme.isLightSkin && !isReferenceBackdrop {
                 PixelGraphPaperBackground()
                     .frame(width: bleedWidth, height: bleedHeight)
                     .clipped()
             } else {
-                switch theme.backdropStyle {
+                // The Liquid Glass skin is the full-bleed reference player; its backdrop is the
+                // full-bleed artwork fill regardless of the stored backdrop preference. Other
+                // skins keep their own backdrop choice untouched.
+                let resolvedBackdropStyle = (theme.skin == .liquidGlass) ? PlayerBackdropStyle.fill : theme.backdropStyle
+                switch resolvedBackdropStyle {
                 case .still:
                     LinearGradient(
                         colors: [
@@ -634,7 +646,7 @@ struct NowPlayingView: View {
 
     private func grabberAndTopBar(track: Track) -> some View {
         VStack(spacing: 5) {
-            if !(isImmersiveCanvas || isFillBackdrop) {
+            if !(isReferenceBackdrop) {
                 Capsule()
                     .fill(fgSecondary.opacity(0.45))
                     .frame(width: 36, height: 4)
@@ -651,7 +663,7 @@ struct NowPlayingView: View {
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
                             size: 36,
-                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                            forceGlassOverBackdrop: isReferenceBackdrop
                         )
                 }
                 .buttonStyle(.plain)
@@ -673,7 +685,7 @@ struct NowPlayingView: View {
                             }
                         }
                     } label: {
-                        if isImmersiveCanvas || isFillBackdrop {
+                        if isReferenceBackdrop {
                             // Reference: a single calm, sentence-case context label.
                             Text(track.source.rawValue.capitalized)
                                 .font(.system(size: 13, weight: .semibold))
@@ -736,12 +748,12 @@ struct NowPlayingView: View {
                     haptics.playControlTap(style: .light)
                     showingStudioConsole = true
                 } label: {
-                    Image(systemName: (isImmersiveCanvas || isFillBackdrop) ? "ellipsis" : "slider.horizontal.below.rectangle")
+                    Image(systemName: (isReferenceBackdrop) ? "ellipsis" : "slider.horizontal.below.rectangle")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(fgPrimary)
                         .derbisGlassCircle(
                             size: 36,
-                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                            forceGlassOverBackdrop: isReferenceBackdrop
                         )
                 }
                 .buttonStyle(.plain)
@@ -757,7 +769,7 @@ struct NowPlayingView: View {
 
         return VStack(spacing: 8) {
             ZStack {
-                if isImmersiveCanvas || isFillBackdrop {
+                if isReferenceBackdrop {
                     Color.clear
                         .frame(width: viewportWidth, height: availableArtHeight)
                 } else {
@@ -803,7 +815,7 @@ struct NowPlayingView: View {
                                 triggerBadge(icon: "goforward.10", label: "+10s")
                             }
                     }
-                    .frame(width: viewportWidth, height: (isImmersiveCanvas || isFillBackdrop) ? availableArtHeight : side)
+                    .frame(width: viewportWidth, height: (isReferenceBackdrop) ? availableArtHeight : side)
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 20)
                             .onChanged { value in
@@ -845,7 +857,7 @@ struct NowPlayingView: View {
 
                 // Hold-to-reveal droplet: blurred lyrics under a chrome bead of glass.
                 if holdLensRevealed, let lensLocation = holdLensLocation {
-                    let stageHeight = (isImmersiveCanvas || isFillBackdrop) ? availableArtHeight : side
+                    let stageHeight = (isReferenceBackdrop) ? availableArtHeight : side
                     let lensX = min(max(lensLocation.x, 118), viewportWidth - 118)
                     let lensY = min(max(lensLocation.y, 136), stageHeight - 136)
 
@@ -947,7 +959,7 @@ struct NowPlayingView: View {
                         .padding(.horizontal, 11)
                         .padding(.vertical, 5.5)
                         .derbisGlassCapsule(
-                            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                            forceGlassOverBackdrop: isReferenceBackdrop
                         )
                 }
                 .buttonStyle(.plain)
@@ -1204,8 +1216,8 @@ struct NowPlayingView: View {
                 haptics.playControlTap(style: .medium)
                 library.toggleLike(track)
             } label: {
-                if isImmersiveCanvas || isFillBackdrop {
-                    // Reference treatment: a filled red circle with a white check when the
+                if isReferenceBackdrop {
+                    // Reference treatment: a filled red circle with a dark check when the
                     // record is in your rotation, an open circle otherwise.
                     ZStack {
                         Circle()
@@ -1214,7 +1226,7 @@ struct NowPlayingView: View {
                             .strokeBorder(library.isLiked(track) ? Color.clear : Color.white.opacity(0.5), lineWidth: 1.6)
                         Image(systemName: library.isLiked(track) ? "checkmark" : "plus")
                             .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(library.isLiked(track) ? Color.black.opacity(0.78) : .white)
                     }
                     .frame(width: 30, height: 30)
                     .frame(width: 38, height: 38)
@@ -1231,7 +1243,7 @@ struct NowPlayingView: View {
 
     private var scrubberSection: some View {
         let activeDeck = theme.effectivePlayerDeck
-        let rail: Color = (theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop)
+        let rail: Color = (theme.isLightSkin && !isReferenceBackdrop)
             ? theme.border.opacity(0.26)
             : Color.white.opacity(0.20)
         return DerbisDeckScrubberView(
@@ -1240,7 +1252,7 @@ struct NowPlayingView: View {
             isScrubbing: $isScrubbing,
             scrubTime: $scrubTime,
             lastScrubNotch: $lastScrubNotch,
-            accentColor: (activeDeck == .appleMusic13 || isImmersiveCanvas || isFillBackdrop) ? fgPrimary : theme.accent,
+            accentColor: (activeDeck == .appleMusic13 || isReferenceBackdrop) ? fgPrimary : theme.accent,
             railColor: rail,
             fgSecondary: fgSecondary,
             labelFont: theme.font(size: 11, weight: .semibold),
@@ -1277,7 +1289,7 @@ struct NowPlayingView: View {
             .padding(.vertical, 3.5)
             .derbisGlassCapsule(
                 prominent: fx.hasAnyActiveModification,
-                forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+                forceGlassOverBackdrop: isReferenceBackdrop
             )
         }
         .buttonStyle(.plain)
@@ -1285,7 +1297,7 @@ struct NowPlayingView: View {
 
     @ViewBuilder
     private func transportControlsRow(playSize: CGFloat = 62) -> some View {
-        if isImmersiveCanvas || isFillBackdrop {
+        if isReferenceBackdrop {
             chromeTransportRow
         } else {
             legacyTransportRow(playSize: playSize)
@@ -1381,7 +1393,7 @@ struct NowPlayingView: View {
 
     private func legacyTransportRow(playSize: CGFloat = 62) -> some View {
         let deck = theme.effectivePlayerDeck
-        let usePixelButtons = (theme.isPixelSkin || deck == .pixel) && !isImmersiveCanvas && !isFillBackdrop
+        let usePixelButtons = (theme.isPixelSkin || deck == .pixel) && !isReferenceBackdrop
         let useSquircleMorph = deck == .flow || deck == .sleeve || deck == .frost
         let playCorner: CGFloat = usePixelButtons ? 0 : (theme.isTorqueSkin ? 10 : (useSquircleMorph ? (player.isPlaying ? 18 : playSize * 0.5) : playSize * 0.5))
 
@@ -1414,7 +1426,7 @@ struct NowPlayingView: View {
                                     .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
                             } else if deck == .flow || deck == .frost {
                                 Capsule()
-                                    .fill(theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
+                                    .fill(theme.isLightSkin && !isReferenceBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
                             }
                         }
                     )
@@ -1483,7 +1495,7 @@ struct NowPlayingView: View {
                                     .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
                             } else if deck == .flow || deck == .frost {
                                 Capsule()
-                                    .fill(theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
+                                    .fill(theme.isLightSkin && !isReferenceBackdrop ? theme.elevatedSurface : Color.white.opacity(0.10))
                             }
                         }
                     )
@@ -1505,7 +1517,7 @@ struct NowPlayingView: View {
 
     @ViewBuilder
     private func bottomUtilityDock(track: Track) -> some View {
-        if isImmersiveCanvas || isFillBackdrop {
+        if isReferenceBackdrop {
             referenceUtilityDock(track: track)
         } else {
             legacyUtilityDock(track: track)
@@ -1561,7 +1573,7 @@ struct NowPlayingView: View {
     }
 
     private func legacyUtilityDock(track: Track) -> some View {
-        let airplayTint: UIColor = (theme.isLightSkin && !isImmersiveCanvas && !isFillBackdrop)
+        let airplayTint: UIColor = (theme.isLightSkin && !isReferenceBackdrop)
             ? UIColor(theme.primaryText)
             : UIColor.white
 
@@ -1659,7 +1671,7 @@ struct NowPlayingView: View {
         .padding(.vertical, 5)
         .derbisGlassCapsule(
             interactive: false,
-            forceGlassOverBackdrop: isImmersiveCanvas || isFillBackdrop
+            forceGlassOverBackdrop: isReferenceBackdrop
         )
     }
 
