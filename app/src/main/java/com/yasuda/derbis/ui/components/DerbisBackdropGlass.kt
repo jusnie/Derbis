@@ -404,4 +404,11 @@ fun Modifier.derbisLightweightGlass(
 
 /** The tint a glass surface is filled with when the caller does not supply one. */
 internal fun defaultGlassSurfaceTint(isLight: Boolean): Color =
-    (if (isLight) Color(0xFFFAFAFA) else Color(0xFF121212)).copy(alpha = SURFACE_OPACITY)
+    if (isLight) {
+        Color(0xFFFAFAFA).copy(alpha = SURFACE_OPACITY)
+    } else {
+        // Taurus parity: night chrome is a white film over the blurred page, not a dark slab —
+        // matches the iOS surface film (white@0.065) with the reduced-transparency lift
+        // (white@0.16) so the rim always reads.
+        Color.White.copy(alpha = 0.16f)
+    }
