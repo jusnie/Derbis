@@ -5,7 +5,7 @@ export const LATEST_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag
 export const APK_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk";
 export const SHA256_DOWNLOAD_URL = "https://github.com/jusnie/Derbis/releases/download/v1.8.0/Derbis.apk.sha256";
 
-export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-13630b6";
+export const IOS_RELEASE_URL = "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-bbdefd9";
 export const IOS_IPA_DOWNLOAD_URL = "/Derbis.ipa";
 export const IOS_IPA_PUBLIC_URL = "https://derbis-web.vercel.app/Derbis.ipa";
 export const IOS_SHA256_DOWNLOAD_URL = "/Derbis.ipa.sha256";
@@ -22,14 +22,14 @@ export const RELEASE_META = {
 
 export const IOS_RELEASE_META = {
   version: "v1.8.0",
-  buildId: "13630b6",
-  upstreamTag: "ios-unofficial-13630b6",
+  buildId: "bbdefd9",
+  upstreamTag: "ios-unofficial-bbdefd9",
   bundleId: "com.derbis.ios",
   sizeLabel: "3.3 MB",
   iosMin: "iOS 16.0+",
   archLabel: "arm64 SwiftUI",
   publishedLabel: "October 2026",
-  sha256: "204648914c151dfadb7545362cad6b89ba6ddfe1dd2715e20338a6127c59fdbb"
+  sha256: "0c717142e103895c8e9c7841dec96427bebf2ebd38126cdb9acfdee6c58c5417"
 };
 
 export const UPCOMING_PLATFORMS = {
@@ -421,7 +421,7 @@ export const INITIAL_RELEASES = [
     ]
   },
   {
-    tag: "ios-unofficial-13630b6",
+    tag: "ios-unofficial-bbdefd9",
     displayTag: "v1.8.0-beta · iOS",
     name: "Derbis v1.8.0 Beta for iOS",
     channel: "iOS Beta",
@@ -430,9 +430,17 @@ export const INITIAL_RELEASES = [
     prerelease: true,
     downloads: null,
     sizeLabel: "3.3 MB",
-    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-13630b6",
+    url: "https://github.com/jusnie/Derbis/releases/tag/ios-unofficial-bbdefd9",
     ipaUrl: "/Derbis.ipa",
     groups: [
+      {
+        heading: "Optical glass material",
+        items: [
+          "Every Liquid Glass surface now renders a structured field — skin atmosphere plus a live blurred bloom of the playing artwork — under a real frosted material, so panels read as glass instead of flat smoke",
+          "Refraction band, chromatic dispersion, a lit specular rim with slow drift, and a genuine drop shadow replace the old single-gradient border",
+          "Auto / Always on / Off lens budget plus Frost Density and Refraction Strength controls in Studio; Low Power Mode and Reduce Motion drop to a cheaper tier instead of losing the material"
+        ]
+      },
       {
         heading: "Derbis Studio UI overhaul",
         items: [

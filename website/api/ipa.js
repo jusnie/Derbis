@@ -1,5 +1,5 @@
 const UPSTREAM_IPA_URL =
-  "https://github.com/jusnie/Derbis/releases/download/ios-unofficial-13630b6/Derbis-unofficial.ipa";
+  "https://github.com/jusnie/Derbis/releases/download/ios-unofficial-bbdefd9/Derbis-unofficial.ipa";
 
 export default async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") {
