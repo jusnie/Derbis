@@ -52,8 +52,8 @@ internal object PrismDesign {
 
 internal object PrismAccent {
     // Liquid Glass uses cool spectral refraction rather than the old raspberry Prism gradient.
-    private val nightStart = Color(0xFF72D5FF)
-    private val nightEnd = Color(0xFFC4B5FD)
+    private val nightStart = Color(0xFF38BDF8)
+    private val nightEnd = Color(0xFF818CF8)
     private val lightStart = Color(0xFF007B9B)
     private val lightEnd = Color(0xFF5E5CC6)
 

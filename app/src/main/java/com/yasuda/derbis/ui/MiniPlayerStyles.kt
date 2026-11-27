@@ -458,7 +458,13 @@ internal fun StyledMiniPlayer(
                             .clip(containerShape)
                     }
                 )
-                .miniBackground(style, tuning, palette, containerShape)
+                .miniBackground(
+                    style,
+                    tuning,
+                    palette,
+                    containerShape,
+                    coverTint = LocalNavArtworkSeed.current?.primary
+                )
                 .miniOutline(style, palette, containerShape)
                 .then(interaction)
         ) {
@@ -865,18 +871,22 @@ private fun Modifier.miniBackground(
     style: MiniPlayerStyle,
     tuning: MiniPlayerTuning,
     palette: MiniPlayerPalette,
-    shape: Shape
+    shape: Shape,
+    coverTint: Color? = null
 ): Modifier = when (style) {
     MiniPlayerStyle.LiquidGlass -> {
         val tint = palette.surface.playerMix(palette.accent, 0.10f)
         val alpha = tuning.opacity / 100f
         val fill = tint.copy(alpha = (alpha + 0.32f).coerceAtMost(0.96f))
         val sheen = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.10f), Color.Transparent))
-        // Real page glass on the Liquid Glass skin; BitChord's lightweight material — same
-        // tint, same edge, no backdrop sample — everywhere else. No frost layer.
+        // Taurus parity: the iOS mini player glass is tinted by the current artwork
+        // (ambientPrimary @ 0.25), not a neutral chrome. The cover seed is read by the
+        // @Composable caller and passed in as [coverTint]; when nothing is playing the
+        // iOS engine falls back to #16243E.
+        val cover = (coverTint ?: Color(0xFF16243E)).copy(alpha = 0.25f)
         derbisChromeGlass(
             shape = shape,
-            tint = defaultGlassSurfaceTint(isLight = !palette.onDark),
+            tint = if (palette.onDark) cover else defaultGlassSurfaceTint(isLight = true),
             fallback = Modifier.derbisLightweightGlass(shape, fill, rim = true)
         ).drawBehind { drawRect(sheen) }
     }

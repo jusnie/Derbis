@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.yasuda.derbis.domain.PrismTranslucency
+import com.yasuda.derbis.ui.LocalNavArtworkSeed
 import com.yasuda.derbis.ui.player.PlayerSurfaceTokens
 
 @Composable
@@ -31,12 +32,30 @@ internal fun prismGlassColor(): Color {
 internal fun PrismAtmosphere(modifier: Modifier = Modifier) {
     val palette = DerbisActivePalette
     if (DerbisIsLiquidGlass) {
-        // Taurus parity: page background is #020306 with a faint sky-to-clear wash from
-        // the top — the same atmosphere the iOS LiquidGlass skin sits on.
-        val sky = palette.cyan.copy(alpha = if (palette.isLight) 0.05f else 0.16f)
+        // Taurus parity: the iOS LiquidGlass page is the house background (#020306)
+        // under a diagonal cover-art ambient wash — ambientPrimary over the top-leading
+        // corner falling to ambientSecondary, ending at the background at ~84%, exactly
+        // the PixelGraphPaperBackground recipe on iOS. With no artwork the iOS engine
+        // defaults to #16243E / #0A0C14 at reduced strength.
+        val seed = LocalNavArtworkSeed.current
+        val playing = seed != null
+        val primary = seed?.primary ?: Color(0xFF16243E)
+        val secondary = seed?.secondary ?: Color(0xFF0A0C14)
+        val primaryAlpha = if (palette.isLight) 0f else if (playing) 0.54f else 0.22f
+        val secondaryAlpha = if (palette.isLight) 0f else if (playing) 0.32f else 0.14f
         Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
-            val top = Brush.verticalGradient(listOf(sky, Color.Transparent), endY = size.height * 0.36f)
-            onDrawBehind { drawRect(top) }
+            // LinearGradient(.topLeading -> .bottomTrailing) is the diagonal across the
+            // page; stops mirror the iOS recipe (0.0 / 0.40 / 0.84).
+            val ambient = Brush.linearGradient(
+                colorStops = arrayOf(
+                    0.0f to primary.copy(alpha = primaryAlpha),
+                    0.40f to secondary.copy(alpha = secondaryAlpha),
+                    0.84f to Color.Transparent
+                ),
+                start = Offset.Zero,
+                end = Offset(size.width, size.height)
+            )
+            onDrawBehind { drawRect(ambient) }
         })
         return
     }
@@ -55,16 +74,10 @@ internal fun PrismPlayerAtmosphere(modifier: Modifier = Modifier) {
         return
     }
     if (DerbisIsLiquidGlass) {
-        // Taurus parity: same black pane, sky wash falling away, indigo halo mid-page.
-        Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
-            val sky = palette.cyan
-            val fall = Brush.verticalGradient(listOf(sky.copy(alpha = 0.16f), sky.copy(alpha = 0.05f), Color.Transparent), endY = size.height * 0.72f)
-            val halo = Brush.radialGradient(
-                listOf(palette.violet.copy(alpha = if (palette.isLight) 0.05f else 0.10f), Color.Transparent),
-                center = Offset(size.width * 0.5f, size.height * 0.3f), radius = size.width * 0.8f
-            )
-            onDrawBehind { drawRect(fall); drawRect(halo) }
-        })
+        // Taurus parity: the player keeps the same flat #020306 pane; the full-bleed
+        // reference deck paints its own artwork fill over this floor, so no
+        // atmospheric tints are invented here.
+        Box(modifier.fillMaxSize().background(palette.black))
         return
     }
     val wash = PrismAccent.wash(palette.isLight)

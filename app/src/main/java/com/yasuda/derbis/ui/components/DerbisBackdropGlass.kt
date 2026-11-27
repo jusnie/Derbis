@@ -247,9 +247,9 @@ internal val DerbisGlassEdgeColor = Color.White.copy(alpha = 0.10f)
  */
 private object DerbisOpticalSubstrate {
     // The cool spectral refraction ramp of the Liquid Glass skin (night pair / light pair).
-    val accentDark = Color(0xFF72D5FF)    // nightStart
+    val accentDark = Color(0xFF38BDF8)    // nightStart (iOS liquidGlass accent)
     val accentLight = Color(0xFF007B9B)   // lightStart
-    val secondaryDark = Color(0xFFC4B5FD)  // nightEnd (violet)
+    val secondaryDark = Color(0xFF818CF8)  // nightEnd (iOS liquidGlass secondaryAccent)
     val secondaryLight = Color(0xFF5E5CC6) // lightEnd
 
     val baseDark = Color(0xFF080A10)
