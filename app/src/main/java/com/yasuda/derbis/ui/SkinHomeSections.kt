@@ -602,7 +602,7 @@ internal fun SkinNameGreeting(greeting: String, dayPart: String, name: String, m
             Text(dayPart, color = DerbisMuted, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 name, color = DerbisText,
-                fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Normal, letterSpacing = (-1.4).sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1.4).sp, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
         DerbisIsPrism -> Column(modifier.then(accessible)) {

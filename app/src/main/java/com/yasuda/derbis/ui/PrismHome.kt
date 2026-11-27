@@ -43,7 +43,16 @@ internal fun PrismPageHeader(title: String, subtitle: String = "", actions: @Com
     Column(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                title, color = DerbisText, style = if (DerbisIsSpotify) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp, lineHeight = 38.sp),
+                title,
+                color = DerbisText,
+                // Taurus parity: iOS screen titles are 22-26 bold (Library/Settings = 26,
+                // home wordmark = 22). Glass keeps that scale instead of the Prism 32pt
+                // announcement.
+                style = when {
+                    DerbisIsSpotify -> MaterialTheme.typography.headlineMedium
+                    DerbisIsLiquidGlass -> MaterialTheme.typography.headlineLarge.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.sp)
+                    else -> MaterialTheme.typography.headlineLarge.copy(fontSize = 32.sp, lineHeight = 38.sp)
+                },
                 maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).semantics { heading() }
             )
             actions()
