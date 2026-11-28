@@ -47,7 +47,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pointerInput
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -69,6 +69,7 @@ import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
@@ -421,6 +422,7 @@ private fun LiquidGlassArtistHero(
  * Full-page artist destination for the Liquid Glass skin. Self-contained chrome (top bar with a
  * close action and an options menu) so it can own its visual language end to end.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LiquidGlassArtistOverlay(
     state: DerbisUiState,
