@@ -930,7 +930,7 @@ private fun LiquidGlassReleaseCarousel(
 }
 
 @Composable
-private fun LiquidGlassCarouselItem(
+private fun androidx.compose.foundation.layout.BoxScope.LiquidGlassCarouselItem(
     entry: LiquidGlassReleaseEntry,
     index: Int,
     position: Animatable<Float, AnimationVector1D>,

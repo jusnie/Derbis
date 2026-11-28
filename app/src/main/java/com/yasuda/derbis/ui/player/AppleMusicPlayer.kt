@@ -451,9 +451,8 @@ private fun AppleMusic13StretchedArtwork(
     }
 }
 
-/** A balanced Derbis utility row with independent, generously sized touch targets. */
-@Composable
 /**
+ * A balanced Derbis utility row with independent, generously sized touch targets.
  * The full-bleed reference dock: three bare glyphs and nothing else — the lyrics quote on the
  * left, the red headphones (audio studio) dead centre, the up-next list on the right.
  */
