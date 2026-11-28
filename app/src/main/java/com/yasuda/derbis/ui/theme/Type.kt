@@ -32,10 +32,14 @@ private val MontserratFont: FontFamily = googleFontFamily("Montserrat")
 private val NunitoFont: FontFamily = googleFontFamily("Nunito")
 private val RobotoFont: FontFamily = googleFontFamily("Roboto")
 
-/** Bundled in the repo (res/font), no download or provider needed. */
+/** Bundled in the repo (res/font), no download or provider needed. Single definition — skins share it. */
 internal val PixelifyFont: FontFamily = FontFamily(
     ResourceFont(R.font.pixelify_sans_regular, FontWeight.Normal),
-    ResourceFont(R.font.pixelify_sans_bold, FontWeight.Bold)
+    ResourceFont(R.font.pixelify_sans_regular, FontWeight.Medium),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.SemiBold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.Bold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.ExtraBold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.Black)
 )
 private val SerifFont: FontFamily = FontFamily.Serif
 private val MonospaceFont: FontFamily = FontFamily.Monospace

@@ -4,12 +4,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yasuda.derbis.R
 import com.yasuda.derbis.domain.DerbisFontPreset
 import com.yasuda.derbis.domain.*
 
@@ -76,15 +73,6 @@ internal val PixelShapes = Shapes(
     largeIncreased = RoundedCornerShape(0.dp),
     extraLargeIncreased = RoundedCornerShape(0.dp),
     extraExtraLarge = RoundedCornerShape(0.dp)
-)
-
-internal val PixelifyFont: FontFamily = FontFamily(
-    Font(resId = R.font.pixelify_sans_regular, weight = FontWeight.Normal),
-    Font(resId = R.font.pixelify_sans_regular, weight = FontWeight.Medium),
-    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.SemiBold),
-    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.Bold),
-    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.ExtraBold),
-    Font(resId = R.font.pixelify_sans_bold, weight = FontWeight.Black)
 )
 
 internal val PixelTypography = derbisTypographyFor(DerbisFontPreset.System).let { base ->
