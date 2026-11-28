@@ -43,6 +43,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import kotlin.math.hypot
+import kotlin.math.pow
+import android.os.Build
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.graphics.graphicsLayer
+import com.yasuda.derbis.ui.GlassLensTier
+import com.yasuda.derbis.ui.LocalDerbisGlassAccessibility
+import com.yasuda.derbis.ui.LocalDerbisGlassTier
+import com.yasuda.derbis.ui.components.LocalDerbisPlayerBackdrop
+import com.yasuda.derbis.ui.components.backdrop.backdrops.LayerBackdrop
+import com.yasuda.derbis.ui.components.backdrop.drawBackdrop
+import com.yasuda.derbis.ui.components.backdrop.effects.droplet
 
 private val LensWidth = 236.dp
 private val LensHeight = 272.dp
@@ -62,6 +73,49 @@ private const val HoldRevealDelayMs = 150L
  */
 @Composable
 internal fun ArtworkLyricLensOverlay(
+    center: Offset?,
+    lines: List<LyricLine>,
+    positionProvider: (() -> Long)?,
+    fallbackPositionMs: Long,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    // The Liquid Glass skin records the deck's own artwork backdrop into an optical
+    // layer; when that recording is live, the droplet refracts the very scene it
+    // covers — magnification, wobbling water boundary, chromatic rim, spring squash.
+    // Everywhere else the chrome bead keeps doing its job over whatever is behind it.
+    val backdrop = LocalDerbisPlayerBackdrop.current
+    val tier = LocalDerbisGlassTier.current
+    val refractionReady = backdrop != null &&
+        tier != GlassLensTier.Efficient &&
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        !LocalDerbisGlassAccessibility.current.increasedContrast
+    if (refractionReady) {
+        RefractionDropletLens(
+            backdrop = backdrop!!,
+            center = center,
+            lines = lines,
+            positionProvider = positionProvider,
+            fallbackPositionMs = fallbackPositionMs,
+            accent = accent,
+            modifier = modifier
+        )
+    } else {
+        LegacyArtworkLyricLensOverlay(
+            center = center,
+            lines = lines,
+            positionProvider = positionProvider,
+            fallbackPositionMs = fallbackPositionMs,
+            accent = accent,
+            modifier = modifier
+        )
+    }
+}
+
+/** The original chrome-bead lens, kept for surfaces without a recorded backdrop and
+ *  for the accessibility tiers that ask for no live refraction. */
+@Composable
+private fun LegacyArtworkLyricLensOverlay(
     center: Offset?,
     lines: List<LyricLine>,
     positionProvider: (() -> Long)?,
@@ -186,6 +240,224 @@ internal fun ArtworkLyricLensOverlay(
                             radius = size.width * 0.62f
                         )
                         drawRect(brush = sheen)
+                    }
+            )
+        }
+    }
+}
+
+/**
+ * Spring state for the droplet, driven by finger motion: [speedState] low-passes the
+ * drag velocity, the squash spring kicks on every fast movement and rings back to
+ * neutral, and the axis-aligned scales stretch the bead along its travel direction —
+ * the same squash-and-stretch the reference's physics loop applies to its lens.
+ */
+private class DropletPhysics {
+    val speedState = androidx.compose.runtime.mutableFloatStateOf(0f)
+    val scaleXState = androidx.compose.runtime.mutableFloatStateOf(1f)
+    val scaleYState = androidx.compose.runtime.mutableFloatStateOf(1f)
+    val wobbleState = androidx.compose.runtime.mutableFloatStateOf(0.8f)
+
+    private var dirX = 0f
+    private var dirY = 1f
+    private var squash = 0f
+    private var squashVel = 0f
+    private var lastX = Float.NaN
+    private var lastY = 0f
+    private var lastNanos = 0L
+
+    fun onPosition(x: Float, y: Float, nanos: Long) {
+        if (lastX.isNaN()) {
+            lastX = x; lastY = y; lastNanos = nanos; return
+        }
+        val dt = (nanos - lastNanos) / 1_000_000_000f
+        if (dt <= 0f) return
+        val dx = x - lastX
+        val dy = y - lastY
+        val instant = hypot(dx, dy) / dt
+        speedState.floatValue = speedState.floatValue * 0.62f + instant * 0.38f
+        if (instant > 30f) {
+            val inv = 1f / instant
+            var nx = dirX * 0.7f + dx * inv * 0.3f
+            var ny = dirY * 0.7f + dy * inv * 0.3f
+            val n = hypot(nx, ny)
+            if (n > 0.001f) { nx /= n; ny /= n }
+            dirX = nx; dirY = ny
+        }
+        squashVel += (instant / 750f).coerceAtMost(1.15f) * 2.1f
+        lastX = x; lastY = y; lastNanos = nanos
+    }
+
+    fun tick(dtSeconds: Float) {
+        val decay = 0.86f.pow(dtSeconds * 60f)
+        val speed = speedState.floatValue * decay
+        speedState.floatValue = speed
+        squashVel += (-squash * 160f - squashVel * 11.5f) * dtSeconds
+        squash = (squash + squashVel * dtSeconds).coerceIn(-1.4f, 1.4f)
+        val amt = (speed * 0.00016f).coerceAtMost(0.22f)
+        scaleXState.floatValue = 1f + amt * dirX - amt * dirY * 0.5f + squash * 0.5f
+        scaleYState.floatValue = 1f + amt * dirY - amt * dirX * 0.5f - squash * 0.5f
+        wobbleState.floatValue = 0.75f + (speed * 0.0006f).coerceAtMost(0.6f)
+    }
+}
+
+/**
+ * The reference's water lens, ported to the recorded glass backdrop: the droplet
+ * magnifies the page underneath (artwork included), its boundary wobbles in
+ * silhouette, the rim splits into a chromatic fringe on the full chrome tier, and
+ * the whole bead squashes along the finger's travel direction.
+ *
+ * The backdrop renders itself un-clipped to its interior — the shader outputs
+ * transparency outside its wobbling contour, and the surface's ellipse box only
+ * crops pixels that are already transparent. The lyrics window sits on top,
+ * blurred, with a legibility scrim underneath it drawn by the surface itself.
+ */
+@Composable
+private fun RefractionDropletLens(
+    backdrop: LayerBackdrop,
+    center: Offset?,
+    lines: List<LyricLine>,
+    positionProvider: (() -> Long)?,
+    fallbackPositionMs: Long,
+    accent: Color,
+    modifier: Modifier
+) {
+    val chromatic = LocalDerbisGlassTier.current == GlassLensTier.Full
+    val alpha by animateFloatAsState(
+        targetValue = if (center != null) 1f else 0f,
+        animationSpec = tween(durationMillis = 170),
+        label = "lens-alpha"
+    )
+    var lastCenter by remember { mutableStateOf(Offset(120f, 140f)) }
+    LaunchedEffect(center) { if (center != null) lastCenter = center }
+
+    // One frame clock for the wobble and the spring; only runs while composed.
+    val physics = remember { DropletPhysics() }
+    val timeState = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        var last = 0L
+        while (true) {
+            withFrameNanos { frame ->
+                val dt = if (last == 0L) 0f else (frame - last) / 1_000_000_000f
+                last = frame
+                physics.tick(dt)
+                timeState.floatValue = frame / 1_000_000_000f
+            }
+        }
+    }
+    LaunchedEffect(center) {
+        val c = center
+        if (c != null) physics.onPosition(c.x, c.y, System.nanoTime())
+    }
+
+    if (alpha <= 0.012f) {
+        // Nothing to draw yet, but keep the overlay inert and cheap.
+        return
+    }
+
+    // Follow playback at reading speed: the text is blurred anyway, so ~5 Hz is invisible.
+    var tick by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(180)
+            tick += 1
+        }
+    }
+    @Suppress("UNUSED_EXPRESSION") tick
+    val positionMs = positionProvider?.invoke() ?: fallbackPositionMs
+
+    val activeLines = remember(lines) {
+        lines.filter { !it.isMetadata && !it.isInstrumental && it.text.isNotBlank() }
+    }
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val lensW = with(density) { LensWidth.toPx() }
+        val lensH = with(density) { LensHeight.toPx() }
+        val maxW = constraints.maxWidth.toFloat()
+        val maxH = constraints.maxHeight.toFloat()
+        val desired = center ?: lastCenter
+        val cx = desired.x.coerceIn(lensW / 2f + 4f, (maxW - lensW / 2f - 4f).coerceAtLeast(lensW / 2f + 4f))
+        val cy = desired.y.coerceIn(lensH / 2f + 4f, (maxH - lensH / 2f - 4f).coerceAtLeast(lensH / 2f + 4f))
+
+        val windowLines = rememberLyricWindow(activeLines, positionMs)
+
+        Box(
+            modifier = Modifier
+                .offset { IntOffset((cx - lensW / 2f).toInt(), (cy - lensH / 2f).toInt()) }
+                .size(LensWidth, LensHeight)
+                .alpha(alpha)
+                .graphicsLayer {
+                    scaleX = physics.scaleXState.floatValue
+                    scaleY = physics.scaleYState.floatValue
+                }
+                .shadow(elevation = 26.dp, shape = LensShape, clip = false)
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { LensShape },
+                    effects = {
+                        droplet(
+                            time = timeState.floatValue,
+                            magnification = 1.14f,
+                            wobble = physics.wobbleState.floatValue,
+                            chromaticAberration = chromatic
+                        )
+                    },
+                    highlight = null,
+                    shadow = null,
+                    onDrawSurface = {
+                        // Legibility scrim over the refracted artwork, under the words.
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0f to Color.Black.copy(alpha = 0.30f),
+                                0.34f to Color.Transparent,
+                                0.72f to Color.Transparent,
+                                1f to Color.Black.copy(alpha = 0.34f)
+                            ),
+                            size = size
+                        )
+                    },
+                    backdropScale = 0.5f
+                )
+        ) {
+            // The frosted words under the water bead — large, soft, barely legible.
+            Column(
+                modifier = Modifier
+                    .matchParentSize()
+                    .padding(horizontal = 18.dp, vertical = 14.dp)
+                    .blur(7.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                windowLines.forEach { line ->
+                    val isCurrent = line.startMs <= positionMs && positionMs < line.endMs
+                    Text(
+                        text = line.text,
+                        color = Color.White.copy(alpha = if (isCurrent) 0.95f else 0.70f),
+                        fontSize = 20.sp,
+                        lineHeight = 23.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(9.dp))
+                }
+            }
+
+            // Top-left sheen above the words: the specular kick of a water droplet.
+            // The radial circle fades before the ellipse corners, so no hard edges.
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .drawBehind {
+                        drawRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(Color.White.copy(alpha = 0.20f), Color.Transparent),
+                                center = Offset(size.width * 0.34f, size.height * 0.22f),
+                                radius = size.width * 0.60f
+                            )
+                        )
                     }
             )
         }

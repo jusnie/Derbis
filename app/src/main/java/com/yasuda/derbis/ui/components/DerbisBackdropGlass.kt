@@ -58,6 +58,15 @@ import com.yasuda.derbis.ui.components.backdrop.shadow.Shadow
 val LocalDerbisAppBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
 
 /**
+ * The player deck's own artwork backdrop, recorded separately from the page:
+ * the Liquid Glass reference player paints its full-bleed blurred-cover scene
+ * here, and the press-and-hold droplet magnifies that recording — not the page
+ * behind the player, which the droplet has no business revealing. Null outside
+ * the glass skin.
+ */
+val LocalDerbisPlayerBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
+
+/**
  * The backdrop pipeline needs [android.graphics.RenderEffect] on a
  * [android.graphics.RenderNode], which is Android 12 (API 31) and up.
  */

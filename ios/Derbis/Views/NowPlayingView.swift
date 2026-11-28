@@ -63,6 +63,12 @@ struct NowPlayingView: View {
         isImmersiveCanvas || isFillBackdrop || theme.skin == .liquidGlass
     }
 
+    // Press-and-hold refraction lens: a snapshot of the deck's own backdrop, captured
+    // when the hold is recognized, plus the stage's position for aligning the sample.
+    @State private var backdropSnapshot: UIImage? = nil
+    @State private var stageTopY: CGFloat = 0
+    @State private var viewportSize: CGSize = CGSize(width: 390, height: 844)
+
     // Press-and-hold lens: the blurred-lyric droplet that wakes under the finger.
     private var lensLines: [LyricLine] {
         if let lines = player.currentLyrics?.lines, !lines.isEmpty {
@@ -86,6 +92,7 @@ struct NowPlayingView: View {
                 holdLensTask = Task { @MainActor in
                     try? await Task.sleep(nanoseconds: 150_000_000)
                     guard !Task.isCancelled else { return }
+                    captureBackdropSnapshot()
                     HapticsAndGesturesService.shared.playControlTap(style: .light)
                     withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.78)) {
                         holdLensRevealed = true
@@ -95,11 +102,28 @@ struct NowPlayingView: View {
             .onEnded { _ in
                 holdLensTask?.cancel()
                 holdLensTask = nil
+                backdropSnapshot = nil
                 withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
                     holdLensRevealed = false
                 }
                 holdLensLocation = nil
             }
+    }
+
+    /// Render the deck's own backdrop into an image, sized to the bleed rect the live
+    /// backdrop overhangs the viewport by, so the press-and-hold droplet can refract
+    /// exactly what sits under the finger. Nil when the render fails — the bead then
+    /// falls back to its tinted ambience.
+    private func captureBackdropSnapshot() {
+        let size = CGSize(width: max(280, viewportSize.width), height: max(320, viewportSize.height))
+        let bleedWidth = size.width + 40
+        let bleedHeight = size.height + 160
+        let renderer = ImageRenderer(
+            content: backdropLayer(width: size.width, height: size.height)
+                .frame(width: bleedWidth, height: bleedHeight)
+        )
+        renderer.scale = UIScreen.main.scale
+        backdropSnapshot = renderer.uiImage
     }
 
     private var fgPrimary: Color {
@@ -252,6 +276,14 @@ struct NowPlayingView: View {
                         }
                     }
                     .frame(width: viewportWidth, height: viewportHeight)
+                    .coordinateSpace(name: "playerViewport")
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear
+                                .preference(key: ViewportSizePreferenceKey.self, value: proxy.size)
+                        }
+                    )
+                    .onPreferenceChange(ViewportSizePreferenceKey.self) { viewportSize = $0 }
                     .offset(y: dismissDragOffset)
                     .scaleEffect(1.0 - min(0.05, dismissDragOffset / 2400.0))
                     .sheet(isPresented: $showingQueue) {
@@ -855,18 +887,32 @@ struct NowPlayingView: View {
                     )
                 }
 
-                // Hold-to-reveal droplet: blurred lyrics under a chrome bead of glass.
+                // Hold-to-reveal droplet: the deck's backdrop refracted through a
+                // wobbling bead of water, with the lyric window frosted underneath.
                 if holdLensRevealed, let lensLocation = holdLensLocation {
                     let stageHeight = (isReferenceBackdrop) ? availableArtHeight : side
                     let lensX = min(max(lensLocation.x, 118), viewportWidth - 118)
-                    let lensY = min(max(lensLocation.y, 136), stageHeight - 136)
+                    let lensY = min(max(lensLocation.y, 136), max(136, stageHeight - 136))
 
-                    ArtworkLyricLens(lines: lensLines, accent: theme.accent)
-                        .position(x: lensX, y: lensY)
-                        .transition(.scale(scale: 0.8).combined(with: .opacity))
-                        .allowsHitTesting(false)
+                    ArtworkLyricLens(
+                        lines: lensLines,
+                        accent: theme.accent,
+                        snapshot: backdropSnapshot,
+                        sampleOrigin: CGPoint(x: lensX + 20, y: stageTopY + lensY + 80),
+                        bleedSize: CGSize(width: viewportWidth + 40, height: viewportHeight + 160)
+                    )
+                    .position(x: lensX, y: lensY)
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    .allowsHitTesting(false)
                 }
             }
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(key: LensStageTopKey.self, value: proxy.frame(in: .named("playerViewport")).minY)
+                }
+            )
+            .onPreferenceChange(LensStageTopKey.self) { stageTopY = $0 }
             .simultaneousGesture(artworkHoldGesture)
 
             if let error = player.errorBanner {
@@ -2105,3 +2151,22 @@ private struct NowPlayingScrubberControl<CenterAccessory: View>: View {
     }
 }
 
+
+/// The viewport's measured size, published by the player root so the press-and-hold
+/// snapshot renderer can size the backdrop bleed without reaching for UIScreen.
+private struct ViewportSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = CGSize(width: 390, height: 844)
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
+/// The stage's top offset in the named "playerViewport" coordinate space, so the
+/// droplet's sample point in the backdrop snapshot lines up with the live pixel
+/// under the finger.
+private struct LensStageTopKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}

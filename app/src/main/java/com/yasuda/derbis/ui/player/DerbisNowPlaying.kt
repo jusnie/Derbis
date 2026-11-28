@@ -151,10 +151,15 @@ import com.yasuda.derbis.ui.MotionBackdropPalette
 import com.yasuda.derbis.ui.artwork.ArtworkPreviewOverlay
 import com.yasuda.derbis.ui.artwork.livingArtworkColors
 import com.yasuda.derbis.ui.artwork.rememberArtworkPalette
+import com.yasuda.derbis.ui.GlassLensTier
+import com.yasuda.derbis.ui.LocalDerbisGlassTier
+import com.yasuda.derbis.ui.components.LocalDerbisPlayerBackdrop
 import com.yasuda.derbis.ui.components.ModernListenTogetherVector
 import com.yasuda.derbis.ui.components.PlayerControlLabels
 import com.yasuda.derbis.ui.components.PlayerGlassIconButton
 import com.yasuda.derbis.ui.components.PlayerIcon
+import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
+import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
 import com.yasuda.derbis.ui.harmonizePlayerAccents
 import com.yasuda.derbis.ui.i18n.DerbisLiveRadioCatalog
 import com.yasuda.derbis.ui.i18n.DerbisStrings
@@ -447,6 +452,16 @@ private fun DerbisNowPlayingContent(
         label = "artwork-offset"
     )
 
+    // The Liquid Glass skin records the deck's own backdrop — the cover, blurred and
+    // drifting under everything — into its own optical layer, separate from the page.
+    // The press-and-hold droplet magnifies that recording, which is why the page's
+    // backdrop is not a substitute here.
+    val stageBackdrop = rememberDerbisAppBackdrop(
+        enabled = DerbisIsLiquidGlass && LocalDerbisGlassTier.current != GlassLensTier.Efficient,
+        background = Color.Black
+    )
+
+    CompositionLocalProvider(LocalDerbisPlayerBackdrop provides stageBackdrop) {
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
@@ -578,7 +593,9 @@ private fun DerbisNowPlayingContent(
             isPlaying = state.isPlaying,
             fixedColors = fixedAccents != null,
             backdropFocus = backdropFocus,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().then(
+                if (stageBackdrop != null) Modifier.layerBackdrop(stageBackdrop) else Modifier
+            )
         )
 
         val headerButtonFill = surfaces.controlQuiet
@@ -1939,6 +1956,7 @@ private fun DerbisNowPlayingContent(
         }
 
         playlistDialogContent?.invoke()
+    }
     }
 }
 
