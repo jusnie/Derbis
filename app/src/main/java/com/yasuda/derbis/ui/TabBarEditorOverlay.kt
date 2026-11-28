@@ -1,7 +1,7 @@
 package com.yasuda.derbis.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +16,7 @@ import androidx.compose.animation.core.EaseOut
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Path
@@ -28,6 +29,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -95,7 +97,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.compose.foundation.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import com.yasuda.derbis.domain.DerbisDockActions
 import com.yasuda.derbis.domain.DerbisDockIcons
@@ -393,12 +394,12 @@ internal fun TabBarEditorOverlay(
                         dragOffset = { dragOffset },
                         copy = copy,
                         moveActions = listOfNotNull(
-                            CustomAccessibilityAction(strings.speedDialCopy().moveEarlier) { onMove(-1) }
+                            CustomAccessibilityAction(strings.speedDialCopy().moveEarlier) { onMove(-1); true }
                                 .takeIf { index > 0 },
-                            CustomAccessibilityAction(strings.speedDialCopy().moveLater) { onMove(1) }
+                            CustomAccessibilityAction(strings.speedDialCopy().moveLater) { onMove(1); true }
                                 .takeIf { index < workingOrder.lastIndex }
                         ),
-                        onMeasured = { rowHeights[id] = it },
+                        onMeasured = { rowHeights[id] = it.height },
                         onDragStart = {
                             dragging = id
                             dragOffset = 0f
@@ -882,7 +883,7 @@ private fun LazyItemScope.TabBarItemRow(
     dragOffset: () -> Float,
     copy: com.yasuda.derbis.ui.i18n.TabBarCopy,
     moveActions: List<CustomAccessibilityAction>,
-    onMeasured: (Int) -> Unit,
+    onMeasured: (androidx.compose.ui.unit.IntSize) -> Unit,
     onDragStart: () -> Unit,
     onDragEnd: () -> Unit,
     onDrag: (Float) -> Unit,
@@ -895,9 +896,10 @@ private fun LazyItemScope.TabBarItemRow(
         derbisDockIconVector(item.icon ?: DerbisDockIcons.defaultFor(item.action))
     }
     val density = LocalDensity.current
+    val animationsEnabled = LocalAnimationsEnabled.current
     val shake = remember { Animatable(0f) }
     LaunchedEffect(blockedTick) {
-        if (blockedTick > 0 && LocalAnimationsEnabled.current) {
+        if (blockedTick > 0 && animationsEnabled) {
             shake.snapTo(0f)
             shake.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
         }
@@ -912,7 +914,7 @@ private fun LazyItemScope.TabBarItemRow(
         if (lastEnabled.value == item.enabled) return@LaunchedEffect
         lastEnabled.value = item.enabled
         if (item.enabled) {
-            if (LocalAnimationsEnabled.current) {
+            if (animationsEnabled) {
                 checkProgress.snapTo(0f)
                 bump.snapTo(0.78f)
                 bump.animateTo(1f, tween(420, easing = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)))
@@ -928,7 +930,7 @@ private fun LazyItemScope.TabBarItemRow(
         Modifier
     } else {
         Modifier.animateItem(
-            placementSpec = if (LocalAnimationsEnabled.current) spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow) else androidx.compose.animation.core.snap()
+            placementSpec = if (animationsEnabled) spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow) else androidx.compose.animation.core.snap()
         )
     }
     Row(
