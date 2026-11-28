@@ -17,6 +17,50 @@ struct SettingsView: View {
         case customFont
     }
 
+    /// Top-level settings buckets. Every option lives inside exactly one category instead of
+    /// being dropped onto one flat page — same idea as the iOS Settings app.
+    private enum SettingsCategory: String, CaseIterable, Identifiable {
+        case appearance, fonts, audio, listening, accountsSync, storageBackup, about
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .appearance: return "Appearance"
+            case .fonts: return "Fonts"
+            case .audio: return "Audio"
+            case .listening: return "Listening"
+            case .accountsSync: return "Accounts & Sync"
+            case .storageBackup: return "Storage & Backup"
+            case .about: return "About"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .appearance: return "Skin, deck, glass dock & motion"
+            case .fonts: return "Typeface & custom fonts"
+            case .audio: return "EQ studio, AutoMix, karaoke & lock screen"
+            case .listening: return "Stats, lyrics sources & blocked artists"
+            case .accountsSync: return "Google, Jam & Subsonic / Navidrome"
+            case .storageBackup: return "On-device audio, export & restore"
+            case .about: return "Version & credits"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .appearance: return "paintpalette.fill"
+            case .fonts: return "textformat"
+            case .audio: return "slider.vertical.3"
+            case .listening: return "headphones"
+            case .accountsSync: return "person.crop.circle.fill"
+            case .storageBackup: return "cylinder.split.1x2.fill"
+            case .about: return "info.circle.fill"
+            }
+        }
+    }
+
     @State private var serverURLInput: String = ""
     @State private var usernameInput: String = ""
     @State private var passwordInput: String = ""
@@ -63,45 +107,22 @@ struct SettingsView: View {
                             .buttonStyle(.plain)
                         }
 
-                        if let banner = statusBanner {
-                            Text(banner)
-                                .font(theme.font(size: 13, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
-                                        .fill(theme.accent)
-                                )
-                        }
+                        statusBannerView
 
                         studioQuickHubSection
-                        googleAccountSection
-                        jamListenTogetherSection
-                        derbisListeningStatsSection
-                        audioStudioAndHapticsSection
-                        autoMixSection
-                        skinSection
-                        playerDeckSection
-                        liquidGlassSection
-                        playerBackdropAndGesturesSection
-                        derbisLyricsIntelligenceSection
-                        typographySection
-                        motionCanvasSection
-                        playbackSection
-                        if !library.blockedArtists.isEmpty {
-                            blockedArtistsSection
+                        sectionTitle("Categories")
+                        ForEach(SettingsCategory.allCases) { category in
+                            categoryRow(category)
                         }
-                        subsonicSection
-                        storageAndBackupSection
-                        aboutSection
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
                     .derbisBottomBarClearance()
                 }
                 .derbisAutoMinimizeTabBarOnScroll()
+            }
+            .navigationDestination(for: SettingsCategory.self) { category in
+                categoryPage(category)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
@@ -1395,6 +1416,105 @@ struct SettingsView: View {
             .padding(14)
             .derbisCard()
         }
+    }
+
+    @ViewBuilder
+    private var statusBannerView: some View {
+        if let banner = statusBanner {
+            Text(banner)
+                .font(theme.font(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: theme.cardRadius, style: .continuous)
+                        .fill(theme.accent)
+                )
+        }
+    }
+
+    private func categoryRow(_ category: SettingsCategory) -> some View {
+        NavigationLink(value: category) {
+            HStack(spacing: 12) {
+                Image(systemName: category.icon)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.isPixelSkin ? 0 : 10, style: .continuous)
+                            .fill(theme.accent)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(category.title)
+                        .font(theme.font(size: 15, weight: .bold))
+                        .foregroundColor(theme.primaryText)
+                    Text(category.subtitle)
+                        .font(theme.font(size: 11.5))
+                        .foregroundColor(theme.secondaryText)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundColor(theme.secondaryText)
+            }
+            .padding(12)
+            .derbisCard()
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The pushed page for one category. The sections themselves are unchanged — they only
+    /// moved off the flat list onto their category page.
+    @ViewBuilder
+    private func categoryPage(_ category: SettingsCategory) -> some View {
+        ZStack {
+            PixelGraphPaperBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    statusBannerView
+
+                    switch category {
+                    case .appearance:
+                        skinSection
+                        playerDeckSection
+                        liquidGlassSection
+                        playerBackdropAndGesturesSection
+                        motionCanvasSection
+                    case .fonts:
+                        typographySection
+                    case .audio:
+                        audioStudioAndHapticsSection
+                        autoMixSection
+                        playbackSection
+                    case .listening:
+                        derbisListeningStatsSection
+                        derbisLyricsIntelligenceSection
+                        if !library.blockedArtists.isEmpty {
+                            blockedArtistsSection
+                        }
+                    case .accountsSync:
+                        googleAccountSection
+                        jamListenTogetherSection
+                        subsonicSection
+                    case .storageBackup:
+                        storageAndBackupSection
+                    case .about:
+                        aboutSection
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 24)
+                .derbisBottomBarClearance()
+            }
+            .derbisAutoMinimizeTabBarOnScroll()
+        }
+        .navigationTitle(category.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
     }
 
     private func sectionTitle(_ text: String) -> some View {
