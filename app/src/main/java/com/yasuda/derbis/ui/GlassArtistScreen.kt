@@ -100,7 +100,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextAlign
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -219,7 +219,7 @@ private fun LiquidGlassArtistBar(
                     onDragStart = { dragged = 0f },
                     onDragEnd = { if (dragged > 72f) swipeClose() },
                     onDragCancel = { dragged = 0f },
-                    onDrag = { change, amount ->
+                    onVerticalDrag = { change, amount ->
                         dragged += amount
                         change.consume()
                     }

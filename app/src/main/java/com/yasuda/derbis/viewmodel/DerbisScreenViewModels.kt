@@ -189,6 +189,7 @@ class HomeViewModel internal constructor(
     fun openSettings() = root.openSettings()
     fun openSearch() = root.selectTab(DerbisTab.Search)
     fun openJam() = root.openJam()
+    fun openThemeStudio() = root.openThemeStudio()
     fun playAlbumRecommendations(albums: List<AlbumHit>) = root.playAlbumRecommendations(albums)
     fun refreshHomeArtists() = root.refreshHomeArtists()
     fun refreshHomeResonanceComments(tracks: List<Track>) = root.refreshHomeResonanceComments(tracks)
