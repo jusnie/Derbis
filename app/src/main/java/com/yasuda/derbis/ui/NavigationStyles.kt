@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
@@ -941,6 +942,11 @@ private fun SplitSearchOrb(
             .dockLinkedClip((6f + 12f * depth).dp, colors.rim) { splitOrbShape(detach.value) }
             .navBackground(tuning.background, colors, tuning.opacity)
     }
+    val (orbGlyphMotion, orbFireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+    val orbAppear = rememberTabIconAppear()
+    TabIconFireOnBecomeActive(isSelected, orbFireGlyphMotion)
+    val orbGlyph = orbGlyphMotion()
+    val (orbAppearScale, orbAppearAlpha) = orbAppear()
     val filled = tuning.indicator.filled
     Box(
         modifier = Modifier
@@ -952,6 +958,11 @@ private fun SplitSearchOrb(
             }
             .then(surface)
             .drawBehind { drawSplitOrbMark(bloom, filled, colors) }
+            .graphicsLayer {
+                scaleX = orbAppearScale
+                scaleY = orbAppearScale
+                alpha = orbAppearAlpha
+            }
             .derbisPressable(
                 onClick = {
                     if (!isSelected && tuning.haptics) {
@@ -971,9 +982,11 @@ private fun SplitSearchOrb(
             modifier = Modifier
                 .size(tuning.iconDp.dp)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    rotationZ = tilt
+                    scaleX = scale * orbGlyph.scaleX
+                    scaleY = scale * orbGlyph.scaleY
+                    rotationZ = tilt + orbGlyph.rotationDegrees
+                    translationX = orbGlyph.translationXDp.dp.toPx()
+                    translationY = orbGlyph.translationYDp.dp.toPx()
                 }
         )
     }
@@ -1076,6 +1089,7 @@ private fun StyledTabRow(
         verticalAlignment = Alignment.Top
     ) {
         entries.forEach { entry ->
+            key(entry.key) {
             val isSelected = derbisDockEntrySelected(entry, selectedKey)
             StyledTabButton(
                 entry = entry,
@@ -1092,6 +1106,7 @@ private fun StyledTabRow(
                     onSelect(entry)
                 }
             )
+            }
         }
     }
 }
@@ -1224,10 +1239,16 @@ private fun RowScope.StyledTabButton(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val compact = tuning.labels == NavLabelMode.Compact
+    val styledAppear = rememberTabIconAppear()()
     Box(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
+            .graphicsLayer {
+                scaleX = styledAppear.first
+                scaleY = styledAppear.first
+                alpha = styledAppear.second
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
@@ -1294,6 +1315,10 @@ private fun StyledTabIcon(
     colors: NavColors,
     motion: NavMotionSpec
 ) {
+    val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+    TabIconFireOnBecomeActive(selected, fireGlyphMotion)
+    LaunchedEffect(pressed) { if (pressed && selected) fireGlyphMotion() }
+    val glyph = glyphMotion()
     val tint by animateColorAsState(
         targetValue = navTabIconTint(tuning, colors, selected),
         animationSpec = motion.tint,
@@ -1315,8 +1340,11 @@ private fun StyledTabIcon(
             modifier = Modifier
                 .size(tuning.iconDp.dp)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+                    scaleX = scale * glyph.scaleX
+                    scaleY = scale * glyph.scaleY
+                    rotationZ = glyph.rotationDegrees
+                    translationX = glyph.translationXDp.dp.toPx()
+                    translationY = glyph.translationYDp.dp.toPx()
                 }
         )
     }
@@ -1489,9 +1517,15 @@ private fun ExpandingTabButton(
         animationSpec = motion.tint,
         label = "nav-expand-text"
     )
+    val expandingAppear = rememberTabIconAppear()()
     Box(
         modifier = Modifier
             .fillMaxHeight()
+            .graphicsLayer {
+                scaleX = expandingAppear.first
+                scaleY = expandingAppear.first
+                alpha = expandingAppear.second
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected

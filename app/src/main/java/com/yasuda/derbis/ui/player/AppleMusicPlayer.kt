@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
@@ -330,7 +332,7 @@ private fun AppleMusic13ReferencePortraitDeck(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .fillMaxHeight(AppleMusic13GestureStageHeight)
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .artworkHoldLens(
                     onCenter = { center -> lensCenter = center },
                     onReveal = {
@@ -353,7 +355,7 @@ private fun AppleMusic13ReferencePortraitDeck(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .padding(horizontal = 4.dp)
         ) {
             slots.header()
@@ -433,7 +435,6 @@ private fun AppleMusic13StretchedArtwork(
         MotionArtworkLayer(
             artwork = canvas?.artwork,
             enabled = canvas?.enabled == true,
-            isPlaying = playing,
             cornerRadius = 0.dp,
             presentation = MotionArtworkPresentation.Immersive,
             quality = canvas?.quality ?: DerbisCanvasQuality.Auto,
@@ -520,7 +521,7 @@ private fun AppleMusicVideoPortraitDeck(
     lyricPositionMs: Long,
     lyricPositionProvider: (() -> Long)? = null
 ) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().derbisSafeTopPadding().navigationBarsPadding()) {
         AppleMusicGrabber()
         Box(Modifier.padding(horizontal = 4.dp)) { slots.header() }
         BoxWithConstraints(
@@ -651,7 +652,7 @@ private fun AppleMusicLandscapeDeck(
     activeLyric: LyricLine? = null, lyricPositionMs: Long = 0L,
     lyricPositionProvider: (() -> Long)? = null
 ) {
-    Box(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().displayCutoutPadding()) {
+    Box(Modifier.fillMaxSize().derbisSafeTopPadding().navigationBarsPadding().displayCutoutPadding()) {
         AppleMusicGrabber()
         Row(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true), contentAlignment = Alignment.Center) {

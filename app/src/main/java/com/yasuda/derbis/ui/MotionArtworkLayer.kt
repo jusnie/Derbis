@@ -107,6 +107,11 @@ internal fun motionArtworkMaxZoom(presentation: MotionArtworkPresentation): Floa
  * Canvas video is strictly opt-in through the caller's [enabled] flag. When it is off—or when
  * the catalog has no verified loop—the supplied static album cover is rendered unchanged.
  * The old palette/living-artwork ink layer remains intentionally absent.
+ *
+ * Loop playback is deliberately decoupled from the transport: a Canvas keeps looping while
+ * the song is paused, and only stops when the layer leaves composition or the app is no
+ * longer started ([rememberMotionArtworkLifecycleActive]) — pausing music never freezes the
+ * artwork.
  */
 
 @Suppress("ComplexMethod", "CognitiveComplexMethod")
@@ -114,7 +119,6 @@ internal fun motionArtworkMaxZoom(presentation: MotionArtworkPresentation): Floa
 internal fun MotionArtworkLayer(
     artwork: MotionArtwork?,
     enabled: Boolean,
-    isPlaying: Boolean,
     cornerRadius: Dp,
     modifier: Modifier = Modifier,
     presentation: MotionArtworkPresentation = MotionArtworkPresentation.Card,
@@ -142,7 +146,8 @@ internal fun MotionArtworkLayer(
             conditions = environment.conditions
         )
     }
-    val layerActive = isPlaying || pageMode
+    // Loops play independently of the paused transport; lifecycle/gates below bound the work.
+    val layerActive = true
     var videoUnavailable by remember(artwork?.identityKey, artwork?.url, artwork?.mimeType) {
         mutableStateOf(false)
     }

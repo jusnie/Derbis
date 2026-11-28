@@ -92,7 +92,7 @@ internal fun AppleMusicHomeContent(
     LaunchedEffect(storefront, strings.code) { editorialViewModel.load(storefront, strings.code) }
     val copy = remember(strings.code) { DerbisAppleMusicStrings.forCode(strings.code) }
     val shelves = remember(editorial.newMusic) { AppleMusicHomeShelves.select(editorial.newMusic) }
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     val openItem = remember(actions, editorialViewModel) { appleMusicItemOpener(actions, editorialViewModel::openCollection) }
     var derbisChartOpen by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     var seeAllShelfId by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf<String?>(null) }
@@ -474,7 +474,7 @@ internal fun AppleMusicShelfScreen(
             columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(if (homeShelf.role == AppleHomeShelfRole.Songs) 1 else 2),
             state = gridState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = AppleMusicDesign.gutter, end = AppleMusicDesign.gutter, top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 52.dp, bottom = bottomInset + 24.dp),
+            contentPadding = PaddingValues(start = AppleMusicDesign.gutter, end = AppleMusicDesign.gutter, top = derbisSafeTopInset() + 52.dp, bottom = bottomInset + 24.dp),
             horizontalArrangement = Arrangement.spacedBy(AppleMusicDesign.itemGap),
             verticalArrangement = Arrangement.spacedBy(if (homeShelf.role == AppleHomeShelfRole.Songs) 0.dp else 20.dp)
         ) {

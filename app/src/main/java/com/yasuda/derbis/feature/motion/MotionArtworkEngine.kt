@@ -64,6 +64,7 @@ class MotionArtworkEngine(context: Context) {
             DerbisSpotifySession.initialize(appContext)
             SpotifyTokenProvider.init(appContext)
             if (DerbisSpotifySession.hasSession()) {
+                SpotifyTokenProvider.rewindWarmUpBudget()
                 SpotifyTokenProvider.warmUp()
             }
         }.onFailure { Timber.d(it, "MotionArtworkEngine Spotify session init skipped") }

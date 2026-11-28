@@ -5,12 +5,13 @@ import WebKit
 
 struct LoopingMotionVideoView: UIViewRepresentable {
     let url: URL
-    let isPlaying: Bool
 
     @Environment(\.scenePhase) private var scenePhase
 
+    // Canvas loops independently of the transport: mirrored after DerbisAndroid, a paused song
+    // keeps its artwork moving; the loop only pauses when the app is not in the foreground.
     private var effectivePlaying: Bool {
-        isPlaying && scenePhase == .active
+        scenePhase == .active
     }
 
     func makeUIView(context: Context) -> CanvasPlayerContainerView {

@@ -487,6 +487,9 @@ actor MotionCanvasService {
     private var memoryCache: [String: CacheEntry] = [:]
     private var spclientHosts: [String] = []
     private var spclientExpiresAt: Date = .distantPast
+    // True when an authenticated tier could not mint a token this resolve (session present,
+    // harvest failed). Such misses are transient, so they must not be cached as "no canvas".
+    private var lastAuthenticatedMintFailed: Bool = false
 
     private let knownCanvasHashes = [
         "575138ab27cd5c1b3e54da54d0a7cc8d85485402de26340c2145f0f6bb5e7a9f",
@@ -520,6 +523,7 @@ actor MotionCanvasService {
     }
 
     func resolveMotionCanvas(for track: Track, preferTall: Bool) async -> MotionCanvasAsset? {
+        lastAuthenticatedMintFailed = false
         let key = "\(track.id)|\(preferTall ? "tall" : "sq")"
         if let hit = memoryCache[key], hit.expiresAt > Date() {
             if let asset = hit.asset {
@@ -570,7 +574,9 @@ actor MotionCanvasService {
             return appleAsset
         }
 
-        memoryCache[key] = CacheEntry(asset: nil, expiresAt: Date().addingTimeInterval(420))
+        if !lastAuthenticatedMintFailed {
+            memoryCache[key] = CacheEntry(asset: nil, expiresAt: Date().addingTimeInterval(420))
+        }
         return nil
     }
 
@@ -778,13 +784,17 @@ actor MotionCanvasService {
 
     private func resolveSpotifyCanvasMP4(spotifyId: String, useAuthenticatedTiers: Bool) async -> URL? {
         if useAuthenticatedTiers {
+            var minted = false
             for attempt in 0..<2 {
                 if let creds = await SpotifyTokenHarvester.shared.credentials(forceRefresh: attempt > 0) {
+                    minted = true
                     if let official = await queryAuthenticatedSpotifyCanvas(spotifyId: spotifyId, creds: creds) {
                         return official
                     }
                 }
             }
+            // A session exists but no token could be minted: transient, so the miss is not cached.
+            if !minted { lastAuthenticatedMintFailed = true }
         }
         return await queryPublicCanvasStore(spotifyId: spotifyId)
     }

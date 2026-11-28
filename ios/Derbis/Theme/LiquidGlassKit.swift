@@ -397,6 +397,16 @@ struct DerbisTabBarItemSpec: Equatable, Identifiable {
     /// Empty when icons-only mode blanks the label.
     let title: String
     let symbol: String
+    /// Icon-picker id used to key the per-glyph keyframe motion (nil = pop fallback).
+    let iconID: String?
+
+    init(id: Int, action: String, title: String, symbol: String, iconID: String? = nil) {
+        self.id = id
+        self.action = action
+        self.title = title
+        self.symbol = symbol
+        self.iconID = iconID
+    }
 }
 
 struct DerbisLiquidGlassTabBar: View {
@@ -604,6 +614,7 @@ private struct DerbisLensTabBar: View {
     @State private var isHoldingLens: Bool = false
     @State private var lensX: CGFloat = 0
     @State private var holdActivationTask: Task<Void, Never>?
+    @State private var replayToken: Int = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -635,21 +646,14 @@ private struct DerbisLensTabBar: View {
 
                 HStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { _, spec in
-                        let selected = spec.id == selectedId
-                        let magnified = isHoldingLens && selected
-                        VStack(spacing: 3) {
-                            Image(systemName: spec.symbol)
-                                .font(.system(size: spec.title.isEmpty ? 20 : 18, weight: selected ? .bold : .medium))
-                            if !spec.title.isEmpty {
-                                Text(spec.title)
-                                    .font(theme.font(size: 10.5, weight: selected ? .bold : .medium))
-                            }
-                        }
-                        .foregroundColor(selected ? theme.accent : Color.white.opacity(0.68))
-                        .scaleEffect(magnified ? 1.16 : 1.0)
-                        .offset(y: magnified ? -2 : 0)
-                        .animation(reduceMotion ? nil : .interactiveSpring(response: 0.24, dampingFraction: 0.72), value: magnified)
-                        .frame(width: slotWidth, height: geo.size.height)
+                        DerbisLensTabCell(
+                            spec: spec,
+                            selected: spec.id == selectedId,
+                            magnified: isHoldingLens && spec.id == selectedId,
+                            replayToken: replayToken,
+                            width: slotWidth,
+                            height: geo.size.height
+                        )
                     }
                 }
 
@@ -729,6 +733,7 @@ private struct DerbisLensTabBar: View {
                             selectedId = candidateId
                         } else if !isHoldingLens {
                             HapticsAndGesturesService.shared.playSelectionTick()
+                            replayToken += 1
                         }
                         withAnimation(.spring(response: 0.34, dampingFraction: 0.76)) {
                             isHoldingLens = false
@@ -779,5 +784,40 @@ private struct DerbisScrollMinimizeModifier: ViewModifier {
 extension View {
     func derbisAutoMinimizeTabBarOnScroll() -> some View {
         modifier(DerbisScrollMinimizeModifier())
+    }
+}
+/// One cell in the lens dock. Owns a replay counter so the mock's per-glyph keyframes
+/// fire on selection flip and again on same-tab re-tap / drag-settle-on-selected.
+private struct DerbisLensTabCell: View {
+    @EnvironmentObject private var theme: ThemeManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let spec: DerbisTabBarItemSpec
+    let selected: Bool
+    let magnified: Bool
+    let replayToken: Int
+    let width: CGFloat
+    let height: CGFloat
+
+    @State private var fireCount = 0
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Image(systemName: spec.symbol)
+                .font(.system(size: spec.title.isEmpty ? 20 : 18, weight: selected ? .bold : .medium))
+                .derbisGlyphMotion(iconID: spec.iconID, trigger: fireCount)
+                .onChange(of: selected) { _, newValue in if newValue { fireCount += 1 } }
+                .onChange(of: replayToken) { _, _ in if selected { fireCount += 1 } }
+            if !spec.title.isEmpty {
+                Text(spec.title)
+                    .font(theme.font(size: 10.5, weight: selected ? .bold : .medium))
+            }
+        }
+        .foregroundColor(selected ? theme.accent : Color.white.opacity(0.68))
+        .scaleEffect(magnified ? 1.16 : 1.0)
+        .offset(y: magnified ? -2 : 0)
+        .animation(reduceMotion ? nil : .interactiveSpring(response: 0.24, dampingFraction: 0.72), value: magnified)
+        .frame(width: width, height: height)
+        .derbisAppearPop()
     }
 }

@@ -34,7 +34,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -176,7 +176,7 @@ private fun WidgetStudioScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DerbisInk)
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
     ) {
         if (current == null) {
             WidgetStudioOverview(copy = copy, onEdit = { target = it }, onExit = onExit)

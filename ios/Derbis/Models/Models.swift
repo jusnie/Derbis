@@ -479,6 +479,32 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// The four page-background modes of the Liquid Glass skin, mirroring the Android skin.
+enum DerbisBackgroundMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case glow = "glow"
+    case animated = "animated"
+    case artworkBlur = "artwork_blur"
+    case customImage = "custom_image"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .glow: return "Glow"
+        case .animated: return "Animated"
+        case .artworkBlur: return "Blur"
+        case .customImage: return "Custom"
+        }
+    }
+
+    /// Intensity applies to Glow / Animated / Blur; Custom ignores it (image fills the canvas).
+    var showsIntensity: Bool { self != .customImage }
+    /// Blur applies to the artwork and custom image modes.
+    var showsBlur: Bool { self == .artworkBlur || self == .customImage }
+    /// Accent override applies to gradients and tints, not to a user photo.
+    var showsAccent: Bool { self != .customImage }
+}
+
 enum DerbisGlassEffects: String, Codable, CaseIterable, Identifiable, Sendable {
     case automatic = "automatic"
     case alwaysOn = "always_on"

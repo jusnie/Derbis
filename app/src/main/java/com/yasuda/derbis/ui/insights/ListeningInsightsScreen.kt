@@ -30,7 +30,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -186,7 +186,7 @@ internal fun ListeningInsightsScreen(
     ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().derbisSafeTopPadding(),
             contentPadding = PaddingValues(bottom = overlayScreenBottomPadding())
         ) {
             item(key = "insights-header", contentType = "header") {

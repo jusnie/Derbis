@@ -1998,11 +1998,22 @@ internal fun StudioHomeBackdrop(
     modifier: Modifier = Modifier,
     expressivePortraitUrl: String = "",
     showExpressivePortrait: Boolean = false,
-    expressiveScrollPx: () -> Float = { 0f }
+    expressiveScrollPx: () -> Float = { 0f },
+    glassSettings: com.yasuda.derbis.domain.DerbisInterfaceSettings? = null,
+    glassArtworkUrl: String? = null
 ) {
     val isLight = DerbisIsLight
     val canvas = homeCanvasColor(isLight)
     val scheme = MaterialTheme.colorScheme
+    if (com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass && glassSettings != null) {
+        GlassBackgroundEngine(
+            settings = glassSettings,
+            accent = accent,
+            artworkUrl = glassArtworkUrl ?: heroTrack?.largeThumbnailUrl ?: heroTrack?.thumbnailUrl,
+            modifier = modifier
+        )
+        return
+    }
     if (DerbisIsPrism) {
         PrismAtmosphere(modifier)
         return

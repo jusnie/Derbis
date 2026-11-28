@@ -32,7 +32,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -151,7 +151,7 @@ internal fun LyricsStudioOverlay(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             contentPadding = PaddingValues(
                 start = DerbisPlayerDesign.GutterCompact,
                 end = DerbisPlayerDesign.GutterCompact,

@@ -90,6 +90,8 @@ final class AudioPlayerEngine: ObservableObject {
     private var lyricsTask: Task<Void, Never>?
     private var artworkTask: Task<Void, Never>?
     private var motionTask: Task<Void, Never>?
+    private var motionCanvasRetryKey: String?
+    private var motionCanvasRetryAttempts: Int = 0
     private var prewarmTask: Task<Void, Never>?
     private var autoSkipTask: Task<Void, Never>?
     private var stallWatchdogTask: Task<Void, Never>?
@@ -1166,6 +1168,34 @@ final class AudioPlayerEngine: ObservableObject {
             withAnimation(.easeInOut(duration: 0.35)) {
                 self.currentMotionCanvas = resolved
             }
+            self.scheduleMotionCanvasRetryIfNeeded(for: track, resolved: resolved)
+        }
+    }
+
+    /**
+     * A cold launch can mint the Spotify token seconds after the first resolve yields nothing,
+     * which otherwise leaves Canvas blank until the next track change or a manual Test tap.
+     * When a resolve comes up empty with a session available, re-resolve on a short delay —
+     * bounded per track identity so a track that simply has no Canvas is not re-probed forever.
+     */
+    private func scheduleMotionCanvasRetryIfNeeded(for track: Track, resolved: MotionCanvasAsset?) {
+        if motionCanvasRetryKey != track.id {
+            motionCanvasRetryKey = track.id
+            motionCanvasRetryAttempts = 0
+        }
+        if resolved != nil {
+            motionCanvasRetryAttempts = 0
+            return
+        }
+        guard SpotifySessionStore.shared.hasSession,
+              motionCanvasRetryAttempts < 2 else { return }
+        motionCanvasRetryAttempts += 1
+        motionTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 9_000_000_000)
+            guard !Task.isCancelled, let self = self,
+                  self.currentTrack?.id == track.id,
+                  self.currentMotionCanvas == nil else { return }
+            self.loadMotionCanvas(for: track)
         }
     }
 

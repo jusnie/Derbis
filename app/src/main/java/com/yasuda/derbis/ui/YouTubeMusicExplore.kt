@@ -66,7 +66,7 @@ internal fun YouTubeMusicExploreContent(
     val feed by exploreViewModel.state.collectAsStateWithLifecycle()
     val previews by exploreViewModel.previews.collectAsStateWithLifecycle()
     LaunchedEffect(strings.code) { exploreViewModel.load(strings.code, browseId = EXPLORE_BROWSE_ID) }
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     Box(Modifier.fillMaxSize().background(YouTubeMusicDesign.background)) {
         LazyColumn(
             state = listState,

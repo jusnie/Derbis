@@ -2,13 +2,27 @@ package com.yasuda.derbis.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.key
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +41,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,7 +50,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragIndicator
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -199,16 +211,23 @@ internal fun TabBarEditorOverlay(
         }
     }
 
+    var blockedId by remember { mutableStateOf<String?>(null) }
+    var blockedTick by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+
     fun toggle(id: String) {
         val item = latest.items.firstOrNull { it.id == id } ?: return
         if (item.enabled && latest.enabledCount() <= DerbisTabBarConfig.MIN_ENABLED) {
             haptics.perform(DerbisHapticAction.SeekSnap)
             notice = copy[TabBarText.LastTab]
+            blockedId = id
+            blockedTick += 1
             return
         }
         if (!item.enabled && latest.enabledCount() >= DerbisTabBarConfig.MAX_ENABLED) {
             haptics.perform(DerbisHapticAction.SeekSnap)
             notice = copy[TabBarText.MaxTabs]
+            blockedId = id
+            blockedTick += 1
             return
         }
         haptics.perform(DerbisHapticAction.SeekSnap)
@@ -219,7 +238,7 @@ internal fun TabBarEditorOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(DerbisInk)
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -274,24 +293,68 @@ internal fun TabBarEditorOverlay(
                     )
                 }
                 item(key = "tabbar-appearance", contentType = "appearance") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TabBarModeCard(
-                            title = copy[TabBarText.IconsOnly],
-                            selected = config.mode == DerbisDockLabelMode.IconsOnly,
-                            iconsOnlySample = true,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            haptics.perform(DerbisHapticAction.Confirm)
-                            onUpdate(config.withMode(DerbisDockLabelMode.IconsOnly))
+                    var cardBounds by remember { mutableStateOf(mapOf<String, Rect>()) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TabBarModeCard(
+                                title = copy[TabBarText.IconsOnly],
+                                selected = config.mode == DerbisDockLabelMode.IconsOnly,
+                                iconsOnlySample = true,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coords ->
+                                        val bounds = Rect(
+                                            coords.positionInParent(),
+                                            androidx.compose.ui.geometry.Size(
+                                                coords.size.width.toFloat(),
+                                                coords.size.height.toFloat()
+                                            )
+                                        )
+                                        if (cardBounds["icons"] != bounds) {
+                                            cardBounds = cardBounds + ("icons" to bounds)
+                                        }
+                                    }
+                            ) {
+                                haptics.perform(DerbisHapticAction.Confirm)
+                                onUpdate(config.withMode(DerbisDockLabelMode.IconsOnly))
+                            }
+                            TabBarModeCard(
+                                title = copy[TabBarText.IconsAndNames],
+                                selected = config.mode == DerbisDockLabelMode.IconsAndNames,
+                                iconsOnlySample = false,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .onGloballyPositioned { coords ->
+                                        val bounds = Rect(
+                                            coords.positionInParent(),
+                                            androidx.compose.ui.geometry.Size(
+                                                coords.size.width.toFloat(),
+                                                coords.size.height.toFloat()
+                                            )
+                                        )
+                                        if (cardBounds["names"] != bounds) {
+                                            cardBounds = cardBounds + ("names" to bounds)
+                                        }
+                                    }
+                            ) {
+                                haptics.perform(DerbisHapticAction.Confirm)
+                                onUpdate(config.withMode(DerbisDockLabelMode.IconsAndNames))
+                            }
                         }
-                        TabBarModeCard(
-                            title = copy[TabBarText.IconsAndNames],
-                            selected = config.mode == DerbisDockLabelMode.IconsAndNames,
-                            iconsOnlySample = false,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            haptics.perform(DerbisHapticAction.Confirm)
-                            onUpdate(config.withMode(DerbisDockLabelMode.IconsAndNames))
+                        // The sliding ring travels between the two cards with a liquid stretch.
+                        val selectedKey = if (config.mode == DerbisDockLabelMode.IconsOnly) "icons" else "names"
+                        val target = cardBounds[selectedKey]
+                        if (target != null) {
+                            TabBarSlidingRing(
+                                targetX = target.left,
+                                widthPx = target.width,
+                                heightPx = target.height,
+                                stretch = 0.06f,
+                                cornerRadiusDp = 24f
+                            )
                         }
                     }
                 }
@@ -355,6 +418,7 @@ internal fun TabBarEditorOverlay(
                             }
                         },
                         onToggle = { toggle(id) },
+                        blockedTick = if (blockedId == id) blockedTick else 0,
                         onEdit = { editItemId = id }
                     )
                 }
@@ -533,7 +597,13 @@ private fun TabBarPreviewCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             entries.forEach { entry ->
+                key(entry.key) {
                 val active = entry.key == selectedKey || (selectedKey == null && entry == entries.firstOrNull())
+                val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+                val appear = rememberTabIconAppear()
+                TabIconFireOnBecomeActive(active, fireGlyphMotion)
+                val glyph = glyphMotion()
+                val (appearScale, appearAlpha) = appear()
                 val tint by animateColorAsState(
                     targetValue = if (active) DerbisCyan else Color.White.copy(alpha = 0.66f),
                     animationSpec = tabBarAnimSpec(),
@@ -543,8 +613,16 @@ private fun TabBarPreviewCard(
                     modifier = Modifier
                         .clip(capsule)
                         .background(if (active) DerbisCyan.copy(alpha = 0.18f) else Color.Transparent)
-                        .derbisPressable(onClick = { onSelect(entry.key) }, role = Role.Tab)
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .derbisPressable(onClick = {
+                            if (active) fireGlyphMotion()
+                            onSelect(entry.key)
+                        }, role = Role.Tab)
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .graphicsLayer {
+                            scaleX = appearScale
+                            scaleY = appearScale
+                            alpha = appearAlpha
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (config.mode == DerbisDockLabelMode.IconsOnly) {
@@ -552,7 +630,13 @@ private fun TabBarPreviewCard(
                             imageVector = entry.icon,
                             contentDescription = entry.label.ifEmpty { actionLabels[entry.action] },
                             tint = tint,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(20.dp).graphicsLayer {
+                            scaleX = glyph.scaleX
+                            scaleY = glyph.scaleY
+                            rotationZ = glyph.rotationDegrees
+                            translationX = glyph.translationXDp.dp.toPx()
+                            translationY = glyph.translationYDp.dp.toPx()
+                        }
                         )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -560,7 +644,13 @@ private fun TabBarPreviewCard(
                                 imageVector = entry.icon,
                                 contentDescription = null,
                                 tint = tint,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(16.dp).graphicsLayer {
+                                scaleX = glyph.scaleX
+                                scaleY = glyph.scaleY
+                                rotationZ = glyph.rotationDegrees
+                                translationX = glyph.translationXDp.dp.toPx()
+                                translationY = glyph.translationYDp.dp.toPx()
+                            }
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
@@ -573,11 +663,137 @@ private fun TabBarPreviewCard(
                             )
                         }
                     }
+                    }
                 }
             }
         }
     }
 }
+
+/**
+ * The mock's sliding selection ring: travels the 520 ms `cubic-bezier(.25,1.1,.4,1)` curve and
+ * stretches along the travel axis by `1 +/- k*sin(pi * p)` (k = .06 for cards) — "liquid" overshoot
+ * mid-flight. [targetX] is in px relative to the container; the ring snaps in place on first layout
+ * and on reduced motion.
+ */
+@Composable
+private fun TabBarSlidingRing(
+    targetX: Float,
+    widthPx: Float,
+    heightPx: Float,
+    stretch: Float,
+    cornerRadiusDp: Float,
+    modifier: Modifier = Modifier
+) {
+    val animationsEnabled = LocalAnimationsEnabled.current
+    val density = LocalDensity.current
+    val position = remember { androidx.compose.animation.core.Animatable(targetX) }
+    val travel = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val travelFrom = remember { androidx.compose.runtime.mutableFloatStateOf(targetX) }
+    LaunchedEffect(targetX) {
+        val from = position.value
+        if (from == targetX) return@LaunchedEffect
+        travelFrom.floatValue = from
+        travel.floatValue = targetX - from
+        if (!animationsEnabled) {
+            position.snapTo(targetX)
+            return@LaunchedEffect
+        }
+        position.snapTo(from)
+        position.animateTo(targetX, tween(520, easing = CubicBezierEasing(0.25f, 1.1f, 0.4f, 1f)))
+    }
+    val current = position.value
+    val span = travel.floatValue
+    val p = if (span == 0f) 1f else ((current - travelFrom.floatValue) / span).coerceIn(0f, 1f)
+    val wave = kotlin.math.sin(Math.PI * p).toFloat()
+    val sx = 1f + stretch * wave
+    val sy = 1f - stretch * wave
+    if (widthPx <= 0f || heightPx <= 0f) return
+    androidx.compose.foundation.layout.Box(
+        modifier = modifier
+            .graphicsLayer {
+                translationX = current
+                translationY = 0f
+                scaleX = sx
+                scaleY = sy
+            }
+            .size(width = with(density) { widthPx.toDp() }, height = with(density) { heightPx.toDp() })
+            .border(2.dp, DerbisCyan, RoundedCornerShape(cornerRadiusDp.dp))
+    )
+}
+
+/**
+ * Radio-draw: a circle whose check stroke draws itself (mock .radio.draw) with the .bump scale
+ * envelope. Rendered in the top-end corner of a selected mode card.
+ */
+@Composable
+private fun RadioDrawDot(selected: Boolean, modifier: Modifier = Modifier) {
+    val animationsEnabled = LocalAnimationsEnabled.current
+    val target = remember { Animatable(if (selected) 1f else 0f) }
+    val bump = remember { Animatable(if (selected) 1f else 0.78f) }
+    val seeded = remember { androidx.compose.runtime.mutableStateOf(selected) }
+    LaunchedEffect(selected) {
+        if (seeded.value == selected) return@LaunchedEffect
+        seeded.value = selected
+        if (selected) {
+            if (animationsEnabled) {
+                target.snapTo(0f)
+                bump.snapTo(0.78f)
+                bump.animateTo(1f, tween(420, easing = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)))
+                target.animateTo(1f, tween(380, delayMillis = 60, easing = EaseOut))
+            } else {
+                target.snapTo(1f)
+            }
+        } else {
+            target.snapTo(0f)
+        }
+    }
+    val progress = target.value
+    val bumpScale = bump.value
+    Box(
+        modifier = modifier
+            .size(18.dp)
+            .graphicsLayer {
+                scaleX = bumpScale
+                scaleY = bumpScale
+            }
+            .clip(CircleShape)
+            .border(1.5.dp, if (selected) DerbisCyan else schemeOutline(), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(18.dp)) {
+            if (progress <= 0.01f) return@Canvas
+            val strokeWidth = 1.8.dp.toPx()
+            val path = Path().apply {
+                moveTo(size.width * 0.22f, size.height * 0.54f)
+                lineTo(size.width * 0.42f, size.height * 0.72f)
+                lineTo(size.width * 0.79f, size.height * 0.28f)
+            }
+            val total = (size.width * 0.22f - size.width * 0.42f).let {
+                kotlin.math.hypot(it.toDouble(), (size.height * 0.54f - size.height * 0.72f).toDouble()).toFloat()
+            } + kotlin.math.hypot(
+                (size.width * 0.79f - size.width * 0.42f).toDouble(),
+                (size.height * 0.28f - size.height * 0.72f).toDouble()
+            ).toFloat()
+            if (progress >= 0.999f) {
+                drawPath(path, DerbisCyan, style = Stroke(strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            } else {
+                drawPath(
+                    path,
+                    DerbisCyan,
+                    style = Stroke(
+                        strokeWidth,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(total, total), total * (1f - progress))
+                    )
+                )
+            }
+        }
+    }
+}
+
+private fun schemeOutline(): Color = Color.White.copy(alpha = 0.35f)
 
 @Composable
 private fun TabBarModeCard(
@@ -588,21 +804,13 @@ private fun TabBarModeCard(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.55f),
-        animationSpec = tabBarAnimSpec(),
-        label = "tabbar-mode-card-border"
-    )
-    val borderWidth by animateDpAsState(
-        targetValue = if (selected) 2.dp else 1.dp,
-        animationSpec = tabBarAnimSpec(),
-        label = "tabbar-mode-card-border-width"
-    )
+    Box(modifier = modifier) {
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .clip(TabBarCardShape)
             .background(if (selected) scheme.secondaryContainer else scheme.surfaceContainerHigh)
-            .border(borderWidth, borderColor, TabBarCardShape)
+            .border(1.dp, scheme.outlineVariant.copy(alpha = 0.55f), TabBarCardShape)
             .derbisPressable(onClick = onClick, onClickLabel = title, role = Role.RadioButton)
             .semantics {
                 this.selected = selected
@@ -652,6 +860,17 @@ private fun TabBarModeCard(
             overflow = TextOverflow.Ellipsis
         )
     }
+        RadioDrawDot(selected, Modifier.padding(10.dp).align(Alignment.TopEnd))
+    }
+}
+
+/** Shake keyframes from the mock (25% { x -5 }, 75% { x +5 } over .3s), in dp. */
+private fun tabBarShakeOffsetDp(p: Float): Float = when {
+    p <= 0f -> 0f
+    p < 0.25f -> -5f * (p / 0.25f)
+    p < 0.75f -> -5f + 10f * ((p - 0.25f) / 0.5f)
+    p < 1f -> 5f * (1f - (p - 0.75f) / 0.25f)
+    else -> 0f
 }
 
 @Composable
@@ -668,11 +887,42 @@ private fun LazyItemScope.TabBarItemRow(
     onDragEnd: () -> Unit,
     onDrag: (Float) -> Unit,
     onToggle: () -> Unit,
+    blockedTick: Int,
     onEdit: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
     val icon = remember(item.action, item.icon) {
         derbisDockIconVector(item.icon ?: DerbisDockIcons.defaultFor(item.action))
+    }
+    val density = LocalDensity.current
+    val shake = remember { Animatable(0f) }
+    LaunchedEffect(blockedTick) {
+        if (blockedTick > 0 && LocalAnimationsEnabled.current) {
+            shake.snapTo(0f)
+            shake.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+        }
+    }
+    val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(item.icon)
+    TabIconFireOnBecomeActive(item.enabled, fireGlyphMotion)
+    val glyph = glyphMotion()
+    val checkProgress = remember { Animatable(if (item.enabled) 1f else 0f) }
+    val bump = remember { Animatable(1f) }
+    val lastEnabled = remember { androidx.compose.runtime.mutableStateOf(item.enabled) }
+    LaunchedEffect(item.enabled) {
+        if (lastEnabled.value == item.enabled) return@LaunchedEffect
+        lastEnabled.value = item.enabled
+        if (item.enabled) {
+            if (LocalAnimationsEnabled.current) {
+                checkProgress.snapTo(0f)
+                bump.snapTo(0.78f)
+                bump.animateTo(1f, tween(420, easing = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)))
+                checkProgress.animateTo(1f, tween(380, delayMillis = 60, easing = EaseOut))
+            } else {
+                checkProgress.snapTo(1f)
+            }
+        } else {
+            checkProgress.snapTo(0f)
+        }
     }
     val placement = if (dragging) {
         Modifier
@@ -686,6 +936,7 @@ private fun LazyItemScope.TabBarItemRow(
             .zIndex(if (dragging) 1f else 0f)
             .graphicsLayer {
                 val lifted = if (dragging) 1.02f else 1f
+                translationX = tabBarShakeOffsetDp(shake.value) * density.density
                 translationY = if (dragging) dragOffset() else 0f
                 scaleX = lifted
                 scaleY = lifted
@@ -713,18 +964,43 @@ private fun LazyItemScope.TabBarItemRow(
             Box(
                 modifier = Modifier
                     .size(24.dp)
+                    .graphicsLayer {
+                        scaleX = bump.value
+                        scaleY = bump.value
+                    }
                     .clip(CircleShape)
                     .background(if (item.enabled) DerbisCyan else Color.Transparent)
                     .border(1.6.dp, if (item.enabled) DerbisCyan else DerbisMuted.copy(alpha = 0.7f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                if (item.enabled) {
-                    androidx.compose.material3.Icon(
-                        Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                // Check mark draws itself (mock .check.draw svg).
+                Canvas(modifier = Modifier.size(24.dp)) {
+                    val p = checkProgress.value
+                    if (p <= 0.01f) return@Canvas
+                    val p0 = androidx.compose.ui.geometry.Offset(size.width * 0.1875f, size.height * 0.531f)
+                    val p1 = androidx.compose.ui.geometry.Offset(size.width * 0.3875f, size.height * 0.731f)
+                    val p2 = androidx.compose.ui.geometry.Offset(size.width * 0.8125f, size.height * 0.28f)
+                    val path = Path().apply {
+                        moveTo(p0.x, p0.y)
+                        lineTo(p1.x, p1.y)
+                        lineTo(p2.x, p2.y)
+                    }
+                    val total = (p0 - p1).getDistance() + (p1 - p2).getDistance()
+                    val strokeWidth = 2.dp.toPx()
+                    if (p >= 0.999f) {
+                        drawPath(path, Color.White, style = Stroke(strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                    } else {
+                        drawPath(
+                            path,
+                            Color.White,
+                            style = Stroke(
+                                strokeWidth,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round,
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(total, total), total * (1f - p))
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -749,7 +1025,13 @@ private fun LazyItemScope.TabBarItemRow(
                     imageVector = icon,
                     contentDescription = null,
                     tint = if (item.enabled) DerbisCyan else DerbisMuted,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp).graphicsLayer {
+                        scaleX = glyph.scaleX
+                        scaleY = glyph.scaleY
+                        rotationZ = glyph.rotationDegrees
+                        translationX = glyph.translationXDp.dp.toPx()
+                        translationY = glyph.translationYDp.dp.toPx()
+                    }
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -903,13 +1185,18 @@ private fun TabEditSheet(
                 ) {
                     gridItems(DerbisDockIcons.Picker, key = { it }) { iconId ->
                         val picked = effectiveIcon == iconId
+                        val (pickerMotion, firePickerMotion) = rememberTabIconMotion(iconId)
+                        val pickerGlyph = pickerMotion()
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
                                 .background(if (picked) DerbisCyan else MaterialTheme.colorScheme.surfaceContainerHigh)
                                 .derbisPressable(
-                                    onClick = { iconOverride = if (DerbisDockIcons.defaultFor(action) == iconId) null else iconId },
+                                    onClick = {
+                                        firePickerMotion()
+                                        iconOverride = if (DerbisDockIcons.defaultFor(action) == iconId) null else iconId
+                                    },
                                     role = Role.RadioButton,
                                     onClickLabel = iconId
                                 ),
@@ -919,7 +1206,13 @@ private fun TabEditSheet(
                                 imageVector = derbisDockIconVector(iconId),
                                 contentDescription = iconId,
                                 tint = if (picked) Color.White else DerbisText,
-                                modifier = Modifier.size(22.dp)
+                                modifier = Modifier.size(22.dp).graphicsLayer {
+                                    scaleX = pickerGlyph.scaleX
+                                    scaleY = pickerGlyph.scaleY
+                                    rotationZ = pickerGlyph.rotationDegrees
+                                    translationX = pickerGlyph.translationXDp.dp.toPx()
+                                    translationY = pickerGlyph.translationYDp.dp.toPx()
+                                }
                             )
                         }
                     }

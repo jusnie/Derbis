@@ -21,6 +21,30 @@ struct ArtistCatalogPayload: Sendable {
     let topTracks: [Track]
     let albums: [AlbumSummaryCard]
     let relatedArtists: [String]
+    /// From the artist page header on YouTube Music's /browse response; empty when unknown.
+    let bannerURL: String
+    let subscribers: String
+    let monthlyListeners: String
+
+    init(
+        artistName: String,
+        heroArtworkURL: String?,
+        topTracks: [Track],
+        albums: [AlbumSummaryCard],
+        relatedArtists: [String],
+        bannerURL: String = "",
+        subscribers: String = "",
+        monthlyListeners: String = ""
+    ) {
+        self.artistName = artistName
+        self.heroArtworkURL = heroArtworkURL
+        self.topTracks = topTracks
+        self.albums = albums
+        self.relatedArtists = relatedArtists
+        self.bannerURL = bannerURL
+        self.subscribers = subscribers
+        self.monthlyListeners = monthlyListeners
+    }
 }
 
 struct AlbumCatalogPayload: Sendable {

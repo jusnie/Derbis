@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -78,7 +80,7 @@ internal fun PrismPlayerScene(
         return
     }
     val focus = activePrismSettings.playerLayout == PrismPlayerLayout.Focus
-    BoxWithConstraints(modifier.statusBarsPadding().navigationBarsPadding()) {
+    BoxWithConstraints(modifier.derbisSafeTopPadding().navigationBarsPadding()) {
         Box(
             Modifier.matchParentSize()
         ) {

@@ -18,6 +18,7 @@ import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.Derbis360Experience
 import com.yasuda.derbis.domain.HomeSection
 import com.yasuda.derbis.domain.DerbisGlassEffects
+import com.yasuda.derbis.domain.DerbisBackgroundMode
 import com.yasuda.derbis.domain.DerbisLanguageCatalog
 import com.yasuda.derbis.domain.DerbisPersonalOrbit
 import com.yasuda.derbis.domain.DerbisAudioPresets
@@ -265,6 +266,14 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
             mutable[KEY_UI_GLASS_EFFECTS] = normalizedInterface.glassEffects.name
+            mutable[KEY_UI_GLASS_BG_MODE] = normalizedInterface.glassBackgroundMode.storageValue
+            mutable[KEY_UI_GLASS_BG_INTENSITY] = normalizedInterface.glassBackgroundIntensity
+            mutable[KEY_UI_GLASS_BG_BLUR] = normalizedInterface.glassBackgroundBlur
+            mutable[KEY_UI_GLASS_BG_BRIGHTNESS] = normalizedInterface.glassBackgroundBrightness
+            mutable[KEY_UI_GLASS_BG_MOTION] = normalizedInterface.glassBackgroundMotion
+            mutable[KEY_UI_GLASS_BG_IMAGE] = normalizedInterface.glassBackgroundImage
+            mutable[KEY_UI_GLASS_ACCENT_HUE] = normalizedInterface.glassAccentHue
+            mutable[KEY_UI_GLASS_ACCENT_LIGHTNESS] = normalizedInterface.glassAccentLightness
             mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
@@ -473,6 +482,14 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_GLASS_TINT] = normalized.glassTint
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
             it[KEY_UI_GLASS_EFFECTS] = normalized.glassEffects.name
+            it[KEY_UI_GLASS_BG_MODE] = normalized.glassBackgroundMode.storageValue
+            it[KEY_UI_GLASS_BG_INTENSITY] = normalized.glassBackgroundIntensity
+            it[KEY_UI_GLASS_BG_BLUR] = normalized.glassBackgroundBlur
+            it[KEY_UI_GLASS_BG_BRIGHTNESS] = normalized.glassBackgroundBrightness
+            it[KEY_UI_GLASS_BG_MOTION] = normalized.glassBackgroundMotion
+            it[KEY_UI_GLASS_BG_IMAGE] = normalized.glassBackgroundImage
+            it[KEY_UI_GLASS_ACCENT_HUE] = normalized.glassAccentHue
+            it[KEY_UI_GLASS_ACCENT_LIGHTNESS] = normalized.glassAccentLightness
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
@@ -955,6 +972,18 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
             glassEffects = DerbisGlassEffects.decode(preferences[KEY_UI_GLASS_EFFECTS]),
+            glassBackgroundMode = DerbisBackgroundMode.from(preferences[KEY_UI_GLASS_BG_MODE]),
+            glassBackgroundIntensity = preferences[KEY_UI_GLASS_BG_INTENSITY]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_INTENSITY,
+            glassBackgroundBlur = preferences[KEY_UI_GLASS_BG_BLUR]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_BLUR,
+            glassBackgroundBrightness = preferences[KEY_UI_GLASS_BG_BRIGHTNESS]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_BRIGHTNESS,
+            glassBackgroundMotion = preferences[KEY_UI_GLASS_BG_MOTION] ?: true,
+            glassBackgroundImage = preferences[KEY_UI_GLASS_BG_IMAGE].orEmpty(),
+            glassAccentHue = preferences[KEY_UI_GLASS_ACCENT_HUE] ?: -1,
+            glassAccentLightness = preferences[KEY_UI_GLASS_ACCENT_LIGHTNESS]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_ACCENT_LIGHTNESS,
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
@@ -1549,6 +1578,14 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
         val KEY_UI_GLASS_EFFECTS = stringPreferencesKey("ui_glass_effects")
+        val KEY_UI_GLASS_BG_MODE = stringPreferencesKey("ui_glass_bg_mode")
+        val KEY_UI_GLASS_BG_INTENSITY = intPreferencesKey("ui_glass_bg_intensity")
+        val KEY_UI_GLASS_BG_BLUR = intPreferencesKey("ui_glass_bg_blur")
+        val KEY_UI_GLASS_BG_BRIGHTNESS = intPreferencesKey("ui_glass_bg_brightness")
+        val KEY_UI_GLASS_BG_MOTION = booleanPreferencesKey("ui_glass_bg_motion")
+        val KEY_UI_GLASS_BG_IMAGE = stringPreferencesKey("ui_glass_bg_image")
+        val KEY_UI_GLASS_ACCENT_HUE = intPreferencesKey("ui_glass_accent_hue")
+        val KEY_UI_GLASS_ACCENT_LIGHTNESS = intPreferencesKey("ui_glass_accent_lightness")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
         val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")

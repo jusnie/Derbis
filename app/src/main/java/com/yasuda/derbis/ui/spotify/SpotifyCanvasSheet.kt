@@ -31,7 +31,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -303,7 +303,7 @@ internal fun SpotifyCanvasSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .imePadding()
             ) {
@@ -444,6 +444,7 @@ internal fun SpotifyCanvasSheet(
                             clearSpotifyWebCookies()
                             SpotifyOfficialCanvas.invalidate()
                             SpotifyTokenProvider.invalidate()
+                            SpotifyTokenProvider.rewindWarmUpBudget()
                             MotionArtworkRuntime.bumpSessionGeneration()
                             detected = null
                             draft = ""
@@ -505,6 +506,7 @@ private fun applySession(
     SpotifyTokenProvider.invalidate()
     SpotifyOfficialCanvas.invalidate()
     MotionArtworkRuntime.bumpSessionGeneration()
+    SpotifyTokenProvider.rewindWarmUpBudget()
     SpotifyTokenProvider.warmUp()
     // Whatever was playing a second ago was resolved without this session; let it try again.
     onSaved()

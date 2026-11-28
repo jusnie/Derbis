@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -244,7 +244,7 @@ private fun Modifier.nightDeckContainer(
             )
         )
     }
-    .statusBarsPadding()
+    .derbisSafeTopPadding()
     .navigationBarsPadding()
     .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
     .padding(

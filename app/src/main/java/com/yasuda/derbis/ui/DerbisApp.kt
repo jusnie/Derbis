@@ -315,13 +315,11 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -954,7 +952,7 @@ private val DerbisBottomContentGap = 16.dp
 private val DerbisTabIndicatorTop = 11.dp
 private val DerbisTabIndicatorHeight = 36.dp
 private val DerbisTabIndicatorShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 15.dp, bottomEnd = 15.dp)
-private val DerbisTabScrimHeight = 22.dp
+private val DerbisTabScrimHeight = 44.dp
 private val DerbisNavigationBlue: Color get() = if (DerbisIsPixel) DerbisCyan else Color(0xFF0A84FF)
 private val DerbisHomeGlowViolet = Color(0xFF6E5CF0)
 
@@ -1208,6 +1206,12 @@ private fun RowScope.DockTabButton(
     val animationsEnabled = LocalAnimationsEnabled.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+    val appear = rememberTabIconAppear()
+    TabIconFireOnBecomeActive(isSelected, fireGlyphMotion)
+    LaunchedEffect(pressed) { if (pressed && isSelected) fireGlyphMotion() }
+    val glyph = glyphMotion()
+    val (appearScale, appearAlpha) = appear()
     val idleTint = DerbisMuted
     val selectedProgress by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
@@ -1242,6 +1246,11 @@ private fun RowScope.DockTabButton(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
+            .graphicsLayer {
+                scaleX = appearScale
+                scaleY = appearScale
+                alpha = appearAlpha
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
@@ -1270,9 +1279,11 @@ private fun RowScope.DockTabButton(
                     modifier = Modifier
                         .size(22.dp)
                         .graphicsLayer {
-                            scaleX = iconScale
-                            scaleY = iconScale
-                            translationY = -1.5.dp.toPx() * selectedProgress
+                            scaleX = iconScale * glyph.scaleX
+                            scaleY = iconScale * glyph.scaleY
+                            rotationZ = glyph.rotationDegrees
+                            translationX = glyph.translationXDp.dp.toPx()
+                            translationY = -1.5.dp.toPx() * selectedProgress + glyph.translationYDp.dp.toPx()
                         }
                 )
             }
@@ -2097,6 +2108,10 @@ fun DerbisApp(
         )
     }
     val rootView = LocalView.current
+    val chromeScrollToggle = remember { ChromeScrollToggle() }
+    val chromeToggleConnection = remember(chromeScrollToggle, rootView) {
+        chromeScrollToggle.connection(rootView.context as? android.app.Activity)
+    }
     LaunchedEffect(state.themePreset, pureBlack, customThemes, state.interfaceSettings.skin, DerbisActivePalette.isLight) {
         val pixel = state.interfaceSettings.skin == DerbisSkin.Pixel
         val base = when (state.interfaceSettings.skin) {
@@ -2302,11 +2317,11 @@ fun DerbisApp(
         LocalNavArtworkSeed provides navArtworkSeed,
         LocalDerbisGlassAccessibility provides glassAccessibility
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize().nestedScroll(chromeToggleConnection)) {
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DerbisBlack)
+                    .background(homeCanvasColor(DerbisIsLight))
             ) {
             val dockState = rememberDerbisDockState()
             val homeListState = rememberLazyListState()
@@ -2478,7 +2493,9 @@ fun DerbisApp(
                     DerbisHomeAtmosphere(
                         isLight = DerbisIsLight,
                         accent = yourSoundAccent,
-                        modifier = Modifier
+                        modifier = Modifier,
+                        glassSettings = state.interfaceSettings,
+                        glassArtworkUrl = state.currentTrack?.largeThumbnailUrl ?: state.currentTrack?.thumbnailUrl
                     )
                     // Everything inside this box is recorded into the backdrop layer, so it must
                     // not sample that same layer: drawing a GraphicsLayer while it is being
@@ -2911,7 +2928,7 @@ fun DerbisApp(
                     state.currentTrack != null && state.interfaceSettings.derbisNotchEnabled,
                 modifier = Modifier
                     .align(notchCorner)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .padding(
                         top = (NotchBaseTopDp + notchSettings.offsetYDp).dp,
                         start = if (notchSettings.alignment == com.yasuda.derbis.domain.NotchAlignment.Start) {
@@ -3062,7 +3079,7 @@ fun DerbisApp(
                     .padding(horizontal = 16.dp)
                     .then(
                         if (downloadHudOverPlayer) {
-                            Modifier.statusBarsPadding().padding(top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg)
+                            Modifier.derbisSafeTopPadding().padding(top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg)
                         } else {
                             Modifier.navigationBarsPadding().padding(bottom = downloadHudBottomPadding(state, dockSideBySide))
                         }
@@ -3533,7 +3550,32 @@ fun DerbisApp(
 
             AnimatedVisibility(visible = state.showArtist, enter = detailEnter, exit = pageExit) {
                 val appleStorefront = remember(state.selectedChartId) { ChartsCatalog.region(state.selectedChartId).country }
-                if (DerbisIsYouTubeMusic) YouTubeMusicArtistScreen(state, viewModel) { trackActionTarget = it } else ArtistOverlay(
+                if (DerbisIsLiquidGlass) LiquidGlassArtistOverlay(
+                    state = state,
+                    onPlayFrom = { tracks, track -> viewModel.playFrom(tracks, track) },
+                    onPlayAll = { tracks -> viewModel.playAll(tracks) },
+                    onTogglePlayback = viewModel::togglePlay,
+                    onToggleFavorites = viewModel::toggleFavorites,
+                    onToggleFollow = viewModel::toggleFollowArtist,
+                    onAddTracksToQueue = viewModel::addTracksToQueue,
+                    onOpenPlayer = viewModel::openPlayerScreen,
+                    onStartRadio = viewModel::startSongRadioFrom,
+                    onSetSleepTimer = viewModel::setSleepTimerMinutes,
+                    onShareProfile = { text ->
+                        val share = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                        }
+                        toastContext.startActivity(Intent.createChooser(share, currentStrings.share))
+                    },
+                    onDownloadAlbum = { release ->
+                        viewModel.exportArtistRelease(release, state.artistProfile?.name.orEmpty())
+                    },
+                    onLoadReleaseTracks = { release, artistName ->
+                        viewModel.loadArtistReleaseTracks(release, artistName)
+                    },
+                    onClose = viewModel::closeArtist
+                ) else if (DerbisIsYouTubeMusic) YouTubeMusicArtistScreen(state, viewModel) { trackActionTarget = it } else ArtistOverlay(
                     state = state,
                     onPlay = viewModel::playArtistSong,
                     onPlayFrom = { tracks, track -> viewModel.playFrom(tracks, track) },
@@ -4882,7 +4924,7 @@ private fun AlbumOverlay(
             .windowInsetsPadding(DerbisHorizontalSafeInsets)
     ) {
         val split = resolvePlayerPane(maxWidth.value, maxHeight.value) == DerbisPlayerPane.SideBySide
-        val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        val statusTop = derbisSafeTopInset()
         val topBarHeight = statusTop + ALBUM_TOP_BAR_HEIGHT
         val topBarPx = with(density) { topBarHeight.toPx() }
         val heroHeight = immersiveHeroHeight(split, maxWidth, maxHeight, topBarHeight)
@@ -5264,7 +5306,6 @@ private fun AlbumArtworkLayer(
     MotionArtworkLayer(
         artwork = motionArtwork,
         enabled = motionEnabled,
-        isPlaying = false,
         pageMode = true,
         cornerRadius = 0.dp,
         presentation = MotionArtworkPresentation.Cinematic,
@@ -5689,7 +5730,7 @@ private fun ArtistOverlay(
             }
         }
         val heroMotion = if (awaitingAppleHero) null else state.artistMotionArtwork
-        val topBarPx = with(density) { (WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + ArtistTopBarHeight).toPx() }
+        val topBarPx = with(density) { (derbisSafeTopInset() + ArtistTopBarHeight).toPx() }
         val heroScroll: () -> Float = {
             if (artistListState.firstVisibleItemIndex == 0) {
                 artistListState.firstVisibleItemScrollOffset.toFloat()
@@ -5715,7 +5756,7 @@ private fun ArtistOverlay(
             when {
                 state.artistLoading && profile == null -> {
                     item {
-                        Spacer(modifier = Modifier.statusBarsPadding().height(56.dp))
+                        Spacer(modifier = Modifier.derbisSafeTopPadding().height(56.dp))
                         Box(modifier = Modifier.fillMaxWidth().padding(top = 150.dp), contentAlignment = Alignment.Center) {
                             DerbisLoadingIndicator(color = DerbisCyan)
                         }
@@ -5724,7 +5765,7 @@ private fun ArtistOverlay(
                 showArtistError -> {
                     item {
                         Column(
-                            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 60.dp),
+                            modifier = Modifier.fillMaxWidth().derbisSafeTopPadding().padding(horizontal = 20.dp, vertical = 60.dp),
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             Text(strings.artistProfileUnavailable, color = DerbisMuted, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
@@ -6606,7 +6647,6 @@ private fun ArtistHero(
                 MotionArtworkLayer(
                     artwork = motionArtwork,
                     enabled = motionEnabled,
-                    isPlaying = false,
                     pageMode = true,
                     cornerRadius = 0.dp,
                     presentation = MotionArtworkPresentation.Cinematic,
@@ -6867,7 +6907,7 @@ private fun ArtistTopBar(
                     alpha = shown
                 )
             }
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
             .heightIn(min = ArtistTopBarHeight)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -7586,7 +7626,7 @@ private fun QueueOverlay(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
         ) {
             Box(
                 Modifier
@@ -8968,7 +9008,7 @@ private fun AppleMusic13FullscreenLyrics(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .navigationBarsPadding()
                 .padding(top = if (imageShareSelectionMode) 52.dp else 0.dp)
         ) {
@@ -10523,7 +10563,7 @@ private fun HomeScreen(
         animationsEnabled = state.animationsEnabled
     )
     val compactHome = state.interfaceSettings.compactHome
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     val homeTopPadding = 8.dp
     val stagedSpotlight = spotlightHeroData?.takeIf { speedDialPins.isEmpty() && !offlineHomeVisible }
     val spotlightHero: @Composable ((@Composable () -> Unit)?, Dp) -> Unit = { header, bleed ->
@@ -10556,7 +10596,9 @@ private fun HomeScreen(
         DerbisHomeAtmosphere(
             isLight = DerbisIsLight,
             accent = rememberNowPlayingAccent(state.currentTrack, DerbisCyan),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            glassSettings = state.interfaceSettings,
+            glassArtworkUrl = state.currentTrack?.largeThumbnailUrl ?: state.currentTrack?.thumbnailUrl
         )
         LazyColumn(
             state = homeListState,
@@ -11843,7 +11885,7 @@ private fun StudioHomeContent(
     val homeRadio = LocalHomeRadio.current
     val homeDiscovery = LocalHomeDiscovery.current
     with(c) {
-        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        val statusBarTop = derbisSafeTopInset()
         val homeTopPadding = 8.dp
         val homeLocalAnimations = LocalAnimationsEnabled.current && studioLayout.motion != HomeMotion.Reduced
         // One continuous pixel offset survives LazyColumn item changes.
@@ -11889,7 +11931,9 @@ private fun StudioHomeContent(
                     showExpressivePortrait = homeStyle == HomeStyle.ExpressiveMax &&
                         spotlightHeroData != null &&
                         !studioLayout.isHidden(HomeSectionId.Spotlight),
-                    expressiveScrollPx = { portraitScroll.floatValue }
+                    expressiveScrollPx = { portraitScroll.floatValue },
+                    glassSettings = state.interfaceSettings,
+                    glassArtworkUrl = state.currentTrack?.largeThumbnailUrl ?: state.currentTrack?.thumbnailUrl
                 )
                 LazyColumn(
                     state = homeListState,
@@ -13024,7 +13068,15 @@ private fun HomeStudioHost(
     val homeRadio = HomeRadioState(radioStations, renderSnapshot.state.liveRadioStation?.uuid, renderSnapshot.state.isPlaying,
         !homeStudio.activeLayout().isHidden(HomeSectionId.FavoriteRadio), viewModel::playLiveRadio)
     CompositionLocalProvider(LocalHomeRadio provides homeRadio) {
-        if (homeStudio.usesClassicOriginalHome() && !DerbisSkinManagesLayout) {
+        if (DerbisIsLiquidGlass) {
+            GlassMusicHomeScreen(
+                viewModel = viewModel,
+                renderSnapshot = renderSnapshot,
+                homeListState = homeListState,
+                onPullRefresh = onPullRefresh,
+                onTrackActions = onTrackActions
+            )
+        } else if (homeStudio.usesClassicOriginalHome() && !DerbisSkinManagesLayout) {
             HomeScreen(
                 viewModel = viewModel,
                 renderSnapshot = renderSnapshot,
@@ -16497,7 +16549,7 @@ private fun SearchScreen(viewModel: SearchViewModel, state: DerbisUiState, onTra
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
             .padding(horizontal = 18.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -18008,7 +18060,7 @@ private fun DownloadsFolderOverlay(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = derbisTabContentBottomPadding(state.currentTrack != null)),
             verticalArrangement = Arrangement.spacedBy(downloadsStyle.gap)
         ) {
@@ -18081,7 +18133,7 @@ private fun LibraryScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = derbisTabContentBottomPadding(state.currentTrack != null)),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
@@ -19389,7 +19441,7 @@ private fun PlaylistDetailOverlay(viewModel: DerbisViewModel, state: DerbisUiSta
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = derbisTabContentBottomPadding(state.currentTrack != null)),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -19622,7 +19674,6 @@ private fun PlayerArtworkCanvas(
             MotionArtworkLayer(
                 artwork = motionArtwork,
                 enabled = animationsEnabled,
-                isPlaying = isPlaying,
                 cornerRadius = cornerRadius,
                 presentation = MotionArtworkPresentation.Card,
                 quality = canvasQuality,
@@ -19675,7 +19726,6 @@ private fun PlayerImmersiveMotionCanvas(
         MotionArtworkLayer(
             artwork = motionArtwork,
             enabled = animationsEnabled,
-            isPlaying = isPlaying,
             cornerRadius = 0.dp,
             presentation = MotionArtworkPresentation.Immersive,
             quality = canvasQuality,
@@ -21377,7 +21427,7 @@ private fun SettingsOverlay(
                 state = settingsListState,
                 modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .navigationBarsPadding(),
                 contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 18.dp, bottom = maxOf(40.dp, bottomContentInset)),
                 verticalArrangement = Arrangement.spacedBy(if (current == null) 0.dp else SettingsGroupGap)
@@ -21587,6 +21637,11 @@ private fun SettingsOverlay(
                             }
                         }
                         "design" -> {
+                            if (DerbisIsLiquidGlass) {
+                                standaloneItem("glass-background") {
+                                    GlassBackgroundSettingsSection(interfaceSettings, onInterfaceSettings)
+                                }
+                            }
                             item {
                                 SettingsButton(
                                     icon = Icons.Rounded.Palette,
@@ -23631,6 +23686,43 @@ private fun SettingsStudioShelf(title: String, subtitle: String, entries: List<S
     }
 }
 
+/**
+ * The Liquid Glass settings hub icons: small rounded tiles with the mock's iOS-style gradients,
+ * white glyphs and an inset highlight. Other skins keep the expressive cookie shapes.
+ */
+private fun glassSettingsGradient(metaId: String): Pair<Color, Color> = when (metaId) {
+    "skins" -> Color(0xFFFF6482) to Color(0xFFFF2D55)
+    "design" -> Color(0xFFD48CFF) to Color(0xFFA54BE0)
+    "home" -> Color(0xFF5AC8FA) to Color(0xFF0A84FF)
+    "player" -> Color(0xFF5FE08A) to Color(0xFF26B84F)
+    "audio" -> Color(0xFFFFB84D) to Color(0xFFFF8A00)
+    "lyrics" -> Color(0xFF8E8CFF) to Color(0xFF5856D6)
+    "jam" -> Color(0xFF7FDCFF) to Color(0xFF32ADE6)
+    "downloads" -> Color(0xFF6BB8FF) to Color(0xFF2A7BFF)
+    "backup" -> Color(0xFFA1A1AA) to Color(0xFF636366)
+    "youtube_music" -> Color(0xFFFF6B62) to Color(0xFFFF3B30)
+    "integrations" -> Color(0xFFD9B88A) to Color(0xFFA2845E)
+    "system" -> Color(0xFFB0B0B8) to Color(0xFF7C7C84)
+    "network" -> Color(0xFF5AC8FA) to Color(0xFF0A84FF)
+    "app" -> Color(0xFF8E8E96) to Color(0xFF48484A)
+    else -> Color(0xFF8E8E96) to Color(0xFF48484A)
+}
+
+@Composable
+private fun GlassSettingsGlyph(icon: ImageVector, metaId: String) {
+    val (start, end) = glassSettingsGradient(metaId)
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Brush.linearGradient(listOf(start, end), start = androidx.compose.ui.geometry.Offset(0f, 0f), end = androidx.compose.ui.geometry.Offset(0f, Float.POSITIVE_INFINITY)))
+            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(21.dp))
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SettingsCategoryCard(meta: SettingsCategoryMeta, index: Int, count: Int, onClick: () -> Unit) {
@@ -23645,7 +23737,11 @@ private fun SettingsCategoryCard(meta: SettingsCategoryMeta, index: Int, count: 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            SettingsTileIcon(icon = meta.icon, accent = meta.accent, shape = MaterialShapes.Cookie4Sided.toShape())
+            if (DerbisIsLiquidGlass) {
+                GlassSettingsGlyph(icon = meta.icon, metaId = meta.id)
+            } else {
+                SettingsTileIcon(icon = meta.icon, accent = meta.accent, shape = MaterialShapes.Cookie4Sided.toShape())
+            }
             SettingsTileText(
                 title = meta.title,
                 subtitle = meta.summary,
@@ -28204,7 +28300,7 @@ private fun ExploreScreen(
             ) { addToPlaylistTarget = it }
         } else LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().derbisSafeTopPadding(),
             contentPadding = PaddingValues(top = 14.dp, bottom = exploreBottomInset),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -29107,6 +29203,11 @@ private fun VideoGlassCard(
 
 @Composable
 private fun BottomTabsScrim() {
+    val light = DerbisIsLight
+    // The fade matches the skin's canvas instead of crushing to black, so content scrolling
+    // underneath stays legible (and light skins never get a black band) while keeping the dock
+    // readable. DerbisTabScrimHeight for reach, deliberately gentle stops for subtlety.
+    val canvas = homeCanvasColor(light)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -29115,8 +29216,8 @@ private fun BottomTabsScrim() {
                 Brush.verticalGradient(
                     listOf(
                         Color.Transparent,
-                        DerbisBlack.copy(alpha = 0.34f),
-                        DerbisBlack.copy(alpha = 0.72f)
+                        canvas.copy(alpha = if (light) 0.32f else 0.28f),
+                        canvas.copy(alpha = if (light) 0.64f else 0.52f)
                     )
                 )
             )
@@ -29185,6 +29286,7 @@ internal fun BottomTabs(
                     verticalAlignment = Alignment.Top
                 ) {
                     entries.forEach { entry ->
+                        key(entry.key) {
                         val isSelected = derbisDockEntrySelected(entry, derbisDockSelectionKey(selected))
                         DockTabButton(
                             entry = entry,
@@ -29198,6 +29300,7 @@ internal fun BottomTabs(
                                 entry.tab?.let(onSelect) ?: onDockAction?.invoke(entry)
                             }
                         )
+                        }
                     }
                 }
             }

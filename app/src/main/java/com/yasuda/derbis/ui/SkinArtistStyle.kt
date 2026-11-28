@@ -2,7 +2,6 @@ package com.yasuda.derbis.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -42,11 +41,11 @@ internal fun artistPortraitFrame(): Modifier {
     if (DerbisIsTorque || DerbisIsSpotify || DerbisIsYouTubeMusic || DerbisIsAppleMusic || !DerbisSkinManagesLayout) return Modifier
     if (DerbisIsPixel) {
         val shape = RoundedCornerShape(PixelDesign.artworkCorner)
-        return Modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 144.dp)
+        return Modifier.derbisSafeTopPadding().padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 144.dp)
             .border(1.dp, DerbisActivePalette.outline, shape).padding(8.dp).clip(shape)
     }
-    if (DerbisIsIvory) return Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 48.dp, bottom = 134.dp).clip(RoundedCornerShape(40.dp))
-    return Modifier.statusBarsPadding().padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 134.dp)
+    if (DerbisIsIvory) return Modifier.derbisSafeTopPadding().padding(start = 16.dp, end = 16.dp, top = 48.dp, bottom = 134.dp).clip(RoundedCornerShape(40.dp))
+    return Modifier.derbisSafeTopPadding().padding(start = 20.dp, end = 20.dp, top = 48.dp, bottom = 134.dp)
         .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 28.dp, bottomEnd = 8.dp))
 }
 

@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -151,7 +149,7 @@ internal fun LiveRadioScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 82.dp,
+                top = derbisSafeTopInset() + 82.dp,
                 bottom = 190.dp
             )
         ) {
@@ -599,7 +597,7 @@ private fun RadioTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(colors.surface)
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)

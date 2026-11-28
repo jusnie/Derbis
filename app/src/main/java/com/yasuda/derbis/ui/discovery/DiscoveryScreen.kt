@@ -29,7 +29,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -228,7 +228,7 @@ internal fun DiscoveryScreen(
             .pointerInput(Unit) {}
     ) {
         DiscoveryBackdropLayer(look, ui.deck.current, animationsEnabled)
-        Column(Modifier.fillMaxSize().statusBarsPadding().padding(bottom = bottomInset)) {
+        Column(Modifier.fillMaxSize().derbisSafeTopPadding().padding(bottom = bottomInset)) {
             DiscoveryTopBar(copy, look, ui, strings.back, onDismiss, viewModel::refresh, onOpenSaved)
             Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp), contentAlignment = Alignment.Center) {
                 when {
@@ -647,7 +647,7 @@ private fun DiscoveryMessageHost(ui: DiscoveryUiState, copy: DiscoveryCopy, bott
         DiscoveryMessageKind.SaveFailed -> copy.saveFailed
         DiscoveryMessageKind.PreviewUnavailable -> copy.previewUnavailable
     }
-    Box(Modifier.fillMaxSize().statusBarsPadding().padding(top = 64.dp), contentAlignment = Alignment.TopCenter) {
+    Box(Modifier.fillMaxSize().derbisSafeTopPadding().padding(top = 64.dp), contentAlignment = Alignment.TopCenter) {
         Surface(
             color = MaterialTheme.colorScheme.inverseSurface,
             contentColor = MaterialTheme.colorScheme.inverseOnSurface,

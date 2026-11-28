@@ -37,7 +37,9 @@ env:
   # Official v1.8.0 ships at 3000215, so unofficial test builds target higher still (3000216)
   # to keep installing straight over a released app. The verify step below reads this same
   # value, so the package identity the release is allowed to carry stays consistent.
-  DERBIS_VERSION_NAME: "1.8.0"
+  # The version name carries a prebuild qualifier above 1.8.0 so the in-app updater (which
+  # compares semver, not versionCode) offers the test build to installations on the test track.
+  DERBIS_VERSION_NAME: "1.8.1-prebuild.1"
   DERBIS_VERSION_CODE: "3000216"
 
 jobs:

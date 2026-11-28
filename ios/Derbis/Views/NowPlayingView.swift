@@ -326,7 +326,7 @@ struct NowPlayingView: View {
                         .presentationDetents([.medium, .large])
                     }
                     .sheet(isPresented: $showingArtistSheet) {
-                        ArtistDetailSheet(artistName: track.artist)
+                        DerbisArtistEntryView(artistName: track.artist)
                             .environmentObject(player)
                             .environmentObject(library)
                             .environmentObject(theme)
@@ -649,8 +649,7 @@ struct NowPlayingView: View {
 
             if isImmersiveCanvas, let motion = activeMotionAsset {
                 LoopingMotionVideoView(
-                    url: motion.playbackURL,
-                    isPlaying: player.isPlaying
+                    url: motion.playbackURL
                 )
                 .id(motion.playbackURL.absoluteString)
                 .frame(width: width, height: bleedHeight)

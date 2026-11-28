@@ -11,6 +11,22 @@ enum class DerbisCanvasQuality {
     }
 }
 
+/**
+ * How the Liquid Glass skin paints the canvas behind the whole app (the mock's four background
+ * modes). Only consulted by the glass skin; other skins keep their own atmosphere.
+ */
+enum class DerbisBackgroundMode(val storageValue: String, val label: String) {
+    Glow("glow", "Glow"),
+    Animated("animated", "Animated"),
+    ArtworkBlur("artwork_blur", "Blur"),
+    CustomImage("custom_image", "Custom");
+
+    companion object {
+        fun from(value: String?): DerbisBackgroundMode =
+            entries.firstOrNull { it.storageValue == value?.trim()?.lowercase() } ?: Glow
+    }
+}
+
 /** Kept as a one-value type so old preference/backup values migrate without a source picker. */
 enum class DerbisCanvasSource {
     Auto;
@@ -310,6 +326,22 @@ data class DerbisInterfaceSettings(
      * Auto / Always on / Off — never as a raw quality tier.
      */
     val glassEffects: DerbisGlassEffects = DerbisGlassEffects.Automatic,
+    /** Liquid Glass page background: which of the four modes paints the canvas. */
+    val glassBackgroundMode: DerbisBackgroundMode = DerbisBackgroundMode.Glow,
+    /** Strength of the mode's colour field, 20..100. */
+    val glassBackgroundIntensity: Int = DEFAULT_GLASS_BACKGROUND_INTENSITY,
+    /** Blur radius, in dp, applied by the Blur and Custom modes. */
+    val glassBackgroundBlur: Int = DEFAULT_GLASS_BACKGROUND_BLUR,
+    /** How much of the black veil is lifted, 15..100 (100 = fully clear). */
+    val glassBackgroundBrightness: Int = DEFAULT_GLASS_BACKGROUND_BRIGHTNESS,
+    /** Drift motion for Animated mode (and the slow pan of Blur/Custom). */
+    val glassBackgroundMotion: Boolean = true,
+    /** Absolute path of the user-picked custom background image, or blank for none. */
+    val glassBackgroundImage: String = "",
+    /** Accent override hue, 0..360, or -1 to follow the artwork/theme accent. */
+    val glassAccentHue: Int = -1,
+    /** Accent lightness used when [glassAccentHue] is set, 0..100. */
+    val glassAccentLightness: Int = DEFAULT_GLASS_ACCENT_LIGHTNESS,
     /** Suppresses non-essential network work while preserving user-requested playback and search. */
     val dataSaverEnabled: Boolean = false,
     val motionArtworkWifiOnly: Boolean = false,
@@ -351,12 +383,21 @@ data class DerbisInterfaceSettings(
         glassTransparency = glassTransparency.coerceIn(0, 100),
         glassTint = glassTint.coerceIn(0, 100),
         reactiveAuraIntensity = reactiveAuraIntensity.coerceIn(0, 100),
+        glassBackgroundIntensity = glassBackgroundIntensity.coerceIn(20, 100),
+        glassBackgroundBlur = glassBackgroundBlur.coerceIn(0, 80),
+        glassBackgroundBrightness = glassBackgroundBrightness.coerceIn(15, 100),
+        glassAccentHue = glassAccentHue.coerceIn(-1, 360),
+        glassAccentLightness = glassAccentLightness.coerceIn(0, 100),
         playerColorAccent = playerColorAccent or 0xFF000000.toInt()
     )
 
     companion object {
         const val DEFAULT_GLASS_LEVEL = 50
         const val DEFAULT_REACTIVE_AURA_INTENSITY = 50
+        const val DEFAULT_GLASS_BACKGROUND_INTENSITY = 80
+        const val DEFAULT_GLASS_BACKGROUND_BLUR = 40
+        const val DEFAULT_GLASS_BACKGROUND_BRIGHTNESS = 72
+        const val DEFAULT_GLASS_ACCENT_LIGHTNESS = 55
     }
 }
 

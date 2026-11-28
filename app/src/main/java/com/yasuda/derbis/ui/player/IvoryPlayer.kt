@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,7 +44,7 @@ internal fun IvoryPlayerScene(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier.fillMaxSize().background(DerbisBlack).statusBarsPadding().navigationBarsPadding()) {
+    BoxWithConstraints(modifier.fillMaxSize().background(DerbisBlack).derbisSafeTopPadding().navigationBarsPadding()) {
         val gutter = 28.dp
         val artSize = minOf(maxWidth - gutter * 2, maxHeight * 0.44f, artworkCap)
         val viewport = maxHeight

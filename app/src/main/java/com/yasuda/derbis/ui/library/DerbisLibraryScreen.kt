@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.library
+import com.yasuda.derbis.ui.derbisSafeTopInset
+
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
 import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
@@ -37,7 +39,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -125,7 +127,6 @@ import com.yasuda.derbis.ui.i18n.DerbisPersonalCollectionCatalog
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -739,7 +740,7 @@ internal fun DerbisLibraryScreen(
     Box(modifier = Modifier.fillMaxSize().background(if (com.yasuda.derbis.ui.theme.DerbisIsYouTubeMusic) com.yasuda.derbis.ui.theme.YouTubeMusicDesign.background else DerbisInk)) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().derbisSafeTopPadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
@@ -1657,7 +1658,7 @@ internal fun DerbisPlaylistDetailScreen(
             .windowInsetsPadding(DerbisHorizontalSafeInsets)
     ) {
         val wide = resolvePlayerPane(maxWidth.value, maxHeight.value) == DerbisPlayerPane.SideBySide
-        val topBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
+        val topBarHeight = derbisSafeTopInset() + 64.dp
         val heroHeight = immersiveHeroHeight(wide, maxWidth, maxHeight, topBarHeight)
         val gutter = immersiveMediaGutter(maxWidth)
         val collapseThreshold = with(LocalDensity.current) { (heroHeight - topBarHeight).coerceAtLeast(0.dp).toPx() }

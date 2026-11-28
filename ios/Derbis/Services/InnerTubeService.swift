@@ -459,12 +459,373 @@ actor InnerTubeService {
         }
     }
 
+    // MARK: - Artist browse (the artist page /browse endpoint, mirrors Android's ArtistRepository)
+
+    /// Shared: walk any subtree and return the largest thumbnails-array URL found.
+    private func largestThumbnailURL(in node: Any?) -> String {
+        var best = ""
+        var bestArea: Int64 = -1
+        walkThumbnails(node, best: &best, bestArea: &bestArea)
+        return best
+    }
+
+    private func walkThumbnails(_ node: Any?, best: inout String, bestArea: inout Int64) {
+        if let dict = node as? [String: Any] {
+            if let thumbnails = dict["thumbnails"] as? [[String: Any]] {
+                for item in thumbnails {
+                    guard let url = (item["url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                          !url.isEmpty else { continue }
+                    let width = (item["width"] as? NSNumber)?.int64Value ?? 0
+                    let height = (item["height"] as? NSNumber)?.int64Value ?? 0
+                    let area = width * height
+                    if area >= bestArea {
+                        bestArea = area
+                        best = url
+                    }
+                }
+            }
+            for (_, value) in dict {
+                walkThumbnails(value, best: &best, bestArea: &bestArea)
+            }
+        } else if let array = node as? [Any] {
+            for element in array {
+                walkThumbnails(element, best: &best, bestArea: &bestArea)
+            }
+        }
+    }
+
+    /// Shared: gather browseEndpoint dictionaries anywhere in a subtree.
+    private func collectBrowseEndpoints(in node: Any, depth: Int = 0, into out: inout [[String: Any]]) {
+        guard depth <= 32 else { return }
+        if let dict = node as? [String: Any] {
+            if let endpoint = dict["browseEndpoint"] as? [String: Any] {
+                out.append(endpoint)
+            }
+            for (_, value) in dict {
+                collectBrowseEndpoints(in: value, depth: depth + 1, into: &out)
+            }
+        } else if let array = node as? [Any] {
+            for element in array {
+                collectBrowseEndpoints(in: element, depth: depth + 1, into: &out)
+            }
+        }
+    }
+
+    /// Artist-only search (the same filter param Android uses) to resolve the browseId.
+    private func resolveArtistBrowseId(artistName: String) async -> (browseId: String, name: String)? {
+        guard let url = URL(string: "https://music.youtube.com/youtubei/v1/search?prettyPrint=false") else {
+            return nil
+        }
+
+        let hl = effectiveLanguageCode
+        let gl = effectiveCountryCode
+        let body: [String: Any] = [
+            "context": [
+                "client": [
+                    "clientName": "WEB_REMIX",
+                    "clientVersion": webRemixVersion,
+                    "hl": hl,
+                    "gl": gl
+                ]
+            ],
+            "query": artistName,
+            "params": "EgWKAQIgAWoMEAMQBBAJEAoQBRAV"
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("https://music.youtube.com", forHTTPHeaderField: "Origin")
+        request.setValue("https://music.youtube.com/", forHTTPHeaderField: "Referer")
+        request.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("67", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue(webRemixVersion, forHTTPHeaderField: "X-YouTube-Client-Version")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+
+        var renderers: [[String: Any]] = []
+        collectNamedDicts("musicResponsiveListItemRenderer", in: json, into: &renderers)
+
+        struct ArtistCandidate {
+            let name: String
+            let browseId: String
+        }
+
+        var candidates: [ArtistCandidate] = []
+        for renderer in renderers {
+            guard let flexColumns = renderer["flexColumns"] as? [[String: Any]], !flexColumns.isEmpty else {
+                continue
+            }
+            let name = extractRuns(from: flexColumns[0])
+                .joined()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+
+            var endpoints: [[String: Any]] = []
+            collectBrowseEndpoints(in: renderer, into: &endpoints)
+            let preferred = endpoints.first { endpoint in
+                let pageType = ((endpoint["browseEndpointContextSupportedConfigs"] as? [String: Any])?["browseEndpointContextMusicConfig"] as? [String: Any])?["pageType"] as? String
+                return (pageType ?? "").localizedCaseInsensitiveContains("ARTIST")
+            }
+            let chosen = preferred ?? endpoints.first { endpoint in
+                (endpoint["browseId"] as? String)?.hasPrefix("UC") == true
+            }
+            guard let browseId = (chosen?["browseId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !browseId.isEmpty else { continue }
+            candidates.append(ArtistCandidate(name: name, browseId: browseId))
+        }
+        guard !candidates.isEmpty else { return nil }
+
+        let queryNorm = ArtistLoreService.normalizeName(artistName)
+        func score(_ candidate: ArtistCandidate) -> Int {
+            let norm = ArtistLoreService.normalizeName(candidate.name)
+            if norm == queryNorm { return 110 }
+            let head = norm.components(separatedBy: " (").first ?? norm
+            if head == queryNorm { return 100 }
+            if norm.hasPrefix(queryNorm + " ") || norm.contains(queryNorm) || queryNorm.contains(norm) { return 70 }
+            let queryTokens = Set(queryNorm.split(separator: " "))
+            let candidateTokens = Set(norm.split(separator: " "))
+            guard !queryTokens.isEmpty else { return 0 }
+            let overlap = Double(queryTokens.intersection(candidateTokens).count)
+            return Int((overlap / Double(queryTokens.count)) * 55)
+        }
+        let best = candidates.max { score($0) < score($1) }
+        guard let winner = best, score(winner) >= 40 else { return nil }
+        return (winner.browseId, winner.name)
+    }
+
+    private func postArtistBrowse(browseId: String) async -> [String: Any]? {
+        guard let url = URL(string: "https://music.youtube.com/youtubei/v1/browse?prettyPrint=false") else {
+            return nil
+        }
+        let body: [String: Any] = [
+            "context": [
+                "client": [
+                    "clientName": "WEB_REMIX",
+                    "clientVersion": webRemixVersion,
+                    "hl": effectiveLanguageCode,
+                    "gl": effectiveCountryCode
+                ]
+            ],
+            "browseId": browseId
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("https://music.youtube.com", forHTTPHeaderField: "Origin")
+        request.setValue("https://music.youtube.com/", forHTTPHeaderField: "Referer")
+        request.setValue(webUserAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue("67", forHTTPHeaderField: "X-YouTube-Client-Name")
+        request.setValue(webRemixVersion, forHTTPHeaderField: "X-YouTube-Client-Version")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode) else {
+            return nil
+        }
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    }
+
+    private static let browseReleaseYearRegex = #"\b((?:19|20)\d{2})\b"#
+
+    /// Release cards (musicTwoRowItemRenderer) with an MPRE browse id — the same filter
+    /// Android uses. Release-type badges are intentionally dropped on iOS: the glass page
+    /// shows "year · artist" only, and the search-grouped fallback carries no type either.
+    private func browseReleases(_ root: [String: Any]) -> [AlbumSummaryCard] {
+        var cards: [[String: Any]] = []
+        collectNamedDicts("musicTwoRowItemRenderer", in: root, into: &cards)
+
+        var releases: [AlbumSummaryCard] = []
+        var seen = Set<String>()
+        for card in cards {
+            let title = extractText(from: card["title"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { continue }
+            let subtitle = extractText(from: card["subtitle"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            var browseId = ""
+            if let endpoint = (card["navigationEndpoint"] as? [String: Any])?["browseEndpoint"] as? [String: Any] {
+                browseId = (endpoint["browseId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            }
+            guard browseId.hasPrefix("MPRE") else { continue }
+            let key = browseId.lowercased()
+            guard seen.insert(key).inserted else { continue }
+            let year = firstRegexMatch(in: subtitle, pattern: Self.browseReleaseYearRegex) ?? ""
+            let artwork = largestThumbnailURL(in: card)
+            releases.append(
+                AlbumSummaryCard(
+                    id: browseId,
+                    title: title,
+                    artist: "",
+                    year: year,
+                    artworkURL: artwork,
+                    seedTracks: []
+                )
+            )
+        }
+        return releases
+    }
+
+    /// Related artists: two-row cards whose browseEndpoint page type is ARTIST.
+    private func browseRelatedArtists(_ root: [String: Any], selfName: String) -> [String] {
+        var cards: [[String: Any]] = []
+        collectNamedDicts("musicTwoRowItemRenderer", in: root, into: &cards)
+
+        let selfNorm = ArtistLoreService.normalizeName(selfName)
+        var names: [String] = []
+        var seen = Set<String>()
+        for card in cards {
+            guard let endpoint = (card["navigationEndpoint"] as? [String: Any])?["browseEndpoint"] as? [String: Any] else {
+                continue
+            }
+            let pageType = ((endpoint["browseEndpointContextSupportedConfigs"] as? [String: Any])?["browseEndpointContextMusicConfig"] as? [String: Any])?["pageType"] as? String ?? ""
+            guard pageType.localizedCaseInsensitiveContains("ARTIST") else { continue }
+            let name = extractText(from: card["title"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            let norm = ArtistLoreService.normalizeName(name)
+            guard norm != selfNorm, seen.insert(norm).inserted else { continue }
+            names.append(name)
+            if names.count >= 8 { break }
+        }
+        return names
+    }
+
+    private func browseHeaderArtwork(_ header: [String: Any]) -> (portrait: String, banner: String) {
+        let renderers: [[String: Any]] = [
+            (header["musicImmersiveHeaderRenderer"] as? [String: Any]),
+            (header["musicVisualHeaderRenderer"] as? [String: Any]),
+            (header["musicDetailHeaderRenderer"] as? [String: Any]),
+            (header["musicResponsiveHeaderRenderer"] as? [String: Any])
+        ].compactMap { $0 }
+
+        func portraitURL(_ renderer: [String: Any]) -> String {
+            largestThumbnailURL(in: renderer["thumbnail"] ?? renderer["foregroundThumbnail"])
+        }
+        func bannerURL(_ renderer: [String: Any]) -> String {
+            largestThumbnailURL(in: renderer["backgroundThumbnail"])
+        }
+
+        let portrait = renderers.map(portraitURL).first { !$0.isEmpty } ?? ""
+        let banner = renderers.map(bannerURL).first { !$0.isEmpty } ?? ""
+        return (portrait, banner)
+    }
+
+    private func browseHeaderTitle(_ header: [String: Any]) -> String {
+        let renderers: [[String: Any]] = [
+            (header["musicImmersiveHeaderRenderer"] as? [String: Any]),
+            (header["musicVisualHeaderRenderer"] as? [String: Any]),
+            (header["musicDetailHeaderRenderer"] as? [String: Any]),
+            (header["musicResponsiveHeaderRenderer"] as? [String: Any])
+        ].compactMap { $0 }
+        for renderer in renderers {
+            let title = extractText(from: renderer["title"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty { return title }
+        }
+        return ""
+    }
+
+    private func browseHeaderSubscribers(_ header: [String: Any]) -> String {
+        // Android reads subscriptionButton directly off the top-level header; some surfaces
+        // nest it under the specific renderer instead, so check both.
+        var nodes: [[String: Any]] = [header]
+        for key in ["musicImmersiveHeaderRenderer", "musicVisualHeaderRenderer", "musicDetailHeaderRenderer", "musicResponsiveHeaderRenderer", "musicHeaderRenderer"] {
+            if let renderer = header[key] as? [String: Any] { nodes.append(renderer) }
+        }
+        for node in nodes {
+            let text = extractText(
+                from: ((node["subscriptionButton"] as? [String: Any])?["subscribeButtonRenderer"] as? [String: Any])?["subscriberCountText"]
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty { return text }
+        }
+        return ""
+    }
+
+    private func browseHeaderMonthlyListeners(_ header: [String: Any]) -> String {
+        for key in ["musicImmersiveHeaderRenderer", "musicVisualHeaderRenderer", "musicDetailHeaderRenderer", "musicResponsiveHeaderRenderer", "musicHeaderRenderer"] {
+            guard let renderer = header[key] as? [String: Any] else { continue }
+            let text = extractText(from: renderer["monthlyListenerCount"]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty { return text }
+        }
+        return ""
+    }
+
+    /// The browse-first catalog. Returns nil when the artist can't be resolved to a page
+    /// or the page yields nothing useful — the search fallback then takes over.
+    private func browseArtistCatalog(artistName: String) async -> ArtistCatalogPayload? {
+        guard let (browseId, resolvedName) = await resolveArtistBrowseId(artistName: artistName) else {
+            return nil
+        }
+        guard let root = await postArtistBrowse(browseId: browseId) else {
+            return nil
+        }
+        let header = root["header"] as? [String: Any] ?? [:]
+        let artwork = browseHeaderArtwork(header)
+        let headerTitle = browseHeaderTitle(header)
+        let name = headerTitle.isEmpty ? resolvedName : headerTitle
+        let subscribers = browseHeaderSubscribers(header)
+        let monthlyListeners = browseHeaderMonthlyListeners(header)
+
+        var songs: [Track] = []
+        collectTracksFromJSON(root, into: &songs)
+        var seen = Set<String>()
+        let uniqueSongs = songs.filter { seen.insert($0.id).inserted }
+        let topSongs = Array(uniqueSongs.prefix(20))
+
+        var releases = browseReleases(root)
+        for index in releases.indices {
+            if releases[index].artist.isEmpty {
+                releases[index] = AlbumSummaryCard(
+                    id: releases[index].id,
+                    title: releases[index].title,
+                    artist: name,
+                    year: releases[index].year,
+                    artworkURL: releases[index].artworkURL,
+                    seedTracks: releases[index].seedTracks
+                )
+            }
+        }
+
+        let related = browseRelatedArtists(root, selfName: name)
+        let hero = !artwork.banner.isEmpty ? artwork.banner
+            : (!artwork.portrait.isEmpty ? artwork.portrait
+                : (topSongs.first?.displayArtworkURL?.absoluteString ?? topSongs.first?.thumbnailURL))
+
+        guard !topSongs.isEmpty || !releases.isEmpty else { return nil }
+
+        return ArtistCatalogPayload(
+            artistName: name,
+            heroArtworkURL: hero,
+            topTracks: topSongs,
+            albums: releases,
+            relatedArtists: related,
+            bannerURL: artwork.banner,
+            subscribers: subscribers,
+            monthlyListeners: monthlyListeners
+        )
+    }
+
     func fetchArtistCatalog(artistName: String) async -> ArtistCatalogPayload {
         let trimmed = artistName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return ArtistCatalogPayload(artistName: artistName, heroArtworkURL: nil, topTracks: [], albums: [], relatedArtists: [])
         }
 
+        // Browse-first: same artist /browse endpoint Android uses, with header facts and
+        // release years from the shelves. Falls back to search-grouping when it fails.
+        if let browsed = await browseArtistCatalog(artistName: trimmed) {
+            return browsed
+        }
+        return await searchArtistCatalogFallback(artistName: trimmed)
+    }
+
+    private func searchArtistCatalogFallback(artistName: String) async -> ArtistCatalogPayload {
+        let trimmed = artistName
         async let topBatch = (try? searchTracks(query: "\(trimmed) top songs")) ?? []
         async let deepBatch = (try? searchTracks(query: "\(trimmed) albums singles")) ?? []
         async let mixBatch = (try? searchTracks(query: "artists similar to \(trimmed) songs")) ?? []

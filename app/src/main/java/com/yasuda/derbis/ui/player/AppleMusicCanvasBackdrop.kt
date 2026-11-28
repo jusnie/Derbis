@@ -80,7 +80,6 @@ internal fun AppleMusicCanvasBackdrop(track: Track, canvas: AppleMusicCanvas, pl
                 MotionArtworkLayer(
                     artwork = canvas.artwork,
                     enabled = canvas.enabled,
-                    isPlaying = playing,
                     cornerRadius = 0.dp,
                     presentation = MotionArtworkPresentation.Immersive,
                     quality = canvas.quality,

@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -73,7 +73,7 @@ internal fun TidalMusicPlayerScene(
         modifier = modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(Color(0xFF262626), TidalDesign.black)))
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
             .navigationBarsPadding()
     ) {
         val gutter = 24.dp

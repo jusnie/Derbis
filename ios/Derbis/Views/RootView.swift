@@ -28,6 +28,9 @@ struct RootView: View {
     @State private var showingFullPlayer: Bool = false
     @State private var showingJamSheetFromRoot: Bool = false
     @State private var isTabBarMinimized: Bool = false
+    /// Video-app-style chrome: status bar and home indicator hidden by default in every skin,
+    /// brought back by scrolling down the other way (mirrors the Android immersive mode).
+    @State private var systemChromeHidden: Bool = true
     @State private var miniDragOffset: CGFloat = 0
     /// Bumped on every tab-bar dispatch so the lens bar's selection re-resolves to the builtin
     /// slot even when the action did not change the visible tab (e.g. Jam, Now Playing).
@@ -71,11 +74,12 @@ struct RootView: View {
             .environment(\.derbisBottomOverlayInset, activeBottomOverlayInset)
 
             if !theme.isPixelSkin {
+                // Skin-matched, deliberately soft fade — content stays readable under the dock.
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0.0),
-                        .init(color: theme.background.opacity(0.68), location: 0.52),
-                        .init(color: theme.background.opacity(0.95), location: 1.0)
+                        .init(color: theme.background.opacity(0.38), location: 0.58),
+                        .init(color: theme.background.opacity(0.78), location: 1.0)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -92,6 +96,8 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(theme.colorScheme)
+        .statusBarHidden(systemChromeHidden)
+        .persistentSystemOverlays(systemChromeHidden ? .hidden : .automatic)
         .onAppear {
             theme.dynamicCoverAccent = player.coverVibrantAccent
             refreshGlassArtwork()
@@ -120,9 +126,12 @@ struct RootView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .derbisScrollTabBarMinimizeChanged)) { note in
+            guard let target = note.userInfo?["minimized"] as? Bool else { return }
+            // Immersive chrome toggles with the same scroll direction in every skin, even when
+            // the listener has not opted into tab-bar minimization.
+            systemChromeHidden = target
             guard theme.tabBarMinimizesOnScroll,
                   player.currentTrack != nil,
-                  let target = note.userInfo?["minimized"] as? Bool,
                   target != isTabBarMinimized else {
                 return
             }
@@ -391,62 +400,16 @@ struct RootView: View {
     private var derbisPillNavigationDock: some View {
         HStack(spacing: 6) {
             ForEach(tabBarSpecs) { spec in
-                let selected = spec.action == activeTabActionKey
-                let showsTitle = !spec.title.isEmpty && (selected || !theme.isPixelSkin)
-                Button {
+                DerbisPillDockButton(
+                    spec: spec,
+                    selected: spec.action == activeTabActionKey,
+                    namespace: dockTabNamespace
+                ) {
                     HapticsAndGesturesService.shared.playSelectionTick()
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
                         dispatchTabBarEntry(spec)
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: spec.symbol)
-                            .font(.system(size: theme.hideTabLabels ? 18 : 15.5, weight: selected ? .bold : .semibold))
-
-                        if showsTitle {
-                            Text(theme.isTorqueSkin ? spec.title.uppercased() : spec.title)
-                                .font(theme.font(size: 11.5, weight: selected ? .bold : .semibold))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
-                    }
-                    .foregroundColor(selected ? (theme.isPixelSkin ? .white : theme.accent) : theme.secondaryText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .background(
-                        ZStack {
-                            if selected {
-                                if theme.isPixelSkin {
-                                    Rectangle()
-                                        .fill(theme.accent)
-                                        .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
-                                        .matchedGeometryEffect(id: "derbisDockActivePill", in: dockTabNamespace)
-                                } else if theme.isTorqueSkin {
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .fill(theme.accent.opacity(0.16))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                .stroke(theme.accent.opacity(0.5), lineWidth: 1)
-                                        )
-                                        .matchedGeometryEffect(id: "derbisDockActivePill", in: dockTabNamespace)
-                                } else {
-                                    Capsule()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [theme.accent.opacity(0.20), theme.secondaryAccent.opacity(0.14)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .overlay(Capsule().stroke(theme.accent.opacity(0.36), lineWidth: 0.9))
-                                        .matchedGeometryEffect(id: "derbisDockActivePill", in: dockTabNamespace)
-                                }
-                            }
-                        }
-                    )
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(6)
@@ -641,7 +604,8 @@ struct RootView: View {
                 id: index,
                 action: item.action,
                 title: iconsOnly ? "" : resolvedLabel,
-                symbol: DerbisDockIcons.symbol(for: iconId)
+                symbol: DerbisDockIcons.symbol(for: iconId),
+                iconID: iconId
             )
         }
     }
@@ -778,5 +742,78 @@ private struct DerbisDockProgressLine: View {
             }
         }
         .frame(height: thickness)
+    }
+}
+/// One tab in the classic pill dock. Owns its own replay counter so the mock's
+/// per-glyph keyframes play on selection flip and again on same-tab re-tap.
+private struct DerbisPillDockButton: View {
+    @EnvironmentObject private var theme: ThemeManager
+    let spec: DerbisTabBarItemSpec
+    let selected: Bool
+    let namespace: Namespace.ID
+    let onActivate: () -> Void
+
+    @State private var tapCount = 0
+
+    private var showsTitle: Bool {
+        !spec.title.isEmpty && (selected || !theme.isPixelSkin)
+    }
+
+    var body: some View {
+        Button {
+            if selected { tapCount += 1 }
+            onActivate()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: spec.symbol)
+                    .font(.system(size: theme.hideTabLabels ? 18 : 15.5, weight: selected ? .bold : .semibold))
+                    .derbisGlyphMotion(iconID: spec.iconID, trigger: tapCount)
+                    .onChange(of: selected) { _, newValue in if newValue { tapCount += 1 } }
+
+                if showsTitle {
+                    Text(theme.isTorqueSkin ? spec.title.uppercased() : spec.title)
+                        .font(theme.font(size: 11.5, weight: selected ? .bold : .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+            .foregroundColor(selected ? (theme.isPixelSkin ? .white : theme.accent) : theme.secondaryText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(
+                ZStack {
+                    if selected {
+                        if theme.isPixelSkin {
+                            Rectangle()
+                                .fill(theme.accent)
+                                .overlay(Rectangle().stroke(theme.border, lineWidth: 2))
+                                .matchedGeometryEffect(id: "derbisDockActivePill", in: namespace)
+                        } else if theme.isTorqueSkin {
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(theme.accent.opacity(0.16))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(theme.accent.opacity(0.5), lineWidth: 1)
+                                )
+                                .matchedGeometryEffect(id: "derbisDockActivePill", in: namespace)
+                        } else {
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [theme.accent.opacity(0.20), theme.secondaryAccent.opacity(0.14)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .overlay(Capsule().stroke(theme.accent.opacity(0.36), lineWidth: 0.9))
+                                .matchedGeometryEffect(id: "derbisDockActivePill", in: namespace)
+                        }
+                    }
+                }
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .derbisAppearPop()
     }
 }

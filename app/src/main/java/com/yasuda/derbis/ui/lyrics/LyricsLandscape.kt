@@ -141,7 +141,14 @@ internal fun LyricsImmersiveSystemBars(active: Boolean) {
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
         onDispose {
-            controller.show(WindowInsetsCompat.Type.systemBars())
+            // The app is immersive by default (video-app chrome); hand the bars back to whatever
+            // state ChromeImmersion holds instead of unconditionally forcing them visible.
+            val activity = view.context.findActivity()
+            if (activity != null) {
+                com.yasuda.derbis.ui.ChromeImmersion.reapply(activity)
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
             controller.systemBarsBehavior = previousBehavior
         }
     }
@@ -281,7 +288,6 @@ internal fun LyricsLandscapeArtworkPane(
                 MotionArtworkLayer(
                     artwork = motionArtwork,
                     enabled = motionEnabled,
-                    isPlaying = isPlaying,
                     cornerRadius = 22.dp,
                     presentation = MotionArtworkPresentation.Card,
                     quality = canvasQuality,

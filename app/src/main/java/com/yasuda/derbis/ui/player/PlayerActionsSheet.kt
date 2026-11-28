@@ -32,7 +32,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -216,7 +216,7 @@ internal fun PlayerSheetFrame(
             visible = visible,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             enter = sheetBodyEnter(animated),
             exit = sheetBodyExit(animated)
         ) {

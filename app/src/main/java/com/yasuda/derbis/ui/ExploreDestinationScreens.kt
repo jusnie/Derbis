@@ -36,8 +36,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -1612,7 +1610,7 @@ private fun ExploreDestinationSurface(
         targetValue = if (titleVisible) 1f else 0f,
         label = "explore-destination-title"
     )
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1626,7 +1624,7 @@ private fun ExploreDestinationSurface(
                 .fillMaxWidth()
                 .zIndex(1f)
                 .background(headerColor.copy(alpha = headerColor.alpha * titleAlpha))
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)

@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -216,7 +215,7 @@ internal fun MiniPlayerStudioOverlay(
         modifier = Modifier
             .fillMaxSize()
             .background(DerbisInk)
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val twoPane = maxWidth.value >= StudioTwoPaneMinWidthDp

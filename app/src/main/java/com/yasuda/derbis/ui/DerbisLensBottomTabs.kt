@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -228,7 +229,11 @@ internal fun DerbisLiquidGlassTabs(
             // The items: icon over label, selected magnifies while the lens is up.
             Row(Modifier.fillMaxSize()) {
                 entries.forEach { entry ->
+                    key(entry.key) {
                     val active = derbisDockEntrySelected(entry, selectedKey)
+                    val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+                    val appear = rememberTabIconAppear()
+                    TabIconFireOnBecomeActive(active, fireGlyphMotion)
                     val magnified = isHoldingLens && active
                     val lensAnimationsEnabled = LocalAnimationsEnabled.current
                     val itemScale by animateFloatAsState(
@@ -251,12 +256,22 @@ internal fun DerbisLiquidGlassTabs(
                     )
                     val tint = if (active) DerbisCyan else Color.White.copy(alpha = 0.68f)
                     val itemOffsetPx = with(density) { itemOffsetY.toPx() }
+                    val glyph = glyphMotion()
+                    val (appearScale, appearAlpha) = appear()
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .selectable(active, role = Role.Tab, onClick = { onSelect(entry, active) })
-                            .padding(horizontal = 2.dp),
+                            .selectable(active, role = Role.Tab, onClick = {
+                                if (active) fireGlyphMotion()
+                                onSelect(entry, active)
+                            })
+                            .padding(horizontal = 2.dp)
+                            .graphicsLayer {
+                                scaleX = appearScale
+                                scaleY = appearScale
+                                alpha = appearAlpha
+                            },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -267,9 +282,11 @@ internal fun DerbisLiquidGlassTabs(
                             modifier = Modifier
                                 .size(if (entry.label.isEmpty()) 20.dp else 18.dp)
                                 .graphicsLayer {
-                                    scaleX = itemScale
-                                    scaleY = itemScale
-                                    translationY = itemOffsetPx
+                                    scaleX = itemScale * glyph.scaleX
+                                    scaleY = itemScale * glyph.scaleY
+                                    rotationZ = glyph.rotationDegrees
+                                    translationX = glyph.translationXDp.dp.toPx()
+                                    translationY = itemOffsetPx + glyph.translationYDp.dp.toPx()
                                 }
                         )
                         if (entry.label.isNotEmpty()) {
@@ -288,6 +305,7 @@ internal fun DerbisLiquidGlassTabs(
                                 }
                             )
                         }
+                    }
                     }
                 }
             }

@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,7 +52,7 @@ internal fun SpotifyPlayerScene(
 ) {
     val tone by rememberSpotifyCoverTone(track, SpotifyDesign::heroSurface)
     val field = Brush.verticalGradient(0f to tone, 0.62f to lerp(tone, SpotifyDesign.base, 0.55f), 1f to lerp(tone, SpotifyDesign.base, 0.8f))
-    BoxWithConstraints(modifier.fillMaxSize().background(field).statusBarsPadding().navigationBarsPadding()) {
+    BoxWithConstraints(modifier.fillMaxSize().background(field).derbisSafeTopPadding().navigationBarsPadding()) {
         val gutter = 24.dp
         val artSize = minOf(maxWidth - gutter * 2, maxHeight * 0.46f, artworkCap)
         val viewport = maxHeight

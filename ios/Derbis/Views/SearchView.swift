@@ -196,7 +196,7 @@ struct SearchView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $selectedArtist) { dest in
-                ArtistDetailSheet(artistName: dest.artistName)
+                DerbisArtistEntryView(artistName: dest.artistName)
                     .environmentObject(player)
                     .environmentObject(library)
                     .environmentObject(theme)

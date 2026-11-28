@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -72,7 +74,7 @@ internal fun TorquePlayerScene(track: Track, slots: PlayerDeckSlots, metadata: @
             Column(Modifier.fillMaxWidth().heightIn(min = viewport)) {
                 Box(Modifier.fillMaxWidth().height(coverHeight)) {
                     slots.stage(track, Modifier.fillMaxSize(), 0.dp)
-                    Box(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp)) { slots.header() }
+                    Box(Modifier.fillMaxWidth().derbisSafeTopPadding().padding(horizontal = 8.dp)) { slots.header() }
                 }
                 slots.progress(PlayerProgressStyle.Classic)
                 TorqueBand(track, bandHeight, transport)

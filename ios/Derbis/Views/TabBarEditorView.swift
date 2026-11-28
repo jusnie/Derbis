@@ -14,6 +14,13 @@ struct TabBarEditorView: View {
     @State private var editTarget: TabBarTabItem?
     @State private var addingTab = false
     @State private var previewSelection: String?
+    @State private var blockedID: String?
+    @State private var shakeToken = 0
+    @State private var modeRingSize: CGSize = .zero
+    @State private var modeRingProgress: CGFloat = 1
+    @State private var modeRingFrom: CGFloat = 0
+    @State private var modeRingTo: CGFloat = 0
+    @State private var modeRingSeeded = false
 
     private var config: TabBarConfig { theme.tabBarConfig }
 
@@ -159,33 +166,18 @@ struct TabBarEditorView: View {
         return VStack {
             HStack(spacing: iconsOnly ? 18 : 4) {
                 ForEach(entries, id: \.item.id) { entry in
-                    let active = entry.item.id == previewSelection
-                    Button {
+                    DerbisPreviewTabButton(
+                        symbol: entry.symbol,
+                        label: entry.label,
+                        iconID: entry.iconID,
+                        active: entry.item.id == previewSelection,
+                        iconsOnly: iconsOnly
+                    ) {
                         withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.75)) {
                             previewSelection = entry.item.id
                         }
                         HapticsAndGesturesService.shared.playSelectionTick()
-                    } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: entry.symbol)
-                                .font(.system(size: iconsOnly ? 20 : 17, weight: active ? .bold : .medium))
-                            if !iconsOnly {
-                                Text(entry.label)
-                                    .font(.system(size: 9.5, weight: active ? .bold : .medium))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.75)
-                            }
-                        }
-                        .foregroundColor(active ? .white : Color.white.opacity(0.66))
-                        .padding(.horizontal, iconsOnly ? 12 : 12)
-                        .padding(.vertical, 9)
-                        .background(
-                            Capsule()
-                                .fill(active ? theme.accent.opacity(0.85) : Color.white.opacity(0.001))
-                        )
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(entry.label)
                 }
             }
             .padding(.horizontal, 14)
@@ -233,6 +225,53 @@ struct TabBarEditorView: View {
                 labels: ["Home", "Explore", "Library"]
             )
         }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { modeRingSize = proxy.size; seedRingIfNeeded() }
+                    .onChange(of: proxy.size) { _, newValue in modeRingSize = newValue; seedRingIfNeeded() }
+            }
+        )
+        .overlay(alignment: .topLeading) {
+            if ringCardWidth > 0 {
+                let stretch = CGFloat(0.06) * CGFloat(sin(Double.pi * Double(modeRingProgress)))
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(theme.accent, lineWidth: 2)
+                    .frame(width: ringCardWidth, height: modeRingSize.height)
+                    .scaleEffect(x: 1 + stretch, y: 1 - stretch)
+                    .offset(x: modeRingFrom + (modeRingTo - modeRingFrom) * modeRingProgress)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onChange(of: config.mode) { _, newMode in
+            let target: CGFloat = newMode == .iconsOnly ? 0 : ringCardWidth + 12
+            let currentX = modeRingFrom + (modeRingTo - modeRingFrom) * modeRingProgress
+            modeRingFrom = currentX
+            modeRingTo = target
+            if reduceMotion {
+                modeRingProgress = 1
+                modeRingFrom = target
+                modeRingTo = target
+                return
+            }
+            modeRingProgress = 0
+            withAnimation(.timingCurve(0.25, 1.1, 0.4, 1.0, duration: 0.52)) {
+                modeRingProgress = 1
+            }
+        }
+    }
+
+    private var ringCardWidth: CGFloat {
+        max(0, (modeRingSize.width - 12) / 2)
+    }
+
+    private func seedRingIfNeeded() {
+        guard !modeRingSeeded, modeRingSize.width > 0 else { return }
+        modeRingSeeded = true
+        let target: CGFloat = config.mode == .iconsOnly ? 0 : ringCardWidth + 12
+        modeRingFrom = target
+        modeRingTo = target
+        modeRingProgress = 1
     }
 
     private func modeCard(title: String, mode: TabBarLabelMode, icons: [String], labels: [String]?) -> some View {
@@ -273,9 +312,20 @@ struct TabBarEditorView: View {
                     .fill(selected ? theme.accent.opacity(0.14) : (theme.isLightSkin ? Color.white.opacity(0.55) : Color(red: 0.17, green: 0.17, blue: 0.19)))
                     .overlay(
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(selected ? theme.accent : theme.border.opacity(0.6), lineWidth: selected ? 2 : 1)
+                            .stroke(theme.border.opacity(0.6), lineWidth: 1)
                     )
             )
+            .overlay(alignment: .topTrailing) {
+                DerbisCheckCircle(
+                    enabled: selected,
+                    size: 16,
+                    lineWidth: 1.7,
+                    tint: theme.accent,
+                    track: theme.border.opacity(0.65),
+                    filled: false
+                )
+                .padding(10)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -285,14 +335,19 @@ struct TabBarEditorView: View {
 
     private func tabRow(_ item: TabBarTabItem) -> some View {
         let resolved = resolvedInfo(item)
+        let rowIconID = item.icon ?? DerbisDockCatalog.defaultIcon(for: item.action)
         return HStack(spacing: 12) {
             Button {
                 toggle(item)
             } label: {
-                Image(systemName: item.enabled ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 24))
-                    .foregroundColor(item.enabled ? theme.accent : theme.secondaryText.opacity(0.55))
-                    .contentShape(Circle())
+                DerbisCheckCircle(
+                    enabled: item.enabled,
+                    size: 24,
+                    lineWidth: 2.2,
+                    tint: theme.accent,
+                    track: theme.secondaryText.opacity(0.5)
+                )
+                .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(item.enabled ? "Hide" : "Show") \(resolved.title)")
@@ -301,11 +356,13 @@ struct TabBarEditorView: View {
                 editTarget = item
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: resolved.symbol)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(item.enabled ? theme.accent : theme.secondaryText)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(item.enabled ? theme.accent.opacity(0.16) : theme.secondaryText.opacity(0.1)))
+                    DerbisTabRowGlyph(
+                        symbol: resolved.symbol,
+                        iconID: rowIconID,
+                        enabled: item.enabled,
+                        color: item.enabled ? theme.accent : theme.secondaryText,
+                        circleFill: item.enabled ? theme.accent.opacity(0.16) : theme.secondaryText.opacity(0.1)
+                    )
                     VStack(alignment: .leading, spacing: 1) {
                         Text(resolved.title)
                             .font(theme.font(size: 14.5, weight: .semibold))
@@ -325,6 +382,7 @@ struct TabBarEditorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, 2)
+        .derbisShake(trigger: blockedID == item.id ? shakeToken : 0)
     }
 
     // MARK: - Actions
@@ -336,20 +394,24 @@ struct TabBarEditorView: View {
         return (title, DerbisDockIcons.symbol(for: iconId))
     }
 
-    private func resolvedPreviewEntries() -> [(item: TabBarTabItem, label: String, symbol: String)] {
+    private func resolvedPreviewEntries() -> [(item: TabBarTabItem, label: String, symbol: String, iconID: String)] {
         config.enabledItems().map { item in
             let info = resolvedInfo(item)
-            return (item, info.title, info.symbol)
+            return (item, info.title, info.symbol, item.icon ?? DerbisDockCatalog.defaultIcon(for: item.action))
         }
     }
 
     private func toggle(_ item: TabBarTabItem) {
         if item.enabled && config.enabledCount() <= TabBarConfig.minEnabled {
             showNotice("At least one tab has to stay in the bar")
+            blockedID = item.id
+            shakeToken += 1
             return
         }
         if !item.enabled && config.enabledCount() >= TabBarConfig.maxEnabled {
             showNotice("Up to \(TabBarConfig.maxEnabled) tabs can stay in the bar")
+            blockedID = item.id
+            shakeToken += 1
             return
         }
         HapticsAndGesturesService.shared.playSelectionTick()
@@ -515,23 +577,14 @@ private struct TabEditSheetView: View {
         Section("Icon") {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 46), spacing: 10)], spacing: 10) {
                 ForEach(DerbisDockIcons.picker, id: \.self) { iconID in
-                    let picked = effectiveIcon == iconID
-                    Button {
+                    DerbisIconPickerCell(
+                        iconID: iconID,
+                        picked: effectiveIcon == iconID
+                    ) {
                         let defaultForAction = DerbisDockCatalog.defaultIcon(for: action)
                         iconOverride = (iconID == defaultForAction) ? nil : iconID
                         HapticsAndGesturesService.shared.playSelectionTick()
-                    } label: {
-                        Image(systemName: DerbisDockIcons.symbol(for: iconID))
-                            .font(.system(size: 19, weight: .semibold))
-                            .foregroundColor(picked ? .white : theme.primaryText)
-                            .frame(width: 46, height: 46)
-                            .background(
-                                Circle().fill(picked ? theme.accent : (theme.isLightSkin ? Color.black.opacity(0.06) : Color.white.opacity(0.08)))
-                            )
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(iconID)
-                    .accessibilityAddTraits(picked ? .isSelected : [])
                 }
             }
             .padding(.vertical, 4)
@@ -543,6 +596,99 @@ private struct TabEditSheetView: View {
                 .font(.system(size: 13, weight: .semibold))
             }
         }
+    }
+}
+
+/// Preview pill button in the editor: glyph keyframes on select/flip, .pop on appear.
+private struct DerbisPreviewTabButton: View {
+    @EnvironmentObject private var theme: ThemeManager
+    let symbol: String
+    let label: String
+    let iconID: String?
+    let active: Bool
+    let iconsOnly: Bool
+    let onTap: () -> Void
+
+    @State private var tapCount = 0
+
+    var body: some View {
+        Button {
+            tapCount += 1
+            onTap()
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: symbol)
+                    .font(.system(size: iconsOnly ? 20 : 17, weight: active ? .bold : .medium))
+                    .derbisGlyphMotion(iconID: iconID, trigger: tapCount)
+                    .onChange(of: active) { _, newValue in if newValue { tapCount += 1 } }
+                if !iconsOnly {
+                    Text(label)
+                        .font(.system(size: 9.5, weight: active ? .bold : .medium))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+            }
+            .foregroundColor(active ? .white : Color.white.opacity(0.66))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(active ? theme.accent.opacity(0.85) : Color.white.opacity(0.001))
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .derbisAppearPop()
+    }
+}
+
+/// Row glyph in the editor tabs list: keyframes when the row's tab gets enabled.
+private struct DerbisTabRowGlyph: View {
+    let symbol: String
+    let iconID: String?
+    let enabled: Bool
+    let color: Color
+    let circleFill: Color
+
+    @State private var fireCount = 0
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundColor(color)
+            .derbisGlyphMotion(iconID: iconID, trigger: fireCount)
+            .onChange(of: enabled) { _, newValue in if newValue { fireCount += 1 } }
+            .frame(width: 38, height: 38)
+            .background(Circle().fill(circleFill))
+    }
+}
+
+/// Icon-picker cell: plays the glyph's keyframes when tapped (like the mock's pick handler).
+private struct DerbisIconPickerCell: View {
+    @EnvironmentObject private var theme: ThemeManager
+    let iconID: String
+    let picked: Bool
+    let onTap: () -> Void
+
+    @State private var tapCount = 0
+
+    var body: some View {
+        Button {
+            tapCount += 1
+            onTap()
+        } label: {
+            Image(systemName: DerbisDockIcons.symbol(for: iconID))
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(picked ? .white : theme.primaryText)
+                .derbisGlyphMotion(iconID: iconID, trigger: tapCount)
+                .frame(width: 46, height: 46)
+                .background(
+                    Circle().fill(picked ? theme.accent : (theme.isLightSkin ? Color.black.opacity(0.06) : Color.white.opacity(0.08)))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(iconID)
+        .accessibilityAddTraits(picked ? .isSelected : [])
     }
 }
 

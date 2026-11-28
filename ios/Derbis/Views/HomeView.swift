@@ -81,7 +81,7 @@ struct HomeView: View {
                     .environmentObject(theme)
             }
             .sheet(item: $selectedArtist) { dest in
-                ArtistDetailSheet(artistName: dest.artistName)
+                DerbisArtistEntryView(artistName: dest.artistName)
                     .environmentObject(player)
                     .environmentObject(library)
                     .environmentObject(theme)

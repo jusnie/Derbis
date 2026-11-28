@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.youtubemusic
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import androidx.activity.compose.BackHandler
@@ -83,7 +85,7 @@ internal fun YoutubeMusicAccountScreen(
     }
     BackHandler(onBack = back)
     Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Column(Modifier.fillMaxSize().derbisSafeTopPadding().navigationBarsPadding()) {
             TopAppBar(
                 title = { Text(state.detail?.title ?: "YouTube Music", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = { DerbisBackButton(onClick = back, contentDescription = copy.back) },

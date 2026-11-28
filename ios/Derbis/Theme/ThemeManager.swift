@@ -90,6 +90,66 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(glassRefraction, forKey: "derbis.glassRefraction") }
     }
 
+    /// Liquid Glass page background: which of the four modes paints the canvas.
+    @Published var glassBackgroundMode: DerbisBackgroundMode {
+        didSet { UserDefaults.standard.set(glassBackgroundMode.rawValue, forKey: "derbis.glassBackgroundMode") }
+    }
+
+    /// Strength of the mode's colour field, 20...100.
+    @Published var glassBackgroundIntensity: Double {
+        didSet {
+            let clamped = min(100, max(20, glassBackgroundIntensity))
+            if clamped != glassBackgroundIntensity { glassBackgroundIntensity = clamped }
+            UserDefaults.standard.set(glassBackgroundIntensity, forKey: "derbis.glassBackgroundIntensity")
+        }
+    }
+
+    /// Blur radius, in points, applied by the Blur and Custom modes.
+    @Published var glassBackgroundBlur: Double {
+        didSet {
+            let clamped = min(80, max(0, glassBackgroundBlur))
+            if clamped != glassBackgroundBlur { glassBackgroundBlur = clamped }
+            UserDefaults.standard.set(glassBackgroundBlur, forKey: "derbis.glassBackgroundBlur")
+        }
+    }
+
+    /// How much of the black veil is lifted, 15...100 (100 = fully clear).
+    @Published var glassBackgroundBrightness: Double {
+        didSet {
+            let clamped = min(100, max(15, glassBackgroundBrightness))
+            if clamped != glassBackgroundBrightness { glassBackgroundBrightness = clamped }
+            UserDefaults.standard.set(glassBackgroundBrightness, forKey: "derbis.glassBackgroundBrightness")
+        }
+    }
+
+    /// Drift motion for Animated mode (and the slow pan of Blur/Custom).
+    @Published var glassBackgroundMotion: Bool {
+        didSet { UserDefaults.standard.set(glassBackgroundMotion, forKey: "derbis.glassBackgroundMotion") }
+    }
+
+    /// Absolute path of the user-picked custom background image, or empty for none.
+    @Published var glassBackgroundImagePath: String {
+        didSet { UserDefaults.standard.set(glassBackgroundImagePath, forKey: "derbis.glassBackgroundImagePath") }
+    }
+
+    /// Accent override hue, 0...360, or -1 to follow the artwork/theme accent.
+    @Published var glassAccentHue: Int {
+        didSet {
+            let clamped = min(360, max(-1, glassAccentHue))
+            if clamped != glassAccentHue { glassAccentHue = clamped }
+            UserDefaults.standard.set(glassAccentHue, forKey: "derbis.glassAccentHue")
+        }
+    }
+
+    /// Accent lightness used when glassAccentHue is set, 0...100.
+    @Published var glassAccentLightness: Double {
+        didSet {
+            let clamped = min(100, max(0, glassAccentLightness))
+            if clamped != glassAccentLightness { glassAccentLightness = clamped }
+            UserDefaults.standard.set(glassAccentLightness, forKey: "derbis.glassAccentLightness")
+        }
+    }
+
     @Published var coverFollowsAccent: Bool {
         didSet { UserDefaults.standard.set(coverFollowsAccent, forKey: "derbis.coverFollowsAccent") }
     }
@@ -284,6 +344,51 @@ final class ThemeManager: ObservableObject {
             self.glassRefraction = 55
         } else {
             self.glassRefraction = defaults.double(forKey: "derbis.glassRefraction")
+        }
+
+        if let savedBackground = defaults.string(forKey: "derbis.glassBackgroundMode"),
+           let decodedBackground = DerbisBackgroundMode(rawValue: savedBackground) {
+            self.glassBackgroundMode = decodedBackground
+        } else {
+            self.glassBackgroundMode = .glow
+        }
+
+        if defaults.object(forKey: "derbis.glassBackgroundIntensity") == nil {
+            self.glassBackgroundIntensity = 80
+        } else {
+            self.glassBackgroundIntensity = min(100, max(20, defaults.double(forKey: "derbis.glassBackgroundIntensity")))
+        }
+
+        if defaults.object(forKey: "derbis.glassBackgroundBlur") == nil {
+            self.glassBackgroundBlur = 40
+        } else {
+            self.glassBackgroundBlur = min(80, max(0, defaults.double(forKey: "derbis.glassBackgroundBlur")))
+        }
+
+        if defaults.object(forKey: "derbis.glassBackgroundBrightness") == nil {
+            self.glassBackgroundBrightness = 72
+        } else {
+            self.glassBackgroundBrightness = min(100, max(15, defaults.double(forKey: "derbis.glassBackgroundBrightness")))
+        }
+
+        if defaults.object(forKey: "derbis.glassBackgroundMotion") == nil {
+            self.glassBackgroundMotion = true
+        } else {
+            self.glassBackgroundMotion = defaults.bool(forKey: "derbis.glassBackgroundMotion")
+        }
+
+        self.glassBackgroundImagePath = defaults.string(forKey: "derbis.glassBackgroundImagePath") ?? ""
+
+        if defaults.object(forKey: "derbis.glassAccentHue") == nil {
+            self.glassAccentHue = -1
+        } else {
+            self.glassAccentHue = min(360, max(-1, defaults.integer(forKey: "derbis.glassAccentHue")))
+        }
+
+        if defaults.object(forKey: "derbis.glassAccentLightness") == nil {
+            self.glassAccentLightness = 55
+        } else {
+            self.glassAccentLightness = min(100, max(0, defaults.double(forKey: "derbis.glassAccentLightness")))
         }
 
         if defaults.object(forKey: "derbis.coverFollowsAccent") == nil {
@@ -876,17 +981,7 @@ struct PixelGraphPaperBackground: View {
 
             case .liquidGlass:
                 if theme.ambientGlassBackdropEnabled {
-                    LinearGradient(
-                        stops: [
-                            .init(color: player.ambientPrimary.opacity(player.currentTrack != nil ? 0.54 : 0.22), location: 0.0),
-                            .init(color: player.ambientSecondary.opacity(player.currentTrack != nil ? 0.32 : 0.14), location: 0.40),
-                            .init(color: theme.background, location: 0.84)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .ignoresSafeArea()
-                    .allowsHitTesting(false)
+                    GlassBackgroundView()
                 }
 
             case .lateNight, .appleMusic13:

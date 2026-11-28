@@ -15,6 +15,7 @@ import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,7 @@ internal object SpotifyTokenProvider {
     private const val FALLBACK_CLIENT_VERSION = "1.2.60.564.g8cd2f22c"
     private const val CLIENT_TOKEN_URL = "https://clienttoken.spotify.com/v1/clienttoken"
     private const val WEB_PLAYER_URL = "https://open.spotify.com/"
+    private const val MAX_WARM_UP_ATTEMPTS = 3
 
     const val BROWSER_UA =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -84,6 +86,15 @@ internal object SpotifyTokenProvider {
 
     private val harvestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val harvestMutex = Mutex()
+
+    /**
+     * A process gets a bounded number of harvest attempts before we stop trying on our own
+     * (the listener can always re-arm this with an explicit sign-in or app foregrounding).
+     * WebView harvests launched while the process is backgrounded or half-initialized fail
+     * quietly, so the first attempt is often lost — without retries Canvas appears dead until
+     * the developer "Test" button forces a fully awaited harvest in the foreground.
+     */
+    private val warmUpAttemptBudget = AtomicInteger(MAX_WARM_UP_ATTEMPTS)
 
     @Volatile private var appContext: Context? = null
     @Volatile private var inFlightHarvest: Deferred<HarvestedToken?>? = null
@@ -118,8 +129,30 @@ internal object SpotifyTokenProvider {
     fun warmUp() {
         if (!DerbisSpotifySession.hasSession() || hasWarmToken()) return
         harvestScope.launch {
+            val existing = inFlightHarvest
+            if (existing != null && existing.isActive) return@launch
+            if (warmUpAttemptBudget.getAndDecrement() <= 0) return@launch
             runCatching { credentials() }
+            if (hasWarmToken() || !DerbisSpotifySession.hasSession()) {
+                warmUpAttemptBudget.set(MAX_WARM_UP_ATTEMPTS)
+                return@launch
+            }
+            val attempt = warmUpAttemptBudget.get()
+            val delayMs = when {
+                attempt == MAX_WARM_UP_ATTEMPTS - 1 -> 2_000L
+                attempt == MAX_WARM_UP_ATTEMPTS - 2 -> 8_000L
+                else -> 0L
+            }
+            if (delayMs > 0) {
+                kotlinx.coroutines.delay(delayMs)
+                warmUp()
+            }
         }
+    }
+
+    /** Re-arms the bounded harvest budget (foregrounding, explicit sign-in). */
+    fun rewindWarmUpBudget() {
+        warmUpAttemptBudget.set(MAX_WARM_UP_ATTEMPTS)
     }
 
     fun lastHarvestSawExpiredCookie(): Boolean = lastHarvestRejectedCookie

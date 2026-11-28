@@ -532,7 +532,7 @@ struct TrackRowView: View {
                 .environmentObject(theme)
         }
         .sheet(isPresented: $showingArtistSheet) {
-            ArtistDetailSheet(artistName: track.artist)
+            DerbisArtistEntryView(artistName: track.artist)
                 .environmentObject(player)
                 .environmentObject(library)
                 .environmentObject(theme)

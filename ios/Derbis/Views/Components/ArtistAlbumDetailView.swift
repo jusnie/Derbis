@@ -25,6 +25,22 @@ struct AlbumStudioDestination: Identifiable, Hashable {
     }
 }
 
+/// Entry point for the artist destination. The Liquid Glass skin gets the glass
+/// artist page; every other skin keeps the classic ArtistDetailSheet.
+struct DerbisArtistEntryView: View {
+    let artistName: String
+
+    @EnvironmentObject private var theme: ThemeManager
+
+    var body: some View {
+        if theme.usesLiquidGlass {
+            GlassArtistView(artistName: artistName)
+        } else {
+            ArtistDetailSheet(artistName: artistName)
+        }
+    }
+}
+
 struct ArtistDetailSheet: View {
     let artistName: String
 
@@ -422,7 +438,7 @@ struct AlbumDetailSheet: View {
                 }
             }
             .sheet(isPresented: $showingArtistSheet) {
-                ArtistDetailSheet(artistName: payload?.artistName ?? artistName)
+                DerbisArtistEntryView(artistName: payload?.artistName ?? artistName)
                     .environmentObject(player)
                     .environmentObject(library)
                     .environmentObject(theme)

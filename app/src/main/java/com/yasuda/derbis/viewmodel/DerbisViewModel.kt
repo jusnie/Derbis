@@ -238,6 +238,7 @@ import com.yasuda.derbis.domain.YoutubeCommentsState
 import com.yasuda.derbis.domain.YoutubeEngagementState
 import com.yasuda.derbis.domain.resonanceCommentsForTracks
 import com.yasuda.derbis.domain.videoViewCountBonus
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.feature.motion.MotionArtwork
 import com.yasuda.derbis.feature.motion.MotionArtworkEngine
 import com.yasuda.derbis.feature.motion.MotionArtworkIdentityKey
@@ -446,6 +447,9 @@ private const val JAM_SIMILAR_SONG_SELECT_TIMEOUT_MS = 5_000L
 
 private const val DISCOVERY_PLAYLIST_SIGNAL_LIMIT = 300
 private const val DISCOVERY_SOURCE_LIMIT = 16
+private const val MOTION_ARTWORK_SESSION_RETRY_DELAY_MS = 9_000L
+private const val MOTION_ARTWORK_SESSION_RETRY_MAX_ATTEMPTS = 2
+
 private const val DISCOVERY_REGIONAL_LIMIT = 30
 private const val DISCOVERY_RELEASE_RADAR_LIMIT = 5
 private const val DISCOVERY_ARTIST_LIMIT = 8
@@ -1248,6 +1252,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     @Volatile private var motionArtworkRequestKey: String? = null
     @Volatile private var motionArtworkRequestGeneration: Long = 0L
     private val motionArtworkRequestToken = AtomicLong(0L)
+    private var motionArtworkSessionRetryKey: String? = null
+    private var motionArtworkSessionRetryAttempts: Int = 0
     private var motionArtworkPrefetchJob: Job? = null
     @Volatile private var motionArtworkPrefetchKey: String? = null
     @Volatile private var motionArtworkPrefetchToken = 0L
@@ -8162,6 +8168,47 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
+    /**
+     * Resolves the track list for [release] without disturbing the global album-detail UI state.
+     * Used by the Liquid Glass artist page for its per-selection tracklist. Empty list on failure.
+     */
+    suspend fun loadArtistReleaseTracks(release: ArtistRelease, artistName: String): List<Track> {
+        val album = AlbumHit(
+            title = release.title,
+            artist = artistName.ifBlank { release.subtitle },
+            year = release.year,
+            thumbnailUrl = release.thumbnailUrl,
+            query = listOf(release.title, artistName.ifBlank { release.subtitle }, "album")
+                .filter(String::isNotBlank)
+                .joinToString(" "),
+            browseId = release.browseId
+        )
+        val languageCode = _state.value.languageCode
+        val providerDetail = runCatching { repository.albumDetail(album, languageCode) }.getOrNull()
+        val detail = if (providerDetail?.tracks.isNullOrEmpty()) {
+            appleCatalogAlbumDetail(album, languageCode) ?: providerDetail
+        } else {
+            providerDetail
+        }
+        return detail?.tracks.orEmpty()
+    }
+
+    /** Queues a batch download for every track of [release]. */
+    fun exportArtistRelease(release: ArtistRelease, artistName: String) {
+        exportAlbumHit(
+            AlbumHit(
+                title = release.title,
+                artist = artistName.ifBlank { release.subtitle },
+                year = release.year,
+                thumbnailUrl = release.thumbnailUrl,
+                query = listOf(release.title, artistName.ifBlank { release.subtitle }, "album")
+                    .filter(String::isNotBlank)
+                    .joinToString(" "),
+                browseId = release.browseId
+            )
+        )
+    }
+
     fun openArtistByName(name: String) {
         openArtistReference(name = name, browseId = "")
     }
@@ -12644,6 +12691,7 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 if (!isActive) return@launch
                 publishMotionArtworkForRequest(stabilized, ticket, expectedKey, requestToken)
+                scheduleMotionArtworkSessionRetry(expectedKey, ticket, requestToken, stabilized)
                 prefetchNextMotionArtwork(current)
             } finally {
                 if (
@@ -12653,6 +12701,44 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
                     motionArtworkRequestKey = null
                 }
             }
+        }
+    }
+
+    /**
+     * A cold start can mint the Spotify token a few seconds after the first resolve gives up
+     * (or while it is still waiting), which otherwise leaves Canvas blank until the listener
+     * changes track or opens the Spotify sheet's Test button. When a resolution comes up empty,
+     * schedule one bounded follow-up for the same track so the canvas appears on its own.
+     * Bounded per track identity; any newer resolution cancels the pending retry.
+     */
+    private fun scheduleMotionArtworkSessionRetry(
+        expectedKey: String,
+        ticket: PlaybackTicket,
+        requestToken: Long,
+        published: MotionArtwork?
+    ) {
+        if (motionArtworkSessionRetryKey != expectedKey) {
+            motionArtworkSessionRetryKey = expectedKey
+            motionArtworkSessionRetryAttempts = 0
+        }
+        if (published != null) return
+        if (!DerbisSpotifySession.hasSession()) return
+        if (!_state.value.motionArtworkEnabled || !_state.value.animationsEnabled) return
+        if (_state.value.isVideoMode) return
+        if (motionArtworkSessionRetryAttempts >= MOTION_ARTWORK_SESSION_RETRY_MAX_ATTEMPTS) return
+        motionArtworkSessionRetryAttempts += 1
+        viewModelScope.launch {
+            delay(MOTION_ARTWORK_SESSION_RETRY_DELAY_MS)
+            if (!isActive) return@launch
+            if (motionArtworkRequestToken.get() != requestToken) return@launch
+            if (!playbackGeneration.isCurrent(ticket)) return@launch
+            val current = _state.value
+            val still = current.currentTrack ?: return@launch
+            if (current.isVideoMode || current.motionArtwork != null) return@launch
+            if (!current.motionArtworkEnabled || !current.animationsEnabled) return@launch
+            if (MotionArtworkIdentityKey.create(still) != expectedKey) return@launch
+            Timber.d("motion artwork retry attempt=%d title=%s", motionArtworkSessionRetryAttempts, still.title)
+            refreshMotionArtworkAround(still)
         }
     }
 

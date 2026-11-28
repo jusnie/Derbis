@@ -66,7 +66,7 @@ struct DerbisDeckArtworkStage: View {
                 if theme.backdropStyle == .animated,
                    theme.motionCanvasStyle == .framed,
                    let motion = activeMotionAsset {
-                    LoopingMotionVideoView(url: motion.playbackURL, isPlaying: isPlaying)
+                    LoopingMotionVideoView(url: motion.playbackURL)
                         .id(motion.playbackURL.absoluteString)
                         .frame(width: side, height: side)
                 }

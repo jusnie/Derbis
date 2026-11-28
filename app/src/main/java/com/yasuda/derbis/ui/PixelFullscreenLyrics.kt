@@ -146,7 +146,7 @@ internal fun PixelFullscreenLyrics(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(p.panel)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
             ) {
                 Row(
                     modifier = Modifier

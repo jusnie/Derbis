@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -148,7 +147,7 @@ internal fun PlaylistHitOverlay(
             .windowInsetsPadding(DerbisHorizontalSafeInsets)
     ) {
         val wide = resolvePlayerPane(maxWidth.value, maxHeight.value) == DerbisPlayerPane.SideBySide
-        val topBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
+        val topBarHeight = derbisSafeTopInset() + 64.dp
         val heroHeight = immersiveHeroHeight(wide, maxWidth, maxHeight, topBarHeight)
         val collapseThreshold = with(density) { (heroHeight - topBarHeight).coerceAtLeast(0.dp).toPx() }
         val collapsedState = remember(listState, collapseThreshold) {

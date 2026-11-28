@@ -49,6 +49,8 @@ data class DerbisDockEntry(
      * and custom glyphs collapse to [icon].
      */
     val unselectedIcon: ImageVector = icon,
+    /** Icon-picker id when the glyph came from the catalog; null for legacy entries. */
+    val iconId: String? = null,
     /** Non-blank accessibility label (icons-only mode blanks [label] but not this). */
     val spoken: String = label
 )
@@ -156,6 +158,7 @@ fun rememberDockEntries(config: DerbisTabBarConfig): List<DerbisDockEntry> {
                     item.icon ?: DerbisDockIcons.defaultFor(item.action),
                     resolvedIcon
                 ),
+                iconId = item.icon ?: DerbisDockIcons.defaultFor(item.action),
                 spoken = item.label?.takeIf { it.isNotBlank() } ?: defaultLabel
             )
         }

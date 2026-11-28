@@ -122,7 +122,6 @@ internal fun PlayerArtworkHero(
                 MotionArtworkLayer(
                     artwork = motionArtwork,
                     enabled = motionEnabled,
-                    isPlaying = isPlaying,
                     cornerRadius = cornerRadius,
                     presentation = MotionArtworkPresentation.Card,
                     quality = canvasQuality,

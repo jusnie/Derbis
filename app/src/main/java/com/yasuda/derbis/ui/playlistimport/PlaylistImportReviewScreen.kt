@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -112,7 +112,7 @@ internal fun PlaylistImportReviewScreen(
             if (wide && focused != null) {
                 Surface(
                     color = DerbisPanel,
-                    modifier = Modifier.width(420.dp).fillMaxHeight().statusBarsPadding().navigationBarsPadding()
+                    modifier = Modifier.width(420.dp).fillMaxHeight().derbisSafeTopPadding().navigationBarsPadding()
                 ) {
                     TrackReviewContent(focused, state, copy, controller, Modifier.fillMaxSize())
                 }
@@ -136,7 +136,7 @@ private fun ReviewList(
     val saving = state.step == PlaylistImportStep.SAVING
     Box(modifier = modifier) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().derbisSafeTopPadding(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 140.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {

@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import PhotosUI
 
 struct SettingsView: View {
     @EnvironmentObject private var theme: ThemeManager
@@ -76,6 +77,7 @@ struct SettingsView: View {
     @State private var showingReceiptSheet: Bool = false
     @State private var showingTabBarEditor: Bool = false
     @State private var statusBanner: String?
+    @State private var pickedGlassBackground: PhotosPickerItem? = nil
 
     var body: some View {
         NavigationStack {
@@ -629,6 +631,36 @@ struct SettingsView: View {
         }
     }
 
+    private var glassBackgroundSwatches: [(Int, Int)] {
+        [(0, 55), (28, 55), (50, 52), (150, 45), (190, 50), (265, 62), (330, 58)]
+    }
+
+    private func saveGlassBackgroundImage(_ data: Data) {
+        guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            statusBanner = "Couldn't save the image"
+            return
+        }
+        let target = documents.appendingPathComponent("glass_background.jpg")
+        do {
+            try data.write(to: target, options: .atomic)
+            withAnimation {
+                theme.glassBackgroundImagePath = target.path
+                theme.glassBackgroundMode = .customImage
+            }
+        } catch {
+            statusBanner = "Couldn't save the image"
+        }
+    }
+
+    private func removeGlassBackgroundImage() {
+        let path = theme.glassBackgroundImagePath
+        if !path.isEmpty {
+            try? FileManager.default.removeItem(atPath: path)
+        }
+        theme.glassBackgroundImagePath = ""
+        theme.glassBackgroundMode = .glow
+    }
+
     private var liquidGlassSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("Dock & Glass Chrome")
@@ -713,6 +745,146 @@ struct SettingsView: View {
                     }
                     Slider(value: $theme.glassRefraction, in: 0...100, step: 5)
                         .tint(theme.accent)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Background")
+                        .font(theme.font(size: 14, weight: .semibold))
+                        .foregroundColor(theme.primaryText)
+                    Text("What fills the page behind the glass")
+                        .font(theme.font(size: 12))
+                        .foregroundColor(theme.secondaryText)
+
+                    Picker("Mode", selection: $theme.glassBackgroundMode) {
+                        ForEach(DerbisBackgroundMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if theme.glassBackgroundMode != .customImage {
+                        HStack {
+                            Text("Intensity")
+                                .font(theme.font(size: 13, weight: .medium))
+                                .foregroundColor(theme.primaryText)
+                            Spacer()
+                            Text("\(Int(theme.glassBackgroundIntensity))%")
+                                .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                                .foregroundColor(theme.accent)
+                        }
+                        Slider(value: $theme.glassBackgroundIntensity, in: 20...100, step: 5)
+                            .tint(theme.accent)
+                    }
+
+                    if theme.glassBackgroundMode == .artworkBlur || theme.glassBackgroundMode == .customImage {
+                        HStack {
+                            Text("Blur")
+                                .font(theme.font(size: 13, weight: .medium))
+                                .foregroundColor(theme.primaryText)
+                            Spacer()
+                            Text("\(Int(theme.glassBackgroundBlur))px")
+                                .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                                .foregroundColor(theme.accent)
+                        }
+                        Slider(value: $theme.glassBackgroundBlur, in: 0...80, step: 5)
+                            .tint(theme.accent)
+                    }
+
+                    HStack {
+                        Text("Brightness")
+                            .font(theme.font(size: 13, weight: .medium))
+                            .foregroundColor(theme.primaryText)
+                        Spacer()
+                        Text("\(Int(theme.glassBackgroundBrightness))%")
+                            .font(theme.font(size: 12.5, weight: .bold).monospacedDigit())
+                            .foregroundColor(theme.accent)
+                    }
+                    Slider(value: $theme.glassBackgroundBrightness, in: 15...100, step: 5)
+                        .tint(theme.accent)
+
+                    if theme.glassBackgroundMode == .animated {
+                        Toggle(isOn: $theme.glassBackgroundMotion) {
+                            Text("Drift motion")
+                                .font(theme.font(size: 13, weight: .medium))
+                                .foregroundColor(theme.primaryText)
+                        }
+                        .derbisToggleTint()
+                    }
+
+                    if theme.glassBackgroundMode == .customImage {
+                        HStack(spacing: 8) {
+                            PhotosPicker(selection: $pickedGlassBackground, matching: .images) {
+                                Label(theme.glassBackgroundImagePath.isEmpty ? "Choose image" : "Change image",
+                                      systemImage: "photo")
+                                    .font(theme.font(size: 12.5, weight: .semibold))
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(theme.accent)
+                            if !theme.glassBackgroundImagePath.isEmpty {
+                                Button("Remove", role: .destructive) {
+                                    removeGlassBackgroundImage()
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        }
+                    } else {
+                        Text("Accent color")
+                            .font(theme.font(size: 13, weight: .semibold))
+                            .foregroundColor(theme.primaryText)
+                            .padding(.top, 2)
+                        HStack(spacing: 8) {
+                            Button {
+                                haptics.playSelectionTick()
+                                theme.glassAccentHue = -1
+                            } label: {
+                                Circle()
+                                    .fill(AngularGradient(
+                                        colors: [.orange, .yellow, .green, .cyan, .purple, .pink, .orange],
+                                        center: .center
+                                    ))
+                                    .frame(width: 28, height: 28)
+                                    .overlay(
+                                        Circle().stroke(theme.glassAccentHue < 0 ? Color.white : Color.white.opacity(0.25),
+                                                        lineWidth: theme.glassAccentHue < 0 ? 2.5 : 1)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            ForEach(glassBackgroundSwatches, id: \.0) { swatch in
+                                let hue = swatch.0
+                                let lightness = swatch.1
+                                let selected = theme.glassAccentHue == hue && Int(theme.glassAccentLightness) == lightness
+                                Button {
+                                    haptics.playSelectionTick()
+                                    theme.glassAccentHue = hue
+                                    theme.glassAccentLightness = Double(lightness)
+                                } label: {
+                                    Circle()
+                                        .fill(Color(hue: Double(hue) / 360.0, saturation: 0.85, brightness: Double(lightness) / 100.0))
+                                        .frame(width: 28, height: 28)
+                                        .overlay(
+                                            Circle().stroke(selected ? Color.white : Color.white.opacity(0.25),
+                                                            lineWidth: selected ? 2.5 : 1)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        if theme.glassAccentHue < 0 {
+                            Text("Auto — matches the playing cover artwork")
+                                .font(theme.font(size: 11))
+                                .foregroundColor(theme.secondaryText)
+                        }
+                    }
+                }
+                .onChange(of: pickedGlassBackground) { item in
+                    guard let item else { return }
+                    Task {
+                        if let data = try? await item.loadTransferable(type: Data.self) {
+                            saveGlassBackgroundImage(data)
+                        }
+                    }
                 }
 
                 Divider()

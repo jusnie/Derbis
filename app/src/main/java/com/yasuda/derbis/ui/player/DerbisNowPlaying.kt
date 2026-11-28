@@ -44,8 +44,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -1519,7 +1518,7 @@ private fun DerbisNowPlayingContent(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = gutter, vertical = DerbisPlayerDesign.SpaceSm),
@@ -1560,7 +1559,7 @@ private fun DerbisNowPlayingContent(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(
@@ -1601,7 +1600,7 @@ private fun DerbisNowPlayingContent(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .then(if (fitsViewport) Modifier else Modifier.verticalScroll(rememberScrollState()))
                     .padding(
@@ -1725,7 +1724,7 @@ private fun DerbisNowPlayingContent(
                     iconSize = 22.dp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .statusBarsPadding()
+                        .derbisSafeTopPadding()
                         .padding(top = DerbisPlayerDesign.SpaceSm, end = DerbisPlayerDesign.SpaceSm)
                         .zIndex(102f),
                     onClick = { videoFullscreen = false }
@@ -1750,7 +1749,7 @@ private fun DerbisNowPlayingContent(
             exit = fadeOut(tween(if (animated) CreditsCaptionRevealMs / 2 else 0)),
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .padding(
                     end = gutter,
                     top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg
@@ -1774,7 +1773,7 @@ private fun DerbisNowPlayingContent(
                 onClick = { showArtistPicker = true },
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .padding(
                         start = gutter,
                         top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg

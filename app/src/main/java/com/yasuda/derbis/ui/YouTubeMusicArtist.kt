@@ -92,7 +92,7 @@ internal fun YouTubeMusicArtistScreen(
     val profile = state.artistProfile
     val listState = rememberSaveable(state.artistListStateKey, saver = LazyListState.Saver) { LazyListState() }
     val density = LocalDensity.current
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusTop = derbisSafeTopInset()
     Box(Modifier.fillMaxSize().background(YouTubeMusicDesign.background)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val heroHeight = (maxWidth * 0.86f).coerceAtMost(maxHeight * 0.55f)
@@ -422,7 +422,7 @@ private fun YouTubeMusicArtistBar(
     Row(
         Modifier.fillMaxWidth()
             .drawBehind { drawRect(background, alpha = if (pinned) 1f else ((collapse() - 0.7f) / 0.3f).coerceIn(0f, 1f)) }
-            .statusBarsPadding().height(ArtistBarHeight).padding(horizontal = 4.dp),
+            .derbisSafeTopPadding().height(ArtistBarHeight).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         YouTubeMusicIconAction(Icons.AutoMirrored.Rounded.ArrowBack, strings.back, viewModel::closeArtist)
