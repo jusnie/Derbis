@@ -11,6 +11,10 @@ enum class DerbisFontPreset(
     Montserrat("Montserrat", "Montserrat"),
     Nunito("Nunito", "Nunito"),
     Roboto("Roboto", "Roboto"),
+    Pixelify("Pixelify Sans", null),
+    Serif("Serif (System)", null),
+    Monospace("Monospace (System)", null),
+    Custom("Imported Font", null),
     System("System", null);
 
     companion object {

@@ -34,6 +34,8 @@ class DerbisApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Lets the typography system resolve imported fonts before any UI is composed.
+        com.yasuda.derbis.ui.theme.installDerbisFontsDirectory { java.io.File(filesDir, "DerbisImportedFonts") }
         // Reads the Liquid Glass crash marker before any UI can draw through the GPU.
         runCatching { DerbisGlassSafety.install(this) }
             .onFailure { Timber.w(it, "Liquid Glass guard bootstrap failed") }

@@ -21181,6 +21181,32 @@ private fun SettingsOverlay(
     onClose: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
+    // Imported font (.ttf/.otf) — the same Taurus font choice iOS ships. The picked file is
+    // copied into filesDir/DerbisImportedFonts; typography resolves it via derbisTypographyFor.
+    val importedFontContext = LocalContext.current
+    val importedFontName = remember(interfaceSettings.fontPreset) {
+        com.yasuda.derbis.ui.theme.importedFontDisplayName()
+    }
+    val fontImportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val context = importedFontContext
+        val imported = uri != null && runCatching {
+            val dir = java.io.File(context.filesDir, "DerbisImportedFonts").apply { mkdirs() }
+            val target = java.io.File(dir, "custom_font.ttf")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                java.io.FileOutputStream(target).use { output -> input.copyTo(output) }
+            } ?: error("Cannot read the picked file")
+            val displayName = context.contentResolver
+                .query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                ?: "Imported font"
+            java.io.File(dir, "name.txt").writeText(displayName)
+            true
+        }.getOrDefault(false)
+        if (imported) {
+            com.yasuda.derbis.ui.theme.resetImportedFontCache()
+            onInterfaceSettings(interfaceSettings.copy(fontPreset = DerbisFontPreset.Custom))
+        }
+    }
     val automationCopy = strings.automationCopy()
     var languageExpanded by remember { mutableStateOf(false) }
     var activeCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -21550,6 +21576,24 @@ private fun SettingsOverlay(
                                     onSelect = { value ->
                                         onInterfaceSettings(
                                             interfaceSettings.copy(fontPreset = DerbisFontPreset.from(value))
+                                        )
+                                    }
+                                )
+                            }
+                            item {
+                                SettingsButton(
+                                    icon = Icons.Rounded.AddCircleOutline,
+                                    title = "Import custom font",
+                                    subtitle = importedFontName ?: "Pick a .ttf or .otf file — applied across Derbis",
+                                    onClick = {
+                                        fontImportLauncher.launch(
+                                            arrayOf(
+                                                "font/ttf",
+                                                "font/otf",
+                                                "application/x-font-ttf",
+                                                "application/x-font-opentype",
+                                                "application/octet-stream"
+                                            )
                                         )
                                     }
                                 )
