@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Derbis for iOS (Beta) — Derbis.ipa &amp; KSign Installer</title>
+  <meta name="theme-color" content="#0f0f10">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23ff5c8a'/%3E%3Crect x='3' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='9' y='3' width='4' height='4' fill='%23fff8f6'/%3E%3Crect x='3' y='9' width='10' height='4' fill='%23fff8f6'/%3E%3C/svg%3E">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
+    body { background-color: #0f0f10; color: #f2f0f4; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; -webkit-font-smoothing: antialiased; }
+    .card { width: 100%; max-width: 460px; background: #19191b; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 28px 24px; text-align: center; }
+    .logo-badge { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 12px; background: #141415; border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
+    h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; background: rgba(255, 92, 138, 0.14); border: 1px solid rgba(255, 92, 138, 0.36); color: #ff5c8a; font-size: 12px; font-weight: 600; font-family: ui-monospace, monospace; margin-bottom: 14px; }
+    p.desc { font-size: 14px; color: #bcb8c4; line-height: 1.55; margin-bottom: 20px; }
+    .btn-main { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px 16px; border-radius: 8px; background: #f2f0f4; color: #0f0f10; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 10px; }
+    .btn-guide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; border-radius: 8px; background: rgba(255, 92, 138, 0.14); border: 1px solid rgba(255, 92, 138, 0.36); color: #ff5c8a; font-size: 13px; font-weight: 600; text-decoration: none; margin-bottom: 16px; }
+    .btn-secondary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+    .btn-sub { display: flex; align-items: center; justify-content: center; padding: 10px 12px; border-radius: 8px; background: #141415; border: 1px solid rgba(255,255,255,0.08); color: #f2f0f4; font-size: 12px; font-weight: 500; text-decoration: none; }
+    .btn-sub:hover { border-color: rgba(255,255,255,0.18); background: #232325; }
+    .info-box { background: #141415; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px; text-align: left; margin-bottom: 16px; font-size: 12px; color: #bcb8c4; line-height: 1.5; }
+    .info-box strong { color: #f2f0f4; }
+    .info-box a { color: #ff5c8a; text-decoration: none; }
+    .repos-box { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 14px; font-size: 12px; color: #918d9b; }
+    .repos-box a { color: #bcb8c4; text-decoration: none; margin: 0 6px; }
+    .repos-box a:hover { color: #f2f0f4; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-badge">
+      <svg width="28" height="28" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <rect width="16" height="16" fill="#ff5c8a" />
+        <rect x="3" y="3" width="4" height="4" fill="#fff8f6" />
+        <rect x="9" y="3" width="4" height="4" fill="#fff8f6" />
+        <rect x="3" y="9" width="10" height="4" fill="#fff8f6" />
+      </svg>
+    </div>
+
+    <h1>Derbis for iOS</h1>
+    <div class="badge">Beta · Derbis.ipa · v1.8.0-beta · 2.8 MB · iOS 16.0+</div>
+    <p class="desc">
+      100% native arm64 SwiftUI &amp; AVPlayer build with 9 skins, Motion Canvas video, 5-band real-time EQ, karaoke word lyrics, Jam rooms, and local FLAC/ALAC playback.
+    </p>
+
+    <a href="/Derbis.ipa" download="Derbis.ipa" class="btn-main">
+      <span>Download Derbis.ipa</span>
+    </a>
+
+    <a href="/#ksign" class="btn-guide">
+      <span>Open Visual KSign Setup Guide (with Screenshots)</span>
+    </a>
+
+    <div class="btn-secondary-grid">
+      <a href="https://ksignios.app/downloads/ksign-dns.mobileconfig" target="_blank" rel="noopener noreferrer" class="btn-sub">1. KSign Anti-Revoke DNS</a>
+      <a href="https://ksignios.app/" target="_blank" rel="noopener noreferrer" class="btn-sub">2. KSign Direct Install</a>
+      <a href="https://ksignios.app/ksign-certificate/" target="_blank" rel="noopener noreferrer" class="btn-sub">3. KSign Certificates</a>
+      <a href="sidestore://install?url=https%3A%2F%2Fderbis-web.vercel.app%2FDerbis.ipa" class="btn-sub">SideStore 1-Click</a>
+      <a href="altstore://install?url=https%3A%2F%2Fderbis-web.vercel.app%2FDerbis.ipa" class="btn-sub">AltStore 1-Click</a>
+      <a href="apple-magnifier://install?url=https%3A%2F%2Fderbis-web.vercel.app%2FDerbis.ipa" class="btn-sub">TrollStore 1-Click</a>
+    </div>
+
+    <div class="info-box">
+      <strong>Quick KSign Summary:</strong><br>
+      1. Install the <a href="https://ksignios.app/downloads/ksign-dns.mobileconfig" target="_blank" rel="noopener noreferrer">Anti-Revoke DNS</a> profile, install KSign from <a href="https://ksignios.app/" target="_blank" rel="noopener noreferrer">ksignios.app</a>, and trust it in Settings.<br>
+      2. Extract a <code>.p12</code> + <code>.mobileprovision</code> pair from <a href="https://ksignios.app/ksign-certificate/" target="_blank" rel="noopener noreferrer">ksignios.app/ksign-certificate</a> into KSign Certificates.<br>
+      3. Import <code>Derbis.ipa</code> into KSign Library and tap <strong>Sign &amp; Install</strong>.
+    </div>
+
+    <div class="repos-box">
+      <a href="/">Back to Derbis Website</a> ·
+      <a href="https://github.com/jusnie/Derbis/releases" target="_blank" rel="noopener noreferrer">Releases</a> ·
+      <a href="https://github.com/jusnie/Derbis" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </div>
+  </div>
+</body>
+</html>

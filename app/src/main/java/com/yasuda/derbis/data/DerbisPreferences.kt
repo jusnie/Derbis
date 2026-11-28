@@ -14,8 +14,11 @@ import com.yasuda.derbis.domain.ADVANCED_QUEUE_PREFETCH_OFF
 import com.yasuda.derbis.domain.AlbumHit
 import com.yasuda.derbis.domain.HighQualityAudioMode
 import com.yasuda.derbis.domain.DerbisAudioQuality
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.Derbis360Experience
 import com.yasuda.derbis.domain.HomeSection
+import com.yasuda.derbis.domain.DerbisGlassEffects
+import com.yasuda.derbis.domain.DerbisBackgroundMode
 import com.yasuda.derbis.domain.DerbisLanguageCatalog
 import com.yasuda.derbis.domain.DerbisPersonalOrbit
 import com.yasuda.derbis.domain.DerbisAudioPresets
@@ -34,12 +37,14 @@ import com.yasuda.derbis.domain.DerbisDownloadSettings
 import com.yasuda.derbis.domain.DerbisSmartOfflineSettings
 import com.yasuda.derbis.domain.DerbisAmbientMode
 import com.yasuda.derbis.domain.DerbisAmbientSettings
+import com.yasuda.derbis.domain.DerbisExplicitFilter
 import com.yasuda.derbis.domain.DerbisInterfaceSettings
 import com.yasuda.derbis.domain.DerbisCustomTheme
 import com.yasuda.derbis.domain.DerbisCustomThemes
 import com.yasuda.derbis.domain.DerbisHomeStudioSettings
 import com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings
 import com.yasuda.derbis.domain.DerbisNavigationStudioSettings
+import com.yasuda.derbis.domain.DerbisTabBarConfig
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LibrarySort
 import com.yasuda.derbis.domain.LibrarySortDirection
@@ -60,6 +65,7 @@ import com.yasuda.derbis.domain.AudioOffloadPreference
 import com.yasuda.derbis.domain.ReplayGainMode
 import com.yasuda.derbis.domain.PlaybackBufferMode
 import com.yasuda.derbis.domain.PlaybackBufferSettings
+import com.yasuda.derbis.domain.DerbisTab
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -120,6 +126,7 @@ data class DerbisPreferencesSnapshot(
     val miniPlayerStudioSettings: DerbisMiniPlayerStudioSettings = DerbisMiniPlayerStudioSettings(),
     val customThemes: List<DerbisCustomTheme> = emptyList(),
     val navigationStudioSettings: DerbisNavigationStudioSettings = DerbisNavigationStudioSettings(),
+    val tabBarConfig: DerbisTabBarConfig = DerbisTabBarConfig(),
     val endlessListeningEnabled: Boolean = true
 )
 
@@ -177,6 +184,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_HOME_STUDIO_SETTINGS] = snapshot.homeStudioSettings.encode()
             mutable[KEY_MINI_PLAYER_STUDIO_SETTINGS] = snapshot.miniPlayerStudioSettings.encode()
             mutable[KEY_NAVIGATION_STUDIO_SETTINGS] = snapshot.navigationStudioSettings.encode()
+            mutable[KEY_TAB_BAR_CONFIG] = snapshot.tabBarConfig.normalized().encode()
             mutable[KEY_CUSTOM_THEMES] = DerbisCustomThemes.encode(snapshot.customThemes)
             mutable[KEY_THEME_PRESET] = com.yasuda.derbis.ui.theme.DerbisThemes.normalize(snapshot.themePreset)
             mutable[KEY_THEME_ACCENT] = snapshot.themeAccent
@@ -206,7 +214,6 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_AUDIO_LIMITER] = normalizedAudio.limiterEnabled
             mutable[KEY_AUDIO_CROSSFADE] = normalizedAudio.crossfadeSeconds
             mutable[KEY_AUDIO_DJ_SOFT] = normalizedAudio.djSoftMode
-            mutable[KEY_AUDIO_BEAT_SYNC] = normalizedAudio.beatSyncEnabled
             mutable[KEY_AUDIO_REPLAY_GAIN] = normalizedAudio.replayGainActive
             mutable[KEY_AUDIO_REPLAY_GAIN_MODE] = normalizedAudio.effectiveReplayGainMode.storageValue
             mutable[KEY_AUDIO_REPLAY_GAIN_PREAMP] = normalizedAudio.replayGainPreampDb
@@ -222,6 +229,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_AUDIO_PARAMETRIC_ACTIVE] = normalizedAudio.activeParametricProfile?.let(::parametricProfileToJson)?.toString().orEmpty()
             mutable[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalizedAudio.customParametricProfiles)
             mutable[KEY_AUDIO_ENHANCED_AUDIO] = normalizedAudio.enhancedAudioEnabled
+            mutable[KEY_AUDIO_KARAOKE] = normalizedAudio.karaokeMode
+            mutable[KEY_AUDIO_MONO] = normalizedAudio.monoEnabled
+            mutable[KEY_AUDIO_DOLBY_ATMOS] = normalizedAudio.dolbyAtmosEnabled
             mutable[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalizedAudio.audioOffloadPreference.storageValue
             mutable[KEY_AUDIO_BUFFER_MODE] = normalizedAudio.playbackBuffer.mode.storageValue
             mutable[KEY_AUDIO_BUFFER_MIN_SECONDS] = normalizedAudio.playbackBuffer.minBufferSeconds
@@ -247,6 +257,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_CANVAS_QUALITY] = normalizedInterface.canvasQuality.name
             mutable[KEY_UI_CANVAS_SOURCE] = DerbisCanvasSource.Auto.name
             mutable[KEY_UI_VISUAL_PERFORMANCE] = normalizedInterface.visualPerformance.name
+            mutable[KEY_UI_ARTWORK_QUALITY] = normalizedInterface.artworkQuality.name
             mutable[KEY_UI_LIQUID_GLASS] = normalizedInterface.liquidGlassEnabled
             mutable[KEY_UI_LITE_MODE] = normalizedInterface.liteMode
             mutable[KEY_UI_FORCE_HIGH_REFRESH_RATE] = normalizedInterface.forceHighRefreshRate
@@ -255,11 +266,21 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_UI_GLASS_TINT] = normalizedInterface.glassTint
             mutable[KEY_UI_GLASS_REFRACTION] = normalizedInterface.glassRefraction
             mutable[KEY_UI_GLASS_EFFECTS] = normalizedInterface.glassEffects.name
+            mutable[KEY_UI_GLASS_BG_MODE] = normalizedInterface.glassBackgroundMode.storageValue
+            mutable[KEY_UI_GLASS_BG_INTENSITY] = normalizedInterface.glassBackgroundIntensity
+            mutable[KEY_UI_GLASS_BG_BLUR] = normalizedInterface.glassBackgroundBlur
+            mutable[KEY_UI_GLASS_BG_BRIGHTNESS] = normalizedInterface.glassBackgroundBrightness
+            mutable[KEY_UI_GLASS_BG_MOTION] = normalizedInterface.glassBackgroundMotion
+            mutable[KEY_UI_GLASS_BG_IMAGE] = normalizedInterface.glassBackgroundImage
+            mutable[KEY_UI_GLASS_ACCENT_HUE] = normalizedInterface.glassAccentHue
+            mutable[KEY_UI_GLASS_ACCENT_LIGHTNESS] = normalizedInterface.glassAccentLightness
             mutable[KEY_UI_DATA_SAVER] = normalizedInterface.dataSaverEnabled
             mutable[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalizedInterface.motionArtworkWifiOnly
             mutable[KEY_UI_MOTION_ARTWORK_ENABLED] = normalizedInterface.motionArtworkEnabled
             mutable[KEY_UI_ENHANCE_VIDEO_METADATA] = normalizedInterface.enhanceVideoMetadata
             mutable[KEY_UI_BLOCK_AI_CONTENT] = normalizedInterface.blockAiContent
+            mutable[KEY_UI_EXPLICIT_FILTER] = normalizedInterface.explicitFilter.storageValue
+            mutable[KEY_UI_STATUS_BAR_LYRICS] = normalizedInterface.statusBarLyrics
             mutable[KEY_UI_PURE_BLACK] = normalizedInterface.pureBlack
             mutable[KEY_UI_SKIN] = normalizedInterface.skin.name
             mutable[KEY_PRISM_APPEARANCE] = normalizedInterface.prism.appearance.name
@@ -269,7 +290,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_IVORY_APPEARANCE] = normalizedInterface.ivory.appearance.name
             mutable[KEY_UI_HAPTIC_FEEDBACK] = normalizedInterface.hapticFeedback
             mutable[KEY_UI_DERBIS_NOTCH] = normalizedInterface.derbisNotchEnabled
-            mutable[KEY_UI_DERBIS_NOTCH_STYLE] = normalizedInterface.derbisNotchStyle.name
+            writeDerbisNotch(mutable, normalizedInterface.derbisNotch)
             mutable[KEY_UI_PLAYER_VISUAL_MODE] = normalizedInterface.playerVisualMode.name
             mutable[KEY_UI_PLAYER_BACKGROUND] = normalizedInterface.playerBackground.name
             mutable[KEY_UI_REACTIVE_AURA_PRESET] = normalizedInterface.reactiveAuraPreset.name
@@ -421,6 +442,17 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
 
     fun interfaceSettings(): DerbisInterfaceSettings = read { interfaceSettingsFrom(it) }
 
+    /**
+     * The tab the user was on when the process last went away, restored on cold start. The
+     * Liquid Glass GPU path has been known to take the process down mid-session; without this,
+     * the user is bounced onto the default tab (Home) every time it happens.
+     */
+    fun lastKnownTab(): String = read { it[KEY_LAST_TAB] ?: DerbisTab.Home.name }
+
+    fun setLastKnownTab(tab: String) {
+        write { it[KEY_LAST_TAB] = tab }
+    }
+
     fun setInterfaceSettings(value: DerbisInterfaceSettings) {
         val normalized = value.normalized()
         write {
@@ -443,17 +475,28 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_UI_CANVAS_QUALITY] = normalized.canvasQuality.name
             it[KEY_UI_CANVAS_SOURCE] = DerbisCanvasSource.Auto.name
             it[KEY_UI_VISUAL_PERFORMANCE] = normalized.visualPerformance.name
+            it[KEY_UI_ARTWORK_QUALITY] = normalized.artworkQuality.name
             it[KEY_UI_LIQUID_GLASS] = normalized.liquidGlassEnabled
             it[KEY_UI_GLASS_BLUR] = normalized.glassBlur
             it[KEY_UI_GLASS_TRANSPARENCY] = normalized.glassTransparency
             it[KEY_UI_GLASS_TINT] = normalized.glassTint
             it[KEY_UI_GLASS_REFRACTION] = normalized.glassRefraction
             it[KEY_UI_GLASS_EFFECTS] = normalized.glassEffects.name
+            it[KEY_UI_GLASS_BG_MODE] = normalized.glassBackgroundMode.storageValue
+            it[KEY_UI_GLASS_BG_INTENSITY] = normalized.glassBackgroundIntensity
+            it[KEY_UI_GLASS_BG_BLUR] = normalized.glassBackgroundBlur
+            it[KEY_UI_GLASS_BG_BRIGHTNESS] = normalized.glassBackgroundBrightness
+            it[KEY_UI_GLASS_BG_MOTION] = normalized.glassBackgroundMotion
+            it[KEY_UI_GLASS_BG_IMAGE] = normalized.glassBackgroundImage
+            it[KEY_UI_GLASS_ACCENT_HUE] = normalized.glassAccentHue
+            it[KEY_UI_GLASS_ACCENT_LIGHTNESS] = normalized.glassAccentLightness
             it[KEY_UI_DATA_SAVER] = normalized.dataSaverEnabled
             it[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] = normalized.motionArtworkWifiOnly
             it[KEY_UI_MOTION_ARTWORK_ENABLED] = normalized.motionArtworkEnabled
             it[KEY_UI_ENHANCE_VIDEO_METADATA] = normalized.enhanceVideoMetadata
             it[KEY_UI_BLOCK_AI_CONTENT] = normalized.blockAiContent
+            it[KEY_UI_EXPLICIT_FILTER] = normalized.explicitFilter.storageValue
+            it[KEY_UI_STATUS_BAR_LYRICS] = normalized.statusBarLyrics
             it[KEY_UI_PURE_BLACK] = normalized.pureBlack
             it[KEY_UI_SKIN] = normalized.skin.name
             it[KEY_PRISM_APPEARANCE] = normalized.prism.appearance.name
@@ -463,7 +506,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_IVORY_APPEARANCE] = normalized.ivory.appearance.name
             it[KEY_UI_HAPTIC_FEEDBACK] = normalized.hapticFeedback
             it[KEY_UI_DERBIS_NOTCH] = normalized.derbisNotchEnabled
-            it[KEY_UI_DERBIS_NOTCH_STYLE] = normalized.derbisNotchStyle.name
+            writeDerbisNotch(it, normalized.derbisNotch)
             it[KEY_UI_PLAYER_VISUAL_MODE] = normalized.playerVisualMode.name
             it[KEY_UI_PLAYER_BACKGROUND] = normalized.playerBackground.name
             it[KEY_UI_REACTIVE_AURA_PRESET] = normalized.reactiveAuraPreset.name
@@ -598,7 +641,6 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_AUDIO_LIMITER] = normalized.limiterEnabled
             it[KEY_AUDIO_CROSSFADE] = normalized.crossfadeSeconds
             it[KEY_AUDIO_DJ_SOFT] = normalized.djSoftMode
-            it[KEY_AUDIO_BEAT_SYNC] = normalized.beatSyncEnabled
             it[KEY_AUDIO_REPLAY_GAIN] = normalized.replayGainActive
             it[KEY_AUDIO_REPLAY_GAIN_MODE] = normalized.effectiveReplayGainMode.storageValue
             it[KEY_AUDIO_REPLAY_GAIN_PREAMP] = normalized.replayGainPreampDb
@@ -614,6 +656,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             it[KEY_AUDIO_PARAMETRIC_ACTIVE] = normalized.activeParametricProfile?.let(::parametricProfileToJson)?.toString().orEmpty()
             it[KEY_AUDIO_PARAMETRIC_PROFILES] = parametricProfilesToJson(normalized.customParametricProfiles)
             it[KEY_AUDIO_ENHANCED_AUDIO] = normalized.enhancedAudioEnabled
+            it[KEY_AUDIO_KARAOKE] = normalized.karaokeMode
+            it[KEY_AUDIO_MONO] = normalized.monoEnabled
+            it[KEY_AUDIO_DOLBY_ATMOS] = normalized.dolbyAtmosEnabled
             it[KEY_AUDIO_OFFLOAD_PREFERENCE] = normalized.audioOffloadPreference.storageValue
             it[KEY_AUDIO_BUFFER_MODE] = normalized.playbackBuffer.mode.storageValue
             it[KEY_AUDIO_BUFFER_MIN_SECONDS] = normalized.playbackBuffer.minBufferSeconds
@@ -646,6 +691,20 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
 
     fun setDismissedUpdateVersion(version: String) {
         write { it[KEY_DISMISSED_UPDATE_VERSION] = version }
+    }
+
+    /** The release tag whose prompt was dismissed. Tags are unique per build; names are not. */
+    fun dismissedUpdateTag(): String = read { it[KEY_DISMISSED_UPDATE_TAG].orEmpty() }
+
+    fun setDismissedUpdateTag(tag: String) {
+        write { it[KEY_DISMISSED_UPDATE_TAG] = tag }
+    }
+
+    /** When the last successful update check finished, so a cold start does not repeat it. */
+    fun lastUpdateCheckMs(): Long = read { it[KEY_LAST_UPDATE_CHECK_MS] ?: 0L }
+
+    fun setLastUpdateCheckMs(value: Long) {
+        write { it[KEY_LAST_UPDATE_CHECK_MS] = value.coerceAtLeast(0L) }
     }
 
     fun saveLastPlayback(track: Track?, positionMs: Long) {
@@ -858,6 +917,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             miniPlayerStudioSettings = DerbisMiniPlayerStudioSettings.decode(preferences[KEY_MINI_PLAYER_STUDIO_SETTINGS]),
             customThemes = DerbisCustomThemes.decode(preferences[KEY_CUSTOM_THEMES]),
             navigationStudioSettings = DerbisNavigationStudioSettings.decode(preferences[KEY_NAVIGATION_STUDIO_SETTINGS]),
+            tabBarConfig = DerbisTabBarConfig.decode(preferences[KEY_TAB_BAR_CONFIG]),
             endlessListeningEnabled = preferences[KEY_ENDLESS_LISTENING] ?: true
         )
     }
@@ -903,6 +963,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             canvasQuality = DerbisCanvasQuality.from(preferences[KEY_UI_CANVAS_QUALITY].orEmpty()),
             canvasSource = DerbisCanvasSource.from(preferences[KEY_UI_CANVAS_SOURCE].orEmpty()),
             visualPerformance = DerbisVisualPerformance.from(preferences[KEY_UI_VISUAL_PERFORMANCE].orEmpty()),
+            artworkQuality = DerbisArtworkQuality.from(preferences[KEY_UI_ARTWORK_QUALITY].orEmpty()),
             liquidGlassEnabled = preferences[KEY_UI_LIQUID_GLASS] ?: true,
             liteMode = preferences[KEY_UI_LITE_MODE] ?: false,
             forceHighRefreshRate = preferences[KEY_UI_FORCE_HIGH_REFRESH_RATE] ?: false,
@@ -911,11 +972,25 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             glassTint = preferences[KEY_UI_GLASS_TINT] ?: DerbisInterfaceSettings.DEFAULT_GLASS_LEVEL,
             glassRefraction = preferences[KEY_UI_GLASS_REFRACTION] ?: true,
             glassEffects = DerbisGlassEffects.decode(preferences[KEY_UI_GLASS_EFFECTS]),
+            glassBackgroundMode = DerbisBackgroundMode.from(preferences[KEY_UI_GLASS_BG_MODE]),
+            glassBackgroundIntensity = preferences[KEY_UI_GLASS_BG_INTENSITY]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_INTENSITY,
+            glassBackgroundBlur = preferences[KEY_UI_GLASS_BG_BLUR]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_BLUR,
+            glassBackgroundBrightness = preferences[KEY_UI_GLASS_BG_BRIGHTNESS]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_BACKGROUND_BRIGHTNESS,
+            glassBackgroundMotion = preferences[KEY_UI_GLASS_BG_MOTION] ?: true,
+            glassBackgroundImage = preferences[KEY_UI_GLASS_BG_IMAGE].orEmpty(),
+            glassAccentHue = preferences[KEY_UI_GLASS_ACCENT_HUE] ?: -1,
+            glassAccentLightness = preferences[KEY_UI_GLASS_ACCENT_LIGHTNESS]
+                ?: DerbisInterfaceSettings.DEFAULT_GLASS_ACCENT_LIGHTNESS,
             dataSaverEnabled = preferences[KEY_UI_DATA_SAVER] ?: false,
             motionArtworkWifiOnly = preferences[KEY_UI_MOTION_ARTWORK_WIFI_ONLY] ?: false,
             motionArtworkEnabled = preferences[KEY_UI_MOTION_ARTWORK_ENABLED] ?: false,
             enhanceVideoMetadata = preferences[KEY_UI_ENHANCE_VIDEO_METADATA] ?: false,
             blockAiContent = preferences[KEY_UI_BLOCK_AI_CONTENT] ?: false,
+            explicitFilter = DerbisExplicitFilter.fromStorage(preferences[KEY_UI_EXPLICIT_FILTER]),
+            statusBarLyrics = preferences[KEY_UI_STATUS_BAR_LYRICS] ?: false,
             pureBlack = preferences[KEY_UI_PURE_BLACK] ?: false,
             skin = com.yasuda.derbis.domain.DerbisSkin.from(preferences[KEY_UI_SKIN].orEmpty()),
             prism = com.yasuda.derbis.domain.PrismSettings.from(
@@ -926,9 +1001,21 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             torque = com.yasuda.derbis.domain.TorqueSettings.from(preferences[KEY_TORQUE_ACCENT].orEmpty()),
             ivory = com.yasuda.derbis.domain.IvorySettings.from(preferences[KEY_IVORY_APPEARANCE].orEmpty()),
             hapticFeedback = preferences[KEY_UI_HAPTIC_FEEDBACK] ?: true,
-            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: true,
-            derbisNotchStyle = com.yasuda.derbis.domain.DerbisNotchStyle.from(
-                preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+            derbisNotchEnabled = preferences[KEY_UI_DERBIS_NOTCH] ?: false,
+            derbisNotch = com.yasuda.derbis.domain.DerbisNotchSettings(
+                style = com.yasuda.derbis.domain.DerbisNotchStyle.from(
+                    preferences[KEY_UI_DERBIS_NOTCH_STYLE].orEmpty()
+                ),
+                showArtwork = preferences[KEY_UI_DERBIS_NOTCH_ARTWORK] ?: true,
+                showLyrics = preferences[KEY_UI_DERBIS_NOTCH_LYRICS] ?: true,
+                showTransport = preferences[KEY_UI_DERBIS_NOTCH_TRANSPORT] ?: true,
+                showProgress = preferences[KEY_UI_DERBIS_NOTCH_PROGRESS] ?: true,
+                showWaveform = preferences[KEY_UI_DERBIS_NOTCH_WAVEFORM] ?: true,
+                haptics = preferences[KEY_UI_DERBIS_NOTCH_HAPTICS] ?: true,
+                alignment = com.yasuda.derbis.domain.NotchAlignment.from(
+                    preferences[KEY_UI_DERBIS_NOTCH_ALIGNMENT].orEmpty()
+                ),
+                offsetYDp = preferences[KEY_UI_DERBIS_NOTCH_OFFSET_Y] ?: 0
             ),
             playerVisualMode = visualMode,
             playerBackground = background,
@@ -987,6 +1074,21 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             excludedPlaylists = preferences[KEY_SMART_OFFLINE_EXCLUDED_PLAYLISTS].orEmpty(),
             lastRefreshAt = preferences[KEY_SMART_OFFLINE_LAST_REFRESH_AT] ?: 0L
         ).normalized()
+
+    private fun writeDerbisNotch(
+        mutable: androidx.datastore.preferences.core.MutablePreferences,
+        value: com.yasuda.derbis.domain.DerbisNotchSettings
+    ) {
+        mutable[KEY_UI_DERBIS_NOTCH_STYLE] = value.style.name
+        mutable[KEY_UI_DERBIS_NOTCH_ARTWORK] = value.showArtwork
+        mutable[KEY_UI_DERBIS_NOTCH_LYRICS] = value.showLyrics
+        mutable[KEY_UI_DERBIS_NOTCH_TRANSPORT] = value.showTransport
+        mutable[KEY_UI_DERBIS_NOTCH_PROGRESS] = value.showProgress
+        mutable[KEY_UI_DERBIS_NOTCH_WAVEFORM] = value.showWaveform
+        mutable[KEY_UI_DERBIS_NOTCH_HAPTICS] = value.haptics
+        mutable[KEY_UI_DERBIS_NOTCH_ALIGNMENT] = value.alignment.name
+        mutable[KEY_UI_DERBIS_NOTCH_OFFSET_Y] = value.offsetYDp
+    }
 
     private fun writeSmartOfflineSettings(
         mutable: androidx.datastore.preferences.core.MutablePreferences,
@@ -1107,7 +1209,6 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             limiterEnabled = preferences[KEY_AUDIO_LIMITER] ?: true,
             crossfadeSeconds = preferences[KEY_AUDIO_CROSSFADE] ?: 0,
             djSoftMode = preferences[KEY_AUDIO_DJ_SOFT] ?: false,
-            beatSyncEnabled = preferences[KEY_AUDIO_BEAT_SYNC] ?: false,
             replayGainEnabled = replayGainMode != ReplayGainMode.OFF,
             replayGainMode = replayGainMode,
             replayGainPreampDb = preferences[KEY_AUDIO_REPLAY_GAIN_PREAMP] ?: 0f,
@@ -1124,6 +1225,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             activeParametricProfile = activeParametricProfile,
             customParametricProfiles = customParametricProfiles,
             enhancedAudioEnabled = preferences[KEY_AUDIO_ENHANCED_AUDIO] ?: true,
+            karaokeMode = preferences[KEY_AUDIO_KARAOKE] ?: false,
+            monoEnabled = preferences[KEY_AUDIO_MONO] ?: false,
+            dolbyAtmosEnabled = preferences[KEY_AUDIO_DOLBY_ATMOS] ?: true,
             audioOffloadPreference = AudioOffloadPreference.fromStorage(preferences[KEY_AUDIO_OFFLOAD_PREFERENCE]),
             playbackBuffer = PlaybackBufferSettings(
                 mode = PlaybackBufferMode.fromStorage(preferences[KEY_AUDIO_BUFFER_MODE]),
@@ -1261,6 +1365,25 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         }
     }
 
+    val tabBarConfigFlow: kotlinx.coroutines.flow.Flow<DerbisTabBarConfig> = store.preferences
+        .map { preferences -> DerbisTabBarConfig.decode(preferences[KEY_TAB_BAR_CONFIG]) }
+        .distinctUntilChanged()
+
+    fun tabBarConfig(): DerbisTabBarConfig =
+        read { DerbisTabBarConfig.decode(it[KEY_TAB_BAR_CONFIG]) }
+
+    suspend fun setTabBarConfig(value: DerbisTabBarConfig): Boolean {
+        return try {
+            store.commit { it[KEY_TAB_BAR_CONFIG] = value.normalized().encode() }
+            true
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            Timber.w(error, "DataStore tab bar config write failed")
+            false
+        }
+    }
+
     suspend fun setAutomationSettings(value: DerbisAutomationSettings) {
         val normalized = value.normalized()
         try {
@@ -1354,6 +1477,8 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_CHART_REGION_ID = stringPreferencesKey("chart_region_id")
         val KEY_PERSONAL_ORBIT_TRACKS = stringPreferencesKey("personal_orbit_tracks")
         val KEY_DISMISSED_UPDATE_VERSION = stringPreferencesKey("dismissed_update_version")
+        val KEY_DISMISSED_UPDATE_TAG = stringPreferencesKey("dismissed_update_tag")
+        val KEY_LAST_UPDATE_CHECK_MS = longPreferencesKey("last_update_check_ms")
         val KEY_AUDIO_NORMALIZATION = booleanPreferencesKey("audio_normalization")
         val KEY_LYRICS_TRANSLATION = booleanPreferencesKey("lyrics_translation_enabled")
         val KEY_LYRICS_LATENCY_PROFILES = stringPreferencesKey("lyrics_latency_profiles")
@@ -1363,6 +1488,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_HOME_STUDIO_SETTINGS = stringPreferencesKey("home_studio_settings")
         val KEY_MINI_PLAYER_STUDIO_SETTINGS = stringPreferencesKey("mini_player_studio_settings")
         val KEY_NAVIGATION_STUDIO_SETTINGS = stringPreferencesKey("navigation_studio_settings")
+        val KEY_TAB_BAR_CONFIG = stringPreferencesKey("tab_bar_config")
         val KEY_CUSTOM_THEMES = stringPreferencesKey("custom_themes")
         val KEY_THEME_PRESET = stringPreferencesKey("theme_preset")
         val KEY_THEME_ACCENT = intPreferencesKey("theme_accent")
@@ -1378,7 +1504,6 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_AUDIO_LIMITER = booleanPreferencesKey("audio_limiter_enabled")
         val KEY_AUDIO_CROSSFADE = intPreferencesKey("audio_crossfade_seconds")
         val KEY_AUDIO_DJ_SOFT = booleanPreferencesKey("audio_dj_soft")
-        val KEY_AUDIO_BEAT_SYNC = booleanPreferencesKey("audio_beat_sync_enabled")
         val KEY_AUDIO_REPLAY_GAIN = booleanPreferencesKey("audio_replay_gain")
         val KEY_AUDIO_REPLAY_GAIN_MODE = stringPreferencesKey("audio_replay_gain_mode")
         val KEY_AUDIO_REPLAY_GAIN_PREAMP = floatPreferencesKey("audio_replay_gain_preamp_db")
@@ -1394,6 +1519,9 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_AUDIO_PARAMETRIC_ACTIVE = stringPreferencesKey("audio_parametric_active_profile")
         val KEY_AUDIO_PARAMETRIC_PROFILES = stringPreferencesKey("audio_parametric_profiles")
         val KEY_AUDIO_ENHANCED_AUDIO = booleanPreferencesKey("audio_enhanced_audio_enabled")
+        val KEY_AUDIO_KARAOKE = booleanPreferencesKey("audio_karaoke_mode")
+        val KEY_AUDIO_MONO = booleanPreferencesKey("audio_mono_output")
+        val KEY_AUDIO_DOLBY_ATMOS = booleanPreferencesKey("audio_dolby_atmos_enabled")
         val KEY_AUDIO_OFFLOAD_PREFERENCE = stringPreferencesKey("audio_offload_preference")
         val KEY_AUDIO_BUFFER_MODE = stringPreferencesKey("audio_playback_buffer_mode")
         val KEY_AUDIO_BUFFER_MIN_SECONDS = floatPreferencesKey("audio_playback_buffer_min_seconds")
@@ -1417,6 +1545,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_DATA_SAVER = booleanPreferencesKey("ui_data_saver_enabled")
         val KEY_UI_PURE_BLACK = booleanPreferencesKey("ui_pure_black")
         val KEY_UI_SKIN = stringPreferencesKey("ui_skin")
+        val KEY_LAST_TAB = stringPreferencesKey("last_known_tab")
         val KEY_PRISM_APPEARANCE = stringPreferencesKey("prism_appearance")
         val KEY_PRISM_PLAYER_LAYOUT = stringPreferencesKey("prism_player_layout")
         val KEY_PRISM_TRANSLUCENCY = stringPreferencesKey("prism_translucency")
@@ -1425,6 +1554,14 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_HAPTIC_FEEDBACK = booleanPreferencesKey("ui_haptic_feedback")
         val KEY_UI_DERBIS_NOTCH = booleanPreferencesKey("ui_derbis_notch")
         val KEY_UI_DERBIS_NOTCH_STYLE = stringPreferencesKey("ui_derbis_notch_style")
+        val KEY_UI_DERBIS_NOTCH_ARTWORK = booleanPreferencesKey("ui_derbis_notch_artwork")
+        val KEY_UI_DERBIS_NOTCH_LYRICS = booleanPreferencesKey("ui_derbis_notch_lyrics")
+        val KEY_UI_DERBIS_NOTCH_TRANSPORT = booleanPreferencesKey("ui_derbis_notch_transport")
+        val KEY_UI_DERBIS_NOTCH_PROGRESS = booleanPreferencesKey("ui_derbis_notch_progress")
+        val KEY_UI_DERBIS_NOTCH_WAVEFORM = booleanPreferencesKey("ui_derbis_notch_waveform")
+        val KEY_UI_DERBIS_NOTCH_HAPTICS = booleanPreferencesKey("ui_derbis_notch_haptics")
+        val KEY_UI_DERBIS_NOTCH_ALIGNMENT = stringPreferencesKey("ui_derbis_notch_alignment")
+        val KEY_UI_DERBIS_NOTCH_OFFSET_Y = intPreferencesKey("ui_derbis_notch_offset_y")
         val KEY_UI_DOUBLE_TAP_SECONDS = intPreferencesKey("ui_double_tap_seconds")
         val KEY_UI_LONG_PRESS_ACTION = stringPreferencesKey("ui_long_press_action")
         val KEY_UI_LONG_PRESS_SPEED = floatPreferencesKey("ui_long_press_speed")
@@ -1432,6 +1569,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_CANVAS_QUALITY = stringPreferencesKey("ui_canvas_quality")
         val KEY_UI_CANVAS_SOURCE = stringPreferencesKey("ui_canvas_source")
         val KEY_UI_VISUAL_PERFORMANCE = stringPreferencesKey("ui_visual_performance")
+        val KEY_UI_ARTWORK_QUALITY = stringPreferencesKey("ui_artwork_quality")
         val KEY_UI_LIQUID_GLASS = booleanPreferencesKey("ui_liquid_glass")
         val KEY_UI_LITE_MODE = booleanPreferencesKey("ui_lite_mode")
         val KEY_UI_FORCE_HIGH_REFRESH_RATE = booleanPreferencesKey("ui_force_high_refresh_rate")
@@ -1440,10 +1578,20 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_UI_GLASS_TINT = intPreferencesKey("ui_glass_tint")
         val KEY_UI_GLASS_REFRACTION = booleanPreferencesKey("ui_glass_refraction")
         val KEY_UI_GLASS_EFFECTS = stringPreferencesKey("ui_glass_effects")
+        val KEY_UI_GLASS_BG_MODE = stringPreferencesKey("ui_glass_bg_mode")
+        val KEY_UI_GLASS_BG_INTENSITY = intPreferencesKey("ui_glass_bg_intensity")
+        val KEY_UI_GLASS_BG_BLUR = intPreferencesKey("ui_glass_bg_blur")
+        val KEY_UI_GLASS_BG_BRIGHTNESS = intPreferencesKey("ui_glass_bg_brightness")
+        val KEY_UI_GLASS_BG_MOTION = booleanPreferencesKey("ui_glass_bg_motion")
+        val KEY_UI_GLASS_BG_IMAGE = stringPreferencesKey("ui_glass_bg_image")
+        val KEY_UI_GLASS_ACCENT_HUE = intPreferencesKey("ui_glass_accent_hue")
+        val KEY_UI_GLASS_ACCENT_LIGHTNESS = intPreferencesKey("ui_glass_accent_lightness")
         val KEY_UI_MOTION_ARTWORK_WIFI_ONLY = booleanPreferencesKey("ui_motion_artwork_wifi_only")
         val KEY_UI_MOTION_ARTWORK_ENABLED = booleanPreferencesKey("ui_motion_artwork_enabled")
         val KEY_UI_ENHANCE_VIDEO_METADATA = booleanPreferencesKey("ui_enhance_video_metadata")
         val KEY_UI_BLOCK_AI_CONTENT = booleanPreferencesKey("ui_block_ai_content")
+        val KEY_UI_EXPLICIT_FILTER = stringPreferencesKey("ui_explicit_filter")
+        val KEY_UI_STATUS_BAR_LYRICS = booleanPreferencesKey("ui_status_bar_lyrics")
         val KEY_UI_PLAYER_VISUAL_MODE = stringPreferencesKey("ui_player_visual_mode")
         val KEY_UI_PLAYER_BACKGROUND = stringPreferencesKey("ui_player_background")
         val KEY_UI_REACTIVE_AURA_PRESET = stringPreferencesKey("ui_reactive_aura_preset")

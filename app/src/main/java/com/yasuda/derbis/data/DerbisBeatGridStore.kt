@@ -19,7 +19,8 @@ class DerbisBeatGridStore(context: Context) {
                 bpm = value.optDouble("bpm", Double.NaN).toFloat().takeIf { it.isFinite() },
                 downbeatMs = value.optLong("downbeatMs", -1L).takeIf { it >= 0L },
                 confidence = value.optDouble("confidence", 0.0).toFloat().coerceIn(0f, 1f),
-                camelotKey = value.optString("camelotKey").take(3)
+                camelotKey = value.optString("camelotKey").take(3),
+                capturedFromMs = value.optLong("capturedFromMs", 0L).coerceAtLeast(0L)
             )
         }.onFailure { Timber.w(it, "Beat grid cache read failed") }.getOrNull()
     }
@@ -32,9 +33,15 @@ class DerbisBeatGridStore(context: Context) {
                 put("downbeatMs", grid.downbeatMs ?: 0L)
                 put("confidence", grid.confidence)
                 put("camelotKey", grid.camelotKey.take(3))
+                put("capturedFromMs", grid.capturedFromMs.coerceAtLeast(0L))
             }.toString()).apply()
         }.onFailure { Timber.w(it, "Beat grid cache save failed") }
     }
+
+    /** Number of tracks with a saved, usable grid. Used by Settings diagnostics. */
+    fun analysedCount(): Int = runCatching {
+        preferences.all.keys.count { it.startsWith("grid.") }
+    }.getOrDefault(0)
 
     private fun key(trackId: String): String = "grid.${trackId.sha256()}"
 

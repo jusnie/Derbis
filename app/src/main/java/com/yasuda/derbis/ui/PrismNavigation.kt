@@ -27,13 +27,24 @@ import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.derbisGlass
 
 @Composable
-internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (DerbisTab) -> Unit, applySystemInset: Boolean) {
+internal fun PrismBottomTabs(
+    tuning: NavTuning,
+    selected: DerbisTab,
+    onSelect: (DerbisTab) -> Unit,
+    applySystemInset: Boolean,
+    dock: com.yasuda.derbis.domain.DerbisTabBarConfig? = null,
+    onDockAction: ((DerbisDockEntry) -> Unit)? = null
+) {
     val all = rememberDerbisTabEntries()
     val entries = remember(all, tuning.order, tuning.hidden) {
         tuning.visibleOrder().mapNotNull { tab -> all.firstOrNull { it.tab == tab } }
     }
+    // The glass dock renders from the tab-bar config (builtins, shortcuts and custom tabs);
+    // every other skin keeps the builtin-only entries.
+    val dockEntries = rememberDockEntries(dock ?: com.yasuda.derbis.domain.DerbisTabBarConfig.default())
+    val selectedDockKey = derbisDockSelectionKey(selected)
     val haptics = LocalDerbisHaptics.current
-    val measuredHeight = LocalNocturneNavigationHeight.current
+    val measuredHeight = LocalPixelNavigationHeight.current
     val density = LocalDensity.current
     val torque = DerbisIsTorque
     val skinModifier = Modifier.onSizeChanged { size -> measuredHeight?.value = with(density) { size.height.toDp() } }
@@ -41,32 +52,32 @@ internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (
         if (!active && tuning.haptics) haptics.perform(DerbisHapticAction.SeekSnap)
         onSelect(entry.tab)
     }
-    if (SkinBottomTabs(entries, selected, applySystemInset, skinModifier, skinSelect)) return
-    val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    val liquidGlass = DerbisIsLiquidGlass
-    val dockModifier = if (liquidGlass) {
-        Modifier.derbisGlass(
-            shape = dockShape,
-            baseTint = Color.White,
-            fallbackColor = prismGlassColor(),
-            fallbackBorderColor = Color.White.copy(alpha = if (DerbisActivePalette.isLight) 0.32f else 0.22f),
-            intensity = DerbisGlassIntensity.Strong,
-            artworkTint = DerbisActivePalette.cyan
-        )
-    } else {
-        Modifier
+    val lensSelect: (DerbisDockEntry, Boolean) -> Unit = { entry, active ->
+        if (!active && tuning.haptics) haptics.perform(DerbisHapticAction.SeekSnap)
+        if (onDockAction != null) {
+            onDockAction(entry)
+        } else {
+            entry.tab?.let(onSelect)
+        }
     }
+    if (SkinBottomTabs(entries, selected, applySystemInset, skinModifier, skinSelect)) return
+    if (DerbisIsLiquidGlass) {
+        // The Liquid Glass bar is a floating lens dock, not a full-width surface: drag to
+        // scrub, hold to magnify the active tab under a droplet of glass.
+        DerbisLiquidGlassTabs(dockEntries, selectedDockKey, applySystemInset, skinModifier, lensSelect)
+        return
+    }
+    val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     Column(Modifier.fillMaxWidth()) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .onSizeChanged { size ->
                     measuredHeight?.value = with(density) { size.height.toDp() }
-                }
-                .then(dockModifier),
+                },
             shape = dockShape,
-            color = if (liquidGlass) Color.Transparent else prismGlassColor(),
-            border = if (liquidGlass) null else if (DerbisActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
+            color = prismGlassColor(),
+            border = if (DerbisActivePalette.isLight) BorderStroke(PrismDesign.hairline, PrismAccent.Hairline) else null
         ) {
             Column {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup().padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {

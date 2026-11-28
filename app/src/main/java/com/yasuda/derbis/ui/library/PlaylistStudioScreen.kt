@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,8 +41,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.OfflinePin
 import androidx.compose.material.icons.rounded.RemoveCircleOutline
@@ -155,7 +155,7 @@ internal fun PlaylistStudioScreen(
                     .align(Alignment.TopCenter)
                     .widthIn(max = StudioMaxContentWidth)
                     .fillMaxSize()
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .imePadding(),
                 contentPadding = PaddingValues(bottom = 132.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)

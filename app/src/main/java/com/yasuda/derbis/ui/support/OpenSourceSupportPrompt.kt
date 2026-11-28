@@ -32,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Code
-import com.yasuda.derbis.ui.icons.Info
-import com.yasuda.derbis.ui.icons.Star
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -429,18 +429,22 @@ private fun GitHubStarSupportDialog(
     onLater: () -> Unit,
     onPassiveDismiss: () -> Unit
 ) {
-    val shape = RoundedCornerShape(28.dp)
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val shape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(26.dp)
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val colors = MaterialTheme.colorScheme
-    val starScale = remember(announcement.id) { Animatable(1f) }
+    val heroScale = remember(announcement.id) { Animatable(0.94f) }
+    val heroAlpha = remember(announcement.id) { Animatable(0f) }
 
     LaunchedEffect(announcement.id) {
         if (ValueAnimator.areAnimatorsEnabled()) {
-            starScale.snapTo(0.92f)
-            starScale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 520, easing = FastOutSlowInEasing)
-            )
+            heroAlpha.snapTo(0f)
+            heroScale.snapTo(0.94f)
+            heroAlpha.animateTo(1f, animationSpec = tween(340, easing = FastOutSlowInEasing))
+            heroScale.animateTo(1f, animationSpec = tween(460, easing = FastOutSlowInEasing))
+        } else {
+            heroAlpha.snapTo(1f)
+            heroScale.snapTo(1f)
         }
     }
 
@@ -455,180 +459,150 @@ private fun GitHubStarSupportDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .widthIn(max = 440.dp)
-                .heightIn(max = screenHeight * 0.88f)
-                .shadow(24.dp, shape),
+                .widthIn(max = 420.dp)
+                .heightIn(max = screenHeight * 0.88f),
             shape = shape,
-            color = colors.surface,
-            border = BorderStroke(1.dp, colors.outline.copy(alpha = 0.24f))
+            color = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else colors.surface,
+            border = BorderStroke(
+                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else colors.outline.copy(alpha = 0.18f)
+            )
         ) {
-            Box(
-                modifier = Modifier.background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            colors.surfaceContainerHigh,
-                            colors.surface,
-                            colors.surface
-                        )
-                    )
-                )
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val heroShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else CircleShape
+                // One hairline ring and one flat glyph: no sticker, no gradient, no drop shadow.
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .size(width = 280.dp, height = 175.dp)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(supportStarGold.copy(alpha = 0.14f), Color.Transparent)
-                            )
-                        )
-                )
-                Column(
-                    modifier = Modifier
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 24.dp, vertical = 26.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .size(104.dp)
+                        .graphicsLayer {
+                            alpha = heroAlpha.value
+                            scaleX = heroScale.value
+                            scaleY = heroScale.value
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Box(
-                        modifier = Modifier.size(116.dp),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .size(104.dp)
+                            .border(
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.outline else colors.onSurface.copy(alpha = 0.14f),
+                                heroShape
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(78.dp)
+                            .background(
+                                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.panelSoft else colors.onSurface.copy(alpha = 0.05f),
+                                heroShape
+                            )
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.Star,
+                        contentDescription = null,
+                        tint = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.cyan else colors.onSurface,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(22.dp))
+
+                Text(
+                    text = announcement.copy.badge,
+                    color = colors.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.4.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = announcement.copy.title,
+                    color = colors.onSurface,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = announcement.copy.body,
+                    color = colors.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                if (announcement.actionUrl != null && announcement.copy.starAction.isNotBlank()) {
+                    Spacer(Modifier.height(26.dp))
+                    val actionLabel = if (pixel) {
+                        announcement.copy.starAction
+                            .replace("\u2B50", "")
+                            .replace("\uFE0F", "")
+                            .trim()
+                    } else {
+                        announcement.copy.starAction
+                    }
+
+                    Button(
+                        onClick = onAction,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 54.dp),
+                        shape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(14.dp),
+                        border = if (pixel) BorderStroke(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.text) else null,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.cyan else colors.onSurface,
+                            contentColor = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else colors.surface
+                        ),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(112.dp)
-                                .border(
-                                    1.dp,
-                                    supportStarGold.copy(alpha = 0.30f),
-                                    CircleShape
-                                )
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(92.dp)
-                                .background(supportStarGold.copy(alpha = 0.10f), CircleShape)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .graphicsLayer {
-                                    scaleX = starScale.value
-                                    scaleY = starScale.value
-                                }
-                                .shadow(12.dp, RoundedCornerShape(24.dp))
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        listOf(Color(0xFFFFE5A8), Color(0xFFF5B744))
-                                    ),
-                                    shape = RoundedCornerShape(24.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        if (pixel) {
                             Icon(
                                 imageVector = Icons.Rounded.Star,
                                 contentDescription = null,
-                                tint = Color(0xFF3A290F),
-                                modifier = Modifier.size(39.dp)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Rounded.Star,
-                            contentDescription = null,
-                            tint = supportStarGold.copy(alpha = 0.85f),
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 7.dp, end = 2.dp)
-                                .size(14.dp)
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.Star,
-                            contentDescription = null,
-                            tint = supportStarGold.copy(alpha = 0.60f),
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(start = 7.dp, bottom = 10.dp)
-                                .size(10.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.height(18.dp))
-
-                    Text(
-                        text = announcement.copy.badge,
-                        color = colors.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        text = announcement.copy.title,
-                        color = colors.onSurface,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        text = announcement.copy.body,
-                        color = colors.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        lineHeight = 22.sp,
-                        textAlign = TextAlign.Center
-                    )
-
-                    if (announcement.actionUrl != null && announcement.copy.starAction.isNotBlank()) {
-                        Spacer(Modifier.height(24.dp))
-
-                        Button(
-                            onClick = onAction,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 56.dp),
-                            shape = RoundedCornerShape(17.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = supportStarGold,
-                                contentColor = Color(0xFF30220D)
-                            ),
-                            contentPadding = PaddingValues(
-                                horizontal = 16.dp,
-                                vertical = 12.dp
-                            )
-                        ) {
-                            Text(
-                                text = announcement.copy.starAction,
-                                modifier = Modifier.weight(1f),
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                maxLines = 3
+                                modifier = Modifier.size(17.dp)
                             )
                             Spacer(Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
                         }
-                    } else {
-                        Spacer(Modifier.height(16.dp))
-                    }
-
-                    TextButton(
-                        onClick = onLater,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                    ) {
                         Text(
-                            text = announcement.copy.laterAction,
-                            color = colors.onSurfaceVariant,
-                            fontWeight = FontWeight.Medium
+                            text = actionLabel,
+                            modifier = Modifier.weight(1f),
+                            fontWeight = if (pixel) FontWeight.Bold else FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 3
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
+                } else {
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                TextButton(
+                    onClick = onLater,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                ) {
+                    Text(
+                        text = announcement.copy.laterAction,
+                        color = colors.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }

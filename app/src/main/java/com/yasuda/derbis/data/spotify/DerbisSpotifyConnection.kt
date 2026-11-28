@@ -47,9 +47,10 @@ data class SpotifyConnectionState(
 }
 
 /**
- * Official Spotify Authorization Code + PKCE connection. No client secret, Spotify password, or
- * browser cookie is requested or stored. Tokens and the short-lived PKCE verifier are encrypted
- * with an Android Keystore AES key before they reach disk.
+ * Official Spotify Authorization Code + PKCE connection. No client secret or Spotify password is
+ * requested, and this file never asks for a browser cookie — the optional `sp_dc` web session
+ * (see [DerbisSpotifySession]) is a separate, listener-supplied opt-in for Canvas. Tokens and the
+ * short-lived PKCE verifier are encrypted with an Android Keystore AES key before they reach disk.
  */
 object DerbisSpotifyConnection {
     private const val AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
@@ -70,6 +71,9 @@ object DerbisSpotifyConnection {
 
     @Volatile
     private var initialized = false
+
+    @Volatile
+    private var lastHandledRedirectSignature = ""
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -93,6 +97,7 @@ object DerbisSpotifyConnection {
     fun begin(context: Context): Uri? {
         initialize(context)
         if (!isConfigured()) return null
+        lastHandledRedirectSignature = ""
         val verifier = randomUrlSafeValue(64)
         val state = randomUrlSafeValue(32)
         SpotifySecureStore(context.applicationContext).savePending(PendingAuthorization(state, verifier))
@@ -116,6 +121,9 @@ object DerbisSpotifyConnection {
 
     fun handleRedirect(context: Context, uri: Uri?) {
         if (!receives(uri)) return
+        val rawUri = uri?.toString().orEmpty()
+        if (rawUri.isNotBlank() && rawUri == lastHandledRedirectSignature) return
+        lastHandledRedirectSignature = rawUri
         initialize(context)
         val appContext = context.applicationContext
         val store = SpotifySecureStore(appContext)
@@ -129,6 +137,7 @@ object DerbisSpotifyConnection {
         val returnedState = uri?.getQueryParameter("state")
         val pending = store.takePending()
         if (code.isNullOrBlank() || pending == null || returnedState != pending.state) {
+            if (store.loadToken() != null) return
             _state.value = SpotifyConnectionState(SpotifyConnectionStatus.Error, detail = "Spotify sign-in could not be verified. Please try again.")
             return
         }

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wrapped top bar — before / after</title>
+<style>
+  :root {
+    --ground: #0b0710;
+    --ink: #ffffff;
+    --accent: #f4a0b8;
+    --pill: rgba(255, 255, 255, 0.12);
+    --edge: rgba(255, 255, 255, 0.18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 24px 64px;
+    background: radial-gradient(120% 90% at 20% 0%, #241335 0%, transparent 55%),
+                radial-gradient(90% 70% at 100% 10%, #1b2b3f 0%, transparent 50%),
+                var(--ground);
+    color: var(--ink);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+  }
+  figure { margin: 0; width: 360px; }
+  figcaption {
+    margin-top: 14px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+  }
+  .phone {
+    width: 360px;
+    border-radius: 30px;
+    padding: 18px 0 26px;
+    background: linear-gradient(180deg, #141020 0%, #0b0710 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9);
+    overflow: hidden;
+  }
+  /* progress dashes */
+  .dashes {
+    display: flex;
+    gap: 4px;
+    padding: 0 16px 12px;
+  }
+  .dashes span {
+    height: 3px;
+    flex: 1;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.22);
+  }
+  .dashes span:first-child { background: rgba(255, 255, 255, 0.9); }
+
+  /* the bar itself: a Row that fills the width, pill left, actions right */
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--pill);
+    border: 1px solid var(--edge);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1.4px;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .pill .dot {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    border-radius: 50%;
+    background: conic-gradient(from 200deg, var(--accent), #8d6bff, var(--accent));
+  }
+  .pill .label { overflow: hidden; text-overflow: ellipsis; }
+
+  /* 48 dp slot, 36 dp circle inside: the touch target no longer costs layout width */
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .slot {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+  }
+  .circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--pill);
+    border: 1px solid var(--edge);
+  }
+  .circle svg { width: 17px; height: 17px; fill: none; stroke: var(--ink); stroke-width: 2; }
+  .circle.close svg { width: 18px; height: 18px; }
+  .err {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 2px 20px;
+  }
+  .yearrow {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px 0;
+  }
+  .yearrow span {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 5px 12px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .yearrow span.on { color: #0b0710; background: var(--accent); border-color: transparent; }
+
+  /* BEFORE: IconButton was asked to be 36 dp but still reserved a 48 dp footprint while the
+     pill was measured at its full natural width, so the pair was squeezed against the edge. */
+  .before .bar { justify-content: flex-start; }
+  .before .pill { flex: 0 0 auto; }
+  .before .actions { gap: 0; margin-left: 22px; }
+  .before .slot { width: 44px; height: 44px; }
+  .before .circle { width: 36px; height: 36px; box-shadow: 0 0 0 6px rgba(255, 120, 150, 0.10); }
+  .before .actions .slot + .slot { margin-left: -6px; }
+  .note {
+    margin-top: 22px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.62);
+    text-align: center;
+  }
+  .bad { color: #ff9bb0; }
+  .good { color: #8ee6c0; }
+</style>
+</head>
+<body>
+  <figure class="before">
+    <div class="phone">
+      <div class="dashes"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="bar">
+        <div class="pill"><span class="dot"></span><span class="label">REPLAY '2026 &middot; SO FAR</span></div>
+        <div class="actions">
+          <div class="slot">
+            <div class="circle">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg>
+            </div>
+          </div>
+          <div class="slot">
+            <div class="circle close">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="err">Couldn't create the image. Try again.</div>
+      <div class="yearrow"><span class="on">2026</span><span>2025</span><span>2024</span></div>
+    </div>
+    <figcaption><span class="bad">Before</span> &middot; circles crowd the edge</figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone">
+      <div class="dashes"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="bar">
+        <div class="pill"><span class="dot"></span><span class="label">REPLAY '2026 &middot; SO FAR</span></div>
+        <div class="actions">
+          <div class="slot">
+            <div class="circle">
+              <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></svg>
+            </div>
+          </div>
+          <div class="slot">
+            <div class="circle close">
+              <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="yearrow"><span class="on">2026</span><span>2025</span><span>2024</span></div>
+    </div>
+    <figcaption><span class="good">After</span> &middot; pill flexes, 8 dp gap, 48 dp target</figcaption>
+  </figure>
+
+  <p class="note">
+    Share and Close are now one group: 36 dp circles inside 48 dp slots, a fixed 8 dp between them,
+    and the pill is the child that gives way when the row runs out of room.<br />
+    On share, the card is drawn at 1080 px, then 720 px, then the 540 px the on-screen preview
+    already uses &mdash; so a phone that cannot hold the full-size bitmap still gets its image.
+  </p>
+</body>
+</html>

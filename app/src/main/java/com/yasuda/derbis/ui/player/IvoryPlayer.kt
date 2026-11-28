@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,10 +11,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.Pause
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.KeyboardDoubleArrowRight
 import androidx.compose.material.icons.rounded.KeyboardDoubleArrowLeft
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -42,7 +44,7 @@ internal fun IvoryPlayerScene(
     track: Track, slots: PlayerDeckSlots, artworkCap: Dp,
     metadata: @Composable () -> Unit, transport: @Composable () -> Unit, modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier.fillMaxSize().background(DerbisBlack).statusBarsPadding().navigationBarsPadding()) {
+    BoxWithConstraints(modifier.fillMaxSize().background(DerbisBlack).derbisSafeTopPadding().navigationBarsPadding()) {
         val gutter = 28.dp
         val artSize = minOf(maxWidth - gutter * 2, maxHeight * 0.44f, artworkCap)
         val viewport = maxHeight

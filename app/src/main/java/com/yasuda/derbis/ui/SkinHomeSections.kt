@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Chat
-import com.yasuda.derbis.ui.icons.Public
+import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -602,7 +602,7 @@ internal fun SkinNameGreeting(greeting: String, dayPart: String, name: String, m
             Text(dayPart, color = DerbisMuted, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 name, color = DerbisText,
-                fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.Normal, letterSpacing = (-1.4).sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                fontSize = 44.sp, lineHeight = 48.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1.4).sp, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
         }
         DerbisIsPrism -> Column(modifier.then(accessible)) {
@@ -613,8 +613,8 @@ internal fun SkinNameGreeting(greeting: String, dayPart: String, name: String, m
             )
         }
         else -> Column(modifier.then(accessible), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(dayPart.uppercase(), color = DerbisCyan, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 12.sp, letterSpacing = 2.4.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(name, color = DerbisText, fontFamily = androidx.compose.ui.text.font.FontFamily.Serif, fontSize = 34.sp, lineHeight = 40.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(dayPart.uppercase(), color = DerbisCyan, style = MaterialTheme.typography.labelMedium, letterSpacing = 1.8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(name, color = DerbisText, style = MaterialTheme.typography.headlineLarge, fontSize = 32.sp, lineHeight = 38.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }

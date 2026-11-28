@@ -53,6 +53,30 @@ private val audioBundles: Map<String, Map<String, String>> = mapOf(
     "et" to audioStrings("Voogesituse kvaliteet", "Ekvalaiser", "Ruumiline heli", "Dünaamika", "Taasesitus", "Lähtesta", "Kohandatud", "Sagedusribad", "Keskmine")
 )
 
-internal fun audioLocalizationEntries(code: String): Map<String, String> = localizedBundleOrEnglish(audioBundles, code)
+/**
+ * "Lossless" is the one quality word that almost every language spells its own way, so it is
+ * layered on top of the bundle instead of becoming a tenth positional argument on two dozen
+ * audioStrings(...) calls.
+ */
+private val losslessByLanguage: Map<String, String> = mapOf(
+    "it" to "Senza perdita",
+    "es" to "Sin pérdida",
+    "fr" to "Sans perte",
+    "de" to "Verlustfrei",
+    "pt" to "Sem perdas",
+    "nl" to "Verliesvrij",
+    "pl" to "Bezstratne",
+    "ro" to "Fără pierderi",
+    "el" to "Χωρίς απώλεια",
+    "sv" to "Förlustfri",
+    "da" to "Tabsfri",
+    "cs" to "Bezztrátové",
+    "uk" to "Без втрат",
+    "ru" to "Без потерь"
+)
+
+internal fun audioLocalizationEntries(code: String): Map<String, String> =
+    localizedBundleOrEnglish(audioBundles, code) +
+        mapOf("audioQualityLossless" to (losslessByLanguage[code] ?: "Lossless"))
 
 internal fun audioLocalizationCodes(): Set<String> = supportedLocalizationCodes()

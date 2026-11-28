@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * Implements Discord Rich Presence over Discord Gateway v10 WebSocket, supporting:
  *  1. Clickable song and artist buttons (`buttons` + `metadata.button_urls`)
+ *  0. Activity title "Listening in Derbis", with the Derbis logo as the artwork fallback
  *  2. Dual assets: high-res song album cover (`large_image`) and artist avatar icon (`small_image`)
  *  3. Live working progress bar with accurate `start` and `end` timestamps
  *  4. Real-time Connection Tester with 4-phase diagnostics (Network, REST API, Profile, Gateway)
@@ -33,7 +34,14 @@ import java.util.concurrent.atomic.AtomicInteger
 object DiscordRpcClient {
     private const val GATEWAY_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
     private const val REST_API_USER_ME = "https://discord.com/api/v10/users/@me"
+    private const val REST_API_TOKEN = "https://discord.com/api/v10/oauth2/token"
     private const val DEFAULT_APP_ID = "1199347898516045884"
+
+    /** Shown as the activity title. Discord prefixes it with "Listening to". */
+    private const val ACTIVITY_NAME = "Listening in Derbis"
+
+    /** Public Derbis mark, used for the artwork slot when a track has no cover. */
+    private const val DERBIS_LOGO_URL = "https://derbis-web.vercel.app/assets/derbis-logo.png"
 
     /** Discord caps both `details` and `state` at 128 characters. */
     private const val ACTIVITY_TEXT_LIMIT = 128
@@ -226,7 +234,7 @@ object DiscordRpcClient {
                 presence.artist.ifBlank { "Unknown Artist" }
             }
             val activity = JSONObject().apply {
-                put("name", "Derbis")
+                put("name", ACTIVITY_NAME)
                 put("type", 2) // 2 = Listening to
                 put("details", detailsText)
                 put("state", stateText)
@@ -254,15 +262,15 @@ object DiscordRpcClient {
                         put("large_image", presence.artworkUrl)
                         put("large_text", presence.title)
                     } else {
-                        put("large_image", "derbis_listening")
-                        put("large_text", "Listening on Derbis")
+                        put("large_image", DERBIS_LOGO_URL)
+                        put("large_text", ACTIVITY_NAME)
                     }
                     if (presence.artistThumbnailUrl.isNotBlank()) {
                         put("small_image", presence.artistThumbnailUrl)
                         put("small_text", presence.artist.ifBlank { "Derbis Artist" })
                     } else {
-                        put("small_image", "derbis_listening")
-                        put("small_text", "Derbis Music")
+                        put("small_image", DERBIS_LOGO_URL)
+                        put("small_text", ACTIVITY_NAME)
                     }
                 }
                 put("assets", assets)
@@ -325,9 +333,119 @@ object DiscordRpcClient {
     }
 
     /**
+     * Exchanges the authorization code Discord handed back for an access token.
+     *
+     * Mobile sign-in has to use the authorization-code grant with PKCE: Discord no longer issues
+     * implicit (`response_type=token`) grants to new applications, and the Discord app only
+     * completes the native flow when it is answering a PKCE request. No client secret is involved,
+     * so nothing secret ships in the APK.
+     */
+    suspend fun exchangeAuthorizationCode(
+        clientId: String,
+        code: String,
+        redirectUri: String,
+        codeVerifier: String
+    ): DiscordCodeExchange = withContext(Dispatchers.IO) {
+        if (clientId.isBlank() || code.isBlank() || redirectUri.isBlank() || codeVerifier.isBlank()) {
+            return@withContext DiscordCodeExchange(success = false, message = "Discord sign-in details were incomplete.")
+        }
+        val form = okhttp3.FormBody.Builder()
+            .add("client_id", clientId)
+            .add("grant_type", "authorization_code")
+            .add("code", code)
+            .add("redirect_uri", redirectUri)
+            .add("code_verifier", codeVerifier)
+            .build()
+        val request = Request.Builder()
+            .url(REST_API_TOKEN)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) DerbisMusic/1.1")
+            .post(form)
+            .build()
+        runCatching {
+            httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val described = runCatching { JSONObject(body).optString("error_description") }.getOrNull()
+                    return@use DiscordCodeExchange(
+                        success = false,
+                        httpCode = response.code,
+                        message = described?.takeIf { it.isNotBlank() }
+                            ?: "Discord rejected the sign-in (HTTP ${response.code})."
+                    )
+                }
+                val json = JSONObject(body)
+                val accessToken = json.optString("access_token")
+                if (accessToken.isBlank()) {
+                    return@use DiscordCodeExchange(success = false, message = "Discord did not return an access token.")
+                }
+                DiscordCodeExchange(
+                    success = true,
+                    accessToken = accessToken,
+                    refreshToken = json.optString("refresh_token"),
+                    message = "Signed in"
+                )
+            }
+        }.getOrElse { error ->
+            DiscordCodeExchange(success = false, message = "Could not reach Discord: ${error.message ?: error.javaClass.simpleName}")
+        }
+    }
+
+    /**
+     * Exchanges a stored OAuth2 refresh token for a fresh access + refresh token pair.
+     * Discord rotates refresh tokens on every exchange, so callers must persist both returned values.
+     */
+    suspend fun refreshAuthorizationToken(
+        clientId: String,
+        refreshToken: String
+    ): DiscordCodeExchange = withContext(Dispatchers.IO) {
+        if (clientId.isBlank() || refreshToken.isBlank()) {
+            return@withContext DiscordCodeExchange(success = false, message = "Discord refresh details were incomplete.")
+        }
+        val form = okhttp3.FormBody.Builder()
+            .add("client_id", clientId)
+            .add("grant_type", "refresh_token")
+            .add("refresh_token", refreshToken)
+            .build()
+        val request = Request.Builder()
+            .url(REST_API_TOKEN)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) DerbisMusic/1.1")
+            .post(form)
+            .build()
+        runCatching {
+            httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val described = runCatching { JSONObject(body).optString("error_description") }.getOrNull()
+                    return@use DiscordCodeExchange(
+                        success = false,
+                        httpCode = response.code,
+                        message = described?.takeIf { it.isNotBlank() }
+                            ?: "Discord session expired (HTTP ${response.code})."
+                    )
+                }
+                val json = JSONObject(body)
+                val accessToken = json.optString("access_token")
+                if (accessToken.isBlank()) {
+                    return@use DiscordCodeExchange(success = false, message = "Discord did not return a refreshed access token.")
+                }
+                DiscordCodeExchange(
+                    success = true,
+                    accessToken = accessToken,
+                    refreshToken = json.optString("refresh_token").ifBlank { refreshToken },
+                    message = "Refreshed"
+                )
+            }
+        }.getOrElse { error ->
+            DiscordCodeExchange(success = false, message = "Could not reach Discord: ${error.message ?: error.javaClass.simpleName}")
+        }
+    }
+
+    /**
      * 4-phase Connection Tester (OuterTune diagnostic pattern).
      */
-    suspend fun testConnection(token: String): DiscordDiagnosticResult = withContext(Dispatchers.IO) {
+    suspend fun testConnection(token: String, preferBearer: Boolean = false): DiscordDiagnosticResult = withContext(Dispatchers.IO) {
         if (token.isBlank()) {
             return@withContext DiscordDiagnosticResult(
                 success = false,
@@ -337,35 +455,51 @@ object DiscordRpcClient {
 
         val startTime = System.currentTimeMillis()
         try {
-            // Stage 1 & 2: REST API Call to /users/@me
-            val authHeader = if (token.startsWith("Bot ", ignoreCase = true) || token.startsWith("Bearer ", ignoreCase = true)) {
-                token
-            } else {
-                token.trim()
+            val trimmed = token.trim()
+            val hasExplicitScheme = trimmed.startsWith("Bot ", ignoreCase = true) ||
+                trimmed.startsWith("Bearer ", ignoreCase = true)
+            val primaryAuthHeader = when {
+                hasExplicitScheme -> trimmed
+                preferBearer -> "Bearer $trimmed"
+                else -> trimmed
             }
 
-            val request = Request.Builder()
-                .url(REST_API_USER_ME)
-                .header("Authorization", authHeader)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) DerbisMusic/1.1")
-                .get()
-                .build()
+            fun executeUserMe(authHeader: String): Pair<Int, Pair<String, String>> {
+                val request = Request.Builder()
+                    .url(REST_API_USER_ME)
+                    .header("Authorization", authHeader)
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) DerbisMusic/1.1")
+                    .get()
+                    .build()
+                httpClient.newCall(request).execute().use { resp ->
+                    return resp.code to (resp.message to resp.body?.string().orEmpty())
+                }
+            }
 
-            val response = httpClient.newCall(request).execute()
+            var (statusCode, statusAndBody) = executeUserMe(primaryAuthHeader)
+            if (statusCode == 401 && !hasExplicitScheme && !preferBearer) {
+                // Fallback in case an OAuth2 access token was passed without a "Bearer " prefix.
+                executeUserMe("Bearer $trimmed").let { retry ->
+                    if (retry.first in 200..299) {
+                        statusCode = retry.first
+                        statusAndBody = retry.second
+                    }
+                }
+            }
             val latency = System.currentTimeMillis() - startTime
-            val body = response.body?.string().orEmpty()
+            val (statusMessage, body) = statusAndBody
 
-            if (!response.isSuccessful) {
-                val errorMsg = when (response.code) {
+            if (statusCode !in 200..299) {
+                val errorMsg = when (statusCode) {
                     401 -> "Invalid or expired Discord token (HTTP 401 Unauthorized)."
                     429 -> "Discord rate limit exceeded (HTTP 429). Please wait a moment."
                     403 -> "Access forbidden (HTTP 403). Check account permissions."
-                    else -> "Discord returned HTTP ${response.code}: ${response.message}"
+                    else -> "Discord returned HTTP $statusCode: $statusMessage"
                 }
                 return@withContext DiscordDiagnosticResult(
                     success = false,
                     latencyMs = latency,
-                    httpCode = response.code,
+                    httpCode = statusCode,
                     message = errorMsg
                 )
             }
@@ -373,26 +507,26 @@ object DiscordRpcClient {
             // Stage 3: Parse User Profile
             val profile = JSONObject(body)
             val username = profile.optString("username", "Discord User")
-            val globalName = profile.optString("global_name", username)
+            val globalName = profile.optString("global_name", "").takeIf { it.isNotBlank() && it != "null" } ?: username
             val userId = profile.optString("id", "")
-            val avatarHash = profile.optString("avatar", "")
+            val avatarHash = profile.optString("avatar", "").takeIf { it != "null" }.orEmpty()
             val avatarUrl = if (userId.isNotBlank() && avatarHash.isNotBlank()) {
                 "https://cdn.discordapp.com/avatars/$userId/$avatarHash.png?size=128"
             } else ""
 
             // Stage 4: Gateway ping status
-            val gatewayStatus = if (isGatewayConnected.get()) "Active & Synced" else "Connecting"
+            val gatewayStatus = if (isGatewayConnected.get()) "Active & Synced" else "Verified"
 
             return@withContext DiscordDiagnosticResult(
                 success = true,
                 latencyMs = latency,
-                httpCode = response.code,
+                httpCode = statusCode,
                 username = username,
                 globalName = globalName,
                 userId = userId,
                 avatarUrl = avatarUrl,
                 gatewayStatus = gatewayStatus,
-                message = "Connected to Discord as @$username ($latency ms). Gateway is $gatewayStatus."
+                message = "Connected to Discord as @$username ($latency ms)."
             )
         } catch (e: Exception) {
             val latency = System.currentTimeMillis() - startTime
@@ -404,6 +538,15 @@ object DiscordRpcClient {
         }
     }
 }
+
+/** Result of the authorization-code exchange that completes Discord sign-in. */
+data class DiscordCodeExchange(
+    val success: Boolean,
+    val accessToken: String = "",
+    val refreshToken: String = "",
+    val httpCode: Int = 0,
+    val message: String = ""
+)
 
 /**
  * Diagnostic result returned by the Connection Tester.

@@ -26,7 +26,7 @@ internal const val TorquePaletteId = "derbis_torque"
 internal val DerbisIsLiquidGlass: Boolean get() = DerbisActivePalette.id == PrismPaletteId
 val DerbisIsTorque: Boolean get() = DerbisActivePalette.id == TorquePaletteId
 val DerbisIsPrism: Boolean get() = DerbisIsLiquidGlass || DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsTidal || DerbisIsYouTubeMusic
-internal val DerbisSkinManagesLayout: Boolean get() = DerbisIsNocturne || DerbisIsPrism
+internal val DerbisSkinManagesLayout: Boolean get() = DerbisIsPixel || DerbisIsPrism
 internal val DerbisSkinLabel: String get() = DerbisActivePalette.label
 internal var activePrismSettings by mutableStateOf(PrismSettings())
     private set
@@ -52,8 +52,8 @@ internal object PrismDesign {
 
 internal object PrismAccent {
     // Liquid Glass uses cool spectral refraction rather than the old raspberry Prism gradient.
-    private val nightStart = Color(0xFF72D5FF)
-    private val nightEnd = Color(0xFFC4B5FD)
+    private val nightStart = Color(0xFF38BDF8)
+    private val nightEnd = Color(0xFF818CF8)
     private val lightStart = Color(0xFF007B9B)
     private val lightEnd = Color(0xFF5E5CC6)
 
@@ -88,7 +88,10 @@ private val TorqueShapes = Shapes(
 
 internal val PrismShapes: Shapes get() = if (DerbisIsTorque) TorqueShapes else if (DerbisIsSpotify) SpotifyShapes else if (DerbisIsAppleMusic) AppleMusicShapes else if (DerbisIsYouTubeMusic) YouTubeMusicShapes else if (DerbisIsIvory) IvoryShapes else PrismRoundShapes
 
-internal val PrismTypography = derbisTypographyFor(DerbisFontPreset.Outfit).let { base ->
+// Taurus parity: the iOS glass skin is set in the system SF Pro. SF Pro cannot be bundled,
+// so the glass skin uses the app's designated legal SF-Pro substitute — Inter with the full
+// 400-900 range (see AppleMusic13SfProFallbackFont) — instead of Outfit's geometric display.
+internal val PrismTypography = typographyForFamily(AppleMusic13SfProFallbackFont).let { base ->
     base.copy(
         displaySmall = base.displaySmall.copy(fontWeight = FontWeight.Normal, letterSpacing = (-1.2).sp),
         headlineLarge = base.headlineLarge.copy(fontWeight = FontWeight.Normal, letterSpacing = (-1.0).sp),
@@ -104,27 +107,37 @@ internal val PrismTypography = derbisTypographyFor(DerbisFontPreset.Outfit).let 
 internal fun prismPalette(settings: PrismSettings = PrismSettings(), systemDark: Boolean = true): DerbisPalette {
     val light = settings.appearance == PrismAppearance.Light ||
         settings.appearance == PrismAppearance.Automatic && !systemDark
-    // Neutral system materials must stay translucent too. A large amount of the app uses
-    // palette surfaces directly rather than a dedicated card composable; keeping these opaque
-    // is what made a selected Liquid Glass skin look like the standard dark UI.
+    // Every surface of this skin is glass. A large amount of the app paints palette surfaces
+    // directly rather than through a card composable, so the palette itself has to carry the
+    // glass film: at these alphas a panel, a row, a sheet and a chip all read as the same
+    // material over whatever is behind them. Opaque values here are what made the skin look
+    // like the standard dark UI with a glassy nav bar glued on.
     val translucent = settings.translucency != PrismTranslucency.Reduced
     fun systemMaterial(day: Long, night: Long, alpha: Float): Color =
         prismColor(light, day, night).copy(alpha = if (translucent) alpha else 1f)
+    // The iOS films are white@low over the near-black field, not dark slate. Under the
+    // Reduced-translucency setting they collapse to an opaque neutral instead.
+    fun glassFilm(opaqueFallback: Long, alpha: Float): Color =
+        if (translucent) Color.White.copy(alpha = alpha) else Color(opaqueFallback)
     return DerbisThemes.cosmic.copy(
         id = PrismPaletteId, label = "Liquid Glass", emoji = "◈", isLight = light,
         followsCover = false, followsMood = false,
-        black = prismColor(light, 0xFFF5F8FC, 0xFF080A0F),
-        ink = systemMaterial(0xFFFFFFFF, 0xFF10141C, if (light) 0.70f else 0.66f),
-        panel = systemMaterial(0xFFF8FAFD, 0xFF161C27, if (light) 0.76f else 0.70f),
-        panelSoft = systemMaterial(0xFFEAF1F8, 0xFF202A38, if (light) 0.84f else 0.78f),
-        cyan = prismColor(light, 0xFF006E99, 0xFF7DD3FC),
+        // Night pair is re-derived to the iOS Taurus Liquid Glass values exactly:
+        // background #020306, surfaces white films — iOS surface white@0.065, elevated
+        // white@0.115 — accent sky #38BDF8, secondary indigo #818CF8, tertiary pink
+        // #F472B6, hairline white@15%. Light pair left as-is (unverified).
+        black = prismColor(light, 0xFFF5F8FC, 0xFF020306),
+        ink = if (light) systemMaterial(0xFFFFFFFF, 0xFF10141C, 0.52f) else glassFilm(0xFF0B0D12, 0.075f),
+        panel = if (light) systemMaterial(0xFFF8FAFD, 0xFF161C27, 0.46f) else glassFilm(0xFF0B0D12, 0.065f),
+        panelSoft = if (light) systemMaterial(0xFFEAF1F8, 0xFF202A38, 0.58f) else glassFilm(0xFFEDF1F8, 0.115f),
+        cyan = prismColor(light, 0xFF006E99, 0xFF38BDF8),
         blue = prismColor(light, 0xFF2563EB, 0xFF93C5FD),
-        violet = prismColor(light, 0xFF635BCE, 0xFFC4B5FD),
-        pink = prismColor(light, 0xFF3D7EA6, 0xFFA5D8FF),
+        violet = prismColor(light, 0xFF635BCE, 0xFF818CF8),
+        pink = prismColor(light, 0xFF3D7EA6, 0xFFF472B6),
         orange = prismColor(light, 0xFF007C91, 0xFF67E8F9),
         text = prismColor(light, 0xFF121821, 0xFFF4F8FF),
         muted = prismColor(light, 0xFF556271, 0xFFAAB6C7),
-        outline = prismColor(light, 0xFFD5E0EB, 0xFF334155)
+        outline = if (light) Color(0xFFD5E0EB) else Color.White.copy(alpha = 0.15f)
     )
 }
 
@@ -188,9 +201,10 @@ internal fun prismMiniSettings(saved: DerbisMiniPlayerStudioSettings): DerbisMin
     val liquidGlass = DerbisActivePalette.id == PrismPaletteId
     val style = if (liquidGlass) MiniPlayerStyle.LiquidGlass else MiniPlayerStyle.Floating
     val tuning = DerbisMiniPlayerStudioSettings.spec(style).defaults.copy(
-        cornerDp = if (torque) 2 else if (DerbisIsIvory) 26 else if (liquidGlass) 30 else 20,
+        // Taurus parity: iOS mini player is a 24pt glass panel with 44pt artwork at 10pt radius.
+        cornerDp = if (torque) 2 else if (DerbisIsIvory) 26 else if (liquidGlass) 24 else 20,
         heightDp = 64,
-        artworkDp = 46,
+        artworkDp = if (liquidGlass) 44 else 46,
         shadow = 0,
         glow = 0,
         artworkShape = if (torque) MiniArtworkShape.Square else MiniArtworkShape.Rounded,
@@ -246,7 +260,7 @@ internal fun skinMiniPlayerCorner(tuning: MiniPlayerTuning): Dp =
         DerbisIsIvory -> 26.dp
         DerbisIsSpotify -> SpotifyDesign.corner
         DerbisIsAppleMusic -> AppleMusicDesign.miniHeight / 2
-        DerbisIsNocturne -> 10.dp
+        DerbisIsPixel -> 0.dp
         else -> tuning.cornerDp.dp
     }
 
@@ -269,14 +283,14 @@ internal fun prismNavSettings(saved: DerbisNavigationStudioSettings): DerbisNavi
 }
 
 internal fun skinNavigationSettings(saved: DerbisNavigationStudioSettings): DerbisNavigationStudioSettings = when {
-    DerbisIsNocturne -> nocturneNavSettings(saved)
+    DerbisIsPixel -> pixelNavSettings(saved)
     DerbisIsPrism -> prismNavSettings(saved)
     else -> saved
 }
 
 internal fun skinMiniSettings(saved: DerbisMiniPlayerStudioSettings): DerbisMiniPlayerStudioSettings {
     return when {
-        DerbisIsNocturne -> nocturneMiniSettings(saved)
+        DerbisIsPixel -> pixelMiniSettings(saved)
         DerbisIsPrism -> prismMiniSettings(saved)
         else -> saved
     }

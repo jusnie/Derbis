@@ -16,7 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.MoreVert
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -96,7 +96,7 @@ internal fun AppleMusicGenreScreen(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp,
+                top = derbisSafeTopInset() + 64.dp,
                 bottom = bottomInset + 24.dp
             ),
             verticalArrangement = Arrangement.spacedBy(AppleMusicDesign.sectionGap)
@@ -144,7 +144,7 @@ internal fun AppleMusicGenreScreen(
             }
         }
         AppleMusicNavigationBar(displayTitle, collapsed, onBack)
-        Box(Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(end = 8.dp).height(52.dp)) {
+        Box(Modifier.align(Alignment.TopEnd).derbisSafeTopPadding().padding(end = 8.dp).height(52.dp)) {
             IconButton(onClick = { menuOpen = true }, modifier = Modifier.align(Alignment.Center)) {
                 Icon(Icons.Rounded.MoreVert, strings.actions, tint = AppleMusicDesign.accent)
             }

@@ -20,6 +20,43 @@ class DerbisStrings private constructor(
         return if (DerbisLanguageCatalog.isRtl(code) && clean.isNotBlank()) "\u2068$clean\u2069" else clean
     }
 
+    val subsonicHomeServer: String get() = value("subsonicHomeServer")
+    val subsonicTileSubtitle: String get() = value("subsonicTileSubtitle")
+    val subsonicTileOff: String get() = value("subsonicTileOff")
+    val subsonicPanelBody: String get() = value("subsonicPanelBody")
+    val subsonicServerAddress: String get() = value("subsonicServerAddress")
+    val subsonicAddressHint: String get() = value("subsonicAddressHint")
+    val subsonicUsername: String get() = value("subsonicUsername")
+    val subsonicPassword: String get() = value("subsonicPassword")
+    val subsonicPasswordSaved: String get() = value("subsonicPasswordSaved")
+    val subsonicTest: String get() = value("subsonicTest")
+    val subsonicTesting: String get() = value("subsonicTesting")
+    val subsonicSave: String get() = value("subsonicSave")
+    val subsonicRemove: String get() = value("subsonicRemove")
+    val subsonicCancel: String get() = value("subsonicCancel")
+    val subsonicContacting: String get() = value("subsonicContacting")
+    val subsonicConnected: String get() = value("subsonicConnected")
+    val subsonicFillAll: String get() = value("subsonicFillAll")
+    val subsonicRejected: String get() = value("subsonicRejected")
+    val subsonicUnreachable: String get() = value("subsonicUnreachable")
+
+    val artworkQualityTitle: String get() = value("artworkQualityTitle")
+    val artworkQualityLow: String get() = value("artworkQualityLow")
+    val artworkQualityMedium: String get() = value("artworkQualityMedium")
+    val artworkQualityHigh: String get() = value("artworkQualityHigh")
+    val artworkQualityLowSubtitle: String get() = value("artworkQualityLowSubtitle")
+    val artworkQualityMediumSubtitle: String get() = value("artworkQualityMediumSubtitle")
+    val artworkQualityHighSubtitle: String get() = value("artworkQualityHighSubtitle")
+
+    /** The explicit-content setting's own copy, in one place rather than seven scattered getters. */
+    val explicitFilterTitle: String get() = value("explicitFilterTitle")
+    val explicitFilterSubtitle: String get() = value("explicitFilterSubtitle")
+    val explicitFilterShowAll: String get() = value("explicitFilterShowAll")
+    val explicitFilterHide: String get() = value("explicitFilterHide")
+    val explicitFilterOnly: String get() = value("explicitFilterOnly")
+    val statusBarLyricsTitle: String get() = value("statusBarLyricsTitle")
+    val statusBarLyricsSubtitle: String get() = value("statusBarLyricsSubtitle")
+
     val smartOffline: DerbisSmartOfflineCopy
         get() = DerbisSmartOfflineCopy(
             title = value("smartOfflineTitle"),
@@ -186,17 +223,18 @@ class DerbisStrings private constructor(
     val playerDeckSubtitle: String get() = value("playerDeckSubtitle")
     val playerDeckExpressive: String get() = value("playerDeckExpressive")
     val playerDeckPulse: String get() = value("playerDeckPulse")
-    val playerDeckImmersiveHint: String get() = value("playerDeckImmersiveHint")
     val playerDeckCardHint: String get() = value("playerDeckCardHint")
     val playerDeckArtworkHint: String get() = value("playerDeckArtworkHint")
     val playerDeckExpressiveHint: String get() = value("playerDeckExpressiveHint")
     val playerDeckPulseHint: String get() = value("playerDeckPulseHint")
-    val playerDeckHalo: String get() = value("playerDeckHalo")
-    val playerDeckHaloHint: String get() = value("playerDeckHaloHint")
-    val playerDeckFolio: String get() = value("playerDeckFolio")
-    val playerDeckFolioHint: String get() = value("playerDeckFolioHint")
     val playerDeckFlow: String get() = value("playerDeckFlow")
     val playerDeckFlowHint: String get() = value("playerDeckFlowHint")
+    val playerDeckFrost: String get() = value("playerDeckFrost")
+    val playerDeckFrostHint: String get() = value("playerDeckFrostHint")
+    val playerDeckVinyl: String get() = value("playerDeckVinyl")
+    val playerDeckVinylHint: String get() = value("playerDeckVinylHint")
+    val playerDeckDerbisOne: String get() = value("playerDeckDerbisOne")
+    val playerDeckDerbisOneHint: String get() = value("playerDeckDerbisOneHint")
     val playerDeckAppleMusic13: String get() = value("playerDeckAppleMusic13")
     val playerDeckAppleMusic13Hint: String get() = value("playerDeckAppleMusic13Hint")
     val playerDeckTidalMusic: String get() = value("playerDeckTidalMusic")
@@ -325,7 +363,6 @@ class DerbisStrings private constructor(
     val mixLabEmptyArtists: String get() = value("mixLabEmptyArtists")
     val playerVisualModeArtwork: String get() = value("playerVisualModeArtwork")
     val playerVisualModeCanvasCard: String get() = value("playerVisualModeCanvasCard")
-    val playerVisualModeCanvasImmersive: String get() = value("playerVisualModeCanvasImmersive")
     val playerBackground: String get() = value("playerBackground")
     val playerBackgroundSubtitle: String get() = value("playerBackgroundSubtitle")
     val playerBackgroundDynamic: String get() = value("playerBackgroundDynamic")
@@ -441,6 +478,31 @@ class DerbisStrings private constructor(
     val canvasSourceAuto: String get() = "Owned catalog"
     val canvasSourceApple: String get() = "Derbis Canvas Catalog"
     val canvasSourceTidal: String get() = "Derbis Canvas Catalog"
+    val spotifyCanvasTitle: String get() = value("spotifyCanvasTitle")
+    val spotifyCanvasSubtitle: String get() = value("spotifyCanvasSubtitle")
+    val spotifyCanvasOpenBrowser: String get() = value("spotifyCanvasOpenBrowser")
+    val spotifyCanvasDeveloper: String get() = value("spotifyCanvasDeveloper")
+    val spotifyCanvasCookieLabel: String get() = value("spotifyCanvasCookieLabel")
+    val spotifyCanvasNoSession: String get() = value("spotifyCanvasNoSession")
+    val spotifyCanvasUnlocked: String get() = value("spotifyCanvasUnlocked")
+    val spotifyCanvasLocked: String get() = value("spotifyCanvasLocked")
+    val spotifyCanvasTest: String get() = value("spotifyCanvasTest")
+    val spotifyCanvasTestOk: String get() = value("spotifyCanvasTestOk")
+    val spotifyCanvasTestNoCanvas: String get() = value("spotifyCanvasTestNoCanvas")
+    val spotifyCanvasSaved: String get() = value("spotifyCanvasSaved")
+    val spotifyCanvasRemoved: String get() = value("spotifyCanvasRemoved")
+    val spotifyCanvasCopied: String get() = value("spotifyCanvasCopied")
+    val spotifyCanvasReveal: String get() = value("spotifyCanvasReveal")
+    val spotifyCanvasCopy: String get() = value("spotifyCanvasCopy")
+    val spotifyCanvasPaste: String get() = value("spotifyCanvasPaste")
+    val spotifyCanvasPasteLabel: String get() = value("spotifyCanvasPasteLabel")
+    val spotifyCanvasUseDetected: String get() = value("spotifyCanvasUseDetected")
+    val spotifyCanvasRemove: String get() = value("spotifyCanvasRemove")
+    val spotifyCanvasDeveloperHint: String get() = value("spotifyCanvasDeveloperHint")
+    val spotifyCanvasDetected: String get() = value("spotifyCanvasDetected")
+    val spotifyCanvasSigningIn: String get() = value("spotifyCanvasSigningIn")
+    val spotifyCanvasUseAccount: String get() = value("spotifyCanvasUseAccount")
+    val spotifyCanvasWebError: String get() = value("spotifyCanvasWebError")
     val motionArtworkWifiOnly: String get() = value("motionArtworkWifiOnly")
     val motionArtworkWifiOnlySubtitle: String get() = value("motionArtworkWifiOnlySubtitle")
     val motionArtworkEnabled: String get() = value("motionArtworkEnabled")
@@ -634,6 +696,50 @@ class DerbisStrings private constructor(
         "de" -> "Derbis-360-Erlebnis"
         else -> "Derbis 360 experience"
     }
+    val karaokeSection: String get() = when (code) {
+        "it" -> "KARAOKE"
+        "es" -> "KARAOKE"
+        "fr" -> "KARAOKÉ"
+        "de" -> "KARAOKE"
+        else -> "KARAOKE"
+    }
+    val karaokeTitle: String get() = when (code) {
+        "it" -> "Modalità karaoke"
+        "es" -> "Modo karaoke"
+        "fr" -> "Mode karaoké"
+        "de" -> "Karaoke-Modus"
+        else -> "Karaoke mode"
+    }
+    /**
+     * The hint is deliberately honest about what this does: it is a centre-channel cancel, not
+     * stem separation, so the vocal goes but so does some of the body.
+     */
+    val karaokeSubtitle: String get() = when (code) {
+        "it" -> "Annulla il centro dello stereo per togliere la voce. Resta la strumentale, ma il basso e la cassa perdono corpo."
+        "es" -> "Cancela el centro del estéreo para quitar la voz. Queda la instrumental, aunque el bajo y el bombo pierden cuerpo."
+        "fr" -> "Annule le centre de la stéréo pour retirer la voix. L'instrumental reste, mais la basse et la grosse caisse perdent du corps."
+        "de" -> "Hebt die Mitte der Stereoaufnahme an, um die Stimme zu entfernen. Das Instrumental bleibt, Bass und Kick verlieren aber etwas Körper."
+        else -> "Cancels the centre of the stereo mix to remove the vocal. The instrumental stays, but the bass and kick lose some body."
+    }
+    val monoTitle: String get() = when (code) {
+        "it" -> "Uscita mono"
+        "es" -> "Salida mono"
+        "fr" -> "Sortie mono"
+        "de" -> "Mono-Ausgabe"
+        else -> "Mono output"
+    }
+    /**
+     * Names the reason, because "mono" alone reads like a downgrade: it exists for one earbud, a
+     * mono speaker, or hearing that only reaches one side, where the alternative is losing half
+     * the mix rather than hearing it in worse quality.
+     */
+    val monoSubtitle: String get() = when (code) {
+        "it" -> "Unisce sinistra e destra in un solo canale, così un auricolare solo o un altoparlante mono non perde metà del mix."
+        "es" -> "Une izquierda y derecha en un solo canal, para que un solo auricular o un altavoz mono no pierda la mitad de la mezcla."
+        "fr" -> "Réunit gauche et droite en un seul canal, pour qu'un écouteur unique ou une enceinte mono ne perde pas la moitié du mixage."
+        "de" -> "Fasst links und rechts zu einem Kanal zusammen, damit ein einzelner Ohrhörer oder ein Mono-Lautsprecher nicht die halbe Mischung verliert."
+        else -> "Folds left and right into one channel, so a single earbud or a mono speaker does not lose half the mix."
+    }
     val derbis360ExperienceSubtitle: String get() = when (code) {
         "it" -> "L'8D offre un'orbita delicata. Il 16D aggiunge un movimento stereo più rapido e profondo."
         "es" -> "8D ofrece una órbita suave. 16D añade un movimiento estéreo más rápido y profundo."
@@ -750,6 +856,7 @@ class DerbisStrings private constructor(
     val audioQualityHigh: String get() = value("audioQualityHigh")
     val audioQualityMedium: String get() = value("audioQualityMedium")
     val audioQualityLow: String get() = value("audioQualityLow")
+    val audioQualityLossless: String get() = value("audioQualityLossless")
     val alternativeAudioTitle: String get() = value("alternativeAudioTitle")
     val alternativeAudioSubtitle: String get() = value("alternativeAudioSubtitle")
     val alternativeAudioOff: String get() = value("alternativeAudioOff")
@@ -964,6 +1071,27 @@ class DerbisStrings private constructor(
     val wrappedFinaleTitle: String get() = value("wrappedFinaleTitle")
     val wrappedEmpty: String get() = value("wrappedEmpty")
     val wrappedReceiptTitle: String get() = value("wrappedReceiptTitle")
+    val wrappedAlbumsTitle: String get() = value("wrappedAlbumsTitle")
+    val wrappedAlbumPlays: String get() = value("wrappedAlbumPlays")
+    val wrappedBiggestDayTitle: String get() = value("wrappedBiggestDayTitle")
+    val wrappedBiggestDayMultiple: String get() = value("wrappedBiggestDayMultiple")
+    val wrappedBiggestDayOnRepeat: String get() = value("wrappedBiggestDayOnRepeat")
+    val wrappedPersonaTitle: String get() = value("wrappedPersonaTitle")
+    val wrappedPersonaRegular: String get() = value("wrappedPersonaRegular")
+    val wrappedPersonaRegularBody: String get() = value("wrappedPersonaRegularBody")
+    val wrappedPersonaOmnivore: String get() = value("wrappedPersonaOmnivore")
+    val wrappedPersonaOmnivoreBody: String get() = value("wrappedPersonaOmnivoreBody")
+    val wrappedPersonaDevotee: String get() = value("wrappedPersonaDevotee")
+    val wrappedPersonaDevoteeBody: String get() = value("wrappedPersonaDevoteeBody")
+    val wrappedPersonaDeepDiver: String get() = value("wrappedPersonaDeepDiver")
+    val wrappedPersonaDeepDiverBody: String get() = value("wrappedPersonaDeepDiverBody")
+    val wrappedAxisConsistency: String get() = value("wrappedAxisConsistency")
+    val wrappedAxisDiversity: String get() = value("wrappedAxisDiversity")
+    val wrappedAxisDevotion: String get() = value("wrappedAxisDevotion")
+    val wrappedAxisReplay: String get() = value("wrappedAxisReplay")
+    val wrappedNotEnoughTitle: String get() = value("wrappedNotEnoughTitle")
+    val wrappedNotEnoughBody: String get() = value("wrappedNotEnoughBody")
+    val wrappedPlaysUnit: String get() = value("wrappedPlaysUnit")
     val shareLyricsPreparing: String get() = value("shareLyricsPreparing")
     /** Share sheet actions. Kept inline so every locale falls back to a readable label. */
     val storyCopyLink: String get() = when (code) {
@@ -1379,6 +1507,35 @@ class DerbisStrings private constructor(
     val derbisNotch: String get() = value("derbisNotch")
     val derbisNotchHint: String get() = value("derbisNotchHint")
     val derbisNotchStyleDefault: String get() = value("derbisNotchStyleDefault")
+    val derbisNotchTitle: String get() = value("derbisNotchTitle")
+    val derbisNotchEnable: String get() = value("derbisNotchEnable")
+    val derbisNotchCustomize: String get() = value("derbisNotchCustomize")
+    val derbisNotchCustomizeHint: String get() = value("derbisNotchCustomizeHint")
+    val derbisNotchPreviewPill: String get() = value("derbisNotchPreviewPill")
+    val derbisNotchPreviewCard: String get() = value("derbisNotchPreviewCard")
+    val derbisNotchPreviewEmpty: String get() = value("derbisNotchPreviewEmpty")
+    val derbisNotchArtwork: String get() = value("derbisNotchArtwork")
+    val derbisNotchArtworkHint: String get() = value("derbisNotchArtworkHint")
+    val derbisNotchLyrics: String get() = value("derbisNotchLyrics")
+    val derbisNotchLyricsHint: String get() = value("derbisNotchLyricsHint")
+    val derbisNotchTransport: String get() = value("derbisNotchTransport")
+    val derbisNotchTransportHint: String get() = value("derbisNotchTransportHint")
+    val derbisNotchProgress: String get() = value("derbisNotchProgress")
+    val derbisNotchProgressHint: String get() = value("derbisNotchProgressHint")
+    val derbisNotchWaveform: String get() = value("derbisNotchWaveform")
+    val derbisNotchWaveformHint: String get() = value("derbisNotchWaveformHint")
+    val derbisNotchHaptics: String get() = value("derbisNotchHaptics")
+    val derbisNotchHapticsHint: String get() = value("derbisNotchHapticsHint")
+    val derbisNotchStyleTitle: String get() = value("derbisNotchStyleTitle")
+    val derbisNotchStyleHint: String get() = value("derbisNotchStyleHint")
+    val derbisNotchMusicOnlyNote: String get() = value("derbisNotchMusicOnlyNote")
+    val derbisNotchNothingShown: String get() = value("derbisNotchNothingShown")
+    val derbisNotchPositionTitle: String get() = value("derbisNotchPositionTitle")
+    val derbisNotchPositionHint: String get() = value("derbisNotchPositionHint")
+    val derbisNotchPositionStart: String get() = value("derbisNotchPositionStart")
+    val derbisNotchPositionCenter: String get() = value("derbisNotchPositionCenter")
+    val derbisNotchPositionEnd: String get() = value("derbisNotchPositionEnd")
+    val derbisNotchOffset: String get() = value("derbisNotchOffset")
     val derbisNotchStyleSpicy: String get() = value("derbisNotchStyleSpicy")
     val doubleTapSeek: String get() = value("doubleTapSeek")
     val doubleTapSeekSubtitle: String get() = value("doubleTapSeekSubtitle")
@@ -2085,6 +2242,44 @@ class DerbisStrings private constructor(
 
     fun formatPauseDownload(title: String): String = "$pauseDownload ${directionalValue(title)}"
 
+    // Liquid Glass artist page
+    val artistpediaTitle: String get() = value("artistpediaTitle")
+    val artistpediaSubtitle: String get() = value("artistpediaSubtitle")
+    val artistpediaBioTitle: String get() = value("artistpediaBioTitle")
+    val artistpediaFactsTitle: String get() = value("artistpediaFactsTitle")
+    val artistpediaTimelineTitle: String get() = value("artistpediaTimelineTitle")
+    val artistpediaListeners: String get() = value("artistpediaListeners")
+    val artistpediaSubscribers: String get() = value("artistpediaSubscribers")
+    val artistpediaDebut: String get() = value("artistpediaDebut")
+    val artistpediaLatestRelease: String get() = value("artistpediaLatestRelease")
+    val artistpediaReleases: String get() = value("artistpediaReleases")
+    val artistpediaTracks: String get() = value("artistpediaTracks")
+    val artistOptionsFollow: String get() = value("artistOptionsFollow")
+    val artistOptionsFollowing: String get() = value("artistOptionsFollowing")
+    val artistOptionsAddToQueue: String get() = value("artistOptionsAddToQueue")
+    val artistOptionsRadio: String get() = value("artistOptionsRadio")
+    val artistOptionsArtistpedia: String get() = value("artistOptionsArtistpedia")
+    val artistOptionsSleepTimerHint: String get() = value("artistOptionsSleepTimerHint")
+    val artistSleepInMinutes: String get() = value("artistSleepInMinutes")
+    val artistSleepTimerOff: String get() = value("artistSleepTimerOff")
+    val artistSavedToFavorites: String get() = value("artistSavedToFavorites")
+    val artistRemovedFromFavorites: String get() = value("artistRemovedFromFavorites")
+    val artistTracksMeta: String get() = value("artistTracksMeta")
+    val artistNoReleases: String get() = value("artistNoReleases")
+    val artistTimelineDebut: String get() = value("artistTimelineDebut")
+    val artistTimelineEra: String get() = value("artistTimelineEra")
+    val artistAddedToQueue: String get() = value("artistAddedToQueue")
+    val artistCarouselLabel: String get() = value("artistCarouselLabel")
+    val artistCarouselPosition: String get() = value("artistCarouselPosition")
+    fun formatArtistSleepInMinutes(minutes: Int): String =
+        String.format(Locale.getDefault(), artistSleepInMinutes, minutes)
+    fun formatArtistTracksMeta(count: Int, minutes: Long): String =
+        String.format(Locale.getDefault(), artistTracksMeta, count, minutes)
+    fun formatArtistAddedToQueue(count: Int): String =
+        String.format(Locale.getDefault(), artistAddedToQueue, count)
+    fun formatArtistCarouselPosition(index: Int, count: Int): String =
+        String.format(Locale.getDefault(), artistCarouselPosition, index + 1, count)
+
     companion object {
         private val requiredKeys = setOf("welcomeBadge", "welcomeTitle", "languageQuestion", "nameQuestion", "namePlaceholder", "tasteQuestion", "skipAndContinue", "startListening", "settings", "settingsSubtitle", "design", "playback", "preferences", "app", "animations", "animationsSubtitle", "dynamicColor", "dynamicColorSubtitle", "sponsorBlock", "sponsorBlockSubtitle", "skipSilence", "skipSilenceSubtitle", "redoQuestionnaire", "redoQuestionnaireSubtitle", "language", "languageSubtitle", "home", "search", "library", "player", "queue", "lyrics", "related", "song", "video", "nowPlaying", "emptyPlayer", "phoneSpeaker", "connected", "volume", "audioQuality", "done", "queueEmpty", "lyricsUnavailable", "synced", "libraryTitle", "librarySubtitle", "playlists", "newItem", "downloads", "favorites", "recent", "quickPicks", "play", "newReleases", "albumsForYou", "top50Unavailable", "artists", "albumsAndSingles", "songs", "searchPlaceholder", "back", "clear", "voice", "createPlaylistHint", "selectLanguagePrompt", "explore", "exploreTitle", "exploreSubtitle", "exploreMoods", "exploreSamples", "exploreSamplesSubtitle", "exploreSamplesError", "exploreSamplesRetry", "exploreFresh", "exploreNewVideos", "exploreEmpty", "localWaveName", "localWaveEmoji", "localWaveQuery", "exploreNewReleases", "exploreRapDrill", "exploreElectronic", "explorePopGlobal", "exploreRnbSoul", "exploreRockAlt", "exploreLatino", "exploreLofiChill", "exploreJpopAnime", "followArtist", "followingArtist", "releaseRadar", "similarArtists", "similarToFollowed", "theme", "themeSubtitle", "personalOrbitTitle", "personalOrbitSubtitle", "voicesTitle", "voicesSubtitle", "totalComments", "engagement", "audioEngine", "audioEngineSubtitle", "equalizer", "equalizerSubtitle", "preset", "bassBoost", "virtualizer", "crossfade", "djSoft", "replayGain", "tempo", "pitch", "gapless", "restartRequiredTitle", "restartRequiredBody", "restartNow", "later", "audioQualityAuto", "audioQualityHigh", "audioQualityLow", "pulseSectionBand", "pulseTitle", "pulseSubtitle", "followedArtistsTitle", "followedArtistsSubtitle", "listeningHistoryEmptyTitle", "listeningHistoryEmptyDetail", "pulseMinutes", "pulseMinuteShort", "pulsePlays", "pulseStreak", "pulseCompletion", "pulseTopArtists", "pulseWeek", "pulsePeakHour", "pulseEmpty", "listeningHistory", "listeningHistorySubtitle", "listeningPrompt", "voiceSearchUnsupported", "musicFiltersComingSoon", "recentSearches", "actions", "removeFromFavorites", "addToFavorites", "playNext", "addToQueue", "addToPlaylist", "alreadyOffline", "download", "openArtist", "openAlbum", "deleteDownload", "share", "shareSong", "removeFromRecentSearches", "songOptions", "goToPlayer", "saveOffline", "favorite", "downloaded", "remove", "youMightAlsoLike", "topResult", "currentlyPlaying", "artistLabel", "playNow", "biography", "newUpdate", "updateDescription", "whatsNew", "update", "updateRetry", "updateDownloading", "updatePreparing", "updateInstalling", "updateReadyToInstall", "updateFailed", "updateAllowInstalls", "updateLinkUnavailable", "cannotOpenDownload", "externalLinkUnavailable", "cannotOpenExternalLink", "continuousRadio", "continuousRadioSubtitle", "artistsLabelPlural", "albumMood", "openLyricsAnalysis", "closeLyrics", "lyricsDuet", "lyricsCinema", "lyricsPage", "lyricsRomanization", "lyricsCompact", "changeLyrics", "automaticLyrics", "selectVerses", "copyVerses", "shareVerses", "lyricsVersions", "lyricsSections", "lyricsSectionIntro", "lyricsSectionVerse", "lyricsSectionPreChorus", "lyricsSectionChorus", "lyricsSectionBridge", "lyricsSectionInstrumental", "lyricsSectionOutro", "automaticTranslation", "automaticTranslationSubtitle", "atmosphere", "themes", "chorusDetected", "goToChorus", "close", "complete", "delete", "newPlaylist", "playlistName", "create", "cancel", "newPlaylistName", "createNewPlaylist", "createAndAdd", "downloadPlaylist", "playAll", "playingFrom", "closePlayer", "options", "showLyrics", "shuffle", "previous", "next", "repeat", "persistentQueue", "continueListening", "favoritesPlain", "offline", "more", "mix", "mixForYou", "genres", "smartMusicProfile", "flow", "pictureInPicture", "discoveryFlow", "shareDiagnostics", "albumUnavailable", "albumTracksUnavailable", "showLess", "showMore", "playing", "artistProfileUnavailable", "popularTracks", "showAll", "versionLabel", "generalImprovements", "historyLabel", "undoRemoval", "lyricsAnalysis", "linesLabel", "wordsLabel", "localAnalysis", "open", "newRelease", "newReleaseSubtitle", "saved", "save", "noOfflineDownloads", "createFirstPlaylist", "createFirstPlaylistSubtitle", "downloadTrackHint", "savedTracks", "favoritesEmpty", "playlistEmpty", "showPersonalListening", "showRecentReleases", "showRecommendedAlbums", "showDiscoveredArtists", "showChartsCountry", "partialDownloadResume", "lyricsAnalysisSection", "lyricsAnalysisCompact", "lyricsAnalysisCompactSubtitle", "createDataBackup", "createDataBackupSubtitle", "updateAvailable", "updates", "checkingLatestVersion", "latestVersionReady", "latestInstalled", "checkNewVersions", "releasePageReady", "installedVersion", "openPlayer", "searchSongsArtists", "songsPlain", "shareVia", "emptySearchPrompt", "cancelDownload", "readAll", "singlesAndEps", "tapHeartToAdd", "all", "automaticResume", "simultaneousDownloads", "simultaneousDownloadsSubtitle", "backupRestoreSection", "restoreBackup", "restoreBackupSubtitle", "playbackResilienceSection", "exportSafeDiagnostics", "generateResolverTrace", "safeDiagnosticsSubtitle", "check", "checking", "dragToReorder", "homeInterfaceSection", "compactHome", "compactHomeSubtitle", "yourOrbitSetting", "voicesSetting", "voicesSettingSubtitle", "newReleasesSetting", "albumsForYouSetting", "trendingArtists", "top50Charts", "mobilePlayerSection", "advancedGestures", "advancedGesturesSubtitle", "pureBlack", "pureBlackSubtitle", "hapticFeedback", "hapticFeedbackSubtitle", "doubleTapSeek", "doubleTapSeekSubtitle", "longPress", "longPressSubtitle", "downloadEngineSection", "wifiOnly", "wifiOnlySubtitle", "chargingOnly", "chargingOnlySubtitle", "resumeDownload", "pauseDownload", "signedApkReady", "downloadsInProgress", "downloadInProgress", "newAlbums", "newSingles", "newAlbum", "downloadsFolder", "offlineDownloadsPlain", "personalPlaylists", "searchingYouTubeMusic", "searchingLyrics", "pause", "newSingle", "albumsPlain", "albumPlain", "singlePlain", "playlistsPlain", "profileActive", "profileLearning", "newBadge", "brightness", "timer", "normalizationShort", "coverAndTags", "madeWithBy", "activeIndicator", "batteryUnrestricted", "batteryUnrestrictedSubtitle", "batteryUnrestrictedActive", "derbisSelection", "releasedToday", "justReleased", "chartTrending", "selectedForYou", "availableToday", "releasedThisWeek", "popularInCharts", "collectionsTitle", "collectionsSubtitle", "collectionFresh", "collectionLocal", "collectionWorkout", "collectionChill", "collectionFocus", "collectionParty", "collectionRap", "collectionPop", "collectionDiscovery", "collectionUpdatedToday", "collectionEditorial", "collectionCharts", "collectionRepeat", "collectionThrowback", "collectionGems", "downloadQualityPreset", "downloadQualityPresetSubtitle", "downloadPresetAutomatic", "downloadPresetHighQuality", "downloadPresetDataSaver", "downloadFolderOrganization", "downloadFolderOrganizationSubtitle", "downloadFolderArtist", "downloadFolderArtistAlbum", "downloadSpeedLimit", "downloadSpeedLimitSubtitle", "downloadSpeedUnlimited", "downloadEmbedMetadata", "downloadEmbedMetadataSubtitle", "downloadEmbedArtwork", "downloadEmbedArtworkSubtitle", "downloadVerifyFile", "downloadVerifyFileSubtitle", "downloadSkipDuplicates", "downloadSkipDuplicatesSubtitle", "trailTitle", "trailPlays", "trailUnique", "trailLastPlayed", "statPlays", "statArtists", "statTracks", "introHeadline", "introBody", "introFeatureSound", "introFeatureLyrics", "introFeatureOffline", "introStart", "expandPlayer", "collapsePlayer", "lyricsFocus")
         private val motionArtworkKeys = setOf("motionArtwork", "motionArtworkSubtitle")
@@ -2100,7 +2295,8 @@ class DerbisStrings private constructor(
             "audioResetEqualizer",
             "audioPresetCustom",
             "audioBands",
-            "audioQualityMedium"
+            "audioQualityMedium",
+            "audioQualityLossless"
         )
         private val autoEqKeys = setOf(
             "autoEqImport",
@@ -2164,6 +2360,31 @@ class DerbisStrings private constructor(
             "motionArtworkSpotifyRequired",
             "motionArtworkUnlocked",
             "motionArtworkLocked",
+            "spotifyCanvasTitle",
+            "spotifyCanvasSubtitle",
+            "spotifyCanvasOpenBrowser",
+            "spotifyCanvasDeveloper",
+            "spotifyCanvasCookieLabel",
+            "spotifyCanvasNoSession",
+            "spotifyCanvasUnlocked",
+            "spotifyCanvasLocked",
+            "spotifyCanvasTest",
+            "spotifyCanvasTestOk",
+            "spotifyCanvasTestNoCanvas",
+            "spotifyCanvasSaved",
+            "spotifyCanvasRemoved",
+            "spotifyCanvasCopied",
+            "spotifyCanvasReveal",
+            "spotifyCanvasCopy",
+            "spotifyCanvasPaste",
+            "spotifyCanvasPasteLabel",
+            "spotifyCanvasUseDetected",
+            "spotifyCanvasRemove",
+            "spotifyCanvasDeveloperHint",
+            "spotifyCanvasDetected",
+            "spotifyCanvasSigningIn",
+            "spotifyCanvasUseAccount",
+            "spotifyCanvasWebError",
             "sharePlaylist",
             "enhanceVideoMetadata",
             "enhanceVideoMetadataSubtitle",
@@ -2359,9 +2580,9 @@ class DerbisStrings private constructor(
         }
 
         private fun bundle(code: String, entries: Map<String, String>): DerbisStrings {
-            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code) + derbisNotchLocalizationEntries(code)
+            val localizedEntries = entries + profileLocalizationEntries(code) + freshCurrentsLocalizationEntries(code) + homeEditorialLocalizationEntries(code) + lyricsActionLocalizationEntries(code) + lyricsShareLocalizationEntries(code) + listeningReceiptLocalizationEntries(code) + playerExperienceLocalizationEntries(code) + exploreLocalizationEntries(code) + canvasLocalizationEntries(code) + audioLocalizationEntries(code) + audioOutputLocalizationEntries(code) + alternativeAudioLocalizationEntries(code) + autoEqLocalizationEntries(code) + experienceLocalizationEntries(code) + insightLocalizationEntries(code) + systemActionLocalizationEntries(code) + integrationLocalizationEntries(code) + recognitionLocalizationEntries(code) + jamLocalizationEntries(code) + jamModerationLocalizationEntries(code) + ambientModeLocalizationEntries(code) + themeStudioLocalizationEntries(code) + lyricsStudioLocalizationEntries(code) + appleMusic13LyricsLocalizationEntries(code) + networkLocalizationEntries(code) + resonanceLocalizationEntries(code) + organizationLocalizationEntries(code) + downloadLocationLocalizationEntries(code) + similarSongsLocalizationEntries(code) + playerVisualLocalizationEntries(code) + playerDeckLocalizationEntries(code) + playerGestureLocalizationEntries(code) + playlistStudioLocalizationEntries(code) + queueSelectionLocalizationEntries(code) + librarySortLocalizationEntries(code) + offlineHomeLocalizationEntries(code) + recapLocalizationEntries(code) + listeningInsightsLocalizationEntries(code) + queueSpaceLocalizationEntries(code) + localLibraryLocalizationEntries(code) + localTagLocalizationEntries(code) + playbackTileLocalizationEntries(code) + visualPerformanceLocalizationEntries(code) + liquidGlassLocalizationEntries(code) + videoQualityLocalizationEntries(code) + lyricsProviderPriorityLocalizationEntries(code) + mixLabLocalizationEntries(code) + chartMarketLocalizationEntries(code) + homeSoundtrackLocalizationEntries(code) + settingsSearchLocalizationEntries(code) + appUpdateLocalizationEntries(code) + derbisNotchLocalizationEntries(code) + wrappedExtraLocalizationEntries(code) + contentFilterLocalizationEntries(code) + subsonicLocalizationEntries(code) + artworkQualityLocalizationEntries(code) + artistGlassLocalizationEntries(code)
             val resolvedEntries = localizedEntries + smartOfflineLocalizationEntries(code, localizedEntries)
-            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys + derbisNotchKeys
+            val allRequiredKeys = requiredKeys + "removeFromPlaylist" + profileKeys + motionArtworkKeys + exploreSectionKeys + freshCurrentsKeys + canvasKeys + audioKeys + audioOutputKeys + alternativeAudioKeys + autoEqKeys + experienceKeys + insightKeys + systemActionKeys + integrationKeys + recognitionKeys + jamKeys + jamModerationKeys + ambientModeKeys + themeStudioKeys + lyricsStudioKeys + appleMusic13LyricsKeys + networkKeys + resonanceKeys + organizationKeys + downloadLocationKeys + similarSongsKeys + playerVisualKeys + playerDeckKeys + playerGestureKeys + playlistStudioKeys + queueSelectionKeys + librarySortKeys + offlineHomeKeys + recapKeys + listeningInsightsKeys + queueSpaceKeys + localLibraryKeys + localTagKeys + lyricsOffsetKeys + lyricsTranslationStatusKeys + playbackTileKeys + visualPerformanceKeys + liquidGlassKeys + videoQualityKeys + lyricsProviderPriorityKeys + mixLabKeys + chartMarketKeys + homeSoundtrackKeys + lyricsShareKeys + listeningReceiptKeys + settingsSearchKeys + smartOfflineLocalizationKeys + appUpdateKeys + derbisNotchKeys + contentFilterKeys + subsonicKeys + artworkQualityKeys + artistGlassKeys
             val missing = allRequiredKeys - resolvedEntries.keys
             val finalEntries = if (missing.isNotEmpty()) {
                 val fallback = resolvedEntries.toMutableMap()

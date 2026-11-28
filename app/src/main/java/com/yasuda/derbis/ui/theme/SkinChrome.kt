@@ -39,24 +39,25 @@ internal val TorqueStripShape = androidx.compose.foundation.shape.GenericShape {
 
 internal object SkinChrome {
     val active: Boolean get() = DerbisSkinManagesLayout
-    val outerCorner: Dp get() = if (DerbisIsYouTubeMusic) YouTubeMusicDesign.chipCorner else if (DerbisIsAppleMusic) AppleMusicDesign.cornerL else if (DerbisIsPrism) PrismDesign.surfaceCorner else Nocturne78Design.cardCorner
-    val innerCorner: Dp get() = if (DerbisIsAppleMusic) 0.dp else if (DerbisIsYouTubeMusic) YouTubeMusicDesign.artworkCorner else if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else 2.dp
-    val fieldShape: Shape get() = RoundedCornerShape(if (DerbisIsPrism) PrismDesign.controlCorner else Nocturne78Design.controlCorner)
+    val outerCorner: Dp get() = if (DerbisIsYouTubeMusic) YouTubeMusicDesign.chipCorner else if (DerbisIsAppleMusic) AppleMusicDesign.cornerL else if (DerbisIsPrism) PrismDesign.surfaceCorner else PixelDesign.cardCorner
+    val innerCorner: Dp get() = if (DerbisIsPixel || DerbisIsAppleMusic) 0.dp else if (DerbisIsYouTubeMusic) YouTubeMusicDesign.artworkCorner else if (DerbisIsPrism) PrismDesign.controlCorner.coerceAtMost(6.dp) else 2.dp
+    val fieldShape: Shape get() = RoundedCornerShape(if (DerbisIsPrism) PrismDesign.controlCorner else PixelDesign.controlCorner)
     val chipShape: Shape get() = when {
         DerbisIsYouTubeMusic -> YouTubeMusicDesign.chipShape
         DerbisIsTorque -> RoundedCornerShape(2.dp)
         DerbisIsPrism -> CircleShape
-        else -> RoundedCornerShape(Nocturne78Design.controlCorner)
+        else -> RoundedCornerShape(PixelDesign.controlCorner)
     }
-    val iconShape: Shape get() = if (DerbisIsAppleMusic) RoundedCornerShape(AppleMusicDesign.cornerM) else if (DerbisIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else RoundedCornerShape(Nocturne78Design.controlCorner)
+    val iconShape: Shape get() = if (DerbisIsAppleMusic) RoundedCornerShape(AppleMusicDesign.cornerM) else if (DerbisIsPrism) PrismDesign.cut(PrismDesign.controlCorner) else RoundedCornerShape(PixelDesign.controlCorner)
     val iconBackground: Color get() = when {
         DerbisIsYouTubeMusic -> Color.Transparent
         DerbisIsAppleMusic -> AppleMusicDesign.accent
         DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify -> Color.Transparent
         DerbisIsPrism -> PrismAccent.Tint
+        DerbisIsPixel -> PixelPalette.ink
         else -> DerbisPanelSoft
     }
-    val iconTint: Color get() = if (DerbisIsAppleMusic || DerbisIsYouTubeMusic) Color.White else if (DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify) DerbisText else DerbisCyan
+    val iconTint: Color get() = if (DerbisIsAppleMusic || DerbisIsYouTubeMusic) Color.White else if (DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsPixel) DerbisText else DerbisCyan
     val chipSelectedContainer: Color get() = when {
         DerbisIsYouTubeMusic -> Color.White
         DerbisIsAppleMusic -> AppleMusicDesign.accent
@@ -64,10 +65,11 @@ internal object SkinChrome {
         DerbisIsIvory -> IvoryDesign.ink
         DerbisIsSpotify -> SpotifyDesign.green
         DerbisIsPrism -> PrismAccent.Tint
+        DerbisIsPixel -> PixelPalette.cyan
         else -> Color.Transparent
     }
-    val chipSelectedContent: Color get() = if (DerbisIsYouTubeMusic) Color.Black else if (DerbisIsTorque || DerbisIsAppleMusic) Color.White else if (DerbisIsSpotify) Color.Black else if (DerbisIsIvory) IvoryDesign.onInk else DerbisCyan
-    val labelsUppercase: Boolean get() = DerbisIsNocturne || DerbisIsTorque
+    val chipSelectedContent: Color get() = if (DerbisIsYouTubeMusic) Color.Black else if (DerbisIsTorque || DerbisIsAppleMusic) Color.White else if (DerbisIsSpotify) Color.Black else if (DerbisIsIvory) IvoryDesign.onInk else if (DerbisIsPixel) PixelPalette.ink else DerbisCyan
+    val labelsUppercase: Boolean get() = DerbisIsPixel || DerbisIsTorque
 
     fun label(text: String, locale: Locale): String = if (labelsUppercase) text.uppercase(locale) else text
 }
@@ -85,6 +87,7 @@ internal fun SkinSwitch(checked: Boolean, modifier: Modifier = Modifier) {
 }
 
 private fun skinSwitchDimensions(): Pair<Dp, Dp> = when {
+    DerbisIsPixel -> 38.dp to 20.dp
     DerbisIsAppleMusic -> 51.dp to 31.dp
     DerbisIsYouTubeMusic -> 40.dp to 24.dp
     else -> 52.dp to 26.dp
@@ -99,6 +102,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSkinSwitch(
     val stroke = 1.5.dp.toPx()
     val inset = 3.dp.toPx()
     when {
+        DerbisIsPixel -> drawPixelSwitch(checked, travel)
         DerbisIsTorque -> drawTorqueSwitch(checked, travel, accent, idle, stroke, inset)
         DerbisIsIvory -> drawIvorySwitch(travel, IvoryDesign.ink, IvoryDesign.onInk, idle, stroke)
         DerbisIsSpotify -> drawSpotifySwitch(travel)
@@ -106,6 +110,28 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSkinSwitch(
         DerbisIsYouTubeMusic -> drawYouTubeMusicSwitch(travel)
         else -> drawRectangularSwitch(checked, travel, accent, idle, stroke, inset)
     }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPixelSwitch(checked: Boolean, travel: Float) {
+    val p = PixelPalette
+    val border = 2.dp.toPx()
+    val w = size.width
+    val h = size.height
+    drawRect(color = if (checked) p.cyan else p.black, size = Size(w, h))
+    drawRect(
+        color = if (checked) p.cyan else p.text,
+        topLeft = Offset(border / 2f, border / 2f),
+        size = Size(w - border, h - border),
+        style = Stroke(width = border)
+    )
+    val knob = 12.dp.toPx()
+    val pad = (h - knob) / 2f
+    val x = pad + (w - knob - pad * 2f) * travel
+    drawRect(
+        color = if (checked) p.ink else p.text,
+        topLeft = Offset(x, pad),
+        size = Size(knob, knob)
+    )
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTorqueSwitch(checked: Boolean, travel: Float, accent: Color, idle: Color, stroke: Float, inset: Float) {

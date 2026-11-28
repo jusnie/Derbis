@@ -1,8 +1,11 @@
 package com.yasuda.derbis.ui.library
+import com.yasuda.derbis.ui.derbisSafeTopInset
+
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import androidx.compose.foundation.shape.CircleShape
 import android.Manifest
@@ -36,7 +39,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -49,12 +52,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import com.yasuda.derbis.ui.icons.Album
-import com.yasuda.derbis.ui.icons.Close
-import com.yasuda.derbis.ui.icons.MusicNote
+import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.OfflinePin
-import com.yasuda.derbis.ui.icons.Person
-import com.yasuda.derbis.ui.icons.Search
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -66,6 +69,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -123,8 +127,7 @@ import com.yasuda.derbis.ui.i18n.DerbisPersonalCollectionCatalog
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import com.yasuda.derbis.data.ArtworkPalette
@@ -157,6 +160,12 @@ private val playlistSelectionSaver = listSaver<Set<String>, String>(
 private const val PLAYLIST_DRAG_EDGE_FACTOR = 1.35f
 private const val PLAYLIST_DRAG_SCROLL_FACTOR = 0.38f
 private const val DEVICE_LIBRARY_PARENT_LEADING_ITEMS = 4
+private data class LibraryAlphabetPlan(
+    val index: LocalLibraryAlphabetIndex,
+    val leadingItems: Int,
+    val displayedItems: Int
+)
+
 private val LibraryCategoriesGutter = 16.dp
 private val LibraryBrowseCategories = LibraryCategory.entries.filter { it != LibraryCategory.Overview && it != LibraryCategory.Collections }
 
@@ -278,7 +287,8 @@ internal fun DerbisLibraryScreen(
     state: DerbisUiState,
     onOpenDownloads: () -> Unit,
     youtubeMusicAccount: com.yasuda.derbis.data.youtubemusic.YoutubeMusicAccount? = null,
-    onOpenYoutubeMusic: () -> Unit = {}
+    onOpenYoutubeMusic: () -> Unit = {},
+    librarySectionRequest: Pair<String, Long>? = null
 ) {
     val strings = LocalDerbisStrings.current
     val colors = MaterialTheme.colorScheme
@@ -317,6 +327,22 @@ internal fun DerbisLibraryScreen(
     var pendingDownloadDelete by remember { mutableStateOf<DownloadedTrack?>(null) }
     var showImportPlaylistCard by rememberSaveable { mutableStateOf(true) }
     var openSmartCollectionName by rememberSaveable { mutableStateOf<String?>(null) }
+    var handledSectionRequestNonce by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(librarySectionRequest) {
+        val request = librarySectionRequest ?: return@LaunchedEffect
+        val (section, nonce) = request
+        if (nonce <= handledSectionRequestNonce) return@LaunchedEffect
+        handledSectionRequestNonce = nonce
+        when (section) {
+            "playlists" -> categoryName = LibraryCategory.Playlists.name
+            "downloads" -> categoryName = LibraryCategory.Offline.name
+            "favorites" -> openSmartCollectionName = SMART_COLLECTION_FAVORITES
+            "recent" -> openSmartCollectionName = SMART_COLLECTION_RECENT
+            "artists" -> categoryName = LibraryCategory.Artists.name
+            "local" -> categoryName = LibraryCategory.Device.name
+            else -> Unit
+        }
+    }
     val collectionStrings = remember(strings.code) { DerbisPersonalCollectionCatalog.forCode(strings.code) }
     val personalCollections by viewModel.personalCollections.summaries.collectAsStateWithLifecycle()
     val personalCollectionSyncing by viewModel.personalCollections.syncingIds.collectAsStateWithLifecycle()
@@ -432,6 +458,70 @@ internal fun DerbisLibraryScreen(
                 ?: localAlphabetIndex.targets.firstOrNull()?.letter
         }
     }
+    // Whole-library A–Z index for the Liquid Glass skin (iOS Taurus parity). Device keeps its own
+    // rail above. Like the Device rail and iOS, the index only appears in A–Z (Title) order with a
+    // sizeable list. Grid layouts index by their two-item rows, matching what the LazyColumn renders.
+    val libraryGlassAlphabet = remember(
+        category, query, sort, direction, layout, state.playlists,
+        visibleTracks, visibleAlbums, visibleArtists, visiblePlaylists
+    ) {
+        val glass = DerbisIsLiquidGlass
+        val alphabetical = sort == LibrarySort.Title && direction == LibrarySortDirection.Ascending
+        val toolbarVisible = category != LibraryCategory.Overview &&
+            category != LibraryCategory.Collections &&
+            (category != LibraryCategory.Playlists || state.playlists.isNotEmpty())
+        var leading = 0
+        var entries = emptyList<Pair<String, Int>>()
+        var displayedItems = 0
+        if (glass && alphabetical && query.isBlank()) {
+            when (category) {
+                LibraryCategory.Songs -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    entries = visibleTracks.mapIndexed { index, track -> track.title to index }
+                    displayedItems = visibleTracks.size
+                }
+                LibraryCategory.Albums -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    val chunks = if (layout == LibraryLayout.Grid) visibleAlbums.chunked(2).map { it.first() } else visibleAlbums
+                    entries = chunks.mapIndexed { index, album -> album.title to index }
+                    displayedItems = chunks.size
+                }
+                LibraryCategory.Artists -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    val chunks = if (layout == LibraryLayout.Grid) visibleArtists.chunked(2).map { it.first() } else visibleArtists
+                    entries = chunks.mapIndexed { index, artist -> artist.name to index }
+                    displayedItems = chunks.size
+                }
+                LibraryCategory.Playlists -> {
+                    // Playlists render a filter row and an import action before the rows themselves.
+                    leading = 3 + (if (toolbarVisible) 1 else 0) + 2
+                    val chunks = if (layout == LibraryLayout.Grid) visiblePlaylists.chunked(2).map { it.first() } else visiblePlaylists
+                    entries = chunks.mapIndexed { index, playlist -> playlist.name to index }
+                    displayedItems = chunks.size
+                }
+                else -> Unit
+            }
+        }
+        LibraryAlphabetPlan(
+            index = libraryAlphabetIndex(entries, displayedItems),
+            leadingItems = leading,
+            displayedItems = displayedItems
+        )
+    }
+    val libraryActiveAlphabetLetter by remember(libraryGlassAlphabet, listState) {
+        derivedStateOf {
+            val plan = libraryGlassAlphabet
+            if (!plan.index.visible) {
+                null
+            } else {
+                val displayed = (listState.firstVisibleItemIndex - plan.leadingItems)
+                    .coerceIn(0, (plan.displayedItems - 1).coerceAtLeast(0))
+                plan.index.targets.lastOrNull { it.contentIndex <= displayed }?.letter
+                    ?: plan.index.targets.firstOrNull()?.letter
+            }
+        }
+    }
+
     var expandedLocalGroupKey by rememberSaveable { mutableStateOf<String?>(null) }
     var localTagEditorTarget by remember { mutableStateOf<LocalMediaEntity?>(null) }
     var localTagEditorSaving by remember { mutableStateOf(false) }
@@ -650,7 +740,7 @@ internal fun DerbisLibraryScreen(
     Box(modifier = Modifier.fillMaxSize().background(if (com.yasuda.derbis.ui.theme.DerbisIsYouTubeMusic) com.yasuda.derbis.ui.theme.YouTubeMusicDesign.background else DerbisInk)) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().statusBarsPadding(),
+            modifier = Modifier.fillMaxSize().derbisSafeTopPadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
@@ -683,7 +773,7 @@ internal fun DerbisLibraryScreen(
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
                     singleLine = true,
-                    shape = if (DerbisIsNocturne) RoundedCornerShape(Nocturne78Design.controlCorner) else CircleShape,
+                    shape = if (DerbisIsPixel) RoundedCornerShape(PixelDesign.controlCorner) else CircleShape,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         color = colors.onSurface,
                         fontWeight = FontWeight.Medium
@@ -1221,6 +1311,17 @@ internal fun DerbisLibraryScreen(
                     .align(Alignment.CenterEnd)
                     .padding(end = 3.dp)
             )
+        } else if (DerbisIsLiquidGlass && category != LibraryCategory.Device && libraryGlassAlphabet.index.visible) {
+            LocalLibraryAlphabetRail(
+                index = libraryGlassAlphabet.index,
+                activeLetter = libraryActiveAlphabetLetter,
+                onJump = { contentIndex ->
+                    listState.requestScrollToItem(libraryGlassAlphabet.leadingItems + contentIndex)
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 3.dp)
+            )
         }
 
         AnimatedVisibility(
@@ -1557,7 +1658,7 @@ internal fun DerbisPlaylistDetailScreen(
             .windowInsetsPadding(DerbisHorizontalSafeInsets)
     ) {
         val wide = resolvePlayerPane(maxWidth.value, maxHeight.value) == DerbisPlayerPane.SideBySide
-        val topBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp
+        val topBarHeight = derbisSafeTopInset() + 64.dp
         val heroHeight = immersiveHeroHeight(wide, maxWidth, maxHeight, topBarHeight)
         val gutter = immersiveMediaGutter(maxWidth)
         val collapseThreshold = with(LocalDensity.current) { (heroHeight - topBarHeight).coerceAtLeast(0.dp).toPx() }

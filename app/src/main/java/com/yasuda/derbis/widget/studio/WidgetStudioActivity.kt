@@ -34,7 +34,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -43,11 +43,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Add
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.Lock
-import com.yasuda.derbis.ui.icons.RestartAlt
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -176,7 +176,7 @@ private fun WidgetStudioScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DerbisInk)
-            .statusBarsPadding()
+            .derbisSafeTopPadding()
     ) {
         if (current == null) {
             WidgetStudioOverview(copy = copy, onEdit = { target = it }, onExit = onExit)

@@ -1,8 +1,10 @@
 package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.components.DerbisPlayAllIconButton
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -21,13 +23,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Folder
-import com.yasuda.derbis.ui.icons.LibraryMusic
-import com.yasuda.derbis.ui.icons.Lock
-import com.yasuda.derbis.ui.icons.Person
-import com.yasuda.derbis.ui.icons.Refresh
-import com.yasuda.derbis.ui.icons.VisibilityOff
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -555,6 +557,25 @@ internal fun localLibraryAlphabetIndex(
     return LocalLibraryAlphabetIndex(targets = targets, itemCount = labels.size)
 }
 
+/**
+ * Builds an A–Z index for a plain list of (label, contentIndex) rows in display order. Shared by
+ * the Device rail and the Liquid Glass whole-library index. `itemCount` is the number of LazyColumn
+ * items the content occupies; `contentIndex` is the target's position among those items.
+ */
+internal fun libraryAlphabetIndex(entries: List<Pair<String, Int>>, itemCount: Int): LocalLibraryAlphabetIndex {
+    val targets = buildList {
+        var previous: Char? = null
+        entries.forEach { (label, contentIndex) ->
+            val letter = localAlphabetLetter(label) ?: return@forEach
+            if (letter != previous) {
+                add(LocalLibraryAlphabetTarget(letter, contentIndex))
+                previous = letter
+            }
+        }
+    }
+    return LocalLibraryAlphabetIndex(targets = targets, itemCount = itemCount)
+}
+
 @Composable
 internal fun LocalLibraryAlphabetRail(
     index: LocalLibraryAlphabetIndex,
@@ -569,24 +590,38 @@ internal fun LocalLibraryAlphabetRail(
         val targetIndex = (y / slot).toInt().coerceIn(0, index.targets.lastIndex)
         onJump(index.targets[targetIndex].contentIndex)
     }
-    Surface(
-        color = DerbisPanelSoft.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, DerbisMuted.copy(alpha = 0.14f)),
-        shape = RoundedCornerShape(14.dp),
-        modifier = modifier
-            .width(28.dp)
-            .pointerInput(index.targets) {
-                detectDragGestures(
-                    onDragStart = { offset -> jumpAt(offset.y, size.height) },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        jumpAt(change.position.y, size.height)
-                    }
-                )
+    val isGlass = com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
+    val railShape: androidx.compose.foundation.shape.CornerBasedShape =
+        if (isGlass) RoundedCornerShape(percent = 50) else RoundedCornerShape(14.dp)
+    val railModifier = modifier
+        .width(28.dp)
+        .then(
+            // Taurus parity: the iOS index bar is a floating glass capsule (derbisGlassCapsule),
+            // not an opaque panel — the letters stay accent-lit on a sampled backdrop.
+            if (isGlass) {
+                Modifier.derbisLightweightGlass(railShape, DerbisPanel.copy(alpha = 0.32f), rim = false)
+            } else {
+                Modifier.background(DerbisPanelSoft.copy(alpha = 0.94f), railShape)
             }
+        )
+        .pointerInput(index.targets) {
+            detectDragGestures(
+                onDragStart = { offset -> jumpAt(offset.y, size.height) },
+                onDrag = { change, _ ->
+                    change.consume()
+                    jumpAt(change.position.y, size.height)
+                }
+            )
+        }
+    Box(
+        modifier = railModifier
+            .then(
+                if (isGlass) Modifier
+                else Modifier.border(1.dp, DerbisMuted.copy(alpha = 0.14f), railShape)
+            )
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 5.dp),
+            modifier = Modifier.padding(vertical = 5.dp, horizontal = if (isGlass) 1.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             index.targets.forEach { target ->

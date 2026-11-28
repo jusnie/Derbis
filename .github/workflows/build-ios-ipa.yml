@@ -1,142 +1,178 @@
-name: Build Derbis iOS IPA (Sideloadly & AltStore Ready)
+name: Build Unofficial Derbis iOS IPA (Native SwiftUI · KSign Ready)
 
 on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: "Version string for iOS build (e.g. 1.1.1)"
+        description: "Marketing version string embedded in Info.plist"
         required: true
-        default: "1.1.1"
+        default: "1.8.0"
       release_build_number:
-        description: "Build number (CFBundleVersion)"
+        description: "CFBundleVersion build integer"
         required: true
-        default: "3000204"
-      publish_release:
-        description: "Attach IPA to GitHub Release (true/false)"
-        required: false
-        default: "false"
+        default: "1"
+      publish_prerelease:
+        description: "Publish unofficial iOS pre-release tag (isolated from Android APK updater)"
+        type: boolean
+        default: true
   push:
-    branches: [ main ]
-    paths:
-      - 'website/**'
-      - '.github/workflows/build-ios-ipa.yml'
+    branches:
+      - arena/b05b2e2f-derbis
 
 permissions:
   contents: write
 
+concurrency:
+  group: derbis-ios-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-ios:
-    name: Build iOS IPA Package
-    runs-on: macos-14
+    name: Build Native iOS IPA (KSign Ready)
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[ios]') }}
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: 'website/package-lock.json'
-
-      - name: Install Website Dependencies & Build Web Client
-        working-directory: website
+      - name: Ensure XcodeGen is installed
+        shell: bash
         run: |
-          npm install || true
-          node build.js
-          mkdir -p dist
-          cp -r index.html app.js styles.css assets install.html manifest.plist dist/ 2>/dev/null || true
-
-      - name: Setup Capacitor iOS Project
-        working-directory: website
-        run: |
-          npm install --save-exact @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/ios@^6.0.0
-          if [ ! -d "ios" ]; then
-            npx cap add ios
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
           fi
-          npx cap sync ios
+          xcodegen --version
+          xcodebuild -version
 
-      - name: Configure iOS Background Audio & App Metadata (iPhone 12+ Optimized)
-        working-directory: website/ios/App/App
+      - name: Generate Xcode project from ios/project.yml
+        working-directory: ios
+        shell: bash
         run: |
-          # Inject Background Audio modes into Info.plist for continuous background music on iOS
-          plutil -insert UIBackgroundModes -xml "<array><string>audio</string></array>" Info.plist || true
-          plutil -replace CFBundleDisplayName -string "Derbis" Info.plist || true
-          plutil -replace CFBundleShortVersionString -string "${{ inputs.release_version || '1.1.1' }}" Info.plist || true
-          plutil -replace CFBundleVersion -string "${{ inputs.release_build_number || '3000204' }}" Info.plist || true
-          plutil -replace MinimumOSVersion -string "16.0" Info.plist || true
-          plutil -replace ITSAppUsesNonExemptEncryption -bool NO Info.plist || true
-          # iPhone 12 & Upper Optimizations (120Hz ProMotion, Metal 3, Fullscreen OLED Super Retina XDR)
-          plutil -replace CADisableMinimumFrameDurationOnPhone -bool YES Info.plist || true
-          plutil -replace UIRequiresFullScreen -bool YES Info.plist || true
-          plutil -replace UIStatusBarStyle -string "UIStatusBarStyleLightContent" Info.plist || true
-          plutil -replace UIViewControllerBasedStatusBarAppearance -bool NO Info.plist || true
-          plutil -replace UIRequiredDeviceCapabilities -xml "<array><string>arm64</string><string>metal</string></array>" Info.plist || true
-          plutil -replace NSMicrophoneUsageDescription -string "Derbis uses audio analysis to power the J.A.R.V.I.S. 3D holographic beat sphere and liquid audio visualizers." Info.plist || true
+          set -euo pipefail
+          xcodegen generate
 
-      - name: Build Unsigned iOS App Bundle (.app)
-        working-directory: website/ios/App
+      - name: Set bundle version metadata
+        working-directory: ios/Derbis
+        env:
+          IOS_VERSION: ${{ inputs.release_version || '1.8.0' }}
+          IOS_BUILD: ${{ inputs.release_build_number || '1' }}
+          DERBIS_JAM_RELAY_URL: ${{ vars.DERBIS_JAM_RELAY_URL }}
+        shell: bash
         run: |
+          set -euo pipefail
+          plutil -replace CFBundleShortVersionString -string "${IOS_VERSION}" Info.plist
+          plutil -replace CFBundleVersion -string "${IOS_BUILD}" Info.plist
+          if [[ -n "${DERBIS_JAM_RELAY_URL:-}" ]]; then
+            plutil -replace DerbisJamRelayURL -string "${DERBIS_JAM_RELAY_URL}" Info.plist
+          fi
+
+      - name: Compile native arm64 iOS app bundle
+        shell: bash
+        run: |
+          set +e
           xcodebuild clean build \
-            -workspace App.xcworkspace \
-            -scheme App \
+            -project ios/Derbis.xcodeproj \
+            -scheme Derbis \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
+            -derivedDataPath build_derived \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM="" 2>&1 | tee xcodebuild.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+          if [[ "${BUILD_STATUS}" -ne 0 ]]; then
+            grep -E "error:|fatal error:|Multiple commands produce" xcodebuild.log | head -n 25 | while IFS= read -r err_line; do
+              echo "::error::${err_line}"
+            done
+            tail -n 15 xcodebuild.log | while IFS= read -r tail_line; do
+              echo "::warning::${tail_line}"
+            done
+            exit "${BUILD_STATUS}"
+          fi
 
-      - name: Package Sideloadly & AltStore IPA (.ipa)
+      - name: Package KSign-compatible IPA
+        shell: bash
         run: |
+          set -euo pipefail
+          APP_PATH="build_derived/Build/Products/Release-iphoneos/Derbis.app"
+          if [[ ! -d "${APP_PATH}" ]]; then
+            echo "Compiled Derbis.app not found at ${APP_PATH}" >&2
+            exit 1
+          fi
+
+          lipo -info "${APP_PATH}/Derbis"
+          ls -la "${APP_PATH}"
+
+          rm -rf build_output
           mkdir -p build_output/Payload
-          APP_PATH=$(find website/ios/App -name "*.app" -type d | grep "Release-iphoneos" | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "App.app" -type d | grep "Release-iphoneos" | head -n 1)
-          fi
-          echo "Found compiled app at: $APP_PATH"
-          cp -R "$APP_PATH" build_output/Payload/Derbis.app
-          cd build_output
-          zip -qr9 Derbis.ipa Payload
-          zip -qr9 Derbis-unsigned.ipa Payload
-          rm -rf Payload
-          cd ..
-          ls -la build_output/
+          cp -R "${APP_PATH}" build_output/Payload/Derbis.app
 
-      - name: Sign IPA with Certificate (Optional - via zsign)
-        if: ${{ env.IOS_P12_BASE64 != '' && env.IOS_P12_PASSWORD != '' }}
-        env:
-          IOS_P12_BASE64: ${{ secrets.IOS_P12_BASE64 }}
-          IOS_P12_PASSWORD: ${{ secrets.IOS_P12_PASSWORD }}
-          IOS_MOBILEPROVISION_BASE64: ${{ secrets.IOS_MOBILEPROVISION_BASE64 }}
-        run: |
-          brew install pkg-config openssl
-          git clone https://github.com/zhlynn/zsign.git /tmp/zsign
-          cd /tmp/zsign/build/macos && make
-          sudo cp zsign /usr/local/bin/
-          cd -
-          echo "$IOS_P12_BASE64" | base64 --decode > /tmp/cert.p12
-          if [ -n "$IOS_MOBILEPROVISION_BASE64" ]; then
-            echo "$IOS_MOBILEPROVISION_BASE64" | base64 --decode > /tmp/embedded.mobileprovision
-            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -m /tmp/embedded.mobileprovision -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
-            rm /tmp/embedded.mobileprovision
-          else
-            zsign -k /tmp/cert.p12 -p "$IOS_P12_PASSWORD" -o build_output/Derbis-signed.ipa build_output/Derbis.ipa
+          if [[ ! -f build_output/Payload/Derbis.app/PkgInfo ]]; then
+            printf 'APPL????' > build_output/Payload/Derbis.app/PkgInfo
           fi
-          rm /tmp/cert.p12
 
-      - name: Upload IPA Artifacts
+          # Clean ad-hoc signature with zero restricted entitlements so KSign re-signs with any .p12/.mobileprovision
+          codesign --force --deep --sign - --timestamp=none build_output/Payload/Derbis.app
+
+          (
+            cd build_output
+            zip -qry9 Derbis-unofficial.ipa Payload
+            shasum -a 256 Derbis-unofficial.ipa > Derbis-unofficial.ipa.sha256
+          )
+          rm -rf build_output/Payload
+          ls -lh build_output/
+
+      - name: Upload IPA workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Derbis-iOS-IPA
-          path: build_output/*.ipa
+          name: Derbis-unofficial-iOS-IPA
+          path: |
+            build_output/Derbis-unofficial.ipa
+            build_output/Derbis-unofficial.ipa.sha256
 
-      - name: Attach IPA to GitHub Release
-        if: ${{ inputs.publish_release == 'true' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v${{ inputs.release_version || '1.1.1' }}"
-          files: build_output/*.ipa
+      - name: Publish unofficial iOS pre-release (invisible to Android APK updater)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_prerelease == true }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+          TAG="ios-unofficial-${SHORT_SHA}"
+          NOTES_FILE="$(mktemp)"
+          cat > "${NOTES_FILE}" <<EOF
+          ## Derbis for iOS — Unofficial Native Build (\`${SHORT_SHA}\`)
+
+          > **Unofficial iOS test package** — completely separate from the official Android APK line and ignored by Android update detection.
+
+          ### Highlights
+          - **100% Native iOS App (\`arm64\` Swift + SwiftUI + \`AVPlayer\`)** — zero HTML / WebView
+          - **KSign Ready** — single \`Payload/Derbis.app\` bundle with no restricted Apple entitlements or extension plug-ins
+          - **4 Derbis Skins:** Apple Music 13, Pixel UI (bundled \`Pixelify Sans\`), Derbis Default, and Late Night
+          - **iOS Native Playback:** Background audio, Lock Screen & Dynamic Island controls, AirPlay picker, Sleep Timer, and Playback Speed
+          - **Streaming & Library:** YouTube Music search/discovery/radio, time-synced \`LRCLIB\` lyrics, Offline M4A downloads, Local \`FLAC / ALAC / M4A / MP3 / WAV\` file import, and Navidrome / Subsonic server support
+
+          ### Install with KSign
+          1. Download **\`Derbis-unofficial.ipa\`** below on your iPhone.
+          2. Open **KSign**, import \`Derbis-unofficial.ipa\`, sign with your certificate, and tap **Install**.
+          EOF
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" build_output/Derbis-unofficial.ipa build_output/Derbis-unofficial.ipa.sha256 --clobber
+          else
+            gh release create "${TAG}" \
+              build_output/Derbis-unofficial.ipa \
+              build_output/Derbis-unofficial.ipa.sha256 \
+              --title "Derbis iOS Unofficial (${SHORT_SHA})" \
+              --notes-file "${NOTES_FILE}" \
+              --prerelease \
+              --latest=false \
+              --target "${GITHUB_SHA}"
+          fi

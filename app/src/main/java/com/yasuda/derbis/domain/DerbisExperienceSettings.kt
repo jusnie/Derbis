@@ -11,6 +11,22 @@ enum class DerbisCanvasQuality {
     }
 }
 
+/**
+ * How the Liquid Glass skin paints the canvas behind the whole app (the mock's four background
+ * modes). Only consulted by the glass skin; other skins keep their own atmosphere.
+ */
+enum class DerbisBackgroundMode(val storageValue: String, val label: String) {
+    Glow("glow", "Glow"),
+    Animated("animated", "Animated"),
+    ArtworkBlur("artwork_blur", "Blur"),
+    CustomImage("custom_image", "Custom");
+
+    companion object {
+        fun from(value: String?): DerbisBackgroundMode =
+            entries.firstOrNull { it.storageValue == value?.trim()?.lowercase() } ?: Glow
+    }
+}
+
 /** Kept as a one-value type so old preference/backup values migrate without a source picker. */
 enum class DerbisCanvasSource {
     Auto;
@@ -32,6 +48,29 @@ enum class DerbisVisualPerformance {
 }
 
 /** Lyric treatment inside the Derbis Notch card. */
+/**
+ * How large a cover the CDNs are allowed to be asked for.
+ *
+ * A ceiling, not a target: nothing is ever raised. A 256 px thumbnail still asks for 256 with
+ * [High] selected, and the full-screen player is the only view that notices the difference
+ * between [Medium] and [High] at all.
+ *
+ * This exists because the app already asks each CDN for a size that suits the view, but never
+ * for a *cap* — so a full-screen player requests up to 1200 px, and on a weak connection that is
+ * a few hundred kilobytes before a single pixel is drawn. The three steps are the ones the
+ * preview quoted: halving the ceiling removes three quarters of the pixels, not half.
+ */
+enum class DerbisArtworkQuality(val pixels: Int) {
+    Low(480),
+    Medium(720),
+    High(1080);
+
+    companion object {
+        fun from(value: String): DerbisArtworkQuality =
+            entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Medium
+    }
+}
+
 enum class DerbisNotchStyle {
     Default,
     Spicy;
@@ -79,13 +118,13 @@ enum class LibrarySortDirection {
 enum class PlayerVisualMode {
     Artwork,
     CanvasCard,
-    CanvasImmersive,
     AppleMusic13,
     TidalMusic,
     Pulse,
-    Halo,
-    Folio,
-    Flow;
+    Flow,
+    Frost,
+    DerbisOne,
+    Vinyl;
 
     companion object {
         /**
@@ -100,7 +139,13 @@ enum class PlayerVisualMode {
                 else -> entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                     ?: when (value.trim().lowercase()) {
                         "canvas_card", "card" -> CanvasCard
-                        "canvas_immersive", "immersive" -> CanvasImmersive
+                        // The immersive "Beat Sync" deck was retired; an old saved choice
+                        // (stored as the enum name, so also "canvasimmersive") lands on the
+                        // sleeve deck instead of vanishing.
+                        "canvas_immersive", "canvasimmersive", "immersive", "beatsync" -> CanvasCard
+                        // Liner Notes (Halo) and Folio were retired in favour of the cover-led
+                        // sleeve, so an old saved choice lands there instead of on the fallback.
+                        "halo", "linernotes", "liner_notes", "folio" -> CanvasCard
                         else -> Artwork
                     }
             }
@@ -197,7 +242,7 @@ enum class PlayerVerticalSwipeAction {
 
 enum class DerbisSkin {
     Default,
-    Nocturne78,
+    Pixel,
     LiquidGlass,
     Torque,
     Ivory,
@@ -207,10 +252,18 @@ enum class DerbisSkin {
     YouTubeMusicStyle;
 
     companion object {
-        /** Prism was the temporary backing name for Liquid Glass builds. Keep old preferences valid. */
-        fun from(value: String): DerbisSkin = when (value) {
-            "Prism" -> LiquidGlass
-            else -> entries.firstOrNull { it.name == value } ?: Default
+        /**
+         * Old saved names keep working.
+         *
+         * Prism was the temporary backing name for Liquid Glass builds. Pixel replaced the
+         * Nocturne 78 skin outright, so anyone who had it selected opens on Pixel rather than
+         * being silently dropped back to Default — the skin they chose is gone, but the choice
+         * was a skin, not a reset.
+         */
+        fun from(value: String): DerbisSkin = when (value.trim().lowercase()) {
+            "prism" -> LiquidGlass
+            "nocturne78", "nocturne_78", "nocturne", "nocturne 78" -> Pixel
+            else -> entries.firstOrNull { it.name.equals(value.trim(), ignoreCase = true) } ?: Default
         }
     }
 }
@@ -260,6 +313,7 @@ data class DerbisInterfaceSettings(
     val canvasQuality: DerbisCanvasQuality = DerbisCanvasQuality.Auto,
     val canvasSource: DerbisCanvasSource = DerbisCanvasSource.Auto,
     val visualPerformance: DerbisVisualPerformance = DerbisVisualPerformance.Full,
+    val artworkQuality: DerbisArtworkQuality = DerbisArtworkQuality.Medium,
     val liquidGlassEnabled: Boolean = true,
     val liteMode: Boolean = false,
     val forceHighRefreshRate: Boolean = false,
@@ -272,6 +326,22 @@ data class DerbisInterfaceSettings(
      * Auto / Always on / Off — never as a raw quality tier.
      */
     val glassEffects: DerbisGlassEffects = DerbisGlassEffects.Automatic,
+    /** Liquid Glass page background: which of the four modes paints the canvas. */
+    val glassBackgroundMode: DerbisBackgroundMode = DerbisBackgroundMode.Glow,
+    /** Strength of the mode's colour field, 20..100. */
+    val glassBackgroundIntensity: Int = DEFAULT_GLASS_BACKGROUND_INTENSITY,
+    /** Blur radius, in dp, applied by the Blur and Custom modes. */
+    val glassBackgroundBlur: Int = DEFAULT_GLASS_BACKGROUND_BLUR,
+    /** How much of the black veil is lifted, 15..100 (100 = fully clear). */
+    val glassBackgroundBrightness: Int = DEFAULT_GLASS_BACKGROUND_BRIGHTNESS,
+    /** Drift motion for Animated mode (and the slow pan of Blur/Custom). */
+    val glassBackgroundMotion: Boolean = true,
+    /** Absolute path of the user-picked custom background image, or blank for none. */
+    val glassBackgroundImage: String = "",
+    /** Accent override hue, 0..360, or -1 to follow the artwork/theme accent. */
+    val glassAccentHue: Int = -1,
+    /** Accent lightness used when [glassAccentHue] is set, 0..100. */
+    val glassAccentLightness: Int = DEFAULT_GLASS_ACCENT_LIGHTNESS,
     /** Suppresses non-essential network work while preserving user-requested playback and search. */
     val dataSaverEnabled: Boolean = false,
     val motionArtworkWifiOnly: Boolean = false,
@@ -279,11 +349,19 @@ data class DerbisInterfaceSettings(
     val enhanceVideoMetadata: Boolean = false,
     /** Hides tracks and videos explicitly identified as AI-generated. */
     val blockAiContent: Boolean = false,
+    /** Which tracks are allowed through, by their provider's explicit flag. */
+    val explicitFilter: DerbisExplicitFilter = DerbisExplicitFilter.Default,
+    /**
+     * Repeats the current lyric line as a silent, ongoing notification.
+     *
+     * Off by default: it is a second notification, and nobody should discover it by surprise.
+     */
+    val statusBarLyrics: Boolean = false,
     val pureBlack: Boolean = false,
     val hapticFeedback: Boolean = true,
-    /** In-app dynamic island pinned above the app. */
-    val derbisNotchEnabled: Boolean = true,
-    val derbisNotchStyle: DerbisNotchStyle = DerbisNotchStyle.Default,
+    /** In-app dynamic island pinned above the app. Off until the listener asks for it. */
+    val derbisNotchEnabled: Boolean = false,
+    val derbisNotch: DerbisNotchSettings = DerbisNotchSettings(),
     val playerVisualMode: PlayerVisualMode = PlayerVisualMode.Flow,
     val playerBackground: PlayerBackgroundMode = PlayerBackgroundMode.Dynamic,
     val reactiveAuraPreset: ReactiveAuraPreset = ReactiveAuraPreset.Recommended,
@@ -305,12 +383,41 @@ data class DerbisInterfaceSettings(
         glassTransparency = glassTransparency.coerceIn(0, 100),
         glassTint = glassTint.coerceIn(0, 100),
         reactiveAuraIntensity = reactiveAuraIntensity.coerceIn(0, 100),
+        glassBackgroundIntensity = glassBackgroundIntensity.coerceIn(20, 100),
+        glassBackgroundBlur = glassBackgroundBlur.coerceIn(0, 80),
+        glassBackgroundBrightness = glassBackgroundBrightness.coerceIn(15, 100),
+        glassAccentHue = glassAccentHue.coerceIn(-1, 360),
+        glassAccentLightness = glassAccentLightness.coerceIn(0, 100),
         playerColorAccent = playerColorAccent or 0xFF000000.toInt()
     )
 
     companion object {
         const val DEFAULT_GLASS_LEVEL = 50
         const val DEFAULT_REACTIVE_AURA_INTENSITY = 50
+        const val DEFAULT_GLASS_BACKGROUND_INTENSITY = 80
+        const val DEFAULT_GLASS_BACKGROUND_BLUR = 40
+        const val DEFAULT_GLASS_BACKGROUND_BRIGHTNESS = 72
+        const val DEFAULT_GLASS_ACCENT_LIGHTNESS = 55
+    }
+}
+
+enum class DerbisExplicitFilter(val storageValue: String) {
+    Off("off"),
+    HideExplicit("hide"),
+    OnlyExplicit("only");
+
+    val label: String
+        get() = when (this) {
+            Off -> "Show all"
+            HideExplicit -> "Hide explicit"
+            OnlyExplicit -> "Explicit only"
+        }
+
+    companion object {
+        val Default = Off
+
+        fun fromStorage(raw: String?): DerbisExplicitFilter =
+            entries.firstOrNull { it.storageValue == raw?.trim()?.lowercase() } ?: Default
     }
 }
 

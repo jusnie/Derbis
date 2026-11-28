@@ -34,9 +34,7 @@ import com.yasuda.derbis.domain.DerbisTab
 import com.yasuda.derbis.domain.DerbisInterfaceSettings
 import com.yasuda.derbis.domain.LibrarySort
 import com.yasuda.derbis.domain.LibrarySortDirection
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
-import com.yasuda.derbis.domain.ReactiveAuraPreset
 import com.yasuda.derbis.domain.DerbisMixKind
 import com.yasuda.derbis.domain.ListeningPulse
 import com.yasuda.derbis.domain.LyricLine
@@ -515,6 +513,7 @@ class PlayerViewModel(root: DerbisViewModel) : DerbisScreenViewModel(root, ::pla
     fun openJam() = root.openJam()
     fun openLyrics() = root.openLyrics()
     fun openQueue() = root.openQueue()
+    fun openMixLab() = root.openMixLab()
     fun openYoutubeComments() = root.openYoutubeComments()
     fun closeYoutubeComments() = root.closeYoutubeComments()
     fun retryYoutubeComments() = root.retryYoutubeComments()
@@ -538,9 +537,8 @@ class PlayerViewModel(root: DerbisViewModel) : DerbisScreenViewModel(root, ::pla
     fun selectVideoQuality(targetLabel: String?) = root.selectVideoQuality(targetLabel)
     fun setTemporaryPlaybackSpeed(value: Float) = root.setTemporaryPlaybackSpeed(value)
     fun setPlayerVisualMode(mode: PlayerVisualMode) = root.setPlayerVisualMode(mode)
-    fun setPlayerBackground(mode: PlayerBackgroundMode) = root.setPlayerBackground(mode)
-    fun setReactiveAuraPreset(preset: ReactiveAuraPreset) = root.setReactiveAuraPreset(preset)
-    fun setReactiveAuraIntensity(intensity: Int) = root.setReactiveAuraIntensity(intensity)
+    fun toggleEndlessListening() = root.toggleEndlessListening()
+    fun setKaraokeMode(value: Boolean) = root.setKaraokeMode(value)
 }
 
 class DerbisScreenViewModelFactory internal constructor(

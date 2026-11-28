@@ -2,11 +2,11 @@ package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.theme.*
 import androidx.compose.material3.HorizontalDivider
-import com.yasuda.derbis.ui.theme.Nocturne78Icons
+import com.yasuda.derbis.ui.theme.PixelIcons
 
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
-import com.yasuda.derbis.ui.theme.Nocturne78Design
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.PixelDesign
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,15 +30,15 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.unit.sp
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.CollectionsBookmark
 import androidx.compose.material.icons.rounded.DownloadDone
-import com.yasuda.derbis.ui.icons.Favorite
-import com.yasuda.derbis.ui.icons.Mic
-import com.yasuda.derbis.ui.icons.MusicNote
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PhoneAndroid
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Search
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
@@ -154,7 +154,7 @@ internal fun LibrarySectionGrid(
         }
         return
     }
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Column(modifier) {
             entries.forEach { entry ->
                 LibrarySectionTile(entry, LibrarySectionTone(colors.surfaceContainerHigh, colors.onSurfaceVariant), RoundedCornerShape(0.dp), onOpen)
@@ -589,9 +589,9 @@ private fun librarySectionAppearance(entry: LibrarySectionEntry, tone: LibrarySe
     return if (DerbisIsPrism) LibrarySectionAppearance(
         104.dp, 14.dp, shape, RoundedCornerShape(14.dp),
         colors.surfaceContainer, colors.primaryContainer, colors.onPrimaryContainer, icon
-    ) else if (DerbisIsNocturne) LibrarySectionAppearance(
-        64.dp, 10.dp, RoundedCornerShape(0.dp), RoundedCornerShape(Nocturne78Design.artworkCorner),
-        Color.Transparent, colors.surfaceContainerHigh, colors.onSurfaceVariant, Nocturne78Icons.resolve(icon)
+    ) else if (DerbisIsPixel) LibrarySectionAppearance(
+        64.dp, 10.dp, RoundedCornerShape(0.dp), RoundedCornerShape(PixelDesign.artworkCorner),
+        Color.Transparent, colors.surfaceContainerHigh, colors.onSurfaceVariant, PixelIcons.resolve(icon)
     ) else LibrarySectionAppearance(
         72.dp, 14.dp, shape, entry.category.sectionBadgePolygon().toShape(),
         colors.surfaceContainerHigh.copy(alpha = 0.62f), tone.container, tone.content, icon

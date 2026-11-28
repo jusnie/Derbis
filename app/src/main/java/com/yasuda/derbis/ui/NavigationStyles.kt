@@ -1,7 +1,8 @@
 package com.yasuda.derbis.ui
 
+import androidx.compose.ui.graphics.RectangleShape
 import com.yasuda.derbis.ui.theme.*
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
@@ -43,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
@@ -101,7 +103,12 @@ import com.yasuda.derbis.domain.NavLabelMode
 import com.yasuda.derbis.domain.NavMotion
 import com.yasuda.derbis.domain.NavStyle
 import com.yasuda.derbis.domain.NavSurfaceTone
+import com.yasuda.derbis.domain.DerbisDockActions
+import com.yasuda.derbis.domain.DerbisTabBarConfig
 import com.yasuda.derbis.domain.NavTuning
+import com.yasuda.derbis.ui.components.defaultGlassSurfaceTint
+import com.yasuda.derbis.ui.components.derbisChromeGlass
+import com.yasuda.derbis.ui.components.derbisLightweightGlass
 import com.yasuda.derbis.ui.components.dockClipHeight
 import com.yasuda.derbis.ui.components.dockLerpHeight
 import com.yasuda.derbis.ui.components.dockLerpSize
@@ -432,11 +439,10 @@ private fun navMotionSpec(motion: NavMotion, intensity: Int, animationsEnabled: 
 internal fun StyledDockSurface(
     style: NavStyle,
     tuning: NavTuning,
-    glass: GlassBackdropState?,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    if (DerbisIsNocturne) {
+    if (DerbisIsPixel) {
         Column(modifier = modifier, content = content)
         return
     }
@@ -452,7 +458,7 @@ internal fun StyledDockSurface(
     Column(
         modifier = modifier
             .clip(shape)
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
             .drawBehind {
                 if (wash.alpha > 0f) drawRect(Brush.verticalGradient(0f to wash, 0.5f to Color.Transparent))
             }
@@ -465,30 +471,22 @@ private fun Modifier.navBackground(
     background: NavBackground,
     colors: NavColors,
     opacity: Int,
-    glass: GlassBackdropState?
 ): Modifier = when (background) {
     NavBackground.Solid -> background(colors.surface)
     NavBackground.Gradient -> background(Brush.verticalGradient(listOf(colors.raised, colors.surface)))
     NavBackground.Translucent -> {
-        val frosted = colors.surface.copy(alpha = opacity / 100f * 0.82f)
         val fallback = colors.surface.copy(alpha = maxOf(opacity / 100f, 0.92f))
-        if (glass != null) {
-            glassFrost(
-                state = glass,
-                blurRadius = 24.dp,
-                onDrawFrosted = { drawRect(frosted) },
-                onDrawFallback = { drawRect(fallback) }
-            )
-        } else {
-            background(fallback)
-        }
+        derbisChromeGlass(
+            shape = RectangleShape,
+            tint = defaultGlassSurfaceTint(colors.isLight),
+            fallback = Modifier.derbisLightweightGlass(RectangleShape, fallback, rim = true)
+        )
     }
 }
 
 private fun Modifier.navLiquidGlass(
     colors: NavColors,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float
 ): Modifier {
@@ -503,23 +501,12 @@ private fun Modifier.navLiquidGlass(
         0f to Color.White.copy(alpha = if (colors.isLight) 0.70f else 0.30f),
         1f to Color.White.copy(alpha = if (colors.isLight) 0.18f else 0.05f)
     )
-    val material = if (glass != null) {
-        glassFrost(
-            state = glass,
-            blurRadius = 32.dp,
-            refractionShape = shape,
-            onDrawFrosted = {
-                drawRect(frosted)
-                drawRect(sheen)
-            },
-            onDrawFallback = {
-                drawRect(fallback)
-                drawRect(sheen)
-            }
-        )
-    } else {
-        background(fallback).drawBehind { drawRect(sheen) }
-    }
+    // Real page glass on the Liquid Glass skin; BitChord's lightweight material otherwise.
+    val material = derbisChromeGlass(
+        shape = shape,
+        tint = defaultGlassSurfaceTint(colors.isLight),
+        fallback = Modifier.derbisLightweightGlass(shape, fallback, rim = true)
+    ).drawBehind { drawRect(sheen) }
     return shadow(
         elevation = (8f + 10f * depth).dp,
         shape = shape,
@@ -535,7 +522,6 @@ private fun Modifier.navCapsule(
     colors: NavColors,
     background: NavBackground,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float
 ): Modifier = shadow(
@@ -545,7 +531,7 @@ private fun Modifier.navCapsule(
     spotColor = Color.Black.copy(alpha = 0.32f)
 )
     .clip(shape)
-    .navBackground(background, colors, opacity, glass)
+    .navBackground(background, colors, opacity)
     .border(DerbisPlayerDesign.Hairline, colors.rim, shape)
 
 private fun navLabelRoom(mode: NavLabelMode): Dp = when (mode) {
@@ -596,17 +582,16 @@ private fun navDockSurface(
     colors: NavColors,
     background: NavBackground,
     opacity: Int,
-    glass: GlassBackdropState?,
     shape: Shape,
     depth: Float,
     link: DockLink?,
     outer: Dp
 ): Modifier = when {
-    style == NavStyle.LiquidGlass -> Modifier.navLiquidGlass(colors, opacity, glass, shape, depth)
+    style == NavStyle.LiquidGlass -> Modifier.navLiquidGlass(colors, opacity, shape, depth)
     style == NavStyle.ConnectedDock -> Modifier
         .dockLinkedClip((6f + 10f * depth).dp, colors.rim) { connectedNavShape(outer, link) }
-        .navBackground(background, colors, opacity, glass)
-    style.floating -> Modifier.navCapsule(colors, background, opacity, glass, shape, depth)
+        .navBackground(background, colors, opacity)
+    style.floating -> Modifier.navCapsule(colors, background, opacity, shape, depth)
     else -> Modifier
 }
 
@@ -655,25 +640,32 @@ internal fun StyledBottomTabs(
     selected: DerbisTab,
     compaction: () -> Float,
     onSelect: (DerbisTab) -> Unit,
-    glass: GlassBackdropState?,
     applySystemInset: Boolean = true,
-    link: DockLink? = null
+    link: DockLink? = null,
+    dock: DerbisTabBarConfig? = null,
+    onDockAction: ((DerbisDockEntry) -> Unit)? = null
 ) {
     if (DerbisIsPrism) {
-        PrismBottomTabs(tuning, selected, onSelect, applySystemInset)
+        PrismBottomTabs(tuning, selected, onSelect, applySystemInset, dock, onDockAction)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneBottomTabs(tuning, selected, onSelect, applySystemInset)
+    if (DerbisIsPixel) {
+        PixelBottomTabs(tuning, selected, onSelect, applySystemInset)
         return
     }
     val allEntries = rememberDerbisTabEntries()
-    val visibleEntries = remember(allEntries, tuning.order, tuning.hidden) {
+    val tabEntries = remember(allEntries, tuning.order, tuning.hidden) {
         tuning.visibleOrder().mapNotNull { tab -> allEntries.firstOrNull { it.tab == tab } }
     }
-    val searchEntry = if (style == NavStyle.SplitDock) visibleEntries.firstOrNull { it.tab == DerbisTab.Search } else null
+    val dockConfigEntries = if (dock != null) rememberDockEntries(dock) else null
+    val visibleEntries: List<DerbisDockEntry> = dockConfigEntries ?: dockEntriesFromTabEntries(tabEntries)
+    val dockSelect: (DerbisDockEntry) -> Unit = { entry ->
+        entry.tab?.let(onSelect) ?: onDockAction?.invoke(entry)
+    }
+    val selectedKey = derbisDockSelectionKey(selected)
+    val searchEntry = if (style == NavStyle.SplitDock) visibleEntries.firstOrNull { it.action == DerbisDockActions.Search } else null
     val entries = remember(visibleEntries, searchEntry) {
-        if (searchEntry == null) visibleEntries else visibleEntries.filterNot { it.tab == DerbisTab.Search }
+        if (searchEntry == null) visibleEntries else visibleEntries.filterNot { it.action == DerbisDockActions.Search }
     }
     if (entries.isEmpty()) return
     val colors = rememberNavColors(style, tuning)
@@ -681,7 +673,7 @@ internal fun StyledBottomTabs(
     val motion = remember(tuning.motion, tuning.intensity, animationsEnabled) {
         navMotionSpec(tuning.motion, tuning.intensity, animationsEnabled)
     }
-    val selectedIndex = entries.indexOfFirst { it.tab == selected }
+    val selectedIndex = entries.indexOfFirst { derbisDockEntrySelected(it, selectedKey) }
     var parkedIndex by remember { mutableIntStateOf(0) }
     if (selectedIndex >= 0) {
         SideEffect { parkedIndex = selectedIndex }
@@ -708,7 +700,7 @@ internal fun StyledBottomTabs(
             SplitDockRow(
                 entries = entries,
                 searchEntry = searchEntry,
-                selected = selected,
+                selectedKey = selectedKey,
                 restingIndex = restingIndex,
                 position = { indicatorPosition.value },
                 tuning = tuning,
@@ -716,16 +708,15 @@ internal fun StyledBottomTabs(
                 motion = motion,
                 geometry = geometry,
                 compaction = compaction,
-                glass = glass,
                 depth = depth,
                 outer = outer,
                 expansion = expansion,
-                onSelect = onSelect
+                onSelect = dockSelect
             )
         } else {
             val shape = remember(outer) { RoundedCornerShape(outer) }
-            val surface = remember(style, colors, tuning.background, tuning.opacity, glass, shape, depth, link, outer) {
-                navDockSurface(style, colors, tuning.background, tuning.opacity, glass, shape, depth, link, outer)
+            val surface = remember(style, colors, tuning.background, tuning.opacity, shape, depth, link, outer) {
+                navDockSurface(style, colors, tuning.background, tuning.opacity, shape, depth, link, outer)
             }
             StyledTabCapsule(
                 modifier = Modifier
@@ -734,7 +725,7 @@ internal fun StyledBottomTabs(
                     .navDockSizing(floating, compaction, geometry)
                     .then(surface),
                 entries = entries,
-                selected = selected,
+                selectedKey = selectedKey,
                 indicatorIndex = selectedIndex,
                 position = { indicatorPosition.value },
                 indicatorAlpha = null,
@@ -745,7 +736,7 @@ internal fun StyledBottomTabs(
                 floating = floating,
                 compaction = compaction,
                 expansion = expansion,
-                onSelect = onSelect
+                onSelect = dockSelect
             )
         }
         if (applySystemInset) {
@@ -757,8 +748,8 @@ internal fun StyledBottomTabs(
 @Composable
 private fun StyledTabCapsule(
     modifier: Modifier,
-    entries: List<DerbisTabEntry>,
-    selected: DerbisTab,
+    entries: List<DerbisDockEntry>,
+    selectedKey: String,
     indicatorIndex: Int,
     position: () -> Float,
     indicatorAlpha: (() -> Float)?,
@@ -769,7 +760,7 @@ private fun StyledTabCapsule(
     floating: Boolean,
     compaction: () -> Float,
     expansion: NavExpansion?,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisDockEntry) -> Unit
 ) {
     val padding = tuning.paddingDp.dp
     val spacing = tuning.spacingDp.dp
@@ -785,7 +776,7 @@ private fun StyledTabCapsule(
             if (expansion != null) {
                 ExpandingTabRow(
                     entries = entries,
-                    selected = selected,
+                    selectedKey = selectedKey,
                     tuning = tuning,
                     colors = colors,
                     motion = motion,
@@ -824,7 +815,7 @@ private fun StyledTabCapsule(
                 )
                 StyledTabRow(
                     entries = entries,
-                    selected = selected,
+                    selectedKey = selectedKey,
                     tuning = tuning,
                     colors = colors,
                     iconTop = geometry.iconTop,
@@ -839,9 +830,9 @@ private fun StyledTabCapsule(
 
 @Composable
 private fun SplitDockRow(
-    entries: List<DerbisTabEntry>,
-    searchEntry: DerbisTabEntry,
-    selected: DerbisTab,
+    entries: List<DerbisDockEntry>,
+    searchEntry: DerbisDockEntry,
+    selectedKey: String,
     restingIndex: Int,
     position: () -> Float,
     tuning: NavTuning,
@@ -849,22 +840,21 @@ private fun SplitDockRow(
     motion: NavMotionSpec,
     geometry: NavDockGeometry,
     compaction: () -> Float,
-    glass: GlassBackdropState?,
     depth: Float,
     outer: Dp,
     expansion: NavExpansion?,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisDockEntry) -> Unit
 ) {
-    val searchSelected = selected == searchEntry.tab
+    val searchSelected = derbisDockEntrySelected(searchEntry, selectedKey)
     val detach = animateFloatAsState(
         targetValue = if (searchSelected) 1f else 0f,
         animationSpec = motion.position,
         label = "split-dock-detach"
     )
-    val capsuleSurface = remember(colors, tuning.background, tuning.opacity, glass, depth, outer, detach) {
+    val capsuleSurface = remember(colors, tuning.background, tuning.opacity, depth, outer, detach) {
         Modifier
             .dockLinkedClip((6f + 12f * depth).dp, colors.rim) { splitCapsuleShape(outer, detach.value) }
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
     }
     Row(
         modifier = Modifier
@@ -878,7 +868,7 @@ private fun SplitDockRow(
                 .navDockSizing(true, compaction, geometry)
                 .then(capsuleSurface),
             entries = entries,
-            selected = selected,
+            selectedKey = selectedKey,
             indicatorIndex = restingIndex,
             position = position,
             indicatorAlpha = { 1f - detach.value.coerceIn(0f, 1f) },
@@ -905,7 +895,6 @@ private fun SplitDockRow(
             motion = motion,
             geometry = geometry,
             compaction = compaction,
-            glass = glass,
             depth = depth,
             onSelect = onSelect
         )
@@ -914,7 +903,7 @@ private fun SplitDockRow(
 
 @Composable
 private fun SplitSearchOrb(
-    entry: DerbisTabEntry,
+    entry: DerbisDockEntry,
     isSelected: Boolean,
     detach: State<Float>,
     tuning: NavTuning,
@@ -922,9 +911,8 @@ private fun SplitSearchOrb(
     motion: NavMotionSpec,
     geometry: NavDockGeometry,
     compaction: () -> Float,
-    glass: GlassBackdropState?,
     depth: Float,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisDockEntry) -> Unit
 ) {
     val haptics = LocalDerbisHaptics.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -949,11 +937,16 @@ private fun SplitSearchOrb(
         animationSpec = motion.scale,
         label = "split-orb-bloom"
     )
-    val surface = remember(colors, tuning.background, tuning.opacity, glass, depth, detach) {
+    val surface = remember(colors, tuning.background, tuning.opacity, depth, detach) {
         Modifier
             .dockLinkedClip((6f + 12f * depth).dp, colors.rim) { splitOrbShape(detach.value) }
-            .navBackground(tuning.background, colors, tuning.opacity, glass)
+            .navBackground(tuning.background, colors, tuning.opacity)
     }
+    val (orbGlyphMotion, orbFireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+    val orbAppear = rememberTabIconAppear()
+    TabIconFireOnBecomeActive(isSelected, orbFireGlyphMotion)
+    val orbGlyph = orbGlyphMotion()
+    val (orbAppearScale, orbAppearAlpha) = orbAppear()
     val filled = tuning.indicator.filled
     Box(
         modifier = Modifier
@@ -961,16 +954,21 @@ private fun SplitSearchOrb(
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
-                contentDescription = entry.label
+                contentDescription = entry.spoken
             }
             .then(surface)
             .drawBehind { drawSplitOrbMark(bloom, filled, colors) }
+            .graphicsLayer {
+                scaleX = orbAppearScale
+                scaleY = orbAppearScale
+                alpha = orbAppearAlpha
+            }
             .derbisPressable(
                 onClick = {
                     if (!isSelected && tuning.haptics) {
                         haptics.perform(if (motion.pop > 1f) DerbisHapticAction.Confirm else DerbisHapticAction.SeekSnap)
                     }
-                    onSelect(entry.tab)
+                    onSelect(entry)
                 },
                 interactionSource = interactionSource,
                 pressedScale = if (motion.animated) 0.94f else 1f
@@ -978,15 +976,17 @@ private fun SplitSearchOrb(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (isSelected) entry.selectedIcon else entry.unselectedIcon,
+            imageVector = if (isSelected) entry.icon else entry.unselectedIcon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
                 .size(tuning.iconDp.dp)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    rotationZ = tilt
+                    scaleX = scale * orbGlyph.scaleX
+                    scaleY = scale * orbGlyph.scaleY
+                    rotationZ = tilt + orbGlyph.rotationDegrees
+                    translationX = orbGlyph.translationXDp.dp.toPx()
+                    translationY = orbGlyph.translationYDp.dp.toPx()
                 }
         )
     }
@@ -1070,14 +1070,14 @@ internal fun ConnectedDockPreviewSlab(tuning: NavTuning) {
 
 @Composable
 private fun StyledTabRow(
-    entries: List<DerbisTabEntry>,
-    selected: DerbisTab,
+    entries: List<DerbisDockEntry>,
+    selectedKey: String,
     tuning: NavTuning,
     colors: NavColors,
     iconTop: Dp,
     motion: NavMotionSpec,
     foldLabel: (() -> Float)?,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisDockEntry) -> Unit
 ) {
     val haptics = LocalDerbisHaptics.current
     Row(
@@ -1089,7 +1089,8 @@ private fun StyledTabRow(
         verticalAlignment = Alignment.Top
     ) {
         entries.forEach { entry ->
-            val isSelected = entry.tab == selected
+            key(entry.key) {
+            val isSelected = derbisDockEntrySelected(entry, selectedKey)
             StyledTabButton(
                 entry = entry,
                 isSelected = isSelected,
@@ -1102,9 +1103,10 @@ private fun StyledTabRow(
                     if (!isSelected && tuning.haptics) {
                         haptics.perform(if (motion.pop > 1f) DerbisHapticAction.Confirm else DerbisHapticAction.SeekSnap)
                     }
-                    onSelect(entry.tab)
+                    onSelect(entry)
                 }
             )
+            }
         }
     }
 }
@@ -1225,7 +1227,7 @@ private fun DrawScope.drawNavFloatingPill(
 
 @Composable
 private fun RowScope.StyledTabButton(
-    entry: DerbisTabEntry,
+    entry: DerbisDockEntry,
     isSelected: Boolean,
     tuning: NavTuning,
     colors: NavColors,
@@ -1237,14 +1239,20 @@ private fun RowScope.StyledTabButton(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val compact = tuning.labels == NavLabelMode.Compact
+    val styledAppear = rememberTabIconAppear()()
     Box(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
+            .graphicsLayer {
+                scaleX = styledAppear.first
+                scaleY = styledAppear.first
+                alpha = styledAppear.second
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
-                contentDescription = entry.label
+                contentDescription = entry.spoken
             }
             .derbisPressable(
                 onClick = onClick,
@@ -1266,7 +1274,7 @@ private fun RowScope.StyledTabButton(
                 colors = colors,
                 motion = motion
             )
-            if (tuning.labels != NavLabelMode.Never) {
+            if (tuning.labels != NavLabelMode.Never && entry.label.isNotEmpty()) {
                 StyledTabLabel(
                     text = entry.label,
                     selected = isSelected,
@@ -1300,13 +1308,17 @@ private fun navTabTextTint(tuning: NavTuning, colors: NavColors, selected: Boole
 
 @Composable
 private fun StyledTabIcon(
-    entry: DerbisTabEntry,
+    entry: DerbisDockEntry,
     selected: Boolean,
     pressed: Boolean,
     tuning: NavTuning,
     colors: NavColors,
     motion: NavMotionSpec
 ) {
+    val (glyphMotion, fireGlyphMotion) = rememberTabIconMotion(entry.iconId)
+    TabIconFireOnBecomeActive(selected, fireGlyphMotion)
+    LaunchedEffect(pressed) { if (pressed && selected) fireGlyphMotion() }
+    val glyph = glyphMotion()
     val tint by animateColorAsState(
         targetValue = navTabIconTint(tuning, colors, selected),
         animationSpec = motion.tint,
@@ -1322,14 +1334,17 @@ private fun StyledTabIcon(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (selected) entry.selectedIcon else entry.unselectedIcon,
+            imageVector = if (selected) entry.icon else entry.unselectedIcon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
                 .size(tuning.iconDp.dp)
                 .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
+                    scaleX = scale * glyph.scaleX
+                    scaleY = scale * glyph.scaleY
+                    rotationZ = glyph.rotationDegrees
+                    translationX = glyph.translationXDp.dp.toPx()
+                    translationY = glyph.translationYDp.dp.toPx()
                 }
         )
     }
@@ -1399,8 +1414,8 @@ internal fun navExpansion(style: NavStyle): NavExpansion = when (style) {
 
 @Composable
 private fun ExpandingTabRow(
-    entries: List<DerbisTabEntry>,
-    selected: DerbisTab,
+    entries: List<DerbisDockEntry>,
+    selectedKey: String,
     tuning: NavTuning,
     colors: NavColors,
     motion: NavMotionSpec,
@@ -1409,13 +1424,13 @@ private fun ExpandingTabRow(
     floating: Boolean,
     compaction: () -> Float,
     indicatorAlpha: (() -> Float)?,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisDockEntry) -> Unit
 ) {
     val haptics = LocalDerbisHaptics.current
     val fractions = entries.map { entry ->
-        key(entry.tab) {
+        key(entry.key) {
             animateFloatAsState(
-                targetValue = if (entry.tab == selected) 1f else 0f,
+                targetValue = if (derbisDockEntrySelected(entry, selectedKey)) 1f else 0f,
                 animationSpec = motion.position,
                 label = "nav-expand"
             )
@@ -1429,8 +1444,8 @@ private fun ExpandingTabRow(
             .selectableGroup(),
         content = {
             entries.forEachIndexed { index, entry ->
-                key(entry.tab) {
-                    val isSelected = entry.tab == selected
+                key(entry.key) {
+                    val isSelected = derbisDockEntrySelected(entry, selectedKey)
                     val fraction = fractions[index]
                     ExpandingTabButton(
                         entry = entry,
@@ -1448,7 +1463,7 @@ private fun ExpandingTabRow(
                             if (!isSelected && tuning.haptics) {
                                 haptics.perform(if (motion.pop > 1f) DerbisHapticAction.Confirm else DerbisHapticAction.SeekSnap)
                             }
-                            onSelect(entry.tab)
+                            onSelect(entry)
                         }
                     )
                 }
@@ -1482,7 +1497,7 @@ private fun ExpandingTabRow(
 
 @Composable
 private fun ExpandingTabButton(
-    entry: DerbisTabEntry,
+    entry: DerbisDockEntry,
     isSelected: Boolean,
     fraction: () -> Float,
     tuning: NavTuning,
@@ -1502,13 +1517,19 @@ private fun ExpandingTabButton(
         animationSpec = motion.tint,
         label = "nav-expand-text"
     )
+    val expandingAppear = rememberTabIconAppear()()
     Box(
         modifier = Modifier
             .fillMaxHeight()
+            .graphicsLayer {
+                scaleX = expandingAppear.first
+                scaleY = expandingAppear.first
+                alpha = expandingAppear.second
+            }
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
-                contentDescription = entry.label
+                contentDescription = entry.spoken
             }
             .drawBehind {
                 val fold = compaction().coerceIn(0f, 1f)
@@ -1545,7 +1566,9 @@ private fun ExpandingTabButton(
                 colors = colors,
                 motion = motion
             )
-            Spacer(modifier = Modifier.dockGapWidth { expansion.gap * fraction().coerceIn(0f, 1f) })
+            if (entry.label.isNotEmpty()) {
+                Spacer(modifier = Modifier.dockGapWidth { expansion.gap * fraction().coerceIn(0f, 1f) })
+            }
             Text(
                 text = entry.label,
                 color = textColor,

@@ -2,7 +2,10 @@ package com.yasuda.derbis.player
 
 import android.content.ComponentName
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
@@ -34,12 +37,56 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import timber.log.Timber
 
 private const val MODE_HANDOFF_BACKWARD_SEEK_TOLERANCE_MS = 1_500L
 private const val VIDEO_FIRST_FRAME_TIMEOUT_MS = 5_500L
 internal const val LIVE_RADIO_STALL_TIMEOUT_MS = 20_000L
 private const val LIVE_RADIO_STALL_MESSAGE = "Live radio stream stalled while buffering"
+internal const val STREAM_BUFFERING_STALL_TIMEOUT_MS = 18_000L
+internal const val STREAM_BUFFERING_SATISFIED_AHEAD_MS = 6_000L
+internal const val STREAM_READY_OUTPUT_NUDGE_MS = 2_500L
+internal const val STREAM_READY_STALL_TIMEOUT_MS = 5_500L
+internal const val STREAM_STALL_POLL_INTERVAL_MS = 1_000L
+internal const val STREAM_STALL_PROGRESS_EPSILON_MS = 80L
+internal const val STREAM_BUFFERING_STALL_MESSAGE = "Audio stream stalled while buffering"
+private const val STREAM_STALL_MESSAGE = "Audio stream stalled without advancing playback"
+
+internal enum class PlaybackStallAction {
+    NONE,
+    NUDGE_OUTPUT_PATH,
+    RECOVER_STREAM
+}
+
+internal fun evaluatePlaybackStall(
+    playbackState: Int,
+    playWhenReady: Boolean,
+    suppressed: Boolean,
+    stalledElapsedMs: Long,
+    bufferedAheadMs: Long,
+    outputNudged: Boolean,
+    bufferAdvancing: Boolean = false
+): PlaybackStallAction {
+    if (!playWhenReady || suppressed) return PlaybackStallAction.NONE
+    return when (playbackState) {
+        Player.STATE_BUFFERING -> when {
+            bufferAdvancing && bufferedAheadMs < STREAM_BUFFERING_SATISFIED_AHEAD_MS ->
+                PlaybackStallAction.NONE
+            stalledElapsedMs >= STREAM_BUFFERING_STALL_TIMEOUT_MS -> PlaybackStallAction.RECOVER_STREAM
+            !outputNudged && bufferedAheadMs >= 2_000L && stalledElapsedMs >= STREAM_READY_OUTPUT_NUDGE_MS ->
+                PlaybackStallAction.NUDGE_OUTPUT_PATH
+            else -> PlaybackStallAction.NONE
+        }
+        Player.STATE_READY -> when {
+            stalledElapsedMs >= STREAM_READY_STALL_TIMEOUT_MS -> PlaybackStallAction.RECOVER_STREAM
+            !outputNudged && bufferedAheadMs >= 500L && stalledElapsedMs >= STREAM_READY_OUTPUT_NUDGE_MS ->
+                PlaybackStallAction.NUDGE_OUTPUT_PATH
+            else -> PlaybackStallAction.NONE
+        }
+        else -> PlaybackStallAction.NONE
+    }
+}
 
 internal fun replacementStartPosition(
     sameTrack: Boolean,
@@ -117,11 +164,12 @@ class DerbisPlayer(context: Context) {
     var onVideoStall: (() -> Unit)? = null
 
     var controller: MediaController? = null
+    private val appContext = context.applicationContext
     private val controllerFuture = MediaController.Builder(
         context,
         SessionToken(context, ComponentName(context, PlaybackService::class.java))
     ).buildAsync()
-    private val queueEngine = PersistentQueueEngine.get(context.applicationContext)
+    private val queueEngine = PersistentQueueEngine.get(appContext)
 
     private var loadedTrack: Track? = null
     private var loadedStreamIdentity: String? = null
@@ -134,6 +182,7 @@ class DerbisPlayer(context: Context) {
     private var invalidVideoRecoveryJob: Job? = null
     private var videoFrameWatchdogJob: Job? = null
     private var liveRadioStallJob: Job? = null
+    private var playbackStallJob: Job? = null
     private var playbackGeneration = 0L
     private var observedServicePlayer: Player? = null
     private var videoSurfaceAttached = false
@@ -204,7 +253,9 @@ class DerbisPlayer(context: Context) {
                     loadedStreamIdentity = streamIdentity(mediaItem, loadedVideoMode)
                     if (previousStreamIdentity != loadedStreamIdentity) {
                         cancelLiveRadioStallWatchdog()
+                        cancelPlaybackStallWatchdog()
                         updateLiveRadioStallWatchdog(connected)
+                        updatePlaybackStallWatchdog(connected)
                     }
                     renderedVideoFrame = false
                     itemReachedReady = false
@@ -235,6 +286,7 @@ class DerbisPlayer(context: Context) {
                         if (stallKind == VideoStallKind.MID_PLAY) onVideoStall?.invoke()
                     }
                     updateLiveRadioStallWatchdog(connected)
+                    updatePlaybackStallWatchdog(connected)
                     if (playbackState != Player.STATE_ENDED) return
                     sponsorJob?.cancel()
                     sponsorJob = null
@@ -248,12 +300,17 @@ class DerbisPlayer(context: Context) {
 
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                     updateLiveRadioStallWatchdog(connected)
+                    updatePlaybackStallWatchdog(connected)
                     if (!playWhenReady) {
                         videoFrameWatchdogJob?.cancel()
                         videoFrameWatchdogJob = null
                         return
                     }
                     if (connected.playbackState == Player.STATE_READY) scheduleVideoFrameWatchdog()
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    updatePlaybackStallWatchdog(connected)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
@@ -323,6 +380,7 @@ class DerbisPlayer(context: Context) {
         videoFrameWatchdogJob?.cancel()
         videoFrameWatchdogJob = null
         cancelLiveRadioStallWatchdog()
+        cancelPlaybackStallWatchdog()
         Timber.i(
             "stream recovery start attempt=%d playWhenReady=%s positionMs=%d",
             recoveryAttempts,
@@ -378,6 +436,140 @@ class DerbisPlayer(context: Context) {
         liveRadioStallJob = null
     }
 
+    private fun updatePlaybackStallWatchdog(active: Player) {
+        val track = loadedTrack
+        val eligible = track != null &&
+            !track.isLiveRadio() &&
+            !recoveryInFlight &&
+            active.mediaItemCount > 0 &&
+            active.playWhenReady &&
+            active.playbackSuppressionReason == Player.PLAYBACK_SUPPRESSION_REASON_NONE &&
+            (active.playbackState == Player.STATE_BUFFERING || active.playbackState == Player.STATE_READY)
+        if (!eligible) {
+            cancelPlaybackStallWatchdog()
+            return
+        }
+        if (playbackStallJob?.isActive == true) return
+        val generation = playbackGeneration
+        val identity = loadedStreamIdentity
+        playbackStallJob = scope.launch {
+            var lastPositionMs = active.currentPosition.coerceAtLeast(0L)
+            var lastBufferedPositionMs = active.bufferedPosition.coerceAtLeast(0L)
+            var lastState = active.playbackState
+            var lastAdvanceAtMs = SystemClock.elapsedRealtime()
+            var outputNudged = false
+            while (isActive) {
+                delay(STREAM_STALL_POLL_INTERVAL_MS)
+                val current = controller ?: return@launch
+                if (generation != playbackGeneration || identity != loadedStreamIdentity) return@launch
+                val currentTrack = loadedTrack ?: return@launch
+                if (
+                    currentTrack.isLiveRadio() ||
+                    recoveryInFlight ||
+                    current.mediaItemCount == 0 ||
+                    !current.playWhenReady ||
+                    (current.playbackState != Player.STATE_BUFFERING && current.playbackState != Player.STATE_READY)
+                ) {
+                    return@launch
+                }
+                val now = SystemClock.elapsedRealtime()
+                val position = current.currentPosition.coerceAtLeast(0L)
+                val bufferedPosition = current.bufferedPosition.coerceAtLeast(0L)
+                val suppressed = current.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE
+                if (
+                    suppressed ||
+                    current.playbackState != lastState ||
+                    abs(position - lastPositionMs) > STREAM_STALL_PROGRESS_EPSILON_MS
+                ) {
+                    if (position > lastPositionMs + STREAM_STALL_PROGRESS_EPSILON_MS) {
+                        outputNudged = false
+                    }
+                    lastPositionMs = position
+                    lastBufferedPositionMs = bufferedPosition
+                    lastState = current.playbackState
+                    lastAdvanceAtMs = now
+                    continue
+                }
+                val bufferedAheadMs = (bufferedPosition - position).coerceAtLeast(0L)
+                val bufferAdvancing = bufferedPosition > lastBufferedPositionMs + STREAM_STALL_PROGRESS_EPSILON_MS
+                if (bufferAdvancing) {
+                    lastBufferedPositionMs = bufferedPosition
+                    if (current.playbackState == Player.STATE_BUFFERING && bufferedAheadMs < STREAM_BUFFERING_SATISFIED_AHEAD_MS) {
+                        lastAdvanceAtMs = now
+                        continue
+                    }
+                } else if (bufferedPosition < lastBufferedPositionMs) {
+                    lastBufferedPositionMs = bufferedPosition
+                }
+                when (
+                    evaluatePlaybackStall(
+                        playbackState = current.playbackState,
+                        playWhenReady = current.playWhenReady,
+                        suppressed = false,
+                        stalledElapsedMs = now - lastAdvanceAtMs,
+                        bufferedAheadMs = bufferedAheadMs,
+                        outputNudged = outputNudged,
+                        bufferAdvancing = bufferAdvancing
+                    )
+                ) {
+                    PlaybackStallAction.NONE -> Unit
+                    PlaybackStallAction.NUDGE_OUTPUT_PATH -> {
+                        outputNudged = true
+                        val switchedOutput = PlaybackService.onOutputStallDetected()
+                        Timber.w(
+                            "ready playback stalled at %d ms (bufferedAhead=%d ms, switchedOutput=%s); nudging playhead",
+                            position,
+                            bufferedAheadMs,
+                            switchedOutput
+                        )
+                        runCatching {
+                            current.seekTo(position)
+                            current.play()
+                        }
+                    }
+                    PlaybackStallAction.RECOVER_STREAM -> {
+                        if (isLocalPlayback(currentTrack) || currentTrack.isPersonalCollectionTrack()) {
+                            return@launch
+                        }
+                        if (current.playbackState == Player.STATE_BUFFERING && !hasInternetNetwork()) {
+                            lastAdvanceAtMs = now
+                            continue
+                        }
+                        playbackStallJob = null
+                        val stallMessage = if (current.playbackState == Player.STATE_BUFFERING) {
+                            STREAM_BUFFERING_STALL_MESSAGE
+                        } else {
+                            STREAM_STALL_MESSAGE
+                        }
+                        Timber.w(
+                            "stream playback stalled in state=%d at %d ms (bufferedAhead=%d ms) for %d ms; starting stream recovery",
+                            current.playbackState,
+                            position,
+                            bufferedAheadMs,
+                            now - lastAdvanceAtMs
+                        )
+                        if (!startStreamRecovery(current, currentTrack, stallMessage)) {
+                            failLoadedStream(current, stallMessage)
+                        }
+                        return@launch
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cancelPlaybackStallWatchdog() {
+        playbackStallJob?.cancel()
+        playbackStallJob = null
+    }
+
+    private fun hasInternetNetwork(): Boolean {
+        val connectivity = appContext.getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = connectivity.activeNetwork ?: return false
+        val capabilities = connectivity.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
     fun markRecoverySucceeded() {
         if (!recoveryInFlight) recoveryAttempts = 0
     }
@@ -408,6 +600,7 @@ class DerbisPlayer(context: Context) {
 
     fun play(track: Track, videoMode: Boolean = false, startPositionMs: Long = 0L) {
         require(track.streamUrl.isNotBlank()) { "Stream URL assente per ${track.title}" }
+        PlaybackService.beginExplicitPlaybackRequest()
         invalidateDelayedVideoRecovery()
         val safeStartPositionMs = startPositionMs.coerceAtLeast(0L)
         val identity = streamIdentity(track, videoMode)
@@ -421,7 +614,13 @@ class DerbisPlayer(context: Context) {
         recoveryAttempts = 0
         applyPlaybackParameters(active)
         val sameTrack = loadedTrack?.id == track.id
-        if (!sameTrack || loadedStreamIdentity != identity || loadedVideoMode != videoMode) {
+        if (
+            !sameTrack ||
+            loadedStreamIdentity != identity ||
+            loadedVideoMode != videoMode ||
+            active.playbackState == Player.STATE_IDLE ||
+            active.mediaItemCount == 0
+        ) {
             replaceSource(
                 track = track,
                 positionMs = playbackStartPositionRequest(
@@ -430,7 +629,8 @@ class DerbisPlayer(context: Context) {
                     activePositionMs = active.currentPosition
                 ),
                 videoMode = videoMode,
-                playWhenReady = true
+                playWhenReady = true,
+                explicitPlay = true
             )
             return
         }
@@ -438,6 +638,7 @@ class DerbisPlayer(context: Context) {
         active.play()
         startSponsorBlockMonitor(track)
         scheduleVideoFrameWatchdog()
+        updatePlaybackStallWatchdog(active)
     }
 
     fun selectVideoSubtitle(subtitleId: String?) {
@@ -468,7 +669,8 @@ class DerbisPlayer(context: Context) {
         track: Track,
         positionMs: Long,
         videoMode: Boolean,
-        playWhenReady: Boolean
+        playWhenReady: Boolean,
+        explicitPlay: Boolean = false
     ) {
         require(track.streamUrl.isNotBlank()) { "Stream URL assente per ${track.title}" }
         invalidateDelayedVideoRecovery()
@@ -506,8 +708,8 @@ class DerbisPlayer(context: Context) {
         }
         // A resolver/recovery coroutine can finish after a transport Pause. Never let that
         // stale completion turn the session back on; only a new Play command clears this fence.
-        val requestedPlayWhenReady = playWhenReady && !PlaybackService.isExplicitPauseActive
-        val effectivePlayWhenReady = if (sameTrack && !recoveryReplacement && active.mediaItemCount > 0) {
+        val requestedPlayWhenReady = playWhenReady && (explicitPlay || !PlaybackService.isExplicitPauseActive)
+        val effectivePlayWhenReady = if (!explicitPlay && sameTrack && !recoveryReplacement && active.mediaItemCount > 0) {
             active.playWhenReady
         } else {
             requestedPlayWhenReady
@@ -529,6 +731,8 @@ class DerbisPlayer(context: Context) {
         if (effectivePlayWhenReady) active.play() else active.pause()
         startSponsorBlockMonitor(track)
         scheduleVideoFrameWatchdog()
+        cancelPlaybackStallWatchdog()
+        updatePlaybackStallWatchdog(active)
     }
 
     fun failRecovery(message: String) {
@@ -555,6 +759,7 @@ class DerbisPlayer(context: Context) {
         // pause. Longer resolver work is cancelled by the view model and additionally fenced by
         // PlaybackService.isExplicitPauseActive in replaceSource().
         invalidateDelayedVideoRecovery()
+        cancelPlaybackStallWatchdog()
         recoveryInFlight = false
         val active = controller
         if (active != null) {
@@ -562,6 +767,10 @@ class DerbisPlayer(context: Context) {
         } else {
             pendingPlayback = pendingPlayback?.copy(playWhenReady = false)
         }
+    }
+
+    fun clearRecoveryState() {
+        recoveryInFlight = false
     }
 
     fun stop() {
@@ -573,8 +782,11 @@ class DerbisPlayer(context: Context) {
         sponsorJob = null
         clearLoadedState()
         pendingPlayback = null
+        // Use stop() rather than pause() so programmatic unloads (such as clearing the previous
+        // item while a newly selected track resolves) do not trip PlaybackService's explicit
+        // user-pause fence.
         controller?.let {
-            it.pause()
+            it.stop()
             it.clearMediaItems()
         }
     }
@@ -747,6 +959,7 @@ class DerbisPlayer(context: Context) {
         videoFrameWatchdogJob?.cancel()
         videoFrameWatchdogJob = null
         cancelLiveRadioStallWatchdog()
+        cancelPlaybackStallWatchdog()
     }
 
     private fun refreshVideoSurfaceState(): Boolean {
@@ -794,6 +1007,7 @@ class DerbisPlayer(context: Context) {
         videoFrameWatchdogJob?.cancel()
         videoFrameWatchdogJob = null
         cancelLiveRadioStallWatchdog()
+        cancelPlaybackStallWatchdog()
     }
 
     private fun streamIdentity(track: Track, videoMode: Boolean): String {

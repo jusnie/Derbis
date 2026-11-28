@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.player
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,11 +14,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Pause
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.FastRewind
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material3.Icon
@@ -72,7 +74,7 @@ internal fun TorquePlayerScene(track: Track, slots: PlayerDeckSlots, metadata: @
             Column(Modifier.fillMaxWidth().heightIn(min = viewport)) {
                 Box(Modifier.fillMaxWidth().height(coverHeight)) {
                     slots.stage(track, Modifier.fillMaxSize(), 0.dp)
-                    Box(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 8.dp)) { slots.header() }
+                    Box(Modifier.fillMaxWidth().derbisSafeTopPadding().padding(horizontal = 8.dp)) { slots.header() }
                 }
                 slots.progress(PlayerProgressStyle.Classic)
                 TorqueBand(track, bandHeight, transport)

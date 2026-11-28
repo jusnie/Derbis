@@ -53,8 +53,11 @@ internal object MotionArtworkDestinationPolicy {
                     host == "amaa.tromme.app"
             }
             SpotifyCanvasProvider.PROVIDER_ID -> {
-                host.endsWith(".scdn.co") ||
+                host == "scdn.co" ||
+                    host.endsWith(".scdn.co") ||
                     host == "canvaz.scdn.co" ||
+                    host == "spotifycdn.com" ||
+                    host.endsWith(".spotifycdn.com") ||
                     host.endsWith(".slnode.spicylyrics.org") ||
                     host == "regional.canvasstore.slnode.spicylyrics.org"
             }
@@ -196,7 +199,13 @@ class MotionArtworkUrlVerifier(context: Context) {
         val normalized = contentType.orEmpty().substringBefore(';').trim().lowercase(Locale.ROOT)
         if (normalized.startsWith("video/")) return true
         if (normalized.contains("mpegurl")) return true
-        if (normalized.isNotBlank() && normalized != "application/octet-stream") return false
+        if (
+            normalized.isNotBlank() &&
+            normalized != "application/octet-stream" &&
+            normalized != "binary/octet-stream"
+        ) {
+            return false
+        }
         return url.encodedPath.endsWith(".mp4", true) || url.encodedPath.endsWith(".m3u8", true)
     }
 

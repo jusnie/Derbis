@@ -1,6 +1,7 @@
 package com.yasuda.derbis.ui.update
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
+import com.yasuda.derbis.ui.pixelPaperGrid
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -23,7 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -108,20 +109,27 @@ fun DerbisUpdateScreen(
         updateMetaLine(update.publishedAtEpochMs, update.assetSizeBytes, languageCode)
     }
 
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(DerbisBlack)
-            .drawBehind {
-                drawRect(
-                    Brush.radialGradient(
-                        colors = listOf(DerbisCyan.copy(alpha = 0.16f), Color.Transparent),
-                        center = Offset(size.width * 0.85f, size.height * 0.04f),
-                        radius = size.maxDimension * 0.6f
-                    )
-                )
-            }
-            .statusBarsPadding()
+            .then(
+                if (pixel) {
+                    Modifier.pixelPaperGrid()
+                } else {
+                    Modifier.drawBehind {
+                        drawRect(
+                            Brush.radialGradient(
+                                colors = listOf(DerbisCyan.copy(alpha = 0.16f), Color.Transparent),
+                                center = Offset(size.width * 0.85f, size.height * 0.04f),
+                                radius = size.maxDimension * 0.6f
+                            )
+                        )
+                    }
+                }
+            )
+            .derbisSafeTopPadding()
             .navigationBarsPadding()
     ) {
         Row(
@@ -212,6 +220,32 @@ fun DerbisUpdateScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun UpdateBadge() {
+    if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
+        val p = com.yasuda.derbis.ui.theme.PixelPalette
+        val rect = androidx.compose.ui.graphics.RectangleShape
+        Box(modifier = Modifier.size(116.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(104.dp)
+                    .background(p.ink, rect)
+                    .border(com.yasuda.derbis.ui.theme.PixelDesign.border, p.outline, rect),
+                contentAlignment = Alignment.Center
+            ) {
+                DerbisLogoMark(size = 64.dp, contentDescription = null)
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(38.dp)
+                    .background(p.cyan, rect)
+                    .border(com.yasuda.derbis.ui.theme.PixelDesign.border, p.text, rect),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.SystemUpdateAlt, contentDescription = null, tint = p.ink, modifier = Modifier.size(18.dp))
+            }
+        }
+        return
+    }
     val animated = LocalAnimationsEnabled.current
     val bloom = remember { Animatable(if (animated) 0f else 1f) }
     LaunchedEffect(animated) {
@@ -286,23 +320,37 @@ private fun UpdateBadge() {
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun VersionRunway(current: String, latest: String, copy: DerbisUpdateReleaseCopy) {
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val rect = androidx.compose.ui.graphics.RectangleShape
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(if (pixel) 8.dp else 4.dp)
     ) {
         VersionCell(
             label = copy.releaseFrom,
             version = current,
-            container = DerbisPanel,
+            container = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else DerbisPanel,
             labelColor = DerbisMuted,
-            shape = RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp, topEnd = 8.dp, bottomEnd = 8.dp),
-            modifier = Modifier.weight(1f)
+            shape = if (pixel) rect else RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp, topEnd = 8.dp, bottomEnd = 8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if (pixel) Modifier.border(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.outline, rect)
+                    else Modifier
+                )
         )
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(DerbisPanel, MaterialShapes.Cookie4Sided.toShape()),
+                .background(
+                    if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else DerbisPanel,
+                    if (pixel) rect else MaterialShapes.Cookie4Sided.toShape()
+                )
+                .then(
+                    if (pixel) Modifier.border(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.outline, rect)
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.AutoMirrored.Rounded.ArrowForward, contentDescription = null, tint = DerbisCyan, modifier = Modifier.size(18.dp))
@@ -310,10 +358,15 @@ private fun VersionRunway(current: String, latest: String, copy: DerbisUpdateRel
         VersionCell(
             label = copy.releaseTo,
             version = latest,
-            container = DerbisCyan.copy(alpha = 0.16f),
+            container = if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.panelSoft else DerbisCyan.copy(alpha = 0.16f),
             labelColor = DerbisCyan,
-            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 26.dp, bottomEnd = 26.dp),
-            modifier = Modifier.weight(1f)
+            shape = if (pixel) rect else RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 26.dp, bottomEnd = 26.dp),
+            modifier = Modifier
+                .weight(1f)
+                .then(
+                    if (pixel) Modifier.border(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.cyan, rect)
+                    else Modifier
+                )
         )
     }
 }
@@ -367,13 +420,22 @@ private fun UpdateHighlights(title: String, sections: List<DerbisUpdateNoteSecti
                         modifier = Modifier.semantics { heading() }
                     )
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(if (com.yasuda.derbis.ui.theme.DerbisIsPixel) 6.dp else 3.dp)) {
                     section.entries.forEachIndexed { index, note ->
+                        val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+                        val rect = androidx.compose.ui.graphics.RectangleShape
                         val (commit, body) = splitCommitPrefix(note)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(DerbisPanel, derbisGroupedListShape(index, section.entries.size))
+                                .background(
+                                    if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else DerbisPanel,
+                                    derbisGroupedListShape(index, section.entries.size)
+                                )
+                                .then(
+                                    if (pixel) Modifier.border(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.outline, rect)
+                                    else Modifier
+                                )
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -382,7 +444,14 @@ private fun UpdateHighlights(title: String, sections: List<DerbisUpdateNoteSecti
                                 modifier = Modifier
                                     .width(if (commit == null) 34.dp else 68.dp)
                                     .height(34.dp)
-                                    .background(DerbisCyan.copy(alpha = 0.16f), RoundedCornerShape(9.dp)),
+                                    .background(
+                                        if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.panelSoft else DerbisCyan.copy(alpha = 0.16f),
+                                        if (pixel) rect else RoundedCornerShape(9.dp)
+                                    )
+                                    .then(
+                                        if (pixel) Modifier.border(1.5.dp, com.yasuda.derbis.ui.theme.PixelPalette.cyan, rect)
+                                        else Modifier
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -412,11 +481,20 @@ private fun UpdateHighlights(title: String, sections: List<DerbisUpdateNoteSecti
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun UpdateProtectionCard(title: String, detail: String) {
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val cardShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(28.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(DerbisCyan.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
-            .border(1.dp, DerbisGlassBorder, RoundedCornerShape(28.dp))
+            .background(
+                if (pixel) com.yasuda.derbis.ui.theme.PixelPalette.ink else DerbisCyan.copy(alpha = 0.08f),
+                cardShape
+            )
+            .border(
+                if (pixel) com.yasuda.derbis.ui.theme.PixelDesign.border else 1.dp,
+                DerbisGlassBorder,
+                cardShape
+            )
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -424,7 +502,14 @@ private fun UpdateProtectionCard(title: String, detail: String) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .background(DerbisCyan, MaterialShapes.Clover4Leaf.toShape()),
+                .background(
+                    DerbisCyan,
+                    if (pixel) androidx.compose.ui.graphics.RectangleShape else MaterialShapes.Clover4Leaf.toShape()
+                )
+                .then(
+                    if (pixel) Modifier.border(com.yasuda.derbis.ui.theme.PixelDesign.border, com.yasuda.derbis.ui.theme.PixelPalette.text, androidx.compose.ui.graphics.RectangleShape)
+                    else Modifier
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Rounded.VerifiedUser, contentDescription = null, tint = DerbisOnAccent, modifier = Modifier.size(22.dp))

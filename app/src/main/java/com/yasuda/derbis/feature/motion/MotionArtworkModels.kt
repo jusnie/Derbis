@@ -26,8 +26,10 @@ data class MotionTrackIdentity(
 ) {
     companion object {
         fun from(track: Track): MotionTrackIdentity = MotionTrackIdentity(
-            title = track.title.trim(),
-            artists = splitArtists(track.artist),
+            title = stripYouTubeMotionTitleNoise(track.title),
+            artists = splitArtists(track.artist)
+                .map(::stripYouTubeTopicSuffix)
+                .filter { it.isNotBlank() },
             album = track.album.trim(),
             durationMs = track.durationMs.coerceAtLeast(0L),
             isrc = track.isrc.trim().uppercase(Locale.ROOT),
@@ -178,6 +180,18 @@ internal fun isUnusableMotionAlbum(album: String): Boolean {
     if (normalized in MOTION_GENERIC_ALBUM_NAMES) return true
     return MOTION_COUNT_LABEL.matches(normalized)
 }
+
+private val YOUTUBE_TITLE_NOISE = Regex(
+    """\s*[\(\[](?:official\s+(?:music\s+)?video|official\s+audio|official\s+lyric\s+video|official\s+visualizer|lyric\s+video|audio\s+officiel|video\s+ufficiale)[\)\]]\s*""",
+    RegexOption.IGNORE_CASE
+)
+private val YOUTUBE_TOPIC_SUFFIX = Regex("""\s*-\s*topic$""", RegexOption.IGNORE_CASE)
+
+internal fun stripYouTubeMotionTitleNoise(value: String): String =
+    value.replace(YOUTUBE_TITLE_NOISE, " ").replace(MOTION_WHITESPACE, " ").trim()
+
+internal fun stripYouTubeTopicSuffix(value: String): String =
+    value.replace(YOUTUBE_TOPIC_SUFFIX, "").trim()
 
 internal fun motionTextContainsTerm(value: String, term: String): Boolean {
     val normalizedValue = normalizeMotionText(value)

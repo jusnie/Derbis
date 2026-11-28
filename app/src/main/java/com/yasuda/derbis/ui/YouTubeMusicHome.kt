@@ -63,7 +63,7 @@ internal fun YouTubeMusicHomeContent(
     val previews by homeViewModel.previews.collectAsStateWithLifecycle()
     val allShelves = remember(feed.shelves, feed.discovery) { feed.allShelves }
     LaunchedEffect(strings.code) { homeViewModel.load(strings.code) }
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     val derbisBlocks = youTubeMusicDerbisBlocks(data, actions.home, copy, strings)
     val seed = remember(feed.shelves) {
         feed.shelves.firstNotNullOfOrNull { it.tracks.firstOrNull() }?.accentStart?.let(::Color)

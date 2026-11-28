@@ -2,9 +2,9 @@ package com.yasuda.derbis.ui
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Casino
-import com.yasuda.derbis.ui.icons.Equalizer
-import com.yasuda.derbis.ui.icons.GraphicEq
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.Role
@@ -66,7 +66,7 @@ internal fun YouTubeMusicExploreContent(
     val feed by exploreViewModel.state.collectAsStateWithLifecycle()
     val previews by exploreViewModel.previews.collectAsStateWithLifecycle()
     LaunchedEffect(strings.code) { exploreViewModel.load(strings.code, browseId = EXPLORE_BROWSE_ID) }
-    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusBarTop = derbisSafeTopInset()
     Box(Modifier.fillMaxSize().background(YouTubeMusicDesign.background)) {
         LazyColumn(
             state = listState,

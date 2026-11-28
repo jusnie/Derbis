@@ -2,6 +2,7 @@ package com.yasuda.derbis.feature.motion
 
 import com.yasuda.derbis.core.config.RuntimeConfigSnapshot
 import com.yasuda.derbis.core.config.VersionedRuntimeConfig
+import java.util.concurrent.atomic.AtomicLong
 
 data class MotionArtworkConfig(
     val providerOrder: List<String> = listOf(
@@ -39,16 +40,22 @@ data class MotionArtworkConfig(
 
 object MotionArtworkRuntime {
     private val config = VersionedRuntimeConfig(MotionArtworkConfig().normalized())
+    private val sessionGeneration = AtomicLong(0L)
 
     fun snapshot(): RuntimeConfigSnapshot<MotionArtworkConfig> = config.snapshot().withCacheSchema()
 
     fun update(value: MotionArtworkConfig): RuntimeConfigSnapshot<MotionArtworkConfig> =
         config.update(value.normalized()).withCacheSchema()
 
+    fun bumpSessionGeneration(): RuntimeConfigSnapshot<MotionArtworkConfig> {
+        sessionGeneration.incrementAndGet()
+        return snapshot()
+    }
+
     private fun RuntimeConfigSnapshot<MotionArtworkConfig>.withCacheSchema() = copy(
-        epoch = epoch + MOTION_ARTWORK_CACHE_SCHEMA_EPOCH
+        epoch = epoch + MOTION_ARTWORK_CACHE_SCHEMA_EPOCH + sessionGeneration.get()
     )
 }
 
-internal const val MOTION_ARTWORK_CACHE_SCHEMA_EPOCH = 9L
+internal const val MOTION_ARTWORK_CACHE_SCHEMA_EPOCH = 10L
 internal const val DEFAULT_MOTION_ARTWORK_MINIMUM_CONFIDENCE = 84

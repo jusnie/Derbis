@@ -25,7 +25,7 @@ object DerbisPlayerShapes {
 
     fun segment(position: DerbisSegment, innerCorner: Dp): Shape {
         if (DerbisIsPrism) return RoundedCornerShape(PrismDesign.controlCorner)
-        if (DerbisIsNocturne) return RoundedCornerShape(Nocturne78Design.controlCorner)
+        if (DerbisIsPixel) return RoundedCornerShape(PixelDesign.controlCorner)
         val inner = CornerSize(nonNegativeCornerRadius(innerCorner))
         return when (position) {
             DerbisSegment.Leading -> RoundedCornerShape(

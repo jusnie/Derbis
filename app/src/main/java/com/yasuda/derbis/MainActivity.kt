@@ -51,17 +51,22 @@ import androidx.lifecycle.lifecycleScope
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisBackupManager
 import com.yasuda.derbis.data.spotify.DerbisSpotifyConnection
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+import com.yasuda.derbis.feature.icon.DerbisAppIconManager
+import com.yasuda.derbis.feature.motion.SpotifyTokenProvider
 import com.yasuda.derbis.domain.AppUpdateInfo
 import com.yasuda.derbis.domain.ChartsCatalog
 import com.yasuda.derbis.domain.DerbisFontPreset
 import com.yasuda.derbis.feature.recognition.DerbisRecognitionCenter
 import com.yasuda.derbis.feature.recognition.MusicRecognitionService
 import com.yasuda.derbis.player.DerbisPipBridge
+import com.yasuda.derbis.ui.ChromeImmersion
 import com.yasuda.derbis.ui.DerbisApp
 import com.yasuda.derbis.ui.DerbisGlassStyle
 import com.yasuda.derbis.ui.LocalDerbisGlassStyle
 import com.yasuda.derbis.ui.components.LocalDerbisLiquidGlassEnabled
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.i18n.DerbisStrings
 import com.yasuda.derbis.ui.support.RemoteAnnouncementGate
 import com.yasuda.derbis.ui.support.RemoteAnnouncementPromptPolicy
@@ -158,13 +163,27 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = startPalette.isLight
             isAppearanceLightNavigationBars = startPalette.isLight
         }
+        // Video-app-style immersive chrome for every skin: bars hidden, swipe reveals them
+        // transiently, scrolling toggles them. Applies from the first frame.
+        ChromeImmersion.apply(this, ChromeImmersion.currentHidden)
+        runCatching {
+            DerbisAppIconManager.initialize(applicationContext)
+        }.onFailure { Timber.w(it, "Launcher icon state sync failed") }
         runCatching {
             DerbisSpotifyConnection.initialize(applicationContext)
-            DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+            // Canvas unlocks through the web session now, not only through OAuth; both the cookie
+            // store and the token harvester need the application context before the first track.
+            DerbisSpotifySession.initialize(applicationContext)
+            SpotifyTokenProvider.init(applicationContext)
+            if (DerbisSpotifySession.hasSession()) {
+                SpotifyTokenProvider.rewindWarmUpBudget()
+                SpotifyTokenProvider.warmUp()
+            }
         }.onFailure { Timber.w(it, "Spotify startup attachment failed") }
         runCatching {
             DerbisDiscordRichPresence.attach(this)
         }.onFailure { Timber.w(it, "Discord startup attachment failed") }
+        consumeOAuthRedirectIntent(intent)
         // PlaybackService owns ongoing presence publication. This Activity only supplies the
         // Discord SDK with the foreground engine Activity needed for account linking.
         DerbisLaunchActions.consumeFrom(intent)
@@ -301,11 +320,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Arms the Liquid Glass crash marker: if the process dies while this Activity is
+        // in front and glass is drawing, the next launch keeps glass off instead of
+        // walking into the same GPU fault.
+        runCatching { DerbisGlassSafety.onForeground() }
+    }
+
+    override fun onStop() {
+        // Backgrounded processes get killed by the system all the time; that is not a
+        // glass failure, so the marker is cleared here.
+        runCatching { DerbisGlassSafety.onBackground() }
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
+        // Canvas keeps dying silently on cold starts: the WebView harvest fired at process
+        // start fails in half-initialized background processes and nothing retried it, so the
+        // only way to warm Canvas was the developer "Test" button. Re-arm the budget every
+        // time the app is foregrounded so the harvest gets real attempts.
+        runCatching {
+            if (DerbisSpotifySession.hasSession()) {
+                SpotifyTokenProvider.rewindWarmUpBudget()
+                SpotifyTokenProvider.warmUp()
+            }
+        }
         // Android/OEM display policy may drop a window display-mode request while this Activity
         // is stopped. Reassert the user's persisted choice whenever the app returns to foreground.
         applyForceHighRefreshRate(viewModel.state.value.interfaceSettings.forceHighRefreshRate)
+        // Bars may reappear after system UI overlays or dialog lifecycles; keep them as the listener left them.
+        ChromeImmersion.reapply(this)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -314,6 +360,7 @@ class MainActivity : ComponentActivity() {
             // At this point decorView is attached, which covers cold launches where no Display was
             // available during onCreate.
             applyForceHighRefreshRate(viewModel.state.value.interfaceSettings.forceHighRefreshRate)
+            ChromeImmersion.reapply(this)
         }
     }
 
@@ -351,9 +398,31 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        DerbisSpotifyConnection.handleRedirect(applicationContext, intent.data)
+        consumeOAuthRedirectIntent(intent)
         DerbisLaunchActions.consumeFrom(intent)
         handleRecognitionLaunchRequest()
+    }
+
+    /**
+     * Dispatches OAuth redirect URIs once and strips the consumed callback URI from the Activity
+     * intent so a subsequent configuration change or Activity recreation cannot replay a one-time
+     * authorization code against an already-cleared PKCE verifier.
+     */
+    private fun consumeOAuthRedirectIntent(incoming: Intent?) {
+        val uri = incoming?.data ?: return
+        val handledSpotify = DerbisSpotifyConnection.receives(uri)
+        val handledDiscord = DerbisDiscordRichPresence.receives(uri)
+        if (!handledSpotify && !handledDiscord) return
+        if (handledSpotify) {
+            runCatching { DerbisSpotifyConnection.handleRedirect(applicationContext, uri) }
+                .onFailure { Timber.w(it, "Spotify redirect handling failed") }
+        }
+        if (handledDiscord) {
+            runCatching { DerbisDiscordRichPresence.handleRedirect(applicationContext, uri) }
+                .onFailure { Timber.w(it, "Discord redirect handling failed") }
+        }
+        incoming.data = null
+        setIntent(Intent(incoming).apply { data = null })
     }
 
     private fun handleRecognitionLaunchRequest() {

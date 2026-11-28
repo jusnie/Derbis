@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Derbis — Discord connect</title>
+<style>
+  :root {
+    --ink: #08080a;
+    --surface: #101015;
+    --tile: #16161c;
+    --text: #f4f1ea;
+    --muted: #9a9aa6;
+    --pink: #f06a9b;
+    --hairline: rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 40px 24px 64px;
+    background: #050506; color: var(--text);
+    font-family: "Inter", "Roboto", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.01em; }
+  .lede { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 28px; max-width: 740px; }
+  .cols { display: flex; gap: 26px; flex-wrap: wrap; }
+  .col { width: 336px; }
+  .caption {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 10px; font-weight: 700;
+  }
+  .screen {
+    background: var(--ink); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 26px; padding: 22px 16px 26px;
+  }
+  .head { font-size: 17px; font-weight: 800; margin: 0 0 8px; }
+  .note { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 0 10px; }
+  .tile {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--tile); border-radius: 18px;
+    padding: 15px 12px 15px 14px;
+  }
+  .tile + .tile { margin-top: 10px; }
+  .tile.dim { opacity: .45; }
+  .tile .orb {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,.07); display: grid; place-items: center; color: #cfcfd8;
+    flex: 0 0 auto;
+  }
+  .tile .orb svg { width: 22px; height: 22px; }
+  .tile .body { flex: 1; min-width: 0; }
+  .tile .t { font-size: 15px; font-weight: 700; }
+  .tile .s { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .tile .chev { color: #6d6d78; }
+  .tile .chev svg { width: 22px; height: 22px; }
+  .actions { display: flex; gap: 4px; padding: 4px 0 0 6px; }
+  .actions .btn { font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 99px; }
+  .actions .primary { color: var(--pink); }
+  .actions .ghost { color: var(--muted); font-weight: 500; }
+
+  .legend { margin-top: 34px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-radius: 16px; padding: 14px 16px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 13px; font-weight: 800; }
+  .card p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #cfcfd8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Discord connect — the card finally does something</h1>
+  <p class="lede">
+    Tapping Connect now hands the authorization URL straight to the Discord app: named builds first
+    (<code>com.discord</code>, <code>.beta</code>, <code>.preview</code>), then anything else that
+    answers <code>discord://</code>, then the page in a browser. No more "Connecting Discord" that
+    never leaves the screen — the waiting card is tappable, carries its own way out, and expires.
+  </p>
+
+  <div class="cols">
+    <div class="col">
+      <p class="caption">1 · not signed in</p>
+      <div class="screen">
+        <p class="head">Discord</p>
+        <div class="tile">
+          <div class="orb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>
+          </div>
+          <div class="body">
+            <div class="t">Connect Discord</div>
+            <div class="s">Sign in with your Discord account inside the Discord app</div>
+          </div>
+          <div class="chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="caption">2 · waiting on Discord (was the dead end)</p>
+      <div class="screen">
+        <p class="head">Discord</p>
+        <div class="tile">
+          <div class="orb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>
+          </div>
+          <div class="body">
+            <div class="t">Connecting Discord</div>
+            <div class="s">Approve Derbis in Discord to finish signing in.</div>
+          </div>
+          <div class="chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+        <div class="actions">
+          <div class="btn primary">Open Discord again</div>
+          <div class="btn ghost">Cancel</div>
+        </div>
+        <p class="note" style="margin-top:10px">Tapping the card re-opens Discord. Cancel drops the PKCE verifier and goes back to “not signed in”; after five minutes it does that on its own.</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <p class="caption">3 · no Discord app installed</p>
+      <div class="screen">
+        <p class="head">Discord</p>
+        <p class="note">The Discord app is not installed on this phone. Sign-in opens in your browser and still comes back to Derbis.</p>
+        <div class="tile">
+          <div class="orb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>
+          </div>
+          <div class="body">
+            <div class="t">Connect Discord</div>
+            <div class="s">Sign in with your Discord account in the browser</div>
+          </div>
+          <div class="chev">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="card">
+      <h3>Why it never opened Discord</h3>
+      <p>The hand-off checked <code>resolveActivity()</code> before launching, and since Android 11 that
+      returns null for any package the app cannot see — Discord is not in the manifest's
+      <code>&lt;queries&gt;</code>. Every Discord candidate was skipped and the code fell through to a
+      browser tab, then left the panel in <code>SigningIn</code>.</p>
+    </div>
+    <div class="card">
+      <h3>What changed</h3>
+      <p>Launch first, catch <code>ActivityNotFoundException</code>, try the next candidate. A
+      <code>&lt;queries&gt;</code> block now names the three Discord packages and the
+      <code>discord://</code> scheme, so the panel can tell you whether the app exists at all instead of
+      promising a hand-off that cannot happen.</p>
+    </div>
+    <div class="card">
+      <h3>Callback, unchanged</h3>
+      <p>Discord returns to <code>discord-&lt;app id&gt;:/authorize/callback</code>, which Derbis claims in
+      its manifest. That URI has to be registered on the Discord application as well — an
+      unregistered redirect shows an error inside Discord and never comes back.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

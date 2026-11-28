@@ -21,11 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.MoreHoriz
-import com.yasuda.derbis.ui.icons.Person
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Star
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -89,7 +89,7 @@ import com.yasuda.derbis.ui.i18n.LocalDerbisStrings
 import com.yasuda.derbis.ui.i18n.appleArtistInfoCopy
 import com.yasuda.derbis.ui.theme.AppleMusicDesign
 import com.yasuda.derbis.ui.theme.DerbisIsAppleMusic
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.DerbisIsPrism
 import com.yasuda.derbis.viewmodel.AppleMusicEditorialViewModel
 import com.yasuda.derbis.viewmodel.appleArtistKey
@@ -246,7 +246,7 @@ private fun AppleMusicTitle(title: String, explicit: Boolean, style: androidx.co
     }
 }
 
-internal val DerbisUsesAppleArtistHero: Boolean get() = DerbisIsAppleMusic || (!DerbisIsPrism && !DerbisIsNocturne)
+internal val DerbisUsesAppleArtistHero: Boolean get() = DerbisIsAppleMusic || (!DerbisIsPrism && !DerbisIsPixel)
 
 internal class AppleArtistActions(
     val openAlbum: (AppleCatalogItem) -> Unit,

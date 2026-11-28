@@ -127,7 +127,7 @@ internal fun AppleMusicCollectionScreen(
 internal fun AppleMusicNavigationBar(title: String, collapsed: Boolean, onBack: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().background(if (collapsed) AppleMusicDesign.chrome else Color.Transparent)) {
         Row(
-            Modifier.fillMaxWidth().statusBarsPadding().height(52.dp).padding(horizontal = 8.dp),
+            Modifier.fillMaxWidth().derbisSafeTopPadding().height(52.dp).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -164,7 +164,7 @@ private fun AppleMusicCollectionHeader(
     onShuffle: () -> Unit
 ) {
     val strings = LocalDerbisStrings.current
-    Column(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxWidth().derbisSafeTopPadding().padding(top = 52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         AppleMusicCollectionArtwork(title, artworkUrl, artworkTrack)
         Text(
             title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium), color = AppleMusicDesign.label,

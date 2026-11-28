@@ -2,12 +2,12 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/install",
-      "destination": "/install.html"
+      "source": "/Derbis.ipa",
+      "destination": "/api/ipa"
     },
     {
-      "source": "/ios",
-      "destination": "/install.html"
+      "source": "/Derbis.ipa.sha256",
+      "destination": "/api/ipa-sha256"
     },
     {
       "source": "/t/:id",

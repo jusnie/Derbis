@@ -18,13 +18,13 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
-import com.yasuda.derbis.ui.icons.KeyboardArrowDown
-import com.yasuda.derbis.ui.icons.KeyboardArrowUp
-import com.yasuda.derbis.ui.icons.MoreVert
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.PushPin
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Recommend
-import com.yasuda.derbis.ui.icons.Shuffle
+import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -92,7 +92,7 @@ internal fun YouTubeMusicArtistScreen(
     val profile = state.artistProfile
     val listState = rememberSaveable(state.artistListStateKey, saver = LazyListState.Saver) { LazyListState() }
     val density = LocalDensity.current
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusTop = derbisSafeTopInset()
     Box(Modifier.fillMaxSize().background(YouTubeMusicDesign.background)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val heroHeight = (maxWidth * 0.86f).coerceAtMost(maxHeight * 0.55f)
@@ -422,7 +422,7 @@ private fun YouTubeMusicArtistBar(
     Row(
         Modifier.fillMaxWidth()
             .drawBehind { drawRect(background, alpha = if (pinned) 1f else ((collapse() - 0.7f) / 0.3f).coerceIn(0f, 1f)) }
-            .statusBarsPadding().height(ArtistBarHeight).padding(horizontal = 4.dp),
+            .derbisSafeTopPadding().height(ArtistBarHeight).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         YouTubeMusicIconAction(Icons.AutoMirrored.Rounded.ArrowBack, strings.back, viewModel::closeArtist)

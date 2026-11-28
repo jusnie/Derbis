@@ -31,6 +31,14 @@ data class ListeningInsightsTopTrackRow(
     val countedPlays: Long
 )
 
+data class ListeningInsightsTopAlbumRow(
+    val album: String,
+    val artist: String,
+    val thumbnailUrl: String,
+    val listenedMs: Long,
+    val countedPlays: Long
+)
+
 data class ListeningInsightsTopArtistRow(
     val name: String,
     val thumbnailUrl: String,

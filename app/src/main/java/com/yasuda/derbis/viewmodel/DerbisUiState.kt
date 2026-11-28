@@ -229,6 +229,7 @@ data class DerbisUiState(
     val cacheReport: CacheReport = CacheReport(0, 0, 0, 0),
     val query: String = "",
     val isPlaying: Boolean = false,
+    val isAudioRendering: Boolean = false,
     val isSearching: Boolean = false,
     val searchPending: Boolean = false,
     val isResolving: Boolean = false,
@@ -345,7 +346,14 @@ data class DerbisUiState(
     val listeningRecapPeriod: ListeningRecapPeriod = ListeningRecapPeriod.Days30,
     val listeningRecap: ListeningRecapSummary = ListeningRecapSummary(period = ListeningRecapPeriod.Days30),
     val listeningRecapLoading: Boolean = false
-)
+) {
+    /**
+     * True only when audible playback is actively rendering and advancing, rather than merely
+     * requested or buffering, so synced lyrics never march ahead of a silent/stalled stream.
+     */
+    val lyricsClockPlaying: Boolean
+        get() = isPlaying && !isResolving && isAudioRendering
+}
 
 data class MiniPlayerStudioState(
     val settings: com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings = com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings(),
@@ -354,5 +362,10 @@ data class MiniPlayerStudioState(
 
 data class NavigationStudioState(
     val settings: com.yasuda.derbis.domain.DerbisNavigationStudioSettings = com.yasuda.derbis.domain.DerbisNavigationStudioSettings(),
+    val visible: Boolean = false
+)
+
+data class TabBarState(
+    val config: com.yasuda.derbis.domain.DerbisTabBarConfig = com.yasuda.derbis.domain.DerbisTabBarConfig(),
     val visible: Boolean = false
 )

@@ -111,6 +111,13 @@ val discordSocialSdkAar = file("libs/discord_partner_sdk.aar")
 val discordSocialSdkAvailable = !isFdroidBuild && discordSocialSdkAar.isFile
 val discordApplicationId = if (isFdroidBuild) "" else envOrProperty("DISCORD_APPLICATION_ID", "discordApplicationId")
     .ifBlank { "1563840846372012102" }
+// Must be registered as an allowed redirect on the Discord application. Mobile Discord does not
+// accept an arbitrary custom scheme: the documented format is discord-<APP ID>:/authorize/callback
+// (scheme plus path, no authority), and the code + PKCE exchange has to repeat it byte for byte.
+// Anything else is rejected by the authorize page before the user ever sees a consent screen.
+val discordRedirectUri = if (isFdroidBuild || discordApplicationId.isBlank()) "" else
+    envOrProperty("DISCORD_REDIRECT_URI", "discordRedirectUri")
+        .ifBlank { "discord-$discordApplicationId:/authorize/callback" }
 val releaseStoreFilePath = envOrProperty("DERBIS_KEYSTORE_FILE", "derbisStoreFile").ifBlank { "app/derbis-release.jks" }
 val releaseStorePassword = envOrProperty("DERBIS_KEYSTORE_PASSWORD", "derbisStorePassword").ifBlank { "derbis123" }
 val releaseKeyAlias = envOrProperty("DERBIS_KEY_ALIAS", "derbisKeyAlias").ifBlank { "derbis" }
@@ -171,6 +178,22 @@ val derbisVersionName = normalizedVersionName(
         ?: "1.1.1"
 )
 
+// Which release line this build follows. The prebuild workflow ships test builds, and a test
+// build has to be able to see prebuild-* releases — that is the whole point of it. Derived from
+// the version name so the existing workflows need no extra flag, and overridable with
+// -PderbisUpdateTrack=test|stable when a build wants to say so explicitly.
+val derbisUpdateTrack = envOrProperty("DERBIS_UPDATE_TRACK", "derbisUpdateTrack")
+    .lowercase()
+    .ifBlank {
+        val lowered = derbisVersionName.lowercase()
+        when {
+            lowered.contains("prebuild") || lowered.contains("beta") ||
+                lowered.contains("alpha") || lowered.contains("nightly") -> "test"
+            else -> "stable"
+        }
+    }
+    .let { if (it == "test") "test" else "stable" }
+
 val derbisVersionCode = ((findProperty("derbisVersionCode") as? String)
     ?: System.getenv("DERBIS_VERSION_CODE"))
     ?.toIntOrNull()
@@ -205,6 +228,8 @@ android {
         buildConfigField("String", "SPOTIFY_REDIRECT_URI", buildConfigString(spotifyRedirectUri))
         buildConfigField("boolean", "DISCORD_SOCIAL_SDK_AVAILABLE", discordSocialSdkAvailable.toString())
         buildConfigField("String", "DISCORD_APPLICATION_ID", buildConfigString(discordApplicationId))
+        buildConfigField("String", "DISCORD_REDIRECT_URI", buildConfigString(discordRedirectUri))
+        buildConfigField("String", "UPDATE_TRACK", buildConfigString(derbisUpdateTrack))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

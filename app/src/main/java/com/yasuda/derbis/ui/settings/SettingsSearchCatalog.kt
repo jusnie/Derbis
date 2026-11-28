@@ -65,11 +65,14 @@ private fun MutableList<SettingsSearchEntry>.entry(
 
 private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: DerbisStrings, categories: SettingsSearchCategories) {
     entry("design.theme_studio", strings.themeStudio, strings.themeStudioSubtitle, "${strings.theme} ${strings.themeAccent} theme color palette accent", categories.design)
+    entry("design.app_icon", "App icon", "Choose the launcher icon: Original, Pixelated, or one of the eight Derbis pixel mascots", "app icon launcher shortcut mascot bear bunny cat chick frog penguin sheep cloud pixelated", categories.design)
     entry("design.app_font", strings.appFont, strings.appFontSubtitle, "font typography text", categories.design)
     entry("design.animations", strings.animations, strings.animationsSubtitle, "animation motion", categories.design)
     entry("design.visual_performance", strings.visualPerformance, strings.visualPerformanceFullSubtitle, "${strings.visualPerformanceAuto} ${strings.visualPerformanceSmooth} performance fps", categories.design)
-    entry("design.liquid_glass", strings.liquidGlass, strings.liquidGlassSubtitle, "glass blur transparency", categories.design)
+    entry("design.artwork_quality", strings.artworkQualityTitle, strings.artworkQualityMediumSubtitle, "artwork cover covers image images resolution px pixels quality bandwidth data saver slow connection thumbnails portraits photos ${strings.artworkQualityLow} ${strings.artworkQualityHigh}", categories.design)
+    entry("design.liquid_glass", strings.liquidGlass, strings.liquidGlassSubtitle, "glass material frost refraction", categories.design)
     entry("design.dynamic_color", strings.dynamicColor, strings.dynamicColorSubtitle, "material you color wallpaper", categories.design)
+    entry("design.explicit_filter", strings.explicitFilterTitle, strings.explicitFilterSubtitle, "explicit content clean filter hide only parental advisory", categories.design)
     entry("home.compact", strings.compactHome, strings.compactHomeSubtitle, "home layout", categories.home)
     entry("home.your_orbit", strings.yourOrbitSetting, strings.showPersonalListening, "personal orbit listening", categories.home)
     entry("home.voices", strings.voicesSetting, strings.voicesSettingSubtitle, "voices", categories.home)
@@ -84,8 +87,14 @@ private fun MutableList<SettingsSearchEntry>.appearanceEntries(strings: DerbisSt
 private fun MutableList<SettingsSearchEntry>.playerEntries(strings: DerbisStrings, categories: SettingsSearchCategories) {
     val automation = strings.automationCopy()
     entry("player.visual_mode", strings.playerVisualMode, strings.playerVisualModeSubtitle, "canvas artwork immersive", categories.player)
-    entry("player.background", strings.playerBackground, strings.playerBackgroundSubtitle, "background blur", categories.player)
     entry("player.haptics", strings.hapticFeedback, strings.hapticFeedbackSubtitle, "haptic vibration", categories.player)
+    entry(
+        "player.derbis_notch",
+        strings.derbisNotch,
+        strings.derbisNotchHint,
+        "notch island dynamic island lyrics toggle customize artwork waveform haptics progress",
+        categories.player
+    )
     entry("player.gestures", strings.advancedGestures, strings.advancedGesturesSubtitle, "gestures swipe tap", categories.player)
     entry("player.gesture_horizontal", strings.playerGestureHorizontalSwipe, strings.playerGestureHorizontalSwipeSubtitle, "gestures swipe", categories.player)
     entry("player.gesture_double_tap", strings.playerGestureDoubleTapAction, strings.playerGestureDoubleTapActionSubtitle, "gestures double tap", categories.player)
@@ -122,7 +131,8 @@ private fun MutableList<SettingsSearchEntry>.audioEntries(
 ) {
     val parametric = strings.parametricEqCopy()
     entry("audio.engine", strings.audioEngine, strings.audioEngineSubtitle, "audio sound output", categories.audio)
-    entry("audio.quality", strings.audioQuality, strings.audioSectionQuality, "${strings.audioQualityAuto} ${strings.audioQualityHigh} ${strings.audioQualityMedium} ${strings.audioQualityLow} quality bitrate streaming", categories.audio)
+    entry("audio.quality", strings.audioQuality, strings.audioSectionQuality, "${strings.audioQualityLow} ${strings.audioQualityMedium} ${strings.audioQualityHigh} ${strings.audioQualityLossless} quality bitrate streaming lossless flac hifi hi-fi", categories.audio)
+    entry("audio.dolby_atmos", "Dolby Atmos", "E-AC-3 JOC spatial mix", "dolby atmos eac3 joc spatial surround 5.1", categories.audio)
     entry("audio.alternative_hq", strings.alternativeAudioTitle, strings.alternativeAudioSubtitle, "${strings.alternativeAudioPrefer320} 320 kbps jiosaavn hq hifi bitrate", categories.audio)
     entry("audio.equalizer", strings.equalizer, strings.equalizerSubtitle, "${parametric.graphicEq} ${parametric.parametricEq} eq equaliser preset bands", categories.audio)
     entry("audio.autoeq", strings.autoEqCatalog, strings.autoEqCatalogHint, "${strings.autoEqImport} autoeq eq headphones", categories.audio)
@@ -130,6 +140,7 @@ private fun MutableList<SettingsSearchEntry>.audioEntries(
     entry("audio.bass_boost", strings.bassBoost, strings.audioSectionEqualizer, "bass eq", categories.audio)
     entry("audio.virtualizer", strings.virtualizer, strings.audioSectionSpatial, "spatial surround stereo", categories.audio)
     entry("audio.enhanced", strings.enhancedAudioTitle, strings.enhancedAudioSubtitle, "enhance", categories.audio)
+    entry("audio.karaoke", strings.karaokeTitle, strings.karaokeSubtitle, "karaoke vocal remove voice instrumental acapella sing along", categories.audio)
     entry("audio.limiter", strings.truePeakLimiter, strings.audioSectionDynamics, "limiter true peak clipping dbtp", categories.audio)
     entry("audio.replay_gain", strings.replayGain, strings.audioSectionDynamics, "replaygain normalization loudness volume clipping", categories.audio)
     entry("audio.crossfade", strings.crossfade, strings.audioSectionPlayback, "transition fade", categories.audio)
@@ -167,6 +178,7 @@ private fun MutableList<SettingsSearchEntry>.libraryEntries(strings: DerbisStrin
     entry("downloads.skip_duplicates", strings.downloadSkipDuplicates, strings.downloadSkipDuplicatesSubtitle, "duplicates", categories.downloads)
     entry("lyrics.provider_priority", strings.lyricsProviderPriority, strings.lyricsProviderPrioritySubtitle, "${strings.lyrics} lyrics synced provider", categories.lyrics)
     entry("lyrics.analysis", strings.lyricsAnalysisCompact, strings.lyricsAnalysisCompactSubtitle, "${strings.lyrics} lyrics analysis", categories.lyrics)
+    entry("lyrics.status_bar", strings.statusBarLyricsTitle, strings.statusBarLyricsSubtitle, "status bar notification lyric line lock screen", categories.lyrics)
     entry("backup.vault", strings.vaultTitle, strings.vaultSubtitle, "backup", categories.backup)
     entry("backup.automatic", strings.automaticBackup, strings.automaticBackupSubtitle, "backup schedule", categories.backup)
     entry("backup.frequency", strings.backupFrequency, strings.automaticBackupSubtitle, "backup schedule", categories.backup)
@@ -195,6 +207,7 @@ private fun MutableList<SettingsSearchEntry>.systemEntries(
         entry("app.updates", strings.updates, strings.checkNewVersions, "version update", categories.app)
     }
     entry("youtube_music.account", "YouTube Music", com.yasuda.derbis.ui.i18n.youtubeMusicCopy(strings.code).introduction, "youtube music google login account cookie library playlist likes", categories.youtubeMusic)
+    entry("integrations.subsonic", strings.subsonicHomeServer, strings.subsonicTileSubtitle, "subsonic navidrome gonic airsonic ampache home server own library stream", categories.integrations)
     entry("integrations.lastfm", "Last.fm", strings.integrations, "lastfm scrobble scrobbling", categories.integrations)
     entry("integrations.listenbrainz", "ListenBrainz", strings.integrations, "listenbrainz scrobble scrobbling", categories.integrations)
     entry("integrations.audd", "AudD", strings.integrations, "audd recognition identify", categories.integrations)

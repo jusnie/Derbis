@@ -38,7 +38,7 @@ class DerbisPreferencesDefaultsTest {
     @Test
     fun skinBackupIsBackwardCompatibleAndPreservesPersonalSettings() {
         val original = DerbisInterfaceSettings(
-            skin = com.yasuda.derbis.domain.DerbisSkin.Nocturne78,
+            skin = com.yasuda.derbis.domain.DerbisSkin.Pixel,
             pureBlack = true,
             playerColorMode = PlayerColorMode.Custom,
             playerColorAccent = 0xFF1256AB.toInt()
@@ -140,9 +140,9 @@ class DerbisPreferencesDefaultsTest {
     fun legacyBackupPreservesCanvasPreferenceWhenVisualModeMissing() {
         val restoredWithCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),
-            legacyVisualMode = PlayerVisualMode.CanvasImmersive
+            legacyVisualMode = PlayerVisualMode.CanvasCard
         )
-        assertEquals(PlayerVisualMode.CanvasImmersive, restoredWithCanvas.playerVisualMode)
+        assertEquals(PlayerVisualMode.CanvasCard, restoredWithCanvas.playerVisualMode)
 
         val restoredWithoutCanvas = backupInterfaceSettingsFromJson(
             JSONObject(),

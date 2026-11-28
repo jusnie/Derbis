@@ -3,6 +3,7 @@ package com.yasuda.derbis.feature.motion
 import android.content.Context
 import com.yasuda.derbis.data.ChartOfficialArtworkResolver
 import com.yasuda.derbis.data.local.DerbisDatabase
+import com.yasuda.derbis.data.spotify.DerbisSpotifySession
 import com.yasuda.derbis.domain.DerbisCanvasSource
 import com.yasuda.derbis.domain.Track
 import kotlinx.coroutines.CancellationException
@@ -57,6 +58,18 @@ class MotionArtworkEngine(context: Context) {
     private val lookupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val requestCoordinator = MotionArtworkRequestCoordinator(lookupScope)
     private val metadataWarmCache = MotionMetadataWarmCache()
+
+    init {
+        runCatching {
+            DerbisSpotifySession.initialize(appContext)
+            SpotifyTokenProvider.init(appContext)
+            if (DerbisSpotifySession.hasSession()) {
+                SpotifyTokenProvider.rewindWarmUpBudget()
+                SpotifyTokenProvider.warmUp()
+            }
+        }.onFailure { Timber.d(it, "MotionArtworkEngine Spotify session init skipped") }
+    }
+
     fun close() {
         lookupScope.cancel()
     }
@@ -124,7 +137,10 @@ class MotionArtworkEngine(context: Context) {
         source: DerbisCanvasSource = DerbisCanvasSource.Auto
     ) {
         if (track == null || !networkPolicy.canPrefetchNext()) return
-        resolve(track, source)
+        val resolved = resolve(track, source) ?: return
+        if (networkPolicy.canPrefetchNext()) {
+            CanvasMediaCache.prefetch(appContext, resolved)
+        }
     }
 
     suspend fun invalidate(
@@ -177,8 +193,10 @@ class MotionArtworkEngine(context: Context) {
         }
         val identity = MotionTrackIdentity.from(track)
         val providerOrder = motionArtworkProviderOrder(config.providerOrder, source)
-        val providers = providersFor(configEpoch, config).filter { it.id in providerOrder }
         val providerRanks = providerOrder.withIndex().associate { it.value to it.index }
+        val providers = providersFor(configEpoch, config)
+            .filter { it.id in providerRanks }
+            .sortedBy { providerRanks[it.id] ?: Int.MAX_VALUE }
         val forcedSource = source != DerbisCanvasSource.Auto
 
         var providerFailed = providers.isEmpty()
@@ -509,7 +527,20 @@ private const val MOTION_METADATA_FOREGROUND_BUDGET_MS = 150L
 internal fun motionMetadataForegroundBudgetMs(track: Track): Long =
     if (track.isrc.isNotBlank() && !isUnusableMotionAlbum(track.album)) 0L else MOTION_METADATA_FOREGROUND_BUDGET_MS
 
-internal fun motionArtworkProviderTimeoutMs(providerId: String, configuredTimeoutMs: Long): Long = configuredTimeoutMs
+internal fun motionArtworkProviderTimeoutMs(
+    providerId: String,
+    configuredTimeoutMs: Long,
+    spotifyTokenWarm: Boolean = SpotifyTokenProvider.hasWarmToken()
+): Long = when (providerId) {
+    SpotifyCanvasProvider.PROVIDER_ID -> {
+        if (spotifyTokenWarm) {
+            maxOf(configuredTimeoutMs, 10_000L)
+        } else {
+            maxOf(configuredTimeoutMs, 22_000L)
+        }
+    }
+    else -> configuredTimeoutMs
+}
 
 internal class MotionMetadataWarmCache(private val maxEntries: Int = 64) {
     private val entries = LinkedHashMap<String, Track>(16, 0.75f, true)
@@ -550,8 +581,28 @@ internal fun motionArtworkRequestKey(track: Track, source: DerbisCanvasSource): 
 
 internal fun motionArtworkProviderOrder(
     configuredOrder: List<String>,
-    source: DerbisCanvasSource
-): List<String> = configuredOrder.filter { it == DerbisCanvasCatalogProvider.PROVIDER_ID }
+    source: DerbisCanvasSource,
+    preferSpotifyCanvas: Boolean = DerbisSpotifySession.hasSession()
+): List<String> {
+    val allowed = configuredOrder
+        .filter {
+            it == AppleMusicAnimatedArtworkProvider.PROVIDER_ID ||
+                it == SpotifyCanvasProvider.PROVIDER_ID ||
+                it == DerbisCanvasCatalogProvider.PROVIDER_ID
+        }
+        .distinct()
+    if (!preferSpotifyCanvas || SpotifyCanvasProvider.PROVIDER_ID !in allowed) {
+        return allowed
+    }
+    return buildList(allowed.size) {
+        add(SpotifyCanvasProvider.PROVIDER_ID)
+        allowed.forEach { providerId ->
+            if (providerId != SpotifyCanvasProvider.PROVIDER_ID) {
+                add(providerId)
+            }
+        }
+    }
+}
 
 internal data class MotionArtworkRankedCandidate(
     val candidate: MotionArtworkCandidate,

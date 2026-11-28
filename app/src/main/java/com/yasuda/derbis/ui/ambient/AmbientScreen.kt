@@ -39,7 +39,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -290,7 +290,6 @@ private fun AmbientPortraitContent(
             AmbientArtwork(
                 artworkUrl = state.artworkUrl,
                 motionArtwork = state.motionArtwork,
-                isPlaying = state.isPlaying,
                 showCanvas = settings.showCanvas,
                 motionAllowed = motionAllowed,
                 quality = state.canvasQuality,
@@ -378,7 +377,6 @@ private fun AmbientLandscapeContent(
                 AmbientArtwork(
                     artworkUrl = state.artworkUrl,
                     motionArtwork = state.motionArtwork,
-                    isPlaying = state.isPlaying,
                     showCanvas = settings.showCanvas,
                     motionAllowed = motionAllowed,
                     quality = state.canvasQuality,
@@ -649,7 +647,6 @@ private fun AmbientClock(color: Color, compact: Boolean, centered: Boolean = tru
 private fun AmbientArtwork(
     artworkUrl: String,
     motionArtwork: MotionArtwork?,
-    isPlaying: Boolean,
     showCanvas: Boolean,
     motionAllowed: Boolean,
     quality: DerbisCanvasQuality,
@@ -668,7 +665,6 @@ private fun AmbientArtwork(
         MotionArtworkLayer(
             artwork = motionArtwork.takeIf { showCanvas && motionAllowed },
             enabled = motionAllowed && showCanvas,
-            isPlaying = isPlaying,
             cornerRadius = if (elevated) 24.dp else 18.dp,
             presentation = MotionArtworkPresentation.Card,
             quality = quality,

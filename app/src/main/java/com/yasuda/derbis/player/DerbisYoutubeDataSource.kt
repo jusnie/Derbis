@@ -8,6 +8,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException
+import com.yasuda.derbis.data.hqaudio.jiosaavn.JioSaavnRequestProfile
 import com.yasuda.derbis.data.network.YoutubeStreamClientIdentityRegistry
 import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import timber.log.Timber
@@ -49,7 +50,19 @@ class DerbisYoutubeDataSource private constructor(
 
     private fun openDelegate(dataSpec: DataSpec): Long {
         val originalUrl = dataSpec.uri.toString()
-        if (!isYoutubeMediaUrl(dataSpec.uri)) return delegate.open(dataSpec)
+        if (!isYoutubeMediaUrl(dataSpec.uri)) {
+            // Clear any YouTube request properties left on the reused delegate from an earlier
+            // track, and attach provider media headers when streaming a JioSaavn HQ CDN URL.
+            val httpDelegate = delegate as? HttpDataSource
+            httpDelegate?.clearAllRequestProperties()
+            val externalHeaders = externalMediaHeaders(dataSpec.uri)
+            if (externalHeaders.isEmpty()) return delegate.open(dataSpec)
+            externalHeaders.forEach { (name, value) -> httpDelegate?.setRequestProperty(name, value) }
+            val adaptedSpec = dataSpec.withAdditionalHeaders(
+                externalHeaders.filterKeys { !it.equals("User-Agent", true) }
+            )
+            return delegate.open(adaptedSpec)
+        }
         val headers = requestHeaders(originalUrl)
         try {
             return openWithHeaders(dataSpec, headers)
@@ -57,6 +70,23 @@ class DerbisYoutubeDataSource private constructor(
             if (!isMediaNetworkFailure(error)) throw error
             return openOnAlternateMediaNetwork(dataSpec, headers, error)
         }
+    }
+
+    private fun externalMediaHeaders(uri: Uri): Map<String, String> {
+        val host = uri.host.orEmpty().lowercase()
+        if (
+            host == "jiosaavn.com" ||
+            host.endsWith(".jiosaavn.com") ||
+            host == "saavncdn.com" ||
+            host.endsWith(".saavncdn.com")
+        ) {
+            return linkedMapOf(
+                "User-Agent" to JioSaavnRequestProfile.DEFAULT_USER_AGENT,
+                "Accept" to "*/*",
+                "Accept-Encoding" to "identity"
+            )
+        }
+        return emptyMap()
     }
 
     private fun openWithHeaders(dataSpec: DataSpec, headers: Map<String, String>): Long {

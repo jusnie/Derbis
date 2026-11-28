@@ -5,11 +5,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Favorite
-import com.yasuda.derbis.ui.icons.FavoriteBorder
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -36,11 +35,9 @@ fun BoxScope.SavedAlbumBookmarkOverlay(
     border: Color = DerbisGlassBorder,
     idleTint: Color = DerbisText
 ) {
-    val density = LocalDensity.current
     val strings = DerbisStrings.forCode(languageCode)
-    val fixedStatusBarInset = with(density) {
-        WindowInsets.statusBars.getTop(density).toDp()
-    }
+    // Immersive chrome: fall back to the cutout/floor instead of a bar height Compose reports as 0.
+    val fixedStatusBarInset = com.yasuda.derbis.ui.derbisSafeTopInset()
 
     Surface(
         onClick = onToggle,

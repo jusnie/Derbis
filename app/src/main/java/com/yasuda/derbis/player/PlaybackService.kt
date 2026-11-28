@@ -25,6 +25,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
@@ -93,6 +94,7 @@ import com.yasuda.derbis.domain.LyricLine
 import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.discord.DerbisDiscordRichPresence
+import com.yasuda.derbis.feature.discord.discordLyricPositionMs
 import com.yasuda.derbis.feature.discord.derbisDiscordPresenceSnapshot
 import com.yasuda.derbis.feature.radio.LIVE_RADIO_SOURCE
 import com.yasuda.derbis.feature.radio.LiveRadioPlaylistDataSource
@@ -193,10 +195,20 @@ class PlaybackService : MediaLibraryService() {
     @Volatile private var discordLyricsSynced: Boolean = false
     @Volatile private var discordLyricsLatencyProfiles = LyricsLatencyProfiles()
     private var lastDiscordLyricLine: String = ""
+    /** What the status-bar notification currently shows; empty when nothing is posted. */
+    private var lastStatusLyricLine: String = ""
+    private val lyricStatusNotifier by lazy { LyricStatusNotifier(this) }
     private var transitionPlayer: ExoPlayer? = null
     private var transitionNormalization: NormalizationAudioProcessor? = null
     private var transitionEightDAudioProcessor: EightDAudioProcessor? = null
+    private var transitionKaraokeProcessor: VocalCancelAudioProcessor? = null
+    private var transitionMonoProcessor: MonoAudioProcessor? = null
+    private var transitionAudioSink: AudioSink? = null
     private var currentAudioSettings = DerbisAudioSettings()
+
+    /** Skip-silence forces PCM16 downstream, so it also decides whether float output is safe. */
+    @Volatile
+    private var currentSkipSilence = false
     private var activeCustomBufferProfile: PlaybackBufferProfile? = null
 
     @Volatile
@@ -209,6 +221,8 @@ class PlaybackService : MediaLibraryService() {
     private val parametricEqualizerProcessor = DerbisParametricEqualizerAudioProcessor()
     private val spatialAudioProcessor = StereoSpatialAudioProcessor()
     private val eightDAudioProcessor = EightDAudioProcessor()
+    private val karaokeProcessor = VocalCancelAudioProcessor()
+    private val monoProcessor = MonoAudioProcessor()
     private val limiterProcessor = TruePeakLimiterAudioProcessor()
     private val visualizerProcessor = VisualizerAudioProcessor()
     private val beatGridProcessor = BeatGridAnalysisAudioProcessor { trackId, grid ->
@@ -216,6 +230,9 @@ class PlaybackService : MediaLibraryService() {
     }
     private val pcm16OutputProcessor = Pcm16OutputAudioProcessor()
     private val audioOffloadController = AudioOffloadController()
+    @Volatile
+    private var audioOffloadRuntimeBlocked = false
+    private var recoveredAudioSinkMediaId: String? = null
     private lateinit var playbackWakeLock: PowerManager.WakeLock
     private lateinit var playbackStateStore: SharedPreferences
     private lateinit var audioManager: AudioManager
@@ -442,6 +459,21 @@ class PlaybackService : MediaLibraryService() {
             activeService?.playbackPausedByUser = false
         }
 
+        /**
+         * Disables hardware audio offload and AAudio direct output when a ready-state playhead
+         * freezes at 0:00 or mid-track, falling back to standard MediaCodec PCM output.
+         */
+        internal fun onOutputStallDetected(): Boolean =
+            activeService?.disableStalledHardwareOutputPath() == true
+
+        /**
+         * Ensures the background service recovery loop actively retries stream resolution when
+         * UI-side recovery encounters a transient network failure, even if the underlying player
+         * had not yet emitted its own PlaybackException or was left in STATE_IDLE.
+         */
+        internal fun requestBackgroundStreamRecovery(positionMs: Long): Boolean =
+            activeService?.scheduleDeferredUiRecovery(positionMs) == true
+
         suspend fun stopForAppExit() {
             val service = activeService ?: return
             service.appExitRequested = true
@@ -600,10 +632,16 @@ class PlaybackService : MediaLibraryService() {
         spatialAudioProcessor.strength = normalized.virtualizer
         eightDAudioProcessor.enabled = normalized.eightDAudioEnabled
         eightDAudioProcessor.experience = normalized.derbis360Experience
+        // Karaoke is a centre-channel cancel: one volatile flag, smoothed inside the processor so
+        // flipping the switch mid-song ramps instead of clicking.
+        karaokeProcessor.enabled = normalized.karaokeMode
+        monoProcessor.enabled = normalized.monoEnabled
         transitionEightDAudioProcessor?.apply {
             enabled = normalized.eightDAudioEnabled
             experience = normalized.derbis360Experience
         }
+        transitionKaraokeProcessor?.enabled = normalized.karaokeMode
+        transitionMonoProcessor?.enabled = normalized.monoEnabled
         limiterProcessor.enabled = truePeakLimiterRequired(normalized, parametricEnabled, audioNormalization)
         updateQueueTransitionSettings(normalized, audioNormalization)
         activePlayer?.currentMediaItem?.mediaMetadata?.extras?.let { extras ->
@@ -626,6 +664,9 @@ class PlaybackService : MediaLibraryService() {
                 )
             )
         }
+        if (normalized.audioOffloadPreference == com.yasuda.derbis.domain.AudioOffloadPreference.OFF) {
+            audioOffloadRuntimeBlocked = false
+        }
         updateAaudioOutputRequest(normalized.aaudioOutputEnabled)
         refreshAudioOffloadPolicy()
     }
@@ -643,10 +684,69 @@ class PlaybackService : MediaLibraryService() {
                 speed = parameters.speed,
                 pitch = parameters.pitch,
                 skipSilenceEnabled = player.skipSilenceEnabled,
-                aaudioOutputSupported = NativeAudioIntegration.isAaudioOutputSupported()
+                aaudioOutputSupported = NativeAudioIntegration.isAaudioOutputSupported(),
+                runtimeBlocked = audioOffloadRuntimeBlocked
             )
         )
     }
+
+    private fun disableStalledHardwareOutputPath(forceSinkReset: Boolean = false): Boolean {
+        var changed = false
+        var redirectedDecoder = false
+        if (!audioOffloadRuntimeBlocked) {
+            val offloadState = audioOffloadController.state
+            if (offloadState.decision?.allowed == true || offloadState.output == AudioOffloadOutput.OFFLOADED) {
+                audioOffloadRuntimeBlocked = true
+                refreshAudioOffloadPolicy()
+                changed = true
+                Timber.w("Disabled hardware audio offload after stalled playhead")
+            }
+        }
+        if (aaudioOutputRequested && NativeAudioIntegration.isAaudioOutputSupported()) {
+            aaudioOutputRequested = false
+            refreshAudioOffloadPolicy()
+            changed = true
+            Timber.w("Disabled AAudio output after stalled playhead")
+        }
+        val player = activePlayer
+        if (!changed && !forceSinkReset && player != null) {
+            val mimeType = activeAudioSampleMimeType(player)
+            if (NativeAudioIntegration.redirectStalledPlatformDecoder(mimeType)) {
+                redirectedDecoder = true
+                changed = true
+                Timber.w("Platform audio decoder stalled on %s; redirecting to FFmpeg", mimeType)
+            }
+        }
+        if ((changed || forceSinkReset) && player != null) {
+            val sink = primaryAudioSink
+            if (sink != null) {
+                val provider = NativeAudioIntegration.audioOutputProvider(this) { aaudioOutputRequested }
+                player.createMessage { _, _ ->
+                    sink.reset()
+                    if (provider != null) sink.setAudioOutputProvider(provider)
+                }.send()
+            }
+            if (redirectedDecoder) {
+                val resumePositionMs = player.currentPosition.coerceAtLeast(0L)
+                val shouldPlay = player.playWhenReady && !playbackPausedByUser
+                runCatching {
+                    player.stop()
+                    if (resumePositionMs > 0L) player.seekTo(resumePositionMs)
+                    player.prepare()
+                    if (shouldPlay) player.play()
+                }.onFailure { Timber.w(it, "FFmpeg stalled-decoder fallback prepare failed") }
+            }
+        }
+        return changed || forceSinkReset
+    }
+
+    private fun activeAudioSampleMimeType(player: ExoPlayer): String? =
+        player.currentTracks.groups.firstNotNullOfOrNull { group ->
+            if (group.type != C.TRACK_TYPE_AUDIO || !group.isSelected) return@firstNotNullOfOrNull null
+            (0 until group.length)
+                .firstOrNull { index -> group.isTrackSelected(index) }
+                ?.let { index -> group.getTrackFormat(index).sampleMimeType }
+        }
 
     private fun configureNormalizationProcessor(
         processor: NormalizationAudioProcessor,
@@ -749,7 +849,10 @@ class PlaybackService : MediaLibraryService() {
         val player = activePlayer ?: return
         val sink = primaryAudioSink ?: return
         val provider = NativeAudioIntegration.audioOutputProvider(this) { aaudioOutputRequested } ?: return
-        player.createMessage { _, _ -> sink.setAudioOutputProvider(provider) }.send()
+        player.createMessage { _, _ ->
+            sink.reset()
+            sink.setAudioOutputProvider(provider)
+        }.send()
     }
 
     private fun activateServiceAndApplyPendingAudioSettings() {
@@ -824,6 +927,7 @@ class PlaybackService : MediaLibraryService() {
         // Lyrics usually arrive after playback starts; republish now so the line shows up
         // immediately instead of waiting for the next playback tick or the 30 s resync.
         runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishDiscordLyricLineIfChanged) }
+        runCatching { (activePlayer ?: mediaSession?.player)?.let(::publishStatusLyricLineIfChanged) }
         val mediaId = DerbisMediaItemFactory.mediaId(track)
         val forwardLyrics = { deviceIntegration?.onLyrics(mediaId, track.id, lines, synced) }
         if (deviceIntegrationResolved) forwardLyrics() else pendingDeviceLyrics = { forwardLyrics() }
@@ -881,6 +985,7 @@ class PlaybackService : MediaLibraryService() {
         autoLibrary = AndroidAutoLibrary(this)
         val prefs = DerbisPreferences(this)
         val snapshot = prefs.snapshot()
+        currentSkipSilence = snapshot.skipSilence
         val automaticBufferProfile = AdaptivePlaybackPolicy(this).serviceBuffers()
         val bufferProfile = playbackBufferProfile(automaticBufferProfile, snapshot.audioSettings.playbackBuffer)
         activeCustomBufferProfile = bufferProfile.takeIf {
@@ -984,17 +1089,26 @@ class PlaybackService : MediaLibraryService() {
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
             ): AudioSink {
+                // DefaultAudioSink.Builder.setAudioProcessors wraps this list in Media3's
+                // DefaultAudioProcessorChain, whose SilenceSkippingAudioProcessor and
+                // SonicAudioProcessor both reject ENCODING_PCM_FLOAT inside configure() even when
+                // disabled. Always terminate Derbis's float DSP chain with Pcm16OutputAudioProcessor
+                // so AudioSink initialization can never fail with UnhandledAudioFormatException.
                 return DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(false)
                     .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
                     .setAudioProcessors(
-                        arrayOf(
+                        arrayOf<AudioProcessor>(
                             enhancedAudioProcessor,
                             normalizationProcessor,
                             equalizerProcessor,
                             parametricEqualizerProcessor,
                             spatialAudioProcessor,
                             eightDAudioProcessor,
+                            // Before the limiter and the analysers, so the meters, the beat grid
+                            // and the visualiser all show the mix the listener actually hears.
+                            karaokeProcessor,
+                            monoProcessor,
                             limiterProcessor,
                             visualizerProcessor,
                             beatGridProcessor,
@@ -1039,6 +1153,7 @@ class PlaybackService : MediaLibraryService() {
         currentAudioSettings = snapshot.audioSettings.normalized()
         currentAudioNormalization = snapshot.audioNormalization
         player.skipSilenceEnabled = snapshot.skipSilence
+        currentSkipSilence = snapshot.skipSilence
         applyPremiumAudioSettingsInternal(snapshot.audioSettings, snapshot.audioNormalization)
         RuntimeHooks.dsp(RuntimeSignal.DSP_CREATED)
         audioManager.registerAudioDeviceCallback(audioDeviceCallback, null)
@@ -1063,15 +1178,19 @@ class PlaybackService : MediaLibraryService() {
             }
 
             override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) {
+                currentSkipSilence = skipSilenceEnabled
                 refreshAudioOffloadPolicy()
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 if (activePlayer !== player) return
+                // The offset keeps a resumed track's beat origin measured from the real
+                // timeline instead of from wherever the capture window happened to open.
                 queueEngine.state.value.currentTrack?.id?.takeIf(String::isNotBlank)
-                    ?.let(beatGridProcessor::beginTrack)
+                    ?.let { trackId -> beatGridProcessor.beginTrack(trackId, player.currentPosition) }
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
+                    recoveredAudioSinkMediaId = null
                     VideoDecoderFallback.Shared.reset()
                     _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
                     liveRadioPausedAtMs = C.TIME_UNSET
@@ -1170,6 +1289,16 @@ class PlaybackService : MediaLibraryService() {
                 NativeAudioIntegration.redirectFailedPlatformDecoder(error)?.let { mimeType ->
                     Timber.w("Platform audio decoder failed for %s; retrying with FFmpeg", mimeType)
                     player.prepare()
+                    return
+                }
+                val currentMediaId = player.currentMediaItem?.mediaId.orEmpty()
+                if (error.errorCode in 5001..5004 && currentMediaId.isNotEmpty() && recoveredAudioSinkMediaId != currentMediaId) {
+                    recoveredAudioSinkMediaId = currentMediaId
+                    disableStalledHardwareOutputPath(forceSinkReset = true)
+                    NativeAudioIntegration.rememberRecoveredControllerError(error)
+                    Timber.w(error, "Audio output sink failed (code=%d); resetting to safe PCM AudioTrack", error.errorCode)
+                    player.prepare()
+                    if (player.playWhenReady && !playbackPausedByUser) player.play()
                     return
                 }
                 updatePlaybackProtection(player)
@@ -1302,6 +1431,11 @@ class PlaybackService : MediaLibraryService() {
                 }
                 if (playbackDeck.isPlaying) {
                     publishDiscordLyricLineIfChanged(playbackDeck)
+                    publishStatusLyricLineIfChanged(playbackDeck)
+                } else {
+                    // Pausing is the listener's signal that the lyric can go away; leaving a stale
+                    // line on the lock screen would be worse than showing nothing.
+                    clearStatusLyricLine()
                 }
                 delay(2_000L)
             }
@@ -1483,6 +1617,13 @@ class PlaybackService : MediaLibraryService() {
                 controller: MediaSession.ControllerInfo,
                 mediaItems: List<MediaItem>
             ): ListenableFuture<List<MediaItem>> {
+                if (
+                    mediaItems.isNotEmpty() &&
+                    mediaItems.none { it.mediaId.startsWith(AndroidAutoLibrary.ID_TRACK_PREFIX) } &&
+                    mediaItems.all { it.localConfiguration?.uri != null }
+                ) {
+                    return Futures.immediateFuture(mediaItems)
+                }
                 return mediaItemsFuture { autoLibrary.playableItems(mediaItems) }
             }
 
@@ -1559,6 +1700,9 @@ class PlaybackService : MediaLibraryService() {
         // external media controllers) reaches this session player, so it is the single
         // place that authorizes a new audible playback start after an explicit pause.
         playbackPausedByUser = false
+        if (delegate.playbackState == Player.STATE_IDLE && delegate.mediaItemCount > 0) {
+            super.prepare()
+        }
         super.play()
     }
 
@@ -1577,6 +1721,18 @@ class PlaybackService : MediaLibraryService() {
             // Player.pause(); it has exactly the same pause-all-audio contract.
             pauseAllAudiblePlayback(delegate, explicitUserRequest = true)
         }
+    }
+
+    override fun stop() {
+        // Programmatic unloads (such as stopping the outgoing song while a newly selected track
+        // resolves) must silence every deck without marking the session paused by the listener.
+        pauseAllAudiblePlayback(delegate, explicitUserRequest = false)
+        super.stop()
+    }
+
+    override fun clearMediaItems() {
+        pauseAllAudiblePlayback(delegate, explicitUserRequest = false)
+        super.clearMediaItems()
     }
 
     override fun addListener(listener: Player.Listener) {
@@ -2290,6 +2446,10 @@ class PlaybackService : MediaLibraryService() {
             ?: duration
         val remaining = handoffAtMs - position
         if (remaining !in 1L..MAX_TRANSITION_LOOKAHEAD_MS) return
+        // Grids are only read when this specific saved transition asked to be beat-aligned. The
+        // queue-wide "Beat Sync" switch is gone: it promised alignment for pairs it had never
+        // measured, so it now lives where it can be honoured, per handoff, in Mix Studio.
+        val beatAlignArmed = mixStudioSetting?.beatSyncEnabled == true
         val plan = planAutoMix(
             current = current.copy(durationMs = duration),
             next = next,
@@ -2299,8 +2459,8 @@ class PlaybackService : MediaLibraryService() {
             lowRam = adaptivePlaybackPolicy.current(videoMode = false).lowRam,
             shuffleEnabled = snapshot.shuffleEnabled,
             mixStudioSetting = mixStudioSetting,
-            currentBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(current.id) },
-            nextBeatGrid = mixStudioSetting?.takeIf { currentAudioSettings.beatSyncEnabled && it.beatSyncEnabled }?.let { beatGridStore.gridFor(next.id) }
+            currentBeatGrid = if (beatAlignArmed) beatGridStore.gridFor(current.id) else null,
+            nextBeatGrid = if (beatAlignArmed) beatGridStore.gridFor(next.id) else null
         ) ?: return
         if (remaining > plan.preloadLeadMs) return
         queueTransitionJob = serviceScope.launch {
@@ -2403,7 +2563,7 @@ class PlaybackService : MediaLibraryService() {
             // A beat-matched deck runs at a corrected speed. Glide back to the listener's own
             // speed once the outgoing deck is gone, or the new song would play fast forever.
             if (plan.beatAligned) {
-                serviceScope.launch { restorePlaybackSpeedAfterBeatSync(plan.incomingTempo) }
+                serviceScope.launch { restorePlaybackSpeedAfterBeatAlignment(plan.incomingTempo) }
             }
 
             queueEngine.updatePosition(secondary.currentPosition.coerceAtLeast(0L))
@@ -2429,7 +2589,7 @@ class PlaybackService : MediaLibraryService() {
      * Eases the promoted deck back to the normal playback speed after a beat-matched handoff.
      * The correction is tapered instead of snapped so the tail of the blend does not jump.
      */
-    private suspend fun restorePlaybackSpeedAfterBeatSync(appliedRatio: Float) {
+    private suspend fun restorePlaybackSpeedAfterBeatAlignment(appliedRatio: Float) {
         val base = currentAudioSettings
         val target = base.playbackSpeed
         val applied = (target * appliedRatio).coerceIn(.25f, 4f)
@@ -2463,6 +2623,10 @@ class PlaybackService : MediaLibraryService() {
         transitionPlayer = null
         transitionNormalization = null
         transitionEightDAudioProcessor = null
+        transitionKaraokeProcessor = null
+        transitionMonoProcessor = null
+        transitionAudioSink?.let { primaryAudioSink = it }
+        transitionAudioSink = null
         activePlayer = incoming
         incoming.volume = 1f
         updatePlayerWakeMode(incoming, incoming.currentMediaItem)
@@ -2492,6 +2656,7 @@ class PlaybackService : MediaLibraryService() {
                 if (activePlayer !== player) return
                 if (mediaItem?.mediaId != lastTransitionMediaId) {
                     lastTransitionMediaId = mediaItem?.mediaId
+                    recoveredAudioSinkMediaId = null
                     VideoDecoderFallback.Shared.reset()
                     _liveRadioMetadataFlow.value = LiveRadioStreamMetadata()
                     liveRadioPausedAtMs = C.TIME_UNSET
@@ -2529,6 +2694,26 @@ class PlaybackService : MediaLibraryService() {
 
             override fun onPlayerError(error: PlaybackException) {
                 if (activePlayer !== player) return
+                if (VideoDecoderFallback.Shared.redirect(error)) {
+                    Timber.w("Video decoder failed on promoted deck; retrying with the next available decoder")
+                    player.prepare()
+                    return
+                }
+                NativeAudioIntegration.redirectFailedPlatformDecoder(error)?.let { mimeType ->
+                    Timber.w("Platform audio decoder failed on promoted deck for %s; retrying with FFmpeg", mimeType)
+                    player.prepare()
+                    return
+                }
+                val currentMediaId = player.currentMediaItem?.mediaId.orEmpty()
+                if (error.errorCode in 5001..5004 && currentMediaId.isNotEmpty() && recoveredAudioSinkMediaId != currentMediaId) {
+                    recoveredAudioSinkMediaId = currentMediaId
+                    disableStalledHardwareOutputPath(forceSinkReset = true)
+                    NativeAudioIntegration.rememberRecoveredControllerError(error)
+                    Timber.w(error, "Promoted deck audio output sink failed (code=%d); resetting to safe PCM AudioTrack", error.errorCode)
+                    player.prepare()
+                    if (player.playWhenReady && !playbackPausedByUser) player.play()
+                    return
+                }
                 updatePlaybackProtection(player)
                 discardIncompatiblePlaybackCache(error)
                 val failureKind = classifyPlaybackFailureReason(playbackFailureReasonOf(error))
@@ -2787,6 +2972,14 @@ class PlaybackService : MediaLibraryService() {
             headphoneOutputAvailable = eightDAudioProcessor.headphoneOutputAvailable
         }
         transitionEightDAudioProcessor = eightD
+        val karaoke = VocalCancelAudioProcessor().apply {
+            enabled = currentAudioSettings.karaokeMode
+        }
+        transitionKaraokeProcessor = karaoke
+        val mono = MonoAudioProcessor().apply {
+            enabled = currentAudioSettings.monoEnabled
+        }
+        transitionMonoProcessor = mono
         val limiter = TruePeakLimiterAudioProcessor().apply {
             enabled = truePeakLimiterRequired(currentAudioSettings, parametricActive, currentAudioNormalization)
         }
@@ -2810,23 +3003,28 @@ class PlaybackService : MediaLibraryService() {
                 context: Context,
                 enableFloatOutput: Boolean,
                 enableAudioTrackPlaybackParams: Boolean
-            ): AudioSink = DefaultAudioSink.Builder(context)
-                .setEnableFloatOutput(false)
-                .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
-                .setAudioProcessors(
-                    arrayOf(
-                        enhancedAudio,
-                        normalization,
-                        equalizer,
-                        parametricEqualizer,
-                        spatial,
-                        eightD,
-                        limiter,
-                        Pcm16OutputAudioProcessor()
+            ): AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(false)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(
+                        arrayOf<AudioProcessor>(
+                            enhancedAudio,
+                            normalization,
+                            equalizer,
+                            parametricEqualizer,
+                            spatial,
+                            eightD,
+                            karaoke,
+                            mono,
+                            limiter,
+                            Pcm16OutputAudioProcessor()
+                        )
                     )
-                )
-                .withDerbisAudioOutput(context)
-                .build()
+                    .withDerbisAudioOutput(context)
+                    .build()
+                    .also { transitionAudioSink = it }
+            }
         }.apply {
             setEnableDecoderFallback(true)
             setMediaCodecSelector(NativeAudioIntegration.mediaCodecSelector)
@@ -3169,6 +3367,9 @@ class PlaybackService : MediaLibraryService() {
         transitionPlayer = null
         transitionNormalization = null
         transitionEightDAudioProcessor = null
+        transitionKaraokeProcessor = null
+        transitionMonoProcessor = null
+        transitionAudioSink = null
         runCatching { player.pause() }
             .onFailure { Timber.w(it, "Queue crossfade secondary pause failed") }
         runCatching { player.clearMediaItems() }
@@ -3243,6 +3444,52 @@ class PlaybackService : MediaLibraryService() {
      * Republish as soon as the sung line changes. The presence layer coalesces these into
      * Discord's 5-per-20-seconds budget, so polling every playback tick stays safe.
      */
+    /**
+     * Pushes the current lyric line to the silent status-bar notification.
+     *
+     * It reads the same engine, line list and latency profile as the Discord presence, so the two
+     * can never disagree about which line is current. It is a separate notification rather than a
+     * rewrite of the media item's metadata on purpose: pushing a lyric through the media session
+     * would tell every session listener — lock screen, Android Auto, watches — that the track
+     * changed dozens of times per song.
+     */
+    private fun publishStatusLyricLineIfChanged(player: Player) {
+        if (!LyricStatusLineSettings.enabled) {
+            clearStatusLyricLine()
+            return
+        }
+        val track = queueEngine.state.value.currentTrack
+        if (track == null) {
+            clearStatusLyricLine()
+            return
+        }
+        val line = statusLyricLineFor(track, player.currentPosition)
+        if (line.isBlank()) {
+            clearStatusLyricLine()
+            return
+        }
+        if (line == lastStatusLyricLine) return
+        lastStatusLyricLine = line
+        lyricStatusNotifier.update(track, line)
+    }
+
+    private fun clearStatusLyricLine() {
+        if (lastStatusLyricLine.isEmpty()) return
+        lastStatusLyricLine = ""
+        lyricStatusNotifier.clear()
+    }
+
+    /** The current line, gated only by whether lyrics for this track have arrived. */
+    private fun statusLyricLineFor(track: Track, positionMs: Long): String {
+        if (!discordLyricsSynced || discordLyricsTrackId != track.id) return ""
+        val line = discordLyricsEngine.currentLine(
+            positionMs = discordLyricPositionMs(positionMs, discordLyricsLatencyProfileOffset(track.id)),
+            lines = discordLyricsLines
+        ) ?: return ""
+        if (line.isInstrumental || line.isMetadata) return ""
+        return line.text
+    }
+
     private fun publishDiscordLyricLineIfChanged(player: Player) {
         val track = queueEngine.state.value.currentTrack
         val line = discordLyricLineFor(track, player.currentPosition)
@@ -3258,6 +3505,7 @@ class PlaybackService : MediaLibraryService() {
         // an explicit stop. Clear the activity, foreground notification, and every audible deck
         // instead of leaving a media service running without a visible Derbis task.
         DerbisDiscordRichPresence.clear()
+        clearStatusLyricLine()
         stopDerbisPlaybackForAppExit()
     }
 
@@ -3648,6 +3896,46 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private fun scheduleDeferredUiRecovery(positionMs: Long): Boolean {
+        if (playbackPausedByUser) return false
+        val sessionPlayer = mediaSession?.player ?: return false
+        markPlaybackExpected(true, force = true)
+        if (!sessionPlayer.playWhenReady) {
+            sessionPlayer.playWhenReady = true
+        }
+        if (serviceRecoveryJob?.isActive == true) return true
+        serviceRecoveryAttempts = 0
+        serviceRecoveryExhausted = false
+        val localPlayback = isCurrentPlaybackLocal()
+        val plan = ServiceRecoveryPlan(
+            localPlayback = localPlayback,
+            delaysMs = if (localPlayback) LOCAL_RECOVERY_DELAYS_MS else ONLINE_RECOVERY_DELAYS_MS,
+            positionMs = positionMs.coerceAtLeast(0L)
+        )
+        val syntheticError = PlaybackException(
+            "Deferred transient stream recovery",
+            null,
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+        )
+        RuntimeHooks.player(RuntimeSignal.PLAYER_RECOVERY)
+        serviceRecoveryJob = serviceScope.launch {
+            runDeferredServiceRecovery(syntheticError, plan)
+        }
+        return true
+    }
+
+    private suspend fun runDeferredServiceRecovery(error: PlaybackException, plan: ServiceRecoveryPlan) {
+        while (isPlaybackRecoveryExpected()) {
+            if (finishHealthyServiceRecovery()) return
+            if (awaitRecoveryConnectivity(plan.localPlayback)) {
+                continue
+            }
+            if (finishExhaustedServiceRecovery(error, plan.delaysMs)) return
+            if (attemptServiceRecovery(error, plan)) return
+        }
+        releasePlaybackWakeLock()
+    }
+
     private fun serviceRecoveryPlan(): ServiceRecoveryPlan? {
         if (serviceRecoveryJob?.isActive == true) return null
         if (!isPlaybackRecoveryExpected()) return null
@@ -3881,11 +4169,29 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
             isLocalMediaItem(currentItem) -> currentItem
-            preferFreshResolution && queueTrack != null && hasCompletePlaybackCache(queueTrack, videoMode) -> {
+            preferFreshResolution && queueTrack != null && hasCompletePlaybackCache(queueTrack, videoMode) && !activeRecovery -> {
                 Timber.d("Background recovery replayed a complete cache entry")
                 DerbisMediaItemFactory.build(queueTrack, videoMode)
             }
             preferFreshResolution && queueTrack != null && hasInternetCapableNetwork() -> {
+                if (activeRecovery) {
+                    val failedUrl = currentItem?.localConfiguration?.uri?.toString().orEmpty()
+                    val failedCandidate = if (failedUrl.isNotBlank() && queueTrack.streamUrl.isBlank()) {
+                        queueTrack.copy(streamUrl = failedUrl)
+                    } else {
+                        queueTrack
+                    }
+                    if (failedCandidate.streamUrl.isNotBlank() || failedCandidate.playbackManifest?.alternativeSource != null) {
+                        runCatching {
+                            resolver.reportPlaybackFailure(
+                                failedCandidate,
+                                videoMode,
+                                "Playback watchdog stalled",
+                                failedUrl = failedUrl.takeIf(String::isNotBlank)
+                            )
+                        }.onFailure { Timber.w(it, "Watchdog failure quarantine report failed") }
+                    }
+                }
                 val resolved = withContext(Dispatchers.IO) {
                     runCatching { resolveQueueTrack(queueTrack) }
                         .onFailure { Timber.w(it, "Fresh background stream resolution failed") }
@@ -3943,6 +4249,17 @@ class PlaybackService : MediaLibraryService() {
         if (resetWatchdogForInactivePlayer(player, now)) return
         val positionMs = player.currentPosition.coerceAtLeast(0L)
         if (recordWatchdogProgress(positionMs, now)) return
+        if (
+            player.playbackState == Player.STATE_READY &&
+            now - watchdogAdvancedAtMs >= WATCHDOG_INTERVAL_MS &&
+            disableStalledHardwareOutputPath()
+        ) {
+            runCatching {
+                player.seekTo(positionMs)
+                player.play()
+            }.onFailure { Timber.w(it, "Hardware output fallback nudge failed") }
+            return
+        }
         if (!isWatchdogStalled(now)) return
         scheduleWatchdogRecovery(positionMs)
         watchdogAdvancedAtMs = now

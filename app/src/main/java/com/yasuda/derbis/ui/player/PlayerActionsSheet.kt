@@ -32,7 +32,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -216,7 +216,7 @@ internal fun PlayerSheetFrame(
             visible = visible,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .statusBarsPadding(),
+                .derbisSafeTopPadding(),
             enter = sheetBodyEnter(animated),
             exit = sheetBodyExit(animated)
         ) {
@@ -315,6 +315,8 @@ internal fun playerSheetColor(
 ): Color =
     if (appleMusic) {
         Color(0xFF2C2C2E)
+    } else if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
+        com.yasuda.derbis.ui.theme.PixelPalette.ink
     } else if (com.yasuda.derbis.ui.theme.DerbisIsPrism) {
         com.yasuda.derbis.ui.theme.DerbisPanel
     } else if (surfaces.amoled) {
@@ -326,7 +328,7 @@ internal fun playerSheetColor(
 @Composable
 @ReadOnlyComposable
 private fun playerSheetOutline(surfaces: PlayerSurfaceTokens): Color =
-    if (PlayerPrismStyle || surfaces.amoled) surfaces.outline else Color.White.copy(alpha = 0.08f)
+    if (PlayerPrismStyle || surfaces.framed) surfaces.outline else Color.White.copy(alpha = 0.08f)
 
 internal fun shouldDismissSheetOnDragEnd(
     dragOffsetPx: Float,
@@ -544,7 +546,8 @@ private fun PlayerSheetGrid(
         AppleMusicPlayerMenu(actions, onPerform)
         return
     }
-    val outline = if (surfaces.amoled) surfaces.outline else Color.Transparent
+    val pixel = com.yasuda.derbis.ui.theme.DerbisIsPixel
+    val outline = surfaces.segmentOutline
     val rows = remember(actions) { actions.chunked(SheetColumns) }
     Column(verticalArrangement = Arrangement.spacedBy(SheetTileGap)) {
         rows.forEachIndexed { rowIndex, rowActions ->
@@ -559,7 +562,7 @@ private fun PlayerSheetGrid(
                         PlayerSheetTile(
                             action = action,
                             shape = derbisGroupedGridShape(rowIndex, columnIndex, rows.size, rowActions.size),
-                            iconShape = SheetIconShapes[(rowIndex * SheetColumns + columnIndex) % SheetIconShapes.size].toShape(),
+                            iconShape = if (pixel) androidx.compose.ui.graphics.RectangleShape else SheetIconShapes[(rowIndex * SheetColumns + columnIndex) % SheetIconShapes.size].toShape(),
                             surfaces = surfaces,
                             outline = outline,
                             animated = animated,

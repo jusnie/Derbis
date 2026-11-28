@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
+import com.yasuda.derbis.ui.theme.PixelPalette
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -43,7 +43,7 @@ internal fun harmonizePlayerAccents(primary: Color, secondary: Color): PlayerAcc
 }
 
 internal fun playerFixedAccents(mode: PlayerColorMode, theme: DerbisPalette, customAccent: Int): PlayerAccentPair? =
-    if (theme.id == Nocturne78Palette.id) PlayerAccentPair(theme.cyan, theme.cyan) else when (mode) {
+    if (theme.id == PixelPalette.id) PlayerAccentPair(theme.cyan, theme.cyan) else when (mode) {
         PlayerColorMode.Dynamic -> null
         PlayerColorMode.Theme -> playerThemeAccents(theme.blue, theme.pink)
         PlayerColorMode.Custom -> playerAccentsFromSeed(Color(customAccent))

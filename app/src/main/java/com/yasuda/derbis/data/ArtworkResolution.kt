@@ -6,6 +6,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ImageResult
 import coil3.size.Dimension
 import coil3.size.Size
+import com.yasuda.derbis.domain.DerbisArtworkQuality
 import com.yasuda.derbis.domain.DerbisPersonalOrbit
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
@@ -22,6 +23,32 @@ internal enum class ArtworkTier(val pixels: Int) {
     Full(FULL_RESOLUTION_ARTWORK_SIZE)
 }
 
+/**
+ * The artwork ceiling, read by every URL the app rewrites.
+ *
+ * Volatile because it is written from the settings thread and read from Coil's decode threads;
+ * a torn read here would not corrupt anything, but a stale one would keep asking for full-size
+ * artwork for a screen the user had already told to stop.
+ *
+ * It holds pixels rather than the enum so that a boot-time restore can set it before the
+ * settings object exists, which is the order the application actually starts in.
+ */
+internal object ArtworkQualityCeiling {
+    @Volatile
+    private var pixels: Int = DerbisArtworkQuality.Medium.pixels
+
+    fun update(quality: DerbisArtworkQuality) {
+        pixels = quality.pixels
+    }
+
+    /** Direct setter for boot-time restore, before the settings object exists. */
+    fun updatePixels(value: Int) {
+        pixels = value.coerceIn(DerbisArtworkQuality.Low.pixels, ArtworkTier.Full.pixels)
+    }
+
+    fun current(): Int = pixels
+}
+
 internal object ArtworkQualityPolicy {
     fun tierFor(targetPixels: Int?): ArtworkTier {
         if (targetPixels == null || targetPixels <= 0) return ArtworkTier.Full
@@ -36,7 +63,15 @@ internal object ArtworkQualityPolicy {
 }
 
 internal object ArtworkUrlResolver {
-    fun resolve(url: String, tier: ArtworkTier): String {
+    fun resolve(url: String, tier: ArtworkTier): String =
+        resolve(url, tier, ArtworkQualityCeiling.current())
+
+    /**
+     * [ceilingPixels] is a cap, never a target: the effective size is the smaller of what the
+     * view asked for and what the setting allows, so a thumbnail is untouched by selecting High.
+     */
+    fun resolve(url: String, tier: ArtworkTier, ceilingPixels: Int): String {
+        val pixels = minOf(tier.pixels, ceilingPixels)
         val clean = url.trim()
         if (!clean.startsWith("https://", ignoreCase = true)) return clean
         if (clean.indexOf('?') >= 0) return clean
@@ -44,21 +79,21 @@ internal object ArtworkUrlResolver {
         val host = parsed.host.lowercase()
         return when {
             host == "i.scdn.co" && parsed.encodedPath.contains("/image/ab67616d00001e02", ignoreCase = true) ->
-                if (tier.pixels > SPOTIFY_MEDIUM_ARTWORK_SIZE) {
+                if (pixels > SPOTIFY_MEDIUM_ARTWORK_SIZE) {
                     clean.replace("ab67616d00001e02", "ab67616d0000b273", ignoreCase = true)
                 } else {
                     clean
                 }
-            isHostOrSubdomain(host, "mzstatic.com") -> appleArtworkUrl(clean, tier)
+            isHostOrSubdomain(host, "mzstatic.com") -> appleArtworkUrl(clean, tier, pixels)
             isHostOrSubdomain(host, "googleusercontent.com") || isHostOrSubdomain(host, "ggpht.com") ->
-                googleArtworkUrl(clean, tier)
-            host == "e-cdns-images.dzcdn.net" -> deezerArtworkUrl(clean, tier)
+                googleArtworkUrl(clean, tier, pixels)
+            host == "e-cdns-images.dzcdn.net" -> deezerArtworkUrl(clean, tier, pixels)
             else -> clean
         }
     }
 
-    private fun appleArtworkUrl(url: String, tier: ArtworkTier): String {
-        val size = tier.pixels.toString()
+    private fun appleArtworkUrl(url: String, tier: ArtworkTier, pixels: Int): String {
+        val size = pixels.toString()
         val templated = url
             .replace("{w}", size, ignoreCase = true)
             .replace("{h}", size, ignoreCase = true)
@@ -67,14 +102,16 @@ internal object ArtworkUrlResolver {
         val match = AppleArtworkSizePattern.find(url) ?: return url
         val width = match.groupValues[1].toIntOrNull() ?: return url
         val height = match.groupValues[2].toIntOrNull() ?: return url
-        if (tier == ArtworkTier.Full && (width >= tier.pixels || height >= tier.pixels)) return url
-        if (width == tier.pixels && height == tier.pixels) return url
-        return url.replaceRange(match.range, "/${tier.pixels}x${tier.pixels}bb")
+        // Left alone only when the full-size tier is asking and the source is already that big:
+        // a cap that is doing something must still be able to shrink a larger asset.
+        if (tier == ArtworkTier.Full && pixels == tier.pixels && (width >= pixels || height >= pixels)) return url
+        if (width == pixels && height == pixels) return url
+        return url.replaceRange(match.range, "/${pixels}x${pixels}bb")
     }
 
-    private fun googleArtworkUrl(url: String, tier: ArtworkTier): String {
-        if (tier == ArtworkTier.Full && googleArtworkAlreadyLargeEnough(url, tier.pixels)) return url
-        return DerbisPersonalOrbit.upscaledArtworkUrl(url, tier.pixels)
+    private fun googleArtworkUrl(url: String, tier: ArtworkTier, pixels: Int): String {
+        if (tier == ArtworkTier.Full && pixels == tier.pixels && googleArtworkAlreadyLargeEnough(url, pixels)) return url
+        return DerbisPersonalOrbit.upscaledArtworkUrl(url, pixels)
     }
 
     private fun googleArtworkAlreadyLargeEnough(url: String, pixels: Int): Boolean {
@@ -90,13 +127,19 @@ internal object ArtworkUrlResolver {
         return false
     }
 
-    private fun deezerArtworkUrl(url: String, tier: ArtworkTier): String = when (tier) {
-        ArtworkTier.Thumbnail -> url
-        ArtworkTier.Card -> url.replace("/cover_medium/", "/cover_big/", ignoreCase = true)
-        ArtworkTier.Detail, ArtworkTier.Full -> url
-            .replace("/cover_medium/", "/cover_xl/", ignoreCase = true)
-            .replace("/cover_big/", "/cover_xl/", ignoreCase = true)
-    }
+    /**
+     * Deezer publishes fixed assets only — 250, 500 and 1000 px — so the cap cannot land on
+     * 480 or 720 exactly. It picks the step that suits the ceiling and never climbs above what
+     * the view asked for, which is the same rule the other two hosts follow.
+     */
+    private fun deezerArtworkUrl(url: String, tier: ArtworkTier, pixels: Int): String =
+        when (ArtworkQualityPolicy.tierFor(pixels).coerceAtMost(tier)) {
+            ArtworkTier.Thumbnail -> url
+            ArtworkTier.Card -> url.replace("/cover_medium/", "/cover_big/", ignoreCase = true)
+            ArtworkTier.Detail, ArtworkTier.Full -> url
+                .replace("/cover_medium/", "/cover_xl/", ignoreCase = true)
+                .replace("/cover_big/", "/cover_xl/", ignoreCase = true)
+        }
 
     private fun isHostOrSubdomain(host: String, domain: String): Boolean =
         host == domain || host.endsWith(".$domain")

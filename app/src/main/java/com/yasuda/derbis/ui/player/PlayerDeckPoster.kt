@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -87,7 +87,7 @@ internal fun PlayerPosterDeck(
             slots.gestures(track, Modifier.matchParentSize())
             Box(
                 modifier = Modifier
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .padding(start = gutter, end = gutter, top = DerbisPlayerDesign.SpaceXs)
             ) {
                 slots.header()

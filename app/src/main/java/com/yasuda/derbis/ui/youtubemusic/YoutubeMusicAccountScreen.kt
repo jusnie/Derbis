@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.youtubemusic
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import androidx.activity.compose.BackHandler
@@ -16,13 +18,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.UnfoldMore
-import com.yasuda.derbis.ui.icons.Refresh
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.Person
-import com.yasuda.derbis.ui.icons.LibraryMusic
-import com.yasuda.derbis.ui.icons.Download
-import com.yasuda.derbis.ui.icons.Add
-import com.yasuda.derbis.ui.icons.AccountCircle
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.*
@@ -83,7 +85,7 @@ internal fun YoutubeMusicAccountScreen(
     }
     BackHandler(onBack = back)
     Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Column(Modifier.fillMaxSize().derbisSafeTopPadding().navigationBarsPadding()) {
             TopAppBar(
                 title = { Text(state.detail?.title ?: "YouTube Music", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = { DerbisBackButton(onClick = back, contentDescription = copy.back) },

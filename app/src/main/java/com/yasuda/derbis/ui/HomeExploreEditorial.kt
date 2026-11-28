@@ -1,6 +1,6 @@
 package com.yasuda.derbis.ui
 
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.background
@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MoreHoriz
-import com.yasuda.derbis.ui.icons.MusicNote
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -227,8 +227,8 @@ internal fun DiscoveryEditorialCard(
         PrismCollectionCard(title, subtitle, artwork, onOpen, modifier)
         return
     }
-    if (DerbisIsNocturne) {
-        NocturneCollectionCard(title, subtitle, artwork, onOpen, modifier)
+    if (DerbisIsPixel) {
+        PixelCollectionCard(title, subtitle, artwork, onOpen, modifier)
         return
     }
     val tonal = remember(accentStart, isLight) {

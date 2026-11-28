@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentCallbacks2
 import com.yasuda.derbis.data.AutomaticBackupScheduler
 import com.yasuda.derbis.data.FollowedArtistsStore
+import com.yasuda.derbis.data.ArtworkQualityCeiling
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.data.DerbisArtworkStartupMetrics
 import com.yasuda.derbis.data.DerbisPreferences
@@ -19,6 +20,7 @@ import com.yasuda.derbis.feature.cast.CastRuntimeInitializer
 import com.yasuda.derbis.player.PlaybackNetworkStack
 import com.yasuda.derbis.player.waveseek.WaveSeekRuntime
 import com.yasuda.derbis.runtime.RuntimeHooks
+import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,10 +34,20 @@ class DerbisApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Lets the typography system resolve imported fonts before any UI is composed.
+        com.yasuda.derbis.ui.theme.installDerbisFontsDirectory { java.io.File(filesDir, "DerbisImportedFonts") }
+        // Reads the Liquid Glass crash marker before any UI can draw through the GPU.
+        runCatching { DerbisGlassSafety.install(this) }
+            .onFailure { Timber.w(it, "Liquid Glass guard bootstrap failed") }
         CastRuntimeInitializer.initialize(this)
         RuntimeHooks.start(this)
         if (BuildConfig.DEBUG) Timber.plant(Timber.DebugTree())
         preloadDerbisPreferences(this)
+        // Before anything can request a cover: the ceiling has to be in place for the first
+        // image load, not the second one after settings finish restoring.
+        runCatching {
+            ArtworkQualityCeiling.update(DerbisPreferences(this@DerbisApplication).interfaceSettings().artworkQuality)
+        }.onFailure { Timber.w(it, "Artwork quality bootstrap failed") }
         DerbisArtworkStartupMetrics.beginSession()
         runCatching { DerbisNetworkController.applyStoredConfiguration(this) }
             .onFailure { Timber.w(it, "Network configuration bootstrap failed") }

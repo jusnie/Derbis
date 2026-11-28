@@ -40,6 +40,7 @@ internal data class TechnicalAudioInfoCopy(
     val remotePlayback: String = "Remote playback",
     val receiverManaged: String = "Managed by receiver",
     val lossless: String = "Lossless",
+    val dolbyAtmos: String = "Dolby Atmos",
     val enhancedAudio: String = "DERBIS ENHANCED AUDIO",
     val status: String = "Status",
     val active: String = "Active",

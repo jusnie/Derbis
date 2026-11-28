@@ -29,7 +29,9 @@ private data class BeatAlignedAutoMix(
     val startMs: Long,
     val durationMs: Long,
     val incomingStartMs: Long,
-    val incomingTempo: Float
+    val incomingTempo: Float,
+    /** True only when the incoming deck's tempo was actually locked to the outgoing grid. */
+    val tempoMatched: Boolean
 )
 
 internal fun planAutoMix(
@@ -46,11 +48,19 @@ internal fun planAutoMix(
 ): AutoMixPlan? {
     val normalized = settings.normalized()
     val savedMix = mixStudioSetting?.normalized()
+    // Beat alignment now belongs to Mix Studio alone: it is a property of a saved transition, not
+    // a global switch, because a queue-wide "align everything" toggle could not deliver what it
+    // promised (it only ever had grids for tracks that had already been played). A handoff is
+    // only ever beat-aligned when the playlist itself asked for that pair to be.
+    val beatAlignArmed = savedMix?.beatSyncEnabled == true && currentBeatGrid != null
     if ((!normalized.gaplessEnabled || normalized.crossfadeSeconds <= 0) && savedMix == null) return null
     if (next == null || repeatMode == RepeatMode.One || videoMode || lowRam || current.durationMs <= MIN_TRACK_MS) return null
+    // A continuous album still plays gapless, even when the pair is marked for beat alignment:
+    // were mastered to run into each other would be worse than a short overlap.
     if (savedMix == null && continuesSameRelease(current, next, shuffleEnabled)) return null
     val base = savedMix?.durationMs
-        ?: if (savedMix != null) DEFAULT_STUDIO_TRANSITION_MS else (normalized.crossfadeSeconds * 1_000L)
+        ?: if (savedMix != null) DEFAULT_STUDIO_TRANSITION_MS
+        else (normalized.crossfadeSeconds * 1_000L)
     val adaptive = if (savedMix == null && normalized.djSoftMode) {
         val energyDistance = abs(current.energy - next.energy)
         val vocalOverlap = (current.vocal + next.vocal) / 2
@@ -77,15 +87,26 @@ internal fun planAutoMix(
     )
     // A manually chosen timeline position must be honoured exactly, never replaced by analysis.
     val beatPlan = if (
-        manualOutgoingStart == null && manualIncomingStart == null &&
-        normalized.beatSyncEnabled && savedMix?.beatSyncEnabled == true && currentBeatGrid != null && nextBeatGrid != null
+        beatAlignArmed && currentBeatGrid != null &&
+        manualOutgoingStart == null && manualIncomingStart == null
     ) {
-        val sync = DerbisMixStudio.beatSync(currentBeatGrid, nextBeatGrid)
-        val start = DerbisMixStudio.beatAlignedTransitionStartMs(current.durationMs, requestedTransition, currentBeatGrid)
-        if (sync.aligned && start != null) {
-            val duration = current.durationMs - start
+        val sync = nextBeatGrid?.let { DerbisMixStudio.beatSync(currentBeatGrid, it) }
+        val tempoMatched = sync?.aligned == true
+        val barAlignedStart = DerbisMixStudio.beatAlignedTransitionStartMs(
+            durationMs = current.durationMs,
+            desiredTransitionMs = requestedTransition,
+            grid = currentBeatGrid
+        )
+        if (barAlignedStart != null) {
+            val duration = current.durationMs - barAlignedStart
             if (duration in MIN_TRANSITION_MS..MAX_TRANSITION_MS) {
-                BeatAlignedAutoMix(start, duration, sync.incomingSeekMs, sync.incomingTempo)
+                BeatAlignedAutoMix(
+                    startMs = barAlignedStart,
+                    durationMs = duration,
+                    incomingStartMs = if (tempoMatched) sync?.incomingSeekMs ?: 0L else 0L,
+                    incomingTempo = if (tempoMatched) sync?.incomingTempo ?: 1f else 1f,
+                    tempoMatched = tempoMatched
+                )
             } else null
         } else null
     } else null
@@ -103,7 +124,9 @@ internal fun planAutoMix(
         transitionStartMs = manualOutgoingStart ?: beatPlan?.startMs,
         incomingStartMs = manualIncomingStart ?: beatPlan?.incomingStartMs ?: 0L,
         incomingTempo = beatPlan?.incomingTempo ?: 1f,
-        beatAligned = beatPlan != null
+        // The fade can be phrase-aligned without the two tempos matching, so this flag tracks the
+        // tempo lock specifically: it is what lets the service seek and re-speed the incoming deck.
+        beatAligned = beatPlan?.tempoMatched == true
     )
 }
 

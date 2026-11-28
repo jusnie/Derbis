@@ -28,8 +28,15 @@ private fun <T> PrismChoice(title: String, choices: List<Pair<T, String>>, selec
     }
 }
 
+/**
+ * The three Liquid Glass rows (appearance / player layout / translucent effects) that used to sit
+ * under the skin picker. They are intentionally no longer rendered: the Liquid Glass skin owns
+ * those decisions. The function is kept rather than deleted so the stored preferences keep a
+ * documented UI path — nothing calls it today.
+ */
+@Suppress("UnusedPrivateMember", "unused")
 @Composable
-internal fun PrismSettingsPanel(settings: PrismSettings, onSettings: (PrismSettings) -> Unit) {
+private fun PrismSettingsPanel(settings: PrismSettings, onSettings: (PrismSettings) -> Unit) {
     val copy = DerbisPrismStrings.forCode(LocalDerbisStrings.current.code)
     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PrismChoice(copy.appearance, listOf(PrismAppearance.Night to copy.night, PrismAppearance.Light to copy.light, PrismAppearance.Automatic to copy.automatic), settings.appearance) { onSettings(settings.copy(appearance = it)) }

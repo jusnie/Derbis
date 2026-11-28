@@ -14,9 +14,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.PlayArrow
-import com.yasuda.derbis.ui.icons.SkipNext
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -107,7 +107,7 @@ internal fun SpotifyHomeHeader(
     val allLabel = remember(strings.code) { DerbisSpotifySkinStrings.forCode(strings.code).all }
     val tint = hero?.let { Color(it.track.accentStart) }
     val top = remember(tint) { tint?.let { SpotifyDesign.wash(SpotifyDesign.heroSurface(it), 0.55f) } ?: SpotifyDesign.base }
-    val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val statusTop = derbisSafeTopInset()
     Column(
         Modifier.fillMaxWidth().drawBehind {
             val lift = statusTop.toPx()

@@ -4,6 +4,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.font.Font as ResourceFont
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.Font
@@ -11,6 +12,7 @@ import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.R
 import com.yasuda.derbis.domain.DerbisFontPreset
+import java.io.File
 
 private val googleFontsProvider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
@@ -30,6 +32,77 @@ private val MontserratFont: FontFamily = googleFontFamily("Montserrat")
 private val NunitoFont: FontFamily = googleFontFamily("Nunito")
 private val RobotoFont: FontFamily = googleFontFamily("Roboto")
 
+/** Bundled in the repo (res/font), no download or provider needed. Single definition — skins share it. */
+internal val PixelifyFont: FontFamily = FontFamily(
+    ResourceFont(R.font.pixelify_sans_regular, FontWeight.Normal),
+    ResourceFont(R.font.pixelify_sans_regular, FontWeight.Medium),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.SemiBold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.Bold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.ExtraBold),
+    ResourceFont(R.font.pixelify_sans_bold, FontWeight.Black)
+)
+private val SerifFont: FontFamily = FontFamily.Serif
+private val MonospaceFont: FontFamily = FontFamily.Monospace
+
+private val importedFontLock = Any()
+
+@Volatile
+private var derbisFontsDirProvider: (() -> File)? = null
+
+@Volatile
+private var importedFontFamilyCache: FontFamily? = null
+
+@Volatile
+private var importedTypographyCache: Typography? = null
+
+/**
+ * Registered by the application at startup so the typography system can find imported
+ * fonts without threading a Context through every composition site.
+ */
+internal fun installDerbisFontsDirectory(provider: () -> File) {
+    derbisFontsDirProvider = provider
+}
+
+internal fun importedFontsDirectory(): File? = runCatching { derbisFontsDirProvider?.invoke() }.getOrNull()
+
+internal fun importedFontFile(): File? = importedFontsDirectory()?.let { File(it, "custom_font.ttf") }
+
+internal fun importedFontDisplayName(): String? = importedFontsDirectory()
+    ?.let { File(it, "name.txt") }
+    ?.takeIf(File::isFile)
+    ?.let { runCatching { it.readText() }.getOrNull()?.trim() }
+    ?.takeIf(String::isNotEmpty)
+
+/**
+ * Family for a user-imported .ttf/.otf. One file, six weights — Compose/Android synthesize
+ * the rest from the regular master. Null until an import exists; callers fall back to System.
+ */
+internal fun importedFontFamily(): FontFamily? = synchronized(importedFontLock) {
+    importedFontFamilyCache ?: importedFontFile()?.takeIf(File::isFile)?.let { file ->
+        FontFamily(
+            ResourceFont(file = file, weight = FontWeight.Normal),
+            ResourceFont(file = file, weight = FontWeight.Medium),
+            ResourceFont(file = file, weight = FontWeight.SemiBold),
+            ResourceFont(file = file, weight = FontWeight.Bold),
+            ResourceFont(file = file, weight = FontWeight.ExtraBold),
+            ResourceFont(file = file, weight = FontWeight.Black)
+        ).also { importedFontFamilyCache = it }
+    }
+}
+
+internal fun importedTypography(): Typography? = synchronized(importedFontLock) {
+    importedTypographyCache
+        ?: importedFontFamily()?.let(::typographyForFamily)?.also { importedTypographyCache = it }
+}
+
+/** Drops both caches so the next theme resolution re-reads the imported file. */
+internal fun resetImportedFontCache() {
+    synchronized(importedFontLock) {
+        importedFontFamilyCache = null
+        importedTypographyCache = null
+    }
+}
+
 internal val SpotifyFont: FontFamily = FontFamily(
     listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.Bold, FontWeight.Black).map { weight ->
         Font(googleFont = GoogleFont("Figtree"), fontProvider = googleFontsProvider, weight = weight)
@@ -43,9 +116,10 @@ internal val AppleMusicFont: FontFamily = FontFamily(
 )
 
 /**
- * A legal SF Pro-style fallback reserved for the Apple Music 13 deck. SF Pro itself cannot be
- * bundled with Derbis, so this expands the existing open Inter family through its heavier 800/900
- * weights while preserving the compact, neutral system-sans character of that treatment.
+ * The app's legal SF Pro-style face. SF Pro itself cannot be bundled with Derbis, so this expands
+ * the existing open Inter family through its full 400-900 weight range while preserving the
+ * compact, neutral system-sans character of Apple's UI typeface. Used by the Apple Music 13 deck
+ * and by the Liquid Glass (Taurus) skin, whose reference is the iOS system font.
  */
 internal val AppleMusic13SfProFallbackFont: FontFamily = FontFamily(
     listOf(
@@ -113,13 +187,18 @@ private val typographyByPreset: Map<DerbisFontPreset, Typography> = mapOf(
     DerbisFontPreset.Montserrat to typographyForFamily(MontserratFont),
     DerbisFontPreset.Nunito to typographyForFamily(NunitoFont),
     DerbisFontPreset.Roboto to typographyForFamily(RobotoFont),
+    DerbisFontPreset.Pixelify to typographyForFamily(PixelifyFont),
+    DerbisFontPreset.Serif to typographyForFamily(SerifFont),
+    DerbisFontPreset.Monospace to typographyForFamily(MonospaceFont),
     DerbisFontPreset.System to typographyForFamily(FontFamily.Default)
 )
 
 val DerbisTypography: Typography = typographyByPreset.getValue(DerbisFontPreset.Outfit)
 
-internal fun derbisTypographyFor(preset: DerbisFontPreset): Typography =
-    typographyByPreset[preset] ?: DerbisTypography
+internal fun derbisTypographyFor(preset: DerbisFontPreset): Typography = when (preset) {
+    DerbisFontPreset.Custom -> importedTypography() ?: typographyByPreset.getValue(DerbisFontPreset.System)
+    else -> typographyByPreset[preset] ?: DerbisTypography
+}
 
 internal fun derbisFontFamilyFor(preset: DerbisFontPreset): FontFamily = when (preset) {
     DerbisFontPreset.Outfit -> OutfitFont
@@ -129,5 +208,9 @@ internal fun derbisFontFamilyFor(preset: DerbisFontPreset): FontFamily = when (p
     DerbisFontPreset.Montserrat -> MontserratFont
     DerbisFontPreset.Nunito -> NunitoFont
     DerbisFontPreset.Roboto -> RobotoFont
+    DerbisFontPreset.Pixelify -> PixelifyFont
+    DerbisFontPreset.Serif -> SerifFont
+    DerbisFontPreset.Monospace -> MonospaceFont
+    DerbisFontPreset.Custom -> importedFontFamily() ?: FontFamily.Default
     DerbisFontPreset.System -> FontFamily.Default
 }

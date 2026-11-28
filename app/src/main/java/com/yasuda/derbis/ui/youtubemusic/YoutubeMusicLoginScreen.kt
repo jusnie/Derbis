@@ -1,4 +1,6 @@
 package com.yasuda.derbis.ui.youtubemusic
+import com.yasuda.derbis.ui.derbisSafeTopPadding
+
 
 import com.yasuda.derbis.ui.components.DerbisBackButton
 import android.annotation.SuppressLint
@@ -42,7 +44,7 @@ internal fun YoutubeMusicLoginScreen(copy: YoutubeMusicCopy, checking: Boolean, 
         navigateLoginBack(webView, checking, onClose)
     }
     Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+        Column(Modifier.fillMaxSize().derbisSafeTopPadding().navigationBarsPadding().imePadding()) {
             TopAppBar(
                 title = { Text(copy.login) },
                 navigationIcon = { DerbisBackButton(onClick = onClose, contentDescription = copy.back) },

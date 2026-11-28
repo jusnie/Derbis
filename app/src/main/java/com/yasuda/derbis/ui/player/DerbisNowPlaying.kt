@@ -2,8 +2,8 @@ package com.yasuda.derbis.ui.player
 
 import com.yasuda.derbis.ui.theme.*
 import com.yasuda.derbis.ui.PlayerAccentPair
-import com.yasuda.derbis.ui.theme.Nocturne78Palette
-import com.yasuda.derbis.ui.theme.DerbisIsNocturne
+import com.yasuda.derbis.ui.theme.PixelPalette
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.domain.LyricsEngine
 import com.yasuda.derbis.ui.lyrics.lyricsOffsetPosition
 import com.yasuda.derbis.ui.lyrics.rememberLyricsAudioOutputRoute
@@ -44,8 +44,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -57,38 +56,39 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.Subject
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import com.yasuda.derbis.ui.icons.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Interests
 import androidx.compose.material.icons.rounded.Bedtime
-import com.yasuda.derbis.ui.icons.Check
-import com.yasuda.derbis.ui.icons.CloseFullscreen
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CloseFullscreen
 import androidx.compose.material.icons.rounded.DeleteOutline
-import com.yasuda.derbis.ui.icons.Download
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import com.yasuda.derbis.ui.icons.Album
+import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.BlurOn
-import com.yasuda.derbis.ui.icons.Fullscreen
-import com.yasuda.derbis.ui.icons.GraphicEq
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Image
-import com.yasuda.derbis.ui.icons.Info
-import com.yasuda.derbis.ui.icons.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.Waves
-import com.yasuda.derbis.ui.icons.Nightlight
-import com.yasuda.derbis.ui.icons.Pause
-import com.yasuda.derbis.ui.icons.Person
+import androidx.compose.material.icons.rounded.Circle
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Nightlight
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PictureInPictureAlt
-import com.yasuda.derbis.ui.icons.PlayArrow
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Radio
-import com.yasuda.derbis.ui.icons.Refresh
-import com.yasuda.derbis.ui.icons.Share
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.Subtitles
-import com.yasuda.derbis.ui.icons.Tune
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -101,6 +101,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -137,7 +138,6 @@ import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.PlaybackSourceIdentity
 import com.yasuda.derbis.data.youtubeWatchUrl
 import com.yasuda.derbis.domain.ArtistHit
-import com.yasuda.derbis.domain.PlayerBackgroundMode
 import com.yasuda.derbis.domain.PlayerVisualMode
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.feature.cast.CastRouteButton
@@ -150,10 +150,15 @@ import com.yasuda.derbis.ui.MotionBackdropPalette
 import com.yasuda.derbis.ui.artwork.ArtworkPreviewOverlay
 import com.yasuda.derbis.ui.artwork.livingArtworkColors
 import com.yasuda.derbis.ui.artwork.rememberArtworkPalette
+import com.yasuda.derbis.ui.GlassLensTier
+import com.yasuda.derbis.ui.LocalDerbisGlassTier
+import com.yasuda.derbis.ui.components.LocalDerbisPlayerBackdrop
 import com.yasuda.derbis.ui.components.ModernListenTogetherVector
 import com.yasuda.derbis.ui.components.PlayerControlLabels
 import com.yasuda.derbis.ui.components.PlayerGlassIconButton
 import com.yasuda.derbis.ui.components.PlayerIcon
+import com.yasuda.derbis.ui.components.backdrop.backdrops.layerBackdrop
+import com.yasuda.derbis.ui.components.rememberDerbisAppBackdrop
 import com.yasuda.derbis.ui.harmonizePlayerAccents
 import com.yasuda.derbis.ui.i18n.DerbisLiveRadioCatalog
 import com.yasuda.derbis.ui.i18n.DerbisStrings
@@ -181,7 +186,9 @@ import com.yasuda.derbis.ui.theme.LocalDerbisHaptics
 import com.yasuda.derbis.ui.theme.LocalDerbisVisualCapabilities
 import com.yasuda.derbis.viewmodel.DerbisUiState
 import com.yasuda.derbis.viewmodel.PlayerViewModel
+import android.os.SystemClock
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.mutableLongStateOf
 import kotlin.math.roundToInt
 
 private const val CreditsPrefetchDelayMs = 1_200L
@@ -220,9 +227,12 @@ fun DerbisNowPlaying(
     playlistDialogContent: (@Composable () -> Unit)? = null,
     onOpenPlaylistDialog: ((Track) -> Unit)? = null
 ) {
-    // Apple Music 13 is its own deck. Velvet remains the Canvas/Aura deck and must not
-    // enter this scope, otherwise the two choices resolve to the same Apple Music scene.
-    val appleMusic13 = !DerbisSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle()
+    // Apple Music 13 is its own deck and must not pull any other style into this scope,
+    // otherwise two different choices would resolve to the same Apple Music scene.
+    // The Liquid Glass skin presents the same full-bleed reference player with real glass
+    // chrome (the Taurus/Derbis optical material), so it opts into the same scope.
+    val appleMusic13 = DerbisIsLiquidGlass ||
+        (!DerbisSkinManagesLayout && state.interfaceSettings.playerVisualMode.usesAppleMusicPlayerStyle())
     AppleMusicPlayerStyleScope(appleMusic13) {
         DerbisNowPlayingContent(
             viewModel, state, morphAnchors, morphActive, collapseActions, modifier, motionSuspended,
@@ -260,20 +270,18 @@ private fun DerbisNowPlayingContent(
     val density = LocalDensity.current
     val rightToLeft = LocalLayoutDirection.current == LayoutDirection.Rtl
     val artworkUrl = track?.let(::preferredPlayerArtworkUrl).orEmpty()
-    val nocturne = DerbisIsNocturne
+    val pixel = DerbisIsPixel
     // TIDAL Style supplies the palette, while the original Tidal Music deck owns its layout.
-    val selectedVisualMode = if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
+    // Pixel locks its Now Playing stage to the Flow deck with 0dp pixel geometry.
+    // Reference parity: the Liquid Glass skin owns the full-bleed Apple Music 13 player,
+    // rendered with the real Taurus/Derbis glass material (forced via forceGlassOverBackdrop
+    // on iOS, and the shared resolvedDerbisGlass engine on Android when the glass system is
+    // active). The Flow deck is therefore no longer reachable from the glass skin.
+    val selectedVisualMode = if (pixel) PlayerVisualMode.Flow else if (DerbisIsLiquidGlass) PlayerVisualMode.AppleMusic13 else if (DerbisIsPrism && !DerbisIsTidal) PlayerVisualMode.Artwork else state.interfaceSettings.playerVisualMode
     val appleMusicPalette = LocalAppleMusicPlayerPalette.current
-    val appleMusicDeck = !DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle()
+    val appleMusicDeck = DerbisIsLiquidGlass || (!DerbisSkinManagesLayout && selectedVisualMode.usesAppleMusicPlayerStyle())
     val appleMusicPlayer = DerbisIsAppleMusic || appleMusicDeck
     val visualMode = selectedVisualMode
-    val backgroundMode = state.interfaceSettings.playerBackground.let { selected ->
-        if (nocturne || selected == PlayerBackgroundMode.Dark && state.interfaceSettings.pureBlack) {
-            PlayerBackgroundMode.PureBlack
-        } else {
-            selected
-        }
-    }
     val animated = state.animationsEnabled
     val lyricsAudioRoute = rememberLyricsAudioOutputRoute()
     val lyricsEffectiveOffsetMs = remember(track?.id, lyricsAudioRoute, state.lyricsLatencyProfiles) {
@@ -283,20 +291,11 @@ private fun DerbisNowPlayingContent(
     val appleMusicLyricsClock = rememberLyricsPlaybackClock(
         trackKey = track?.id.orEmpty(),
         reportedPositionMs = lyricsOffsetPosition(state.positionMs, lyricsEffectiveOffsetMs),
-        isPlaying = state.isPlaying,
+        isPlaying = state.lyricsClockPlaying,
         speed = state.playbackSpeed,
         smoothingEnabled = animated && appleMusicDeck && (state.activeLyric != null || state.lyricsSynced)
     )
     val lyricsEngine = remember { LyricsEngine() }
-    val reactiveAuraStyle = remember(
-        state.interfaceSettings.reactiveAuraPreset,
-        state.interfaceSettings.reactiveAuraIntensity
-    ) {
-        ReactiveAuraStyle(
-            preset = state.interfaceSettings.reactiveAuraPreset,
-            intensity = state.interfaceSettings.reactiveAuraIntensity
-        )
-    }
 
     val fallbackPalette = remember(track?.accentStart, track?.accentEnd) {
         ArtworkPalette(track?.accentStart ?: DerbisCyan.toArgb(), track?.accentEnd ?: DerbisViolet.toArgb())
@@ -347,8 +346,10 @@ private fun DerbisNowPlayingContent(
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.paletteTween()),
         label = "player-secondary-color"
     )
-    val amoled = backgroundMode == PlayerBackgroundMode.PureBlack
-    val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, nocturne) { playerSurfaceTokens(primaryTarget, amoled, nocturne) }
+    // Pure black is the OLED switch, not a background style: the deck keeps its artwork backdrop
+    // and only the control surfaces go black.
+    val amoled = state.interfaceSettings.pureBlack && !pixel
+    val surfaces = if (appleMusicPalette != null) prismPlayerSurfaces(appleMusicPalette) else if (DerbisIsPrism) prismPlayerSurfaces(DerbisActivePalette) else remember(primaryTarget, amoled, pixel) { playerSurfaceTokens(primaryTarget, amoled, pixel) }
     val heroTone by animateColorAsState(
         targetValue = surfaces.hero,
         animationSpec = DerbisPlayerDesign.motion(animated, DerbisPlayerDesign.paletteTween()),
@@ -450,10 +451,23 @@ private fun DerbisNowPlayingContent(
         label = "artwork-offset"
     )
 
+    // The Liquid Glass skin records the deck's own backdrop — the cover, blurred and
+    // drifting under everything — into its own optical layer, separate from the page.
+    // The press-and-hold droplet magnifies that recording, which is why the page's
+    // backdrop is not a substitute here.
+    val stageBackdrop = rememberDerbisAppBackdrop(
+        enabled = DerbisIsLiquidGlass && LocalDerbisGlassTier.current != GlassLensTier.Efficient,
+        background = Color.Black
+    )
+
+    CompositionLocalProvider(LocalDerbisPlayerBackdrop provides stageBackdrop) {
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.Black)
+            // Pixel's ground is blush paper, not black. Every other skin wants the near-black
+            // stage, which is why this was a literal; but a literal is exactly what a skin
+            // cannot reach, so under Pixel the stage was the one screen still painted black.
+            .background(if (pixel) PixelPalette.black else Color.Black)
     ) {
         val layoutMode = resolveDerbisLayoutMode(maxWidth.value, maxHeight.value)
         val compactLandscape = isDerbisCompactLandscape(maxWidth.value, maxHeight.value)
@@ -465,13 +479,19 @@ private fun DerbisNowPlayingContent(
             !liveRadio &&
             !state.isVideoMode &&
             playerPane != DerbisPlayerPane.SideBySide
-        val deckLayout = if (DerbisSkinManagesLayout) PlayerDeckLayout.Derbis else resolvePlayerDeckLayout(
-            mode = visualMode,
-            isVideoMode = state.isVideoMode,
-            isLiveRadio = liveRadio,
-            pane = playerPane,
-            hasTrack = track != null
-        )
+        val deckLayout = when {
+            // The Liquid Glass skin owns the full-bleed reference deck (the Apple Music 13
+            // portrait scene), chrome rendered with the shared optical glass material.
+            DerbisIsLiquidGlass -> PlayerDeckLayout.AppleMusic13
+            DerbisSkinManagesLayout && !pixel -> PlayerDeckLayout.Derbis
+            else -> resolvePlayerDeckLayout(
+                mode = visualMode,
+                isVideoMode = state.isVideoMode,
+                isLiveRadio = liveRadio,
+                pane = playerPane,
+                hasTrack = track != null
+            )
+        }
         val deckMode = if (liveRadio) PlayerVisualMode.Artwork else resolvePlayerDeckVisualMode(visualMode, deckLayout)
         val deckOwnsStageGestures = deckLayout != PlayerDeckLayout.Derbis
         val lyricsFlipAvailable = track != null && !liveRadio && !state.isVideoMode && deckLayout.showsLyricsFace()
@@ -489,8 +509,7 @@ private fun DerbisNowPlayingContent(
         SideEffect {
             morphAnchors.updateLanding(
                 when (deckLayout) {
-                    PlayerDeckLayout.Folio -> PlayerMorphLanding.Cookie
-                    PlayerDeckLayout.Flow -> if (state.isPlaying) PlayerMorphLanding.FlowPlaying else PlayerMorphLanding.FlowPaused
+                    PlayerDeckLayout.Flow -> if (pixel) PlayerMorphLanding.Rounded else if (state.isPlaying) PlayerMorphLanding.FlowPlaying else PlayerMorphLanding.FlowPaused
                     else -> PlayerMorphLanding.Rounded
                 }
             )
@@ -499,7 +518,6 @@ private fun DerbisNowPlayingContent(
         LaunchedEffect(
             motionEnabled,
             motionBackdropVisible,
-            backgroundMode,
             state.motionArtwork?.identityKey
         ) {
             val activeIdentity = state.motionArtwork?.identityKey
@@ -508,7 +526,6 @@ private fun DerbisNowPlayingContent(
                     palette = canvasBackdropPalette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = activeIdentity
                 )
             ) {
@@ -522,7 +539,6 @@ private fun DerbisNowPlayingContent(
                     palette = palette,
                     motionEnabled = motionEnabled,
                     motionBackdropVisible = motionBackdropVisible,
-                    backgroundMode = backgroundMode,
                     activeIdentity = state.motionArtwork?.identityKey
                 )
             }
@@ -570,19 +586,19 @@ private fun DerbisNowPlayingContent(
         }
 
         PlayerVisualHost(
-            backgroundMode = backgroundMode,
             artworkUrl = artworkUrl,
             ambience = backdropAmbience,
             animationsEnabled = animated,
             isPlaying = state.isPlaying,
             fixedColors = fixedAccents != null,
             backdropFocus = backdropFocus,
-            reactiveAura = reactiveAuraStyle,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().then(
+                if (stageBackdrop != null) Modifier.layerBackdrop(stageBackdrop) else Modifier
+            )
         )
 
         val headerButtonFill = surfaces.controlQuiet
-        val headerButtonBorder = if (surfaces.amoled) surfaces.outline else Color.Transparent
+        val headerButtonBorder = surfaces.segmentOutline
         val headerButtonSize = if (compactPlayer) DerbisPlayerDesign.HeaderButtonCompact else DerbisPlayerDesign.HeaderButton
         val headerSlotWidth = maxOf(headerButtonSize, HeaderButtonMinimumWidth)
         val headerPolicy = playerHeaderPolicy(
@@ -617,11 +633,15 @@ private fun DerbisNowPlayingContent(
                 source = playerMetadataSourceLabel(
                     activeQualityLabel = state.videoQuality.activeLabel.takeIf { state.isVideoMode }
                 ),
-                surfaces = surfaces
+                surfaces = surfaces,
+                appleMusic = appleMusicPlayer
             )
         }
         val headerTrailing: @Composable () -> Unit = {
-            if (!state.isVideoMode && !liveRadio) {
+            // The full-bleed Apple Music 13 deck presents the reference top bar: leading
+            // collapse, centred eyebrow, trailing overflow only — the cast button lives on
+            // the dock's red headphones (audio studio) instead.
+            if (!state.isVideoMode && !liveRadio && !appleMusicPlayer) {
                 CastRouteButton(modifier = Modifier.size(headerButtonSize))
             }
 
@@ -715,7 +735,9 @@ private fun DerbisNowPlayingContent(
                             next = viewModel::next,
                             previous = viewModel::previous,
                             swipeOffset = { offset -> swipe.follow(activeTrack.id, offset) },
-                            swipeSettled = { committed -> swipe.release(committed, carry = false) },
+                            swipeSettled = { committed ->
+                                swipe.release(committed, carry = deckLayout == PlayerDeckLayout.Vinyl)
+                            },
                             temporarySpeed = viewModel::setTemporaryPlaybackSpeed
                         ),
                         PlayerGestureUiActions(
@@ -799,7 +821,7 @@ private fun DerbisNowPlayingContent(
                         canvasQuality = state.interfaceSettings.canvasQuality,
                         morphAnchors = morphAnchors,
                         morphActive = morphActive,
-                        swipeOffset = swipeOffset,
+                        swipeOffset = if (deckLayout == PlayerDeckLayout.Vinyl) ({ 0f }) else swipeOffset,
                         artScale = artScale,
                         artOffset = artOffset,
                         modifier = Modifier
@@ -810,8 +832,9 @@ private fun DerbisNowPlayingContent(
                                 depth = lyricsFlipDepth,
                                 rightToLeft = rightToLeft
                             ),
-                        dynamicBackdropEnabled = backgroundMode == PlayerBackgroundMode.Dynamic &&
-                            motionBackdropVisible,
+                        // The Canvas palette feeds the wet wash behind the deck when dynamic
+                        // accents are active; skins with fixed palettes skip GPU frame readbacks.
+                        dynamicBackdropEnabled = motionBackdropVisible && fixedAccents == null,
                         onDynamicBackdropPalette = acceptDynamicBackdropPalette
                     )
                     if (lyricsFlipAvailable && lyricsFlip.lyricsComposed) {
@@ -821,7 +844,7 @@ private fun DerbisNowPlayingContent(
                             synced = state.lyricsSynced,
                             loading = state.lyricsLoading,
                             positionMs = state.positionMs,
-                            isPlaying = state.isPlaying,
+                            isPlaying = state.lyricsClockPlaying,
                             playbackSpeed = state.playbackSpeed,
                             latencyProfiles = state.lyricsLatencyProfiles,
                             interactive = lyricsFlip.lyricsSettled,
@@ -994,7 +1017,7 @@ private fun DerbisNowPlayingContent(
                     positionMs = state.positionMs,
                     bufferedPositionMs = state.bufferedPositionMs,
                     durationMs = state.durationMs,
-                    activeColor = if (nocturne) primary else heroTone,
+                    activeColor = if (pixel) primary else heroTone,
                     secondaryColor = secondary,
                     surfaces = surfaces,
                     isPlaying = state.isPlaying,
@@ -1043,7 +1066,6 @@ private fun DerbisNowPlayingContent(
                     surfaces = surfaces,
                     compact = compactPlayer,
                     animated = animated,
-                    useAuraPlayPause = !nocturne && visualMode.usesAuraPlayPause(),
                     labels = playerControlLabels,
                     onShuffle = viewModel::toggleShuffle,
                     onPrevious = viewModel::previous,
@@ -1064,7 +1086,7 @@ private fun DerbisNowPlayingContent(
                 isDownloaded,
                 selectedVisualMode,
                 visualMode,
-                nocturne,
+                pixel,
                 DerbisSkinManagesLayout,
                 DerbisSkinLabel,
                 strings,
@@ -1128,6 +1150,26 @@ private fun DerbisNowPlayingContent(
             .fillMaxSize()
             .onGloballyPositioned { rootCoordinates = it }
 
+        val coverBlock: @Composable (Track, Dp, Dp?) -> Unit = { coverTrack, coverSize, cornerOverride ->
+            val coverCorner = cornerOverride ?: DerbisPlayerShapes.artworkCorner(coverSize)
+            val coverUrl = remember(coverTrack.id, coverTrack.largeThumbnailUrl, coverTrack.thumbnailUrl) {
+                preferredPlayerArtworkUrl(coverTrack)
+            }
+            PlayerArtworkCover(
+                track = coverTrack,
+                artworkUrl = coverUrl,
+                cornerRadius = coverCorner,
+                modifier = Modifier.size(coverSize)
+            )
+        }
+        val deckQueue = remember(state.queue, track?.id, track?.playlistEntryId) {
+            playerDeckQueue(
+                queue = state.queue,
+                trackId = track?.id.orEmpty(),
+                playlistEntryId = track?.playlistEntryId.orEmpty()
+            )
+        }
+
         val deckSlots = PlayerDeckSlots(
             header = headerBlock,
             stage = stageBlock,
@@ -1146,23 +1188,73 @@ private fun DerbisNowPlayingContent(
                 }
                 errorContent?.invoke()
             },
+            error = { errorContent?.invoke() },
+            cover = coverBlock,
+            queue = deckQueue,
             dock = dockBlock,
             dockActions = dockActionsFor,
-            creditsEyebrow = creditWriters?.takeIf { it.second.isNotEmpty() }?.let { (id, writers) ->
-                PlayerCreditsEyebrow(
-                    trackId = id,
-                    heading = strings.trackCreditsCopy().writtenBy,
-                    names = writers,
-                    contentDescription = strings.trackCreditsCopy().title,
-                    onClick = { showTrackCredits = true }
-                )
+            // The Liquid Glass player keeps its stage clean: no written-by line over the cover.
+            // Credits stay one tap away in the player actions sheet, so nothing is lost.
+            creditsEyebrow = creditWriters
+                ?.takeIf { it.second.isNotEmpty() && !DerbisIsLiquidGlass }
+                ?.let { (id, writers) ->
+                    PlayerCreditsEyebrow(
+                        trackId = id,
+                        heading = strings.trackCreditsCopy().writtenBy,
+                        names = writers,
+                        contentDescription = strings.trackCreditsCopy().title,
+                        onClick = { showTrackCredits = true }
+                    )
+                },
+            // The Flow studio chip bar (iOS parity): Endless, speed, vocal cut, sleep/studio.
+            chips = if (!liveRadio && !state.isVideoMode && !compactPlayer) {
+                {
+                    StudioChipsSlot(
+                        state = state,
+                        strings = strings,
+                        accent = surfaces.hero,
+                        accentContent = surfaces.heroContent,
+                        compact = compactPlayer,
+                        onToggleEndless = viewModel::toggleEndlessListening,
+                        onCycleSpeed = viewModel::cycleSpeed,
+                        onToggleKaraoke = { viewModel.setKaraokeMode(!state.audioSettings.karaokeMode) },
+                        onOpenSleepTimer = viewModel::openSleepTimer,
+                        onOpenSimilarSongs = { showActions = true },
+                        onOpenAudioStudio = viewModel::openAudioQualityPanel
+                    )
+                }
+            } else {
+                {}
             }
         )
         val deckModifier = rootModifier
             .widthIn(max = detailMaxWidth)
             .align(Alignment.TopCenter)
 
-        if (((DerbisIsPrism && !DerbisIsTidal) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != DerbisPlayerPane.SideBySide || appleMusicPlayer)) {
+        // The active line is derived, not remembered against the clock: reading the clock
+        // position as a remember key recomputed this binary search on every frame and recomposed
+        // the whole deck with it. A derived value only invalidates when the line actually
+        // changes, and the word row inside the deck reads the clock itself.
+        val currentLyricLine by remember(state.lyrics, state.lyricsSynced, appleMusicLyricsClock) {
+            derivedStateOf {
+                if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
+                    lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
+                } else null
+            }
+        }
+
+        val deckPlayback = PlayerDeckPlayback(
+            positionMs = state.positionMs,
+            bufferedPositionMs = state.bufferedPositionMs,
+            durationMs = state.durationMs,
+            // Same clock as the lyrics page, so the inline line cannot drift from it.
+            activeLyric = currentLyricLine ?: state.activeLyric,
+            lyricsLabel = strings.lyrics,
+            onSeek = viewModel::seekTo,
+            onOpenLyrics = viewModel::openLyrics
+        )
+
+        if (((DerbisIsPrism && !DerbisIsTidal && !DerbisIsLiquidGlass) || appleMusicDeck) && track != null && (!state.isVideoMode || appleMusicPlayer) && !liveRadio && (playerPane != DerbisPlayerPane.SideBySide || appleMusicPlayer)) {
             if (DerbisIsYouTubeMusic) {
                 YouTubeMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
@@ -1170,28 +1262,22 @@ private fun DerbisNowPlayingContent(
                     canvas = AppleMusicCanvas(state.motionArtwork, motionEnabled && !lyricsFlip.lyricsSettled, state.interfaceSettings.canvasQuality, livingArtwork)
                 )
             } else if (appleMusicPlayer) {
-                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
-                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
-                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
-                    } else null
-                } ?: state.activeLyric
                 AppleMusicPlayerScene(
                     track, deckSlots, artworkCap, state.isPlaying,
                     metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier,
                     canvas = appleMusicCanvas,
                     video = state.isVideoMode,
-                    activeLyric = compensatedActiveLyric,
-                    lyricPositionMs = appleMusicLyricsClock.positionMs
+                    activeLyric = currentLyricLine ?: state.activeLyric,
+                    lyricPositionProvider = { appleMusicLyricsClock.positionMs },
+                    lyricLines = state.lyrics,
+                    onAudioOutput = viewModel::openMixLab
                 )
             } else {
-                val compensatedActiveLyric = remember(appleMusicLyricsClock.positionMs, state.lyrics) {
-                    if (state.lyricsSynced && state.lyrics.isNotEmpty()) {
-                        lyricsEngine.currentLine(appleMusicLyricsClock.positionMs, state.lyrics)
-                    } else null
-                } ?: state.activeLyric
                 PrismPlayerScene(
                     track, deckSlots, artworkCap, metadata = { metadataBlock(track) }, transport = transportBlock, modifier = deckModifier, playing = state.isPlaying,
-                    activeLyric = compensatedActiveLyric, lyricPositionMs = appleMusicLyricsClock.positionMs
+                    activeLyric = currentLyricLine ?: state.activeLyric,
+                    lyricPositionMs = appleMusicLyricsClock.positionMs,
+                    lyricPositionProvider = { appleMusicLyricsClock.positionMs }
                 )
             }
         } else if (deckLayout == PlayerDeckLayout.TidalMusic && track != null) {
@@ -1209,96 +1295,6 @@ private fun DerbisNowPlayingContent(
                 onTogglePlay = viewModel::togglePlay,
                 onNext = viewModel::next,
                 onRepeat = viewModel::toggleRepeat,
-                modifier = deckModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Aura && track != null) {
-            PlayerAuraDeck(
-                track = track,
-                slots = deckSlots,
-                artworkUrl = artworkUrl,
-                motionArtwork = state.motionArtwork,
-                motionEnabled = motionEnabled,
-                canvasQuality = state.interfaceSettings.canvasQuality,
-                isFavorite = track.id in state.favoriteIds,
-                isDownloaded = track.id in state.downloadedTrackIds,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                positionMs = state.positionMs,
-                durationMs = state.durationMs,
-                labels = playerControlLabels,
-                animated = animated,
-                onCollapse = collapseActions.collapse,
-                onMore = { showActions = true },
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onDownload = {
-                    if (track.id in state.downloadedTrackIds) downloadRemovalTrackId = track.id else viewModel.exportCurrentTrack()
-                },
-                onSeek = viewModel::seekTo,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                headlineModifier = lyricsFlipSwipeModifier,
-                modifier = rootModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Halo && track != null) {
-            PlayerHaloDeck(
-                track = track,
-                slots = deckSlots,
-                surfaces = surfaces,
-                isFavorite = track.id in state.favoriteIds,
-                queuePosition = playerDeckQueuePosition(state.queue, track.id),
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                shuffleOn = state.shuffleEnabled,
-                repeatMode = state.repeatMode,
-                labels = playerControlLabels,
-                animated = animated,
-                scrollable = !fitsViewport,
-                gutter = gutter,
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onShuffle = viewModel::toggleShuffle,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                onRepeat = viewModel::toggleRepeat,
-                headlineModifier = lyricsFlipSwipeModifier,
-                modifier = deckModifier
-            )
-        } else if (deckLayout == PlayerDeckLayout.Folio && track != null) {
-            PlayerFolioDeck(
-                track = track,
-                slots = deckSlots,
-                surfaces = surfaces,
-                isFavorite = track.id in state.favoriteIds,
-                isPlaying = state.isPlaying,
-                isResolving = state.isResolving,
-                shuffleOn = state.shuffleEnabled,
-                repeatMode = state.repeatMode,
-                labels = playerControlLabels,
-                animated = animated,
-                compact = compactPlayer,
-                scrollable = !fitsViewport,
-                gutter = gutter,
-                artworkCap = artworkCap,
-                onArtistClick = { artistIndex ->
-                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
-                        ?: viewModel.openArtist(track, artistIndex)
-                },
-                onToggleFavorite = { viewModel.toggleFavorite(track) },
-                onShuffle = viewModel::toggleShuffle,
-                onPrevious = viewModel::previous,
-                onTogglePlay = viewModel::togglePlay,
-                onNext = viewModel::next,
-                onRepeat = viewModel::toggleRepeat,
-                headlineModifier = lyricsFlipSwipeModifier,
                 modifier = deckModifier
             )
         } else if (deckLayout == PlayerDeckLayout.Sleeve && track != null) {
@@ -1433,12 +1429,96 @@ private fun DerbisNowPlayingContent(
                 headlineModifier = lyricsFlipSwipeModifier,
                 modifier = deckModifier
             )
+        } else if (deckLayout == PlayerDeckLayout.One && track != null) {
+            PlayerDerbisOneDeck(
+                track = track,
+                slots = deckSlots,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
+        } else if (deckLayout == PlayerDeckLayout.Frost && track != null) {
+            PlayerFrostDeck(
+                track = track,
+                slots = deckSlots,
+                surfaces = surfaces,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
+        } else if (deckLayout == PlayerDeckLayout.Vinyl && track != null) {
+            PlayerVinylDeck(
+                track = track,
+                slots = deckSlots,
+                surfaces = surfaces,
+                playback = deckPlayback,
+                isPlaying = state.isPlaying,
+                isResolving = state.isResolving,
+                shuffleOn = state.shuffleEnabled,
+                repeatMode = state.repeatMode,
+                labels = playerControlLabels,
+                animated = animated,
+                compact = compactPlayer,
+                scrollable = !fitsViewport,
+                gutter = gutter,
+                artworkCap = artworkCap,
+                swipeOffsetPx = swipeOffset,
+                onArtistClick = { artistIndex ->
+                    playerArtistHits.getOrNull(artistIndex)?.let(viewModel::openArtist)
+                        ?: viewModel.openArtist(track, artistIndex)
+                },
+                onShuffle = viewModel::toggleShuffle,
+                onPrevious = viewModel::previous,
+                onTogglePlay = viewModel::togglePlay,
+                onNext = viewModel::next,
+                onRepeat = viewModel::toggleRepeat,
+                headlineModifier = lyricsFlipSwipeModifier,
+                modifier = deckModifier
+            )
         } else if (playerPane == DerbisPlayerPane.SideBySide && track != null && compactLandscape && !state.isVideoMode) {
             Row(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = gutter, vertical = DerbisPlayerDesign.SpaceSm),
@@ -1479,7 +1559,7 @@ private fun DerbisNowPlayingContent(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
                     .padding(
@@ -1520,7 +1600,7 @@ private fun DerbisNowPlayingContent(
                 modifier = rootModifier
                     .widthIn(max = detailMaxWidth)
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .navigationBarsPadding()
                     .then(if (fitsViewport) Modifier else Modifier.verticalScroll(rememberScrollState()))
                     .padding(
@@ -1644,7 +1724,7 @@ private fun DerbisNowPlayingContent(
                     iconSize = 22.dp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .statusBarsPadding()
+                        .derbisSafeTopPadding()
                         .padding(top = DerbisPlayerDesign.SpaceSm, end = DerbisPlayerDesign.SpaceSm)
                         .zIndex(102f),
                     onClick = { videoFullscreen = false }
@@ -1662,13 +1742,14 @@ private fun DerbisNowPlayingContent(
                 !appleMusicImmersive &&
                 !state.isVideoMode &&
                 playerPane != DerbisPlayerPane.SideBySide &&
-                deckLayout != PlayerDeckLayout.Aura &&
-                deckLayout != PlayerDeckLayout.Pulse,
+                deckLayout != PlayerDeckLayout.Pulse &&
+                // Same rule on the glass player, whichever deck is selected.
+                !DerbisIsLiquidGlass,
             enter = fadeIn(tween(if (animated) CreditsCaptionRevealMs else 0)),
             exit = fadeOut(tween(if (animated) CreditsCaptionRevealMs / 2 else 0)),
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .statusBarsPadding()
+                .derbisSafeTopPadding()
                 .padding(
                     end = gutter,
                     top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg
@@ -1692,7 +1773,7 @@ private fun DerbisNowPlayingContent(
                 onClick = { showArtistPicker = true },
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .statusBarsPadding()
+                    .derbisSafeTopPadding()
                     .padding(
                         start = gutter,
                         top = DerbisPlayerDesign.MinimumTouchTarget + DerbisPlayerDesign.SpaceLg
@@ -1863,33 +1944,18 @@ private fun DerbisNowPlayingContent(
                 surfaces = surfaces,
                 accent = heroTone,
                 animated = animated,
-                background = backgroundMode,
                 onSelect = { mode ->
                     if (mode != selectedVisualMode) {
                         viewModel.setPlayerVisualMode(mode)
                         hapticFeedback.perform(DerbisHapticAction.Confirm)
                     }
                 },
-                onSelectBackground = { mode ->
-                    if (mode != backgroundMode) {
-                        viewModel.setPlayerBackground(mode)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onDismiss = { showDeck = false },
-                reactiveAuraPreset = state.interfaceSettings.reactiveAuraPreset,
-                reactiveAuraIntensity = state.interfaceSettings.reactiveAuraIntensity,
-                onSelectReactiveAuraPreset = { preset ->
-                    if (preset != state.interfaceSettings.reactiveAuraPreset) {
-                        viewModel.setReactiveAuraPreset(preset)
-                        hapticFeedback.perform(DerbisHapticAction.Confirm)
-                    }
-                },
-                onSelectReactiveAuraIntensity = viewModel::setReactiveAuraIntensity
+                onDismiss = { showDeck = false }
             )
         }
 
         playlistDialogContent?.invoke()
+    }
     }
 }
 
@@ -1897,8 +1963,21 @@ private fun DerbisNowPlayingContent(
 private fun PlayerSourceEyebrow(
     label: String,
     source: String,
-    surfaces: PlayerSurfaceTokens
+    surfaces: PlayerSurfaceTokens,
+    appleMusic: Boolean = false
 ) {
+    if (appleMusic) {
+        // Reference top bar: one calm, sentence-case context label, no caps stack.
+        Text(
+            text = source.lowercase().replaceFirstChar { it.titlecase() },
+            color = surfaces.content,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        return
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = label,
@@ -2010,7 +2089,7 @@ private fun PlayerLiveRadioTransport(
             innerCorner = DerbisPlayerDesign.TransportInnerCorner,
             contentDescription = strings.close,
             animated = animated,
-            outline = if (surfaces.amoled) surfaces.outline else Color.Transparent,
+            outline = surfaces.segmentOutline,
             onClick = onStop
         ) {
             PlayerIcon(Icons.Rounded.Stop, surfaces.content, Modifier.size(DerbisPlayerDesign.TransportGlyph))
@@ -2121,13 +2200,11 @@ private fun canvasBackdropPaletteMatches(
     palette: MotionBackdropPalette?,
     motionEnabled: Boolean,
     motionBackdropVisible: Boolean,
-    backgroundMode: PlayerBackgroundMode,
     activeIdentity: String?
 ): Boolean {
     val presentationActive = motionEnabled && motionBackdropVisible
-    val dynamicBackground = backgroundMode == PlayerBackgroundMode.Dynamic
     val identityMatches = activeIdentity != null && palette?.identityKey == activeIdentity
-    return presentationActive && dynamicBackground && identityMatches
+    return presentationActive && identityMatches
 }
 
 private fun Track.isLocalMotionArtworkTrack(): Boolean {
@@ -2323,25 +2400,25 @@ internal fun visualModeStateDescription(
 ): String = when (mode) {
     PlayerVisualMode.Artwork -> strings.playerVisualModeArtwork
     PlayerVisualMode.CanvasCard -> strings.playerVisualModeCanvasCard
-    PlayerVisualMode.CanvasImmersive -> strings.playerVisualModeCanvasImmersive
     PlayerVisualMode.AppleMusic13 -> strings.playerDeckAppleMusic13
     PlayerVisualMode.TidalMusic -> strings.playerDeckTidalMusic
     PlayerVisualMode.Pulse -> strings.playerDeckPulse
-    PlayerVisualMode.Halo -> strings.playerDeckHalo
-    PlayerVisualMode.Folio -> strings.playerDeckFolio
     PlayerVisualMode.Flow -> strings.playerDeckFlow
+    PlayerVisualMode.Frost -> strings.playerDeckFrost
+    PlayerVisualMode.DerbisOne -> strings.playerDeckDerbisOne
+    PlayerVisualMode.Vinyl -> strings.playerDeckVinyl
 }
 
 internal fun visualModeIcon(mode: PlayerVisualMode): ImageVector = when (mode) {
     PlayerVisualMode.Artwork -> Icons.Rounded.Image
     PlayerVisualMode.CanvasCard -> Icons.Rounded.AutoAwesome
-    PlayerVisualMode.CanvasImmersive -> Icons.Rounded.BlurOn
     PlayerVisualMode.AppleMusic13 -> Icons.Rounded.Album
     PlayerVisualMode.TidalMusic -> Icons.Rounded.GraphicEq
     PlayerVisualMode.Pulse -> Icons.Rounded.GraphicEq
-    PlayerVisualMode.Halo -> Icons.Rounded.Album
-    PlayerVisualMode.Folio -> Icons.Rounded.Newspaper
     PlayerVisualMode.Flow -> Icons.Rounded.Waves
+    PlayerVisualMode.Frost -> Icons.Rounded.BlurOn
+    PlayerVisualMode.DerbisOne -> Icons.Rounded.Circle
+    PlayerVisualMode.Vinyl -> Icons.Rounded.MusicNote
 }
 
 @Composable
@@ -2366,4 +2443,57 @@ private fun PlayerGestureFeedbackPill(text: String, modifier: Modifier = Modifie
             )
         }
     }
+}
+
+/**
+ * Hosts the Flow studio chip bar under the transport, including the sleep-timer label that has to
+ * tick on its own clock without recomposing the whole deck.
+ */
+@Composable
+private fun StudioChipsSlot(
+    state: DerbisUiState,
+    strings: com.yasuda.derbis.ui.i18n.DerbisStrings,
+    accent: Color,
+    accentContent: Color,
+    compact: Boolean,
+    onToggleEndless: () -> Unit,
+    onCycleSpeed: () -> Unit,
+    onToggleKaraoke: () -> Unit,
+    onOpenSleepTimer: () -> Unit,
+    onOpenSimilarSongs: () -> Unit,
+    onOpenAudioStudio: () -> Unit
+) {
+    val deadline = state.sleepTimerDeadlineElapsedRealtimeMs
+    var tickMs by remember(deadline) { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    LaunchedEffect(deadline) {
+        while (deadline > 0L) {
+            tickMs = SystemClock.elapsedRealtime()
+            if (tickMs >= deadline) break
+            delay(1_000L)
+        }
+    }
+    val sleepLabel = when {
+        state.sleepTimerEndOfTrack -> strings.sleepTimerEndOfTrack
+        deadline > 0L -> {
+            val remainingMs = (deadline - tickMs).coerceAtLeast(0L)
+            val minutes = ((remainingMs + 59_999L) / 60_000L).toInt().coerceAtLeast(1)
+            "${minutes}m"
+        }
+        else -> null
+    }
+    PlayerStudioChipBar(
+        radioEnabled = state.radioEnabled,
+        playbackSpeed = state.playbackSpeed,
+        karaokeMode = state.audioSettings.karaokeMode,
+        sleepTimerLabel = sleepLabel,
+        accent = accent,
+        accentContent = accentContent,
+        onToggleEndless = onToggleEndless,
+        onCycleSpeed = onCycleSpeed,
+        onToggleKaraoke = onToggleKaraoke,
+        onOpenSleepTimer = onOpenSleepTimer,
+        onOpenSimilarSongs = onOpenSimilarSongs,
+        onOpenAudioStudio = onOpenAudioStudio
+    )
+    Spacer(modifier = Modifier.height(if (compact) DerbisPlayerDesign.SpaceXs else DerbisPlayerDesign.SpaceSm))
 }

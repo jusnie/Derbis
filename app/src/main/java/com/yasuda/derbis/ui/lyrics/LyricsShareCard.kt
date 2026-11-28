@@ -20,6 +20,8 @@ import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.TextUtils
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
+import com.yasuda.derbis.R
 import com.yasuda.derbis.data.ArtworkPaletteCache
 import com.yasuda.derbis.data.DerbisArtworkCache
 import com.yasuda.derbis.domain.Track
@@ -72,6 +74,17 @@ internal object LyricsShareCard {
     private const val FALLBACK_END = 0xFF6F4CFF.toInt()
     private const val MINIMAL_BACKGROUND = 0xFF0C0D12.toInt()
 
+    @Volatile
+    private var pixelBoldTypeface: Typeface? = null
+
+    private fun warmPixelTypeface(context: Context) {
+        if (pixelBoldTypeface == null) {
+            pixelBoldTypeface = runCatching {
+                ResourcesCompat.getFont(context, R.font.pixelify_sans_bold)
+            }.getOrNull()
+        }
+    }
+
     fun heightFor(widthPx: Int): Int = widthPx * ASPECT_HEIGHT / ASPECT_WIDTH
 
     suspend fun loadArtwork(
@@ -79,6 +92,7 @@ internal object LyricsShareCard {
         track: Track,
         into: LyricsShareResource<Bitmap>
     ): Unit = withContext(Dispatchers.IO) {
+        warmPixelTypeface(context)
         ensureActive()
         val file = DerbisArtworkCache.localFile(context, track, highRes = true)
             ?: DerbisArtworkCache.localFile(context, track, highRes = false)
@@ -194,6 +208,11 @@ internal object LyricsShareCard {
             val canvas = Canvas(bitmap)
             canvas.scale(widthPx / DESIGN_WIDTH, widthPx / DESIGN_WIDTH)
             val showArtwork = artwork != null && style != LyricsShareCardStyle.MINIMAL
+            if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
+                drawPixelLyricsCard(canvas, content, artwork.takeIf { showArtwork })
+                completed = true
+                return bitmap
+            }
             drawBackground(canvas, style, artwork, accents)
             drawHeader(canvas, content, artwork.takeIf { showArtwork })
             drawLyrics(canvas, content.lyrics)
@@ -203,6 +222,144 @@ internal object LyricsShareCard {
         } finally {
             if (!completed) bitmap.recycle()
         }
+    }
+
+    private fun drawPixelLyricsCard(
+        canvas: Canvas,
+        content: LyricsShareCardContent,
+        artwork: Bitmap?
+    ) {
+        val paper = 0xFFFFEDF1.toInt()
+        val card = 0xFFFFF8F6.toInt()
+        val plum = 0xFF5B2338.toInt()
+        val muted = 0xFF7E3B57.toInt()
+        val rose = 0xFF9E1B44.toInt()
+        val pink = 0xFFFF5C8A.toInt()
+        val outline = 0xFFA84765.toInt()
+        val face = pixelBoldTypeface ?: Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+
+        // Blush paper + 24px pixel grid
+        canvas.drawColor(paper)
+        val gridPaint = Paint().apply {
+            color = Color.argb(18, 168, 71, 101)
+            strokeWidth = 2f
+        }
+        var gx = 0f
+        while (gx < DESIGN_WIDTH) {
+            canvas.drawLine(gx, 0f, gx, DESIGN_HEIGHT, gridPaint)
+            gx += 24f
+        }
+        var gy = 0f
+        while (gy < DESIGN_HEIGHT) {
+            canvas.drawLine(0f, gy, DESIGN_WIDTH, gy, gridPaint)
+            gy += 24f
+        }
+
+        // Cream inner card with 8px hard offset shadow + 4px outline
+        val cardRect = RectF(56f, 56f, DESIGN_WIDTH - 64f, DESIGN_HEIGHT - 64f)
+        val shadowPaint = Paint().apply { color = outline }
+        canvas.drawRect(cardRect.left + 8f, cardRect.top + 8f, cardRect.right + 8f, cardRect.bottom + 8f, shadowPaint)
+        canvas.drawRect(cardRect, Paint().apply { color = card })
+        canvas.drawRect(
+            cardRect,
+            Paint().apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 4f
+                color = outline
+            }
+        )
+
+        val innerPad = 56f
+        val left = cardRect.left + innerPad
+        val right = cardRect.right - innerPad
+        val headerTop = cardRect.top + innerPad
+
+        // Header cover (0dp square, 4px plum border) + title & artist
+        val coverSize = 152f
+        val textX = if (artwork != null) left + coverSize + 32f else left
+        val textWidth = right - textX
+        if (artwork != null) {
+            val coverRect = RectF(left, headerTop, left + coverSize, headerTop + coverSize)
+            canvas.drawBitmap(artwork, null, coverRect, Paint(Paint.FILTER_BITMAP_FLAG))
+            canvas.drawRect(
+                coverRect,
+                Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    color = plum
+                }
+            )
+        }
+        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = plum
+            textSize = 48f
+            typeface = face
+        }
+        val artistPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            textSize = 34f
+            typeface = face
+        }
+        val titleY = headerTop + 66f
+        drawEllipsized(canvas, content.title.ifBlank { BRAND }, titlePaint, textX, titleY, textWidth)
+        if (content.artist.isNotBlank()) {
+            drawEllipsized(canvas, content.artist, artistPaint, textX, titleY + 52f, textWidth)
+        }
+
+        val ruleY = headerTop + coverSize + 36f
+        val rulePaint = Paint().apply {
+            color = outline
+            strokeWidth = 4f
+        }
+        canvas.drawLine(left, ruleY, right, ruleY, rulePaint)
+
+        // Lyrics body with 8px rose left quote bar
+        val footerRuleY = cardRect.bottom - 124f
+        val quoteLeft = left + 28f
+        val lyricsWidth = (right - quoteLeft).toInt().coerceAtLeast(100)
+        val availableHeight = (footerRuleY - ruleY - 72f).coerceAtLeast(120f)
+        val lyricsPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = plum
+            typeface = face
+        }
+        val layout = fitLyrics(content.lyrics.joinToString("\n"), lyricsPaint, lyricsWidth, availableHeight)
+        val lyricsTop = ruleY + 36f + ((availableHeight - layout.height) / 2f).coerceAtLeast(0f)
+        canvas.drawRect(
+            left,
+            lyricsTop,
+            left + 8f,
+            lyricsTop + layout.height,
+            Paint().apply { color = rose }
+        )
+        canvas.save()
+        canvas.translate(quoteLeft, lyricsTop)
+        layout.draw(canvas)
+        canvas.restore()
+
+        // Footer: 4px rule + rotated pink diamond + DERBIS · OPEN SOURCE
+        canvas.drawLine(left, footerRuleY, right, footerRuleY, rulePaint)
+        val markCy = footerRuleY + 56f
+        val markCx = left + 16f
+        canvas.save()
+        canvas.rotate(45f, markCx, markCy)
+        val markRect = RectF(markCx - 12f, markCy - 12f, markCx + 12f, markCy + 12f)
+        canvas.drawRect(markRect, Paint().apply { color = pink })
+        canvas.drawRect(
+            markRect,
+            Paint().apply {
+                style = Paint.Style.STROKE
+                strokeWidth = 4f
+                color = plum
+            }
+        )
+        canvas.restore()
+        val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            textSize = 30f
+            letterSpacing = 0.14f
+            typeface = face
+        }
+        canvas.drawText("DERBIS · OPEN SOURCE", left + 48f, markCy + 10f, brandPaint)
     }
 
     private fun drawBackground(

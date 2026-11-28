@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.yasuda.derbis.domain.PrismTranslucency
+import com.yasuda.derbis.ui.LocalNavArtworkSeed
 import com.yasuda.derbis.ui.player.PlayerSurfaceTokens
 
 @Composable
@@ -23,13 +24,50 @@ internal fun prismGlassColor(): Color {
     if (DerbisIsAppleMusic) return AppleMusicDesign.chrome
     if (DerbisIsYouTubeMusic) return YouTubeMusicDesign.surface
     // A single, quiet material keeps the skin coherent; low-RAM/power-save uses an opaque
-    // fallback rather than attempting costly backdrop sampling.
-    return MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 0.88f else 0.42f)
+    // fallback rather than attempting costly backdrop sampling. Night is a Taurus-strength
+    // film (iOS surface white@0.065), not a slate: heavy enough to hide the recording seam,
+    // light enough to read as glass, never a milky slab.
+    return if (DerbisActivePalette.isLight) {
+        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (opaque) 0.88f else 0.42f)
+    } else {
+        // Translucent devices with a live backdrop get the Taurus film; anything the engine
+        // cannot run behind falls back to the iOS reduced-transparency material (white@0.16),
+        // which stays legible on its own.
+        Color.White.copy(alpha = if (opaque) 0.88f else 0.16f)
+    }
 }
 
 @Composable
 internal fun PrismAtmosphere(modifier: Modifier = Modifier) {
     val palette = DerbisActivePalette
+    if (DerbisIsLiquidGlass) {
+        // Taurus parity: the iOS LiquidGlass page is the house background (#020306)
+        // under a diagonal cover-art ambient wash — ambientPrimary over the top-leading
+        // corner falling to ambientSecondary, ending at the background at ~84%, exactly
+        // the PixelGraphPaperBackground recipe on iOS. With no artwork the iOS engine
+        // defaults to #16243E / #0A0C14 at reduced strength.
+        val seed = LocalNavArtworkSeed.current
+        val playing = seed != null
+        val primary = seed?.primary ?: Color(0xFF16243E)
+        val secondary = seed?.secondary ?: Color(0xFF0A0C14)
+        val primaryAlpha = if (palette.isLight) 0f else if (playing) 0.54f else 0.22f
+        val secondaryAlpha = if (palette.isLight) 0f else if (playing) 0.32f else 0.14f
+        Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
+            // LinearGradient(.topLeading -> .bottomTrailing) is the diagonal across the
+            // page; stops mirror the iOS recipe (0.0 / 0.40 / 0.84).
+            val ambient = Brush.linearGradient(
+                colorStops = arrayOf(
+                    0.0f to primary.copy(alpha = primaryAlpha),
+                    0.40f to secondary.copy(alpha = secondaryAlpha),
+                    0.84f to Color.Transparent
+                ),
+                start = Offset.Zero,
+                end = Offset(size.width, size.height)
+            )
+            onDrawBehind { drawRect(ambient) }
+        })
+        return
+    }
     val wash = PrismAccent.wash(palette.isLight)
     Box(modifier.fillMaxSize().background(palette.black).drawWithCache {
         val top = Brush.verticalGradient(listOf(wash.copy(alpha = wash.alpha * 0.6f), Color.Transparent), endY = size.height * 0.32f)
@@ -42,6 +80,13 @@ internal fun PrismPlayerAtmosphere(modifier: Modifier = Modifier) {
     val palette = DerbisActivePalette
     if (DerbisIsTorque || DerbisIsIvory || DerbisIsSpotify || DerbisIsAppleMusic || DerbisIsYouTubeMusic) {
         Box(modifier.fillMaxSize().background(if (DerbisIsAppleMusic || DerbisIsYouTubeMusic) Color.Black else palette.black))
+        return
+    }
+    if (DerbisIsLiquidGlass) {
+        // Taurus parity: the player keeps the same flat #020306 pane; the full-bleed
+        // reference deck paints its own artwork fill over this floor, so no
+        // atmospheric tints are invented here.
+        Box(modifier.fillMaxSize().background(palette.black))
         return
     }
     val wash = PrismAccent.wash(palette.isLight)

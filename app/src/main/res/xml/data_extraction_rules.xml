@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12+ ignores fullBackupContent and uses this file instead. Both Spotify files hold
+    credentials encrypted with this device's Keystore key: the key never leaves the device, so a
+    restored copy is undecryptable, and a live sp_dc must never sit in a cloud backup at all.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="derbis_spotify_session.xml" />
+        <exclude domain="sharedpref" path="derbis_spotify_connection.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="derbis_spotify_session.xml" />
+        <exclude domain="sharedpref" path="derbis_spotify_connection.xml" />
+    </device-transfer>
+</data-extraction-rules>

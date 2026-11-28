@@ -64,6 +64,36 @@ data class ListeningInsightsArtist(
 )
 
 @Immutable
+data class ListeningInsightsAlbum(
+    val album: String,
+    val artist: String,
+    val artworkUrl: String = "",
+    val listenedMs: Long = 0L,
+    val plays: Int = 0
+)
+
+/**
+ * The single local day that took the most listening.
+ *
+ * @property averageListenedMs the typical day, so the card can say "three times a normal day"
+ *   instead of a figure with nothing to compare against. Averaged over [activeDays], not over
+ *   the calendar: a year with two listening days has a very high typical day.
+ */
+@Immutable
+data class ListeningInsightsBiggestDay(
+    val date: LocalDate,
+    val listenedMs: Long,
+    val plays: Int,
+    val averageListenedMs: Long = 0L,
+    val trackTitle: String = "",
+    val trackArtist: String = ""
+) {
+    /** How many typical days this one was worth; null when there is no baseline to divide by. */
+    val multipleOfTypicalDay: Int?
+        get() = averageListenedMs.takeIf { it > 0L }?.let { (listenedMs / it).toInt().coerceAtLeast(1) }
+}
+
+@Immutable
 data class ListeningInsightsHistoryItem(
     val id: Long,
     val track: ListeningInsightsTrack,
@@ -80,7 +110,12 @@ data class ListeningInsightsSnapshot(
     val hourBuckets: List<Long> = List(24) { 0L },
     val topTracks: List<ListeningInsightsTrack> = emptyList(),
     val topArtists: List<ListeningInsightsArtist> = emptyList(),
-    val detailedFromMs: Long = 0L
+    val detailedFromMs: Long = 0L,
+    /** Only filled for a Wrapped load; every other period leaves these empty. */
+    val topAlbums: List<ListeningInsightsAlbum> = emptyList(),
+    val biggestDay: ListeningInsightsBiggestDay? = null,
+    /** Days with at least one counted listen, for the consistency axis. */
+    val activeDays: Int = 0
 ) {
     val hasSignal: Boolean get() = metrics.listenedMs > 0L || metrics.countedPlays > 0
 }
@@ -198,4 +233,91 @@ object ListeningInsightsRanges {
 
     fun dayEpoch(dayKey: String, zone: ZoneId): Long =
         LocalDate.parse(dayKey).atStartOfDay(zone).toInstant().toEpochMilli()
+}
+
+/**
+ * The four shapes a listening year can take, ported from SimpMusic's Wrapped archetypes.
+ *
+ * SimpMusic picks one per fingerprint axis, and its fifth — the explorer — needs a "new artist"
+ * counter Derbis does not keep, so the axis is left out rather than guessed at. Every axis here
+ * is bounded 0..1 by construction, which is what makes them comparable enough for an argmax.
+ */
+enum class WrappedPersona {
+    /** Music nearly every day, evenly spread. */
+    THE_REGULAR,
+
+    /** Many artists, none of them dominant. */
+    THE_OMNIVORE,
+
+    /** Most of the year went to a handful of artists. */
+    THE_DEVOTEE,
+
+    /** The same songs, again. */
+    THE_DEEP_DIVER
+}
+
+@Immutable
+data class WrappedPersonaProfile(
+    val persona: WrappedPersona,
+    val consistency: Float,
+    val diversity: Float,
+    val concentration: Float,
+    val replay: Float
+) {
+    /** The four axes in the order the card draws them, already 0..1. */
+    val axes: List<Pair<WrappedPersona, Float>>
+        get() = listOf(
+            WrappedPersona.THE_REGULAR to consistency,
+            WrappedPersona.THE_OMNIVORE to diversity,
+            WrappedPersona.THE_DEVOTEE to concentration,
+            WrappedPersona.THE_DEEP_DIVER to replay
+        )
+}
+
+/** Artists past this count read as a full diversity score: thirty is an omnivore's year. */
+internal const val WRAPPED_OMNIVORE_ARTISTS = 30f
+
+/**
+ * Days of listening before the reel says anything at all.
+ *
+ * Below this the cards would be describing a fortnight, not a year — the same floor SimpMusic
+ * puts on its own Wrapped, and the reason the story says "not enough yet" instead of printing
+ * "three artists, two songs" as if it were a summary of twelve months.
+ */
+internal const val WRAPPED_MIN_ACTIVE_DAYS = 30
+
+/**
+ * The year's archetype, from the four things Derbis can actually measure.
+ *
+ * Ties are broken by declaration order, so the same year always produces the same name — the
+ * card must not rename itself between two openings of the same story.
+ *
+ * @param daysInYear 365 or 366, never hardcoded, so a leap year does not flatter consistency.
+ */
+internal fun wrappedPersonaProfile(
+    snapshot: ListeningInsightsSnapshot,
+    daysInYear: Int = 365
+): WrappedPersonaProfile {
+    val totalMs = snapshot.metrics.listenedMs
+    val plays = snapshot.metrics.countedPlays
+    val consistency = (snapshot.activeDays.toFloat() / daysInYear.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val diversity = (snapshot.metrics.distinctArtists / WRAPPED_OMNIVORE_ARTISTS).coerceIn(0f, 1f)
+    val concentration = if (totalMs > 0L) {
+        ((snapshot.topArtists.firstOrNull()?.listenedMs ?: 0L).toFloat() / totalMs).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val replay = if (plays > 0) {
+        ((snapshot.topTracks.firstOrNull()?.plays ?: 0) / plays.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val profile = WrappedPersonaProfile(
+        persona = WrappedPersona.THE_REGULAR,
+        consistency = consistency,
+        diversity = diversity,
+        concentration = concentration,
+        replay = replay
+    )
+    return profile.copy(persona = profile.axes.maxByOrNull { it.second }?.first ?: WrappedPersona.THE_REGULAR)
 }

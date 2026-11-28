@@ -80,13 +80,24 @@ internal fun homeCanvasColor(isLight: Boolean): Color =
 internal fun DerbisHomeAtmosphere(
     isLight: Boolean,
     accent: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    glassSettings: com.yasuda.derbis.domain.DerbisInterfaceSettings? = null,
+    glassArtworkUrl: String? = null
 ) {
+    if (com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass && glassSettings != null) {
+        GlassBackgroundEngine(
+            settings = glassSettings,
+            accent = accent,
+            artworkUrl = glassArtworkUrl,
+            modifier = modifier
+        )
+        return
+    }
     if (com.yasuda.derbis.ui.theme.DerbisIsPrism) {
         com.yasuda.derbis.ui.theme.PrismAtmosphere(modifier)
         return
     }
-    if (com.yasuda.derbis.ui.theme.DerbisIsNocturne) {
+    if (com.yasuda.derbis.ui.theme.DerbisIsPixel) {
         Box(modifier.fillMaxSize().background(DerbisBlack))
         return
     }

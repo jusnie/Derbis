@@ -7,9 +7,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -24,15 +27,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import com.yasuda.derbis.ui.derbisSafeTopPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import com.yasuda.derbis.ui.icons.Repeat
-import com.yasuda.derbis.ui.icons.RepeatOne
-import com.yasuda.derbis.ui.icons.Shuffle
-import com.yasuda.derbis.ui.icons.SkipNext
-import com.yasuda.derbis.ui.icons.SkipPrevious
+import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.RepeatOne
+import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -42,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
@@ -49,9 +54,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
@@ -63,6 +70,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import com.yasuda.derbis.ui.pixelHardShadow
+import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
+import com.yasuda.derbis.ui.theme.DerbisIsPixel
+import com.yasuda.derbis.ui.theme.DerbisIsTorque
+import com.yasuda.derbis.ui.theme.DerbisViolet
+import com.yasuda.derbis.ui.theme.PixelDesign
+import com.yasuda.derbis.ui.theme.PixelPalette
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -187,20 +201,31 @@ internal fun PlayerFlowDeck(
         },
         label = "player-flow-play"
     )
-    val floor = if (surfaces.amoled) Color.Black else glow.playerMix(PlayerDarkSurface, FlowFloorDepth)
+    val pixel = DerbisIsPixel
+    val floor = when {
+        pixel -> Color.Transparent
+        surfaces.amoled -> Color.Black
+        else -> glow.playerMix(PlayerDarkSurface, FlowFloorDepth)
+    }
     Column(
         modifier = modifier
-            .drawBehind {
-                drawRect(
-                    Brush.verticalGradient(
-                        FlowFloorStart to Color.Transparent,
-                        1f to floor,
-                        startY = 0f,
-                        endY = size.height
-                    )
-                )
-            }
-            .statusBarsPadding()
+            .then(
+                if (pixel) {
+                    Modifier
+                } else {
+                    Modifier.drawBehind {
+                        drawRect(
+                            Brush.verticalGradient(
+                                FlowFloorStart to Color.Transparent,
+                                1f to floor,
+                                startY = 0f,
+                                endY = size.height
+                            )
+                        )
+                    }
+                }
+            )
+            .derbisSafeTopPadding()
             .navigationBarsPadding()
             .then(if (scrollable) Modifier.verticalScroll(rememberScrollState()) else Modifier)
             .padding(
@@ -252,6 +277,7 @@ internal fun PlayerFlowDeck(
             onNext = onNext
         )
         Spacer(Modifier.height(metrics.actionGap))
+        slots.chips()
         FlowActionRow(
             track = track,
             slots = slots,
@@ -283,24 +309,31 @@ private fun FlowStage(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "player-flow-press"
     )
+    val pixel = DerbisIsPixel
     val lightScale = if (amoled) FlowLightAmoledFactor else 1f
     BoxWithConstraints(
         modifier = modifier
-            .drawBehind {
-                val light = lerp(FlowLightPaused, FlowLightPlaying, playProgress.value) * lightScale
-                val radius = size.minDimension * FlowLightReach
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        0f to glow.copy(alpha = light),
-                        0.55f to glow.copy(alpha = light * 0.36f),
-                        1f to Color.Transparent,
-                        center = center,
-                        radius = radius
-                    ),
-                    radius = radius,
-                    center = center
-                )
-            }
+            .then(
+                if (pixel) {
+                    Modifier
+                } else {
+                    Modifier.drawBehind {
+                        val light = lerp(FlowLightPaused, FlowLightPlaying, playProgress.value) * lightScale
+                        val radius = size.minDimension * FlowLightReach
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                0f to glow.copy(alpha = light),
+                                0.55f to glow.copy(alpha = light * 0.36f),
+                                1f to Color.Transparent,
+                                center = center,
+                                radius = radius
+                            ),
+                            radius = radius,
+                            center = center
+                        )
+                    }
+                }
+            )
             .pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
@@ -312,22 +345,35 @@ private fun FlowStage(
         contentAlignment = Alignment.Center
     ) {
         val side = minOf(maxWidth, maxHeight, artworkCap)
-        slots.stage(
-            track,
-            Modifier
-                .size(side)
-                .graphicsLayer {
-                    val progress = playProgress.value
-                    scaleX = pressScale.value
-                    scaleY = pressScale.value
-                    shape = flowCoverShape(progress)
-                    clip = true
-                    shadowElevation = FlowCoverShadow.toPx() * lerp(0.45f, 1f, progress)
-                    ambientShadowColor = glow
-                    spotShadowColor = glow
-                },
-            FlowStageCorner
-        )
+        if (pixel) {
+            slots.stage(
+                track,
+                Modifier
+                    .size(side)
+                    .padding(end = 4.dp, bottom = 4.dp)
+                    .pixelHardShadow(offset = 4.dp, color = PixelPalette.outline)
+                    .background(PixelPalette.ink, RectangleShape)
+                    .border(PixelDesign.border, PixelPalette.outline, RectangleShape),
+                PixelDesign.artworkCorner
+            )
+        } else {
+            slots.stage(
+                track,
+                Modifier
+                    .size(side)
+                    .graphicsLayer {
+                        val progress = playProgress.value
+                        scaleX = pressScale.value
+                        scaleY = pressScale.value
+                        shape = flowCoverShape(progress)
+                        clip = true
+                        shadowElevation = FlowCoverShadow.toPx() * lerp(0.45f, 1f, progress)
+                        ambientShadowColor = glow
+                        spotShadowColor = glow
+                    },
+                FlowStageCorner
+            )
+        }
         slots.gestures(track, Modifier.matchParentSize())
     }
 }
@@ -418,10 +464,12 @@ private fun FlowHeadline(
                 Spacer(Modifier.height(DerbisPlayerDesign.SpaceXs))
                 PlayerArtistText(
                     track = shown,
-                    color = surfaces.content.copy(alpha = FlowArtistAlpha),
-                    style = TextStyle(
-                        fontSize = if (compact) 14.sp else 16.sp,
-                        fontWeight = FontWeight.Medium
+                    color = if (DerbisIsPixel) surfaces.contentMuted else surfaces.content.copy(alpha = FlowArtistAlpha),
+                    style = androidx.compose.material3.LocalTextStyle.current.merge(
+                        TextStyle(
+                            fontSize = if (compact) 14.sp else 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     ),
                     onClickLabel = strings.openArtist,
                     onArtistClick = onArtistClick,
@@ -542,20 +590,45 @@ private fun FlowPlayButton(
     val haptics = LocalDerbisHaptics.current
     val interaction = remember { MutableInteractionSource() }
     val press = flowPressProgress(interaction, animated)
+    val pixel = DerbisIsPixel
+    val liquidGlass = DerbisIsLiquidGlass
+    val torque = DerbisIsTorque
+    val playSquircle = RoundedCornerShape(size / 2f + (18.dp - size / 2f) * playProgress.value)
     val label = if (isPlaying) labels.pause else labels.play
     Box(
         modifier = Modifier
-            .size(size)
-            .graphicsLayer {
-                val progress = playProgress.value
-                val pressed = press.value
-                shape = FlowLeafShape(
-                    major = lerp(lerp(FlowRestCorner * 1.6f, FlowLeafMajor, progress), FlowPressedCorner, pressed),
-                    minor = lerp(lerp(FlowRestCorner * 1.6f, FlowLeafMinor * 1.4f, progress), FlowPressedCorner, pressed)
-                )
-                clip = true
-            }
-            .background(container)
+            .then(if (liquidGlass) Modifier.width(size + 8.dp).height(size) else Modifier.size(size))
+            .then(
+                when {
+                    pixel -> Modifier
+                        .pixelHardShadow(offset = PixelDesign.shadowOffset, color = PixelPalette.outline)
+                        .background(container, RectangleShape)
+                        .border(PixelDesign.border, PixelPalette.text, RectangleShape)
+                    torque -> Modifier
+                        .clip(CutCornerShape(12.dp))
+                        .background(container, CutCornerShape(12.dp))
+                    liquidGlass -> Modifier
+                        .shadow(
+                            elevation = 14.dp,
+                            shape = playSquircle,
+                            ambientColor = container.copy(alpha = 0.30f),
+                            spotColor = container.copy(alpha = 0.38f)
+                        )
+                        .clip(playSquircle)
+                        .background(Brush.linearGradient(listOf(container, container.playerMix(DerbisViolet, 0.42f))))
+                    else -> Modifier
+                        .graphicsLayer {
+                            val progress = playProgress.value
+                            val pressed = press.value
+                            shape = FlowLeafShape(
+                                major = lerp(lerp(FlowRestCorner * 1.6f, FlowLeafMajor, progress), FlowPressedCorner, pressed),
+                                minor = lerp(lerp(FlowRestCorner * 1.6f, FlowLeafMinor * 1.4f, progress), FlowPressedCorner, pressed)
+                            )
+                            clip = true
+                        }
+                        .background(container)
+                }
+            )
             .derbisPressable(
                 onClick = {
                     haptics.perform(DerbisHapticAction.Transport)
@@ -592,22 +665,41 @@ private fun FlowSideButton(
     animated: Boolean,
     onClick: () -> Unit
 ) {
+    val pixel = DerbisIsPixel
+    val liquidGlass = DerbisIsLiquidGlass
+    val torque = DerbisIsTorque
     val haptics = LocalDerbisHaptics.current
     val interaction = remember { MutableInteractionSource() }
     val press = flowPressProgress(interaction, animated)
+    val capsule = RoundedCornerShape(percent = 50)
     Box(
         modifier = Modifier
             .size(size)
-            .graphicsLayer {
-                val pressed = press.value
-                shape = FlowLeafShape(
-                    major = lerp(FlowSideMajor, FlowPressedCorner, pressed),
-                    minor = lerp(FlowSideMinor, FlowPressedCorner, pressed),
-                    mirrored = mirrored
-                )
-                clip = true
-            }
-            .background(container)
+            .then(
+                when {
+                    pixel -> Modifier
+                        .pixelHardShadow(offset = 2.dp, color = PixelPalette.outline)
+                        .background(container, RectangleShape)
+                        .border(PixelDesign.border, PixelPalette.outline, RectangleShape)
+                    torque -> Modifier
+                        .clip(CutCornerShape(10.dp))
+                        .background(container, CutCornerShape(10.dp))
+                    liquidGlass -> Modifier
+                        .clip(capsule)
+                        .background(container, capsule)
+                    else -> Modifier
+                        .graphicsLayer {
+                            val pressed = press.value
+                            shape = FlowLeafShape(
+                                major = lerp(FlowSideMajor, FlowPressedCorner, pressed),
+                                minor = lerp(FlowSideMinor, FlowPressedCorner, pressed),
+                                mirrored = mirrored
+                            )
+                            clip = true
+                        }
+                        .background(container)
+                }
+            )
             .derbisPressable(
                 onClick = {
                     haptics.perform(DerbisHapticAction.Transport)
