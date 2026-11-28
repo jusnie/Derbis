@@ -1,6 +1,7 @@
 package com.yasuda.derbis.ui.library
 
 import com.yasuda.derbis.ui.derbisTabContentBottomPadding
+import com.yasuda.derbis.ui.theme.DerbisIsLiquidGlass
 import com.yasuda.derbis.ui.theme.DerbisIsPixel
 import com.yasuda.derbis.ui.theme.PixelDesign
 
@@ -157,6 +158,12 @@ private val playlistSelectionSaver = listSaver<Set<String>, String>(
 private const val PLAYLIST_DRAG_EDGE_FACTOR = 1.35f
 private const val PLAYLIST_DRAG_SCROLL_FACTOR = 0.38f
 private const val DEVICE_LIBRARY_PARENT_LEADING_ITEMS = 4
+private data class LibraryAlphabetPlan(
+    val index: LocalLibraryAlphabetIndex,
+    val leadingItems: Int,
+    val displayedItems: Int
+)
+
 private val LibraryCategoriesGutter = 16.dp
 private val LibraryBrowseCategories = LibraryCategory.entries.filter { it != LibraryCategory.Overview && it != LibraryCategory.Collections }
 
@@ -432,6 +439,70 @@ internal fun DerbisLibraryScreen(
                 ?: localAlphabetIndex.targets.firstOrNull()?.letter
         }
     }
+    // Whole-library A–Z index for the Liquid Glass skin (iOS Taurus parity). Device keeps its own
+    // rail above. Like the Device rail and iOS, the index only appears in A–Z (Title) order with a
+    // sizeable list. Grid layouts index by their two-item rows, matching what the LazyColumn renders.
+    val libraryGlassAlphabet = remember(
+        category, query, sort, direction, layout, state.playlists,
+        visibleTracks, visibleAlbums, visibleArtists, visiblePlaylists
+    ) {
+        val glass = DerbisIsLiquidGlass
+        val alphabetical = sort == LibrarySort.Title && direction == LibrarySortDirection.Ascending
+        val toolbarVisible = category != LibraryCategory.Overview &&
+            category != LibraryCategory.Collections &&
+            (category != LibraryCategory.Playlists || state.playlists.isNotEmpty())
+        var leading = 0
+        var entries = emptyList<Pair<String, Int>>()
+        var displayedItems = 0
+        if (glass && alphabetical && query.isBlank()) {
+            when (category) {
+                LibraryCategory.Songs -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    entries = visibleTracks.mapIndexed { index, track -> track.title to index }
+                    displayedItems = visibleTracks.size
+                }
+                LibraryCategory.Albums -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    val chunks = if (layout == LibraryLayout.Grid) visibleAlbums.chunked(2).map { it.first() } else visibleAlbums
+                    entries = chunks.mapIndexed { index, album -> album.title to index }
+                    displayedItems = chunks.size
+                }
+                LibraryCategory.Artists -> {
+                    leading = 3 + (if (toolbarVisible) 1 else 0)
+                    val chunks = if (layout == LibraryLayout.Grid) visibleArtists.chunked(2).map { it.first() } else visibleArtists
+                    entries = chunks.mapIndexed { index, artist -> artist.name to index }
+                    displayedItems = chunks.size
+                }
+                LibraryCategory.Playlists -> {
+                    // Playlists render a filter row and an import action before the rows themselves.
+                    leading = 3 + (if (toolbarVisible) 1 else 0) + 2
+                    val chunks = if (layout == LibraryLayout.Grid) visiblePlaylists.chunked(2).map { it.first() } else visiblePlaylists
+                    entries = chunks.mapIndexed { index, playlist -> playlist.name to index }
+                    displayedItems = chunks.size
+                }
+                else -> Unit
+            }
+        }
+        LibraryAlphabetPlan(
+            index = libraryAlphabetIndex(entries, displayedItems),
+            leadingItems = leading,
+            displayedItems = displayedItems
+        )
+    }
+    val libraryActiveAlphabetLetter by remember(libraryGlassAlphabet, listState) {
+        derivedStateOf {
+            val plan = libraryGlassAlphabet
+            if (!plan.index.visible) {
+                null
+            } else {
+                val displayed = (listState.firstVisibleItemIndex - plan.leadingItems)
+                    .coerceIn(0, (plan.displayedItems - 1).coerceAtLeast(0))
+                plan.index.targets.lastOrNull { it.contentIndex <= displayed }?.letter
+                    ?: plan.index.targets.firstOrNull()?.letter
+            }
+        }
+    }
+
     var expandedLocalGroupKey by rememberSaveable { mutableStateOf<String?>(null) }
     var localTagEditorTarget by remember { mutableStateOf<LocalMediaEntity?>(null) }
     var localTagEditorSaving by remember { mutableStateOf(false) }
@@ -1216,6 +1287,17 @@ internal fun DerbisLibraryScreen(
                 activeLetter = localActiveAlphabetLetter,
                 onJump = { contentIndex ->
                     listState.requestScrollToItem(localContentStartIndex + contentIndex)
+                },
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 3.dp)
+            )
+        } else if (DerbisIsLiquidGlass && category != LibraryCategory.Device && libraryGlassAlphabet.index.visible) {
+            LocalLibraryAlphabetRail(
+                index = libraryGlassAlphabet.index,
+                activeLetter = libraryActiveAlphabetLetter,
+                onJump = { contentIndex ->
+                    listState.requestScrollToItem(libraryGlassAlphabet.leadingItems + contentIndex)
                 },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)

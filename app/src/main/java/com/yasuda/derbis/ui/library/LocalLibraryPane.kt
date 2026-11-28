@@ -557,6 +557,25 @@ internal fun localLibraryAlphabetIndex(
     return LocalLibraryAlphabetIndex(targets = targets, itemCount = labels.size)
 }
 
+/**
+ * Builds an A–Z index for a plain list of (label, contentIndex) rows in display order. Shared by
+ * the Device rail and the Liquid Glass whole-library index. `itemCount` is the number of LazyColumn
+ * items the content occupies; `contentIndex` is the target's position among those items.
+ */
+internal fun libraryAlphabetIndex(entries: List<Pair<String, Int>>, itemCount: Int): LocalLibraryAlphabetIndex {
+    val targets = buildList {
+        var previous: Char? = null
+        entries.forEach { (label, contentIndex) ->
+            val letter = localAlphabetLetter(label) ?: return@forEach
+            if (letter != previous) {
+                add(LocalLibraryAlphabetTarget(letter, contentIndex))
+                previous = letter
+            }
+        }
+    }
+    return LocalLibraryAlphabetIndex(targets = targets, itemCount = itemCount)
+}
+
 @Composable
 internal fun LocalLibraryAlphabetRail(
     index: LocalLibraryAlphabetIndex,
