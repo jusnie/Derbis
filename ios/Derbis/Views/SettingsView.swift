@@ -1411,6 +1411,9 @@ struct SettingsView: View {
                 Text("Linear Glass · Flow & Vinyl Decks · Endless Listening · 32-bit Mix Lab · Sing DSP · AutoMix · Jam · GPL-3.0")
                     .font(theme.font(size: 12))
                     .foregroundColor(theme.secondaryText)
+                Text("Fonts: Outfit, Inter, Manrope, Poppins, Montserrat, Nunito, Roboto, Pixelify Sans — all Open Font License 1.1 (see Resources/Fonts/licenses)")
+                    .font(theme.font(size: 12))
+                    .foregroundColor(theme.secondaryText)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)

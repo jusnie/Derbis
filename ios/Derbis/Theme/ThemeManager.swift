@@ -595,6 +595,15 @@ final class ThemeManager: ObservableObject {
         if fontChoice == .sfRounded {
             return Font.system(size: size, weight: weight, design: .rounded)
         }
+        if fontChoice == .sfSerif {
+            return Font.system(size: size, weight: weight, design: .serif)
+        }
+        if fontChoice == .sfMono {
+            return Font.system(size: size, weight: weight, design: .monospaced)
+        }
+        if let bundled = fontChoice.postScriptName(for: weight) {
+            return Font.custom(bundled, size: size)
+        }
         if skin == .torque && weight == .bold {
             return Font.system(size: size, weight: .heavy, design: .default)
         }
@@ -633,7 +642,20 @@ final class ThemeManager: ObservableObject {
     }
 
     static func registerBundledFonts() {
-        for file in ["pixelify_sans_regular", "pixelify_sans_bold"] {
+        // Pixelify Sans + the open OFL families shared with the Android build. Every file here
+        // is also listed in Info.plist UIAppFonts; manual registration covers the case where the
+        // app loads before the system registers them.
+        let bundled = [
+            "pixelify_sans_regular", "pixelify_sans_bold",
+            "Outfit-Regular", "Outfit-Medium", "Outfit-SemiBold", "Outfit-Bold", "Outfit-ExtraBold",
+            "Inter-Regular", "Inter-Medium", "Inter-SemiBold", "Inter-Bold", "Inter-ExtraBold",
+            "Manrope-Regular", "Manrope-Medium", "Manrope-SemiBold", "Manrope-Bold", "Manrope-ExtraBold",
+            "Poppins-Regular", "Poppins-Medium", "Poppins-SemiBold", "Poppins-Bold", "Poppins-ExtraBold", "Poppins-Black",
+            "Montserrat-Regular", "Montserrat-Medium", "Montserrat-SemiBold", "Montserrat-Bold", "Montserrat-ExtraBold",
+            "Nunito-Regular", "Nunito-Medium", "Nunito-SemiBold", "Nunito-Bold", "Nunito-ExtraBold",
+            "Roboto-Regular", "Roboto-Medium", "Roboto-SemiBold", "Roboto-Bold", "Roboto-ExtraBold"
+        ]
+        for file in bundled {
             if let url = Bundle.main.url(forResource: file, withExtension: "ttf") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
             }

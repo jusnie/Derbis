@@ -416,7 +416,16 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
     case skinDefault = "skin"
     case sfPro = "sf_pro"
     case sfRounded = "sf_rounded"
+    case sfSerif = "sf_serif"
+    case sfMono = "sf_mono"
     case pixelify = "pixelify"
+    case outfit = "outfit"
+    case inter = "inter"
+    case manrope = "manrope"
+    case poppins = "poppins"
+    case montserrat = "montserrat"
+    case nunito = "nunito"
+    case roboto = "roboto"
     case customFile = "custom_file"
 
     var id: String { rawValue }
@@ -426,9 +435,47 @@ enum DerbisFontChoice: String, Codable, CaseIterable, Identifiable, Sendable {
         case .skinDefault: return "Match skin"
         case .sfPro: return "SF Pro"
         case .sfRounded: return "SF Rounded"
+        case .sfSerif: return "SF Serif"
+        case .sfMono: return "SF Mono"
         case .pixelify: return "Pixelify Sans"
+        case .outfit: return "Outfit"
+        case .inter: return "Inter"
+        case .manrope: return "Manrope"
+        case .poppins: return "Poppins"
+        case .montserrat: return "Montserrat"
+        case .nunito: return "Nunito"
+        case .roboto: return "Roboto"
         case .customFile: return "Imported Font (.ttf/.otf)"
         }
+    }
+
+    /// PostScript names of the bundled static instances. SF faces resolve through the system.
+    var bundledFamily: String? {
+        switch self {
+        case .outfit: return "Outfit"
+        case .inter: return "Inter"
+        case .manrope: return "Manrope"
+        case .poppins: return "Poppins"
+        case .montserrat: return "Montserrat"
+        case .nunito: return "Nunito"
+        case .roboto: return "Roboto"
+        default: return nil
+        }
+    }
+
+    /// PostScript name of the bundled instance for a requested weight. Poppins ships a Black
+    /// master; Manrope stops at ExtraBold. SF faces resolve statically and return nil here.
+    func postScriptName(for weight: Font.Weight) -> String? {
+        guard let family = bundledFamily else { return nil }
+        let suffix: String
+        if weight == .medium { suffix = "Medium" }
+        else if weight == .semibold { suffix = "SemiBold" }
+        else if weight == .bold { suffix = "Bold" }
+        else if weight == .heavy { suffix = "ExtraBold" }
+        else if weight == .black { suffix = family == "Poppins" ? "Black" : "ExtraBold" }
+        else if weight == .regular { suffix = "Regular" }
+        else { suffix = "Regular" }
+        return "\(family)-\(suffix)"
     }
 }
 

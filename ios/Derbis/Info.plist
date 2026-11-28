@@ -35,6 +35,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>DerbisJamRelayURL</key>
+	<string></string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -46,32 +48,66 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>NSMotionUsageDescription</key>
-	<string>Derbis uses headphone motion sensors when AirPods head gestures are enabled to play, pause, or skip tracks with a nod or head shake.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Derbis Jam uses your local network to discover nearby Listen Together rooms and synchronize playback over Wi-Fi or Hotspot.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_derbis-jam._tcp</string>
 	</array>
-	<key>DerbisJamRelayURL</key>
-	<string></string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Derbis Jam uses your local network to discover nearby Listen Together rooms and synchronize playback over Wi-Fi or Hotspot.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Derbis uses headphone motion sensors when AirPods head gestures are enabled to play, pause, or skip tracks with a nod or head shake.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>pixelify_sans_regular.ttf</string>
 		<string>pixelify_sans_bold.ttf</string>
+		<string>Inter-Bold.ttf</string>
+		<string>Inter-ExtraBold.ttf</string>
+		<string>Inter-Medium.ttf</string>
+		<string>Inter-Regular.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+		<string>Manrope-Bold.ttf</string>
+		<string>Manrope-ExtraBold.ttf</string>
+		<string>Manrope-Medium.ttf</string>
+		<string>Manrope-Regular.ttf</string>
+		<string>Manrope-SemiBold.ttf</string>
+		<string>Montserrat-Bold.ttf</string>
+		<string>Montserrat-ExtraBold.ttf</string>
+		<string>Montserrat-Medium.ttf</string>
+		<string>Montserrat-Regular.ttf</string>
+		<string>Montserrat-SemiBold.ttf</string>
+		<string>Nunito-Bold.ttf</string>
+		<string>Nunito-ExtraBold.ttf</string>
+		<string>Nunito-Medium.ttf</string>
+		<string>Nunito-Regular.ttf</string>
+		<string>Nunito-SemiBold.ttf</string>
+		<string>Outfit-Bold.ttf</string>
+		<string>Outfit-ExtraBold.ttf</string>
+		<string>Outfit-Medium.ttf</string>
+		<string>Outfit-Regular.ttf</string>
+		<string>Outfit-SemiBold.ttf</string>
+		<string>Poppins-Black.ttf</string>
+		<string>Poppins-Bold.ttf</string>
+		<string>Poppins-ExtraBold.ttf</string>
+		<string>Poppins-Medium.ttf</string>
+		<string>Poppins-Regular.ttf</string>
+		<string>Poppins-SemiBold.ttf</string>
+		<string>Roboto-Bold.ttf</string>
+		<string>Roboto-ExtraBold.ttf</string>
+		<string>Roboto-Medium.ttf</string>
+		<string>Roboto-Regular.ttf</string>
+		<string>Roboto-SemiBold.ttf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
-	<key>UIDesignRequiresCompatibility</key>
-	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
 	</array>
+	<key>UIDesignRequiresCompatibility</key>
+	<false/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchScreen</key>
