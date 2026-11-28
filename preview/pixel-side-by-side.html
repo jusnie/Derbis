@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="fonts/pixelify.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Default vs Pixel — the same screen twice</title>
+<link rel="stylesheet" href="pixel-ui.css" />
+
+<style>
+  /*
+   * Two phones, one markup. The only thing that differs is the variable block on .phone,
+   * which is exactly how the app does it: one palette plus one chrome pass, every screen
+   * reading the same roles. If the markup can render both, the screen is skinnable.
+   */
+
+  .pair { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
+
+  .phone {
+    width: 312px;
+    background: var(--s-bg);
+    color: var(--s-ink);
+    border: 2px solid var(--s-edge);
+    border-radius: var(--s-radius);
+    padding: 14px;
+    font-family: var(--s-font);
+    overflow: hidden;
+    transition: background .18s linear, color .18s linear, border-radius .18s linear;
+  }
+  .phone * { border-radius: var(--s-radius-sm); }
+  .phone .nosq { border-radius: 0; }
+
+  /* ---- Derbis Default: the cinematic dark the app ships with ---- */
+  .phone.default {
+    --s-bg: #030303;
+    --s-ink: #F5F5F7;
+    --s-muted: #86868B;
+    --s-card: #1D1D1F;
+    --s-panel: #2D2D2F;
+    --s-edge: rgba(255, 255, 255, 0.18);
+    --s-acc: #2997FF;
+    --s-acc-on: #030303;
+    --s-radius: 24px;
+    --s-radius-sm: 16px;
+    --s-font: -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+
+  /* ---- Pixel: blush paper, plum ink, hard edges, pixel type ---- */
+  .phone.pixel {
+    --s-bg: #FFEDF1;
+    --s-ink: #5B2338;
+    --s-muted: #7E3B57;
+    --s-card: #FFF8F6;
+    --s-panel: #FFD9E2;
+    --s-edge: #A84765;
+    --s-acc: #9E1B44;
+    --s-acc-on: #FFF8F6;
+    --s-radius: 0px;
+    --s-radius-sm: 0px;
+    --s-font: "Pixelify", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  .phone .status { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .1em; color: var(--s-muted); margin-bottom: 10px; }
+  .phone .bar { display: flex; align-items: center; gap: 9px; padding-bottom: 9px; border-bottom: 1px solid var(--s-edge); margin-bottom: 12px; }
+  .phone .bar .mk { width: 13px; height: 13px; background: var(--s-acc); border: 1px solid var(--s-ink); }
+  .phone .bar .nm { font-size: 11px; letter-spacing: .18em; }
+  .phone .bar .grow { flex: 1; }
+  .phone .bar .ic { font-size: 12px; color: var(--s-muted); }
+
+  .phone h4 { margin: 0 0 2px; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .phone .subt { margin: 0 0 12px; font-size: 11px; color: var(--s-muted); }
+
+  .phone .chips { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .phone .c { font-size: 11px; padding: 5px 9px; border: 1px solid var(--s-edge); color: var(--s-muted); }
+  .phone .c.on { background: var(--s-acc); border-color: var(--s-acc); color: var(--s-acc-on); font-weight: 700; }
+
+  .phone .r { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--s-edge); }
+  .phone .r:last-of-type { border-bottom: 0; }
+  .phone .r .th { width: 38px; height: 38px; flex: none; border: 1px solid var(--s-edge); background: linear-gradient(140deg, #FF9DBB, #9E1B44 62%, #5B2338); }
+  .phone .r .tx { flex: 1; min-width: 0; }
+  .phone .r .tt { font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone .r .ts { font-size: 11px; color: var(--s-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone .r .go { font-size: 12px; color: var(--s-muted); }
+
+  .phone .mini { display: flex; align-items: center; gap: 10px; background: var(--s-card); border: 1px solid var(--s-edge); padding: 8px 10px; margin-top: 12px; position: relative; overflow: hidden; }
+  .phone .mini .th2 { width: 40px; height: 40px; flex: none; border: 1px solid var(--s-edge); background: linear-gradient(140deg, #FFD98A, #E08A2E); }
+  .phone .mini .tx { flex: 1; min-width: 0; }
+  .phone .mini .tt { font-size: 11px; font-weight: 700; }
+  .phone .mini .ts { font-size: 11px; color: var(--s-muted); margin-top: 2px; }
+  .phone .mini .k { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+  .phone .mini .pl { width: 22px; height: 22px; display: grid; place-items: center; background: var(--s-acc); color: var(--s-acc-on); font-size: 11px; }
+  .phone .mini .pb { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-panel); }
+  .phone .mini .pb i { display: block; height: 2px; width: 46%; background: var(--s-acc); }
+
+  .phone .dock { margin: 12px -14px -14px; display: flex; border-top: 1px solid var(--s-edge); background: var(--s-panel); }
+  .phone .dock .t { flex: 1; text-align: center; padding: 9px 3px; font-size: 11px; letter-spacing: .1em; color: var(--s-muted); }
+  .phone .dock .t.on { color: var(--s-ink); font-weight: 700; background: var(--s-card); }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 26px; flex-wrap: wrap; }
+  .toolbar .btn { cursor: pointer; }
+  .toolbar .btn[aria-pressed="true"] { background: var(--rose); border-color: var(--rose); color: var(--on-accent); }
+  .hint { font-size: 11px; color: rgba(255, 226, 234, .55); }
+  .scal { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 11px; color: rgba(255, 226, 234, .55); }
+  .scal b { color: #FFC2D3; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">← all previews</a>
+<h1>Default vs Pixel</h1>
+<p class="lede">
+  The standing rule is that Pixel applies <b>only while it is equipped</b>. So this page is not a
+  before-and-after: it is the same screen markup rendered through two palettes, and the default on
+  the left is exactly what the app still does when Pixel is not equipped. Nothing in the right
+  column is a rebuild of the screen — it is the same rows, the same deck, the same order.
+</p>
+
+<div class="toolbar">
+  <button class="btn" id="skin" aria-pressed="false">Recolour the middle phone</button>
+  <span class="hint">Same DOM node, variables swapped — the test for whether a screen is truly skinnable.</span>
+</div>
+
+<div class="pair">
+  <div class="item" style="width:340px">
+    <p class="cap">derbis default · as shipped</p>
+    <div class="phone default">
+      <div class="status"><span>9:41</span><span>DERBIS</span></div>
+      <div class="bar"><span class="mk" style="background:#2997FF"></span><span class="nm">DERBIS</span><span class="grow"></span><span class="ic">⌕</span><span class="ic">☰</span></div>
+      <h4>Good evening</h4>
+      <p class="subt">12 tracks queued · 18:02</p>
+      <div class="chips"><span class="c on">Your mix</span><span class="c">Fresh</span><span class="c">Radio</span></div>
+      <div class="r"><div class="th"></div><div class="tx"><div class="tt">Paper Walls</div><div class="ts">Mira Osei · 4:00</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#FFD98A,#E08A2E)"></div><div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club · 3:57</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#C9B6FF,#5B2338)"></div><div class="tx"><div class="tt">Night Shift</div><div class="ts">Hana Ito · 3:12</div></div><div class="go">›</div></div>
+      <div class="mini">
+        <div class="th2"></div>
+        <div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club</div></div>
+        <div class="k"><span>⏮</span><span class="pl">⏸</span><span>⏭</span></div>
+        <div class="pb"><i></i></div>
+      </div>
+      <div class="dock"><div class="t on">HOME</div><div class="t">SEARCH</div><div class="t">LIBRARY</div><div class="t">YOU</div></div>
+    </div>
+    <p class="note">
+      Dark ground, 24 dp cards, the system sans, blue accent. This is not deprecated — it is what
+      every other skin and every user who has not switched sees.
+    </p>
+  </div>
+
+  <div class="item" style="width:340px">
+    <p class="cap">pixel · equipped</p>
+    <div class="phone pixel">
+      <div class="status"><span>9:41</span><span>DERBIS</span></div>
+      <div class="bar"><span class="mk" style="background:#FF5C8A"></span><span class="nm">DERBIS</span><span class="grow"></span><span class="ic">⌕</span><span class="ic">☰</span></div>
+      <h4>Good evening</h4>
+      <p class="subt">12 tracks queued · 18:02</p>
+      <div class="chips"><span class="c on">Your mix</span><span class="c">Fresh</span><span class="c">Radio</span></div>
+      <div class="r"><div class="th"></div><div class="tx"><div class="tt">Paper Walls</div><div class="ts">Mira Osei · 4:00</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#FFD98A,#E08A2E)"></div><div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club · 3:57</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#C9B6FF,#5B2338)"></div><div class="tx"><div class="tt">Night Shift</div><div class="ts">Hana Ito · 3:12</div></div><div class="go">›</div></div>
+      <div class="mini">
+        <div class="th2"></div>
+        <div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club</div></div>
+        <div class="k"><span>⏮</span><span class="pl">⏸</span><span>⏭</span></div>
+        <div class="pb"><i></i></div>
+      </div>
+      <div class="dock"><div class="t on">HOME</div><div class="t">SEARCH</div><div class="t">LIBRARY</div><div class="t">YOU</div></div>
+    </div>
+    <p class="note">
+      Same markup. Ground, cards, rules, accent, corner radius and type face all come from the
+      palette; the artwork is untouched.
+    </p>
+  </div>
+
+  <div class="item" style="width:340px">
+    <p class="cap">the live switch · click it</p>
+    <div class="phone default" id="flip">
+      <div class="status"><span>if you can see this flip without a relayout, the screen is skinned</span><span>◐</span></div>
+      <div class="bar"><span class="mk"></span><span class="nm">DERBIS</span><span class="grow"></span><span class="ic">⌕</span></div>
+      <h4>One screen, two skins</h4>
+      <p class="subt">Nothing below is re-drawn for Pixel</p>
+      <div class="r"><div class="th"></div><div class="tx"><div class="tt">Paper Walls</div><div class="ts">Mira Osei · 4:00</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#9FE8C8,#0F5C46)"></div><div class="tx"><div class="tt">Slow Morning</div><div class="ts">The Lantern Club · 5:48</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#A9C7E0,#1B3A5C)"></div><div class="tx"><div class="tt">Kite Season</div><div class="ts">Hana Ito · 2:44</div></div><div class="go">›</div></div>
+      <div class="mini">
+        <div class="th2"></div>
+        <div class="tx"><div class="tt">Slow Morning</div><div class="ts">The Lantern Club</div></div>
+        <div class="k"><span class="pl">⏸</span></div>
+        <div class="pb"><i></i></div>
+      </div>
+      <div class="dock"><div class="t on">HOME</div><div class="t">SEARCH</div><div class="t">LIBRARY</div><div class="t">YOU</div></div>
+    </div>
+    <div class="scal"><b>only these change:</b> background · surface · text · muted · outline · accent · radius · type</div>
+    <p class="note">
+      If a screen needs a Pixel-specific branch, that is the bug. The branch should be in the palette,
+      not in the screen.
+    </p>
+  </div>
+</div>
+
+<h2>What actually differs</h2>
+<table>
+  <tr><th>Role</th><th>Derbis Default</th><th>Pixel</th></tr>
+  <tr><td>Ground</td><td><code>#030303</code></td><td><code>#FFEDF1</code></td></tr>
+  <tr><td>Card</td><td><code>#1D1D1F</code></td><td><code>#FFF8F6</code></td></tr>
+  <tr><td>Panel / band</td><td><code>#2D2D2F</code></td><td><code>#FFD9E2</code></td></tr>
+  <tr><td>Text</td><td><code>#F5F5F7</code></td><td><code>#5B2338</code></td></tr>
+  <tr><td>Muted</td><td><code>#86868B</code></td><td><code>#7E3B57</code></td></tr>
+  <tr><td>Accent</td><td><code>#2997FF</code></td><td><code>#9E1B44</code></td></tr>
+  <tr><td>Corner radius</td><td>24 dp / 16 dp</td><td>0 dp</td></tr>
+  <tr><td>Type</td><td>system sans</td><td>Pixelify Sans, 2 weights</td></tr>
+  <tr><td>Row content, order, spacing, hit targets</td><td colspan="2"><b>Identical.</b> A skin that moves a control is a redesign.</td></tr>
+</table>
+
+<script>
+  var flip = document.getElementById('flip');
+  var btn = document.getElementById('skin');
+  btn.addEventListener('click', function () {
+    var nowPixel = flip.classList.toggle('pixel');
+    if (nowPixel) flip.classList.remove('default');
+    else flip.classList.add('default');
+    btn.setAttribute('aria-pressed', String(nowPixel));
+  });
+  flip.addEventListener('click', function () { btn.click(); });
+</script>
+</body>
+</html>

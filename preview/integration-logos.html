@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="fonts/pixelify.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Integrations — brand logos on the sign-in buttons</title>
+<style>
+  :root {
+    /* pixel */
+    --paper: #FFEDF1;
+    --card: #FFF8F6;
+    --band: #FFD9E2;
+    --band-deep: #FFC9D6;
+    --edge: #A84765;
+    --ink: #5B2338;
+    --ink-muted: #7E3B57;
+    --rose: #9E1B44;
+    /* brands */
+    --discord: #5865F2;
+    --spotify: #1DB954;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(70% 50% at 12% 0%, #3A1B2C 0%, transparent 60%),
+      radial-gradient(60% 45% at 96% 4%, #2A1B33 0%, transparent 55%),
+      #150C11;
+    color: #F6E7EC;
+    font-family: "Pixelify", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 44px 26px 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 25px; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 10px; color: #FFC2D3; }
+  .sub { color: rgba(255,226,234,0.62); font-size: 12.5px; line-height: 1.75; max-width: 830px; margin: 0 0 40px; }
+  .sub b { color: #FFD9E2; font-weight: 600; }
+  h2 {
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: #FF9DBB; margin: 44px 0 14px; padding-bottom: 8px;
+    border-bottom: 2px solid #4A2333; max-width: 1010px;
+  }
+  .cap { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #C98AA4; margin: 0 0 8px; }
+  .note { color: rgba(255,226,234,0.52); font-size: 11.5px; line-height: 1.65; margin: 10px 0 0; max-width: 830px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .col { width: 300px; }
+
+  /* ---------- a settings tile, three skins ---------- */
+  .tile {
+    display: flex; align-items: center; gap: 13px;
+    padding: 13px 12px 13px 13px;
+  }
+  .tile .plate { width: 42px; height: 42px; display: grid; place-items: center; flex: none; }
+  .tile .plate svg { width: 22px; height: 22px; display: block; }
+  .tile .tx { flex: 1; min-width: 0; }
+  .tile .tt { font-size: 14.5px; font-weight: 700; }
+  .tile .ts { font-size: 11.5px; line-height: 1.45; margin-top: 3px; }
+  .tile .chev { font-size: 15px; opacity: 0.6; }
+  .stack { display: flex; flex-direction: column; gap: 2px; }
+
+  /* pixel skin */
+  .skin-pixel { background: var(--paper); border: 1px solid #4A2333; }
+  .skin-pixel .tile { background: var(--card); border-bottom: 1px solid var(--edge); }
+  .skin-pixel .tile:last-child { border-bottom: 0; }
+  .skin-pixel .plate { background: var(--band-deep); }
+  .skin-pixel .tt { color: var(--ink); }
+  .skin-pixel .ts { color: var(--ink-muted); }
+  .skin-pixel .chev { color: var(--ink-muted); }
+
+  /* default dark */
+  .skin-default { background: #0C0D12; border: 1px solid #23262F; }
+  .skin-default .tile { background: #14161C; border-bottom: 1px solid #1E2128; }
+  .skin-default .tile:last-child { border-bottom: 0; }
+  .skin-default .plate { background: #1E2128; border-radius: 12px; }
+  .skin-default .tt { color: #F2F4F8; }
+  .skin-default .ts { color: #8C93A3; }
+  .skin-default .chev { color: #8C93A3; }
+
+  /* spotify-style skin */
+  .skin-spotify { background: #000; border: 1px solid #2A2A2A; }
+  .skin-spotify .tile { background: #121212; border-bottom: 1px solid #1F1F1F; }
+  .skin-spotify .tile:last-child { border-bottom: 0; }
+  .skin-spotify .plate { background: transparent; }
+  .skin-spotify .tt { color: #fff; }
+  .skin-spotify .ts { color: #A7A7A7; }
+  .skin-spotify .chev { color: #A7A7A7; }
+
+  /* ---------- the spotify card ---------- */
+  .card { padding: 14px 16px; display: flex; gap: 12px; align-items: center; }
+  .card .cplate { width: 40px; height: 40px; display: grid; place-items: center; flex: none; }
+  .card .cplate svg { width: 22px; height: 22px; display: block; }
+  .card .ct { font-size: 14.5px; font-weight: 700; }
+  .card .cs { font-size: 11.5px; line-height: 1.45; margin-top: 2px; }
+  .card .chip { display: inline-block; margin-top: 6px; font-size: 11px; letter-spacing: 0.08em; padding: 3px 7px; font-weight: 700; }
+  .card .act { font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+
+  .sp-pixel { background: #FFF8F6; border: 1px solid var(--edge); }
+  .sp-pixel .cplate { background: #121212; }
+  .sp-pixel .ct { color: var(--ink); }
+  .sp-pixel .cs { color: var(--ink-muted); }
+  .sp-pixel .chip { background: rgba(158,27,68,0.14); color: var(--rose); }
+  .sp-pixel .act { color: var(--rose); }
+
+  .sp-default { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); border-radius: 18px; }
+  .sp-default .cplate { background: rgba(255,255,255,0.08); border-radius: 50%; }
+  .sp-default .ct { color: #F2F4F8; }
+  .sp-default .cs { color: #8C93A3; }
+  .sp-default .chip { background: rgba(255,94,58,0.15); color: #FF5E3A; border-radius: 99px; }
+  .sp-default .act { color: var(--spotify); }
+
+  .sp-spotify { background: #121212; border: 1px solid #2A2A2A; border-radius: 18px; }
+  .sp-spotify .cplate { background: rgba(29,185,84,0.2); border-radius: 50%; }
+  .sp-spotify .ct { color: #fff; }
+  .sp-spotify .cs { color: #A7A7A7; }
+  .sp-spotify .chip { background: rgba(29,185,84,0.2); color: var(--spotify); border-radius: 99px; }
+  .sp-spotify .act { color: var(--spotify); }
+
+  /* ---------- misc ---------- */
+  table { border-collapse: collapse; max-width: 1010px; width: 100%; font-size: 12px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #33202A; vertical-align: top; }
+  th { color: #FF9DBB; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+  td { color: rgba(255,226,234,0.78); line-height: 1.55; }
+  .yes { color: #7BE0A8; }
+  .no { color: #FF8E8E; }
+  .half { color: #FFC46B; }
+  code { background: rgba(255,255,255,0.07); padding: 1px 5px; font-size: 11px; }
+</style>
+</head>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="discord-path" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></symbol>
+  <symbol id="spotify-path" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></symbol>
+</svg>
+<body>
+
+<h1>Brand logos on the sign-in buttons</h1>
+<p class="sub">
+  The Discord and Spotify rows in <b>Settings → Integrations</b> currently use a generic Material
+  account glyph. They get the real brand marks instead — CC0 path data from simple-icons, drawn as
+  vector drawables, no bitmaps. Under Pixel the tiles keep their skin (paper card, band plate, square
+  corners) and only the mark keeps its own colour, because a brand colour is not the skin's to repaint.
+</p>
+
+<h2>1 — Discord row</h2>
+<div class="grid">
+  <div class="col">
+    <p class="cap">Pixel</p>
+    <div class="skin-pixel">
+      <div class="tile">
+        <div class="plate">
+          <svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+        </div>
+        <div class="tx"><div class="tt">Connect Discord</div><div class="ts">Sign in with your Discord account</div></div>
+        <div class="chev">›</div>
+      </div>
+      <div class="tile">
+        <div class="plate" style="background:var(--band-deep)"><svg viewBox="0 0 24 24" fill="#9E1B44"><path d="M17.65 6.35A7.96 7.96 0 0012 4a8 8 0 100 16 7.96 7.96 0 005.65-2.35l-1.42-1.42A6 6 0 1112 6a5.96 5.96 0 014.23 1.77z"/></svg></div>
+        <div class="tx"><div class="tt">Test connection</div><div class="ts">Discord reachability</div></div>
+        <div class="chev">›</div>
+      </div>
+    </div>
+    <p class="note">Square plate, band fill, plum type. The mark keeps <code>#5865F2</code>.</p>
+  </div>
+
+  <div class="col">
+    <p class="cap">Default</p>
+    <div class="skin-default">
+      <div class="tile">
+        <div class="plate">
+          <svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+        </div>
+        <div class="tx"><div class="tt">Connect Discord</div><div class="ts">Sign in with your Discord account</div></div>
+        <div class="chev">›</div>
+      </div>
+    </div>
+    <p class="note">Rounded plate, dark card. Only the glyph changed.</p>
+  </div>
+
+  <div class="col">
+    <p class="cap">Spotify Style</p>
+    <div class="skin-spotify">
+      <div class="tile">
+        <div class="plate">
+          <svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+        </div>
+        <div class="tx"><div class="tt">Connect Discord</div><div class="ts">Sign in with your Discord account</div></div>
+        <div class="chev">›</div>
+      </div>
+    </div>
+    <p class="note">Bare glyph, black card — the skin already does that for every tile.</p>
+  </div>
+</div>
+
+<h2>2 — Spotify card</h2>
+<div class="grid">
+  <div class="col">
+    <p class="cap">Pixel</p>
+    <div class="card sp-pixel">
+      <div class="cplate">
+        <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      </div>
+      <div class="tx" style="flex:1">
+        <div class="ct">Animated artwork</div>
+        <div class="cs">Connect Spotify to unlock Canvas</div>
+        <div class="chip">LOGIN REQUIRED</div>
+      </div>
+      <div class="act">Connect</div>
+    </div>
+    <p class="note">Square plate. The plate is Spotify's own black, because green on the blush band measures 1.8:1 and the mark would disappear; on black it is 7.2:1. Cream card, rose action.</p>
+  </div>
+
+  <div class="col">
+    <p class="cap">Default</p>
+    <div class="card sp-default">
+      <div class="cplate">
+        <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      </div>
+      <div class="tx" style="flex:1">
+        <div class="ct">Animated artwork</div>
+        <div class="cs">Connect Spotify to unlock Canvas</div>
+        <div class="chip">LOGIN REQUIRED</div>
+      </div>
+      <div class="act">Connect</div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p class="cap">Spotify Style</p>
+    <div class="card sp-spotify">
+      <div class="cplate">
+        <svg viewBox="0 0 24 24" fill="#1DB954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+      </div>
+      <div class="tx" style="flex:1">
+        <div class="ct">Animated artwork</div>
+        <div class="cs">Connect Spotify to unlock Canvas</div>
+        <div class="chip">LOGIN REQUIRED</div>
+      </div>
+      <div class="act">Connect</div>
+    </div>
+  </div>
+</div>
+
+<h2>3 — Are these two screens affected by Pixel today?</h2>
+<table>
+  <tr><th>Surface</th><th>Follows Pixel?</th><th>Why</th></tr>
+  <tr>
+    <td>Settings tile shell (card fill, plate shape, plate fill, icon tint, chevron)</td>
+    <td class="yes">Yes</td>
+    <td>Goes through <code>SkinChrome</code>: plate becomes <code>PixelDesign.controlCorner</code> = 0 dp, fills with the band tone, type turns plum. Also uppercases labels.</td>
+  </tr>
+  <tr>
+    <td>The icon inside the tile</td>
+    <td class="half">Yes, wrongly</td>
+    <td>Every settings icon is a Material glyph tinted with the skin accent, so "Connect Discord" draws a rose account circle. That is the thing this change fixes — the mark keeps its brand colour instead.</td>
+  </tr>
+  <tr>
+    <td>Discord connected profile card</td>
+    <td class="no">No</td>
+    <td>Hardcoded <code>#16181F</code> fill, <code>#262835</code> border, <code>#2C2E38</code> avatar well, white text. Stays Discord-dark on every skin, including blush paper.</td>
+  </tr>
+  <tr>
+    <td>Spotify card</td>
+    <td class="no">No</td>
+    <td>Hardcoded <code>#1ED760</code> green, <code>Color.White</code> at 4 %/8 %/10 %, 18 dp corners. On Pixel it is a dark rounded card sitting in a paper list.</td>
+  </tr>
+</table>
+<p class="note">
+  So: the tile rows are already pixel-shaped, but the two expanded cards are not. Those hardcoded
+  colours are the leftover — the same class of bug as the share cards. Both have been brought onto
+  the palette; the brand accents (Discord blurple, Spotify green) stay as the only fixed hues.
+</p>
+
+<h2>4 — After the fix: the two hardcoded cards on Pixel</h2>
+<div class="grid">
+  <div class="col">
+    <p class="cap">Discord · signed in</p>
+    <div class="skin-pixel" style="padding:10px">
+      <div style="display:flex;align-items:center;gap:11px;padding:13px;background:var(--card);border:1px solid var(--edge)">
+        <div style="width:40px;height:40px;background:var(--band-deep);display:grid;place-items:center;flex:none">
+          <svg viewBox="0 0 24 24" fill="#5865F2" style="width:24px;height:24px"><use href="#discord-path"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-size: 13.5px;font-weight:700;color:var(--ink)">Yasuda</div>
+          <div style="font-size: 11px;color:var(--ink-muted)">@yasuda</div>
+        </div>
+        <div style="background:var(--band);color:var(--rose);font-size: 11px;font-weight:700;padding:4px 7px">Active</div>
+      </div>
+    </div>
+    <p class="note">Was <code>#16181F</code> / <code>#262835</code> / white text. Now card, edge rule, plum type, square image and status pill. The blurple stays.</p>
+  </div>
+
+  <div class="col">
+    <p class="cap">Spotify · login required</p>
+    <div class="card sp-pixel" style="border-color:var(--edge);background:var(--card)">
+      <div class="cplate" style="background:#121212">
+        <svg viewBox="0 0 24 24" fill="#1DB954" style="width:22px;height:22px"><use href="#spotify-path"/></svg>
+      </div>
+      <div class="tx" style="flex:1">
+        <div class="ct">Animated artwork</div>
+        <div class="cs">Connect Spotify to unlock Canvas</div>
+        <div class="chip">LOGIN REQUIRED</div>
+      </div>
+      <div class="act">Connect</div>
+    </div>
+    <p class="note">Was <code>#1ED760</code> at 8 % on white at 4 %, 18 dp corners. Now a card with an edge rule, a square status chip, and rose for the action.</p>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="fonts/pixelify.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel — the type face (shipped)</title>
+<link rel="stylesheet" href="pixel-ui.css" />
+<style>
+  /* ---------------------------------------------------------------- faces ---
+     Real OFL files, self-hosted so this page renders the actual face rather than
+     a neighbour of it. The app will bundle static instances of the same font in
+     res/font; these woff2 copies exist only so the review is not a guess. */
+  @font-face {
+    font-family: "Silkscreen"; src: url("fonts/silkscreen-latin-400-normal.woff2") format("woff2");
+    font-weight: 400; font-display: swap;
+  }
+  @font-face {
+    font-family: "Silkscreen"; src: url("fonts/silkscreen-latin-700-normal.woff2") format("woff2");
+    font-weight: 700; font-display: swap;
+  }
+  @font-face {
+    font-family: "VT323"; src: url("fonts/vt323-latin-400-normal.woff2") format("woff2");
+    font-weight: 400; font-display: swap;
+  }
+  @font-face {
+    font-family: "PressStart"; src: url("fonts/press-start-2p-latin-400-normal.woff2") format("woff2");
+    font-weight: 400; font-display: swap;
+  }
+
+  /* the switch: one variable changes every mock on the page */
+  body { --type: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace; }
+  body.proposed { --type: "Pixelify", ui-monospace, monospace; }
+
+  .phone {
+    width: 312px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 14px;
+    font-family: var(--type);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .phone .status { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .1em; color: var(--ink-muted); margin-bottom: 10px; }
+  .phone .bar { display: flex; align-items: center; gap: 9px; padding-bottom: 9px; border-bottom: 2px solid var(--edge); margin-bottom: 12px; }
+  .phone .bar .mk { width: 13px; height: 13px; background: var(--hot); border: 2px solid var(--ink); transform: rotate(45deg); }
+  .phone .bar .nm { font-size: 11px; letter-spacing: .18em; }
+  .phone .bar .grow { flex: 1; }
+  .phone .bar .ic { font-size: 12px; color: var(--ink-muted); }
+
+  .phone h4 { margin: 0 0 2px; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .phone .subt { margin: 0 0 12px; font-size: 12px; color: var(--ink-muted); }
+
+  .phone .r { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--band); }
+  .phone .r:last-of-type { border-bottom: 0; }
+  .phone .r .th { width: 38px; height: 38px; flex: none; border: 1px solid var(--ink); background: linear-gradient(140deg, #FF9DBB, #9E1B44 62%, #5B2338); }
+  .phone .r .tx { flex: 1; min-width: 0; }
+  .phone .r .tt { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone .r .ts { font-size: 12px; color: var(--ink-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phone .r .go { font-size: 12px; color: var(--ink-muted); }
+
+  .phone .mini { display: flex; align-items: center; gap: 10px; background: var(--card); border: 2px solid var(--ink); padding: 8px 10px; margin-top: 12px; position: relative; overflow: hidden; }
+  .phone .mini .th2 { width: 40px; height: 40px; flex: none; border: 1px solid var(--ink); background: linear-gradient(140deg, #FFD98A, #E08A2E); }
+  .phone .mini .tx { flex: 1; min-width: 0; }
+  .phone .mini .tt { font-size: 11.5px; font-weight: 700; }
+  .phone .mini .ts { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+  .phone .mini .k { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+  .phone .mini .pl { width: 22px; height: 22px; display: grid; place-items: center; background: var(--rose); color: var(--on-accent); font-size: 11px; }
+  .phone .mini .pb { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--band-deep); }
+  .phone .mini .pb i { display: block; height: 3px; width: 46%; background: var(--rose); }
+
+  .phone .lyr { font-size: 16px; font-weight: 700; line-height: 1.5; }
+  .phone .lyr .cur { color: var(--rose); }
+  .phone .lyr .nx { color: var(--quiet); }
+
+  .phone .btnx { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 9px 13px; background: var(--rose); color: var(--on-accent); }
+  .phone .chips { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .phone .c { font-size: 11px; padding: 5px 9px; border: 1px solid var(--edge); color: var(--ink-muted); }
+  .phone .c.on { background: var(--rose); border-color: var(--rose); color: var(--on-accent); font-weight: 700; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin: 0 0 30px; flex-wrap: wrap; }
+  .toolbar .btn { cursor: pointer; }
+  .toolbar .btn[aria-pressed="true"] { background: var(--rose); border-color: var(--rose); color: var(--on-accent); }
+  .hint { font-size: 11px; color: var(--desk-dim); }
+
+  /* specimen cards */
+  .spec { background: var(--paper); border: 2px solid var(--ink); padding: 14px; width: 330px; color: var(--ink); }
+  .spec .nm { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px; }
+  .spec .big { font-size: 26px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+  .spec .mid { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .spec .sml { font-size: 12px; color: var(--ink-muted); margin-bottom: 10px; }
+  .spec .row { font-size: 11.5px; display: flex; justify-content: space-between; border-top: 1px solid var(--band); padding-top: 8px; gap: 10px; }
+  .spec .row span:last-child { color: var(--ink-muted); }
+  .f-pixelify { font-family: "Pixelify", monospace; }
+  .f-silkscreen { font-family: "Silkscreen", monospace; }
+  .f-vt323 { font-family: "VT323", monospace; }
+  .f-press { font-family: "PressStart", monospace; }
+  .f-mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  .verdict { border-left: 4px solid var(--rose); background: var(--card); color: var(--ink); padding: 12px 14px; font-size: 12px; line-height: 1.65; max-width: 760px; }
+  .verdict b { color: var(--rose); }
+  .overflow { color: #FF9DBB; font-weight: 700; }
+  td.num { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">← all previews</a>
+<h1>Pixel — the type face</h1>
+<p class="lede">
+  <b>Shipped.</b> The skin used to set three of fifteen type roles in system monospace and leave the
+  other twelve in the default sans — 90 call sites reading as a terminal and 523 reading as ordinary
+  type. All fifteen roles now use <b>Pixelify Sans</b>, bundled as two static instances. This page
+  keeps the record: what shipped before, the four OFL candidates measured against each other at the
+  sizes the app actually uses, and the same screens drawn both ways so the difference is visible
+  rather than asserted.
+</p>
+
+<div class="toolbar">
+  <button class="btn" id="sw" aria-pressed="false">Compare: monospace (what shipped before)</button>
+  <span class="hint">Flips every mock on this page between today's type and the proposed face.</span>
+</div>
+
+<h2>1 — What shipped before</h2>
+<table>
+  <tr><th>Role</th><th>Sites in the app</th><th>Before</th></tr>
+  <tr><td><code>headlineMedium</code></td><td class="num">18</td><td>Monospace, Black</td></tr>
+  <tr><td><code>titleLarge</code></td><td class="num">47</td><td>Monospace, Bold</td></tr>
+  <tr><td><code>labelSmall</code></td><td class="num">25</td><td>Monospace, Bold</td></tr>
+  <tr><td>the other twelve roles<br /><span style="opacity:.7">bodySmall 98 · bodyMedium 78 · titleMedium 69 · labelLarge 66 · titleSmall 65 · bodyLarge 54 · labelMedium 52 · headlineSmall 37 · displayLarge 3 · displayMedium 1</span></td><td class="num">523</td><td><b>System sans</b> — untouched</td></tr>
+</table>
+<p class="note" style="max-width:820px">
+  So 90 call sites read as a terminal and <b>523 read as the default font</b>. Monospace also is not a
+  pixel face: its glyphs are narrow, its stems are thin, and at 12 sp it looks like code, not like a
+  bitmap. That is what "the skin is not using a pixel font" means in practice.
+</p>
+
+<h2>2 — The same screens, both ways</h2>
+<div class="rack">
+  <div class="item">
+    <p class="cap">home · <span id="lab1">monospace</span></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>DERBIS</span></div>
+      <div class="bar"><span class="mk"></span><span class="nm">DERBIS</span><span class="grow"></span><span class="ic">⌕</span></div>
+      <h4>Good evening</h4>
+      <p class="subt">12 tracks queued · 18:02</p>
+      <div class="chips"><span class="c on">Your mix</span><span class="c">Fresh</span><span class="c">Radio</span></div>
+      <div class="r"><div class="th"></div><div class="tx"><div class="tt">Blush Rooms</div><div class="ts">Mira Osei · 4:00</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#FFD98A,#E08A2E)"></div><div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club · 3:57</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:linear-gradient(140deg,#C9B6FF,#5B2338)"></div><div class="tx"><div class="tt">Night Shift</div><div class="ts">Hana Ito · 3:12</div></div><div class="go">›</div></div>
+      <div class="mini">
+        <div class="th2"></div>
+        <div class="tx"><div class="tt">Golden Hour</div><div class="ts">The Lantern Club</div></div>
+        <div class="k"><span>⏮</span><span class="pl">⏸</span><span>⏭</span></div>
+        <div class="pb"><i></i></div>
+      </div>
+    </div>
+    <p class="note">Heading, row titles and captions all follow the switch.</p>
+  </div>
+
+  <div class="item">
+    <p class="cap">settings · <span id="lab2">monospace</span></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>SETTINGS</span></div>
+      <div class="bar"><span class="mk"></span><span class="nm">INTEGRATIONS</span><span class="grow"></span></div>
+      <div class="r"><div class="th" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">◈</div><div class="tx"><div class="tt">Discord Rich Presence</div><div class="ts">Connected · showing the current track</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">♪</div><div class="tx"><div class="tt">Spotify Canvas</div><div class="ts">Session cookie saved</div></div><div class="go">›</div></div>
+      <div class="r"><div class="th" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">↓</div><div class="tx"><div class="tt">Downloads</div><div class="ts">Lossless · 42 saved</div></div><div class="go">›</div></div>
+      <div style="margin-top:12px"><span class="btnx">Connect Discord</span></div>
+    </div>
+    <p class="note">Long row titles are the stress case for a wide pixel face — see §4.</p>
+  </div>
+
+  <div class="item">
+    <p class="cap">lyrics · <span id="lab3">monospace</span></p>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>LYRICS</span></div>
+      <div class="bar"><span class="mk"></span><span class="nm">NIGHT SHIFT</span><span class="grow"></span></div>
+      <div class="lyr">
+        <div>City lights come</div>
+        <div>up through the <span class="cur">floor</span></div>
+        <div class="nx">and the ceiling's wrong</div>
+        <div class="nx">so we dance on it</div>
+      </div>
+      <div style="height:3px;background:var(--band-deep);margin-top:14px"><i style="display:block;height:3px;width:61%;background:var(--rose)"></i></div>
+    </div>
+    <p class="note">Lyrics keep the sung/current/upcoming colouring from <code>PixelPage.kt</code>.</p>
+  </div>
+</div>
+
+<h2>3 — The four candidates, as measured</h2>
+<div class="rack">
+  <div class="spec f-pixelify">
+    <div class="nm">Pixelify Sans · OFL</div>
+    <div class="big">Good evening</div>
+    <div class="mid">Blush Rooms</div>
+    <div class="sml">Mira Osei · 4:00</div>
+    <div class="row"><span>400 / 500 / 600 / 700</span><span>4 weights</span></div>
+    <div class="row"><span>avg advance</span><span>0.524 em</span></div>
+    <div class="row"><span>cap height</span><span>0.70 em</span></div>
+  </div>
+
+  <div class="spec f-silkscreen">
+    <div class="nm">Silkscreen · OFL</div>
+    <div class="big">Good evening</div>
+    <div class="mid">Blush Rooms</div>
+    <div class="sml">Mira Osei · 4:00</div>
+    <div class="row"><span>400 / 700</span><span>2 weights</span></div>
+    <div class="row"><span>avg advance</span><span>0.683 em</span></div>
+    <div class="row"><span>cap height</span><span>0.70 em</span></div>
+  </div>
+
+  <div class="spec f-vt323">
+    <div class="nm">VT323 · OFL</div>
+    <div class="big">Good evening</div>
+    <div class="mid">Blush Rooms</div>
+    <div class="sml">Mira Osei · 4:00</div>
+    <div class="row"><span>400 only</span><span>1 weight</span></div>
+    <div class="row"><span>avg advance</span><span>0.386 em</span></div>
+    <div class="row"><span>cap height</span><span>0.56 em</span></div>
+  </div>
+
+  <div class="spec f-press">
+    <div class="nm">Press Start 2P · OFL</div>
+    <div class="big" style="font-size: 18px">Good evening</div>
+    <div class="mid" style="font-size: 11px">Blush Rooms</div>
+    <div class="sml" style="font-size: 11px">Mira Osei · 4:00</div>
+    <div class="row"><span>400 only</span><span>1 weight</span></div>
+    <div class="row"><span>avg advance</span><span>0.986 em</span></div>
+    <div class="row"><span>cap height</span><span>1.00 em</span></div>
+  </div>
+</div>
+<p class="note" style="max-width:820px">
+  Press Start 2P is drawn at 18/11/9 px above instead of 26/14/12 — that is not a stylistic choice,
+  it is the only way it fits the card. Its glyphs are a full em wide.
+</p>
+
+<h2>4 — Measured, at the sizes the app uses</h2>
+<table>
+  <tr><th>String</th><th>Size</th><th>Pixelify</th><th>Silkscreen</th><th>VT323</th><th>Press Start 2P</th></tr>
+  <tr><td>Good evening</td><td class="num">24 sp</td><td class="num">150 px</td><td class="num">204 px</td><td class="num">115 px</td><td class="num overflow">288 px</td></tr>
+  <tr><td>Discord Rich Presence</td><td class="num">14 sp</td><td class="num">151 px</td><td class="num">200 px</td><td class="num">118 px</td><td class="num overflow">294 px</td></tr>
+  <tr><td>Mira Osei · 4:00</td><td class="num">12 sp</td><td class="num">84 px</td><td class="num">117 px</td><td class="num">77 px</td><td class="num overflow">192 px</td></tr>
+  <tr><td>Blush Rooms</td><td class="num">14 sp</td><td class="num">82 px</td><td class="num">112 px</td><td class="num">62 px</td><td class="num overflow">154 px</td></tr>
+</table>
+<p class="note" style="max-width:820px">
+  A settings row leaves about <b>250 dp</b> for its title and a 312 dp phone about <b>280 dp</b>.
+  Press Start 2P overflows both on ordinary strings, and it is single-weight, so the Bold and Black
+  the skin asks for would be synthesised — a fake, smeared bold, which is the one thing a pixel face
+  must never be. VT323 is the opposite problem: single weight, a 0.56 em cap height, so every size
+  in the app would need a ~1.25× bump to look right.
+</p>
+
+<div class="verdict">
+  <b>Chosen: Pixelify Sans, weights 400 and 700, on all fifteen roles — now shipped.</b>
+  It is the only candidate that can replace type everywhere without a reflow: its average advance is
+  0.524 em against ~0.50 for the font it replaces, and its cap height is 0.70 em against 0.71, so
+  existing sizes stay honest and nothing needs re-measuring. It has four drawn weights, and two of
+  them (400 body, 700 titles and labels) are enough for this UI — pixel type has never needed nine.
+  Silkscreen was the runner-up: louder, more arcade, and workable for the display roles only — but it
+  is a second file, a second licence, and it makes bold text 17 % wider than regular, so a title that
+  fits at 400 can clip at 700.
+</div>
+
+<h2>5 — How it landed</h2>
+<table>
+  <tr><th>Question</th><th>Answer</th></tr>
+  <tr><td>Bundled or downloaded?</td><td><b>Bundled</b>, two static TTFs in <code>res/font</code>, 51 KB + 51 KB. Downloadable Google Fonts need Play Services, and this repo builds an <code>derbisFdroidBuild</code> variant — the skin's whole identity would silently vanish on a de-Googled phone. 103 KB on a 75 MB APK is 0.14 %.</td></tr>
+  <tr><td>Licence</td><td>OFL-1.1 permits bundling with the licence included: <code>assets/licenses/pixelify-sans.txt</code> plus a <code>REUSE.toml</code> entry, the same way simple-icons and ionicons are handled. The face declares no Reserved Font Name, so instancing it to 400 and 700 is allowed.</td></tr>
+  <tr><td>Japanese, kanji, furigana</td><td>Pixelify Sans has no kana or kanji (0 of 217 glyphs). Those runs fall through to the system face automatically — readable, but not pixel. A pixel CJK face does not exist in OFL at usable quality, so this is the honest limit of the approach.</td></tr>
+  <tr><td>Arrows, ♪, transport glyphs</td><td>Also absent from every candidate. Where those are text today they fall back; where they are icons — most of them — nothing changes, since those are Material vectors.</td></tr>
+  <tr><td>Other skins</td><td>Untouched. <code>PixelTypography</code> is only selected when <code>DerbisActivePalette.id == PixelPalette.id</code>, the same guard the colours already use.</td></tr>
+  <tr><td>Other font presets</td><td>The Settings font picker still applies to every other skin; Pixel ignores it, exactly as it ignores corners today.</td></tr>
+</table>
+
+<script>
+  var on = false;
+  var btn = document.getElementById('sw');
+  var labels = ['lab1', 'lab2', 'lab3'];
+  btn.addEventListener('click', function () {
+    on = !on;
+    document.body.classList.toggle('proposed', on);
+    btn.setAttribute('aria-pressed', String(on));
+    btn.textContent = on ? 'Showing: Pixelify Sans (shipped)' : 'Compare: monospace (what shipped before)';
+    labels.forEach(function (id) {
+      document.getElementById(id).textContent = on ? 'pixelify sans' : 'monospace';
+    });
+  });
+</script>
+</body>
+</html>

@@ -343,7 +343,7 @@ private fun AccentTouchPad(
                     padSet(change.position.x, change.position.y, w, h)
                 }
             }
-            .onGloballyPositioned { coordinates -> padSize = coordinates.size.toSize() }
+            .onGloballyPositioned { coordinates -> padSize = androidx.compose.ui.geometry.Size(coordinates.size.width.toFloat(), coordinates.size.height.toFloat()) }
     ) {
         if (padSize != androidx.compose.ui.geometry.Size.Zero) {
             val w = padSize.width

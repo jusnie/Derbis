@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="fonts/pixelify.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pixel — lyric page, share cards, wrapped, receipt</title>
+<style>
+  :root {
+    --paper: #FFEDF1;
+    --card: #FFF8F6;
+    --band: #FFD9E2;
+    --band-deep: #FFC9D6;
+    --edge: #A84765;
+    --ink: #5B2338;
+    --ink-muted: #7E3B57;
+    --rose: #9E1B44;
+    --hot: #FF5C8A;
+    --butter: #FFD98A;
+    --on-accent: #FFF8F6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(70% 50% at 12% 0%, #3A1B2C 0%, transparent 60%),
+      radial-gradient(60% 45% at 96% 4%, #2A1B33 0%, transparent 55%),
+      #150C11;
+    color: #F6E7EC;
+    font-family: "Pixelify", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 44px 26px 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    font-size: 26px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    color: #FFC2D3;
+  }
+  .sub {
+    color: rgba(255, 226, 234, 0.62);
+    font-size: 12.5px;
+    line-height: 1.75;
+    max-width: 780px;
+    margin: 0 0 40px;
+  }
+  .sub b { color: #FFD9E2; font-weight: 600; }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 34px;
+    align-items: flex-start;
+    margin-bottom: 54px;
+  }
+  .item { width: 300px; }
+  .item.wide { width: 400px; }
+  .cap {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #FF9DBB;
+    margin: 0 0 6px;
+  }
+  .note {
+    color: rgba(255, 226, 234, 0.5);
+    font-size: 11.5px;
+    line-height: 1.6;
+    margin: 10px 0 0;
+  }
+  .frame {
+    position: relative;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid #4A2333;
+  }
+
+  /* ---------- 1. lyric page ---------- */
+  .phone { height: 620px; display: flex; flex-direction: column; }
+  .phone .bar {
+    background: var(--band);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .phone .bar .dot { width: 15px; height: 15px; border: 2px solid var(--ink); }
+  .phone .bar .dot.fill { background: var(--ink); }
+  .phone .tick { height: 5px; background: var(--rose); width: 26%; }
+  .phone .lyrics {
+    flex: 1;
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow: hidden;
+  }
+  .phone .line { font-size: 14.5px; line-height: 1.35; letter-spacing: 0.01em; color: var(--ink-muted); }
+  .phone .line.dim { opacity: 0.72; }
+  .phone .line.active {
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 17px;
+    border-left: 2px solid var(--rose);
+    padding-left: 9px;
+    margin-left: -9px;
+  }
+  .phone .line .pill {
+    background: var(--rose);
+    color: var(--on-accent);
+    padding: 2px 6px;
+  }
+  .phone .transport { padding: 0 16px 10px; }
+  .phone .track { position: relative; height: 3px; background: var(--band-deep); margin: 12px 0 8px; }
+  .phone .track .fill { position: absolute; inset: 0 58% 0 0; background: var(--ink); }
+  .phone .track .knob { position: absolute; left: 41%; top: -4px; width: 11px; height: 11px; background: var(--ink); }
+  .phone .times { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-muted); }
+  .phone .keys {
+    display: flex;
+    justify-content: center;
+    gap: 26px;
+    align-items: center;
+    margin: 12px 0 4px;
+    font-size: 20px;
+    color: var(--ink);
+  }
+  .phone .keys .play { font-size: 26px; }
+  .phone .sharebar {
+    margin: 0 12px 12px;
+    background: var(--card);
+    border: 1px solid var(--edge);
+    padding: 9px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+  }
+  .phone .sharebar .btn {
+    margin-left: auto;
+    background: var(--rose);
+    color: var(--on-accent);
+    padding: 7px 11px;
+    letter-spacing: 0.08em;
+  }
+  .phone .foot band { color: var(--ink-muted); }
+
+  /* ---------- 2/3/5 cards ---------- */
+  .card45 { aspect-ratio: 4 / 5; padding: 18px; display: flex; flex-direction: column; }
+  .card916 { aspect-ratio: 9 / 16; padding: 18px; display: flex; flex-direction: column; }
+  .brandrow { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.24em; color: var(--ink); }
+  .mark { width: 13px; height: 13px; background: var(--hot); border: 2px solid var(--ink); transform: rotate(45deg); }
+  .badge {
+    margin-left: auto;
+    background: var(--band);
+    border: 1px solid var(--edge);
+    padding: 4px 8px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+  }
+  .lyric-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    margin: 14px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .cover { width: 46px; height: 46px; border: 2px solid var(--ink); background: linear-gradient(140deg, #FF9DBB, #9E1B44 60%, #5B2338); }
+  .titlerow { display: flex; gap: 11px; align-items: center; }
+  .titlerow .t { font-size: 15px; font-weight: 700; }
+  .titlerow .a { font-size: 11px; color: var(--ink-muted); margin-top: 3px; }
+  .rule { height: 2px; background: var(--edge); margin: 12px 0 0; }
+  .hotbar { height: 8px; background: var(--hot); margin: 12px -18px -18px; }
+  .bandfoot { background: var(--band); margin: 0 -18px -18px; padding: 14px 18px 16px; }
+  .footrow { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.16em; color: var(--ink); }
+
+  /* ---------- 3. story ---------- */
+  .story { position: relative; }
+  .story .bandtop { background: var(--band); height: 8%; }
+  .story .bandbot { position: absolute; left: 0; right: 0; bottom: 0; height: 26%; background: var(--band); }
+  .story .ruleline { position: absolute; left: 0; right: 0; height: 2px; background: var(--edge); }
+  .story .body { position: relative; padding: 16px 18px 0; z-index: 2; }
+  .story .title { font-size: 19px; font-weight: 700; line-height: 1.15; margin-top: 14px; }
+  .story .artist { font-size: 12.5px; color: var(--ink-muted); margin-top: 5px; }
+  .wave { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin-top: 18px; }
+  .wave i { display: block; width: 5px; background: var(--ink); }
+  .wave i.off { background: var(--band-deep); }
+  .stamps { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-muted); margin-top: 8px; }
+  .storyfoot { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 2; }
+  .storyfoot .div { height: 1.5px; background: var(--edge); opacity: 0.75; margin-bottom: 10px; }
+
+  /* ---------- 4. wrapped ---------- */
+  .wrapped { aspect-ratio: 9 / 16; position: relative; padding: 20px 18px; display: flex; flex-direction: column; }
+  .wrapped .tick { width: 26%; height: 5px; background: var(--rose); }
+  .wrapped .kicker { font-size: 11px; letter-spacing: 0.22em; color: var(--ink-muted); margin-top: auto; }
+  .wrapped .big { font-size: 62px; line-height: 1; font-weight: 700; letter-spacing: -0.02em; margin: 6px 0 2px; }
+  .wrapped .label { font-size: 13px; color: var(--ink); }
+  .wrapped .meta { display: flex; gap: 8px; margin-top: 16px; }
+  .wrapped .chip { border: 1px solid var(--edge); padding: 5px 8px; font-size: 11px; letter-spacing: 0.1em; }
+  .wrapped .barband { position: absolute; left: 18px; right: 18px; bottom: 46px; height: 5px; background: var(--band); }
+  .wrapped .barband i { display: block; height: 5px; width: 62%; background: var(--hot); }
+
+  /* ---------- 5. receipt ---------- */
+  .receipt { aspect-ratio: 4 / 5; padding: 16px; display: flex; flex-direction: column; background: linear-gradient(180deg, var(--paper), var(--band)); }
+  .receipt .top { display: flex; align-items: baseline; gap: 8px; }
+  .receipt .brand { font-size: 11px; letter-spacing: 0.24em; color: var(--ink); }
+  .receipt .period { margin-left: auto; font-size: 11px; letter-spacing: 0.14em; color: var(--ink-muted); border: 1px solid var(--edge); padding: 3px 6px; }
+  .receipt .h { font-size: 17px; font-weight: 700; margin: 10px 0 3px; }
+  .receipt .s { font-size: 11px; color: var(--ink-muted); }
+  .receipt .tiles { display: flex; flex-direction: column; gap: 1px; margin-top: 12px; flex: 1; }
+  .receipt .tile { background: rgba(255, 255, 255, 0.42); border: 1px solid rgba(168, 71, 101, 0.28); padding: 8px 9px; display: flex; justify-content: space-between; font-size: 11px; }
+  .receipt .tile b { font-weight: 700; }
+  .receipt .tile span { color: var(--ink-muted); }
+  .receipt .foot { display: flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: 0.18em; color: var(--ink-muted); margin-top: 8px; }
+  .receipt .notch { height: 6px; width: 34%; background: var(--hot); margin-top: 8px; }
+
+  .split { display: flex; gap: 16px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<h1>Pixel on every surface the app can hand out</h1>
+<p class="sub">
+  Item 101. Until now the pixel skin stopped at the screen edge: the lyric page dimmed the album
+  cover and wrote in white, the lyric share image used the artwork's darkened palette, the track
+  story card bloomed the cover's colours behind white type, the receipt read the artwork palette
+  and the wrapped story sat on near-black. Every one of those is now the <b>same paper the app
+  draws on</b>: blush ground, band panels, plum ink, rose accent, 2&nbsp;dp rules, zero corner
+  radius. Nothing bundled, nothing generated — the mocks below are CSS.
+</p>
+
+<div class="row">
+  <div class="item">
+    <p class="cap">1 — lyric page</p>
+    <div class="frame phone">
+      <div class="bar">
+        <span class="dot fill"></span>
+        <span class="dot"></span>
+        <span style="margin-left:6px">LYRICS</span>
+        <span style="margin-left:auto">···</span>
+      </div>
+      <div class="tick"></div>
+      <div class="lyrics">
+        <div class="line dim">and I don't know where the night went</div>
+        <div class="line dim">paper walls, a borrowed room</div>
+        <div class="line active">I keep the light on for the sound</div>
+        <div class="line">every edge drawn <span class="pill">twice</span></div>
+        <div class="line dim">so the blush stays where it was</div>
+        <div class="line dim">and the record keeps its shape</div>
+        <div class="line dim">I keep the light on for the sound</div>
+      </div>
+      <div class="transport">
+        <div class="track"><div class="fill"></div><div class="knob"></div></div>
+        <div class="times"><span>1:42</span><span>-2:18</span></div>
+        <div class="keys"><span>⏮</span><span class="play">⏸</span><span>⏭</span></div>
+      </div>
+      <div class="sharebar">
+        <div class="mark"></div>
+        <span>SHARE LYRICS</span>
+        <div class="btn">SHARE</div>
+      </div>
+    </div>
+    <p class="note">
+      Paper ground, band strip under the status bar and above the transport, two edge rules, one
+      rose tick. Active lyric full plum with a rose rule, the rest muted. The share bar is a card
+      with a rose button instead of a black glass slab. The pixel face stays.
+    </p>
+  </div>
+
+  <div class="item">
+    <p class="cap">2 — lyric share image 4:5</p>
+    <div class="frame card45">
+      <div class="brandrow"><div class="mark"></div>DERBIS</div>
+      <div class="titlerow" style="margin-top:16px">
+        <div class="cover"></div>
+        <div>
+          <div class="t">Paper Walls</div>
+          <div class="a">Mira Osei</div>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <div class="lyric-block">
+        <div>I keep the light on for the sound</div>
+        <div>every edge drawn twice</div>
+        <div>so the blush stays where it was</div>
+        <div>and the record keeps its shape</div>
+      </div>
+      <div class="rule"></div>
+      <div class="footrow" style="margin-top:12px">DERBIS</div>
+      <div class="hotbar"></div>
+    </div>
+    <p class="note">
+      The exported PNG. Ground is the same blush as the app, the lower 38 % is band, an edge rule
+      sits above and below the lyric block, and a hot bar closes the foot. No blurred artwork, no
+      vignette, no gradient — the artwork only appears as the square thumbnail.
+    </p>
+  </div>
+
+  <div class="item">
+    <p class="cap">3 — track story 4:5</p>
+    <div class="frame card45 story">
+      <div class="bandtop"></div>
+      <div class="ruleline" style="top:8%"></div>
+      <div class="ruleline" style="top:74%"></div>
+      <div class="bandbot"></div>
+      <div class="body">
+        <div class="brandrow"><div class="mark"></div>DERBIS<span class="badge">HI-RES</span></div>
+        <div class="titlerow" style="margin-top:16px">
+          <div class="cover"></div>
+        </div>
+        <div class="title">Paper Walls</div>
+        <div class="artist">Mira Osei · Blush Rooms</div>
+        <div class="wave">
+          <i style="height:14px"></i><i style="height:24px"></i><i style="height:36px"></i><i style="height:18px"></i>
+          <i style="height:30px"></i><i style="height:44px"></i><i style="height:26px"></i><i style="height:34px"></i>
+          <i style="height:20px"></i><i style="height:40px"></i><i style="height:42px"></i><i style="height:32px"></i>
+          <i class="off" style="height:22px"></i><i class="off" style="height:30px"></i><i class="off" style="height:38px"></i>
+          <i class="off" style="height:44px"></i><i class="off" style="height:30px"></i><i class="off" style="height:18px"></i>
+          <i class="off" style="height:34px"></i><i class="off" style="height:40px"></i>
+        </div>
+        <div class="stamps"><span>1:42</span><span>4:00</span></div>
+      </div>
+      <div class="storyfoot">
+        <div class="div"></div>
+        <div class="footrow"><div class="mark" style="width:10px;height:10px"></div>PLAY ON DERBIS</div>
+      </div>
+    </div>
+    <p class="note">
+      Same grammar, portrait format: band header, edge rules at the top and above the footer
+      band, waveform played bars in plum and unplayed in band. Every pill, cover and bar corner
+      is 0 dp.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="item">
+    <p class="cap">4 — wrapped story 9:16</p>
+    <div class="frame wrapped">
+      <div class="tick"></div>
+      <div class="kicker">TOP TRACK</div>
+      <div class="big" style="margin-top:10px">Paper<br>Walls</div>
+      <div class="label">Mira Osei · 214 plays</div>
+      <div class="meta">
+        <div class="chip">48 HOURS</div>
+        <div class="chip">LATE NIGHT</div>
+      </div>
+      <div class="barband"><i></i></div>
+    </div>
+    <p class="note">
+      Unchanged from the commit that shipped the skincare: bands at 18 % and 84 %, 2 dp rules,
+      accent tick. Shown here so the whole set can be judged side by side.
+    </p>
+  </div>
+
+  <div class="item">
+    <p class="cap">5 — listening receipt 4:5</p>
+    <div class="frame receipt">
+      <div class="top"><span class="brand">DERBIS</span><span class="period">THIS MONTH</span></div>
+      <div class="h">Your listening</div>
+      <div class="s">October 2026 · 1 284 minutes</div>
+      <div class="tiles">
+        <div class="tile"><b>214</b><span>tracks played</span></div>
+        <div class="tile"><b>38</b><span>artists</span></div>
+        <div class="tile"><b>12</b><span>albums</span></div>
+        <div class="tile"><b>Mira Osei</b><span>most played</span></div>
+      </div>
+      <div class="notch"></div>
+      <div class="foot"><span>RECEIPT OF PLAY · DERBIS</span></div>
+    </div>
+    <p class="note">
+      The receipt no longer reads the artwork palette when Pixel is equipped: paper to band, plum
+      ink, square tiles, rose accent. All three receipt styles (Aurora, Noir, Paper) map onto the
+      same paper so the style picker keeps a meaning.
+    </p>
+  </div>
+
+  <div class="item">
+    <p class="cap">unchanged — every other skin</p>
+    <div class="frame card45" style="background: linear-gradient(160deg, #0A1719, #041012 60%, #04080C); color: #fff;">
+      <div class="brandrow" style="color:#fff"><div class="mark" style="background:#fff;border-color:#fff"></div>DERBIS</div>
+      <div class="titlerow" style="margin-top:16px">
+        <div class="cover" style="border-color: rgba(255,255,255,0.3)"></div>
+        <div><div class="t">Paper Walls</div><div class="a" style="color: rgba(255,255,255,0.7)">Mira Osei</div></div>
+      </div>
+      <div class="lyric-block" style="color:#fff; font-weight: 400;">
+        <div>I keep the light on for the sound</div>
+        <div>every edge drawn twice</div>
+        <div>so the blush stays where it was</div>
+        <div>and the record keeps its shape</div>
+      </div>
+      <div class="footrow" style="color: rgba(255,255,255,0.7)">DERBIS</div>
+      <div class="hotbar" style="background: rgba(255,255,255,0.25)"></div>
+    </div>
+    <p class="note">
+      Representative of the shipped look: artwork-derived ground, white type, rounded corners.
+      These paths are untouched — the new branches only run while <code>DerbisIsPixel</code>.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

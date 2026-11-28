@@ -11,7 +11,6 @@
 package com.yasuda.derbis.ui
 
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +28,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawRect
-import androidx.compose.ui.graphics.painter.ImageBitmapPainter
 import androidx.compose.ui.layout.ContentScale.Companion.Crop
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -252,15 +249,27 @@ private fun CustomImageLayer(
     Box(Modifier.fillMaxSize().clipToBounds()) {
         val bitmap = image
         if (bitmap != null) {
-            Image(
-                painter = ImageBitmapPainter(bitmap),
-                contentDescription = null,
-                contentScale = Crop,
+            androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(blurDp)
                     .alpha(0.45f + 0.45f * intensity)
-            )
+            ) {
+                // Cover-crop: scale so the bitmap fills the frame, then center.
+                val srcW = bitmap.width.toFloat().coerceAtLeast(1f)
+                val srcH = bitmap.height.toFloat().coerceAtLeast(1f)
+                val scale = max(size.width / srcW, size.height / srcH)
+                val dstW = (srcW * scale).toInt().coerceAtLeast(1)
+                val dstH = (srcH * scale).toInt().coerceAtLeast(1)
+                drawImage(
+                    image = bitmap,
+                    dstOffset = androidx.compose.ui.unit.IntOffset(
+                        (size.width - dstW).toInt() / 2,
+                        (size.height - dstH).toInt() / 2
+                    ),
+                    dstSize = androidx.compose.ui.unit.IntSize(dstW, dstH)
+                )
+            }
         } else {
             GlowLayer(accents, intensity)
         }

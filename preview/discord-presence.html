@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="fonts/pixelify.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Discord Rich Presence — lyrics &amp; the progress bar</title>
+<link rel="stylesheet" href="pixel-ui.css" />
+<style>
+  /*
+   * The card below is Discord's own chrome, not Derbis's. No skin may repaint it — the
+   * blurple, the dark card, the type and the layout all belong to Discord, and a phone
+   * running Pixel still shows this exact card to its friends. What the skin *does*
+   * control is the two text lines and whether a progress bar exists at all.
+   */
+  .dcard {
+    width: 340px;
+    background: #2B2D31;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    font-family: "gg sans", "Noto Sans", Helvetica, Arial, sans-serif;
+  }
+  .dcard .art {
+    width: 60px; height: 60px;
+    border-radius: 4px;
+    flex: none;
+    background: linear-gradient(140deg, #FF9DBB, #9E1B44 62%, #5B2338);
+    position: relative;
+    overflow: hidden;
+  }
+  /* the little app badge Discord stamps on the artwork corner */
+  .dcard .art .badge {
+    position: absolute; right: -4px; bottom: -4px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #2B2D31;
+    display: grid; place-items: center;
+  }
+  .dcard .art .badge svg { width: 12px; height: 12px; fill: #5865F2; }
+  .dcard .body { flex: 1; min-width: 0; }
+  .dcard .app { font-size: 11px; letter-spacing: .04em; color: #B5BAC1; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+  .dcard .detail { font-size: 14px; font-weight: 600; color: #F2F3F5; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dcard .state { font-size: 13px; color: #DBDEE1; line-height: 1.35; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dcard .barwrap { margin-top: 8px; }
+  .dcard .times { display: flex; justify-content: space-between; font-size: 11px; color: #B5BAC1; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .dcard .bar { height: 4px; border-radius: 2px; background: #1E1F22; overflow: hidden; }
+  .dcard .bar i { display: block; height: 4px; background: #5865F2; }
+  /* the counting-up clock Discord draws when it has a start but no end */
+  .dcard .clock { margin-top: 8px; font-size: 11.5px; color: #B5BAC1; font-variant-numeric: tabular-nums; }
+  .dcard .clock b { color: #F2F3F5; font-weight: 600; }
+
+  .note-inline { font-size: 11px; color: rgba(255,226,234,.5); margin-top: 8px; line-height: 1.6; }
+
+  .lbl2 { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #FF9DBB; margin: 0 0 8px; }
+  .stack { display: flex; flex-direction: column; gap: 22px; }
+
+  /* before / after pair for the timestamps fix */
+  .pairx { display: flex; gap: 26px; flex-wrap: wrap; }
+  .pairx > div { width: 340px; }
+
+  /* the two lines, colour-coded so the mapping is legible */
+  .mapline { display: flex; gap: 10px; align-items: baseline; font-size: 11.5px; padding: 7px 0; border-bottom: 1px solid var(--desk-line); max-width: 760px; }
+  .mapline .k { width: 120px; flex: none; color: #FF9DBB; letter-spacing: .06em; }
+  .mapline .v { color: rgba(255,226,234,.8); font-family: ui-monospace, Menlo, monospace; }
+  .mapline .v em { color: #FFD9E2; font-style: normal; }
+
+  .toggle {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--card); color: var(--ink); border: 2px solid var(--ink);
+    padding: 9px 12px; cursor: pointer; font-size: 11px; letter-spacing: .06em;
+  }
+  .toggle .sw2 { width: 34px; height: 18px; border: 2px solid var(--ink); background: var(--paper); position: relative; flex: none; }
+  .toggle .sw2 i { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; background: var(--ink); }
+  .toggle[data-on="true"] .sw2 { background: var(--rose); border-color: var(--rose); }
+  .toggle[data-on="true"] .sw2 i { left: auto; right: 2px; background: var(--on-accent); }
+
+  .controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 22px; }
+  input[type=range] { width: 220px; accent-color: #9E1B44; }
+</style>
+</head>
+<body>
+
+<a class="back" href="index.html">← all previews</a>
+<h1>Discord Rich Presence — the lyric line and the bar</h1>
+<p class="lede">
+  Two things the presence card now does that it did not before: it shows the <b>lyric line</b> being
+  sung, and it draws a <b>real progress bar</b> instead of a clock that counts up. Both are live in
+  the app — the bar comes from sending Discord the track's end timestamp as well as its start, and
+  the lyric line rides the activity's first text slot. <b>Everything below is derived from the
+  shipped code</b>, including the <b>60-character lyric clamp</b>, the 128-character API limit behind it, and the 5-per-20-seconds budget.
+</p>
+
+<div class="banner">
+  <div class="mark"></div>
+  <div>
+    <div class="t">Discord draws this card, not Derbis</div>
+    <div class="s">No skin repaints it — a Pixel phone still shows a friend the same blurple card. The skin's input is the two text lines.</div>
+  </div>
+</div>
+
+<h2>1 — The card, with lyrics on</h2>
+<div class="pairx">
+  <div>
+    <p class="cap">lyrics on · synced line available</p>
+    <div class="dcard">
+      <div class="art">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        </div>
+      </div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail" id="d1">up through the floor and the ceiling's wrong</div>
+        <div class="state">Hana Ito — Night Shift</div>
+        <div class="barwrap">
+          <div class="times"><span id="el1">1:51</span><span id="rem1">-1:36</span></div>
+          <div class="bar"><i id="fill1" style="width:54%"></i></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">
+      <b>Details</b> takes the lyric line; <b>state</b> becomes <code>artist — title</code>, because the
+      title is no longer needed on the first line. The bar is the track's true position, not a timer.
+    </p>
+  </div>
+
+  <div>
+    <p class="cap">lyrics off · or no synced lyrics</p>
+    <div class="dcard">
+      <div class="art">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        </div>
+      </div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail">Night Shift</div>
+        <div class="state">Hana Ito</div>
+        <div class="barwrap">
+          <div class="times"><span>1:51</span><span>-1:36</span></div>
+          <div class="bar"><i style="width:54%"></i></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">
+      The old two-line layout, unchanged. The <b>bar stays</b> — the timestamps fix is independent of
+      the lyrics option, so turning lyrics off must not cost you the bar.
+    </p>
+  </div>
+</div>
+
+<h2>2 — The lyric line that overlapped</h2>
+<div class="pairx">
+  <div>
+    <p class="cap">before · the full 128-character API limit</p>
+    <div class="dcard">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail" style="white-space:normal">City lights come up through the floor and the ceiling's wrong so we dance on it till the morning comes</div>
+        <div class="state">Hana Ito — Night Shift</div>
+      </div>
+    </div>
+    <p class="note">
+      Discord's <code>details</code> is one line in a narrow column. A 128-character lyric runs far
+      past it, so the client either clips it mid-word or lets it crowd the second row — which is the
+      "too big, looks overlapped" card. The old code truncated with a hard <code>take(128)</code>,
+      so it also ended mid-word.
+    </p>
+  </div>
+
+  <div>
+    <p class="cap">after · 60 characters, cut on a word</p>
+    <div class="dcard">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail">City lights come up through the floor and the ceiling's…</div>
+        <div class="state">Hana Ito — Night Shift</div>
+      </div>
+    </div>
+    <p class="note">
+      The line now ends inside the column, the ellipsis follows a whole word, and the second row
+      keeps its own space. The limit is <b>one character short</b> of 60 because the ellipsis is a
+      character too — without that, a single unbroken word came out at 61.
+    </p>
+  </div>
+</div>
+
+<h2>2 — The bar: what was wrong, and what made it right</h2>
+<div class="pairx">
+  <div>
+    <p class="cap">before · start timestamp only</p>
+    <div class="dcard">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail">Night Shift</div>
+        <div class="state">Hana Ito</div>
+        <div class="clock">01:51 elapsed</div>
+      </div>
+    </div>
+    <p class="note">
+      Discord draws a <b>counting-up clock</b> when it knows only when the track began. There is no
+      bar, and no way to scrub to the position — the card looks like a stopwatch.
+    </p>
+  </div>
+
+  <div>
+    <p class="cap">after · start and end</p>
+    <div class="dcard">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail">Night Shift</div>
+        <div class="state">Hana Ito</div>
+        <div class="barwrap">
+          <div class="times"><span>1:51</span><span>-1:36</span></div>
+          <div class="bar"><i style="width:54%"></i></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">
+      <code>SetEnd(start + duration)</code> is what flips it to a bar. The C++ side only calls it when
+      the duration is at least one second, so a live stream or a track of unknown length still falls
+      back to the clock rather than drawing a bar that lies.
+    </p>
+  </div>
+</div>
+
+<h2>3 — The exact mapping</h2>
+<div class="mapline"><span class="k">activity name</span><span class="v">Derbis</span></div>
+<div class="mapline"><span class="k">activity type</span><span class="v">Listening</span></div>
+<div class="mapline"><span class="k">details</span><span class="v"><em>lyricLine</em> if present, else <em>title</em></span></div>
+<div class="mapline"><span class="k">state</span><span class="v"><em>artist — title</em> if lyric, else <em>artist</em></span></div>
+<div class="mapline"><span class="k">large image</span><span class="v">artwork URL, else <em>derbis_listening</em></span></div>
+<div class="mapline"><span class="k">large text</span><span class="v"><em>title — artist</em></span></div>
+<div class="mapline"><span class="k">timestamps</span><span class="v">start = track start, end = start + duration</span></div>
+<div class="mapline"><span class="k">lyric clamp</span><span class="v">60 characters, cut on a word boundary with an ellipsis</span></div>
+<div class="mapline"><span class="k">API limit</span><span class="v">128 characters per line (Discord's hard cap; the card draws far less)</span></div>
+<div class="mapline"><span class="k">update budget</span><span class="v">5 per 20 s · newest snapshot kept, older ones dropped</span></div>
+<div class="mapline"><span class="k">resync</span><span class="v">position re-published every 30 s while playing</span></div>
+
+<h2>4 — Live: scrub the track</h2>
+<div class="controls">
+  <span class="btn" style="cursor:default">Position</span>
+  <input type="range" id="scrub" min="0" max="207" value="111" />
+  <button class="toggle" id="lyr" data-on="true"><span class="sw2"><i></i></span> Lyric line</button>
+</div>
+<div class="stack">
+  <div>
+    <div class="dcard">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail" id="dd">up through the floor and the ceiling's wrong</div>
+        <div class="state" id="ss">Hana Ito — Night Shift</div>
+        <div class="barwrap">
+          <div class="times"><span id="e2">1:51</span><span id="r2">-1:36</span></div>
+          <div class="bar"><i id="f2" style="width:54%"></i></div>
+        </div>
+      </div>
+    </div>
+    <p class="note-inline">
+      Drag the slider. The bar is position ÷ duration; the right-hand figure counts down and is
+      prefixed with a minus, which is what Discord renders from a start/end pair.
+    </p>
+  </div>
+</div>
+
+<h2>5 — Where the switch lives</h2>
+<div class="rack">
+  <div class="item">
+    <p class="cap">settings → integrations → discord</p>
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>DERBIS</span></div>
+      <div class="appbar">
+        <div class="mark"></div>
+        <div class="t">DISCORD</div>
+        <div class="grow"></div>
+      </div>
+      <div class="rowx">
+        <div class="thumb" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">◐</div>
+        <div class="tx"><div class="tt">Rich Presence</div><div class="ts">Connected · Derbis</div></div>
+        <div class="switch on"><i></i></div>
+      </div>
+      <div class="rowx" style="background:var(--band)">
+        <div class="thumb" style="background:var(--card);border:1px solid var(--edge);display:grid;place-items:center;color:var(--rose);font-size: 15px">♪</div>
+        <div class="tx"><div class="tt">Show lyrics in presence</div><div class="ts">The current line replaces the track title</div></div>
+        <div class="switch on"><i></i></div>
+      </div>
+      <div class="rowx">
+        <div class="thumb" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">↑</div>
+        <div class="tx"><div class="tt">Show progress bar</div><div class="ts">Sends the track's end time as well as its start</div></div>
+        <div class="switch on"><i></i></div>
+      </div>
+      <div class="rowx" style="border-bottom:0">
+        <div class="thumb" style="background:var(--band-deep);color:var(--ink);display:grid;place-items:center">◍</div>
+        <div class="tx"><div class="tt">Listening status</div><div class="ts">Activity type · Listening</div></div>
+        <div class="go">›</div>
+      </div>
+      <p class="note" style="color:var(--ink-muted);font-size: 11px;margin-top:12px;line-height:1.6">
+        Turning lyrics off swaps the two lines back to track / artist. Turning the bar off withholds
+        the end timestamp, so Discord drops back to its clock — the same card friends saw before the fix.
+      </p>
+    </div>
+  </div>
+
+  <div class="item">
+    <p class="cap">what a friend sees, by skin</p>
+    <div class="dcard" style="margin-bottom:14px">
+      <div class="art"></div>
+      <div class="body">
+        <div class="app">Derbis</div>
+        <div class="detail">Night Shift</div>
+        <div class="state">Hana Ito</div>
+        <div class="barwrap"><div class="times"><span>1:51</span><span>-1:36</span></div><div class="bar"><i style="width:54%"></i></div></div>
+      </div>
+    </div>
+    <p class="note">
+      Identical whether the sender has Pixel, Default, Liquid Glass or Spotify Style equipped. The
+      blurple is Discord's, the artwork is the track's, and the only thing Derbis contributes is the
+      two lines and the timestamps. A skin that recoloured this card would be editing someone else's UI.
+    </p>
+  </div>
+</div>
+
+<script>
+  var DURATION = 207; // 3:27
+  var LYRICS = [
+    [0,   "City lights come up"],
+    [12,  "through the window frame"],
+    [26,  "and I don't sleep at all"],
+    [42,  "up through the floor and the ceiling's wrong so we dance on it till the morning comes"],
+    [61,  "so we dance on it"],
+    [84,  "till the morning comes"],
+    [104, "and the room spins slow"],
+    [128, "like a record on a broken arm"],
+    [152, "I don't sleep, I don't sleep"],
+    [178, "till the morning comes"]
+  ];
+
+  var scrub = document.getElementById('scrub');
+  var lyr = document.getElementById('lyr');
+  var f2 = document.getElementById('f2');
+  var e2 = document.getElementById('e2');
+  var r2 = document.getElementById('r2');
+  var dd = document.getElementById('dd');
+  var ss = document.getElementById('ss');
+
+  function mmss(s) {
+    s = Math.max(0, Math.round(s));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  var LYRIC_LIMIT = 60;
+  function clampLyric(s) {
+    if (s.length <= LYRIC_LIMIT) return s;
+    var budget = LYRIC_LIMIT - 1;
+    var win = s.slice(0, budget);
+    var last = win.lastIndexOf(' ');
+    var body = last > budget / 2 ? win.slice(0, last) : win;
+    return body.replace(/[,;:\-\s]+$/, '') + '\u2026';
+  }
+
+  function lineAt(t) {
+    var out = LYRICS[0][1];
+    for (var i = 0; i < LYRICS.length; i++) if (t >= LYRICS[i][0]) out = LYRICS[i][1];
+    return out;
+  }
+
+  function paint() {
+    var t = Number(scrub.value);
+    f2.style.width = (t / DURATION * 100).toFixed(2) + '%';
+    e2.textContent = mmss(t);
+    r2.textContent = '-' + mmss(DURATION - t);
+
+    var on = lyr.dataset.on === 'true';
+    dd.textContent = on ? clampLyric(lineAt(t)) : 'Night Shift';
+    ss.textContent = on ? 'Hana Ito — Night Shift' : 'Hana Ito';
+  }
+
+  scrub.addEventListener('input', paint);
+  lyr.addEventListener('click', function () {
+    lyr.dataset.on = lyr.dataset.on === 'true' ? 'false' : 'true';
+    paint();
+  });
+  paint();
+</script>
+</body>
+</html>
