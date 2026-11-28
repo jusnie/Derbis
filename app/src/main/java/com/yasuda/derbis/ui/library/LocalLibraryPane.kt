@@ -61,6 +61,7 @@ import com.yasuda.derbis.ui.i18n.localLibraryRecentFilterLabel
 import com.yasuda.derbis.ui.theme.DerbisCyan
 import com.yasuda.derbis.ui.theme.DerbisGlass
 import com.yasuda.derbis.ui.theme.DerbisMuted
+import com.yasuda.derbis.ui.theme.DerbisPanel
 import com.yasuda.derbis.ui.theme.DerbisPanelSoft
 import com.yasuda.derbis.ui.theme.DerbisText
 import com.yasuda.derbis.viewmodel.LocalLibraryUiState

@@ -87,7 +87,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.zIndex
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -843,6 +843,7 @@ private fun LiquidGlassReleaseCarousel(
     val lastIndex = releases.lastIndex.coerceAtLeast(0)
     val maxPos = lastIndex.toFloat()
     val stepPx = with(density) { (GlassCarouselSize + GlassCarouselSpacing).toPx() }
+    val strings = LocalDerbisStrings.current
 
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
         Box(
@@ -888,7 +889,7 @@ private fun LiquidGlassReleaseCarousel(
                     )
                 }
                 .semantics {
-                    contentDescription = LocalDerbisStrings.current.artistCarouselLabel
+                    contentDescription = strings.artistCarouselLabel
                 }
         ) {
             if (releases.isEmpty()) {
@@ -957,7 +958,7 @@ private fun LiquidGlassCarouselItem(
                 shape = RoundedCornerShape(16.dp)
                 clip = true
             }
-            .semantics { selected = index == roundToInt(position.value) }
+            .semantics { selected = index == position.value.roundToInt() }
             .clickable(role = Role.Button, indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) {
                 onSelect()
             }
@@ -1011,12 +1012,13 @@ private fun ReleaseDots(
     modifier: Modifier = Modifier
 ) {
     if (count <= 1) return
+    val strings = LocalDerbisStrings.current
     Row(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
-                contentDescription = LocalDerbisStrings.current.formatArtistCarouselPosition(
-                    roundToInt(position.value),
+                contentDescription = strings.formatArtistCarouselPosition(
+                    position.value.roundToInt(),
                     count
                 )
             },
