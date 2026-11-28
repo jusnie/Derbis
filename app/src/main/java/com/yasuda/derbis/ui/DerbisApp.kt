@@ -11892,7 +11892,11 @@ private fun LazyListScope.studioHomeHeaderItems(
                         onSettings = viewModel::openSettings,
                         hero = mergedStudioHero(),
                         topBleed = statusBarTop + homeTopPadding,
-                        onOpenZone = viewModel::openExploreZone
+                        onOpenZone = viewModel::openExploreZone,
+                        jamActive = state.jam.isActive,
+                        jamCount = state.jam.session?.participants?.size?.coerceAtLeast(1) ?: 1,
+                        onOpenJam = viewModel::openJam,
+                        onOpenThemeStudio = viewModel::openThemeStudio
                     )
                     if (homeStyle == HomeStyle.Flow && flowShortcutTracks.isNotEmpty()) {
                         StudioFlowShortcuts(

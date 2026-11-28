@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.*
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
+import com.yasuda.derbis.ui.components.DerbisVectorLogo
 import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.DerbisGlassIconButton
 import com.yasuda.derbis.ui.components.derbisGlass
@@ -84,7 +87,9 @@ internal fun PrismPlayDisc(playing: Boolean, resolving: Boolean, size: Dp, modif
 @Composable
 internal fun PrismHomeHeader(
     greeting: String, date: String, hero: StudioHero?, inset: Dp, onSearch: () -> Unit, onSettings: () -> Unit,
-    dayPart: String = "", name: String = "", onOpenZone: (ExploreZone) -> Unit = {}
+    dayPart: String = "", name: String = "", onOpenZone: (ExploreZone) -> Unit = {},
+    jamActive: Boolean = false, jamCount: Int = 1,
+    onOpenJam: (() -> Unit)? = null, onOpenThemeStudio: (() -> Unit)? = null
 ) {
     if (DerbisIsSpotify) {
         SpotifyHomeHeader(hero, inset, onSettings, name, onOpenZone)
@@ -123,7 +128,39 @@ internal fun PrismHomeHeader(
                 IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Outlined.Settings, strings.settings, tint = DerbisText) }
             }
         }
-        if (name.isNotBlank()) {
+        if (DerbisIsLiquidGlass) {
+            // Taurus parity: the iOS home header is the 3-diamond mark, "Derbis" in 22 bold,
+            // a "greeting · skin" line in 11.5 medium secondary text, then a Jam glass capsule
+            // and a swatchpalette glass circle (skin/deck/typography quick menu = Theme Studio
+            // here). Android keeps its Search and Settings glass circles after those — the
+            // settings entry point lives nowhere else on the bottom chrome.
+            val secondary = name.takeIf { it.isNotBlank() } ?: dayPart
+            Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                DerbisVectorLogo(size = 24.dp, tint = DerbisActivePalette.cyan)
+                Column(Modifier.padding(start = 9.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text("Derbis", color = DerbisText, fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text("$secondary · $DerbisSkinLabel", color = DerbisMuted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                onOpenJam?.let { LiquidGlassJamCapsule(active = jamActive, count = jamCount, onOpenJam = it) }
+                onOpenThemeStudio?.let { themeStudio ->
+                    Spacer(Modifier.width(8.dp))
+                    DerbisGlassIconButton(
+                        icon = Icons.Rounded.Palette,
+                        contentDescription = strings.themeStudio,
+                        onClick = themeStudio,
+                        size = 34.dp,
+                        iconSize = 15.dp,
+                        tint = DerbisText,
+                        baseTint = Color.White,
+                        fallbackColor = DerbisPanel.copy(alpha = 0.72f),
+                        fallbackBorderColor = Color.White.copy(alpha = 0.42f),
+                        artworkTint = DerbisActivePalette.cyan,
+                        intensity = DerbisGlassIntensity.Standard
+                    )
+                }
+                actions()
+            }
+        } else if (name.isNotBlank()) {
             Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 SkinNameGreeting(greeting, dayPart, name, Modifier.weight(1f))
                 actions()
@@ -278,5 +315,45 @@ internal fun PrismArtworkShelf(items: List<StudioShelfItem>, isPlaying: Boolean,
                 if (item.subtitle.isNotBlank()) Text(item.subtitle, color = DerbisMuted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+
+@Composable
+private fun LiquidGlassJamCapsule(active: Boolean, count: Int, onOpenJam: () -> Unit) {
+    // iOS: person.2.wave.2 capsule, glass with accent film when the Jam is live and a
+    // participant-count badge; quiet glass otherwise.
+    val circle = CircleShape
+    val accent = DerbisActivePalette.cyan
+    Row(
+        modifier = Modifier
+            .derbisGlass(
+                shape = circle,
+                baseTint = if (active) accent else Color.White,
+                fallbackColor = if (active) accent.copy(alpha = 0.86f) else DerbisPanel.copy(alpha = 0.72f),
+                fallbackBorderColor = Color.White.copy(alpha = if (active) 0.42f else 0.24f),
+                intensity = DerbisGlassIntensity.Standard,
+                artworkTint = accent
+            )
+            .derbisPressable(onClick = onOpenJam, onClickLabel = "Jam", role = androidx.compose.ui.semantics.Role.Button)
+            .padding(horizontal = 11.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        if (active) {
+            Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFF34C759)))
+        }
+        Icon(
+            imageVector = Icons.Rounded.Groups,
+            contentDescription = null,
+            tint = if (active) Color.White else DerbisText,
+            modifier = Modifier.size(15.dp)
+        )
+        Text(
+            text = if (active) count.coerceAtLeast(1).toString() else "Jam",
+            color = if (active) Color.White else DerbisText,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }

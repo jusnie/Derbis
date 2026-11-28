@@ -1076,7 +1076,11 @@ internal fun StudioHomeHeader(
     onSettings: () -> Unit,
     hero: StudioHero? = null,
     topBleed: Dp = 0.dp,
-    onOpenZone: (ExploreZone) -> Unit = {}
+    onOpenZone: (ExploreZone) -> Unit = {},
+    jamActive: Boolean = false,
+    jamCount: Int = 1,
+    onOpenJam: (() -> Unit)? = null,
+    onOpenThemeStudio: (() -> Unit)? = null
 ) {
     val strings = LocalDerbisStrings.current
     val greetingHour by rememberCurrentGreetingHour()
@@ -1091,7 +1095,8 @@ internal fun StudioHomeHeader(
     val topKicker = if (name.isNotBlank()) dayPart else today
     val mainHeading = if (name.isNotBlank()) name else dayPart
     if (DerbisIsPrism) {
-        PrismHomeHeader(greeting, today.takeIf { name.isBlank() }.orEmpty(), hero, spec.inset, onSearch, onSettings, dayPart, name, onOpenZone)
+        PrismHomeHeader(greeting, today.takeIf { name.isBlank() }.orEmpty(), hero, spec.inset, onSearch, onSettings, dayPart, name, onOpenZone,
+            jamActive = jamActive, jamCount = jamCount, onOpenJam = onOpenJam, onOpenThemeStudio = onOpenThemeStudio)
         return
     }
     if (DerbisIsPixel) {
