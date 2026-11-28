@@ -1264,7 +1264,7 @@ private fun RowScope.DockTabButton(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = entry.icon,
+                    imageVector = if (isSelected) entry.icon else entry.unselectedIcon,
                     contentDescription = null,
                     tint = iconTint,
                     modifier = Modifier

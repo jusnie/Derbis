@@ -965,7 +965,7 @@ private fun SplitSearchOrb(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = entry.icon,
+            imageVector = if (isSelected) entry.icon else entry.unselectedIcon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
@@ -1309,7 +1309,7 @@ private fun StyledTabIcon(
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (selected) entry.icon else entry.icon,
+            imageVector = if (selected) entry.icon else entry.unselectedIcon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier

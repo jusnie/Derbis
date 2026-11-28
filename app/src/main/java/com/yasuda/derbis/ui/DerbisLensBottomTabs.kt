@@ -261,7 +261,7 @@ internal fun DerbisLiquidGlassTabs(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = entry.icon,
+                            imageVector = if (active) entry.icon else entry.unselectedIcon,
                             contentDescription = entry.spoken,
                             tint = tint,
                             modifier = Modifier

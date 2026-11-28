@@ -18,6 +18,10 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -39,6 +43,12 @@ data class DerbisDockEntry(
     val tab: DerbisTab?,
     val label: String,
     val icon: ImageVector,
+    /**
+     * Glyph drawn when the slot is idle. Outlined twins exist for the four builtin tab
+     * destinations (the same outline-to-filled swap the classic bar always had); catalog
+     * and custom glyphs collapse to [icon].
+     */
+    val unselectedIcon: ImageVector = icon,
     /** Non-blank accessibility label (icons-only mode blanks [label] but not this). */
     val spoken: String = label
 )
@@ -63,6 +73,15 @@ fun derbisDockIconVector(iconId: String): ImageVector = when (iconId) {
     DerbisDockIcons.People -> Icons.Rounded.Groups
     DerbisDockIcons.Grid -> Icons.Rounded.GridView
     else -> Icons.Rounded.GridView
+}
+
+/** Idle (unselected) twin for an icon-picker id, when one exists; else [selected]. */
+fun derbisDockIdleIcon(iconId: String, selected: ImageVector): ImageVector = when (iconId) {
+    DerbisDockIcons.Home -> Icons.Outlined.Home
+    DerbisDockIcons.Search -> Icons.Outlined.Search
+    DerbisDockIcons.Compass -> Icons.Outlined.Explore
+    DerbisDockIcons.List -> Icons.Outlined.LibraryMusic
+    else -> selected
 }
 
 /** Localized default label for a catalog action. */
@@ -116,6 +135,7 @@ fun rememberDockEntries(config: DerbisTabBarConfig): List<DerbisDockEntry> {
         )
         config.enabledItems().map { item ->
             val defaultLabel = labels[item.action] ?: item.action
+            val resolvedIcon = derbisDockItemIcon(item)
             DerbisDockEntry(
                 key = item.id,
                 action = item.action,
@@ -131,7 +151,11 @@ fun rememberDockEntries(config: DerbisTabBarConfig): List<DerbisDockEntry> {
                 } else {
                     item.label?.takeIf { it.isNotBlank() } ?: defaultLabel
                 },
-                icon = derbisDockItemIcon(item),
+                icon = resolvedIcon,
+                unselectedIcon = derbisDockIdleIcon(
+                    item.icon ?: DerbisDockIcons.defaultFor(item.action),
+                    resolvedIcon
+                ),
                 spoken = item.label?.takeIf { it.isNotBlank() } ?: defaultLabel
             )
         }
@@ -153,7 +177,8 @@ internal fun dockEntriesFromTabEntries(entries: List<DerbisTabEntry>): List<Derb
             action = action,
             tab = tabEntry.tab,
             label = tabEntry.label,
-            icon = tabEntry.selectedIcon
+            icon = tabEntry.selectedIcon,
+            unselectedIcon = tabEntry.unselectedIcon
         )
     }
 
