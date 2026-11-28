@@ -1,6 +1,7 @@
 package com.yasuda.derbis.ui
 
 import com.yasuda.derbis.domain.ExploreZone
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -22,6 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawPath
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -32,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yasuda.derbis.domain.Track
 import com.yasuda.derbis.ui.components.DerbisLoadingIndicator
-import com.yasuda.derbis.ui.components.DerbisVectorLogo
 import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.DerbisGlassIconButton
 import com.yasuda.derbis.ui.components.derbisGlass
@@ -136,7 +139,7 @@ internal fun PrismHomeHeader(
             // settings entry point lives nowhere else on the bottom chrome.
             val secondary = name.takeIf { it.isNotBlank() } ?: dayPart
             Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                DerbisVectorLogo(size = 24.dp, tint = DerbisActivePalette.cyan)
+                LiquidGlassDiamondMark(color = DerbisActivePalette.cyan, size = 24.dp)
                 Column(Modifier.padding(start = 9.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Text("Derbis", color = DerbisText, fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     Text("$secondary · $DerbisSkinLabel", color = DerbisMuted, fontSize = 11.5.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -355,5 +358,33 @@ private fun LiquidGlassJamCapsule(active: Boolean, count: Int, onOpenJam: () -> 
             fontSize = 12.5.sp,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+
+@Composable
+private fun LiquidGlassDiamondMark(color: Color, size: Dp) {
+    // Exact port of the iOS DerbisDiamondMark (HomeView.swift): three sharp filled diamonds at
+    // (0.36, 0.26), (0.66, 0.50) and (0.36, 0.74) of the canvas side, half-diagonal 0.25s.
+    Canvas(Modifier.size(size)) {
+        val s = this.size.width
+        val d = s * 0.25f
+        val centers = listOf(
+            Offset(s * 0.36f, s * 0.26f),
+            Offset(s * 0.66f, s * 0.50f),
+            Offset(s * 0.36f, s * 0.74f)
+        )
+        centers.forEach { center ->
+            drawPath(
+                path = Path().apply {
+                    moveTo(center.x, center.y - d)
+                    lineTo(center.x + d, center.y)
+                    lineTo(center.x, center.y + d)
+                    lineTo(center.x - d, center.y)
+                    close()
+                },
+                color = color
+            )
+        }
     }
 }
