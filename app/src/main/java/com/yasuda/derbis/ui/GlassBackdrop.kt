@@ -61,7 +61,8 @@ val LocalDerbisGlassTier = staticCompositionLocalOf { GlassLensTier.Full }
 
 @Composable
 fun rememberDerbisGlassTier(
-    heavyBlur: Boolean = LocalDerbisVisualCapabilities.current.heavyBlur
+    heavyBlur: Boolean = LocalDerbisVisualCapabilities.current.heavyBlur,
+    reduceMotion: Boolean = !LocalAnimationsEnabled.current
 ): GlassLensTier {
     val context = LocalContext.current.applicationContext
     val lowRam = remember(context) {
@@ -69,8 +70,8 @@ fun rememberDerbisGlassTier(
     }
     val powerSave = rememberPowerSaveMode()
     val effects = LocalDerbisGlassStyle.current.effects
-    return remember(heavyBlur, lowRam, powerSave, effects) {
-        resolveGlassLensTier(heavyBlur, lowRam, powerSave, effects)
+    return remember(heavyBlur, lowRam, powerSave, effects, reduceMotion) {
+        resolveGlassLensTier(heavyBlur, lowRam, powerSave, effects, reduceMotion)
     }
 }
 
@@ -162,15 +163,24 @@ internal fun resolveGlassLensTier(
     heavyBlur: Boolean,
     lowRamDevice: Boolean,
     powerSaveMode: Boolean,
-    effects: DerbisGlassEffects = DerbisGlassEffects.Automatic
+    effects: DerbisGlassEffects = DerbisGlassEffects.Automatic,
+    reduceMotion: Boolean = false
 ): GlassLensTier = when (effects) {
     // The user asked for the fast, plain version: no lens, cheapest frost.
     DerbisGlassEffects.Off -> GlassLensTier.Efficient
     // "Always on" is an explicit opt-in, so it outranks the automatic downgrades; it still
     // respects the app's own visual-performance switch, which can disable glass entirely.
-    DerbisGlassEffects.AlwaysOn -> if (heavyBlur) GlassLensTier.Full else GlassLensTier.Efficient
+    // Reduce Motion keeps the lens but drops the dispersion (the iOS .balanced tier).
+    DerbisGlassEffects.AlwaysOn -> when {
+        !heavyBlur -> GlassLensTier.Efficient
+        reduceMotion -> GlassLensTier.Balanced
+        else -> GlassLensTier.Full
+    }
     DerbisGlassEffects.Automatic -> when {
         !heavyBlur || lowRamDevice || powerSaveMode -> GlassLensTier.Efficient
+        // Matches the iOS resolver: Reduce Motion drops to .balanced — full frost and lens,
+        // no dispersion, no animated rim.
+        reduceMotion -> GlassLensTier.Balanced
         else -> GlassLensTier.Full
     }
 }

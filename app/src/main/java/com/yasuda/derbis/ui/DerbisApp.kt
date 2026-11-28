@@ -2244,7 +2244,8 @@ fun DerbisApp(
     // Resolved once for the whole app: every glass panel reads this instead of re-querying the
     // device on each row of a scrolling list.
     val glassLensTier = com.yasuda.derbis.ui.rememberDerbisGlassTier(
-        heavyBlur = visualCapabilities.heavyBlur
+        heavyBlur = visualCapabilities.heavyBlur,
+        reduceMotion = !state.animationsEnabled
     )
     // Liquid Glass records the page into a backdrop layer that every glass surface samples.
     // Only the Liquid Glass skin pays for it; other skins draw their own opaque materials.

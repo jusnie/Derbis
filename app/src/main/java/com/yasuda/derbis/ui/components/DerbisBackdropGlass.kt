@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.yasuda.derbis.ui.components.backdrop.DerbisGlassSafety
 import com.yasuda.derbis.ui.components.backdrop.drawBackdrop
@@ -69,7 +70,6 @@ private const val BLUR_RADIUS_DP = 16f
 private const val LENS_HEIGHT = 0.5f
 private const val LENS_AMOUNT = 0.5f
 private const val LENS_MAX_DP = 48f
-private const val SURFACE_OPACITY = 0.4f
 
 /**
  * Fraction of the surface resolution the backdrop is recorded and processed at.
@@ -158,12 +158,27 @@ fun Modifier.derbisBackdropGlass(
                     refractionHeight = lensHeightPx,
                     refractionAmount = lensAmountPx,
                     depthEffect = true,
-                    chromaticAberration = true
+                    // iOS draws the dispersion fringes only on the full tier; the balanced
+                    // tier keeps the lens but not the colour split.
+                    chromaticAberration = tier == GlassLensTier.Full
                 )
             }
         },
         highlight = { Highlight.Default },
-        shadow = { Shadow.Default },
+        shadow = {
+            // iOS light drops black@0.10 under every tier; night drops 0.46 for chrome and
+            // 0.30 for content. DerbisGlassTier cannot express radius, so shadow strength
+            // follows the same prominentRim / lensEnabled signals the surface already uses.
+            val isLight = com.yasuda.derbis.ui.theme.DerbisActivePalette.isLight
+            val radius = if (prominentRim) 16.dp else 8.dp
+            val offset = DpOffset(0.dp, if (prominentRim) 8.dp else 4.dp)
+            val strength = when {
+                isLight -> 0.10f
+                prominentRim -> 0.46f
+                else -> 0.30f
+            }
+            Shadow(radius = radius, offset = offset, color = Color.Black.copy(alpha = strength))
+        },
         onDrawSurface = if (surfaceTint == null && glow == null) {
             null
         } else {
@@ -231,7 +246,9 @@ fun Modifier.derbisChromeGlass(
 
 /** BitChord's edge hairline, drawn where the glass rim itself is not rendered. */
 internal val DerbisGlassEdgeWidth = 0.5.dp
-internal val DerbisGlassEdgeColor = Color.White.copy(alpha = 0.10f)
+
+internal fun derbisGlassEdgeColor(isLight: Boolean): Color =
+    if (isLight) Color.Black.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.10f)
 
 /**
  * The Taurus optical substrate, drawn locally by every lightweight glass surface.
@@ -253,7 +270,8 @@ private object DerbisOpticalSubstrate {
     val secondaryLight = Color(0xFF5E5CC6) // lightEnd
 
     val baseDark = Color(0xFF080A10)
-    val baseLight = Color(0xFFF5F8FD)
+    // iOS light field paints pure white underneath the blooms; kept here for parity.
+    val baseLight = Color(0xFFFFFFFF)
 
     fun base(isLight: Boolean): Color = if (isLight) baseLight else baseDark
     fun accent(isLight: Boolean): Color = if (isLight) accentLight else accentDark
@@ -397,7 +415,7 @@ fun Modifier.derbisLightweightGlass(
             }
         )
         .then(
-            if (hairline) Modifier.border(DerbisGlassEdgeWidth, DerbisGlassEdgeColor, shape) else Modifier
+            if (hairline) Modifier.border(DerbisGlassEdgeWidth, derbisGlassEdgeColor(isLight), shape) else Modifier
         )
 }
 
@@ -405,7 +423,9 @@ fun Modifier.derbisLightweightGlass(
 /** The tint a glass surface is filled with when the caller does not supply one. */
 internal fun defaultGlassSurfaceTint(isLight: Boolean): Color =
     if (isLight) {
-        Color(0xFFFAFAFA).copy(alpha = SURFACE_OPACITY)
+        // Taurus parity: the light film is a dense white over the field (the iOS default at
+        // 50 transparency is min(0.96, 0.56 + 0.34) = 0.90), not a faint wash.
+        Color.White.copy(alpha = 0.90f)
     } else {
         // Taurus parity: night chrome is a white film over the blurred page, not a dark slab —
         // matches the iOS surface film (white@0.065) with the reduced-transparency lift
