@@ -43,6 +43,7 @@ import com.yasuda.derbis.domain.DerbisCustomThemes
 import com.yasuda.derbis.domain.DerbisHomeStudioSettings
 import com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings
 import com.yasuda.derbis.domain.DerbisNavigationStudioSettings
+import com.yasuda.derbis.domain.DerbisTabBarConfig
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LibrarySort
 import com.yasuda.derbis.domain.LibrarySortDirection
@@ -124,6 +125,7 @@ data class DerbisPreferencesSnapshot(
     val miniPlayerStudioSettings: DerbisMiniPlayerStudioSettings = DerbisMiniPlayerStudioSettings(),
     val customThemes: List<DerbisCustomTheme> = emptyList(),
     val navigationStudioSettings: DerbisNavigationStudioSettings = DerbisNavigationStudioSettings(),
+    val tabBarConfig: DerbisTabBarConfig = DerbisTabBarConfig(),
     val endlessListeningEnabled: Boolean = true
 )
 
@@ -181,6 +183,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             mutable[KEY_HOME_STUDIO_SETTINGS] = snapshot.homeStudioSettings.encode()
             mutable[KEY_MINI_PLAYER_STUDIO_SETTINGS] = snapshot.miniPlayerStudioSettings.encode()
             mutable[KEY_NAVIGATION_STUDIO_SETTINGS] = snapshot.navigationStudioSettings.encode()
+            mutable[KEY_TAB_BAR_CONFIG] = snapshot.tabBarConfig.normalized().encode()
             mutable[KEY_CUSTOM_THEMES] = DerbisCustomThemes.encode(snapshot.customThemes)
             mutable[KEY_THEME_PRESET] = com.yasuda.derbis.ui.theme.DerbisThemes.normalize(snapshot.themePreset)
             mutable[KEY_THEME_ACCENT] = snapshot.themeAccent
@@ -897,6 +900,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
             miniPlayerStudioSettings = DerbisMiniPlayerStudioSettings.decode(preferences[KEY_MINI_PLAYER_STUDIO_SETTINGS]),
             customThemes = DerbisCustomThemes.decode(preferences[KEY_CUSTOM_THEMES]),
             navigationStudioSettings = DerbisNavigationStudioSettings.decode(preferences[KEY_NAVIGATION_STUDIO_SETTINGS]),
+            tabBarConfig = DerbisTabBarConfig.decode(preferences[KEY_TAB_BAR_CONFIG]),
             endlessListeningEnabled = preferences[KEY_ENDLESS_LISTENING] ?: true
         )
     }
@@ -1332,6 +1336,25 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         }
     }
 
+    val tabBarConfigFlow: kotlinx.coroutines.flow.Flow<DerbisTabBarConfig> = store.preferences
+        .map { preferences -> DerbisTabBarConfig.decode(preferences[KEY_TAB_BAR_CONFIG]) }
+        .distinctUntilChanged()
+
+    fun tabBarConfig(): DerbisTabBarConfig =
+        read { DerbisTabBarConfig.decode(it[KEY_TAB_BAR_CONFIG]) }
+
+    suspend fun setTabBarConfig(value: DerbisTabBarConfig): Boolean {
+        return try {
+            store.commit { it[KEY_TAB_BAR_CONFIG] = value.normalized().encode() }
+            true
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            Timber.w(error, "DataStore tab bar config write failed")
+            false
+        }
+    }
+
     suspend fun setAutomationSettings(value: DerbisAutomationSettings) {
         val normalized = value.normalized()
         try {
@@ -1436,6 +1459,7 @@ class DerbisPreferences internal constructor(private val store: DerbisPreference
         val KEY_HOME_STUDIO_SETTINGS = stringPreferencesKey("home_studio_settings")
         val KEY_MINI_PLAYER_STUDIO_SETTINGS = stringPreferencesKey("mini_player_studio_settings")
         val KEY_NAVIGATION_STUDIO_SETTINGS = stringPreferencesKey("navigation_studio_settings")
+        val KEY_TAB_BAR_CONFIG = stringPreferencesKey("tab_bar_config")
         val KEY_CUSTOM_THEMES = stringPreferencesKey("custom_themes")
         val KEY_THEME_PRESET = stringPreferencesKey("theme_preset")
         val KEY_THEME_ACCENT = intPreferencesKey("theme_accent")

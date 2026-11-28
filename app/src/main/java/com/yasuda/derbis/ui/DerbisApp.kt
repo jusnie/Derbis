@@ -344,6 +344,8 @@ import com.yasuda.derbis.ui.theme.PixelDesign
 import com.yasuda.derbis.ui.theme.SkinSelector
 import com.yasuda.derbis.ui.i18n.NavStudioText
 import com.yasuda.derbis.ui.i18n.navigationStudioCopy
+import com.yasuda.derbis.ui.i18n.tabBarCopy
+import com.yasuda.derbis.ui.i18n.TabBarText
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Groups
@@ -691,6 +693,7 @@ import com.yasuda.derbis.domain.OfflineDownloadTask
 import com.yasuda.derbis.domain.DerbisAudioPresets
 import com.yasuda.derbis.domain.DerbisAudioSettings
 import com.yasuda.derbis.domain.DerbisTab
+import com.yasuda.derbis.domain.DerbisDockActions
 import com.yasuda.derbis.domain.DerbisPersonalOrbit
 import com.yasuda.derbis.domain.ListeningPulse
 import com.yasuda.derbis.ui.pulse.ListeningPulseProCard
@@ -1195,8 +1198,8 @@ internal fun rememberDerbisTabEntries(): List<DerbisTabEntry> {
 }
 
 @Composable
-private fun RowScope.TabButton(
-    entry: DerbisTabEntry,
+private fun RowScope.DockTabButton(
+    entry: DerbisDockEntry,
     isSelected: Boolean,
     selectedTint: Color,
     compaction: () -> Float,
@@ -1213,7 +1216,7 @@ private fun RowScope.TabButton(
         } else {
             snap()
         },
-        label = "tab-selected-progress"
+        label = "dock-tab-selected-progress"
     )
     val iconScale by animateFloatAsState(
         targetValue = if (pressed) 0.88f else if (isSelected) 1.06f else 1f,
@@ -1222,17 +1225,17 @@ private fun RowScope.TabButton(
         } else {
             snap()
         },
-        label = "tab-icon-scale"
+        label = "dock-tab-icon-scale"
     )
     val iconTint by animateColorAsState(
         targetValue = if (isSelected) selectedTint else idleTint,
         animationSpec = if (animationsEnabled) tween(220) else snap(),
-        label = "tab-icon-tint"
+        label = "dock-tab-icon-tint"
     )
     val labelTint by animateColorAsState(
         targetValue = if (isSelected) selectedTint else idleTint,
         animationSpec = if (animationsEnabled) tween(220) else snap(),
-        label = "tab-label-tint"
+        label = "dock-tab-label-tint"
     )
 
     Box(
@@ -1242,6 +1245,7 @@ private fun RowScope.TabButton(
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
                 selected = isSelected
+                contentDescription = entry.spoken
             }
             .pressable(
                 interactionSource = interactionSource,
@@ -1260,7 +1264,7 @@ private fun RowScope.TabButton(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isSelected) entry.selectedIcon else entry.unselectedIcon,
+                    imageVector = entry.icon,
                     contentDescription = null,
                     tint = iconTint,
                     modifier = Modifier
@@ -1272,23 +1276,26 @@ private fun RowScope.TabButton(
                         }
                 )
             }
-            Text(
-                text = entry.label,
-                color = labelTint,
-                fontSize = 10.5.sp,
-                lineHeight = DerbisTypeRhythm.lineHeight(10.5.sp),
-                letterSpacing = 0.1.sp,
-                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(horizontal = 3.dp)
-                    .graphicsLayer { alpha = dockFade(compaction()) }
-            )
+            if (entry.label.isNotEmpty()) {
+                Text(
+                    text = entry.label,
+                    color = labelTint,
+                    fontSize = 10.5.sp,
+                    lineHeight = DerbisTypeRhythm.lineHeight(10.5.sp),
+                    letterSpacing = 0.1.sp,
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .graphicsLayer { alpha = dockFade(compaction()) }
+                )
+            }
         }
     }
 }
+
 @Composable
 internal fun ActiveTrackEqualizer(
     modifier: Modifier = Modifier,
@@ -1953,6 +1960,8 @@ fun DerbisApp(
     val miniPlayerStudio by viewModel.miniPlayerStudio.collectAsStateWithLifecycle()
     val customThemes by viewModel.customThemes.collectAsStateWithLifecycle()
     val navigationStudio by viewModel.navigationStudio.collectAsStateWithLifecycle()
+    val tabBarEditor by viewModel.tabBarEditor.collectAsStateWithLifecycle()
+    val librarySectionRequest by viewModel.librarySectionRequest.collectAsStateWithLifecycle()
     LaunchedEffect(youtubeMusicState.active?.id, state.languageCode) {
         youtubeMusicViewModel.loadHome(state.languageCode)
     }
@@ -2187,7 +2196,7 @@ fun DerbisApp(
             viewModel.clearBackupMessage()
         }
     }
-    val otherRootOverlayOpen = showYoutubeMusic || showLanguageRestartDialog || state.youtubeEngagement.comments.visible || state.showRecognition || state.showJam || state.showThemeStudio || state.showLyricsStudio || state.showHomeStudio || miniPlayerStudio.visible || navigationStudio.visible || state.showYourSound || state.showListeningInsights || state.showListeningRecap || state.sharedMediaPreview != null || showDownloadsFolder || state.playlistHitPreview != null || state.openPlaylist != null || state.showAlbum || state.showArtist || state.showQueue || state.showLyrics || state.showAudioQualityPanel
+    val otherRootOverlayOpen = showYoutubeMusic || showLanguageRestartDialog || state.youtubeEngagement.comments.visible || state.showRecognition || state.showJam || state.showThemeStudio || state.showLyricsStudio || state.showHomeStudio || miniPlayerStudio.visible || navigationStudio.visible || tabBarEditor.visible || state.showYourSound || state.showListeningInsights || state.showListeningRecap || state.sharedMediaPreview != null || showDownloadsFolder || state.playlistHitPreview != null || state.openPlaylist != null || state.showAlbum || state.showArtist || state.showQueue || state.showLyrics || state.showAudioQualityPanel
     val rootOverlayOpen = otherRootOverlayOpen || state.showSettings
     val settingsDockVisible = state.showSettings && !otherRootOverlayOpen
     BackHandler(enabled = rootOverlayOpen || state.selectedTab != DerbisTab.Home) {
@@ -2207,6 +2216,8 @@ fun DerbisApp(
             viewModel.closeHomeStudio()
         } else if (miniPlayerStudio.visible) {
             viewModel.closeMiniPlayerStudio()
+        } else if (tabBarEditor.visible) {
+            viewModel.closeTabBarEditor()
         } else if (navigationStudio.visible) {
             viewModel.closeNavigationStudio()
         } else if (state.showJam) {
@@ -2602,7 +2613,8 @@ fun DerbisApp(
                                         DerbisLibraryScreen(
                                             libraryViewModel, screenState, onOpenDownloads = { showDownloadsFolder = true },
                                             youtubeMusicAccount = youtubeMusicState.active,
-                                            onOpenYoutubeMusic = { showYoutubeMusic = true }
+                                            onOpenYoutubeMusic = { showYoutubeMusic = true },
+                                            librarySectionRequest = librarySectionRequest
                                         )
                                     }
                                     DerbisTab.Player -> Unit
@@ -2728,6 +2740,54 @@ fun DerbisApp(
                         if (state.showSettings) viewModel.closeSettings()
                         viewModel.selectTab(tab)
                     }
+                    // Shortcuts and custom tabs dispatch real actions; builtin slots behave like tabs.
+                    val dispatchDockAction: (DerbisDockEntry) -> Unit = { entry ->
+                        when (entry.action) {
+                            DerbisDockActions.Playlists -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("playlists")
+                            }
+                            DerbisDockActions.Downloads -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("downloads")
+                            }
+                            DerbisDockActions.Favorites -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("favorites")
+                            }
+                            DerbisDockActions.NowPlaying -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Player)
+                            }
+                            DerbisDockActions.Stats -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.openListeningInsights()
+                            }
+                            DerbisDockActions.Artists -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("artists")
+                            }
+                            DerbisDockActions.Recent -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("recent")
+                            }
+                            DerbisDockActions.Local -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.selectTab(DerbisTab.Library)
+                                viewModel.requestLibrarySection("local")
+                            }
+                            DerbisDockActions.Jam -> {
+                                if (state.showSettings) viewModel.closeSettings()
+                                viewModel.openJam()
+                            }
+                            else -> entry.tab?.let(selectDockTab)
+                        }
+                    }
                     val bottomTabsSlot: @Composable () -> Unit = {
                         Box(
                             modifier = if (miniMaxWidth.isFinite()) {
@@ -2741,7 +2801,9 @@ fun DerbisApp(
                                 BottomTabs(
                                     selected = backgroundTab,
                                     compaction = compactionProvider,
-                                    onSelect = selectDockTab
+                                    onSelect = selectDockTab,
+                                    dock = tabBarEditor.config,
+                                    onDockAction = dispatchDockAction
                                 )
                             } else {
                                 StyledBottomTabs(
@@ -2750,7 +2812,9 @@ fun DerbisApp(
                                     selected = backgroundTab,
                                     compaction = compactionProvider,
                                     onSelect = selectDockTab,
-                                    link = dockLink.takeIf { navStudio.style == NavStyle.ConnectedDock }
+                                    link = dockLink.takeIf { navStudio.style == NavStyle.ConnectedDock },
+                                    dock = tabBarEditor.config,
+                                    onDockAction = dispatchDockAction
                                 )
                             }
                         }
@@ -3120,6 +3184,9 @@ fun DerbisApp(
                     navigationStyle = navigationStudio.settings.style,
                     onOpenNavigationStudio = {
                         viewModel.openNavigationStudio()
+                    },
+                    onOpenTabBarEditor = {
+                        viewModel.openTabBarEditor()
                     },
                     onOpenAudioSettings = viewModel::openAudioQualityPanel,
                     onInterfaceSettings = viewModel::setInterfaceSettings,
@@ -3698,6 +3765,14 @@ fun DerbisApp(
                     settings = navigationStudio.settings,
                     onUpdate = viewModel::setNavigationStudioSettings,
                     onClose = viewModel::closeNavigationStudio
+                )
+            }
+
+            AnimatedVisibility(visible = tabBarEditor.visible, enter = overlayEnter, exit = overlayExit) {
+                TabBarEditorOverlay(
+                    config = tabBarEditor.config,
+                    onUpdate = viewModel::setTabBarConfig,
+                    onClose = viewModel::closeTabBarEditor
                 )
             }
 
@@ -21125,6 +21200,7 @@ private fun SettingsOverlay(
     onOpenMiniPlayerStudio: () -> Unit = {},
     navigationStyle: NavStyle = NavStyle.Original,
     onOpenNavigationStudio: () -> Unit = {},
+    onOpenTabBarEditor: () -> Unit = {},
     onOpenAudioSettings: () -> Unit,
     onInterfaceSettings: (DerbisInterfaceSettings) -> Unit,
     onRefreshMotionArtwork: () -> Unit,
@@ -21379,6 +21455,7 @@ private fun SettingsOverlay(
                                 SettingsStudioEntry("home", strings.homeStudioCopy.title, Icons.Rounded.Home, DerbisCyan, MaterialShapes.Clover4Leaf, onOpenHomeStudio),
                                 SettingsStudioEntry("mini_player", strings.miniPlayerStudioCopy[MiniStudioText.Title], Icons.Rounded.SmartDisplay, DerbisPink, MaterialShapes.Sunny, onOpenMiniPlayerStudio),
                                 SettingsStudioEntry("navigation", strings.navigationStudioCopy[NavStudioText.Title], Icons.Rounded.Dashboard, DerbisBlue, MaterialShapes.Pill, onOpenNavigationStudio),
+                                SettingsStudioEntry("tabbar", strings.tabBarCopy[TabBarText.Title], Icons.Rounded.GridView, DerbisCyan, MaterialShapes.Cookie4Sided, onOpenTabBarEditor),
                                 SettingsStudioEntry("lyrics", strings.lyricsStudio, Icons.Rounded.AutoAwesome, DerbisOrange, MaterialShapes.SoftBurst, onOpenLyricsStudio),
                                 SettingsStudioEntry("widget", strings.widgetStudioCopy[WidgetStudioText.Title], Icons.Rounded.Widgets, DerbisCyan, MaterialShapes.Gem) {
                                     studioContext.startActivity(WidgetStudioActivity.intent(studioContext))
@@ -21554,6 +21631,16 @@ private fun SettingsOverlay(
                                     subtitle = navigationStyleName(navigationStyle) + " · " + strings.navigationStudioCopy[NavStudioText.Subtitle],
                                     enabled = interfaceSettings.skin == DerbisSkin.Default,
                                     onClick = onOpenNavigationStudio
+                                )
+                            }
+                            item {
+                                SettingsButton(
+                                    icon = Icons.Rounded.GridView,
+                                    title = strings.tabBarCopy[TabBarText.Title],
+                                    subtitle = strings.tabBarCopy[TabBarText.Subtitle],
+                                    enabled = interfaceSettings.skin == DerbisSkin.Default ||
+                                        interfaceSettings.skin == DerbisSkin.LiquidGlass,
+                                    onClick = onOpenTabBarEditor
                                 )
                             }
                             item {
@@ -29040,16 +29127,18 @@ private fun BottomTabsScrim() {
 internal fun BottomTabs(
     selected: DerbisTab,
     compaction: () -> Float,
-    onSelect: (DerbisTab) -> Unit
+    onSelect: (DerbisTab) -> Unit,
+    dock: com.yasuda.derbis.domain.DerbisTabBarConfig? = null,
+    onDockAction: ((DerbisDockEntry) -> Unit)? = null
 ) {
-    val entries = rememberDerbisTabEntries()
+    val entries = rememberDockEntries(dock ?: com.yasuda.derbis.domain.DerbisTabBarConfig.default())
     val animationsEnabled = LocalAnimationsEnabled.current
     val haptics = LocalDerbisHaptics.current
     val isLight = DerbisIsLight
     val selectedTint = DerbisText
-    val selectedIndex = entries.indexOfFirst { it.tab == selected }.coerceAtLeast(0)
+    val selectedIndex = entries.indexOfFirst { derbisDockEntrySelected(it, derbisDockSelectionKey(selected)) }
     val indicatorPosition by animateFloatAsState(
-        targetValue = selectedIndex.toFloat(),
+        targetValue = (if (selectedIndex >= 0) selectedIndex else 0).toFloat(),
         animationSpec = if (animationsEnabled) {
             spring(dampingRatio = 0.76f, stiffness = Spring.StiffnessMediumLow)
         } else {
@@ -29057,7 +29146,11 @@ internal fun BottomTabs(
         },
         label = "tab-indicator-position"
     )
-    val indicatorColor = selectedTint.copy(alpha = if (isLight) 0.08f else 0.11f)
+    val indicatorColor = if (selectedIndex >= 0) {
+        selectedTint.copy(alpha = if (isLight) 0.08f else 0.11f)
+    } else {
+        Color.Transparent
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
             BoxWithConstraints(
@@ -29092,8 +29185,8 @@ internal fun BottomTabs(
                     verticalAlignment = Alignment.Top
                 ) {
                     entries.forEach { entry ->
-                        val isSelected = entry.tab == selected
-                        TabButton(
+                        val isSelected = derbisDockEntrySelected(entry, derbisDockSelectionKey(selected))
+                        DockTabButton(
                             entry = entry,
                             isSelected = isSelected,
                             selectedTint = selectedTint,
@@ -29102,7 +29195,7 @@ internal fun BottomTabs(
                                 if (!isSelected) {
                                     haptics.perform(DerbisHapticAction.SeekSnap)
                                 }
-                                onSelect(entry.tab)
+                                entry.tab?.let(onSelect) ?: onDockAction?.invoke(entry)
                             }
                         )
                     }

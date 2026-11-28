@@ -364,3 +364,8 @@ data class NavigationStudioState(
     val settings: com.yasuda.derbis.domain.DerbisNavigationStudioSettings = com.yasuda.derbis.domain.DerbisNavigationStudioSettings(),
     val visible: Boolean = false
 )
+
+data class TabBarState(
+    val config: com.yasuda.derbis.domain.DerbisTabBarConfig = com.yasuda.derbis.domain.DerbisTabBarConfig(),
+    val visible: Boolean = false
+)

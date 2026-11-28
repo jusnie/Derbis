@@ -60,6 +60,7 @@ import com.yasuda.derbis.domain.DerbisCustomThemes
 import com.yasuda.derbis.domain.DerbisHomeStudioSettings
 import com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings
 import com.yasuda.derbis.domain.DerbisNavigationStudioSettings
+import com.yasuda.derbis.domain.DerbisTabBarConfig
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.domain.LyricsProviderOrdering
 import com.yasuda.derbis.domain.PlayerBackgroundMode
@@ -1041,6 +1042,7 @@ class DerbisBackupManager(private val context: Context) {
             .put("homeStudioSettings", JSONObject(snapshot.homeStudioSettings.encode()))
             .put("miniPlayerStudioSettings", JSONObject(snapshot.miniPlayerStudioSettings.encode()))
             .put("navigationStudioSettings", JSONObject(snapshot.navigationStudioSettings.encode()))
+            .put("tabBarConfig", JSONObject(snapshot.tabBarConfig.encode()))
             .put("customThemes", JSONObject(DerbisCustomThemes.encode(snapshot.customThemes)))
             .put("videoQualityTarget", snapshot.videoQualityTarget.storageValue)
             .put("lyricsProviderOrdering", JSONArray(snapshot.lyricsProviderOrdering.encode()))
@@ -1110,6 +1112,10 @@ class DerbisBackupManager(private val context: Context) {
                 ?.toString()
                 ?.let(DerbisNavigationStudioSettings::decode)
                 ?: preferences.navigationStudioSettings(),
+            tabBarConfig = json.optJSONObject("tabBarConfig")
+                ?.toString()
+                ?.let(DerbisTabBarConfig::decode)
+                ?: preferences.tabBarConfig(),
             customThemes = json.optJSONObject("customThemes")
                 ?.toString()
                 ?.let(DerbisCustomThemes::decode)

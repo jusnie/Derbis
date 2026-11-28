@@ -389,7 +389,12 @@ extension View {
 }
 
 struct DerbisTabBarItemSpec: Equatable, Identifiable {
+    /// Unique slot tag (system UITabBar index); doubles as the Int binding selector.
     let id: Int
+    /// Catalog action behind the slot ("home", "playlists", ...). Shortcuts dispatch actions
+    /// instead of switching tabs.
+    let action: String
+    /// Empty when icons-only mode blanks the label.
     let title: String
     let symbol: String
 }
@@ -399,7 +404,7 @@ struct DerbisLiquidGlassTabBar: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     let items: [DerbisTabBarItemSpec]
-    @Binding var selectedId: Int
+    @Binding var selectedId: Int?
     var onLongPressFirstItem: (() -> Void)? = nil
 
     var body: some View {
@@ -439,13 +444,13 @@ struct DerbisLiquidGlassTabBar: View {
 
 private struct DerbisSystemTabBarRepresentable: UIViewRepresentable {
     let items: [DerbisTabBarItemSpec]
-    let selectedId: Int
+    let selectedId: Int?
     let accentColor: UIColor
     let onSelect: (Int) -> Void
     var onLongPressFirstItem: (() -> Void)?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onSelect: onSelect)
+        Coordinator(selectedId: selectedId, onSelect: onSelect)
     }
 
     func makeUIView(context: Context) -> DerbisTabBarHostView {
@@ -458,19 +463,27 @@ private struct DerbisSystemTabBarRepresentable: UIViewRepresentable {
 
     func updateUIView(_ uiView: DerbisTabBarHostView, context: Context) {
         context.coordinator.onSelect = onSelect
+        context.coordinator.targetTag = selectedId
         uiView.onLongPressFirstItem = onLongPressFirstItem
         uiView.configure(items: items, selectedId: selectedId, accentColor: accentColor)
     }
 
     final class Coordinator: NSObject, UITabBarDelegate {
         var onSelect: (Int) -> Void
+        var targetTag: Int?
 
-        init(onSelect: @escaping (Int) -> Void) {
+        init(selectedId: Int?, onSelect: @escaping (Int) -> Void) {
             self.onSelect = onSelect
+            self.targetTag = selectedId
         }
 
         func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
             onSelect(item.tag)
+            // Shortcuts never hold the selection: snap the highlight back to the builtin slot.
+            let target = tabBar.items?.first(where: { $0.tag == targetTag })
+            if tabBar.selectedItem !== target {
+                tabBar.selectedItem = target
+            }
         }
     }
 }
@@ -515,7 +528,7 @@ private final class DerbisTabBarHostView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(items: [DerbisTabBarItemSpec], selectedId: Int, accentColor: UIColor) {
+    func configure(items: [DerbisTabBarItemSpec], selectedId: Int?, accentColor: UIColor) {
         if bar.tintColor != accentColor {
             bar.tintColor = accentColor
         }
@@ -539,8 +552,8 @@ private final class DerbisTabBarHostView: UIView {
             setNeedsLayout()
         }
 
-        if let target = barItems.first(where: { $0.tag == selectedId }),
-           bar.selectedItem !== target {
+        let target = barItems.first(where: { $0.tag == selectedId })
+        if bar.selectedItem !== target {
             bar.selectedItem = target
         }
     }
@@ -582,9 +595,10 @@ extension View {
 
 private struct DerbisLensTabBar: View {
     @EnvironmentObject private var theme: ThemeManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let items: [DerbisTabBarItemSpec]
-    @Binding var selectedId: Int
+    @Binding var selectedId: Int?
     var onLongPressFirstItem: (() -> Void)? = nil
 
     @State private var isHoldingLens: Bool = false
@@ -596,8 +610,8 @@ private struct DerbisLensTabBar: View {
             let totalWidth = max(1, geo.size.width)
             let count = max(1, items.count)
             let slotWidth = totalWidth / CGFloat(count)
-            let activeIndex = items.firstIndex(where: { $0.id == selectedId }) ?? 0
-            let restingCenterX = (CGFloat(activeIndex) + 0.5) * slotWidth
+            let activeIndex: Int? = selectedId.flatMap { id in items.firstIndex(where: { $0.id == id }) }
+            let restingCenterX = (CGFloat(activeIndex ?? Int.max / 2) + 0.5) * slotWidth
             let clampedLensX = min(totalWidth - slotWidth * 0.48, max(slotWidth * 0.48, lensX))
             let dropletWidth = min(slotWidth + 14, max(76, slotWidth * 1.08))
 
@@ -607,7 +621,7 @@ private struct DerbisLensTabBar: View {
                     intensity: .chrome
                 )
 
-                if !isHoldingLens {
+                if !isHoldingLens && activeIndex != nil {
                     Capsule()
                         .fill(theme.accent.opacity(0.18))
                         .overlay(
@@ -616,7 +630,7 @@ private struct DerbisLensTabBar: View {
                         )
                         .frame(width: max(54, slotWidth - 10), height: 48)
                         .position(x: restingCenterX, y: geo.size.height / 2)
-                        .animation(.spring(response: 0.34, dampingFraction: 0.78), value: selectedId)
+                        .animation(reduceMotion ? nil : .spring(response: 0.34, dampingFraction: 0.78), value: selectedId)
                 }
 
                 HStack(spacing: 0) {
@@ -634,7 +648,7 @@ private struct DerbisLensTabBar: View {
                         .foregroundColor(selected ? theme.accent : Color.white.opacity(0.68))
                         .scaleEffect(magnified ? 1.16 : 1.0)
                         .offset(y: magnified ? -2 : 0)
-                        .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.72), value: magnified)
+                        .animation(reduceMotion ? nil : .interactiveSpring(response: 0.24, dampingFraction: 0.72), value: magnified)
                         .frame(width: slotWidth, height: geo.size.height)
                     }
                 }
@@ -652,7 +666,7 @@ private struct DerbisLensTabBar: View {
                         )
                         .clipShape(Capsule())
 
-                        if activeIndex < items.count {
+                        if let activeIndex, activeIndex < items.count {
                             let activeSpec = items[activeIndex]
                             VStack(spacing: 3) {
                                 Image(systemName: activeSpec.symbol)

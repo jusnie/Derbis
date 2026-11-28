@@ -29,6 +29,9 @@ struct RootView: View {
     @State private var showingJamSheetFromRoot: Bool = false
     @State private var isTabBarMinimized: Bool = false
     @State private var miniDragOffset: CGFloat = 0
+    /// Bumped on every tab-bar dispatch so the lens bar's selection re-resolves to the builtin
+    /// slot even when the action did not change the visible tab (e.g. Jam, Now Playing).
+    @State private var dispatchNonce: Int = 0
 
     private var activeBottomOverlayInset: CGFloat {
         if player.currentTrack != nil {
@@ -175,16 +178,17 @@ struct RootView: View {
             if isTabBarMinimized, theme.tabBarMinimizesOnScroll, let current = player.currentTrack {
                 HStack(spacing: 8) {
                     Menu {
-                        ForEach(MainTab.allCases) { tab in
+                        ForEach(tabBarSpecs) { spec in
                             Button {
                                 HapticsAndGesturesService.shared.playSelectionTick()
-                                activeTab = tab
+                                dispatchTabBarEntry(spec)
                             } label: {
-                                Label(tab.rawValue, systemImage: tab.icon)
+                                Label(spec.title.isEmpty ? DerbisDockCatalog.defaultLabel(for: spec.action) : spec.title,
+                                      systemImage: spec.symbol)
                             }
                         }
                     } label: {
-                        Image(systemName: activeTab.icon)
+                        Image(systemName: tabBarSpecs.first(where: { $0.action == activeTabActionKey })?.symbol ?? activeTab.icon)
                             .font(.system(size: 17, weight: .bold))
                             .foregroundColor(theme.accent)
                             .derbisGlassCircle(size: 46)
@@ -386,20 +390,21 @@ struct RootView: View {
 
     private var derbisPillNavigationDock: some View {
         HStack(spacing: 6) {
-            ForEach(MainTab.allCases) { tab in
-                let selected = activeTab == tab
+            ForEach(tabBarSpecs) { spec in
+                let selected = spec.action == activeTabActionKey
+                let showsTitle = !spec.title.isEmpty && (selected || !theme.isPixelSkin)
                 Button {
                     HapticsAndGesturesService.shared.playSelectionTick()
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.80)) {
-                        activeTab = tab
+                        dispatchTabBarEntry(spec)
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: tab.icon)
+                        Image(systemName: spec.symbol)
                             .font(.system(size: theme.hideTabLabels ? 18 : 15.5, weight: selected ? .bold : .semibold))
 
-                        if !theme.hideTabLabels && (selected || !theme.isPixelSkin) {
-                            Text(theme.isTorqueSkin ? tab.rawValue.uppercased() : tab.rawValue)
+                        if showsTitle {
+                            Text(theme.isTorqueSkin ? spec.title.uppercased() : spec.title)
                                 .font(theme.font(size: 11.5, weight: selected ? .bold : .semibold))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -454,16 +459,17 @@ struct RootView: View {
             if isTabBarMinimized, theme.tabBarMinimizesOnScroll, let current = player.currentTrack {
                 HStack(spacing: 10) {
                     Menu {
-                        ForEach(MainTab.allCases) { tab in
+                        ForEach(tabBarSpecs) { spec in
                             Button {
                                 HapticsAndGesturesService.shared.playSelectionTick()
-                                activeTab = tab
+                                dispatchTabBarEntry(spec)
                             } label: {
-                                Label(tab.rawValue, systemImage: tab.icon)
+                                Label(spec.title.isEmpty ? DerbisDockCatalog.defaultLabel(for: spec.action) : spec.title,
+                                      systemImage: spec.symbol)
                             }
                         }
                     } label: {
-                        Image(systemName: activeTab.icon)
+                        Image(systemName: tabBarSpecs.first(where: { $0.action == activeTabActionKey })?.symbol ?? activeTab.icon)
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(theme.accent)
                             .derbisGlassCircle(size: 48)
@@ -612,23 +618,81 @@ struct RootView: View {
         )
     }
 
-    private var tabBarSpecs: [DerbisTabBarItemSpec] {
-        MainTab.allCases.enumerated().map { idx, tab in
-            DerbisTabBarItemSpec(id: idx, title: theme.hideTabLabels ? "" : tab.rawValue, symbol: tab.icon)
+    /// Stable selection key for the builtin tab the user is on; shortcuts never hold selection.
+    private var activeTabActionKey: String {
+        switch activeTab {
+        case .home: return DerbisDockCatalog.home
+        case .search: return DerbisDockCatalog.explore
+        case .library: return DerbisDockCatalog.library
+        case .settings: return DerbisDockCatalog.settings
         }
     }
 
-    private var selectedTabIndexBinding: Binding<Int> {
-        Binding<Int>(
+    /// Resolved dock entries straight from the persisted tab bar config.
+    /// Icons-only mode (and the legacy "hide tab labels" toggle) blanks the labels.
+    private var tabBarSpecs: [DerbisTabBarItemSpec] {
+        let config = theme.tabBarConfig
+        let iconsOnly = config.mode == .iconsOnly || theme.hideTabLabels
+        return config.enabledItems().enumerated().map { index, item in
+            let customLabel = item.label?.trimmingCharacters(in: .whitespaces)
+            let resolvedLabel = (customLabel?.isEmpty == false) ? customLabel! : DerbisDockCatalog.defaultLabel(for: item.action)
+            let iconId = item.icon ?? DerbisDockCatalog.defaultIcon(for: item.action)
+            return DerbisTabBarItemSpec(
+                id: index,
+                action: item.action,
+                title: iconsOnly ? "" : resolvedLabel,
+                symbol: DerbisDockIcons.symbol(for: iconId)
+            )
+        }
+    }
+
+    /// Dispatch a tapped slot: builtins switch tabs; shortcuts fire real app actions.
+    private func dispatchTabBarEntry(_ spec: DerbisTabBarItemSpec) {
+        dispatchNonce += 1
+        switch spec.action {
+        case DerbisDockCatalog.home:
+            activeTab = .home
+        case DerbisDockCatalog.explore:
+            activeTab = .search
+        case DerbisDockCatalog.library:
+            activeTab = .library
+        case DerbisDockCatalog.settings:
+            activeTab = .settings
+        case DerbisDockCatalog.playlists:
+            activeTab = .library
+            TabBarCommandCenter.shared.requestLibrarySection(.playlists)
+        case DerbisDockCatalog.favorites:
+            activeTab = .library
+            TabBarCommandCenter.shared.requestLibrarySection(.liked)
+        case DerbisDockCatalog.downloads:
+            activeTab = .library
+            TabBarCommandCenter.shared.requestLibrarySection(.offline)
+        case DerbisDockCatalog.stats:
+            activeTab = .library
+            TabBarCommandCenter.shared.requestLibrarySection(.stats)
+        case DerbisDockCatalog.local:
+            activeTab = .library
+            TabBarCommandCenter.shared.requestLibrarySection(.local)
+        case DerbisDockCatalog.jam:
+            HapticsAndGesturesService.shared.playControlTap(style: .medium)
+            showingJamSheetFromRoot = true
+        case DerbisDockCatalog.nowPlaying:
+            HapticsAndGesturesService.shared.playControlTap(style: .medium)
+            showingFullPlayer = true
+        default:
+            break
+        }
+    }
+
+    private var selectedTabIndexBinding: Binding<Int?> {
+        Binding<Int?>(
             get: {
-                MainTab.allCases.firstIndex(of: activeTab) ?? 0
+                _ = dispatchNonce
+                return tabBarSpecs.firstIndex { $0.action == activeTabActionKey }
             },
-            set: { newIdx in
-                guard MainTab.allCases.indices.contains(newIdx) else { return }
-                let chosen = MainTab.allCases[newIdx]
-                if activeTab != chosen {
-                    activeTab = chosen
-                }
+            set: { newValue in
+                guard let idx = newValue, tabBarSpecs.indices.contains(idx) else { return }
+                dispatchTabBarEntry(tabBarSpecs[idx])
             }
         )
     }

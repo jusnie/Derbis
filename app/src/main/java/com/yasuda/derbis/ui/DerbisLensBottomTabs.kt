@@ -58,7 +58,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yasuda.derbis.domain.DerbisTab
 import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.derbisGlass
 import com.yasuda.derbis.ui.theme.DerbisActivePalette
@@ -77,14 +76,18 @@ import kotlinx.coroutines.withTimeoutOrNull
  * icon magnifies, and the resting capsule hides. Releasing snaps back to the resting capsule.
  *
  * The bar itself is a floating capsule of real page glass — it is not a full-width dock.
+ *
+ * Slots are [DerbisDockEntry]s so builtin tabs, library-section shortcuts and user-added custom
+ * tabs all render through the same path. [selectedKey] is the [DerbisDockEntry.key] of the
+ * current builtin tab (shortcuts never hold the selection).
  */
 @Composable
 internal fun DerbisLiquidGlassTabs(
-    entries: List<DerbisTabEntry>,
-    selected: DerbisTab,
+    entries: List<DerbisDockEntry>,
+    selectedKey: String,
     applySystemInset: Boolean,
     modifier: Modifier,
-    onSelect: (DerbisTabEntry, Boolean) -> Unit
+    onSelect: (DerbisDockEntry, Boolean) -> Unit
 ) {
     if (entries.isEmpty()) {
         Spacer(modifier)
@@ -98,7 +101,7 @@ internal fun DerbisLiquidGlassTabs(
     val dockGutter = 16.dp
     var lensPositionPx by remember { mutableFloatStateOf(0f) }
     var isHoldingLens by remember { mutableStateOf(false) }
-    val selectedHolder = rememberUpdatedState(entries.indexOfFirst { it.tab == selected }.coerceAtLeast(0))
+    val selectedHolder = rememberUpdatedState(entries.indexOfFirst { derbisDockEntrySelected(it, selectedKey) }.coerceAtLeast(0))
     val onSelectHolder = rememberUpdatedState(onSelect)
 
     val dockModifier = modifier.fillMaxWidth()
@@ -182,16 +185,30 @@ internal fun DerbisLiquidGlassTabs(
         ) {
             val slotWidth = maxWidth / entries.size.toFloat()
             val totalWidth = maxWidth
-            val selectedIndex = entries.indexOfFirst { it.tab == selected }.coerceAtLeast(0)
+            val selectedIndex = entries.indexOfFirst { derbisDockEntrySelected(it, selectedKey) }
+            val animationsEnabled = LocalAnimationsEnabled.current
             val indicatorWidth = maxOf(54.dp, slotWidth - 10.dp)
+            val restingTarget = if (selectedIndex >= 0) {
+                slotWidth * selectedIndex.toFloat() + (slotWidth - indicatorWidth) * 0.5f
+            } else {
+                0.dp
+            }
             val restingX by animateDpAsState(
-                targetValue = slotWidth * selectedIndex.toFloat() + (slotWidth - indicatorWidth) * 0.5f,
-                animationSpec = spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow),
+                targetValue = restingTarget,
+                animationSpec = if (animationsEnabled) {
+                    spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow)
+                } else {
+                    androidx.compose.animation.core.snap()
+                },
                 label = "derbis-lens-resting"
             )
             val restingAlpha by animateFloatAsState(
-                targetValue = if (isHoldingLens) 0f else 1f,
-                animationSpec = spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow),
+                targetValue = if (isHoldingLens || selectedIndex < 0) 0f else 1f,
+                animationSpec = if (animationsEnabled) {
+                    spring(dampingRatio = 0.9f, stiffness = Spring.StiffnessMediumLow)
+                } else {
+                    androidx.compose.animation.core.snap()
+                },
                 label = "derbis-lens-resting-alpha"
             )
 
@@ -211,16 +228,25 @@ internal fun DerbisLiquidGlassTabs(
             // The items: icon over label, selected magnifies while the lens is up.
             Row(Modifier.fillMaxSize()) {
                 entries.forEach { entry ->
-                    val active = entry.tab == selected
+                    val active = derbisDockEntrySelected(entry, selectedKey)
                     val magnified = isHoldingLens && active
+                    val lensAnimationsEnabled = LocalAnimationsEnabled.current
                     val itemScale by animateFloatAsState(
                         targetValue = if (magnified) 1.16f else 1f,
-                        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
+                        animationSpec = if (lensAnimationsEnabled) {
+                            spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium)
+                        } else {
+                            androidx.compose.animation.core.snap()
+                        },
                         label = "derbis-lens-item-scale"
                     )
                     val itemOffsetY by animateDpAsState(
                         targetValue = if (magnified) (-2).dp else 0.dp,
-                        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
+                        animationSpec = if (lensAnimationsEnabled) {
+                            spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium)
+                        } else {
+                            androidx.compose.animation.core.snap()
+                        },
                         label = "derbis-lens-item-offset"
                     )
                     val tint = if (active) DerbisCyan else Color.White.copy(alpha = 0.68f)
@@ -235,8 +261,8 @@ internal fun DerbisLiquidGlassTabs(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = if (active) entry.selectedIcon else entry.unselectedIcon,
-                            contentDescription = entry.label,
+                            imageVector = entry.icon,
+                            contentDescription = entry.spoken,
                             tint = tint,
                             modifier = Modifier
                                 .size(if (entry.label.isEmpty()) 20.dp else 18.dp)
@@ -282,7 +308,7 @@ internal fun DerbisLiquidGlassTabs(
                 val clampedX = lensPositionPx
                     .coerceIn(slotPx * 0.48f, totalPx - slotPx * 0.48f)
                 val dropletOffsetPx = clampedX - with(density) { dropletWidth.toPx() } / 2f
-                val activeEntry = entries[selectedIndex]
+                val activeEntry = entries[if (selectedIndex >= 0) selectedIndex else 0]
                 Box(
                     modifier = Modifier
                         .offset { IntOffset(dropletOffsetPx.toInt(), -with(density) { 4.dp.toPx() }.toInt()) }
@@ -321,7 +347,7 @@ internal fun DerbisLiquidGlassTabs(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = activeEntry.selectedIcon,
+                            imageVector = activeEntry.icon,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(if (activeEntry.label.isEmpty()) 21.dp else 19.dp)

@@ -27,11 +27,22 @@ import com.yasuda.derbis.ui.components.DerbisGlassIntensity
 import com.yasuda.derbis.ui.components.derbisGlass
 
 @Composable
-internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (DerbisTab) -> Unit, applySystemInset: Boolean) {
+internal fun PrismBottomTabs(
+    tuning: NavTuning,
+    selected: DerbisTab,
+    onSelect: (DerbisTab) -> Unit,
+    applySystemInset: Boolean,
+    dock: com.yasuda.derbis.domain.DerbisTabBarConfig? = null,
+    onDockAction: ((DerbisDockEntry) -> Unit)? = null
+) {
     val all = rememberDerbisTabEntries()
     val entries = remember(all, tuning.order, tuning.hidden) {
         tuning.visibleOrder().mapNotNull { tab -> all.firstOrNull { it.tab == tab } }
     }
+    // The glass dock renders from the tab-bar config (builtins, shortcuts and custom tabs);
+    // every other skin keeps the builtin-only entries.
+    val dockEntries = rememberDockEntries(dock ?: com.yasuda.derbis.domain.DerbisTabBarConfig.default())
+    val selectedDockKey = derbisDockSelectionKey(selected)
     val haptics = LocalDerbisHaptics.current
     val measuredHeight = LocalPixelNavigationHeight.current
     val density = LocalDensity.current
@@ -41,11 +52,19 @@ internal fun PrismBottomTabs(tuning: NavTuning, selected: DerbisTab, onSelect: (
         if (!active && tuning.haptics) haptics.perform(DerbisHapticAction.SeekSnap)
         onSelect(entry.tab)
     }
+    val lensSelect: (DerbisDockEntry, Boolean) -> Unit = { entry, active ->
+        if (!active && tuning.haptics) haptics.perform(DerbisHapticAction.SeekSnap)
+        if (onDockAction != null) {
+            onDockAction(entry)
+        } else {
+            entry.tab?.let(onSelect)
+        }
+    }
     if (SkinBottomTabs(entries, selected, applySystemInset, skinModifier, skinSelect)) return
     if (DerbisIsLiquidGlass) {
         // The Liquid Glass bar is a floating lens dock, not a full-width surface: drag to
         // scrub, hold to magnify the active tab under a droplet of glass.
-        DerbisLiquidGlassTabs(entries, selected, applySystemInset, skinModifier, skinSelect)
+        DerbisLiquidGlassTabs(dockEntries, selectedDockKey, applySystemInset, skinModifier, lensSelect)
         return
     }
     val dockShape = if (torque) RectangleShape else RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)

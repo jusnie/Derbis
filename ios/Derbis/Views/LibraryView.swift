@@ -98,6 +98,10 @@ struct LibraryView: View {
                 ListeningReceiptSheet()
                     .environmentObject(theme)
             }
+            .onChange(of: TabBarCommandCenter.shared.librarySectionRequest) { request in
+                guard let request else { return }
+                selectedTab = request.section
+            }
         }
     }
 

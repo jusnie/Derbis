@@ -106,6 +106,14 @@ final class ThemeManager: ObservableObject {
         didSet { UserDefaults.standard.set(hideTabLabels, forKey: "derbis.hideTabLabels") }
     }
 
+    /// Persisted tab bar layout: which tabs appear, in what order, icons-only vs. names,
+    /// plus any custom tabs the user added. See Models/TabBarConfig.swift.
+    @Published var tabBarConfig: TabBarConfig {
+        didSet {
+            UserDefaults.standard.set(tabBarConfig.encode(), forKey: "derbis.tabBarConfig")
+        }
+    }
+
     @Published var lyricsTranslationLanguage: LyricsTranslationLanguage {
         didSet { UserDefaults.standard.set(lyricsTranslationLanguage.rawValue, forKey: "derbis.lyricsTranslationLanguage") }
     }
@@ -298,6 +306,8 @@ final class ThemeManager: ObservableObject {
         }
 
         self.hideTabLabels = defaults.bool(forKey: "derbis.hideTabLabels")
+
+        self.tabBarConfig = TabBarConfig.decode(from: defaults.string(forKey: "derbis.tabBarConfig")).normalized()
 
         let savedTransLang = defaults.string(forKey: "derbis.lyricsTranslationLanguage") ?? LyricsTranslationLanguage.english.rawValue
         self.lyricsTranslationLanguage = LyricsTranslationLanguage(rawValue: savedTransLang) ?? .english

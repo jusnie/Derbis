@@ -74,6 +74,7 @@ struct SettingsView: View {
     @State private var showingJamSheet: Bool = false
     @State private var showingListeningStatsSheet: Bool = false
     @State private var showingReceiptSheet: Bool = false
+    @State private var showingTabBarEditor: Bool = false
     @State private var statusBanner: String?
 
     var body: some View {
@@ -163,6 +164,10 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingAudioStudioSheet) {
                 AudioEffectsSheet()
+                    .environmentObject(theme)
+            }
+            .fullScreenCover(isPresented: $showingTabBarEditor) {
+                TabBarEditorView()
                     .environmentObject(theme)
             }
             .sheet(isPresented: $showingGoogleAccountSheet) {
@@ -765,6 +770,35 @@ struct SettingsView: View {
                     }
                 }
                 .derbisToggleTint()
+
+                Divider()
+
+                Button {
+                    haptics.playSelectionTick()
+                    showingTabBarEditor = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(theme.accent)
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(theme.accent.opacity(0.16)))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Tab Bar")
+                                .font(theme.font(size: 14, weight: .semibold))
+                                .foregroundColor(theme.primaryText)
+                            Text("Which tabs appear, in what order, icons or names, and your own custom tabs")
+                                .font(theme.font(size: 12))
+                                .foregroundColor(theme.secondaryText)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
 
                 Divider()
 

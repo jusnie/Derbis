@@ -67,6 +67,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -285,7 +286,8 @@ internal fun DerbisLibraryScreen(
     state: DerbisUiState,
     onOpenDownloads: () -> Unit,
     youtubeMusicAccount: com.yasuda.derbis.data.youtubemusic.YoutubeMusicAccount? = null,
-    onOpenYoutubeMusic: () -> Unit = {}
+    onOpenYoutubeMusic: () -> Unit = {},
+    librarySectionRequest: Pair<String, Long>? = null
 ) {
     val strings = LocalDerbisStrings.current
     val colors = MaterialTheme.colorScheme
@@ -324,6 +326,22 @@ internal fun DerbisLibraryScreen(
     var pendingDownloadDelete by remember { mutableStateOf<DownloadedTrack?>(null) }
     var showImportPlaylistCard by rememberSaveable { mutableStateOf(true) }
     var openSmartCollectionName by rememberSaveable { mutableStateOf<String?>(null) }
+    var handledSectionRequestNonce by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(librarySectionRequest) {
+        val request = librarySectionRequest ?: return@LaunchedEffect
+        val (section, nonce) = request
+        if (nonce <= handledSectionRequestNonce) return@LaunchedEffect
+        handledSectionRequestNonce = nonce
+        when (section) {
+            "playlists" -> categoryName = LibraryCategory.Playlists.name
+            "downloads" -> categoryName = LibraryCategory.Offline.name
+            "favorites" -> openSmartCollectionName = SMART_COLLECTION_FAVORITES
+            "recent" -> openSmartCollectionName = SMART_COLLECTION_RECENT
+            "artists" -> categoryName = LibraryCategory.Artists.name
+            "local" -> categoryName = LibraryCategory.Device.name
+            else -> Unit
+        }
+    }
     val collectionStrings = remember(strings.code) { DerbisPersonalCollectionCatalog.forCode(strings.code) }
     val personalCollections by viewModel.personalCollections.summaries.collectAsStateWithLifecycle()
     val personalCollectionSyncing by viewModel.personalCollections.syncingIds.collectAsStateWithLifecycle()

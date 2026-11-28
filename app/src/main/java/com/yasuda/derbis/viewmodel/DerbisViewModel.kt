@@ -43,6 +43,7 @@ import com.yasuda.derbis.domain.DerbisCustomThemes
 import com.yasuda.derbis.domain.DerbisHomeStudioSettings
 import com.yasuda.derbis.domain.DerbisMiniPlayerStudioSettings
 import com.yasuda.derbis.domain.DerbisNavigationStudioSettings
+import com.yasuda.derbis.domain.DerbisTabBarConfig
 import com.yasuda.derbis.domain.DerbisYtMusicPairing
 import com.yasuda.derbis.domain.DerbisLyricsStudioSettings
 import com.yasuda.derbis.data.DerbisHomeSnapshotCache
@@ -1059,6 +1060,8 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     private var miniPlayerStudioMutationGeneration = 0L
     private var pendingNavigationStudioWrites = 0
     private var navigationStudioMutationGeneration = 0L
+    private var pendingTabBarConfigWrites = 0
+    private var tabBarConfigMutationGeneration = 0L
     private val smartOfflineSettingsMutationId = AtomicLong()
     @Volatile private var pendingSmartOfflineSettings: DerbisSmartOfflineSettings? = null
     private val recommendationFeedbackMutationMutex = Mutex()
@@ -1591,6 +1594,12 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
     val miniPlayerStudio: StateFlow<MiniPlayerStudioState> = _miniPlayerStudio.asStateFlow()
     private val _navigationStudio = MutableStateFlow(NavigationStudioState(settings = startupSettings.navigationStudioSettings))
     val navigationStudio: StateFlow<NavigationStudioState> = _navigationStudio.asStateFlow()
+
+    private val _tabBarEditor = MutableStateFlow(TabBarState(config = startupSettings.tabBarConfig))
+    val tabBarEditor: StateFlow<TabBarState> = _tabBarEditor.asStateFlow()
+
+    private val _librarySectionRequest = MutableStateFlow<Pair<String, Long>?>(null)
+    val librarySectionRequest: StateFlow<Pair<String, Long>?> = _librarySectionRequest.asStateFlow()
     private val _customThemes = MutableStateFlow(
         DerbisCustomThemes.normalized(startupSettings.customThemes).also(DerbisThemes::setCustomThemes)
     )
@@ -1657,6 +1666,13 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
             preferences.navigationStudioSettingsFlow.collect { settings ->
                 if (pendingNavigationStudioWrites == 0 && settings == preferences.navigationStudioSettings()) {
                     _navigationStudio.update { it.copy(settings = settings) }
+                }
+            }
+        }
+        viewModelScope.launch {
+            preferences.tabBarConfigFlow.collect { config ->
+                if (pendingTabBarConfigWrites == 0 && config == preferences.tabBarConfig()) {
+                    _tabBarEditor.update { it.copy(config = config) }
                 }
             }
         }
@@ -3086,6 +3102,38 @@ class DerbisViewModel(application: Application) : AndroidViewModel(application) 
 
     fun closeNavigationStudio() {
         _navigationStudio.update { it.copy(visible = false) }
+    }
+
+    fun openTabBarEditor() {
+        _tabBarEditor.update { it.copy(visible = true) }
+    }
+
+    fun closeTabBarEditor() {
+        _tabBarEditor.update { it.copy(visible = false) }
+    }
+
+    fun requestLibrarySection(section: String) {
+        _librarySectionRequest.value = section to System.currentTimeMillis()
+    }
+
+    fun setTabBarConfig(config: DerbisTabBarConfig) {
+        val normalized = config.normalized()
+        val previous = _tabBarEditor.value.config
+        if (normalized == previous) return
+        val generation = ++tabBarConfigMutationGeneration
+        pendingTabBarConfigWrites += 1
+        _tabBarEditor.update { it.copy(config = normalized) }
+        viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            try {
+                val saved = preferences.setTabBarConfig(normalized)
+                if (generation == tabBarConfigMutationGeneration) {
+                    val resolved = if (saved) normalized else preferences.tabBarConfig()
+                    _tabBarEditor.update { it.copy(config = resolved) }
+                }
+            } finally {
+                pendingTabBarConfigWrites -= 1
+            }
+        }
     }
 
     fun setNavigationStudioSettings(settings: DerbisNavigationStudioSettings) {
