@@ -88,7 +88,10 @@ private val TorqueShapes = Shapes(
 
 internal val PrismShapes: Shapes get() = if (DerbisIsTorque) TorqueShapes else if (DerbisIsSpotify) SpotifyShapes else if (DerbisIsAppleMusic) AppleMusicShapes else if (DerbisIsYouTubeMusic) YouTubeMusicShapes else if (DerbisIsIvory) IvoryShapes else PrismRoundShapes
 
-internal val PrismTypography = derbisTypographyFor(DerbisFontPreset.Outfit).let { base ->
+// Taurus parity: the iOS glass skin is set in the system SF Pro. SF Pro cannot be bundled,
+// so the glass skin uses the app's designated legal SF-Pro substitute — Inter with the full
+// 400-900 range (see AppleMusic13SfProFallbackFont) — instead of Outfit's geometric display.
+internal val PrismTypography = typographyForFamily(AppleMusic13SfProFallbackFont).let { base ->
     base.copy(
         displaySmall = base.displaySmall.copy(fontWeight = FontWeight.Normal, letterSpacing = (-1.2).sp),
         headlineLarge = base.headlineLarge.copy(fontWeight = FontWeight.Normal, letterSpacing = (-1.0).sp),
